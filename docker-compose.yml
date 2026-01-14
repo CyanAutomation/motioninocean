@@ -2,9 +2,7 @@ version: '3.8'
 
 services:
   camera:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/CyanAutomation/MotionInOcean:latest
     volumes:
       - /run/udev:/run/udev:ro
     ports:
