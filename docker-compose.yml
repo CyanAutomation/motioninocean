@@ -1,6 +1,6 @@
 services:
   motioninocean:
-    image: ghcr.io/CyanAutomation/MotionInOcean:latest
+    image: ghcr.io/cyanautomation/motioninocean:v0.0.1
     platform: linux/arm64
     restart: unless-stopped
 
