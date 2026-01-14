@@ -1,11 +1,8 @@
 name: Build and publish Docker image
 
 on:
-  push:
-    branches: [ "main" ]
-    tags:
-      - "v*.*.*"
-  workflow_dispatch:
+  # Manual trigger
+  workflow_dispatch: {}
 
 jobs:
   build:
