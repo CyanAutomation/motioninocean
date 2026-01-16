@@ -1,12 +1,12 @@
 services:
   motioninocean:
-    build: .
-
+    image: ghcr.io/cyanautomation/motioninocean:latest
+    platform: linux/arm64
     restart: unless-stopped
     container_name: motioninocean
 
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
 
     env_file:
       - .env
@@ -18,17 +18,17 @@ services:
     # - /dev/dma_heap: Required for libcamera memory management on modern Pi OS
     # - /dev/vchiq: Required for camera ISP on Raspberry Pi
     # - /dev/video*: Camera device nodes (indices may vary by Pi model)
-    # devices:
-    #   - /dev/dma_heap:/dev/dma_heap
-    #   - /dev/vchiq:/dev/vchiq
-    #   - /dev/video0:/dev/video0
-    #   - /dev/video10:/dev/video10
-    #   - /dev/video11:/dev/video11
-    #   - /dev/video12:/dev/video12
-    #   - /dev/video13:/dev/video13
-    #   - /dev/video14:/dev/video14
-    #   - /dev/video15:/dev/video15
-    #   - /dev/video16:/dev/video16
+    devices:
+      - /dev/dma_heap:/dev/dma_heap
+      - /dev/vchiq:/dev/vchiq
+      - /dev/video0:/dev/video0
+      - /dev/video10:/dev/video10
+      - /dev/video11:/dev/video11
+      - /dev/video12:/dev/video12
+      - /dev/video13:/dev/video13
+      - /dev/video14:/dev/video14
+      - /dev/video15:/dev/video15
+      - /dev/video16:/dev/video16
 
     # Fallback to privileged mode if explicit device access is insufficient
     # Uncomment the line below if device mappings don't work on your hardware

@@ -27,7 +27,9 @@ RUN apt-get update && \
         python3-opencv \
         python3-flask \
         python3-pip \
-        curl && \
+        curl \
+        gcc \
+        python3-dev && \
     pip3 install --break-system-packages picamera2 && \
     apt-get clean && \
     apt-get autoremove -y && \

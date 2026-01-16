@@ -95,6 +95,33 @@ mkdir -p ~/containers/motioninocean
 cd ~/containers/motioninocean
 ```
 
+### Configure environment variables
+
+Create a `.env` file with your desired configuration:
+
+```bash
+cp .env.example .env
+nano .env  # Edit as needed
+```
+
+Or create `.env` manually with your preferred settings:
+
+```bash
+cat > .env << 'EOF'
+RESOLUTION=640x480
+FPS=30
+EDGE_DETECTION=false
+TZ=Europe/London
+EOF
+```
+
+**Configuration options:**
+
+* `RESOLUTION` - Camera resolution (e.g., `640x480`, `1280x720`, `1920x1080`). Maximum `4096x4096`.
+* `FPS` - Frame rate limit. `0` uses camera default. Maximum recommended: `120`.
+* `EDGE_DETECTION` - Set to `true` to enable Canny edge detection (adds CPU overhead).
+* `TZ` - Timezone for logging timestamps (e.g., `America/New_York`, `Asia/Tokyo`).
+
 ### docker-compose.yml example
 
 ```yaml
@@ -105,7 +132,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "8000:8000"
+      - "8000:8000"  # Accessible on all network interfaces
 
     devices:
       # These device mappings are for camera access.
@@ -118,12 +145,26 @@ services:
       - /dev/video11
       - /dev/video12
 
-    environment:
-      - TZ=Europe/London
-      - EDGE_DETECTION=false # Set to 'true' to enable Canny edge detection
+    env_file:
+      - .env  # See .env.example for configuration options
 
     volumes:
       - /run/udev:/run/udev:ro
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M  # Appropriate for Raspberry Pi 4
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
     logging:
       driver: json-file
@@ -131,6 +172,13 @@ services:
         max-size: "10m"
         max-file: "3"
 ```
+
+**Network access notes:**
+
+* The service binds to `0.0.0.0:8000` and is accessible on your local network
+* For localhost-only access, change port mapping to `"127.0.0.1:8000:8000"`
+* **Security:** Do not expose port 8000 to the internet without authentication
+* Consider using a reverse proxy (nginx, Caddy) with authentication for remote access
 
 Start it:
 
@@ -162,12 +210,19 @@ The repo has future intent, to include a GitHub Actions workflow that:
 
 ## Healthchecks
 
-The container may optionally expose a lightweight healthcheck endpoint or respond at `/`.
+The container exposes two health endpoints:
 
-For homelab-style “is it alive?” status in `docker ps`, we recommend:
+* `/health` - Basic liveness check (returns 200 if service is running)
+* `/ready` - Readiness check (returns 200 only if camera is initialized and streaming)
 
-* HTTP curl-based healthcheck *if the endpoint exists*, or
-* TCP port open check if the service doesn’t provide a clean 200 response.
+The docker-compose configuration includes a healthcheck that monitors the `/health` endpoint. Container status will show as "healthy" or "unhealthy" in `docker ps` output.
+
+To manually check health status:
+
+```bash
+curl http://localhost:8000/health
+curl http://localhost:8000/ready
+```
 
 ---
 
@@ -175,14 +230,24 @@ For homelab-style “is it alive?” status in `docker ps`, we recommend:
 
 This container requires access to host camera devices.
 
-The current default approach uses:
+The recommended approach uses:
 
-* `privileged: true`
-* `/run/udev` mount
+* Explicit `devices:` mappings (not privileged mode)
+* `/run/udev` mount (read-only)
 
-This is acceptable for trusted home networks, but should be hardened if used in more sensitive environments.
+**Important security considerations:**
 
-Future improvements should aim to reduce privilege by replacing privileged mode with explicit `devices:` mappings where possible.
+* The service binds to all network interfaces (`0.0.0.0:8000`) for homelab access
+* Suitable for trusted home networks behind a firewall
+* **Do not** expose directly to the internet without authentication
+* Consider using a reverse proxy with authentication for remote access
+* The container runs with minimal privileges and only requires camera device access
+
+For maximum security on localhost-only setups, change the port binding in docker-compose.yml to:
+```yaml
+ports:
+  - "127.0.0.1:8000:8000"
+```
 
 ---
 
