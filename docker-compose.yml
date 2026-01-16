@@ -6,7 +6,7 @@ services:
     container_name: motioninocean
 
     ports:
-      - "127.0.0.1:8000:8000"
+      - "8000:8000"
 
     env_file:
       - .env
@@ -39,6 +39,15 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
 
     logging:
       driver: json-file

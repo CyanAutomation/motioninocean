@@ -31,8 +31,16 @@ fps_str = os.environ.get("FPS", "0")  # 0 = use camera default
 # Parse resolution
 try:
     resolution = tuple(map(int, resolution_str.split('x')))
-    logger.info(f"Camera resolution set to {resolution}")
-except ValueError:
+    # Validate resolution dimensions
+    if len(resolution) != 2 or resolution[0] <= 0 or resolution[1] <= 0:
+        logger.warning(f"Invalid RESOLUTION dimensions {resolution}. Using default 640x480.")
+        resolution = (640, 480)
+    elif resolution[0] > 4096 or resolution[1] > 4096:
+        logger.warning(f"RESOLUTION {resolution} exceeds maximum 4096x4096. Using default 640x480.")
+        resolution = (640, 480)
+    else:
+        logger.info(f"Camera resolution set to {resolution}")
+except (ValueError, TypeError):
     logger.warning("Invalid RESOLUTION format. Using default 640x480.")
     resolution = (640, 480)
 
@@ -43,8 +51,16 @@ logger.info(f"Edge detection: {edge_detection}")
 # Parse FPS
 try:
     fps = int(fps_str)
-    logger.info(f"Frame rate limited to {fps} FPS" if fps > 0 else "Using camera default FPS")
-except ValueError:
+    # Validate FPS value
+    if fps < 0:
+        logger.warning(f"FPS cannot be negative ({fps}). Using camera default.")
+        fps = 0
+    elif fps > 120:
+        logger.warning(f"FPS {fps} exceeds recommended maximum of 120. Using 120.")
+        fps = 120
+    else:
+        logger.info(f"Frame rate limited to {fps} FPS" if fps > 0 else "Using camera default FPS")
+except (ValueError, TypeError):
     logger.warning("Invalid FPS format. Using camera default.")
     fps = 0
 
@@ -118,7 +134,13 @@ def health():
 def ready():
     """Readiness probe - checks if camera is actually streaming"""
     global picam2_instance
-    if picam2_instance is None or not picam2_instance.started:
+    try:
+        is_started = picam2_instance is not None and hasattr(picam2_instance, 'started') and picam2_instance.started
+    except (AttributeError, Exception) as e:
+        logger.warning(f"Error checking camera status: {e}")
+        is_started = False
+    
+    if not is_started:
         return jsonify({
             "status": "not_ready",
             "reason": "Camera not initialized or not started",
@@ -154,10 +176,13 @@ if __name__ == '__main__':
         logger.info("Initializing Picamera2...")
         picam2_instance = Picamera2()
         
-        logger.info(f"Configuring video: resolution={resolution}, format=BGR888")
+        logger.info(f"Configuring video: resolution={resolution}, format=BGR888, fps={fps if fps > 0 else 'default'}")
         # Configure for BGR format for opencv
+        config_params = {"size": resolution, "format": "BGR888"}
+        if fps > 0:
+            config_params["framerate"] = fps
         video_config = picam2_instance.create_video_configuration(
-            main={"size": resolution, "format": "BGR888"}
+            main=config_params
         )
         picam2_instance.configure(video_config)
 
