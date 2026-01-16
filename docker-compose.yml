@@ -9,6 +9,9 @@ services:
 
     env_file:
       - .env
+    environment:
+      - PICAMERA2_PREVIEW=null
+      - MOCK_CAMERA=true
 
     volumes:
       - /run/udev:/run/udev:ro

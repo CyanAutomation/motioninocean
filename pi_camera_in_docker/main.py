@@ -27,6 +27,10 @@ logger = logging.getLogger(__name__)
 resolution_str = os.environ.get("RESOLUTION", "640x480")
 edge_detection_str = os.environ.get("EDGE_DETECTION", "false")
 fps_str = os.environ.get("FPS", "0")  # 0 = use camera default
+mock_camera_str = os.environ.get("MOCK_CAMERA", "false")
+
+mock_camera = mock_camera_str.lower() in ('true', '1', 't')
+logger.info(f"Mock camera enabled: {mock_camera}")
 
 # Parse resolution
 try:
@@ -172,52 +176,74 @@ def video_feed():
 
 if __name__ == '__main__':
     picam2_instance = None
-    try:
-        logger.info("Initializing Picamera2...")
-        picam2_instance = Picamera2()
-        
-        logger.info(f"Configuring video: resolution={resolution}, format=BGR888, fps={fps if fps > 0 else 'default'}")
-        # Configure for BGR format for opencv
-        config_params = {"size": resolution, "format": "BGR888"}
-        if fps > 0:
-            config_params["framerate"] = fps
-        video_config = picam2_instance.create_video_configuration(
-            main=config_params
-        )
-        picam2_instance.configure(video_config)
+    if mock_camera:
+        logger.info("MOCK_CAMERA enabled. Skipping Picamera2 initialization and generating dummy frames.")
+        # Create a dummy black image
+        dummy_image = np.zeros((resolution[1], resolution[0], 3), dtype=np.uint8)
+        dummy_image_jpeg = cv2.imencode('.jpg', dummy_image)[1].tobytes()
 
-        if edge_detection:
-            logger.info("Enabling edge detection preprocessing")
-            picam2_instance.pre_callback = apply_edge_detection
+        # Simulate camera streaming for the StreamingOutput
+        def generate_mock_frames():
+            while True:
+                time.sleep(1 / (fps if fps > 0 else 10)) # Simulate FPS
+                output.write(dummy_image_jpeg)
         
-        logger.info("Starting camera recording...")
-        # Start recording
-        picam2_instance.start_recording(JpegEncoder(), FileOutput(output))
-        logger.info("Camera recording started successfully")
+        import threading
+        mock_thread = threading.Thread(target=generate_mock_frames)
+        mock_thread.daemon = True
+        mock_thread.start()
 
         # Start the Flask app
-        logger.info("Starting Flask server on 0.0.0.0:8000")
+        logger.info("Starting Flask server on 0.0.0.0:8000 with mock camera.")
         app.run(host='0.0.0.0', port=8000, threaded=True)
-        
-    except PermissionError as e:
-        logger.error(f"Permission denied accessing camera device: {e}")
-        logger.error("Ensure the container has proper device access (--device mappings or --privileged)")
-        raise
-    except RuntimeError as e:
-        logger.error(f"Camera initialization failed: {e}")
-        logger.error("Verify camera is enabled on the host and working (rpicam-hello test)")
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error during initialization: {e}", exc_info=True)
-        raise
-    finally:
-        # Stop recording safely
-        if picam2_instance is not None:
-            try:
-                if picam2_instance.started:
-                    logger.info("Stopping camera recording...")
-                    picam2_instance.stop_recording()
-                    logger.info("Camera recording stopped")
-            except Exception as e:
-                logger.error(f"Error during camera shutdown: {e}", exc_info=True)
-        logger.info("Application shutdown complete")
+
+    else:
+        try:
+            logger.info("Initializing Picamera2...")
+            picam2_instance = Picamera2()
+            
+            logger.info(f"Configuring video: resolution={resolution}, format=BGR888, fps={fps if fps > 0 else 'default'}")
+            # Configure for BGR format for opencv
+            config_params = {"size": resolution, "format": "BGR888"}
+            if fps > 0:
+                config_params["framerate"] = fps
+            video_config = picam2_instance.create_video_configuration(
+                main=config_params
+            )
+            picam2_instance.configure(video_config)
+
+            if edge_detection:
+                logger.info("Enabling edge detection preprocessing")
+                picam2_instance.pre_callback = apply_edge_detection
+            
+            logger.info("Starting camera recording...")
+            # Start recording
+            picam2_instance.start_recording(JpegEncoder(), FileOutput(output))
+            logger.info("Camera recording started successfully")
+
+            # Start the Flask app
+            logger.info("Starting Flask server on 0.0.0.0:8000")
+            app.run(host='0.0.0.0', port=8000, threaded=True)
+            
+        except PermissionError as e:
+            logger.error(f"Permission denied accessing camera device: {e}")
+            logger.error("Ensure the container has proper device access (--device mappings or --privileged)")
+            raise
+        except RuntimeError as e:
+            logger.error(f"Camera initialization failed: {e}")
+            logger.error("Verify camera is enabled on the host and working (rpicam-hello test)")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error during initialization: {e}", exc_info=True)
+            raise
+        finally:
+            # Stop recording safely
+            if picam2_instance is not None:
+                try:
+                    if picam2_instance.started:
+                        logger.info("Stopping camera recording...")
+                        picam2_instance.stop_recording()
+                        logger.info("Camera recording stopped")
+                except Exception as e:
+                    logger.error(f"Error during camera shutdown: {e}", exc_info=True)
+            logger.info("Application shutdown complete")
