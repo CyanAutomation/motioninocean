@@ -49,6 +49,49 @@ MotionInOcean solves this by building a container that installs and runs Picamer
 
 ---
 
+## Technology Stack Verification (2026)
+
+This project uses the **official and current** Raspberry Pi camera stack:
+
+- **libcamera** - Official camera subsystem (Bookworm standard since 2022)
+- **Picamera2** - Official Python library maintained by Raspberry Pi Foundation
+- **Debian Bookworm** - Latest stable Raspberry Pi OS base (ARM64)
+- **Python 3.11+** - Modern Python with proper async and type support
+
+### What We're NOT Using (Deprecated)
+
+- ❌ **picamera (v1.x)** - Deprecated library, only works with legacy camera stack
+- ❌ **raspistill/raspivid** - Command-line tools removed in Bookworm
+- ❌ **MMAL** - Legacy Multimedia Abstraction Layer, replaced by libcamera
+
+### Why This Matters
+
+The Raspberry Pi camera ecosystem changed significantly with Raspberry Pi OS Bullseye (2021) and continues in Bookworm (2023+):
+
+- **Legacy stack** (MMAL/raspistill) is no longer maintained or available
+- **Modern stack** (libcamera/picamera2) is required for Camera Module v3, HQ Camera, and future hardware
+- **Hardware ISP** acceleration only available through libcamera
+- All official Raspberry Pi documentation recommends this approach
+
+### Verification
+
+If you're unsure whether your host system uses the modern stack, check:
+
+```bash
+# Modern stack (✓ Correct)
+rpicam-hello --version   # Should work on Bookworm
+
+# Legacy stack (✗ Won't work on Bookworm)
+raspistill --help        # Command not found on Bookworm
+```
+
+**Official References:**
+- [Picamera2 Manual (PDF)](https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf)
+- [Raspberry Pi Camera Software Documentation](https://www.raspberrypi.com/documentation/computers/camera_software.html)
+- [libcamera Project](https://libcamera.org/)
+
+---
+
 ## Architecture & key concepts
 
 ### Runtime model
