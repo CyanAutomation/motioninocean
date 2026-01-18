@@ -1,17 +1,18 @@
+# MotionInOcean Docker Compose Configuration
+
 services:
   motioninocean:
-    image: ghcr.io/cyanautomation/motioninocean:latest
-    build: .
+    image: ghcr.io/cyanautomation/motioninocean:${MOTIONINOCEAN_IMAGE_TAG}
+    container_name: motioninocean
     platform: linux/arm64
     restart: unless-stopped
-    container_name: motioninocean
-
+    env_file: ./.env
+    security_opt:
+      - no-new-privileges:true
     ports:
-      - "127.0.0.1:8000:8000"
-
-    env_file:
-      - .env
-
+      - "127.0.0.1:${MOTIONINOCEAN_PORT}:8000"
+    environment:
+      - TZ=${TZ}
     volumes:
       - /run/udev:/run/udev:ro
 
@@ -47,19 +48,11 @@ services:
     # privileged: true
 
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/health >/dev/null || exit 1"]
+      interval: 2m
       timeout: 5s
       retries: 3
-
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '1.0'
-        reservations:
-          memory: 256M
-          cpus: '0.5'
+      start_period: 30s
 
     logging:
       driver: json-file
