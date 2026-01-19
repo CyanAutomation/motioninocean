@@ -29,7 +29,7 @@ resolution_str = os.environ.get("RESOLUTION", "640x480")
 edge_detection_str = os.environ.get("EDGE_DETECTION", "false")
 fps_str = os.environ.get("FPS", "0")  # 0 = use camera default
 mock_camera_str = os.environ.get("MOCK_CAMERA", "false")
-jpeg_quality_str = os.environ.get("JPEG_QUALITY", "80")
+jpeg_quality_str = os.environ.get("JPEG_QUALITY", "100")
 
 mock_camera = mock_camera_str.lower() in ('true', '1', 't')
 logger.info(f"Mock camera enabled: {mock_camera}")
@@ -75,13 +75,13 @@ try:
     jpeg_quality = int(jpeg_quality_str)
     # Validate JPEG quality value
     if jpeg_quality < 1 or jpeg_quality > 100:
-        logger.warning(f"JPEG_QUALITY {jpeg_quality} out of range (1-100). Using default 80.")
-        jpeg_quality = 80
+        logger.warning(f"JPEG_QUALITY {jpeg_quality} out of range (1-100). Using default 100.")
+        jpeg_quality = 100
     else:
         logger.info(f"JPEG quality set to {jpeg_quality}")
 except (ValueError, TypeError):
-    logger.warning("Invalid JPEG_QUALITY format. Using default 80.")
-    jpeg_quality = 80
+    logger.warning("Invalid JPEG_QUALITY format. Using default 100.")
+    jpeg_quality = 100
 
 def apply_edge_detection(request):
     try:
