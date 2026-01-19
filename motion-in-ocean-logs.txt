@@ -1,0 +1,42 @@
+2026-01-18T22:41:39.982344630Z [120:13:57.709917994] [1] [1;32m INFO [1;37mCamera [1;34mcamera_manager.cpp:330 [0mlibcamera v0.5.2+99-bfd68f78
+2026-01-18T22:41:40.047520949Z [120:13:57.792463880] [29] [1;31mERROR [1;37mMediaDevice [1;34mmedia_device.cpp:484 [0;32m/dev/media3[]: [0mFailed to open media device at /dev/media3: No such file or directory
+2026-01-18T22:41:40.047635844Z [120:13:57.792568619] [29] [1;32m INFO [1;37mDeviceEnumerator [1;34mdevice_enumerator.cpp:224 [0mUnable to populate media device /dev/media3 (No such file or directory), skipping
+2026-01-18T22:41:40.047653344Z [120:13:57.792602733] [29] [1;33m WARN [1;37mDeviceEnumerator [1;34mdevice_enumerator_udev.cpp:174 [0mFailed to add device for '/sys/devices/platform/soc/3f00b840.mailbox/bcm2835-codec/media3', skipping
+2026-01-18T22:41:40.048036102Z [120:13:57.793867307] [29] [1;31mERROR [1;37mMediaDevice [1;34mmedia_device.cpp:484 [0;32m/dev/media0[]: [0mFailed to open media device at /dev/media0: No such file or directory
+2026-01-18T22:41:40.048113914Z [120:13:57.793962619] [29] [1;32m INFO [1;37mDeviceEnumerator [1;34mdevice_enumerator.cpp:224 [0mUnable to populate media device /dev/media0 (No such file or directory), skipping
+2026-01-18T22:41:40.048132038Z [120:13:57.793996734] [29] [1;33m WARN [1;37mDeviceEnumerator [1;34mdevice_enumerator_udev.cpp:174 [0mFailed to add device for '/sys/devices/platform/soc/3f00b840.mailbox/bcm2835-isp/media0', skipping
+2026-01-18T22:41:40.048340162Z [120:13:57.794286055] [29] [1;31mERROR [1;37mMediaDevice [1;34mmedia_device.cpp:484 [0;32m/dev/media2[]: [0mFailed to open media device at /dev/media2: No such file or directory
+2026-01-18T22:41:40.048373547Z [120:13:57.794336835] [29] [1;32m INFO [1;37mDeviceEnumerator [1;34mdevice_enumerator.cpp:224 [0mUnable to populate media device /dev/media2 (No such file or directory), skipping
+2026-01-18T22:41:40.048388495Z [120:13:57.794365950] [29] [1;33m WARN [1;37mDeviceEnumerator [1;34mdevice_enumerator_udev.cpp:174 [0mFailed to add device for '/sys/devices/platform/soc/3f00b840.mailbox/bcm2835-isp/media2', skipping
+2026-01-18T22:41:40.050564157Z [120:13:57.796428644] [29] [1;31mERROR [1;37mMediaDevice [1;34mmedia_device.cpp:484 [0;32m/dev/media1[]: [0mFailed to open media device at /dev/media1: No such file or directory
+2026-01-18T22:41:40.050649417Z [120:13:57.796506768] [29] [1;32m INFO [1;37mDeviceEnumerator [1;34mdevice_enumerator.cpp:224 [0mUnable to populate media device /dev/media1 (No such file or directory), skipping
+2026-01-18T22:41:40.050665354Z [120:13:57.796538070] [29] [1;33m WARN [1;37mDeviceEnumerator [1;34mdevice_enumerator_udev.cpp:174 [0mFailed to add device for '/sys/devices/platform/soc/3f801000.csi/media1', skipping
+2026-01-18T22:41:40.091020699Z Traceback (most recent call last):
+2026-01-18T22:41:40.091149448Z   File "/app/pi_camera_in_docker/main.py", line 108, in <module>
+2026-01-18T22:41:40.097991849Z     picam2 = Picamera2()
+2026-01-18T22:41:40.103047022Z              ^^^^^^^^^^^
+2026-01-18T22:41:40.103155303Z   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 341, in __init__
+2026-01-18T22:41:40.107656990Z     camera_num = self.global_camera_info()[camera_num]['Num']
+2026-01-18T22:41:40.107785062Z                  ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+2026-01-18T22:41:40.107804698Z IndexError: list index out of range
+2026-01-18T22:42:37.251740685Z [120:14:54.995515082] [1] [1;32m INFO [1;37mCamera [1;34mcamera_manager.cpp:330 [0mlibcamera v0.5.2+99-bfd68f78
+2026-01-18T22:42:37.304300007Z [120:14:55.050050172] [29] [1;31mERROR [1;37mMediaDevice [1;34mmedia_device.cpp:484 [0;32m/dev/media3[]: [0mFailed to open media device at /dev/media3: No such file or directory
+2026-01-18T22:42:37.304416413Z [120:14:55.050144130] [29] [1;32m INFO [1;37mDeviceEnumerator [1;34mdevice_enumerator.cpp:224 [0mUnable to populate media device /dev/media3 (No such file or directory), skipping
+2026-01-18T22:42:37.304439121Z [120:14:55.050182671] [29] [1;33m WARN [1;37mDeviceEnumerator [1;34mdevice_enumerator_udev.cpp:174 [0mFailed to add device for '/sys/devices/platform/soc/3f00b840.mailbox/bcm2835-codec/media3', skipping
+2026-01-18T22:42:37.305564634Z [120:14:55.051434329] [29] [1;31mERROR [1;37mMediaDevice [1;34mmedia_device.cpp:484 [0;32m/dev/media0[]: [0mFailed to open media device at /dev/media0: No such file or directory
+2026-01-18T22:42:37.305674164Z [120:14:55.051506360] [29] [1;32m INFO [1;37mDeviceEnumerator [1;34mdevice_enumerator.cpp:224 [0mUnable to populate media device /dev/media0 (No such file or directory), skipping
+2026-01-18T22:42:37.305701248Z [120:14:55.051539641] [29] [1;33m WARN [1;37mDeviceEnumerator [1;34mdevice_enumerator_udev.cpp:174 [0mFailed to add device for '/sys/devices/platform/soc/3f00b840.mailbox/bcm2835-isp/media0', skipping
+2026-01-18T22:42:37.305942131Z [120:14:55.051827139] [29] [1;31mERROR [1;37mMediaDevice [1;34mmedia_device.cpp:484 [0;32m/dev/media2[]: [0mFailed to open media device at /dev/media2: No such file or directory
+2026-01-18T22:42:37.306002912Z [120:14:55.051884743] [29] [1;32m INFO [1;37mDeviceEnumerator [1;34mdevice_enumerator.cpp:224 [0mUnable to populate media device /dev/media2 (No such file or directory), skipping
+2026-01-18T22:42:37.306024162Z [120:14:55.051916305] [29] [1;33m WARN [1;37mDeviceEnumerator [1;34mdevice_enumerator_udev.cpp:174 [0mFailed to add device for '/sys/devices/platform/soc/3f00b840.mailbox/bcm2835-isp/media2', skipping
+2026-01-18T22:42:37.308048992Z [120:14:55.053927645] [29] [1;31mERROR [1;37mMediaDevice [1;34mmedia_device.cpp:484 [0;32m/dev/media1[]: [0mFailed to open media device at /dev/media1: No such file or directory
+2026-01-18T22:42:37.308121752Z [120:14:55.054003530] [29] [1;32m INFO [1;37mDeviceEnumerator [1;34mdevice_enumerator.cpp:224 [0mUnable to populate media device /dev/media1 (No such file or directory), skipping
+2026-01-18T22:42:37.308143574Z [120:14:55.054037280] [29] [1;33m WARN [1;37mDeviceEnumerator [1;34mdevice_enumerator_udev.cpp:174 [0mFailed to add device for '/sys/devices/platform/soc/3f801000.csi/media1', skipping
+2026-01-18T22:42:37.346390965Z Traceback (most recent call last):
+2026-01-18T22:42:37.346529818Z   File "/app/pi_camera_in_docker/main.py", line 108, in <module>
+2026-01-18T22:42:37.354132995Z     picam2 = Picamera2()
+2026-01-18T22:42:37.354413618Z              ^^^^^^^^^^^
+2026-01-18T22:42:37.354445597Z   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 341, in __init__
+2026-01-18T22:42:37.359054575Z     camera_num = self.global_camera_info()[camera_num]['Num']
+2026-01-18T22:42:37.359301553Z                  ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+2026-01-18T22:42:37.359429468Z IndexError: list index out of range
