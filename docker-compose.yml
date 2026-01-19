@@ -19,14 +19,16 @@ services:
     # Device access for Raspberry Pi camera
     # - /dev/dma_heap/*: Required for libcamera memory management on modern Pi OS (directory with subdirectories)
     # - /dev/vchiq: Required for camera ISP on Raspberry Pi
-    # - /dev/video*: Camera device nodes (indices may vary by Pi model)
+    # - /dev/video*: Camera device nodes (indices vary significantly by Pi model)
+    # - /dev/media*: Media controller devices (required for libcamera camera enumeration)
     #
     # IMPORTANT: Run ./detect-devices.sh to identify which devices exist on your system
-    # Devices that don't exist will be skipped automatically with device_cgroup_rules
+    # Note: device_cgroup_rules below provide automatic access to entire device classes,
+    # but explicit mappings are kept for compatibility and documentation purposes.
     device_cgroup_rules:
       - 'c 253:* rmw'  # /dev/dma_heap/* (char device 253)
       - 'c 511:* rmw'  # /dev/vchiq
-      - 'c 81:* rmw'   # /dev/video* devices
+      - 'c 81:* rmw'   # /dev/video* devices (all indices automatically)
       - 'c 250:* rmw'  # /dev/media* devices (media controllers for libcamera)
     
     devices:
@@ -37,7 +39,8 @@ services:
       - /dev/media1:/dev/media1
       - /dev/media2:/dev/media2
       - /dev/media3:/dev/media3
-      # Video devices (camera nodes) - enabled for Raspberry Pi 3A
+      # Video devices (camera nodes) - device indices vary by Pi model
+      # Raspberry Pi 3A typically uses: video0, 10-16, 18, 20-23, 31
       - /dev/video0:/dev/video0
       - /dev/video10:/dev/video10
       - /dev/video11:/dev/video11
@@ -46,6 +49,12 @@ services:
       - /dev/video14:/dev/video14
       - /dev/video15:/dev/video15
       - /dev/video16:/dev/video16
+      - /dev/video18:/dev/video18
+      - /dev/video20:/dev/video20
+      - /dev/video21:/dev/video21
+      - /dev/video22:/dev/video22
+      - /dev/video23:/dev/video23
+      - /dev/video31:/dev/video31
 
     # Fallback to privileged mode if explicit device access is insufficient
     # Uncomment the line below if device mappings don't work on your hardware

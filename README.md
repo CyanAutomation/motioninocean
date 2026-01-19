@@ -201,10 +201,17 @@ services:
 
     devices:
       # These device mappings are for camera access.
-      # The /dev/video* paths might change across reboots or different RPi models.
-      # /dev/dma_heap is essential for libcamera, used by picamera2 on modern Raspberry Pi OS.
+      # Device indices vary significantly by Pi model - run ./detect-devices.sh to identify your hardware.
+      # /dev/dma_heap: Memory management for libcamera (required)
+      # /dev/vchiq: VideoCore Host Interface for camera ISP (required)
+      # /dev/media*: Media controller devices for libcamera camera enumeration (required)
+      # /dev/video*: Camera device nodes (indices vary: Pi 3A uses 0,10-16,18,20-23,31)
       - /dev/dma_heap:/dev/dma_heap
       - /dev/vchiq:/dev/vchiq
+      - /dev/media0:/dev/media0
+      - /dev/media1:/dev/media1
+      - /dev/media2:/dev/media2
+      - /dev/media3:/dev/media3
       - /dev/video0:/dev/video0
       - /dev/video10:/dev/video10
       - /dev/video11:/dev/video11
@@ -213,6 +220,12 @@ services:
       - /dev/video14:/dev/video14
       - /dev/video15:/dev/video15
       - /dev/video16:/dev/video16
+      - /dev/video18:/dev/video18
+      - /dev/video20:/dev/video20
+      - /dev/video21:/dev/video21
+      - /dev/video22:/dev/video22
+      - /dev/video23:/dev/video23
+      - /dev/video31:/dev/video31
 
     env_file:
       - .env  # See .env.example for configuration options

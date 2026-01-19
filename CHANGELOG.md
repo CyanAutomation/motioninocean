@@ -5,6 +5,18 @@ All notable changes to motion-in-ocean will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-01-19
+
+### Fixed
+- Added missing `/dev/video18`, `/dev/video20-23`, and `/dev/video31` device mappings required for libcamera camera enumeration on Raspberry Pi 3A
+- Fixed camera initialization failure (IndexError: list index out of range) caused by incomplete device access
+- Improved `device_cgroup_rules` configuration with clarifying comments about automatic device access
+
+### Documentation
+- Enhanced docker-compose.yml device mapping comments to clarify Pi model variations
+- Updated README.md device configuration examples to include media controller devices
+- Added note about running `detect-devices.sh` script for hardware-specific device detection
+
 ## [1.0.0] - 2026-01-18
 
 ### Added
