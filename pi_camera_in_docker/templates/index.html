@@ -1,9 +1,111 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<title>motion-in-ocean - Camera Stream</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="motion-in-ocean - Raspberry Pi Camera Live Stream">
+  <title>motion-in-ocean - Camera Stream</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-<h1>motion-in-ocean Camera Stream</h1>
-<img src="{{ url_for('video_feed') }}" width="{{ width }}" height="{{ height }}" />
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <div class="header-title">
+        <div class="logo-icon">📹</div>
+        <h1>motion-in-ocean</h1>
+      </div>
+      <div class="connection-status">
+        <div id="status-indicator" class="status-indicator connecting"></div>
+        <span id="status-text" class="status-text">Connecting...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+    <!-- Video Section -->
+    <section class="video-section">
+      <div class="video-container">
+        <div class="video-wrapper">
+          <!-- Loading Overlay -->
+          <div class="loading-overlay">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading camera stream...</div>
+          </div>
+          
+          <!-- Video Stream -->
+          <img 
+            id="video-stream" 
+            class="video-stream" 
+            src="{{ url_for('video_feed') }}" 
+            alt="Camera Live Stream"
+            width="{{ width }}" 
+            height="{{ height }}"
+          />
+        </div>
+        
+        <!-- Video Controls -->
+        <div class="video-controls">
+          <button id="refresh-btn" class="control-btn" title="Refresh Stream">
+            <span class="control-btn-icon">↻</span>
+            <span class="control-btn-text">Refresh</span>
+          </button>
+          <button id="fullscreen-btn" class="control-btn" title="Toggle Fullscreen">
+            <span class="control-btn-icon">⛶</span>
+            <span class="control-btn-text">Fullscreen</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats Panel -->
+    <aside id="stats-panel" class="stats-panel">
+      <div class="stats-header">
+        <h2>Stream Statistics</h2>
+        <button id="toggle-stats-btn" class="toggle-stats-btn" title="Toggle Stats">▲</button>
+      </div>
+      
+      <div class="stats-content">
+        <!-- Performance Stats -->
+        <div class="stat-group">
+          <div class="stat-group-title">Performance</div>
+          <div class="stat-item">
+            <span class="stat-label">Current FPS</span>
+            <span id="fps-value" class="stat-value highlight">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Frames Captured</span>
+            <span id="frames-value" class="stat-value">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Uptime</span>
+            <span id="uptime-value" class="stat-value">--</span>
+          </div>
+        </div>
+
+        <!-- Stream Configuration -->
+        <div class="stat-group">
+          <div class="stat-group-title">Configuration</div>
+          <div class="stat-item">
+            <span class="stat-label">Resolution</span>
+            <span id="resolution-value" class="stat-value">{{ width }} × {{ height }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Edge Detection</span>
+            <span id="edge-detection-value" class="stat-badge disabled">Disabled</span>
+          </div>
+        </div>
+
+        <!-- Last Updated -->
+        <div id="last-updated" class="last-updated">
+          Fetching stats...
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- JavaScript -->
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

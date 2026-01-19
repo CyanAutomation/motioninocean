@@ -68,11 +68,11 @@ services:
     # privileged: true
 
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/ready >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8000/ready || exit 1"]
       interval: 2m
-      timeout: 5s
+      timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 1m
 
     logging:
       driver: json-file

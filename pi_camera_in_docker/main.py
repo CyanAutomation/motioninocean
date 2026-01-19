@@ -132,7 +132,7 @@ class StreamingOutput(io.BufferedIOBase):
             "edge_detection": edge_detection
         }
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 output = StreamingOutput()
 app.start_time = datetime.now()
 picam2_instance = None
