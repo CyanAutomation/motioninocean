@@ -101,31 +101,23 @@ jobs:
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           REPO_NAME=$(basename "${{ github.repository }}")
           
-          # Build release notes using heredoc
-          cat > /tmp/release_notes.md <<'EOF'
-${CHANGELOG_BODY}
-
-## Docker Images
-
-Pull the image:
-```bash
-docker pull ghcr.io/${REPO_LOWER}:${TAG_NAME}
-# or
-docker pull ghcr.io/${REPO_LOWER}:${VERSION}
-# or
-docker pull ghcr.io/${REPO_LOWER}:latest
-```
-
-View on GitHub Container Registry: https://github.com/${{ github.repository }}/pkgs/container/${REPO_NAME}
-EOF
-          
-          # Replace variables in the file
-          sed -i "s|\${CHANGELOG_BODY}|${CHANGELOG_BODY}|g" /tmp/release_notes.md
-          sed -i "s|\${REPO_LOWER}|${REPO_LOWER}|g" /tmp/release_notes.md
-          sed -i "s|\${TAG_NAME}|${TAG_NAME}|g" /tmp/release_notes.md
-          sed -i "s|\${VERSION}|${VERSION}|g" /tmp/release_notes.md
-          sed -i "s|\${{ github.repository }}|${{ github.repository }}|g" /tmp/release_notes.md
-          sed -i "s|\${REPO_NAME}|${REPO_NAME}|g" /tmp/release_notes.md
+          # Build release notes incrementally
+          {
+            echo "$CHANGELOG_BODY"
+            echo ""
+            echo "## Docker Images"
+            echo ""
+            echo "Pull the image:"
+            echo '```bash'
+            echo "docker pull ghcr.io/${REPO_LOWER}:${TAG_NAME}"
+            echo "# or"
+            echo "docker pull ghcr.io/${REPO_LOWER}:${VERSION}"
+            echo "# or"
+            echo "docker pull ghcr.io/${REPO_LOWER}:latest"
+            echo '```'
+            echo ""
+            echo "View on GitHub Container Registry: https://github.com/${{ github.repository }}/pkgs/container/${REPO_NAME}"
+          } > /tmp/release_notes.md
           
           echo "Release notes built successfully"
           echo "Release notes length: $(wc -c < /tmp/release_notes.md) bytes"
