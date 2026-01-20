@@ -173,6 +173,22 @@ def ready():
         **output.get_status()
     }), 200
 
+@app.route('/metrics')
+def metrics():
+    """Metrics endpoint - returns camera metrics in JSON format for monitoring"""
+    uptime = (datetime.now() - app.start_time).total_seconds()
+    status = output.get_status()
+    
+    return jsonify({
+        "camera_active": recording_started.is_set(),
+        "frames_captured": status["frames_captured"],
+        "current_fps": status["current_fps"],
+        "uptime_seconds": round(uptime, 2),
+        "resolution": status["resolution"],
+        "edge_detection": status["edge_detection"],
+        "timestamp": datetime.now().isoformat()
+    }), 200
+
 def gen():
     try:
         while True:
@@ -202,8 +218,8 @@ if __name__ == '__main__':
 
         # Simulate camera streaming for the StreamingOutput
         def generate_mock_frames():
-            global recording_started
-            recording_started = True  # Mark as started for mock mode
+            # Mark as started for mock mode using thread-safe Event
+            recording_started.set()
             while True:
                 time.sleep(1 / (fps if fps > 0 else 10)) # Simulate FPS
                 output.write(dummy_image_jpeg)

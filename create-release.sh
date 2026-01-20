@@ -162,6 +162,16 @@ else
     exit 1
 fi
 
+# Update 'latest' tag to point to this release
+echo -e "${BLUE}Updating 'latest' tag...${NC}"
+git tag -f latest
+if git push -f origin latest; then
+    echo -e "${GREEN}✓${NC} Updated 'latest' tag to point to v${NEW_VERSION}."
+else
+    echo -e "${RED}❌ Failed to push 'latest' tag.${NC}"
+    echo -e "${YELLOW}This is not critical, but you may want to manually run: git push -f origin latest${NC}"
+fi
+
 echo ""
 echo -e "${GREEN}✅ Release v${NEW_VERSION} created successfully!${NC}"
 echo ""

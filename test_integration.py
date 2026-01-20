@@ -123,6 +123,12 @@ def test_health_endpoints():
             "picam2_instance.started",
             "503"
         ],
+        "/metrics (monitoring)": [
+            "@app.route('/metrics')",
+            "camera_active",
+            "frames_captured",
+            "current_fps"
+        ],
         "/stream.mjpg (actual stream)": [
             "@app.route('/stream.mjpg')",
             "multipart/x-mixed-replace"
