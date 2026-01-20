@@ -11,6 +11,13 @@ class CameraStreamApp {
     this.isConnected = false;
     this.statsCollapsed = false;
     
+    // Retry/backoff configuration
+    this.retryAttempts = 0;
+    this.maxRetries = 5;
+    this.baseDelay = 1000; // 1 second base delay
+    this.maxDelay = 30000; // 30 seconds max delay
+    this.retryTimeout = null;
+    
     // DOM elements
     this.elements = {
       videoStream: null,
@@ -284,17 +291,36 @@ class CameraStreamApp {
   }
   
   /**
+   * Calculate exponential backoff delay
+   */
+  calculateBackoffDelay() {
+    const exponentialDelay = this.baseDelay * Math.pow(2, this.retryAttempts);
+    // Add jitter (random delay up to 20% of the base delay)
+    const jitter = Math.random() * this.baseDelay * 0.2;
+    return Math.min(exponentialDelay + jitter, this.maxDelay);
+  }
+  
+  /**
    * Fetch and update stats from /ready endpoint
    */
   async updateStats() {
     try {
-      const response = await fetch('/ready');
+      const response = await fetch('/ready', {
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
+      
+      // Reset retry attempts on success
+      this.retryAttempts = 0;
+      if (this.retryTimeout) {
+        clearTimeout(this.retryTimeout);
+        this.retryTimeout = null;
+      }
       
       // Update connection status if not already connected
       if (!this.isConnected) {
@@ -344,6 +370,21 @@ class CameraStreamApp {
       // Show fallback values
       if (this.elements.fpsValue) {
         this.elements.fpsValue.textContent = '--';
+      }
+      
+      // Implement exponential backoff retry
+      if (this.retryAttempts < this.maxRetries) {
+        this.retryAttempts++;
+        const delay = this.calculateBackoffDelay();
+        console.log(`Retrying in ${(delay / 1000).toFixed(1)}s (attempt ${this.retryAttempts}/${this.maxRetries})`);
+        
+        // Schedule retry
+        this.retryTimeout = setTimeout(() => {
+          this.updateStats();
+        }, delay);
+      } else {
+        console.warn('Max retry attempts reached. Will retry on next scheduled update.');
+        this.retryAttempts = 0; // Reset for next scheduled update
       }
     }
   }
