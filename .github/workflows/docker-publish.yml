@@ -57,8 +57,11 @@ jobs:
         id: changelog
         if: startsWith(github.ref, 'refs/tags/')
         run: |
+          set -e
           TAG_NAME=${GITHUB_REF#refs/tags/}
           VERSION=${TAG_NAME#v}
+          
+          echo "Extracting changelog for version: ${VERSION}"
           
           # Extract the section for this version from CHANGELOG.md
           if [ -f "CHANGELOG.md" ]; then
@@ -66,30 +69,41 @@ jobs:
             CHANGELOG_CONTENT=$(awk "/## \[${VERSION}\]/,/## \[.*\]/{if (/## \[${VERSION}\]/) {found=1; next} if (/## \[.*\]/ && found) exit; if (found) print}" CHANGELOG.md | sed '/^$/d')
             
             if [ -z "$CHANGELOG_CONTENT" ]; then
-              CHANGELOG_CONTENT="Release ${VERSION}"
+              echo "Warning: No changelog section found for version ${VERSION}"
+              CHANGELOG_CONTENT="Release ${VERSION} - See commit history for details."
+            else
+              echo "Found changelog section for version ${VERSION}"
             fi
           else
-            CHANGELOG_CONTENT="Release ${VERSION}"
+            echo "Warning: CHANGELOG.md not found"
+            CHANGELOG_CONTENT="Release ${VERSION} - See commit history for details."
           fi
           
           # Write to file to preserve multiline content
           echo "$CHANGELOG_CONTENT" > /tmp/changelog.txt
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+          
+          # Debug output
+          echo "Changelog content length: $(wc -c < /tmp/changelog.txt) bytes"
 
-      - name: Create GitHub Release
+      - name: Build release notes
         if: startsWith(github.ref, 'refs/tags/')
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG_NAME=${GITHUB_REF#refs/tags/}
+          set -e
           
           # Read changelog from file
           CHANGELOG_BODY=$(cat /tmp/changelog.txt)
           
-          # Add Docker image information to release notes
+          # Get variables
+          TAG_NAME="${{ steps.changelog.outputs.tag_name }}"
+          VERSION="${{ steps.changelog.outputs.version }}"
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          REPO_NAME=$(basename "${{ github.repository }}")
           
-          RELEASE_NOTES="$CHANGELOG_BODY
+          # Build release notes using heredoc
+          cat > /tmp/release_notes.md <<EOF
+${CHANGELOG_BODY}
 
 ## Docker Images
 
@@ -97,15 +111,64 @@ Pull the image:
 \`\`\`bash
 docker pull ghcr.io/${REPO_LOWER}:${TAG_NAME}
 # or
-docker pull ghcr.io/${REPO_LOWER}:${{ steps.changelog.outputs.version }}
+docker pull ghcr.io/${REPO_LOWER}:${VERSION}
 # or
 docker pull ghcr.io/${REPO_LOWER}:latest
 \`\`\`
 
-View on GitHub Container Registry: https://github.com/${{ github.repository }}/pkgs/container/$(basename ${{ github.repository }})"
+View on GitHub Container Registry: https://github.com/${{ github.repository }}/pkgs/container/${REPO_NAME}
+EOF
+          
+          echo "Release notes built successfully"
+          echo "Release notes length: $(wc -c < /tmp/release_notes.md) bytes"
 
-          # Create release using gh CLI
+      - name: Validate release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -e
+          
+          # Check if release notes file exists and is not empty
+          if [ ! -f /tmp/release_notes.md ]; then
+            echo "Error: Release notes file not found"
+            exit 1
+          fi
+          
+          if [ ! -s /tmp/release_notes.md ]; then
+            echo "Error: Release notes file is empty"
+            exit 1
+          fi
+          
+          # Check minimum length (at least 10 characters)
+          NOTES_LENGTH=$(wc -c < /tmp/release_notes.md)
+          if [ "$NOTES_LENGTH" -lt 10 ]; then
+            echo "Error: Release notes too short (${NOTES_LENGTH} bytes)"
+            exit 1
+          fi
+          
+          echo "✓ Release notes validation passed"
+          echo "  Length: ${NOTES_LENGTH} bytes"
+          
+          # Show preview (first 200 chars)
+          echo "  Preview:"
+          head -c 200 /tmp/release_notes.md
+          echo ""
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          
+          TAG_NAME="${{ steps.changelog.outputs.tag_name }}"
+          
+          echo "Creating GitHub Release for ${TAG_NAME}"
+          
+          # Create release using gh CLI with notes from file
           gh release create "${TAG_NAME}" \
             --repo "${{ github.repository }}" \
             --title "Release ${TAG_NAME}" \
-            --notes "$RELEASE_NOTES"
+            --notes-file /tmp/release_notes.md
+          
+          echo "✓ GitHub Release created successfully"
+          echo "  URL: https://github.com/${{ github.repository }}/releases/tag/${TAG_NAME}"
