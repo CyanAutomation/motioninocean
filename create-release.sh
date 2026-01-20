@@ -173,14 +173,208 @@ else
 fi
 
 echo ""
-echo -e "${GREEN}✅ Release v${NEW_VERSION} created successfully!${NC}"
+echo -e "${BLUE}⏳ Waiting for GitHub Actions workflow to start...${NC}"
+echo "This ensures the Docker image is built and published before completing."
 echo ""
-echo -e "${BLUE}Next steps:${NC}"
-echo "  1. GitHub Actions will build and publish the Docker image"
-echo "  2. Monitor the workflow: https://github.com/${REPO_SLUG}/actions"
-echo "  3. Create GitHub release notes: https://github.com/${REPO_SLUG}/releases/new?tag=v${NEW_VERSION}"
-echo ""
-echo -e "${BLUE}Docker image will be available at:${NC}"
-echo "  ghcr.io/${REPO_SLUG,,}:${NEW_VERSION}" # ,, converts to lowercase for ghcr.io
-echo "  ghcr.io/${REPO_SLUG,,}:latest"
+
+# Function to check if gh CLI is available
+check_gh_cli() {
+    if ! command -v gh &> /dev/null; then
+        echo -e "${YELLOW}⚠️  GitHub CLI (gh) is not installed.${NC}"
+        echo "Workflow verification requires the GitHub CLI."
+        echo "Install it from: https://cli.github.com/"
+        echo ""
+        echo -e "${YELLOW}Skipping workflow verification. Please manually check:${NC}"
+        echo "  https://github.com/${REPO_SLUG}/actions"
+        return 1
+    fi
+    
+    # Check if gh is authenticated
+    if ! gh auth status &> /dev/null; then
+        echo -e "${YELLOW}⚠️  GitHub CLI is not authenticated.${NC}"
+        echo "Please run: gh auth login"
+        echo ""
+        echo -e "${YELLOW}Skipping workflow verification. Please manually check:${NC}"
+        echo "  https://github.com/${REPO_SLUG}/actions"
+        return 1
+    fi
+    
+    return 0
+}
+
+# Function to rollback the release
+rollback_release() {
+    echo ""
+    echo -e "${RED}❌ Workflow failed or was cancelled.${NC}"
+    echo -e "${YELLOW}Rolling back release v${NEW_VERSION}...${NC}"
+    echo ""
+    
+    # Delete remote tags
+    echo -e "${BLUE}Deleting remote tags...${NC}"
+    if git push origin --delete "v${NEW_VERSION}" 2>/dev/null; then
+        echo -e "${GREEN}✓${NC} Deleted remote tag v${NEW_VERSION}"
+    else
+        echo -e "${YELLOW}⚠️  Could not delete remote tag v${NEW_VERSION} (may not exist)${NC}"
+    fi
+    
+    # Delete local tags
+    echo -e "${BLUE}Deleting local tags...${NC}"
+    if git tag -d "v${NEW_VERSION}" 2>/dev/null; then
+        echo -e "${GREEN}✓${NC} Deleted local tag v${NEW_VERSION}"
+    else
+        echo -e "${YELLOW}⚠️  Could not delete local tag v${NEW_VERSION}${NC}"
+    fi
+    
+    # Reset to previous commit
+    echo -e "${BLUE}Reverting release commit...${NC}"
+    if git reset --hard HEAD~1; then
+        echo -e "${GREEN}✓${NC} Reverted local commit"
+    else
+        echo -e "${RED}❌ Failed to revert local commit${NC}"
+    fi
+    
+    # Force push to remote to remove the commit
+    echo -e "${BLUE}Removing commit from remote...${NC}"
+    if git push -f origin "${CURRENT_BRANCH}"; then
+        echo -e "${GREEN}✓${NC} Removed commit from remote"
+    else
+        echo -e "${RED}❌ Failed to remove commit from remote${NC}"
+        echo -e "${YELLOW}You may need to manually revert: git push -f origin ${CURRENT_BRANCH}${NC}"
+    fi
+    
+    # Restore VERSION and CHANGELOG files
+    echo -e "${BLUE}Restoring VERSION and CHANGELOG files...${NC}"
+    git checkout HEAD -- "${VERSION_FILE}" "${CHANGELOG_FILE}" 2>/dev/null || true
+    echo -e "${GREEN}✓${NC} Restored files"
+    
+    echo ""
+    echo -e "${RED}🔄 Release rollback complete.${NC}"
+    echo "The repository has been restored to its state before the release."
+    exit 1
+}
+
+# Check if gh CLI is available and authenticated
+if check_gh_cli; then
+    # Wait a few seconds for the workflow to be triggered
+    sleep 5
+    
+    # Find the workflow run for this tag
+    WORKFLOW_NAME="Build and publish Docker image"
+    MAX_WAIT_MINUTES=15
+    MAX_WAIT_SECONDS=$((MAX_WAIT_MINUTES * 60))
+    POLL_INTERVAL=10
+    ELAPSED=0
+    
+    echo "Searching for workflow run (timeout: ${MAX_WAIT_MINUTES} minutes)..."
+    
+    WORKFLOW_RUN_ID=""
+    while [ $ELAPSED -lt $MAX_WAIT_SECONDS ]; do
+        # Get the latest workflow run for this tag
+        WORKFLOW_RUN_ID=$(gh run list \
+            --repo "${REPO_SLUG}" \
+            --workflow "${WORKFLOW_NAME}" \
+            --json databaseId,headBranch,conclusion,status \
+            --jq ".[] | select(.headBranch == \"v${NEW_VERSION}\") | .databaseId" \
+            --limit 1 2>/dev/null | head -1)
+        
+        if [ -n "${WORKFLOW_RUN_ID}" ]; then
+            echo -e "${GREEN}✓${NC} Found workflow run: ${WORKFLOW_RUN_ID}"
+            break
+        fi
+        
+        echo "  Waiting for workflow to start... (${ELAPSED}s elapsed)"
+        sleep $POLL_INTERVAL
+        ELAPSED=$((ELAPSED + POLL_INTERVAL))
+    done
+    
+    if [ -z "${WORKFLOW_RUN_ID}" ]; then
+        echo -e "${YELLOW}⚠️  Could not find workflow run after ${MAX_WAIT_MINUTES} minutes.${NC}"
+        echo "The workflow may not have been triggered or may be delayed."
+        echo ""
+        echo -e "${YELLOW}Please manually verify the workflow:${NC}"
+        echo "  https://github.com/${REPO_SLUG}/actions"
+        echo ""
+        echo -e "${YELLOW}Would you like to rollback this release? (y/N):${NC}"
+        read -r ROLLBACK_CONFIRM
+        if [[ "${ROLLBACK_CONFIRM}" =~ ^[Yy]$ ]]; then
+            rollback_release
+        else
+            echo "Continuing without verification. Please check the workflow manually."
+        fi
+    else
+        # Monitor the workflow
+        echo ""
+        echo -e "${BLUE}📊 Monitoring workflow progress...${NC}"
+        echo "View detailed logs: https://github.com/${REPO_SLUG}/actions/runs/${WORKFLOW_RUN_ID}"
+        echo ""
+        
+        WORKFLOW_STATUS=""
+        ELAPSED=0
+        while [ $ELAPSED -lt $MAX_WAIT_SECONDS ]; do
+            # Get workflow status
+            WORKFLOW_DATA=$(gh run view "${WORKFLOW_RUN_ID}" \
+                --repo "${REPO_SLUG}" \
+                --json status,conclusion 2>/dev/null)
+            
+            WORKFLOW_STATUS=$(echo "${WORKFLOW_DATA}" | jq -r '.status')
+            WORKFLOW_CONCLUSION=$(echo "${WORKFLOW_DATA}" | jq -r '.conclusion')
+            
+            case "${WORKFLOW_STATUS}" in
+                "completed")
+                    echo ""
+                    if [ "${WORKFLOW_CONCLUSION}" = "success" ]; then
+                        echo -e "${GREEN}✅ Workflow completed successfully!${NC}"
+                        echo ""
+                        echo -e "${BLUE}Docker image published:${NC}"
+                        echo "  ghcr.io/${REPO_SLUG,,}:${NEW_VERSION}"
+                        echo "  ghcr.io/${REPO_SLUG,,}:latest"
+                        echo ""
+                        echo -e "${BLUE}Next steps:${NC}"
+                        echo "  1. Pull the new image: docker pull ghcr.io/${REPO_SLUG,,}:${NEW_VERSION}"
+                        echo "  2. View the workflow: https://github.com/${REPO_SLUG}/actions/runs/${WORKFLOW_RUN_ID}"
+                        echo "  3. GitHub Release was created automatically: https://github.com/${REPO_SLUG}/releases/tag/v${NEW_VERSION}"
+                        echo ""
+                        echo -e "${GREEN}✅ Release v${NEW_VERSION} completed successfully!${NC}"
+                        exit 0
+                    else
+                        rollback_release
+                    fi
+                    ;;
+                "in_progress"|"queued"|"pending"|"waiting")
+                    echo -ne "  Status: ${WORKFLOW_STATUS} (${ELAPSED}s elapsed)\r"
+                    ;;
+                *)
+                    echo -e "${RED}❌ Workflow status: ${WORKFLOW_STATUS}${NC}"
+                    rollback_release
+                    ;;
+            esac
+            
+            sleep $POLL_INTERVAL
+            ELAPSED=$((ELAPSED + POLL_INTERVAL))
+        done
+        
+        # Timeout reached
+        echo ""
+        echo -e "${YELLOW}⚠️  Workflow did not complete within ${MAX_WAIT_MINUTES} minutes.${NC}"
+        echo "Current status: ${WORKFLOW_STATUS}"
+        echo ""
+        echo -e "${YELLOW}Would you like to rollback this release? (y/N):${NC}"
+        read -r ROLLBACK_CONFIRM
+        if [[ "${ROLLBACK_CONFIRM}" =~ ^[Yy]$ ]]; then
+            rollback_release
+        else
+            echo "Continuing without verification. Please check the workflow manually:"
+            echo "  https://github.com/${REPO_SLUG}/actions/runs/${WORKFLOW_RUN_ID}"
+        fi
+    fi
+else
+    # gh CLI not available
+    echo -e "${BLUE}Docker image will be available at:${NC}"
+    echo "  ghcr.io/${REPO_SLUG,,}:${NEW_VERSION}"
+    echo "  ghcr.io/${REPO_SLUG,,}:latest"
+    echo ""
+    echo -e "${GREEN}✅ Release v${NEW_VERSION} created!${NC}"
+    echo "Please manually verify the workflow completes successfully."
+fi
+
 echo ""

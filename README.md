@@ -251,14 +251,33 @@ raspistill --help        # Command not found on Bookworm
 
 ## CI / CD
 
-The intention of this fork is to support a proper GHCR workflow:
+**Automated release process:**
 
-* build Docker image
-* publish to GHCR
-* multi-arch builds (arm64 + optionally amd64)
-* release tagging (`latest`, `vX.Y.Z`)
+Releases are **tag-driven** and fully automated:
 
-> ✅ The repo is ready for a `.github/workflows/docker-publish.yml`.
+1. Run `./create-release.sh` to create a new version
+2. Script updates VERSION and CHANGELOG, commits, and pushes git tag
+3. GitHub Actions automatically:
+   - Builds Docker image for ARM64
+   - Publishes to GHCR with version tags (`:vX.Y.Z`, `:X.Y.Z`, `:X.Y`, `:latest`)
+   - Creates GitHub Release with changelog notes
+4. Script verifies workflow completion and rolls back if it fails
+
+**Docker images are published to:**
+
+* `ghcr.io/hyzhak/pi-camera-in-docker:latest` (latest release)
+* `ghcr.io/hyzhak/pi-camera-in-docker:vX.Y.Z` (specific version)
+* `ghcr.io/hyzhak/pi-camera-in-docker:X.Y.Z` (semantic version)
+* `ghcr.io/hyzhak/pi-camera-in-docker:X.Y` (major.minor)
+
+**Key guarantees:**
+
+* ✅ Every GitHub release has a corresponding Docker image
+* ✅ `latest` tag always points to the newest release
+* ✅ Failed builds trigger automatic rollback
+* ✅ Release script waits for CI completion before finishing
+
+See [RELEASE.md](RELEASE.md) for detailed release process documentation.
 
 ---
 
@@ -285,11 +304,14 @@ If you’d like to contribute:
 
 Near-term:
 
-* [ ] GitHub Actions workflow for multi-arch builds to GHCR
-* [ ] Release tagging + Changelog
+* [x] GitHub Actions workflow for ARM64 builds to GHCR
+* [x] Release tagging + Changelog automation
+* [x] Automated GitHub Release creation
+* [ ] Multi-arch builds (add AMD64 for testing)
 * [ ] Issue templates + PR template
 * [ ] Home Assistant / OctoPrint examples
 * [ ] Improve device mapping auto-detection tooling
+* [ ] Add image security scanning (Trivy)
 
 ---
 

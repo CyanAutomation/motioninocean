@@ -52,3 +52,60 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Extract changelog for release
+        id: changelog
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}
+          
+          # Extract the section for this version from CHANGELOG.md
+          if [ -f "CHANGELOG.md" ]; then
+            # Use awk to extract content between version headers
+            CHANGELOG_CONTENT=$(awk "/## \[${VERSION}\]/,/## \[.*\]/{if (/## \[${VERSION}\]/) {found=1; next} if (/## \[.*\]/ && found) exit; if (found) print}" CHANGELOG.md | sed '/^$/d')
+            
+            if [ -z "$CHANGELOG_CONTENT" ]; then
+              CHANGELOG_CONTENT="Release ${VERSION}"
+            fi
+          else
+            CHANGELOG_CONTENT="Release ${VERSION}"
+          fi
+          
+          # Write to file to preserve multiline content
+          echo "$CHANGELOG_CONTENT" > /tmp/changelog.txt
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          
+          # Read changelog from file
+          CHANGELOG_BODY=$(cat /tmp/changelog.txt)
+          
+          # Add Docker image information to release notes
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          
+          RELEASE_NOTES="$CHANGELOG_BODY
+
+## Docker Images
+
+Pull the image:
+\`\`\`bash
+docker pull ghcr.io/${REPO_LOWER}:${TAG_NAME}
+# or
+docker pull ghcr.io/${REPO_LOWER}:${{ steps.changelog.outputs.version }}
+# or
+docker pull ghcr.io/${REPO_LOWER}:latest
+\`\`\`
+
+View on GitHub Container Registry: https://github.com/${{ github.repository }}/pkgs/container/$(basename ${{ github.repository }})"
+
+          # Create release using gh CLI
+          gh release create "${TAG_NAME}" \
+            --repo "${{ github.repository }}" \
+            --title "Release ${TAG_NAME}" \
+            --notes "$RELEASE_NOTES"
