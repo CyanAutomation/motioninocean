@@ -65,6 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-01-20
+
+- Fix heredoc syntax in release notes generation and ensure variable replacements are correctly applied
+
 ## [0.7.1] - 2026-01-20
 
 - Enhance GitHub Actions workflow for Docker image release: extract and validate changelog, improve release notes generation, and add error handling.
