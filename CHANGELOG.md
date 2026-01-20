@@ -65,6 +65,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-01-20
+
+- Remove test_metrics_endpoint.py as it is no longer needed
+- Add /metrics endpoint for camera metrics and implement integration tests
+- Enhance error handling in CameraStreamApp with exponential backoff for retrying stats updates
+
 ## [0.6.3] - 2026-01-20
 
 - Remove motion-in-ocean-logs.txt due to obsolete log data
