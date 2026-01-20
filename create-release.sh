@@ -7,6 +7,15 @@ set -e
 VERSION_FILE="VERSION"
 CHANGELOG_FILE="CHANGELOG.md"
 
+# Determine the current branch
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# Get remote URL to build GitHub links
+REMOTE_URL=$(git remote get-url origin)
+# transform ssh or https urls into "owner/repo"
+REPO_SLUG=$(echo "${REMOTE_URL}" | sed -E 's/.*(github.com:|github.com\/)//; s/\.git$//')
+
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -16,6 +25,7 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}🚀 motion-in-ocean Release Creator${NC}"
 echo "======================================"
+echo -e "Releasing from branch: ${GREEN}${CURRENT_BRANCH}${NC}"
 echo ""
 
 # Check if VERSION file exists
@@ -103,8 +113,9 @@ read -r CONFIRM
 
 if [[ ! "${CONFIRM}" =~ ^[Yy]$ ]]; then
     echo "Release cancelled."
-    # Restore VERSION file
-    echo "${CURRENT_VERSION}" > "${VERSION_FILE}"
+    # Restore modified files
+    git checkout -- "${VERSION_FILE}" "${CHANGELOG_FILE}"
+    echo "Reverted changes to ${VERSION_FILE} and ${CHANGELOG_FILE}."
     exit 0
 fi
 
@@ -122,19 +133,31 @@ echo -e "${GREEN}✓${NC} Tag created"
 
 # Push changes and tag
 echo -e "${BLUE}Pushing to remote...${NC}"
-git push origin main
-git push origin "v${NEW_VERSION}"
-echo -e "${GREEN}✓${NC} Pushed to remote"
+if git push origin "${CURRENT_BRANCH}"; then
+    echo -e "${GREEN}✓${NC} Pushed changes to ${CURRENT_BRANCH} branch."
+else
+    echo -e "${RED}❌ Failed to push changes to ${CURRENT_BRANCH} branch.${NC}"
+    echo -e "${YELLOW}To revert the local commit, run: git reset --hard HEAD~1${NC}"
+    exit 1
+fi
+
+if git push origin "v${NEW_VERSION}"; then
+    echo -e "${GREEN}✓${NC} Pushed tag v${NEW_VERSION} to remote."
+else
+    echo -e "${RED}❌ Failed to push tag to remote.${NC}"
+    echo -e "${YELLOW}To remove the local tag, run: git tag -d v${NEW_VERSION}${NC}"
+    exit 1
+fi
 
 echo ""
 echo -e "${GREEN}✅ Release v${NEW_VERSION} created successfully!${NC}"
 echo ""
 echo -e "${BLUE}Next steps:${NC}"
 echo "  1. GitHub Actions will build and publish the Docker image"
-echo "  2. Monitor the workflow: https://github.com/cyanautomation/motioninocean/actions"
-echo "  3. Create GitHub release notes: https://github.com/cyanautomation/motioninocean/releases/new?tag=v${NEW_VERSION}"
+echo "  2. Monitor the workflow: https://github.com/${REPO_SLUG}/actions"
+echo "  3. Create GitHub release notes: https://github.com/${REPO_SLUG}/releases/new?tag=v${NEW_VERSION}"
 echo ""
 echo -e "${BLUE}Docker image will be available at:${NC}"
-echo "  ghcr.io/cyanautomation/motioninocean:${NEW_VERSION}"
-echo "  ghcr.io/cyanautomation/motioninocean:latest"
+echo "  ghcr.io/${REPO_SLUG,,}:${NEW_VERSION}" # ,, converts to lowercase for ghcr.io
+echo "  ghcr.io/${REPO_SLUG,,}:latest"
 echo ""

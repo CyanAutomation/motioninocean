@@ -8,8 +8,9 @@ import json
 import time
 import numpy as np
 from collections import deque
-from threading import Condition
+from threading import Condition, Event
 from flask import Flask, Response, render_template, jsonify
+from flask_cors import CORS
 from datetime import datetime
 
 from picamera2 import Picamera2
@@ -133,10 +134,18 @@ class StreamingOutput(io.BufferedIOBase):
         }
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
+
+# Security configuration
+app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', os.urandom(24).hex())
+app.config['DEBUG'] = False
+
+# Enable CORS for cross-origin access (dashboards, Home Assistant, etc.)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
 output = StreamingOutput()
 app.start_time = datetime.now()
 picam2_instance = None
-recording_started = False  # Track if camera recording has actually started
+recording_started = Event()  # Thread-safe flag to track if camera recording has started
 
 @app.route('/')
 def index():
@@ -150,9 +159,7 @@ def health():
 @app.route('/ready')
 def ready():
     """Readiness probe - checks if camera is actually streaming"""
-    global recording_started
-    
-    if not recording_started:
+    if not recording_started.is_set():
         return jsonify({
             "status": "not_ready",
             "reason": "Camera not initialized or recording not started",
@@ -172,6 +179,9 @@ def gen():
             with output.condition:
                 output.condition.wait()
                 frame = output.frame
+            # Skip if frame is not yet available
+            if frame is None:
+                continue
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
     except Exception as e:
@@ -231,8 +241,7 @@ if __name__ == '__main__':
             picam2_instance.start_recording(JpegEncoder(q=jpeg_quality), FileOutput(output))
             
             # Mark recording as started only after start_recording succeeds
-            global recording_started
-            recording_started = True
+            recording_started.set()
             logger.info(f"Camera recording started successfully (JPEG quality: {jpeg_quality})")
 
             # Start the Flask app
