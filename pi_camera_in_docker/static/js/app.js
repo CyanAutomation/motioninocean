@@ -241,7 +241,7 @@ class CameraStreamApp {
       } else {
         this.setConnectionStatus('disconnected', 'Disconnected');
       }
-    } catch (error) {
+    } catch {
       this.setConnectionStatus('disconnected', 'Disconnected');
     }
   }
@@ -391,4 +391,4 @@ class CameraStreamApp {
 }
 
 // Initialize app when script loads
-const app = new CameraStreamApp();
+new CameraStreamApp();
