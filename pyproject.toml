@@ -140,3 +140,15 @@ exclude_lines = [
 
 [tool.coverage.html]
 directory = "htmlcov"
+
+[tool.bandit]
+# Bandit security linter configuration
+exclude_dirs = [
+    "tests",
+    ".venv",
+    "venv",
+    "node_modules",
+]
+skips = [
+    "B101",  # assert_used - used in tests
+]
