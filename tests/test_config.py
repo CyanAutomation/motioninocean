@@ -3,7 +3,6 @@ Configuration tests - verify Docker Compose, Dockerfile, and .env files.
 """
 
 import ast
-from pathlib import Path
 
 import pytest
 import yaml
@@ -182,9 +181,9 @@ def test_dockerfile_has_required_elements(workspace_root, check_name, pattern):
     """Verify Dockerfile or requirements.txt has required elements."""
     dockerfile = workspace_root / "Dockerfile"
     requirements = workspace_root / "requirements.txt"
-    
+
     dockerfile_content = dockerfile.read_text()
     requirements_content = requirements.read_text() if requirements.exists() else ""
-    
+
     combined_content = dockerfile_content + "\n" + requirements_content
     assert pattern in combined_content, f"Missing in Dockerfile/requirements.txt: {check_name}"

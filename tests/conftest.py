@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+
 # Add the app directory to path
 APP_DIR = Path(__file__).parent.parent / "pi_camera_in_docker"
 sys.path.insert(0, str(APP_DIR))

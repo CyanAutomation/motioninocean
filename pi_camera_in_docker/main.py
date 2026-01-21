@@ -270,7 +270,7 @@ def gen() -> Iterator[bytes]:
             # Skip if frame is not yet available
             if frame is None:
                 continue
-            yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
+            yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
     except Exception as e:
         logger.warning(f"Streaming client disconnected: {e}")
 

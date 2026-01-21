@@ -266,12 +266,22 @@ Releases are **tag-driven** and fully automated:
    - Creates GitHub Release with changelog notes
 4. Script verifies workflow completion and rolls back if it fails
 
+**Continuous Integration:**
+
+All pull requests and pushes to main/develop branches automatically run:
+
+* **Test Suite** - Python 3.9, 3.11, and 3.12 compatibility tests
+* **Linting** - Ruff code quality checks
+* **Type Checking** - Mypy static type analysis
+* **Security Scanning** - Bandit security checks and Trivy Docker scanning
+* **Coverage Reporting** - Test coverage metrics with Codecov integration
+
 **Docker images are published to:**
 
-* `ghcr.io/hyzhak/pi-camera-in-docker:latest` (latest release)
-* `ghcr.io/hyzhak/pi-camera-in-docker:vX.Y.Z` (specific version)
-* `ghcr.io/hyzhak/pi-camera-in-docker:X.Y.Z` (semantic version)
-* `ghcr.io/hyzhak/pi-camera-in-docker:X.Y` (major.minor)
+* `ghcr.io/cyanautomation/motioninocean:latest` (latest release)
+* `ghcr.io/cyanautomation/motioninocean:vX.Y.Z` (specific version)
+* `ghcr.io/cyanautomation/motioninocean:X.Y.Z` (semantic version)
+* `ghcr.io/cyanautomation/motioninocean:X.Y` (major.minor)
 
 **Key guarantees:**
 
@@ -279,6 +289,7 @@ Releases are **tag-driven** and fully automated:
 * ✅ `latest` tag always points to the newest release
 * ✅ Failed builds trigger automatic rollback
 * ✅ Release script waits for CI completion before finishing
+* ✅ All PRs must pass CI checks before merging
 
 See [RELEASE.md](RELEASE.md) for detailed release process documentation.
 
@@ -288,12 +299,43 @@ See [RELEASE.md](RELEASE.md) for detailed release process documentation.
 
 Contributions are welcome — even small ones like documentation tweaks.
 
-Suggested contribution areas:
+### Quick Start for Contributors
+
+This project now includes modern development tooling:
+
+* **Pre-commit hooks** - Automatic code quality checks before commit
+* **Makefile** - Convenient commands for common tasks (`make help`)
+* **CI/CD** - Automated testing and linting on all PRs
+* **Type checking** - Mypy for Python type safety
+* **Security scanning** - Bandit and Trivy for vulnerability detection
+
+**Getting started:**
+
+```bash
+# Clone and setup
+git clone https://github.com/CyanAutomation/motioninocean.git
+cd motioninocean
+pip install -r requirements-dev.txt
+make pre-commit
+
+# View available commands
+make help
+
+# Run quality checks
+make lint
+make test
+make ci
+```
+
+### Suggested contribution areas
 
 * Pi device mapping detection improvements
 * Compose examples for common homelab consumers (OctoPrint, Home Assistant)
-* CI workflow for GHCR publish
 * Prometheus metrics export
+* Documentation improvements
+* Bug fixes and testing
+
+**See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.**
 
 If you’d like to contribute:
 
@@ -310,11 +352,14 @@ Near-term:
 * [x] GitHub Actions workflow for ARM64 builds to GHCR
 * [x] Release tagging + Changelog automation
 * [x] Automated GitHub Release creation
+* [x] Pre-commit hooks for code quality
+* [x] CI/CD pipeline (testing, linting, type checking)
+* [x] Security scanning (Bandit, Trivy)
+* [x] Dependabot for automated dependency updates
 * [ ] Multi-arch builds (add AMD64 for testing)
-* [ ] Issue templates + PR template
 * [ ] Home Assistant / OctoPrint examples
 * [ ] Improve device mapping auto-detection tooling
-* [ ] Add image security scanning (Trivy)
+* [ ] Prometheus metrics endpoint enhancements
 
 ---
 
