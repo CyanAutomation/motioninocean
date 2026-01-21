@@ -74,6 +74,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-01-21
+
+- feat: update changelog for version 1.0.2 with pykms enhancements and fixes fix: improve pykms import handling in main.py for better error management test: enhance test script to cover both ModuleNotFoundError and AttributeError scenarios for pykms
+- feat: add markdownlint configuration file for linting Markdown files
+- feat: add multi-architecture support for Docker builds and update README
+- Merge pull request #1 from CyanAutomation/copilot/vscode-mknvjrml-3gos
+- Merge pull request #3 from CyanAutomation/dependabot/pip/pip-8fb5dba437
+- fix: make type checking non-blocking and update Makefile to focus on relevant directories
+- fix: add explicit permissions to CI workflow for security best practices
+- feat: code formatting, linting configuration, and documentation updates
+- feat: add security, dependency management, and developer experience improvements
+- feat: add development workflow automation (pre-commit, Makefile, CI)
+- Bump flask-cors from 5.0.0 to 6.0.0 in the pip group across 1 directory
+- Checkpoint from VS Code for cloud agent session
+- Refactor Dockerfile and Python code for improved dependency management and type annotations
+
 ## [0.7.4] - 2026-01-21
 
 - Add pykms support and import fallback in headless environments
