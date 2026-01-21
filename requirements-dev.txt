@@ -26,5 +26,5 @@ types-Flask==1.1.6
 pre-commit==4.0.1
 
 # Security scanning
-bandit==1.7.10
+bandit==1.8.6
 safety==3.2.11
