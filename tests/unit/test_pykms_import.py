@@ -104,11 +104,8 @@ def test_types_module_available():
 def test_picamera2_import_with_mock():
     """Test picamera2 import with mock pykms (only if picamera2 available)."""
     # Check if picamera2 is available
-    try:
-        import importlib.util
-        if importlib.util.find_spec('picamera2') is None:
-            pytest.skip("picamera2 not installed in this environment")
-    except ImportError:
+    import importlib.util
+    if importlib.util.find_spec('picamera2') is None:
         pytest.skip("picamera2 not installed in this environment")
     
     # Save original state

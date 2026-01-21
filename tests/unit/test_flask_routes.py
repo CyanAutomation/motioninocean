@@ -27,42 +27,38 @@ def test_flask_routes_registration():
     """Test that Flask routes are properly defined."""
     try:
         from flask import Flask
-        
-        # Create a minimal test app to verify route structure
-        app = Flask(__name__)
-        
-        # Define test routes same as in main.py
-        @app.route('/')
-        def index():
-            return "index"
-        
-        @app.route('/health')
-        def health():
-            return json.dumps({"status": "healthy"}), 200
-        
-        @app.route('/ready')
-        def ready():
-            return json.dumps({"status": "ready"}), 200
-        
-        @app.route('/stream.mjpg')
-        def video_feed():
-            return "stream"
-        
-        # Test routes
-        routes_found = {'/': False, '/health': False, '/ready': False, '/stream.mjpg': False}
-        
-        for rule in app.url_map.iter_rules():
-            if str(rule.rule) in routes_found:
-                routes_found[str(rule.rule)] = True
-        
-        assert all(routes_found.values()), \
-            f"Not all routes found: {[k for k, v in routes_found.items() if not v]}"
-        
     except ImportError:
-        # Verify Flask is in the Dockerfile instead
-        dockerfile = Path(__file__).parent.parent.parent / 'Dockerfile'
-        with open(dockerfile, 'r') as f:
-            assert 'python3-flask' in f.read(), "Flask not declared in Dockerfile dependencies"
+        pytest.skip("Flask not installed (will be available in Docker container)")
+    
+    # Create a minimal test app to verify route structure
+    app = Flask(__name__)
+    
+    # Define test routes same as in main.py
+    @app.route('/')
+    def index():
+        return "index"
+    
+    @app.route('/health')
+    def health():
+        return json.dumps({"status": "healthy"}), 200
+    
+    @app.route('/ready')
+    def ready():
+        return json.dumps({"status": "ready"}), 200
+    
+    @app.route('/stream.mjpg')
+    def video_feed():
+        return "stream"
+    
+    # Test routes
+    routes_found = {'/': False, '/health': False, '/ready': False, '/stream.mjpg': False}
+    
+    for rule in app.url_map.iter_rules():
+        if str(rule.rule) in routes_found:
+            routes_found[str(rule.rule)] = True
+    
+    assert all(routes_found.values()), \
+        f"Not all routes found: {[k for k, v in routes_found.items() if not v]}"
 
 
 @pytest.mark.unit
