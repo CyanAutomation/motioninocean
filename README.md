@@ -149,6 +149,29 @@ MOCK_CAMERA=false
 
 ---
 
+## Development
+
+For developers looking to contribute or run the project locally, see the comprehensive [Development Setup Guide](DEVELOPMENT.md).
+
+Quick start for development:
+
+```bash
+# Clone and setup
+git clone https://github.com/CyanAutomation/motioninocean.git
+cd motioninocean
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements-dev.txt
+pre-commit install
+
+# Run tests
+pytest tests/
+
+# Format and lint code
+make format && make lint
+```
+
+---
+
 ## Local Development (Non-Raspberry Pi)
 
 For development/testing on a non-Raspberry Pi machine (e.g. `amd64` workstation), camera/display functionality won’t work due to hardware dependencies.
