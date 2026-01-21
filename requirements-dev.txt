@@ -13,7 +13,7 @@ PyYAML>=6.0.2
 ruff==0.8.4
 
 # Code coverage
-coverage==7.6.9
+coverage==7.10.7
 
 # Linting and formatting
 ruff==0.8.4
