@@ -10,7 +10,7 @@ flask-cors==6.0.0
 # Camera support for Raspberry Pi
 # Note: picamera2 requires system packages (python3-libcamera, libcamera-dev)
 # which are installed via apt in the Dockerfile
-picamera2==0.3.18
+picamera2==0.3.33
 
 # Development and testing dependencies
 # These are listed here for reference but installed separately in CI/dev environments
