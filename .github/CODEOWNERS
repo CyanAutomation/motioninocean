@@ -1,0 +1,35 @@
+# Code ownership configuration
+# These owners will be automatically requested for review when a PR is opened
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @CyanAutomation
+
+# Python code
+*.py @CyanAutomation
+pi_camera_in_docker/ @CyanAutomation
+
+# Documentation
+*.md @CyanAutomation
+docs/ @CyanAutomation
+
+# Configuration files
+*.yml @CyanAutomation
+*.yaml @CyanAutomation
+*.toml @CyanAutomation
+*.json @CyanAutomation
+
+# Docker
+Dockerfile @CyanAutomation
+docker-compose.yml @CyanAutomation
+.dockerignore @CyanAutomation
+
+# CI/CD and workflows
+.github/ @CyanAutomation
+
+# Tests
+tests/ @CyanAutomation
+test_*.py @CyanAutomation
+
+# Shell scripts
+*.sh @CyanAutomation

@@ -1,9 +1,12 @@
-# motion-in-ocean 🌊📷  
+# motion-in-ocean 🌊📷
 **Raspberry Pi CSI Camera Streaming in Docker (Picamera2 / libcamera)**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Docker Image](https://img.shields.io/badge/GHCR-motion--in--ocean-informational)](https://github.com/<your-org-or-user>/motion-in-ocean/pkgs/container/motion-in-ocean)
-[![Build](https://img.shields.io/badge/build-GitHub_Actions-lightgrey)](#ci--cd)
+[![CI](https://github.com/CyanAutomation/motioninocean/workflows/CI%20-%20Test%20and%20Lint/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/ci.yml)
+[![Security Scan](https://github.com/CyanAutomation/motioninocean/workflows/Security%20-%20Docker%20Image%20Scan/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/security-scan.yml)
+[![Docker Image](https://img.shields.io/badge/GHCR-motion--in--ocean-informational)](https://github.com/CyanAutomation/motioninocean/pkgs/container/motioninocean)
+[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Status](https://img.shields.io/badge/status-alpha-orange)](#project-status)
 
 motion-in-ocean is a **Docker-first** project for running a **Raspberry Pi CSI camera** inside a container and streaming video across the network. It’s intended for **Raspberry Pi homelabs** and remote Docker hosts, where you want a reliable camera stream without installing a full stack directly on the host OS.
