@@ -38,9 +38,9 @@ def test_flask_routes():
     expected_routes = {"/", "/health", "/ready", "/stream.mjpg"}
     registered_routes = {rule.rule for rule in app.url_map.iter_rules()}
 
-    assert expected_routes.issubset(
-        registered_routes
-    ), f"Missing routes: {expected_routes - registered_routes}"
+    assert expected_routes.issubset(registered_routes), (
+        f"Missing routes: {expected_routes - registered_routes}"
+    )
 
 
 def test_dockerfile_has_flask(workspace_root):
