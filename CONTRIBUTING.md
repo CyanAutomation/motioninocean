@@ -36,9 +36,66 @@ If you're unsure whether a change will be accepted, open an issue first to discu
 
 ### Prerequisites
 
+- Python 3.9+ (3.11+ recommended)
 - Docker + Docker Compose
 - Raspberry Pi OS (Bookworm) + ARM64 recommended for real camera testing
 - Non-Pi systems are supported for API/dev work using mock mode
+
+### Initial setup
+
+1. **Clone the repository:**
+
+   ```bash
+   git clone https://github.com/CyanAutomation/motioninocean.git
+   cd motioninocean
+   ```
+
+2. **Install development dependencies:**
+
+   ```bash
+   # Create a virtual environment (recommended)
+   python3 -m venv .venv
+   source .venv/bin/activate
+
+   # Install dependencies
+   pip install -r requirements-dev.txt
+   ```
+
+3. **Install pre-commit hooks:**
+
+   ```bash
+   make pre-commit
+   # or manually:
+   pre-commit install
+   ```
+
+### Development commands
+
+We provide a `Makefile` with convenient shortcuts for common tasks:
+
+```bash
+# View all available commands
+make help
+
+# Code quality checks
+make lint              # Run linter
+make format            # Format code
+make type-check        # Run type checker
+make security          # Run security checks
+
+# Testing
+make test              # Run all tests with coverage
+make test-unit         # Run unit tests only
+make coverage          # Generate HTML coverage report
+
+# Development
+make run-mock          # Run Flask app with mock camera
+make clean             # Clean build artifacts
+
+# CI validation
+make ci                # Run all CI checks (lint, type-check, test)
+make validate          # Run all validation checks including security
+```
 
 ### Local build & run
 
@@ -98,17 +155,39 @@ Please use clear commit messages:
    git checkout -b feat/my-change
    ```
 3. Make your changes
-4. Run quick validation:
+4. Run code quality checks:
+
+   ```bash
+   # Format code
+   make format
+
+   # Run linter
+   make lint
+
+   # Run type checker
+   make type-check
+
+   # Run tests
+   make test
+
+   # Or run all checks at once
+   make ci
+   ```
+
+5. Validate container builds:
 
    * container builds successfully
    * endpoints still work (`/health`, `/ready`)
-5. Submit a Pull Request with:
+
+6. Submit a Pull Request with:
 
    * what changed
    * why it changed
    * how it was tested
 
 If your PR changes behaviour or config, please update the README accordingly.
+
+**Note:** Pre-commit hooks will automatically run basic checks when you commit. The CI pipeline will run comprehensive checks on all PRs.
 
 ---
 

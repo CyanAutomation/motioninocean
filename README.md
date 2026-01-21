@@ -1,9 +1,12 @@
-# motion-in-ocean 🌊📷  
+# motion-in-ocean 🌊📷
 **Raspberry Pi CSI Camera Streaming in Docker (Picamera2 / libcamera)**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Docker Image](https://img.shields.io/badge/GHCR-motion--in--ocean-informational)](https://github.com/<your-org-or-user>/motion-in-ocean/pkgs/container/motion-in-ocean)
-[![Build](https://img.shields.io/badge/build-GitHub_Actions-lightgrey)](#ci--cd)
+[![CI](https://github.com/CyanAutomation/motioninocean/workflows/CI%20-%20Test%20and%20Lint/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/ci.yml)
+[![Security Scan](https://github.com/CyanAutomation/motioninocean/workflows/Security%20-%20Docker%20Image%20Scan/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/security-scan.yml)
+[![Docker Image](https://img.shields.io/badge/GHCR-motion--in--ocean-informational)](https://github.com/CyanAutomation/motioninocean/pkgs/container/motioninocean)
+[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Status](https://img.shields.io/badge/status-alpha-orange)](#project-status)
 
 motion-in-ocean is a **Docker-first** project for running a **Raspberry Pi CSI camera** inside a container and streaming video across the network. It’s intended for **Raspberry Pi homelabs** and remote Docker hosts, where you want a reliable camera stream without installing a full stack directly on the host OS.
@@ -263,12 +266,22 @@ Releases are **tag-driven** and fully automated:
    - Creates GitHub Release with changelog notes
 4. Script verifies workflow completion and rolls back if it fails
 
+**Continuous Integration:**
+
+All pull requests and pushes to main/develop branches automatically run:
+
+* **Test Suite** - Python 3.9, 3.11, and 3.12 compatibility tests
+* **Linting** - Ruff code quality checks
+* **Type Checking** - Mypy static type analysis
+* **Security Scanning** - Bandit security checks and Trivy Docker scanning
+* **Coverage Reporting** - Test coverage metrics with Codecov integration
+
 **Docker images are published to:**
 
-* `ghcr.io/hyzhak/pi-camera-in-docker:latest` (latest release)
-* `ghcr.io/hyzhak/pi-camera-in-docker:vX.Y.Z` (specific version)
-* `ghcr.io/hyzhak/pi-camera-in-docker:X.Y.Z` (semantic version)
-* `ghcr.io/hyzhak/pi-camera-in-docker:X.Y` (major.minor)
+* `ghcr.io/cyanautomation/motioninocean:latest` (latest release)
+* `ghcr.io/cyanautomation/motioninocean:vX.Y.Z` (specific version)
+* `ghcr.io/cyanautomation/motioninocean:X.Y.Z` (semantic version)
+* `ghcr.io/cyanautomation/motioninocean:X.Y` (major.minor)
 
 **Key guarantees:**
 
@@ -276,6 +289,7 @@ Releases are **tag-driven** and fully automated:
 * ✅ `latest` tag always points to the newest release
 * ✅ Failed builds trigger automatic rollback
 * ✅ Release script waits for CI completion before finishing
+* ✅ All PRs must pass CI checks before merging
 
 See [RELEASE.md](RELEASE.md) for detailed release process documentation.
 
@@ -285,12 +299,43 @@ See [RELEASE.md](RELEASE.md) for detailed release process documentation.
 
 Contributions are welcome — even small ones like documentation tweaks.
 
-Suggested contribution areas:
+### Quick Start for Contributors
+
+This project now includes modern development tooling:
+
+* **Pre-commit hooks** - Automatic code quality checks before commit
+* **Makefile** - Convenient commands for common tasks (`make help`)
+* **CI/CD** - Automated testing and linting on all PRs
+* **Type checking** - Mypy for Python type safety
+* **Security scanning** - Bandit and Trivy for vulnerability detection
+
+**Getting started:**
+
+```bash
+# Clone and setup
+git clone https://github.com/CyanAutomation/motioninocean.git
+cd motioninocean
+pip install -r requirements-dev.txt
+make pre-commit
+
+# View available commands
+make help
+
+# Run quality checks
+make lint
+make test
+make ci
+```
+
+### Suggested contribution areas
 
 * Pi device mapping detection improvements
 * Compose examples for common homelab consumers (OctoPrint, Home Assistant)
-* CI workflow for GHCR publish
 * Prometheus metrics export
+* Documentation improvements
+* Bug fixes and testing
+
+**See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.**
 
 If you’d like to contribute:
 
@@ -307,11 +352,14 @@ Near-term:
 * [x] GitHub Actions workflow for ARM64 builds to GHCR
 * [x] Release tagging + Changelog automation
 * [x] Automated GitHub Release creation
+* [x] Pre-commit hooks for code quality
+* [x] CI/CD pipeline (testing, linting, type checking)
+* [x] Security scanning (Bandit, Trivy)
+* [x] Dependabot for automated dependency updates
 * [ ] Multi-arch builds (add AMD64 for testing)
-* [ ] Issue templates + PR template
 * [ ] Home Assistant / OctoPrint examples
 * [ ] Improve device mapping auto-detection tooling
-* [ ] Add image security scanning (Trivy)
+* [ ] Prometheus metrics endpoint enhancements
 
 ---
 

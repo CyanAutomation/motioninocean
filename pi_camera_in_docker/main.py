@@ -1,23 +1,24 @@
 #!/usr/bin/python3
 
-import os
-import cv2
 import io
 import logging
-import json
+import os
 import time
-import numpy as np
 from collections import deque
-from threading import Condition, Event, Thread
-from typing import Iterator, Dict, Any, Optional, Tuple
-from flask import Flask, Response, render_template, jsonify
-from flask_cors import CORS
+from collections.abc import Iterator
 from datetime import datetime
+from threading import Condition, Event, Thread
+from typing import Any, Dict, Optional, Tuple
+
+import cv2
+import numpy as np
+from flask import Flask, Response, jsonify, render_template
+from flask_cors import CORS
+
 
 # Configure structured logging early
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -26,24 +27,24 @@ logger = logging.getLogger(__name__)
 try:
     from picamera2 import Picamera2
 except ModuleNotFoundError as e:
-    if 'pykms' in str(e) or 'kms' in str(e):
+    if "pykms" in str(e) or "kms" in str(e):
         # Mock the pykms module so picamera2 can import without DRM/KMS support
         import sys
         import types
-        
+
         # Create mock modules
-        pykms_mock = types.ModuleType('pykms')
-        kms_mock = types.ModuleType('kms')
-        
+        pykms_mock = types.ModuleType("pykms")
+        kms_mock = types.ModuleType("kms")
+
         # Add to sys.modules to satisfy imports
-        sys.modules['pykms'] = pykms_mock
-        sys.modules['kms'] = kms_mock
-        
+        sys.modules["pykms"] = pykms_mock
+        sys.modules["kms"] = kms_mock
+
         logger.warning(
             "pykms module not available - using mock module. "
             "DrmPreview functionality disabled (not needed for headless streaming)."
         )
-        
+
         # Retry import with mocked modules
         from picamera2 import Picamera2
     else:
@@ -51,9 +52,10 @@ except ModuleNotFoundError as e:
 else:
     # Import succeeded on first try
     pass
+from picamera2.array import MappedArray
 from picamera2.encoders import JpegEncoder
 from picamera2.outputs import FileOutput
-from picamera2.array import MappedArray
+
 
 # Get configuration from environment variables
 resolution_str: str = os.environ.get("RESOLUTION", "640x480")
@@ -62,12 +64,12 @@ fps_str: str = os.environ.get("FPS", "0")  # 0 = use camera default
 mock_camera_str: str = os.environ.get("MOCK_CAMERA", "false")
 jpeg_quality_str: str = os.environ.get("JPEG_QUALITY", "100")
 
-mock_camera: bool = mock_camera_str.lower() in ('true', '1', 't')
+mock_camera: bool = mock_camera_str.lower() in ("true", "1", "t")
 logger.info(f"Mock camera enabled: {mock_camera}")
 
 # Parse resolution
 try:
-    resolution: Tuple[int, int] = tuple(map(int, resolution_str.split('x')))  # type: ignore[assignment]
+    resolution: Tuple[int, int] = tuple(map(int, resolution_str.split("x")))  # type: ignore[assignment]
     # Validate resolution dimensions
     if len(resolution) != 2 or resolution[0] <= 0 or resolution[1] <= 0:
         logger.warning(f"Invalid RESOLUTION dimensions {resolution}. Using default 640x480.")
@@ -82,7 +84,7 @@ except (ValueError, TypeError):
     resolution = (640, 480)
 
 # Parse edge detection flag
-edge_detection: bool = edge_detection_str.lower() in ('true', '1', 't')
+edge_detection: bool = edge_detection_str.lower() in ("true", "1", "t")
 logger.info(f"Edge detection: {edge_detection}")
 
 # Parse FPS
@@ -114,9 +116,10 @@ except (ValueError, TypeError):
     logger.warning("Invalid JPEG_QUALITY format. Using default 100.")
     jpeg_quality = 100
 
+
 def apply_edge_detection(request: Any) -> None:
     """Apply edge detection filter to camera frame.
-    
+
     Args:
         request: Camera frame request from picamera2
     """
@@ -133,9 +136,10 @@ def apply_edge_detection(request: Any) -> None:
     except Exception as e:
         logger.error(f"Edge detection processing failed: {e}", exc_info=True)
 
+
 class StreamingOutput(io.BufferedIOBase):
     """Thread-safe output handler for camera frames."""
-    
+
     def __init__(self) -> None:
         self.frame: Optional[bytes] = None
         self.condition: Condition = Condition()
@@ -145,7 +149,7 @@ class StreamingOutput(io.BufferedIOBase):
 
     def write(self, buf: bytes) -> None:
         """Write a new frame to the output buffer.
-        
+
         Args:
             buf: JPEG-encoded frame data
         """
@@ -159,7 +163,7 @@ class StreamingOutput(io.BufferedIOBase):
 
     def get_fps(self) -> float:
         """Calculate actual FPS from frame times.
-        
+
         Returns:
             Current frames per second, or 0.0 if insufficient data
         """
@@ -172,7 +176,7 @@ class StreamingOutput(io.BufferedIOBase):
 
     def get_status(self) -> Dict[str, Any]:
         """Return current streaming status.
-        
+
         Returns:
             Dictionary containing streaming statistics
         """
@@ -180,14 +184,15 @@ class StreamingOutput(io.BufferedIOBase):
             "frames_captured": self.frame_count,
             "current_fps": round(self.get_fps(), 2),
             "resolution": resolution,
-            "edge_detection": edge_detection
+            "edge_detection": edge_detection,
         }
 
-app = Flask(__name__, static_folder='static', static_url_path='/static')
+
+app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 # Security configuration
-app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', os.urandom(24).hex())
-app.config['DEBUG'] = False
+app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", os.urandom(24).hex())
+app.config["DEBUG"] = False
 
 # Enable CORS for cross-origin access (dashboards, Home Assistant, etc.)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -197,52 +202,63 @@ app.start_time = datetime.now()
 picam2_instance: Optional[Any] = None  # Picamera2 instance (Optional since it may not be available)
 recording_started = Event()  # Thread-safe flag to track if camera recording has started
 
-@app.route('/')
+
+@app.route("/")
 def index() -> str:
     """Render main camera streaming page."""
     return render_template("index.html", width=resolution[0], height=resolution[1])
 
-@app.route('/health')
+
+@app.route("/health")
 def health() -> Tuple[Response, int]:
     """Health check endpoint - returns 200 if service is running."""
     return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()}), 200
 
-@app.route('/ready')
+
+@app.route("/ready")
 def ready() -> Tuple[Response, int]:
     """Readiness probe - checks if camera is actually streaming."""
     if not recording_started.is_set():
-        return jsonify({
-            "status": "not_ready",
-            "reason": "Camera not initialized or recording not started",
-            "timestamp": datetime.now().isoformat()
-        }), 503
-    
-    return jsonify({
-        "status": "ready",
-        "timestamp": datetime.now().isoformat(),
-        "uptime_seconds": (datetime.now() - app.start_time).total_seconds(),
-        **output.get_status()
-    }), 200
+        return jsonify(
+            {
+                "status": "not_ready",
+                "reason": "Camera not initialized or recording not started",
+                "timestamp": datetime.now().isoformat(),
+            }
+        ), 503
 
-@app.route('/metrics')
+    return jsonify(
+        {
+            "status": "ready",
+            "timestamp": datetime.now().isoformat(),
+            "uptime_seconds": (datetime.now() - app.start_time).total_seconds(),
+            **output.get_status(),
+        }
+    ), 200
+
+
+@app.route("/metrics")
 def metrics() -> Tuple[Response, int]:
     """Metrics endpoint - returns camera metrics in JSON format for monitoring."""
     uptime = (datetime.now() - app.start_time).total_seconds()
     status = output.get_status()
-    
-    return jsonify({
-        "camera_active": recording_started.is_set(),
-        "frames_captured": status["frames_captured"],
-        "current_fps": status["current_fps"],
-        "uptime_seconds": round(uptime, 2),
-        "resolution": status["resolution"],
-        "edge_detection": status["edge_detection"],
-        "timestamp": datetime.now().isoformat()
-    }), 200
+
+    return jsonify(
+        {
+            "camera_active": recording_started.is_set(),
+            "frames_captured": status["frames_captured"],
+            "current_fps": status["current_fps"],
+            "uptime_seconds": round(uptime, 2),
+            "resolution": status["resolution"],
+            "edge_detection": status["edge_detection"],
+            "timestamp": datetime.now().isoformat(),
+        }
+    ), 200
+
 
 def gen() -> Iterator[bytes]:
     """Generate MJPEG stream frames.
-    
+
     Yields:
         MJPEG frame data with multipart boundaries
     """
@@ -254,24 +270,26 @@ def gen() -> Iterator[bytes]:
             # Skip if frame is not yet available
             if frame is None:
                 continue
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
     except Exception as e:
-        logger.warning(f'Streaming client disconnected: {e}')
+        logger.warning(f"Streaming client disconnected: {e}")
 
-@app.route('/stream.mjpg')
+
+@app.route("/stream.mjpg")
 def video_feed() -> Response:
     """Stream MJPEG video feed."""
-    return Response(gen(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(gen(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     picam2_instance = None
     if mock_camera:
-        logger.info("MOCK_CAMERA enabled. Skipping Picamera2 initialization and generating dummy frames.")
+        logger.info(
+            "MOCK_CAMERA enabled. Skipping Picamera2 initialization and generating dummy frames."
+        )
         # Create a dummy black image
         dummy_image = np.zeros((resolution[1], resolution[0], 3), dtype=np.uint8)
-        dummy_image_jpeg = cv2.imencode('.jpg', dummy_image)[1].tobytes()
+        dummy_image_jpeg = cv2.imencode(".jpg", dummy_image)[1].tobytes()
 
         # Simulate camera streaming for the StreamingOutput
         def generate_mock_frames() -> None:
@@ -279,52 +297,55 @@ if __name__ == '__main__':
             # Mark as started for mock mode using thread-safe Event
             recording_started.set()
             while True:
-                time.sleep(1 / (fps if fps > 0 else 10)) # Simulate FPS
+                time.sleep(1 / (fps if fps > 0 else 10))  # Simulate FPS
                 output.write(dummy_image_jpeg)
-        
+
         import threading
+
         mock_thread: Thread = threading.Thread(target=generate_mock_frames)
         mock_thread.daemon = True
         mock_thread.start()
 
         # Start the Flask app
         logger.info("Starting Flask server on 0.0.0.0:8000 with mock camera.")
-        app.run(host='0.0.0.0', port=8000, threaded=True)
+        app.run(host="0.0.0.0", port=8000, threaded=True)
 
     else:
         try:
             logger.info("Initializing Picamera2...")
             picam2_instance = Picamera2()
-            
-            logger.info(f"Configuring video: resolution={resolution}, format=BGR888, fps={fps if fps > 0 else 'default'}")
+
+            logger.info(
+                f"Configuring video: resolution={resolution}, format=BGR888, fps={fps if fps > 0 else 'default'}"
+            )
             # Configure for BGR format for opencv
             config_params = {"size": resolution, "format": "BGR888"}
             if fps > 0:
                 config_params["framerate"] = fps
-            video_config = picam2_instance.create_video_configuration(
-                main=config_params
-            )
+            video_config = picam2_instance.create_video_configuration(main=config_params)
             picam2_instance.configure(video_config)
 
             if edge_detection:
                 logger.info("Enabling edge detection preprocessing")
                 picam2_instance.pre_callback = apply_edge_detection
-            
+
             logger.info("Starting camera recording...")
             # Start recording with configured JPEG quality
             picam2_instance.start_recording(JpegEncoder(q=jpeg_quality), FileOutput(output))
-            
+
             # Mark recording as started only after start_recording succeeds
             recording_started.set()
             logger.info(f"Camera recording started successfully (JPEG quality: {jpeg_quality})")
 
             # Start the Flask app
             logger.info("Starting Flask server on 0.0.0.0:8000")
-            app.run(host='0.0.0.0', port=8000, threaded=True)
-            
+            app.run(host="0.0.0.0", port=8000, threaded=True)
+
         except PermissionError as e:
             logger.error(f"Permission denied accessing camera device: {e}")
-            logger.error("Ensure the container has proper device access (--device mappings or --privileged)")
+            logger.error(
+                "Ensure the container has proper device access (--device mappings or --privileged)"
+            )
             raise
         except RuntimeError as e:
             logger.error(f"Camera initialization failed: {e}")
