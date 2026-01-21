@@ -8,9 +8,9 @@ Flask==3.0.3
 flask-cors==6.0.0
 
 # Camera support for Raspberry Pi
-# Note: picamera2 requires system packages (python3-libcamera, libcamera-dev)
-# which are installed via apt in the Dockerfile
-picamera2==0.3.33
+# Note: picamera2 is now installed via apt from Raspberry Pi repository
+# (python3-picamera2) along with system packages (python3-libcamera, libcamera-dev)
+# The pip version is unreliable and not the recommended installation method for Bookworm
 
 # Development and testing dependencies
 # These are listed here for reference but installed separately in CI/dev environments

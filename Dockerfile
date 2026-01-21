@@ -41,7 +41,8 @@ RUN apt-get update && \
         curl \
         libcap-dev \
         libcamera-dev \
-        python3-libcamera && \
+        python3-libcamera \
+        python3-picamera2 && \
     # Clean up
     apt-get clean && \
     apt-get autoremove -y && \
