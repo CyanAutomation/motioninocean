@@ -33,7 +33,7 @@ cd ~/containers/motion-in-ocean
 
 curl -fsSL https://raw.githubusercontent.com/<your-org-or-user>/motion-in-ocean/main/.env.example -o .env
 nano .env
-````
+```
 
 ### 2) Create `docker-compose.yml`
 
@@ -356,7 +356,7 @@ Near-term:
 * [x] CI/CD pipeline (testing, linting, type checking)
 * [x] Security scanning (Bandit, Trivy)
 * [x] Dependabot for automated dependency updates
-* [ ] Multi-arch builds (add AMD64 for testing)
+* [x] Multi-arch builds (ARM64 + AMD64 support)
 * [ ] Home Assistant / OctoPrint examples
 * [ ] Improve device mapping auto-detection tooling
 * [ ] Prometheus metrics endpoint enhancements
