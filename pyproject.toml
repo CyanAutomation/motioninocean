@@ -1,0 +1,151 @@
+[project]
+name = "motion-in-ocean"
+version = "0.1.0"
+description = "Raspberry Pi CSI Camera Streaming in Docker (Picamera2 / libcamera)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "CyanAutomation"}
+]
+keywords = ["raspberry-pi", "camera", "streaming", "docker", "picamera2", "libcamera"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Multimedia :: Video :: Capture",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "Flask>=3.0.3,<4.0.0",
+    "flask-cors>=5.0.0,<6.0.0",
+    "picamera2>=0.3.19,<1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.4,<9.0.0",
+    "pytest-cov>=6.0.0,<7.0.0",
+    "pytest-mock>=3.14.0,<4.0.0",
+    "coverage>=7.6.9,<8.0.0",
+    "ruff>=0.8.4,<1.0.0",
+    "mypy>=1.13.0,<2.0.0",
+    "types-Flask>=1.1.6",
+    "pre-commit>=4.0.1,<5.0.0",
+    "bandit>=1.7.10,<2.0.0",
+    "safety>=3.2.11,<4.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--showlocals",
+]
+markers = [
+    "unit: Unit tests that don't require external dependencies",
+    "integration: Integration tests that may require Docker or hardware",
+    "slow: Tests that take a long time to run",
+]
+
+[tool.coverage.run]
+source = ["pi_camera_in_docker"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+    "node_modules",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "W191",  # indentation contains tabs
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # unused imports
+"tests/*" = ["ARG"]  # unused arguments are common in tests
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+follow_imports = "normal"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "picamera2.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "cv2.*"
+ignore_missing_imports = true
+
+[tool.bandit]
+exclude_dirs = ["tests", "node_modules"]
+skips = ["B101"]  # assert_used - we use asserts in tests
+
+[tool.bandit.assert_used]
+skips = ["*/test_*.py", "*/tests/*"]
