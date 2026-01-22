@@ -84,6 +84,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-01-22
+
+- Merge pull request #19 from CyanAutomation/codex/augment-onstreamerror-with-refresh-backoff
+- Update pi_camera_in_docker/static/js/app.js
+- Add stream retry backoff
+- Refactor healthcheck script and update error logging in test script
+- Merge pull request #18 from CyanAutomation/codex/update-streamingoutput-for-last-frame-age
+- Merge pull request #17 from CyanAutomation/codex/set-headers-for-/stream.mjpg-response
+- Add last frame age to stream status
+- Add no-cache headers to MJPEG stream
+- Merge pull request #16 from CyanAutomation/codex/github-mention-handle-camera-stream-readiness-checks
+- Avoid premature MJPEG stream termination
+- Merge pull request #15 from CyanAutomation/codex/update-video_feed-to-check-recording_started
+- Update pi_camera_in_docker/main.py
+- Handle camera stream readiness
+- Merge pull request #14 from CyanAutomation/codex/ensure-single-stats-fetch-at-a-time
+- Update pi_camera_in_docker/static/js/app.js
+- Prevent overlapping stats polling
+- Merge pull request #13 from CyanAutomation/codex/update-updatestats-for-abortsignal.timeout
+- Update pi_camera_in_docker/static/js/app.js
+- Add timeout fallback for stats fetch
+- Merge pull request #12 from CyanAutomation/codex/fix-linting-errors-and-formatting
+- Fix lint issues in healthcheck and tests
+
 ## [1.0.6] - 2026-01-22
 
 - Enhance Docker setup with conditional opencv installation and update documentation
