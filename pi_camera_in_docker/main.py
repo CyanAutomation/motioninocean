@@ -173,7 +173,7 @@ class StreamingOutput(io.BufferedIOBase):
         self.frame: Optional[bytes] = None
         self.condition: Condition = Condition()
         self.frame_count: int = 0
-        self.last_frame_time: float = time.time()
+        self.last_frame_time: Optional[float] = None
         self.frame_times: deque[float] = deque(maxlen=30)  # Fixed-size deque prevents memory leak
 
     def write(self, buf: bytes) -> None:
@@ -187,6 +187,7 @@ class StreamingOutput(io.BufferedIOBase):
             self.frame_count += 1
             # Track frame timing for FPS calculation
             now = time.time()
+            self.last_frame_time = now
             self.frame_times.append(now)  # deque automatically maintains maxlen=30
             self.condition.notify_all()
 
@@ -209,11 +210,17 @@ class StreamingOutput(io.BufferedIOBase):
         Returns:
             Dictionary containing streaming statistics
         """
+        last_frame_age_seconds = (
+            None
+            if self.last_frame_time is None
+            else round(time.time() - self.last_frame_time, 2)
+        )
         return {
             "frames_captured": self.frame_count,
             "current_fps": round(self.get_fps(), 2),
             "resolution": resolution,
             "edge_detection": edge_detection,
+            "last_frame_age_seconds": last_frame_age_seconds,
         }
 
 
@@ -277,6 +284,7 @@ def metrics() -> Tuple[Response, int]:
             "camera_active": recording_started.is_set(),
             "frames_captured": status["frames_captured"],
             "current_fps": status["current_fps"],
+            "last_frame_age_seconds": status["last_frame_age_seconds"],
             "uptime_seconds": round(uptime, 2),
             "resolution": status["resolution"],
             "edge_detection": status["edge_detection"],
