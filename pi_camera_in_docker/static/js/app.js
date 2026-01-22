@@ -304,9 +304,22 @@ class CameraStreamApp {
    * Fetch and update stats from /ready endpoint
    */
   async updateStats() {
+    const timeoutMs = 5000;
+    let timeoutId;
+    let controller;
+    let signal;
+
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+      signal = AbortSignal.timeout(timeoutMs);
+    } else {
+      controller = new AbortController();
+      signal = controller.signal;
+      timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    }
+
     try {
       const response = await fetch('/ready', {
-        signal: AbortSignal.timeout(5000) // 5 second timeout
+        signal
       });
       
       if (!response.ok) {
@@ -386,6 +399,12 @@ class CameraStreamApp {
         console.warn('Max retry attempts reached. Will retry on next scheduled update.');
         this.retryAttempts = 0; // Reset for next scheduled update
       }
+    } finally {
+      // Clear fallback timeout if it was set
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      // Note: AbortSignal.timeout() handles its own cleanup automatically
     }
   }
   
