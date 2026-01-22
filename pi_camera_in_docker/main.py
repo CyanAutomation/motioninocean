@@ -38,6 +38,7 @@ fps_str: str = os.environ.get("FPS", "0")  # 0 = use camera default
 mock_camera_str: str = os.environ.get("MOCK_CAMERA", "false")
 jpeg_quality_str: str = os.environ.get("JPEG_QUALITY", "100")
 cors_origins_str: Optional[str] = os.environ.get("CORS_ORIGINS")
+max_frame_age_seconds_str: str = os.environ.get("MAX_FRAME_AGE_SECONDS", "10")
 
 mock_camera: bool = mock_camera_str.lower() in ("true", "1", "t")
 logger.info(f"Mock camera enabled: {mock_camera}")
@@ -129,6 +130,22 @@ else:
     edge_detection = edge_detection_requested
 
 logger.info(f"Edge detection: {edge_detection}")
+
+# Parse max frame age for readiness
+# Parse max frame age for readiness
+max_frame_age_seconds: float = 10.0  # Initialize with default value
+try:
+    max_frame_age_seconds = float(max_frame_age_seconds_str)
+    if max_frame_age_seconds <= 0:
+        logger.warning(
+            f"MAX_FRAME_AGE_SECONDS must be positive ({max_frame_age_seconds}). Using default 10."
+        )
+        max_frame_age_seconds = 10.0
+    else:
+        logger.info(f"Max frame age for readiness set to {max_frame_age_seconds} seconds")
+except (ValueError, TypeError):
+    logger.warning("Invalid MAX_FRAME_AGE_SECONDS format. Using default 10.")
+    max_frame_age_seconds = 10.0
 
 # Parse FPS
 try:
@@ -288,12 +305,39 @@ def ready() -> Tuple[Response, int]:
             }
         ), 503
 
+    status = output.get_status()
+    last_frame_age_seconds = status["last_frame_age_seconds"]
+    if last_frame_age_seconds is None:
+        return jsonify(
+            {
+                "status": "not_ready",
+                "reason": "No frames captured yet",
+                "timestamp": datetime.now().isoformat(),
+                "uptime_seconds": (datetime.now() - app.start_time).total_seconds(),
+                "max_frame_age_seconds": max_frame_age_seconds,
+                **status,
+            }
+        ), 503
+
+    if last_frame_age_seconds > max_frame_age_seconds:
+        return jsonify(
+            {
+                "status": "not_ready",
+                "reason": "stale_stream",
+                "timestamp": datetime.now().isoformat(),
+                "uptime_seconds": (datetime.now() - app.start_time).total_seconds(),
+                "max_frame_age_seconds": max_frame_age_seconds,
+                **status,
+            }
+        ), 503
+
     return jsonify(
         {
             "status": "ready",
             "timestamp": datetime.now().isoformat(),
             "uptime_seconds": (datetime.now() - app.start_time).total_seconds(),
-            **output.get_status(),
+            "max_frame_age_seconds": max_frame_age_seconds,
+            **status,
         }
     ), 200
 
