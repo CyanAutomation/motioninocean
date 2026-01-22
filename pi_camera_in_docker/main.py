@@ -42,7 +42,7 @@ except (ModuleNotFoundError, AttributeError) as e:
         # Create mock modules with required attributes
         pykms_mock = types.ModuleType("pykms")
         kms_mock = types.ModuleType("kms")
-        
+
         # Add PixelFormat mock class with common pixel formats
         # DrmPreview expects these attributes even though we don't use them
         class PixelFormatMock:
@@ -50,7 +50,7 @@ except (ModuleNotFoundError, AttributeError) as e:
             XRGB8888 = "XRGB8888"
             BGR888 = "BGR888"
             XBGR8888 = "XBGR8888"
-        
+
         pykms_mock.PixelFormat = PixelFormatMock
         kms_mock.PixelFormat = PixelFormatMock
 
@@ -322,7 +322,6 @@ if __name__ == "__main__":
             dummy_image_jpeg = cv2.imencode(".jpg", dummy_image)[1].tobytes()
         else:
             # Fallback: create minimal JPEG without opencv
-            import struct
             # Minimal valid JPEG: black 1x1 image
             dummy_image_jpeg = (
                 b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
