@@ -154,7 +154,7 @@ try:
         logger.warning(f"JPEG_QUALITY {jpeg_quality} out of range (1-100). Using default 100.")
         jpeg_quality = 100
     else:
-logger.info(f"JPEG quality set to {jpeg_quality}")
+        logger.info(f"JPEG quality set to {jpeg_quality}")
 except (ValueError, TypeError):
     logger.warning("Invalid JPEG_QUALITY format. Using default 100.")
     jpeg_quality = 100
