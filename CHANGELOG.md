@@ -84,6 +84,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-01-22
+
+- Enhance Docker setup with conditional opencv installation and update documentation
+
 ## [1.0.5] - 2026-01-22
 
 - Enhance Docker setup with healthcheck script and optimize dependencies
