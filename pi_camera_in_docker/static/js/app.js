@@ -384,7 +384,9 @@ class CameraStreamApp {
 
           if (notReadyPayload?.status === 'not_ready') {
             this.setConnectionStatus('connecting', 'Starting...');
+            this.statsInFlight = false;
             return;
+          }
           }
         }
         throw new Error(`HTTP error! status: ${response.status}`);
