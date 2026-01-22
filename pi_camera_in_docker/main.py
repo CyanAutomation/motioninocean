@@ -293,11 +293,17 @@ def gen() -> Iterator[bytes]:
     """
     try:
         while True:
+            if not recording_started.is_set():
+                logger.info("Recording not started; ending MJPEG stream.")
+                break
             with output.condition:
-                output.condition.wait()
+                output.condition.wait(timeout=5.0)
                 frame = output.frame
             # Skip if frame is not yet available
             if frame is None:
+                if not recording_started.is_set():
+                    logger.info("Recording stopped; ending MJPEG stream.")
+                    break
                 continue
             yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
     except Exception as e:
@@ -307,6 +313,8 @@ def gen() -> Iterator[bytes]:
 @app.route("/stream.mjpg")
 def video_feed() -> Response:
     """Stream MJPEG video feed."""
+    if not recording_started.is_set():
+        return Response("Camera stream not ready.", status=503)
     return Response(gen(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 
