@@ -372,11 +372,24 @@ class CameraStreamApp {
       const response = await fetch('/ready', {
         signal
       });
-      
+
       if (!response.ok) {
+        if (response.status === 503) {
+          let notReadyPayload = null;
+          try {
+            notReadyPayload = await response.json();
+          } catch (parseError) {
+            console.warn('Failed to parse /ready 503 response:', parseError);
+          }
+
+          if (notReadyPayload?.status === 'not_ready') {
+            this.setConnectionStatus('connecting', 'Starting...');
+            return;
+          }
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       
       // Reset retry attempts on success
