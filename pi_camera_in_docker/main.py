@@ -43,12 +43,6 @@ mock_camera: bool = mock_camera_str.lower() in ("true", "1", "t")
 logger.info(f"Mock camera enabled: {mock_camera}")
 
 if not mock_camera:
-    # Initialize picamera2 imports to None first
-    Picamera2 = None
-    MappedArray = None
-    JpegEncoder = None
-    FileOutput = None
-    
     # Workaround for pykms import error in headless container environments
     # picamera2 imports DrmPreview which requires pykms, but we don't use preview functionality
     try:
