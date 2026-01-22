@@ -119,9 +119,19 @@ clean:
 	@echo "Clean complete!"
 
 # Docker targets
+# Using BuildKit for enhanced caching and faster builds
 docker-build:
-	@echo "Building Docker image..."
-	docker build -t motion-in-ocean:dev .
+	@echo "Building minimal Docker image (no opencv, ~40MB smaller)..."
+	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=false -t motion-in-ocean:dev .
+
+docker-build-full:
+	@echo "Building full Docker image with edge detection support..."
+	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=true -t motion-in-ocean:dev-full .
+
+docker-build-both:
+	@echo "Building both image variants..."
+	@$(MAKE) docker-build
+	@$(MAKE) docker-build-full
 
 docker-run:
 	@echo "Running Docker container..."

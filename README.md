@@ -170,6 +170,51 @@ This allows you to validate:
 
 ---
 
+## Building Custom Images
+
+The Docker image comes in two variants optimized for different use cases:
+
+### Minimal Image (Default, ~260MB)
+
+The default build **excludes opencv-python-headless** to reduce image size by ~40MB and speed up downloads. Edge detection is disabled in this variant.
+
+```bash
+# Using Makefile
+make docker-build
+
+# Or directly with Docker
+DOCKER_BUILDKIT=1 docker build -t motion-in-ocean:minimal .
+```
+
+### Full Image (With Edge Detection, ~300MB)
+
+Include opencv-python-headless for edge detection support:
+
+```bash
+# Using Makefile
+make docker-build-full
+
+# Or directly with Docker
+DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=true -t motion-in-ocean:full .
+```
+
+### Build Both Variants
+
+```bash
+make docker-build-both
+```
+
+### Image Size Comparison
+
+| Variant | opencv-python-headless | Edge Detection | Compressed Size | Use Case |
+|---------|------------------------|----------------|-----------------|----------|
+| **Minimal** (default) | ❌ No | Disabled | ~260MB | Production deployments, faster pulls |
+| **Full** | ✅ Yes | Available | ~300MB | When EDGE_DETECTION=true is needed |
+
+**Note:** If you enable `EDGE_DETECTION=true` with the minimal image, the application will log a warning and continue without edge detection. Rebuild with `INCLUDE_OPENCV=true` to enable the feature.
+
+---
+
 ## Architecture & key concepts
 
 ### Runtime model

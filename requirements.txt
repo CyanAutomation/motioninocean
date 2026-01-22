@@ -8,6 +8,9 @@ Flask==3.0.3
 flask-cors==6.0.0
 
 # Computer vision - minimal headless version (saves ~200MB vs python3-opencv)
+# NOTE: This is now conditionally installed via Dockerfile build arg INCLUDE_OPENCV
+# Default build excludes this dependency to save ~40MB
+# To include edge detection support, build with: --build-arg INCLUDE_OPENCV=true
 opencv-python-headless==4.10.0.84
 
 # Camera support for Raspberry Pi
