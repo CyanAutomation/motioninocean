@@ -10,6 +10,8 @@ class CameraStreamApp {
     this.connectionTimeout = null;
     this.isConnected = false;
     this.statsCollapsed = false;
+    this.statsInFlight = false;
+    this.pollingPausedForRetry = false;
     
     // Retry/backoff configuration
     this.retryAttempts = 0;
@@ -273,7 +275,7 @@ class CameraStreamApp {
    * Start stats update interval
    */
   startStatsUpdate() {
-    if (this.updateInterval) return;
+    if (this.updateInterval || this.pollingPausedForRetry) return;
     
     this.updateInterval = setInterval(() => {
       this.updateStats();
@@ -304,10 +306,20 @@ class CameraStreamApp {
    * Fetch and update stats from /ready endpoint
    */
   async updateStats() {
+    if (this.statsInFlight) return;
+    
+    try {
+      this.statsInFlight = true;
+
     const timeoutMs = 5000;
     let timeoutId;
     let controller;
     let signal;
+
+    if (this.retryTimeout) {
+      clearTimeout(this.retryTimeout);
+      this.retryTimeout = null;
+    }
 
     if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
       signal = AbortSignal.timeout(timeoutMs);
@@ -333,6 +345,10 @@ class CameraStreamApp {
       if (this.retryTimeout) {
         clearTimeout(this.retryTimeout);
         this.retryTimeout = null;
+      }
+      if (this.pollingPausedForRetry) {
+        this.pollingPausedForRetry = false;
+        this.startStatsUpdate();
       }
       
       // Update connection status if not already connected
@@ -392,12 +408,21 @@ class CameraStreamApp {
         console.log(`Retrying in ${(delay / 1000).toFixed(1)}s (attempt ${this.retryAttempts}/${this.maxRetries})`);
         
         // Schedule retry
+        this.stopStatsUpdate();
+        this.pollingPausedForRetry = true;
+        if (this.retryTimeout) {
+          clearTimeout(this.retryTimeout);
+        }
         this.retryTimeout = setTimeout(() => {
           this.updateStats();
         }, delay);
       } else {
         console.warn('Max retry attempts reached. Will retry on next scheduled update.');
         this.retryAttempts = 0; // Reset for next scheduled update
+        if (this.pollingPausedForRetry) {
+          this.pollingPausedForRetry = false;
+          this.startStatsUpdate();
+        }
       }
     } finally {
       // Clear fallback timeout if it was set
@@ -405,6 +430,7 @@ class CameraStreamApp {
         clearTimeout(timeoutId);
       }
       // Note: AbortSignal.timeout() handles its own cleanup automatically
+      this.statsInFlight = false;
     }
   }
   
