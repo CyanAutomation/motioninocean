@@ -30,51 +30,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Workaround for pykms import error in headless container environments
-# picamera2 imports DrmPreview which requires pykms, but we don't use preview functionality
-try:
-    from picamera2 import Picamera2
-except (ModuleNotFoundError, AttributeError) as e:
-    if "pykms" in str(e) or "kms" in str(e) or "PixelFormat" in str(e):
-        # Mock the pykms module so picamera2 can import without DRM/KMS support
-        import sys
-        import types
-
-        # Create mock modules with required attributes
-        pykms_mock = types.ModuleType("pykms")
-        kms_mock = types.ModuleType("kms")
-
-        # Add PixelFormat mock class with common pixel formats
-        # DrmPreview expects these attributes even though we don't use them
-        class PixelFormatMock:
-            RGB888 = "RGB888"
-            XRGB8888 = "XRGB8888"
-            BGR888 = "BGR888"
-            XBGR8888 = "XBGR8888"
-
-        pykms_mock.PixelFormat = PixelFormatMock
-        kms_mock.PixelFormat = PixelFormatMock
-
-        # Add to sys.modules to satisfy imports
-        sys.modules["pykms"] = pykms_mock
-        sys.modules["kms"] = kms_mock
-
-        logger.warning(
-            "pykms module not available or incomplete - using mock module. "
-            "DrmPreview functionality disabled (not needed for headless streaming)."
-        )
-
-        # Retry import with mocked modules
-        from picamera2 import Picamera2
-    else:
-        raise
-else:
-    # Import succeeded on first try
-    pass
-from picamera2.array import MappedArray
-from picamera2.encoders import JpegEncoder
-from picamera2.outputs import FileOutput
-
 
 # Get configuration from environment variables
 resolution_str: str = os.environ.get("RESOLUTION", "640x480")
@@ -85,6 +40,57 @@ jpeg_quality_str: str = os.environ.get("JPEG_QUALITY", "100")
 
 mock_camera: bool = mock_camera_str.lower() in ("true", "1", "t")
 logger.info(f"Mock camera enabled: {mock_camera}")
+
+if not mock_camera:
+    # Workaround for pykms import error in headless container environments
+    # picamera2 imports DrmPreview which requires pykms, but we don't use preview functionality
+    try:
+        from picamera2 import Picamera2
+    except (ModuleNotFoundError, AttributeError) as e:
+        if "pykms" in str(e) or "kms" in str(e) or "PixelFormat" in str(e):
+            # Mock the pykms module so picamera2 can import without DRM/KMS support
+            import sys
+            import types
+
+            # Create mock modules with required attributes
+            pykms_mock = types.ModuleType("pykms")
+            kms_mock = types.ModuleType("kms")
+
+            # Add PixelFormat mock class with common pixel formats
+            # DrmPreview expects these attributes even though we don't use them
+            class PixelFormatMock:
+                RGB888 = "RGB888"
+                XRGB8888 = "XRGB8888"
+                BGR888 = "BGR888"
+                XBGR8888 = "XBGR8888"
+
+            pykms_mock.PixelFormat = PixelFormatMock
+            kms_mock.PixelFormat = PixelFormatMock
+
+            # Add to sys.modules to satisfy imports
+            sys.modules["pykms"] = pykms_mock
+            sys.modules["kms"] = kms_mock
+
+            logger.warning(
+                "pykms module not available or incomplete - using mock module. "
+                "DrmPreview functionality disabled (not needed for headless streaming)."
+            )
+
+            # Retry import with mocked modules
+            from picamera2 import Picamera2
+        else:
+            raise
+    else:
+        # Import succeeded on first try
+        pass
+    from picamera2.array import MappedArray
+    from picamera2.encoders import JpegEncoder
+    from picamera2.outputs import FileOutput
+else:
+    Picamera2 = None  # type: ignore[assignment]
+    MappedArray = None  # type: ignore[assignment]
+    JpegEncoder = None  # type: ignore[assignment]
+    FileOutput = None  # type: ignore[assignment]
 
 # Parse resolution
 try:
