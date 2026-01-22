@@ -3,10 +3,15 @@
 .gitignore
 .github/
 
-# Test files
+# Test files and coverage reports
 test_*.py
+tests/
 TEST_REPORT.md
 TESTING_COMPLETE.md
+htmlcov/
+coverage.xml
+.coverage
+.pytest_cache/
 
 # Documentation
 *.md
@@ -16,12 +21,15 @@ TESTING_COMPLETE.md
 .env
 .env.*
 
-# Python cache
+# Python cache and virtual environments
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
+venv/
+env/
+.venv/
 
 # IDE and editor files
 .vscode/
@@ -34,5 +42,18 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Build artifacts
+# Build artifacts and scripts
 *.log
+Makefile
+*.sh
+docker-compose.yml
+eslint.config.js
+
+# Node.js (dev dependencies only)
+node_modules/
+package.json
+package-lock.json
+
+# Python development dependencies
+requirements-dev.txt
+pyproject.toml

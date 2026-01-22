@@ -7,6 +7,9 @@ Flask==3.0.3
 # CORS support for Flask
 flask-cors==6.0.0
 
+# Computer vision - minimal headless version (saves ~200MB vs python3-opencv)
+opencv-python-headless==4.10.0.84
+
 # Camera support for Raspberry Pi
 # Note: picamera2 is now installed via apt from Raspberry Pi repository
 # (python3-picamera2) along with system packages (python3-libcamera, libcamera-dev)
