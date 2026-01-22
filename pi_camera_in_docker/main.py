@@ -189,7 +189,7 @@ class StreamingOutput(io.BufferedIOBase):
         self.last_frame_time: Optional[float] = None
         self.frame_times: deque[float] = deque(maxlen=30)  # Fixed-size deque prevents memory leak
 
-    def write(self, buf: bytes) -> None:
+    def write(self, buf: bytes) -> int:
         """Write a new frame to the output buffer.
 
         Args:
@@ -203,6 +203,7 @@ class StreamingOutput(io.BufferedIOBase):
             self.last_frame_time = now
             self.frame_times.append(now)  # deque automatically maintains maxlen=30
             self.condition.notify_all()
+        return len(buf)
 
     def get_fps(self) -> float:
         """Calculate actual FPS from frame times.
