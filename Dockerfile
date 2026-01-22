@@ -71,7 +71,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 WORKDIR /app
 
 # Copy Python packages from builder stage
-COPY --from=builder /usr/local/lib/python3.11/dist-packages /usr/local/lib/python3.11/dist-packages
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 
 # Copy the application code
 COPY pi_camera_in_docker /app
@@ -79,6 +79,9 @@ COPY pi_camera_in_docker /app
 # Copy healthcheck script
 COPY healthcheck.py /app/healthcheck.py
 RUN chmod +x /app/healthcheck.py
+
+# Validate required Python modules are present in the final image
+RUN python3 -c "import flask; import flask_cors"
 
 # Set the entry point
 CMD ["python3", "/app/main.py"]
