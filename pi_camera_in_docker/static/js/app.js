@@ -317,7 +317,6 @@ class CameraStreamApp {
 
     if (this.streamRetryAttempts >= this.maxRetries) {
       console.warn('Max stream retry attempts reached. Waiting for manual refresh.');
-      this.streamRetryAttempts = 0;
       return;
     }
 
