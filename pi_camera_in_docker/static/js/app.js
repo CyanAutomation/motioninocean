@@ -383,10 +383,9 @@ class CameraStreamApp {
           }
 
           if (notReadyPayload?.status === 'not_ready') {
-            this.setConnectionStatus('connecting', 'Starting...');
+            const statusText = notReadyPayload?.message || 'Starting...';
+            this.setConnectionStatus('connecting', statusText);
             this.statsInFlight = false;
-            return;
-          }
           }
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -445,7 +444,6 @@ class CameraStreamApp {
         this.elements.lastUpdated.textContent = 
           `Updated: ${now.toLocaleTimeString()}`;
       }
-      
     } catch (error) {
       console.error('Failed to fetch stats:', error);
       this.setConnectionStatus('disconnected', 'Disconnected');
