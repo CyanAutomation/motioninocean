@@ -38,6 +38,8 @@ class CameraStreamApp {
       fpsValue: null,
       uptimeValue: null,
       framesValue: null,
+      lastFrameAgeValue: null,
+      maxFrameAgeValue: null,
       resolutionValue: null,
       edgeDetectionValue: null,
       lastUpdated: null
@@ -89,6 +91,8 @@ class CameraStreamApp {
     this.elements.fpsValue = document.getElementById('fps-value');
     this.elements.uptimeValue = document.getElementById('uptime-value');
     this.elements.framesValue = document.getElementById('frames-value');
+    this.elements.lastFrameAgeValue = document.getElementById('last-frame-age-value');
+    this.elements.maxFrameAgeValue = document.getElementById('max-frame-age-value');
     this.elements.resolutionValue = document.getElementById('resolution-value');
     this.elements.edgeDetectionValue = document.getElementById('edge-detection-value');
     this.elements.lastUpdated = document.getElementById('last-updated');
@@ -444,6 +448,18 @@ class CameraStreamApp {
       if (this.elements.framesValue) {
         this.elements.framesValue.textContent = this.formatNumber(data.frames_captured);
       }
+
+      if (this.elements.lastFrameAgeValue) {
+        this.elements.lastFrameAgeValue.textContent = this.formatSeconds(
+          data.last_frame_age_seconds
+        );
+      }
+
+      if (this.elements.maxFrameAgeValue) {
+        this.elements.maxFrameAgeValue.textContent = this.formatSeconds(
+          data.max_frame_age_seconds
+        );
+      }
       
       if (this.elements.resolutionValue) {
         if (data.resolution && Array.isArray(data.resolution)) {
@@ -472,6 +488,14 @@ class CameraStreamApp {
       // Show fallback values
       if (this.elements.fpsValue) {
         this.elements.fpsValue.textContent = '--';
+      }
+
+      if (this.elements.lastFrameAgeValue) {
+        this.elements.lastFrameAgeValue.textContent = '--';
+      }
+
+      if (this.elements.maxFrameAgeValue) {
+        this.elements.maxFrameAgeValue.textContent = '--';
       }
       
       // Implement exponential backoff retry
@@ -533,6 +557,15 @@ class CameraStreamApp {
   formatNumber(num) {
     if (num === null || num === undefined) return '0';
     return num.toLocaleString();
+  }
+
+  /**
+   * Format seconds with a consistent precision
+   */
+  formatSeconds(seconds) {
+    if (seconds === null || seconds === undefined) return '--';
+    if (Number.isNaN(seconds)) return '--';
+    return `${Number(seconds).toFixed(2)}s`;
   }
   
   /**
