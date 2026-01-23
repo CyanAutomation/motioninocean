@@ -273,9 +273,12 @@ class CameraStreamApp {
     } catch {
       this.setConnectionStatus('disconnected', 'Disconnected');
     } finally {
+      // Clear fallback timeout if it was set
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
+      // Note: AbortSignal.timeout() handles its own cleanup automatically
+      // and cannot be manually cancelled once created
     }
   }
   
