@@ -84,6 +84,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-01-23
+
+- Merge pull request #27 from CyanAutomation/codex/fix-python-linting-errors
+- Merge pull request #30 from CyanAutomation/codex/github-mention-allow-python-3.11-slim-bookworm-as-acceptabl
+- Update base image check patterns
+- Merge pull request #29 from CyanAutomation/codex/update-base-image-policy-in-dockerfile
+- Allow python base image in dockerfile test
+- Merge pull request #28 from CyanAutomation/codex/handle-503-error-in-fetch-response
+- Update pi_camera_in_docker/static/js/app.js
+- Update pi_camera_in_docker/static/js/app.js
+- Handle ready 503 status
+- Fix lint exclusions and picamera imports
+- Merge pull request #26 from CyanAutomation/codex/enhance-/ready-endpoint-for-frame-age-check
+- Update pi_camera_in_docker/main.py
+- Merge pull request #25 from CyanAutomation/codex/update-fetch-error-handling-for-readiness-check
+- Update pi_camera_in_docker/static/js/app.js
+- Add stale stream readiness check
+- Handle not-ready status from /ready
+- Merge pull request #24 from CyanAutomation/codex/update-streamingoutput.write-return-type
+- Merge pull request #23 from CyanAutomation/codex/add-cors_origins-env-var-support
+- Update pi_camera_in_docker/main.py
+- Return byte count from streaming output write
+- Merge pull request #22 from CyanAutomation/codex/update-dockerfile-to-copy-site-packages
+- Add configurable CORS origins
+- Update Dockerfile
+- Merge pull request #21 from CyanAutomation/codex/move-picamera2-import-to-conditional
+- Update pi_camera_in_docker/main.py
+- Update Dockerfile package copy path
+- Guard picamera2 imports for mock camera
+- Merge pull request #20 from CyanAutomation/codex/fix-linting-errors-for-import-blocks
+- Update node_modules/flatted/python/flatted.py
+- Update node_modules/flatted/python/flatted.py
+- Update node_modules/flatted/python/flatted.py
+- Fix import spacing for lint
+
 ## [1.0.7] - 2026-01-22
 
 - Merge pull request #19 from CyanAutomation/codex/augment-onstreamerror-with-refresh-backoff
