@@ -19,5 +19,6 @@ def check_health():
         pass
     return False
 
+
 if __name__ == "__main__":
     sys.exit(0 if check_health() else 1)

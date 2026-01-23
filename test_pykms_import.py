@@ -55,6 +55,7 @@ except ModuleNotFoundError as e:
 
             # Verify PixelFormat mock is available
             import pykms
+
             if hasattr(pykms, "PixelFormat") and hasattr(pykms.PixelFormat, "RGB888"):
                 logger.info("✓ PixelFormat mock with RGB888 attribute available")
             else:
