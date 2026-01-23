@@ -501,4 +501,5 @@ if __name__ == "__main__":
                         logger.info("Camera recording stopped")
                 except Exception as e:
                     logger.error(f"Error during camera shutdown: {e}", exc_info=True)
+            recording_started.clear()
             logger.info("Application shutdown complete")
