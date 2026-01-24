@@ -409,6 +409,11 @@ class CameraStreamApp {
           if (notReadyPayload?.status === 'not_ready') {
             const statusText = notReadyPayload?.reason || notReadyPayload?.message || 'Starting...';
             this.setConnectionStatus('connecting', statusText);
+            this.pollingPausedForRetry = false;
+            // Only restart polling if not already active
+            if (!this.updateInterval) {
+              this.startStatsUpdate();
+            }
             this.statsInFlight = false;
             return;
           }
