@@ -11,7 +11,7 @@ from threading import Condition, Event, Thread
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
-from flask import Flask, Response, jsonify, render_template
+from flask import Flask, Response, jsonify, render_template, request
 from flask_cors import CORS
 
 
@@ -258,6 +258,7 @@ class StreamingOutput(io.BufferedIOBase):
 
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
+no_cache_paths = {"/health", "/ready", "/metrics"}
 
 # Security configuration
 app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", os.urandom(24).hex())
@@ -265,6 +266,15 @@ app.config["DEBUG"] = False
 
 # Enable CORS for cross-origin access (dashboards, Home Assistant, etc.)
 CORS(app, resources={r"/*": {"origins": cors_origins}})
+
+
+@app.after_request
+def add_no_cache_headers(response: Response) -> Response:
+    """Ensure health and metrics endpoints are not cached."""
+    if request.path in no_cache_paths:
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Pragma"] = "no-cache"
+    return response
 
 output = StreamingOutput()
 app.start_time = datetime.now()
