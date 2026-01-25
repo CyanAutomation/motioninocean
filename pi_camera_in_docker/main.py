@@ -127,7 +127,6 @@ else:
 logger.info(f"Edge detection: {edge_detection}")
 
 # Parse max frame age for readiness
-# Parse max frame age for readiness
 max_frame_age_seconds: float = 10.0  # Initialize with default value
 try:
     max_frame_age_seconds = float(max_frame_age_seconds_str)
@@ -444,9 +443,7 @@ if __name__ == "__main__":
                 time.sleep(1 / (fps if fps > 0 else 10))  # Simulate FPS
                 output.write(dummy_image_jpeg)
 
-        import threading
-
-        mock_thread: Thread = threading.Thread(target=generate_mock_frames)
+        mock_thread: Thread = Thread(target=generate_mock_frames)
         mock_thread.daemon = True
         mock_thread.start()
 
