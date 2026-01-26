@@ -277,15 +277,10 @@ class StreamingOutput(io.BufferedIOBase):
         with self.condition:
             frame_count = self.frame_count
             last_frame_time = self.last_frame_time
-            frame_times = list(self.frame_times)
         last_frame_age_seconds = (
             None if last_frame_time is None else round(time.time() - last_frame_time, 2)
         )
-        if len(frame_times) < 2:
-            current_fps = 0.0
-        else:
-            time_span = frame_times[-1] - frame_times[0]
-            current_fps = 0.0 if time_span == 0 else (len(frame_times) - 1) / time_span
+        current_fps = self.get_fps()
         return {
             "frames_captured": frame_count,
             "current_fps": round(current_fps, 2),
