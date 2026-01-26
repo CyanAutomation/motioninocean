@@ -20,17 +20,6 @@ DEFAULT_HEALTHCHECK_URL = "http://127.0.0.1:8000/health"
 DEFAULT_HEALTHCHECK_TIMEOUT = 5
 
 
-def _load_timeout():
-    """Load the healthcheck timeout value."""
-    timeout_value = os.getenv("HEALTHCHECK_TIMEOUT")
-    if not timeout_value:
-        return DEFAULT_HEALTHCHECK_TIMEOUT
-    try:
-        return float(timeout_value)
-    except ValueError:
-        return DEFAULT_HEALTHCHECK_TIMEOUT
-
-
 def _is_public_address(address):
     try:
         ip = ipaddress.ip_address(address)
