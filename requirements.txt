@@ -5,7 +5,7 @@
 Flask==3.0.3
 
 # CORS support for Flask
-flask-cors==6.0.0
+flask-cors==6.0.2
 
 # Computer vision - minimal headless version (saves ~200MB vs python3-opencv)
 # NOTE: This is now conditionally installed via Dockerfile build arg INCLUDE_OPENCV
