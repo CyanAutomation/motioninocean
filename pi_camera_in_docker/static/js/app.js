@@ -65,7 +65,6 @@ class CameraStreamApp {
     this.cacheElements();
     this.attachEventListeners();
     this.startStatsUpdate();
-    this.checkConnection();
     
     // Initial stats fetch
     this.updateStats();
@@ -172,8 +171,6 @@ class CameraStreamApp {
         this.elements.refreshBtn.style.transform = '';
       }, 300);
     }
-    
-    this.setConnectionStatus('connecting', 'Reconnecting...');
   }
   
   /**
@@ -236,7 +233,6 @@ class CameraStreamApp {
    * Handle stream load event
    */
   onStreamLoad() {
-    this.setConnectionStatus('connected', 'Connected');
     this.hideLoading();
     this.clearStreamRetry();
   }
@@ -245,45 +241,8 @@ class CameraStreamApp {
    * Handle stream error event
    */
   onStreamError() {
-    this.setConnectionStatus('disconnected', 'Disconnected');
     console.error('Video stream error');
     this.scheduleStreamRetry();
-  }
-  
-  /**
-   * Check connection status
-   */
-  async checkConnection() {
-    const timeoutMs = 5000;
-    let timeoutId;
-    let controller;
-    let signal;
-
-    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
-      signal = AbortSignal.timeout(timeoutMs);
-    } else {
-      controller = new AbortController();
-      signal = controller.signal;
-      timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    }
-
-    try {
-      const response = await fetch('/health', { signal });
-      if (response.ok) {
-        this.setConnectionStatus('connected', 'Connected');
-      } else {
-        this.setConnectionStatus('disconnected', 'Disconnected');
-      }
-    } catch {
-      this.setConnectionStatus('disconnected', 'Disconnected');
-    } finally {
-      // Clear fallback timeout if it was set
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      // Note: AbortSignal.timeout() handles its own cleanup automatically
-      // and cannot be manually cancelled once created
-    }
   }
   
   /**
