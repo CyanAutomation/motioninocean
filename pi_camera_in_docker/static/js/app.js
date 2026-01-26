@@ -36,7 +36,7 @@ function init() {
   cacheElements();
   attachHandlers();
   startStatsUpdate();
-  updateStats();
+  updateStats().catch(error => console.error('Initial stats update failed:', error));
 
   console.log('🎥 motion-in-ocean camera stream initialized');
 }
