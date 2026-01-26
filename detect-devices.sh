@@ -41,7 +41,7 @@ check_device() {
 # Core devices
 if [ -d "/dev/dma_heap" ]; then
     echo "  ✓ /dev/dma_heap - Memory management for libcamera (directory)"
-    ls -l /dev/dma_heap/ 2>/dev/null | grep -E '^[c|l]' | awk '{print "    " $0}'
+    ls -l /dev/dma_heap/ 2>/dev/null | awk '/^[c|l]/ {print "    " $0}'
     CORE_DEVICES+=("/dev/dma_heap")
 elif [ -e "/dev/dma_heap" ]; then
     check_device "/dev/dma_heap" "Memory management for libcamera"
