@@ -10,6 +10,8 @@ Optional environment variables:
 
 import os
 import sys
+import ipaddress
+import socket
 import urllib.error
 import urllib.request
 from urllib.parse import urlparse
@@ -30,20 +32,59 @@ def _load_timeout():
         return DEFAULT_HEALTHCHECK_TIMEOUT
 
 
+def _is_public_address(address):
+    try:
+        ip = ipaddress.ip_address(address)
+    except ValueError:
+        return False
+    return ip.is_global
+
+
+def _resolve_hostnames(hostname):
+    try:
+        addrinfo = socket.getaddrinfo(hostname, None, family=socket.AF_UNSPEC, type=socket.SOCK_STREAM)
+    except socket.gaierror:
+        return []
+    return [info[4][0] for info in addrinfo]
+
+
+def _is_allowed_url(url):
+    parsed_url = urlparse(url)
+    if parsed_url.scheme not in {"http", "https"}:
+        return False
+
+    hostname = parsed_url.hostname
+    if not hostname:
+        return False
+
+    normalized_hostname = hostname.strip(".").lower()
+    if normalized_hostname in {"localhost"}:
+        return False
+
+    try:
+        literal_address = ipaddress.ip_address(hostname)
+    except ValueError:
+        literal_address = None
+
+    if literal_address:
+        return literal_address.is_global
+
+    resolved_addresses = _resolve_hostnames(hostname)
+    if not resolved_addresses:
+        return False
+
+    return all(_is_public_address(address) for address in resolved_addresses)
+
+
 def check_health():
     """Check if the application is healthy."""
-    healthcheck_url = os.getenv("HEALTHCHECK_URL", DEFAULT_HEALTHCHECK_URL)
-    # Validate URL to prevent SSRF attacks
-    parsed_url = urlparse(healthcheck_url)
-    if (parsed_url.scheme not in {"http", "https"} or 
-        parsed_url.hostname in {"localhost", "127.0.0.1", "0.0.0.0", "::1"} or
-        (parsed_url.hostname and (
-            parsed_url.hostname.startswith("10.") or
-            parsed_url.hostname.startswith("192.168.") or
-            parsed_url.hostname.startswith("172.") and 
-            16 <= int(parsed_url.hostname.split(".")[1]) <= 31
-        ))):
-        print(f"Warning: Invalid HEALTHCHECK_URL '{healthcheck_url}', using default", file=sys.stderr)
+    env_healthcheck_url = os.getenv("HEALTHCHECK_URL")
+    healthcheck_url = env_healthcheck_url or DEFAULT_HEALTHCHECK_URL
+    if env_healthcheck_url and not _is_allowed_url(env_healthcheck_url):
+        print(
+            f"Warning: Invalid HEALTHCHECK_URL '{env_healthcheck_url}', using default",
+            file=sys.stderr,
+        )
         healthcheck_url = DEFAULT_HEALTHCHECK_URL
     timeout_seconds = _load_timeout()
     try:
