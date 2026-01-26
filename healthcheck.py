@@ -49,6 +49,9 @@ def check_health():
                 literal_address = ipaddress.ip_address(hostname)
             except ValueError:
                 literal_address = None
+            # Validate hostname format without DNS resolution to prevent TOCTOU attacks
+            if not all(c.isalnum() or c in ".-" for c in hostname):
+                literal_address = "invalid"  # Force validation failure
         if (
             parsed_url.scheme not in {"http", "https"}
             or not hostname
