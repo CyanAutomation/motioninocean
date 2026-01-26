@@ -232,7 +232,15 @@ class StreamStats:
         with self._lock:
             frame_count = self._frame_count
             last_frame_time = self._last_frame_time
-        current_fps = self.get_fps()
+            frame_times = list(self._frame_times)
+        
+        # Calculate FPS outside lock using the snapshot
+        if len(frame_times) < 2:
+            current_fps = 0.0
+        else:
+            time_span = frame_times[-1] - frame_times[0]
+            current_fps = 0.0 if time_span == 0 else (len(frame_times) - 1) / time_span
+        
         return frame_count, last_frame_time, current_fps
 
 
