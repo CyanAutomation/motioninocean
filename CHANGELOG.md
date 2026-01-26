@@ -84,6 +84,134 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-01-26
+
+- Merge pull request #80 from CyanAutomation/codex/refactor-check_health-for-timeout-parsing
+- Update healthcheck.py
+- Update healthcheck.py
+- Update healthcheck.py
+- Merge pull request #79 from CyanAutomation/codex/refactor-camerastreamapp-to-module-functions
+- Update pi_camera_in_docker/static/js/app.js
+- Update pi_camera_in_docker/static/js/app.js
+- Update pi_camera_in_docker/static/js/app.js
+- Refine healthcheck validation flow
+- Refactor camera app initialization
+- Merge pull request #78 from CyanAutomation/codex/remove-_load_timeout-and-consolidate-parsing
+- Merge pull request #77 from CyanAutomation/codex/refactor-streamingoutput-in-main.py
+- Update pi_camera_in_docker/main.py
+- Merge pull request #76 from CyanAutomation/codex/refactor-fetchmetrics-with-helper-function
+- Remove unused healthcheck timeout helper
+- Refactor streaming state
+- Refactor metrics fetch timeout
+- Merge pull request #75 from CyanAutomation/codex/refactor-updatestats-to-use-fetchmetrics-and-rendermetrics
+- Merge pull request #74 from CyanAutomation/codex/refactor-/ready-route-payload-handling
+- Update pi_camera_in_docker/main.py
+- Refactor metrics polling helpers
+- Refactor ready payload building
+- Merge pull request #73 from CyanAutomation/codex/github-mention-drive-connection-status-from-/metrics-only
+- Update connection status on stream events
+- Merge pull request #72 from CyanAutomation/codex/remove-checkconnection-from-app.js
+- Merge pull request #71 from CyanAutomation/codex/remove-stream-retry-logic-from-app.js
+- Update pi_camera_in_docker/static/js/app.js
+- Remove redundant connection check
+- Simplify stream error handling
+- Merge pull request #69 from CyanAutomation/codex/remove-generate_docker_compose_override-function
+- Inline docker compose override generation
+- Merge pull request #68 from CyanAutomation/codex/github-mention-harden-healthcheck_url-ssrf-validation
+- Update healthcheck.py
+- Fix healthcheck SSRF validation
+- Merge pull request #67 from CyanAutomation/codex/remove-globals-and-simplify-error-handling
+- Merge pull request #66 from CyanAutomation/codex/update-streamingoutput.get_status-implementation
+- Merge pull request #65 from CyanAutomation/codex/inline-_load_timeout-logic-into-check_health
+- Merge branch 'main' into codex/inline-_load_timeout-logic-into-check_health
+- Simplify edge detection error logging
+- Merge pull request #64 from CyanAutomation/codex/remove-calculatebackoffdelay-function
+- Use get_fps in streaming status
+- Merge pull request #63 from CyanAutomation/codex/github-mention-validate-healthcheck-url-scheme
+- Update healthcheck.py
+- Update healthcheck.py
+- Update healthcheck.py
+- Inline healthcheck timeout loading
+- Simplify retry delay in camera app
+- Harden healthcheck URL validation
+- Merge pull request #62 from CyanAutomation/codex/update-dockerfile-for-correct-site-packages
+- Update Dockerfile
+- Update Dockerfile
+- Update Dockerfile
+- Merge pull request #61 from CyanAutomation/codex/replace-empty-string-checks-with-url-validation
+- Update healthcheck.py
+- Fix Python site-packages path in Dockerfile
+- Validate healthcheck URL scheme
+- Merge pull request #58 from CyanAutomation/codex/add-sigterm/sigint-handlers-in-main.py
+- Update pi_camera_in_docker/main.py
+- Update pi_camera_in_docker/main.py
+- Merge pull request #59 from CyanAutomation/codex/update-updatestats-function-in-app.js
+- Merge pull request #60 from CyanAutomation/codex/set-cors_origins-based-on-motion_in_ocean
+- Merge pull request #57 from CyanAutomation/codex/add-aria-live-attribute-to-status-element
+- Remove optional CORS env from compose
+- Update stats fetch to metrics endpoint
+- Handle shutdown signals for camera
+- Add live region for connection status
+- Merge pull request #50 from CyanAutomation/dependabot/pip/safety-3.7.0
+- Merge pull request #48 from CyanAutomation/dependabot/github_actions/actions/setup-python-6
+- Merge pull request #49 from CyanAutomation/dependabot/github_actions/actions/upload-artifact-6
+- Merge pull request #51 from CyanAutomation/dependabot/pip/flask-3.1.2
+- chore(deps): bump flask from 3.0.3 to 3.1.2
+- Merge pull request #52 from CyanAutomation/dependabot/pip/pre-commit-4.3.0
+- Merge pull request #53 from CyanAutomation/dependabot/docker/python-3.14-slim-bookworm
+- Merge pull request #54 from CyanAutomation/dependabot/pip/flask-cors-6.0.2
+- Merge pull request #55 from CyanAutomation/dependabot/pip/opencv-python-headless-4.13.0.90
+- Merge pull request #56 from CyanAutomation/codex/add-module-level-lock-for-edge-detection
+- Add lock for edge detection error tracking
+- chore(deps): bump opencv-python-headless from 4.10.0.84 to 4.13.0.90
+- chore(deps): bump flask-cors from 6.0.0 to 6.0.2
+- chore(deps): bump python from 3.11-slim-bookworm to 3.14-slim-bookworm
+- chore(deps-dev): bump pre-commit from 4.0.1 to 4.3.0
+- chore(deps-dev): bump safety from 3.2.11 to 3.7.0
+- chore(deps): bump actions/upload-artifact from 4 to 6
+- chore(deps): bump actions/setup-python from 5 to 6
+- Merge pull request #47 from CyanAutomation/codex/update-streamingoutput-methods-for-thread-safety
+- Lock streaming metrics reads
+- Merge pull request #46 from CyanAutomation/codex/modify-device-check-to-ignore-no-matches
+- Update detect-devices.sh
+- Merge pull request #45 from CyanAutomation/codex/remove-hardcoded-device-entries-from-docker-compose
+- Update docker-compose.yml
+- Merge pull request #44 from CyanAutomation/codex/update-refreshstream-to-clear-streamretry
+- Merge pull request #42 from CyanAutomation/codex/add-rate-limiter-to-edge-detection-logging
+- Merge pull request #43 from CyanAutomation/codex/add-optional-environment-variables-for-healthcheck
+- Update healthcheck.py
+- Update main.py
+- Avoid set -e failure on dma_heap listing
+- Adjust device mappings for compose defaults
+- Clear stream retry on manual refresh
+- Add healthcheck env overrides
+- Rate limit edge detection errors
+- Merge pull request #41 from CyanAutomation/codex/locate-updatestats-and-modify-readiness-handling
+- Merge pull request #40 from CyanAutomation/codex/fix-linting-in-main.py
+- Resume stats polling after not ready
+- Fix linting in camera main
+- Merge pull request #39 from CyanAutomation/codex/locate-updatestats-and-modify-early-return
+- Update pi_camera_in_docker/static/js/app.js
+- Resume stats polling after not ready
+- Merge pull request #38 from CyanAutomation/codex/add-cache-control-headers-to-routes
+- Add no-store cache headers for health endpoints
+- Merge pull request #37 from CyanAutomation/codex/fix-linting-errors-in-scripts
+- Format Python files
+- Merge pull request #35 from CyanAutomation/codex/create-prd-for-project-and-repository
+- Merge pull request #36 from CyanAutomation/codex/update-index.html-and-app.js-for-new-stat-rows
+- Add frame age stats to stream dashboard
+- Add product requirements document
+- Merge pull request #34 from CyanAutomation/codex/add-recording_started.clear-in-finally-block
+- Clear recording flag on shutdown
+- Merge pull request #33 from CyanAutomation/codex/change-early-return-on-503-in-updatestats
+- Update pi_camera_in_docker/static/js/app.js
+- Handle not ready stats response without backoff
+- Merge pull request #32 from CyanAutomation/codex/update-connection-status-on-503-response
+- Show ready reason while connecting
+- Merge pull request #31 from CyanAutomation/codex/implement-timeout-logic-in-checkconnection
+- Update pi_camera_in_docker/static/js/app.js
+- Add timeout handling to connection check
+
 ## [1.0.8] - 2026-01-23
 
 - Merge pull request #27 from CyanAutomation/codex/fix-python-linting-errors
