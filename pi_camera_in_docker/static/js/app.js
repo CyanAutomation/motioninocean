@@ -161,6 +161,8 @@ class CameraStreamApp {
   refreshStream() {
     if (!this.elements.videoStream) return;
     
+    this.clearStreamRetry();
+
     // Add timestamp to force reload
     const streamUrl = this.elements.videoStream.src.split('?')[0];
     this.elements.videoStream.src = `${streamUrl}?t=${Date.now()}`;
