@@ -44,7 +44,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # ---- Final Stage ----
 # The final image is based on python:3.14-slim-bookworm (optimized Python runtime, ~40MB smaller than debian:bookworm-slim + python3)
-FROM python:3.14-slim-bookworm
+FROM python:3.12-slim-bookworm
 
 # Copy Raspberry Pi repository and keys from builder
 COPY --from=builder /usr/share/keyrings/raspberrypi.gpg /usr/share/keyrings/raspberrypi.gpg
