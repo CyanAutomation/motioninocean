@@ -11,13 +11,6 @@ class CameraStreamApp {
     this.isConnected = false;
     this.statsCollapsed = false;
     this.statsInFlight = false;
-    this.pollingPausedForRetry = false;
-    
-    // Retry/backoff configuration
-    this.retryAttempts = 0;
-    this.maxRetries = 5;
-    this.retryAttempts = 0;
-    this.retryTimeout = null;
 
     // DOM elements
     this.elements = {
@@ -259,7 +252,7 @@ class CameraStreamApp {
    * Start stats update interval
    */
   startStatsUpdate() {
-    if (this.updateInterval || this.pollingPausedForRetry) return;
+    if (this.updateInterval) return;
     
     this.updateInterval = setInterval(() => {
       this.updateStats();
@@ -284,16 +277,37 @@ class CameraStreamApp {
     
     try {
       this.statsInFlight = true;
+      const data = await this.fetchMetrics();
+      this.renderMetrics(data);
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+      this.setConnectionStatus('disconnected', 'Disconnected');
+      
+      // Show fallback values
+      if (this.elements.fpsValue) {
+        this.elements.fpsValue.textContent = '--';
+      }
 
+      if (this.elements.lastFrameAgeValue) {
+        this.elements.lastFrameAgeValue.textContent = '--';
+      }
+
+      if (this.elements.maxFrameAgeValue) {
+        this.elements.maxFrameAgeValue.textContent = '--';
+      }
+    } finally {
+      this.statsInFlight = false;
+    }
+  }
+
+  /**
+   * Fetch stats from /metrics endpoint
+   */
+  async fetchMetrics() {
     const timeoutMs = 5000;
     let timeoutId;
     let controller;
     let signal;
-
-    if (this.retryTimeout) {
-      clearTimeout(this.retryTimeout);
-      this.retryTimeout = null;
-    }
 
     if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
       signal = AbortSignal.timeout(timeoutMs);
@@ -312,118 +326,70 @@ class CameraStreamApp {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      
-      // Reset retry attempts on success
-      this.retryAttempts = 0;
-      if (this.retryTimeout) {
-        clearTimeout(this.retryTimeout);
-        this.retryTimeout = null;
-      }
-      if (this.pollingPausedForRetry) {
-        this.pollingPausedForRetry = false;
-        this.startStatsUpdate();
-      }
-      
-      // Update connection status if not already connected
-      if (!this.isConnected) {
-        this.setConnectionStatus('connected', 'Connected');
-      }
-      
-      // Update stats values
-      if (this.elements.fpsValue) {
-        this.elements.fpsValue.textContent = data.current_fps 
-          ? data.current_fps.toFixed(1) 
-          : '0.0';
-      }
-      
-      if (this.elements.uptimeValue) {
-        this.elements.uptimeValue.textContent = this.formatUptime(data.uptime_seconds);
-      }
-      
-      if (this.elements.framesValue) {
-        this.elements.framesValue.textContent = this.formatNumber(data.frames_captured);
-      }
-
-      if (this.elements.lastFrameAgeValue) {
-        this.elements.lastFrameAgeValue.textContent = this.formatSeconds(
-          data.last_frame_age_seconds
-        );
-      }
-
-      if (this.elements.maxFrameAgeValue) {
-        this.elements.maxFrameAgeValue.textContent = this.formatSeconds(
-          data.max_frame_age_seconds
-        );
-      }
-      
-      if (this.elements.resolutionValue) {
-        if (data.resolution && Array.isArray(data.resolution)) {
-          this.elements.resolutionValue.textContent = 
-            `${data.resolution[0]} × ${data.resolution[1]}`;
-        }
-      }
-      
-      if (this.elements.edgeDetectionValue) {
-        const badge = this.elements.edgeDetectionValue;
-        badge.textContent = data.edge_detection ? 'Enabled' : 'Disabled';
-        badge.className = 'stat-badge';
-        badge.classList.add(data.edge_detection ? 'enabled' : 'disabled');
-      }
-      
-      // Update last updated timestamp
-      if (this.elements.lastUpdated) {
-        const now = new Date();
-        this.elements.lastUpdated.textContent = 
-          `Updated: ${now.toLocaleTimeString()}`;
-      }
-    } catch (error) {
-      console.error('Failed to fetch stats:', error);
-      this.setConnectionStatus('disconnected', 'Disconnected');
-      
-      // Show fallback values
-      if (this.elements.fpsValue) {
-        this.elements.fpsValue.textContent = '--';
-      }
-
-      if (this.elements.lastFrameAgeValue) {
-        this.elements.lastFrameAgeValue.textContent = '--';
-      }
-
-      if (this.elements.maxFrameAgeValue) {
-        this.elements.maxFrameAgeValue.textContent = '--';
-      }
-      
-      // Implement fixed delay retry
-      if (this.retryAttempts < this.maxRetries) {
-        this.retryAttempts++;
-        const delay = this.retryDelayMs;
-        console.log(`Retrying in ${(delay / 1000).toFixed(1)}s (attempt ${this.retryAttempts}/${this.maxRetries})`);
-        
-        // Schedule retry
-        this.stopStatsUpdate();
-        this.pollingPausedForRetry = true;
-        if (this.retryTimeout) {
-          clearTimeout(this.retryTimeout);
-        }
-        this.retryTimeout = setTimeout(() => {
-          this.updateStats();
-        }, delay);
-      } else {
-        console.warn('Max retry attempts reached. Will retry on next scheduled update.');
-        this.retryAttempts = 0; // Reset for next scheduled update
-        if (this.pollingPausedForRetry) {
-          this.pollingPausedForRetry = false;
-          this.startStatsUpdate();
-        }
-      }
+      return await response.json();
     } finally {
-      // Clear fallback timeout if it was set
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
       // Note: AbortSignal.timeout() handles its own cleanup automatically
-      this.statsInFlight = false;
+    }
+  }
+
+  /**
+   * Render metrics data in the UI
+   */
+  renderMetrics(data) {
+    // Update connection status if not already connected
+    if (!this.isConnected) {
+      this.setConnectionStatus('connected', 'Connected');
+    }
+    
+    // Update stats values
+    if (this.elements.fpsValue) {
+      this.elements.fpsValue.textContent = data.current_fps 
+        ? data.current_fps.toFixed(1) 
+        : '0.0';
+    }
+    
+    if (this.elements.uptimeValue) {
+      this.elements.uptimeValue.textContent = this.formatUptime(data.uptime_seconds);
+    }
+    
+    if (this.elements.framesValue) {
+      this.elements.framesValue.textContent = this.formatNumber(data.frames_captured);
+    }
+
+    if (this.elements.lastFrameAgeValue) {
+      this.elements.lastFrameAgeValue.textContent = this.formatSeconds(
+        data.last_frame_age_seconds
+      );
+    }
+
+    if (this.elements.maxFrameAgeValue) {
+      this.elements.maxFrameAgeValue.textContent = this.formatSeconds(
+        data.max_frame_age_seconds
+      );
+    }
+    
+    if (this.elements.resolutionValue) {
+      if (data.resolution && Array.isArray(data.resolution)) {
+        this.elements.resolutionValue.textContent = 
+          `${data.resolution[0]} × ${data.resolution[1]}`;
+      }
+    }
+    
+    if (this.elements.edgeDetectionValue) {
+      const badge = this.elements.edgeDetectionValue;
+      badge.textContent = data.edge_detection ? 'Enabled' : 'Disabled';
+      badge.className = 'stat-badge';
+      badge.classList.add(data.edge_detection ? 'enabled' : 'disabled');
+    }
+    
+    // Update last updated timestamp
+    if (this.elements.lastUpdated) {
+      const now = new Date();
+      this.elements.lastUpdated.textContent = 
+        `Updated: ${now.toLocaleTimeString()}`;
     }
   }
   
