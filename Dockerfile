@@ -1,7 +1,7 @@
 # ---- Builder Stage ----
 # This stage is responsible for adding the Raspberry Pi repository and building Python packages.
 # Using python:3.11-slim-bookworm provides optimized Python with pip pre-installed
-FROM python:3.11-slim-bookworm AS builder
+FROM python:3.14-slim-bookworm AS builder
 
 # Build argument to control opencv-python-headless installation
 # Set to "true" to include edge detection support (~40MB larger image)
@@ -44,7 +44,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # ---- Final Stage ----
 # The final image is based on python:3.11-slim-bookworm (optimized Python runtime, ~40MB smaller than debian:bookworm-slim + python3)
-FROM python:3.11-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 # Copy Raspberry Pi repository and keys from builder
 COPY --from=builder /usr/share/keyrings/raspberrypi.gpg /usr/share/keyrings/raspberrypi.gpg
