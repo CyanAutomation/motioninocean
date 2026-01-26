@@ -321,48 +321,46 @@ def health() -> Tuple[Response, int]:
 @app.route("/ready")
 def ready() -> Tuple[Response, int]:
     """Readiness probe - checks if camera is actually streaming."""
+    status = output.get_status()
+    now = datetime.now()
+    base_payload = {
+        "timestamp": now.isoformat(),
+        "uptime_seconds": (now - app.start_time).total_seconds(),
+        "max_frame_age_seconds": max_frame_age_seconds,
+        **status,
+    }
     if not recording_started.is_set():
         return jsonify(
             {
+                **base_payload,
                 "status": "not_ready",
                 "reason": "Camera not initialized or recording not started",
-                "timestamp": datetime.now().isoformat(),
             }
         ), 503
 
-    status = output.get_status()
-    last_frame_age_seconds = status["last_frame_age_seconds"]
+    last_frame_age_seconds = base_payload["last_frame_age_seconds"]
     if last_frame_age_seconds is None:
         return jsonify(
             {
+                **base_payload,
                 "status": "not_ready",
                 "reason": "No frames captured yet",
-                "timestamp": datetime.now().isoformat(),
-                "uptime_seconds": (datetime.now() - app.start_time).total_seconds(),
-                "max_frame_age_seconds": max_frame_age_seconds,
-                **status,
             }
         ), 503
 
     if last_frame_age_seconds > max_frame_age_seconds:
         return jsonify(
             {
+                **base_payload,
                 "status": "not_ready",
                 "reason": "stale_stream",
-                "timestamp": datetime.now().isoformat(),
-                "uptime_seconds": (datetime.now() - app.start_time).total_seconds(),
-                "max_frame_age_seconds": max_frame_age_seconds,
-                **status,
             }
         ), 503
 
     return jsonify(
         {
+            **base_payload,
             "status": "ready",
-            "timestamp": datetime.now().isoformat(),
-            "uptime_seconds": (datetime.now() - app.start_time).total_seconds(),
-            "max_frame_age_seconds": max_frame_age_seconds,
-            **status,
         }
     ), 200
 
