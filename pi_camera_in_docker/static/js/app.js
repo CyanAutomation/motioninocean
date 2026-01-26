@@ -19,10 +19,6 @@ class CameraStreamApp {
     this.retryDelayMs = 2000; // Fixed delay between retries
     this.retryTimeout = null;
 
-    // Stream retry/backoff configuration
-    this.streamRetryAttempts = 0;
-    this.streamRetryTimeout = null;
-    
     // DOM elements
     this.elements = {
       videoStream: null,
@@ -159,8 +155,6 @@ class CameraStreamApp {
   refreshStream() {
     if (!this.elements.videoStream) return;
     
-    this.clearStreamRetry();
-
     // Add timestamp to force reload
     const streamUrl = this.elements.videoStream.src.split('?')[0];
     this.elements.videoStream.src = `${streamUrl}?t=${Date.now()}`;
@@ -238,7 +232,6 @@ class CameraStreamApp {
   onStreamLoad() {
     this.setConnectionStatus('connected', 'Connected');
     this.hideLoading();
-    this.clearStreamRetry();
   }
   
   /**
@@ -247,7 +240,6 @@ class CameraStreamApp {
   onStreamError() {
     this.setConnectionStatus('disconnected', 'Disconnected');
     console.error('Video stream error');
-    this.scheduleStreamRetry();
   }
   
   /**
@@ -321,38 +313,6 @@ class CameraStreamApp {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
-  }
-  
-  /**
-   * Schedule a stream refresh with a fixed delay
-   */
-  scheduleStreamRetry() {
-    if (this.streamRetryTimeout) return;
-
-    if (this.streamRetryAttempts >= this.maxRetries) {
-      console.warn('Max stream retry attempts reached. Waiting for manual refresh.');
-      return;
-    }
-
-    this.streamRetryAttempts += 1;
-    const delay = this.retryDelayMs;
-    console.log(`Retrying stream in ${(delay / 1000).toFixed(1)}s (attempt ${this.streamRetryAttempts}/${this.maxRetries})`);
-
-    this.streamRetryTimeout = setTimeout(() => {
-      this.streamRetryTimeout = null;
-      this.refreshStream();
-    }, delay);
-  }
-
-  /**
-   * Clear scheduled stream retry
-   */
-  clearStreamRetry() {
-    if (this.streamRetryTimeout) {
-      clearTimeout(this.streamRetryTimeout);
-      this.streamRetryTimeout = null;
-    }
-    this.streamRetryAttempts = 0;
   }
   
   /**
