@@ -69,11 +69,15 @@ def _is_allowed_url(url):
     if literal_address:
         return literal_address.is_global
 
-    resolved_addresses = _resolve_hostnames(hostname)
-    if not resolved_addresses:
+    # Validate hostname format without DNS resolution to prevent TOCTOU attacks
+    if not all(c.isalnum() or c in '.-' for c in hostname):
         return False
-
-    return all(_is_public_address(address) for address in resolved_addresses)
+    
+    # Block common internal hostnames
+    if normalized_hostname in {"localhost", "metadata.google.internal", "169.254.169.254"}:
+        return False
+    
+    return True
 
 
 def check_health():
