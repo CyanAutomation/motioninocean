@@ -41,9 +41,12 @@ mock_camera_str: str = os.environ.get("MOCK_CAMERA", "false")
 jpeg_quality_str: str = os.environ.get("JPEG_QUALITY", "100")
 cors_origins_str: Optional[str] = os.environ.get("CORS_ORIGINS")
 max_frame_age_seconds_str: str = os.environ.get("MAX_FRAME_AGE_SECONDS", "10")
+allow_pykms_mock_str: str = os.environ.get("ALLOW_PYKMS_MOCK", "false")
 
 mock_camera: bool = mock_camera_str.lower() in ("true", "1", "t")
+allow_pykms_mock: bool = allow_pykms_mock_str.lower() in ("true", "1", "t")
 logger.info(f"Mock camera enabled: {mock_camera}")
+logger.info(f"Allow pykms mock: {allow_pykms_mock}")
 
 if not mock_camera:
     # Workaround for pykms import error in headless container environments
@@ -51,7 +54,7 @@ if not mock_camera:
     try:
         from picamera2 import Picamera2
     except (ModuleNotFoundError, AttributeError) as e:
-        if "pykms" in str(e) or "kms" in str(e) or "PixelFormat" in str(e):
+        if allow_pykms_mock and ("pykms" in str(e) or "kms" in str(e) or "PixelFormat" in str(e)):
             # Mock the pykms module so picamera2 can import without DRM/KMS support
             import sys
             import types
@@ -80,13 +83,12 @@ if not mock_camera:
                 "DrmPreview functionality disabled (not needed for headless streaming)."
             )
 
-            # Retry import with mocked modules
             from picamera2 import Picamera2
         else:
-            raise
-    else:
-        # Import succeeded on first try
-        pass
+            raise ImportError(
+                "picamera2 import failed due to missing/incomplete DRM/KMS support. "
+                "Install pykms or set ALLOW_PYKMS_MOCK=true to allow a mock module."
+            ) from e
     from picamera2.array import MappedArray
     from picamera2.encoders import JpegEncoder
     from picamera2.outputs import FileOutput
