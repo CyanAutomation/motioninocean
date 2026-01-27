@@ -147,6 +147,8 @@ async function updateStats() {
     }
 
     return;
+  } finally {
+    state.statsInFlight = false;
   }
 }
 
