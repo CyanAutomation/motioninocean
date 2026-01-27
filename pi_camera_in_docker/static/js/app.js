@@ -104,9 +104,10 @@ function attachHandlers() {
  */
 async function updateStats() {
   if (state.statsInFlight) return;
-
+  
   try {
     state.statsInFlight = true;
+  try {
     const data = await fetchMetrics();
     renderMetrics(data);
   } catch (error) {
@@ -117,6 +118,14 @@ async function updateStats() {
       state.elements.fpsValue.textContent = '--';
     }
 
+    if (state.elements.uptimeValue) {
+      state.elements.uptimeValue.textContent = '--';
+    }
+
+    if (state.elements.framesValue) {
+      state.elements.framesValue.textContent = '--';
+    }
+
     if (state.elements.lastFrameAgeValue) {
       state.elements.lastFrameAgeValue.textContent = '--';
     }
@@ -124,6 +133,21 @@ async function updateStats() {
     if (state.elements.maxFrameAgeValue) {
       state.elements.maxFrameAgeValue.textContent = '--';
     }
+
+    if (state.elements.resolutionValue) {
+      state.elements.resolutionValue.textContent = '--';
+    }
+
+    if (state.elements.edgeDetectionValue) {
+      state.elements.edgeDetectionValue.textContent = '--';
+      state.elements.edgeDetectionValue.className = 'stat-badge';
+    }
+
+    if (state.elements.lastUpdated) {
+      state.elements.lastUpdated.textContent = '--';
+    }
+
+    return;
   } finally {
     state.statsInFlight = false;
   }
