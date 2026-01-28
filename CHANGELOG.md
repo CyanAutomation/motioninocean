@@ -84,6 +84,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.5] - 2026-01-28
+
+- Enhance camera configuration and connection handling
+
 ## [1.10.4] - 2026-01-28
 
 - Merge pull request #97 from CyanAutomation/codex/investigate-modulenotfounderror-in-docker
