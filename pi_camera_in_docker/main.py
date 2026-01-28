@@ -215,20 +215,20 @@ class StreamStats:
     def __init__(self) -> None:
         self._lock = Condition()
         self._frame_count: int = 0
-        self._last_frame_time: Optional[float] = None
-        self._frame_times: deque[float] = deque(maxlen=30)
+        self._last_frame_monotonic: Optional[float] = None
+        self._frame_times_monotonic: deque[float] = deque(maxlen=30)
 
-    def record_frame(self, timestamp: float) -> None:
-        """Record a new frame timestamp."""
+    def record_frame(self, monotonic_timestamp: float) -> None:
+        """Record a new frame timestamp from a monotonic clock."""
         with self._lock:
             self._frame_count += 1
-            self._last_frame_time = timestamp
-            self._frame_times.append(timestamp)
+            self._last_frame_monotonic = monotonic_timestamp
+            self._frame_times_monotonic.append(monotonic_timestamp)
 
     def get_fps(self) -> float:
         """Calculate actual FPS from frame times."""
         with self._lock:
-            frame_times = list(self._frame_times)
+            frame_times = list(self._frame_times_monotonic)
         if len(frame_times) < 2:
             return 0.0
         time_span = frame_times[-1] - frame_times[0]
@@ -240,8 +240,8 @@ class StreamStats:
         """Return a snapshot of frame count, last frame time, and FPS."""
         with self._lock:
             frame_count = self._frame_count
-            last_frame_time = self._last_frame_time
-            frame_times = list(self._frame_times)
+            last_frame_time = self._last_frame_monotonic
+            frame_times = list(self._frame_times_monotonic)
         
         # Calculate FPS outside lock using the snapshot
         if len(frame_times) < 2:
@@ -269,8 +269,8 @@ class FrameBuffer(io.BufferedIOBase):
         """
         with self.condition:
             self.frame = buf
-            now = time.time()
-            self._stats.record_frame(now)
+            monotonic_now = time.monotonic()
+            self._stats.record_frame(monotonic_now)
             self.condition.notify_all()
         return len(buf)
 
@@ -279,7 +279,9 @@ def get_stream_status(stats: StreamStats) -> Dict[str, Any]:
     """Return current streaming status with configuration details."""
     frame_count, last_frame_time, current_fps = stats.snapshot()
     last_frame_age_seconds = (
-        None if last_frame_time is None else round(time.time() - last_frame_time, 2)
+        None
+        if last_frame_time is None
+        else round(time.monotonic() - last_frame_time, 2)
     )
     return {
         "frames_captured": frame_count,
