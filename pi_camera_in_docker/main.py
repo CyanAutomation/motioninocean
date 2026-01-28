@@ -39,7 +39,11 @@ edge_detection_str: str = os.environ.get("EDGE_DETECTION", "false")
 fps_str: str = os.environ.get("FPS", "0")  # 0 = use camera default
 mock_camera_str: str = os.environ.get("MOCK_CAMERA", "false")
 jpeg_quality_str: str = os.environ.get("JPEG_QUALITY", "100")
-cors_origins_str: Optional[str] = os.environ.get("CORS_ORIGINS")
+cors_origins_env_var = "MOTION_IN_OCEAN_CORS_ORIGINS"
+cors_origins_str: Optional[str] = os.environ.get(cors_origins_env_var)
+if cors_origins_str is None:
+    cors_origins_env_var = "CORS_ORIGINS"
+    cors_origins_str = os.environ.get(cors_origins_env_var)
 max_frame_age_seconds_str: str = os.environ.get("MAX_FRAME_AGE_SECONDS", "10")
 allow_pykms_mock_str: str = os.environ.get("ALLOW_PYKMS_MOCK", "false")
 
@@ -179,7 +183,9 @@ if cors_origins_str is None:
 else:
     cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
     if not cors_origins:
-        logger.warning("CORS_ORIGINS was set but empty. No origins will be allowed for CORS.")
+        logger.warning(
+            f"{cors_origins_env_var} was set but empty. No origins will be allowed for CORS."
+        )
 
 
 def apply_edge_detection(request: Any) -> None:

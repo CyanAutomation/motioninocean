@@ -138,7 +138,7 @@ Create/edit `.env`:
 RESOLUTION=640x480
 FPS=30
 EDGE_DETECTION=false
-CORS_ORIGINS=*
+MOTION_IN_OCEAN_CORS_ORIGINS=*
 TZ=Europe/London
 MOCK_CAMERA=false
 ```
@@ -148,7 +148,7 @@ MOCK_CAMERA=false
 * `RESOLUTION` - Camera resolution (e.g., `640x480`, `1280x720`, `1920x1080`). Max `4096x4096`.
 * `FPS` - Frame rate limit. `0` uses camera default. Maximum recommended: `120`.
 * `EDGE_DETECTION` - `true` enables Canny edge detection (CPU overhead).
-* `CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
+* `MOTION_IN_OCEAN_CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
 * `TZ` - Logging timezone.
 * `MOCK_CAMERA` - `true` disables Picamera2 initialisation and streams dummy frames (dev/testing).
 
