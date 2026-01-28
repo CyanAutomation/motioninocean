@@ -84,6 +84,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.2] - 2026-01-28
+
+- Add NumPy dependency for array processing in requirements.txt
+
 ## [1.10.1] - 2026-01-28
 
 - Merge pull request #96 from CyanAutomation/codex/github-mention-add-healthcheck_ready-toggle-for-healthcheck
