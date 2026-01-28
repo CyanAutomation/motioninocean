@@ -7,6 +7,9 @@ Flask==3.1.2
 # CORS support for Flask
 flask-cors==6.0.2
 
+# Lightweight image generation for mock camera fallback
+Pillow==11.3.0
+
 # Computer vision - minimal headless version (saves ~200MB vs python3-opencv)
 # NOTE: This is now conditionally installed via Dockerfile build arg INCLUDE_OPENCV
 # Default build excludes this dependency to save ~40MB
