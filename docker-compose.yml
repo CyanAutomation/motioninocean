@@ -42,6 +42,7 @@ services:
       - /dev/dma_heap:/dev/dma_heap  # Mount entire directory
       - /dev/vchiq:/dev/vchiq
       # DRM/KMS device (optional, for pykms support if available)
+      # DRM/KMS device (optional, for pykms support if available)
       - /dev/dri:/dev/dri
 
     # Fallback to privileged mode if explicit device access is insufficient
