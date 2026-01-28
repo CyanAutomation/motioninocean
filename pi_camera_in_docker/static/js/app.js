@@ -323,7 +323,7 @@ async function fetchMetrics() {
  * Render metrics data in the UI
  */
 function renderMetrics(data) {
-  const cameraActive = data.camera_active !== false;
+  const cameraActive = data.camera_active === true;
   const lastFrameAge = Number(data.last_frame_age_seconds);
   const maxFrameAge = Number(data.max_frame_age_seconds);
   const hasFrameAge = Number.isFinite(lastFrameAge);
