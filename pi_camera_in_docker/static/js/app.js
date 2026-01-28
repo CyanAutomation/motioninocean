@@ -107,47 +107,53 @@ async function updateStats() {
   
   try {
     state.statsInFlight = true;
-  try {
-    const data = await fetchMetrics();
-    renderMetrics(data);
-  } catch (error) {
-    console.error('Failed to fetch stats:', error);
-    setConnectionStatus('disconnected', 'Disconnected');
+    try {
+      const data = await fetchMetrics();
+      renderMetrics(data);
+    } catch (error) {
+      if (error && error.name === 'AbortError') {
+        console.warn('Stats request timed out, will retry.');
+        return;
+      }
 
-    if (state.elements.fpsValue) {
-      state.elements.fpsValue.textContent = '--';
+      console.error('Failed to fetch stats:', error);
+      setConnectionStatus('disconnected', 'Disconnected');
+
+      if (state.elements.fpsValue) {
+        state.elements.fpsValue.textContent = '--';
+      }
+
+      if (state.elements.uptimeValue) {
+        state.elements.uptimeValue.textContent = '--';
+      }
+
+      if (state.elements.framesValue) {
+        state.elements.framesValue.textContent = '--';
+      }
+
+      if (state.elements.lastFrameAgeValue) {
+        state.elements.lastFrameAgeValue.textContent = '--';
+      }
+
+      if (state.elements.maxFrameAgeValue) {
+        state.elements.maxFrameAgeValue.textContent = '--';
+      }
+
+      if (state.elements.resolutionValue) {
+        state.elements.resolutionValue.textContent = '--';
+      }
+
+      if (state.elements.edgeDetectionValue) {
+        state.elements.edgeDetectionValue.textContent = '--';
+        state.elements.edgeDetectionValue.className = 'stat-badge';
+      }
+
+      if (state.elements.lastUpdated) {
+        state.elements.lastUpdated.textContent = '--';
+      }
+
+      return;
     }
-
-    if (state.elements.uptimeValue) {
-      state.elements.uptimeValue.textContent = '--';
-    }
-
-    if (state.elements.framesValue) {
-      state.elements.framesValue.textContent = '--';
-    }
-
-    if (state.elements.lastFrameAgeValue) {
-      state.elements.lastFrameAgeValue.textContent = '--';
-    }
-
-    if (state.elements.maxFrameAgeValue) {
-      state.elements.maxFrameAgeValue.textContent = '--';
-    }
-
-    if (state.elements.resolutionValue) {
-      state.elements.resolutionValue.textContent = '--';
-    }
-
-    if (state.elements.edgeDetectionValue) {
-      state.elements.edgeDetectionValue.textContent = '--';
-      state.elements.edgeDetectionValue.className = 'stat-badge';
-    }
-
-    if (state.elements.lastUpdated) {
-      state.elements.lastUpdated.textContent = '--';
-    }
-
-    return;
   } finally {
     state.statsInFlight = false;
   }
@@ -295,26 +301,22 @@ function stopStatsUpdate() {
  */
 async function fetchMetrics() {
   const timeoutMs = 5000;
-  const raceWithTimeout = (promise, timeout) => {
-    let timeoutId;
-    const timeoutPromise = new Promise((_, reject) => {
-      timeoutId = setTimeout(() => {
-        reject(new Error('Request timed out'));
-      }, timeout);
-    });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
 
-    return Promise.race([promise, timeoutPromise]).finally(() => {
-      clearTimeout(timeoutId);
-    });
-  };
+  try {
+    const response = await fetch('/metrics', { signal: controller.signal });
 
-  const response = await raceWithTimeout(fetch('/metrics'), timeoutMs);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return await response.json();
 }
 
 /**
