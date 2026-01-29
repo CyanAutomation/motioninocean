@@ -73,7 +73,7 @@ body:
   - type: textarea
     id: compose
     attributes:
-      label: docker-compose.yml snippet
+      label: docker-compose.yaml snippet
       description: Please include only the relevant service config (ports, devices, volumes, env).
       render: yaml
       placeholder: |

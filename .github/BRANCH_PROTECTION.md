@@ -87,7 +87,7 @@ Navigate to: **Settings → Security**
 
 ✅ **Dependabot security updates** - Enable for automatic security patches
 
-✅ **Dependabot version updates** - Already configured via `.github/dependabot.yml`
+✅ **Dependabot version updates** - Already configured via `.github/dependabot.yaml`
 
 ✅ **Code scanning** - Enable GitHub Advanced Security if available
 - Trivy scanning is already configured via workflow

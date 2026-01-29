@@ -224,7 +224,7 @@ Follow [Semantic Versioning 2.0.0](https://semver.org/):
 
 **Solutions:**
 1. Check GitHub Actions is enabled
-2. Verify workflow file exists: `.github/workflows/docker-publish.yml`
+2. Verify workflow file exists: `.github/workflows/docker-publish.yaml`
 3. Check workflow triggers include `tags: [v*.*.*]`
 4. Verify repository permissions
 

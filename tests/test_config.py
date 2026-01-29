@@ -19,9 +19,9 @@ def test_python_syntax(workspace_root):
 
 
 def test_docker_compose_valid_yaml(workspace_root):
-    """Test if docker-compose.yml is valid YAML."""
-    compose_file = workspace_root / "docker-compose.yml"
-    assert compose_file.exists(), "docker-compose.yml not found"
+    """Test if docker-compose.yaml is valid YAML."""
+    compose_file = workspace_root / "docker-compose.yaml"
+    assert compose_file.exists(), "docker-compose.yaml not found"
 
     with open(compose_file) as f:
         config = yaml.safe_load(f)
@@ -32,7 +32,7 @@ def test_docker_compose_valid_yaml(workspace_root):
 
 def test_docker_compose_has_service(workspace_root):
     """Verify motion-in-ocean service is defined."""
-    compose_file = workspace_root / "docker-compose.yml"
+    compose_file = workspace_root / "docker-compose.yaml"
 
     with open(compose_file) as f:
         config = yaml.safe_load(f)
@@ -42,7 +42,7 @@ def test_docker_compose_has_service(workspace_root):
 
 def test_docker_compose_required_fields(workspace_root):
     """Verify required fields in docker-compose service."""
-    compose_file = workspace_root / "docker-compose.yml"
+    compose_file = workspace_root / "docker-compose.yaml"
 
     with open(compose_file) as f:
         config = yaml.safe_load(f)
@@ -56,7 +56,7 @@ def test_docker_compose_required_fields(workspace_root):
 
 def test_docker_compose_environment_config(workspace_root):
     """Verify environment configuration exists."""
-    compose_file = workspace_root / "docker-compose.yml"
+    compose_file = workspace_root / "docker-compose.yaml"
 
     with open(compose_file) as f:
         config = yaml.safe_load(f)
@@ -68,7 +68,7 @@ def test_docker_compose_environment_config(workspace_root):
 
 def test_docker_compose_healthcheck(workspace_root):
     """Verify healthcheck configuration."""
-    compose_file = workspace_root / "docker-compose.yml"
+    compose_file = workspace_root / "docker-compose.yaml"
 
     with open(compose_file) as f:
         config = yaml.safe_load(f)
@@ -82,7 +82,7 @@ def test_docker_compose_healthcheck(workspace_root):
 
 def test_docker_compose_device_mappings(workspace_root):
     """Verify device mappings are configured."""
-    compose_file = workspace_root / "docker-compose.yml"
+    compose_file = workspace_root / "docker-compose.yaml"
 
     with open(compose_file) as f:
         config = yaml.safe_load(f)
@@ -107,7 +107,7 @@ def test_docker_compose_device_mappings(workspace_root):
 
 def test_docker_compose_security(workspace_root):
     """Verify security settings."""
-    compose_file = workspace_root / "docker-compose.yml"
+    compose_file = workspace_root / "docker-compose.yaml"
     content = compose_file.read_text()
 
     # Privileged mode should be commented out or not present

@@ -2,8 +2,8 @@
 **Raspberry Pi CSI Camera Streaming in Docker (Picamera2 / libcamera)**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/CyanAutomation/motioninocean/workflows/CI%20-%20Test%20and%20Lint/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/ci.yml)
-[![Security Scan](https://github.com/CyanAutomation/motioninocean/workflows/Security%20-%20Docker%20Image%20Scan/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/security-scan.yml)
+[![CI](https://github.com/CyanAutomation/motioninocean/workflows/CI%20-%20Test%20and%20Lint/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/ci.yaml)
+[![Security Scan](https://github.com/CyanAutomation/motioninocean/workflows/Security%20-%20Docker%20Image%20Scan/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/security-scan.yaml)
 [![Docker Image](https://img.shields.io/badge/GHCR-motion--in--ocean-informational)](https://github.com/CyanAutomation/motioninocean/pkgs/container/motioninocean)
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
@@ -15,7 +15,7 @@ This repo is a fork of `hyzhak/pi-camera-in-docker`, with the goal of making the
 
 - build the image once
 - publish to GHCR
-- deploy from a `docker-compose.yml` that pulls an image tag (no local builds required)
+- deploy from a `docker-compose.yaml` that pulls an image tag (no local builds required)
 
 ---
 
@@ -35,7 +35,7 @@ curl -fsSL https://raw.githubusercontent.com/<your-org-or-user>/motion-in-ocean/
 nano .env
 ```
 
-### 2) Create `docker-compose.yml`
+### 2) Create `docker-compose.yaml`
 
 ```yaml
 services:

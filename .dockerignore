@@ -46,7 +46,7 @@ artifacts/
 .cache/
 Makefile
 *.sh
-docker-compose.yml
+docker-compose.yaml
 venv/
 env/
 .venv/

@@ -197,7 +197,7 @@ Please include:
 
 * Raspberry Pi model + OS version (`cat /etc/os-release`)
 * Camera module type
-* `docker-compose.yml` (device + volume mappings)
+* `docker-compose.yaml` (device + volume mappings)
 * Container logs:
 
   ```bash

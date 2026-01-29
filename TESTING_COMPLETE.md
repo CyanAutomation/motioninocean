@@ -240,7 +240,7 @@ FPS=0                           # Frame rate (0 = camera default)
 
 ### "Permission denied accessing camera device"
 **Cause:** Device not mapped properly
-**Solution:** Check device mappings in docker-compose.yml or uncomment `privileged: true`
+**Solution:** Check device mappings in docker-compose.yaml or uncomment `privileged: true`
 
 ### "Camera initialization failed"
 **Cause:** Camera not enabled on host

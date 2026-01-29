@@ -14,14 +14,14 @@ pi_camera_in_docker/ @CyanAutomation
 docs/ @CyanAutomation
 
 # Configuration files
-*.yml @CyanAutomation
+*.yaml @CyanAutomation
 *.yaml @CyanAutomation
 *.toml @CyanAutomation
 *.json @CyanAutomation
 
 # Docker
 Dockerfile @CyanAutomation
-docker-compose.yml @CyanAutomation
+docker-compose.yaml @CyanAutomation
 .dockerignore @CyanAutomation
 
 # CI/CD and workflows

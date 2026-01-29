@@ -221,5 +221,5 @@ motion-in-ocean PRD, MJPEG stream, readiness probe, mock camera, CORS, Raspberry
 This PRD reflects the current implementation in:
 - Flask app and endpoints (`pi_camera_in_docker/main.py`)
 - Web UI template and behavior (`pi_camera_in_docker/templates/index.html`, `pi_camera_in_docker/static/js/app.js`)
-- Docker deployment and healthcheck setup (`Dockerfile`, `docker-compose.yml`, `healthcheck.py`)
+- Docker deployment and healthcheck setup (`Dockerfile`, `docker-compose.yaml`, `healthcheck.py`)
 - Configuration and usage documentation (`README.md`)

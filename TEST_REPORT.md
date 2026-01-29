@@ -117,7 +117,7 @@ EDGE_DETECTION=false
 FPS=(optional, defaults to camera max)
 ```
 
-**Via docker-compose.yml:**
+**Via docker-compose.yaml:**
 - Image: ghcr.io/cyanautomation/motion-in-ocean:latest
 - Platform: linux/arm64
 - Restart: unless-stopped

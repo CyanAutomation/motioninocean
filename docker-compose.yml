@@ -32,7 +32,7 @@ services:
     #
     # IMPORTANT: Run ./detect-devices.sh to identify which devices exist on your system
     # Note: device_cgroup_rules below provide automatic access to entire device classes.
-    # Use docker-compose.override.yml (example file) if you need explicit device mappings.
+    # Use docker-compose.override.yaml (example file) if you need explicit device mappings.
     device_cgroup_rules:
       - 'c 253:* rmw'  # /dev/dma_heap/* (char device 253)
       - 'c 511:* rmw'  # /dev/vchiq

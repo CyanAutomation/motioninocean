@@ -725,7 +725,7 @@ if __name__ == "__main__":
                     error_msg = (
                         "No cameras detected by Picamera2. "
                         "Ensure the camera is enabled on the host (raspi-config) and "
-                        "proper device mappings are configured in docker-compose.yml. "
+                        "proper device mappings are configured in docker-compose.yaml. "
                         "Required devices typically include: /dev/video*, /dev/media*, /dev/vchiq, /dev/dma_heap. "
                         "Run 'detect-devices.sh' to identify required devices for your hardware."
                     )
@@ -748,8 +748,6 @@ if __name__ == "__main__":
             )
             # Configure for BGR format for opencv
             config_params = {"size": resolution, "format": "BGR888"}
-            if fps > 0:
-                config_params["framerate"] = fps
             video_config = picam2_instance.create_video_configuration(main=config_params)
             picam2_instance.configure(video_config)
 
@@ -760,6 +758,16 @@ if __name__ == "__main__":
             logger.info("Starting camera recording...")
             # Start recording with configured JPEG quality
             picam2_instance.start_recording(JpegEncoder(q=jpeg_quality), FileOutput(output))
+
+            # Apply FPS limit via camera controls if specified
+            if fps > 0:
+                try:
+                    # FrameDurationLimits expects microseconds per frame
+                    frame_duration_us = int(1_000_000 / fps)
+                    picam2_instance.set_controls({"FrameDurationLimits": (frame_duration_us, frame_duration_us)})
+                    logger.info(f"Applied FPS limit: {fps} FPS (frame duration: {frame_duration_us} µs)")
+                except Exception as e:
+                    logger.warning(f"Failed to set FPS control to {fps}: {e}. Using camera default framerate.")
 
             # Mark recording as started only after start_recording succeeds
             recording_started.set()

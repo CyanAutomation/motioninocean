@@ -1,6 +1,6 @@
 #!/bin/bash
 # detect-devices.sh - Raspberry Pi Camera Device Detection Helper
-# Helps identify which devices exist on your system for docker-compose.yml configuration
+# Helps identify which devices exist on your system for docker-compose.yaml configuration
 
 set -e
 
@@ -95,7 +95,7 @@ if [ ${#VIDEO_DEVICES[@]} -eq 0 ]; then
 fi
 
 echo ""
-echo "🔧 Recommended docker-compose.yml Configuration:"
+echo "🔧 Recommended docker-compose.yaml Configuration:"
 echo ""
 echo "devices:"
 for device in "${CORE_DEVICES[@]}"; do
@@ -136,34 +136,34 @@ echo ""
 echo "✅ Detection complete!"
 echo ""
 echo "Next steps:"
-echo "1. Update docker-compose.yml with the devices shown above"
+echo "1. Update docker-compose.yaml with the devices shown above"
 echo "2. Or use device_cgroup_rules for automatic device access"
 echo "3. Run: docker compose up -d"
 echo ""
-echo -e "Do you want to create a docker-compose.override.yml file with the detected devices? (y/N):"
+echo -e "Do you want to create a docker-compose.override.yaml file with the detected devices? (y/N):"
 read -r CREATE_OVERRIDE
 
 if [[ "${CREATE_OVERRIDE}" =~ ^[Yy]$ ]]; then
-    cat << EOF > docker-compose.override.yml
+    cat << EOF > docker-compose.override.yaml
 version: '3.8'
 services:
   motion-in-ocean:
     devices:
 EOF
     for device in "${CORE_DEVICES[@]}"; do
-        echo "      - $device:$device" >> docker-compose.override.yml
+        echo "      - $device:$device" >> docker-compose.override.yaml
     done
     for device in "${MEDIA_DEVICES[@]}"; do
-        echo "      - $device:$device" >> docker-compose.override.yml
+        echo "      - $device:$device" >> docker-compose.override.yaml
     done
     for device in "${VIDEO_DEVICES[@]}"; do
-        echo "      - $device:$device" >> docker-compose.override.yml
+        echo "      - $device:$device" >> docker-compose.override.yaml
     done
-    cat << EOF >> docker-compose.override.yml
+    cat << EOF >> docker-compose.override.yaml
     privileged: true # Required for full device access
 EOF
-    echo -e "✓ Created docker-compose.override.yml with detected devices."
-    echo "You can now run: docker compose -f docker-compose.yml -f docker-compose.override.yml up -d"
+    echo -e "✓ Created docker-compose.override.yaml with detected devices."
+    echo "You can now run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d"
 else
-    echo "Skipping creation of docker-compose.override.yml."
+    echo "Skipping creation of docker-compose.override.yaml."
 fi

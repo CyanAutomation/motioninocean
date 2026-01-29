@@ -91,7 +91,7 @@ def test_metrics_collection(workspace_root, metric, marker):
 
 def test_device_security_explicit_devices(workspace_root):
     """Verify explicit device mappings are used."""
-    compose_file = workspace_root / "docker-compose.yml"
+    compose_file = workspace_root / "docker-compose.yaml"
 
     with open(compose_file) as f:
         config = yaml.safe_load(f)
@@ -106,7 +106,7 @@ def test_device_security_explicit_devices(workspace_root):
 
 def test_device_security_no_new_privileges(workspace_root):
     """Verify security options are set."""
-    compose_file = workspace_root / "docker-compose.yml"
+    compose_file = workspace_root / "docker-compose.yaml"
 
     with open(compose_file) as f:
         config = yaml.safe_load(f)
@@ -122,7 +122,7 @@ def test_device_security_no_new_privileges(workspace_root):
 
 def test_udev_mount_read_only(workspace_root):
     """Verify udev is mounted read-only."""
-    compose_file = workspace_root / "docker-compose.yml"
+    compose_file = workspace_root / "docker-compose.yaml"
     content = compose_file.read_text()
 
     # Check for read-only udev mount

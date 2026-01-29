@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved `device_cgroup_rules` configuration with clarifying comments about automatic device access
 
 ### Documentation
-- Enhanced docker-compose.yml device mapping comments to clarify Pi model variations
+- Enhanced docker-compose.yaml device mapping comments to clarify Pi model variations
 - Updated README.md device configuration examples to include media controller devices
 - Added note about running `detect-devices.sh` script for hardware-specific device detection
 
@@ -132,7 +132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add readiness toggle for healthcheck
 - Use monotonic time for stream stats
 - Merge pull request #93 from CyanAutomation/codex/add-device-mappings-to-motion-in-ocean-service
-- Update docker-compose.yml
+- Update docker-compose.yaml
 - Merge pull request #90 from CyanAutomation/codex/refactor-test_healthcheck_url_validation
 - Merge pull request #92 from CyanAutomation/codex/github-mention-reflect-camera-inactive/stale-state-in-conne
 - Add explicit camera device mappings
@@ -257,7 +257,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Merge pull request #46 from CyanAutomation/codex/modify-device-check-to-ignore-no-matches
 - Update detect-devices.sh
 - Merge pull request #45 from CyanAutomation/codex/remove-hardcoded-device-entries-from-docker-compose
-- Update docker-compose.yml
+- Update docker-compose.yaml
 - Merge pull request #44 from CyanAutomation/codex/update-refreshstream-to-clear-streamretry
 - Merge pull request #42 from CyanAutomation/codex/add-rate-limiter-to-edge-detection-logging
 - Merge pull request #43 from CyanAutomation/codex/add-optional-environment-variables-for-healthcheck
