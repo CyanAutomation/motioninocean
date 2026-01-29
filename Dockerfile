@@ -21,7 +21,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         gnupg \
         curl \
         ca-certificates \
-        gcc
+        gcc && \
+    rm -rf /var/lib/apt/lists/*
 
 # Add Raspberry Pi repository
 RUN curl -Lfs https://archive.raspberrypi.org/debian/raspberrypi.gpg.key -o /tmp/raspberrypi.gpg.key && \
@@ -35,7 +36,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         python3-libcamera \
-        python3-picamera2
+        python3-picamera2 && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set up Python virtual environment and install dependencies
 # Copy requirements.txt first for better layer caching
@@ -66,7 +68,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         python3 \
-        python3-numpy
+        python3-numpy && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy Raspberry Pi repository and keys from builder
 COPY --from=builder /usr/share/keyrings/raspberrypi.gpg /usr/share/keyrings/raspberrypi.gpg
@@ -83,7 +86,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         python3-libcamera \
-        python3-picamera2
+        python3-picamera2 && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set the working directory
 WORKDIR /app
