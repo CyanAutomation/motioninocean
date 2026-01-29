@@ -84,6 +84,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.8] - 2026-01-29
+
+- fix(env): adjust frame rate and JPEG quality for optimized performance
+- Merge pull request #106 from CyanAutomation/codex/github-mention-add-target_fps-throttle-to-framebuffer-to-dr
+- Merge pull request #107 from CyanAutomation/codex/add-backoff-strategy-for-updatefrequency
+- Update pi_camera_in_docker/static/js/app.js
+- Add stats polling backoff and pause on collapse
+- Fix target FPS throttling edge cases
+- Merge pull request #105 from CyanAutomation/codex/add-fps-throttle-to-frame-processing
+- Update pi_camera_in_docker/main.py
+- Add target FPS throttle for frame buffering
+- fix(env): revert camera resolution to 1640x1232 for optimal performance
+- fix(docker): remove dma_heap directory volume mount for improved device access
+- fix(docker): update docker-compose.override.yaml generation and enable privileged mode for device access
+- fix(docker): adjust dma_heap volume mount for improved device access
+- fix(docker): update device access for dma_heap and adjust volume mount
+- Merge pull request #103 from CyanAutomation/dependabot/pip/pytest-8.4.2
+- Merge pull request #102 from CyanAutomation/dependabot/pip/ruff-0.14.14
+- chore(deps-dev): bump pytest from 8.3.4 to 8.4.2
+- chore(deps-dev): bump ruff from 0.8.4 to 0.14.14
+
 ## [1.10.7] - 2026-01-29
 
 - Refactor device permission checks to use 'stat' for improved output formatting
