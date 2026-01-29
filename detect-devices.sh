@@ -29,7 +29,7 @@ check_device() {
     local description=$2
     if [ -e "$device_path" ]; then
         echo "  ✓ $device_path - $description"
-        ls -l "$device_path" | awk '{print "    Permissions:", $1, "Owner:", $3":"$4}'
+        stat -c "    Permissions: %A Owner: %U:%G" "$device_path"
         CORE_DEVICES+=("$device_path")
         return 0
     else
@@ -41,7 +41,9 @@ check_device() {
 # Core devices
 if [ -d "/dev/dma_heap" ]; then
     echo "  ✓ /dev/dma_heap - Memory management for libcamera (directory)"
-    ls -l /dev/dma_heap/ 2>/dev/null | awk '/^[c|l]/ {print "    " $0}'
+    find /dev/dma_heap/ -maxdepth 1 -type c -o -type l 2>/dev/null | while read -r file; do
+        stat -c "    %A %U:%G %n" "$file"
+    done
     CORE_DEVICES+=("/dev/dma_heap")
 elif [ -e "/dev/dma_heap" ]; then
     check_device "/dev/dma_heap" "Memory management for libcamera"
@@ -58,7 +60,7 @@ echo ""
 for device in /dev/media*; do
     if [ -e "$device" ]; then
         echo "  ✓ $device"
-        ls -l "$device" | awk '{print "    Permissions:", $1, "Owner:", $3":"$4}'
+        stat -c "    Permissions: %A Owner: %U:%G" "$device"
         MEDIA_DEVICES+=("$device")
     fi
 done
@@ -80,7 +82,7 @@ echo ""
 for device in /dev/video*; do
     if [ -e "$device" ]; then
         echo "  ✓ $device"
-        ls -l "$device" | awk '{print "    Permissions:", $1, "Owner:", $3":"$4}'
+        stat -c "    Permissions: %A Owner: %U:%G" "$device"
         VIDEO_DEVICES+=("$device")
     fi
 done
