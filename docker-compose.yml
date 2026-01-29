@@ -22,7 +22,6 @@ services:
       - HEALTHCHECK_READY=${MOTION_IN_OCEAN_HEALTHCHECK_READY:-false}
     volumes:
       - /run/udev:/run/udev:ro
-      - /dev/dma_heap:/dev/dma_heap:rw  # Mount dma_heap directory as volume, not device
 
     # Device access for Raspberry Pi camera
     # - /dev/dma_heap/*: Required for libcamera memory management on modern Pi OS (directory with subdirectories)
