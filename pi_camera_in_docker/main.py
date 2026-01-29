@@ -373,7 +373,9 @@ class FrameBuffer(io.BufferedIOBase):
         self.condition: Condition = Condition()
         self._stats = stats
         self._max_frame_size = max_frame_size
-        self._target_frame_interval = 1.0 / target_fps if target_fps > 0 else None
+        self._target_frame_interval = None
+        if target_fps > 0:
+            self._target_frame_interval = 1.0 / target_fps
         self._last_frame_monotonic: Optional[float] = None
         self._dropped_frames = 0
 
@@ -401,8 +403,8 @@ class FrameBuffer(io.BufferedIOBase):
             # Return the size to satisfy encoder interface, but don't store the frame
             return frame_size
 
-        monotonic_now = time.monotonic()
         with self.condition:
+            monotonic_now = time.monotonic()
             if (
                 self._target_frame_interval is not None
                 and self._last_frame_monotonic is not None
