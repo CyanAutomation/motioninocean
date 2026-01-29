@@ -614,13 +614,29 @@ def gen() -> Iterator[bytes]:
         # Track disconnection - decrement counter
         current_connections = connection_tracker.decrement()
         logger.info(f"Stream client disconnected. Active connections: {current_connections}")
+        if current_connections <= 0:
+            if mock_camera:
+                if recording_started.is_set():
+                    recording_started.clear()
+                    logger.info("Mock camera paused (no active stream clients).")
+            else:
+                with picam2_lock:
+                    if picam2_instance is not None and recording_started.is_set():
+                        try:
+                            logger.info("Stopping camera recording (no active stream clients)...")
+                            picam2_instance.stop_recording()
+                            logger.info("Camera recording stopped")
+                        except Exception as e:
+                            logger.error(f"Error stopping camera recording: {e}", exc_info=True)
+                        finally:
+                            recording_started.clear()
 
 
 @app.route("/stream.mjpg")
 def video_feed() -> Response:
     """Stream MJPEG video feed."""
-    if not recording_started.is_set():
-        return Response("Camera stream not ready.", status=503)
+    if not mock_camera and picam2_instance is None:
+        return Response("Camera not initialized.", status=503)
 
     # Check connection limit and increment counter atomically to prevent race condition
     current_count = connection_tracker.get_count()
@@ -637,6 +653,47 @@ def video_feed() -> Response:
     # Increment counter
     current_connections = connection_tracker.increment()
     logger.info(f"Stream client connected. Active connections: {current_connections}")
+    if current_connections == 1:
+        if mock_camera:
+            recording_started.set()
+            logger.info("Mock camera resumed (first stream client connected).")
+        else:
+            with picam2_lock:
+                if picam2_instance is None:
+                    current_connections = connection_tracker.decrement()
+                    logger.error("Camera not initialized; rejecting stream connection.")
+                    return Response("Camera not initialized.", status=503)
+                if not recording_started.is_set():
+                    try:
+                        logger.info("Starting camera recording (first stream client connected)...")
+                        picam2_instance.start_recording(
+                            JpegEncoder(q=jpeg_quality), FileOutput(output)
+                        )
+                        if fps > 0:
+                            try:
+                                frame_duration_us = int(1_000_000 / fps)
+                                picam2_instance.set_controls(
+                                    {"FrameDurationLimits": (frame_duration_us, frame_duration_us)}
+                                )
+                                logger.info(
+                                    "Applied FPS limit: %s FPS (frame duration: %s µs)",
+                                    fps,
+                                    frame_duration_us,
+                                )
+                            except Exception as e:
+                                logger.warning(
+                                    "Failed to set FPS control to %s: %s. Using camera default framerate.",
+                                    fps,
+                                    e,
+                                )
+                        recording_started.set()
+                        logger.info(
+                            "Camera recording started successfully (JPEG quality: %s)", jpeg_quality
+                        )
+                    except Exception as e:
+                        current_connections = connection_tracker.decrement()
+                        logger.error(f"Failed to start camera recording: {e}", exc_info=True)
+                        return Response("Failed to start camera recording.", status=503)
 
     headers = {
         "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -677,10 +734,11 @@ if __name__ == "__main__":
         # Simulate camera streaming for the StreamingOutput
         def generate_mock_frames() -> None:
             """Generate mock camera frames for testing."""
-            # Mark as started for mock mode using thread-safe Event
-            recording_started.set()
             try:
                 while not shutdown_event.is_set():
+                    if not recording_started.is_set():
+                        time.sleep(0.1)
+                        continue
                     time.sleep(1 / (fps if fps > 0 else 10))  # Simulate FPS
                     output.write(dummy_image_jpeg)
             finally:
@@ -690,12 +748,7 @@ if __name__ == "__main__":
         mock_thread.start()
 
         # Wait for recording to start before Flask accepts requests
-        logger.info("Waiting for mock camera to be ready...")
-        recording_started.wait(timeout=5.0)
-        if not recording_started.is_set():
-            logger.error("Mock camera failed to start within 5 seconds")
-            msg = "Mock camera initialization timeout"
-            raise RuntimeError(msg)
+        logger.info("Mock camera initialized; waiting for stream clients to start output.")
 
         try:
             # Start the Flask app
@@ -755,23 +808,7 @@ if __name__ == "__main__":
                 logger.info("Enabling edge detection preprocessing")
                 picam2_instance.pre_callback = apply_edge_detection
 
-            logger.info("Starting camera recording...")
-            # Start recording with configured JPEG quality
-            picam2_instance.start_recording(JpegEncoder(q=jpeg_quality), FileOutput(output))
-
-            # Apply FPS limit via camera controls if specified
-            if fps > 0:
-                try:
-                    # FrameDurationLimits expects microseconds per frame
-                    frame_duration_us = int(1_000_000 / fps)
-                    picam2_instance.set_controls({"FrameDurationLimits": (frame_duration_us, frame_duration_us)})
-                    logger.info(f"Applied FPS limit: {fps} FPS (frame duration: {frame_duration_us} µs)")
-                except Exception as e:
-                    logger.warning(f"Failed to set FPS control to {fps}: {e}. Using camera default framerate.")
-
-            # Mark recording as started only after start_recording succeeds
-            recording_started.set()
-            logger.info(f"Camera recording started successfully (JPEG quality: {jpeg_quality})")
+            recording_started.clear()
 
             # Start the Flask app
             logger.info("Starting Flask server on 0.0.0.0:8000")
