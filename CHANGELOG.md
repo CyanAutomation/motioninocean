@@ -84,6 +84,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.6] - 2026-01-29
+
+- Merge pull request #101 from CyanAutomation/codex/update-dockerfile-to-clean-apt-lists
+- Merge pull request #100 from CyanAutomation/codex/create-.dockerignore-with-exclusions
+- Clean apt lists after installs
+- Update .dockerignore
+- Update .dockerignore
+- Add dockerignore for local artifacts
+- Enhance code quality and readability by refining import statements, improving error messages, and optimizing assertions across multiple test files.
+- Refactor streaming logic for consistency and reliability
+- Merge pull request #99 from CyanAutomation/copilot/fix-high-priority-bugs
+- Fix linting issues - remove trailing whitespace
+- Merge branch 'main' into copilot/fix-high-priority-bugs
+- Add comprehensive concurrency tests covering race conditions and resource exhaustion
+- Merge pull request #98 from CyanAutomation/copilot/fix-media-device-error
+- Fix high-priority thread safety, timing, and resource management bugs
+- Add test for camera detection error handling
+- Add camera detection error handling to prevent IndexError
+- Initial plan
+- Initial plan
+- Enhance device mapping validation and fix health endpoint metrics in tests
+
 ## [1.10.5] - 2026-01-28
 
 - Enhance camera configuration and connection handling
