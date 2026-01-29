@@ -223,16 +223,13 @@ try:
         logger.warning(f"TARGET_FPS cannot be negative ({target_fps}). Disabling throttle.")
         target_fps = 0
     elif target_fps > 60:
-        logger.warning(
-            f"TARGET_FPS {target_fps} exceeds recommended maximum of 60. Using 60."
-        )
+        logger.warning(f"TARGET_FPS {target_fps} exceeds recommended maximum of 60. Using 60.")
         target_fps = 60
+    elif target_fps > 0:
+        source = "TARGET_FPS" if target_fps_env is not None else "FPS"
+        logger.info(f"Target FPS throttle set to {target_fps} FPS (from {source})")
     else:
-        if target_fps > 0:
-            source = "TARGET_FPS" if target_fps_env is not None else "FPS"
-            logger.info(f"Target FPS throttle set to {target_fps} FPS (from {source})")
-        else:
-            logger.info("Target FPS throttle disabled")
+        logger.info("Target FPS throttle disabled")
 except (ValueError, TypeError):
     logger.warning("Invalid TARGET_FPS format. Target FPS throttle disabled.")
     target_fps = 0
@@ -812,10 +809,16 @@ if __name__ == "__main__":
                 try:
                     # FrameDurationLimits expects microseconds per frame
                     frame_duration_us = int(1_000_000 / fps)
-                    picam2_instance.set_controls({"FrameDurationLimits": (frame_duration_us, frame_duration_us)})
-                    logger.info(f"Applied FPS limit: {fps} FPS (frame duration: {frame_duration_us} µs)")
+                    picam2_instance.set_controls(
+                        {"FrameDurationLimits": (frame_duration_us, frame_duration_us)}
+                    )
+                    logger.info(
+                        f"Applied FPS limit: {fps} FPS (frame duration: {frame_duration_us} µs)"
+                    )
                 except Exception as e:
-                    logger.warning(f"Failed to set FPS control to {fps}: {e}. Using camera default framerate.")
+                    logger.warning(
+                        f"Failed to set FPS control to {fps}: {e}. Using camera default framerate."
+                    )
 
             # Mark recording as started only after start_recording succeeds
             recording_started.set()

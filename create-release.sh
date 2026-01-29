@@ -72,7 +72,7 @@ TODAY=$(date +%Y-%m-%d)
 CHANGELOG_ENTRY="## [${NEW_VERSION}] - ${TODAY}"
 
 # Get the latest tag. If no tags, use the first commit
-LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1` --abbrev=0 2>/dev/null)
+LATEST_TAG=$(git describe --tags "$(git rev-list --tags --max-count=1)" --abbrev=0 2>/dev/null)
 
 if [ -z "$LATEST_TAG" ]; then
     echo -e "${YELLOW}⚠️  No tags found. Generating changelog from all commits.${NC}"

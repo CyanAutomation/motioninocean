@@ -200,20 +200,39 @@ make docker-build-full
 DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=true -t motion-in-ocean:full .
 ```
 
-### Build Both Variants
+### Build Variants
 
 ```bash
-make docker-build-both
+# Default: with mock camera support, no edge detection (~260MB)
+make docker-build
+
+# Minimal: production-ready, smallest size (~252MB)
+make docker-build-minimal
+
+# Production: with edge detection, no mock camera (~293MB)
+make docker-build-production
+
+# Full: all features enabled (~300MB)
+make docker-build-full
+
+# Build all variants
+make docker-build-all
 ```
 
 ### Image Size Comparison
 
-| Variant | opencv-python-headless | Edge Detection | Compressed Size | Use Case |
-|---------|------------------------|----------------|-----------------|----------|
-| **Minimal** (default) | ❌ No | Disabled | ~260MB | Production deployments, faster pulls |
-| **Full** | ✅ Yes | Available | ~300MB | When EDGE_DETECTION=true is needed |
+| Variant | opencv | Mock Camera | Compressed Size | Use Case |
+|---------|--------|-------------|-----------------|----------|
+| **Minimal** | ❌ No | ❌ No | ~252MB | Production deployments (smallest size) |
+| **Default** | ❌ No | ✅ Yes | ~260MB | Development and testing |
+| **Production** | ✅ Yes | ❌ No | ~293MB | Production with edge detection |
+| **Full** | ✅ Yes | ✅ Yes | ~300MB | Development with all features |
 
-**Note:** If you enable `EDGE_DETECTION=true` with the minimal image, the application will log a warning and continue without edge detection. Rebuild with `INCLUDE_OPENCV=true` to enable the feature.
+**Build Arguments:**
+- `INCLUDE_OPENCV=true|false` - Include opencv-python-headless for edge detection (~40MB)
+- `INCLUDE_MOCK_CAMERA=true|false` - Include Pillow for mock camera testing (~7MB)
+
+**Note:** If you enable `EDGE_DETECTION=true` or `MOCK_CAMERA=true` without the required dependencies, the application will log a warning and continue without those features.
 
 ---
 

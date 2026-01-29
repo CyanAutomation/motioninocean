@@ -8,7 +8,13 @@ FROM debian:bookworm-slim AS builder
 # Default is "false" for minimal image size
 ARG INCLUDE_OPENCV=false
 
-# Install dependencies needed for fetching RPi packages and building Python packages
+# Build argument to control Pillow installation for mock camera support
+# Set to "false" to exclude mock camera support (~5-7MB savings)
+# Default is "true" for development and testing flexibility
+ARG INCLUDE_MOCK_CAMERA=true
+
+# Install dependencies and configure Raspberry Pi repository
+# Consolidated into single layer for better caching and reduced image size
 # Using BuildKit cache mounts to speed up rebuilds
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -22,17 +28,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         curl \
         ca-certificates \
         gcc && \
-    rm -rf /var/lib/apt/lists/*
-
-# Add Raspberry Pi repository
-RUN curl -Lfs https://archive.raspberrypi.org/debian/raspberrypi.gpg.key -o /tmp/raspberrypi.gpg.key && \
+    rm -rf /var/lib/apt/lists/* && \
+    # Add Raspberry Pi repository
+    curl -Lfs https://archive.raspberrypi.org/debian/raspberrypi.gpg.key -o /tmp/raspberrypi.gpg.key && \
     gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
     echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
-    rm /tmp/raspberrypi.gpg.key
-
-# Install picamera2 and libcamera from Raspberry Pi repository (to system Python)
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    rm /tmp/raspberrypi.gpg.key && \
+    # Install picamera2 and libcamera from Raspberry Pi repository
     apt-get update && \
     apt-get install -y --no-install-recommends \
         python3-libcamera \
@@ -44,17 +46,23 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 WORKDIR /app
 COPY requirements.txt /app/
 # Using BuildKit cache mount to speed up pip installs
-# Install base requirements, then conditionally install opencv
+# Install base requirements, then conditionally install opencv and Pillow
 # Using --break-system-packages flag required for pip on Debian 12+
 # Exclude numpy from pip installation (using python3-numpy from apt for binary compatibility with simplejpeg)
 RUN --mount=type=cache,target=/root/.cache/pip \
-    grep -v "opencv-python-headless" requirements.txt | grep -v "numpy" > /tmp/requirements-base.txt && \
+    grep -v "opencv-python-headless" requirements.txt | grep -v "numpy" | grep -v "Pillow" > /tmp/requirements-base.txt && \
     pip3 install --break-system-packages -r /tmp/requirements-base.txt && \
     if [ "$INCLUDE_OPENCV" = "true" ]; then \
         echo "Installing opencv-python-headless for edge detection support..." && \
         grep "opencv-python-headless" requirements.txt | pip3 install --break-system-packages -r /dev/stdin; \
     else \
         echo "Skipping opencv-python-headless installation (INCLUDE_OPENCV=false)"; \
+    fi && \
+    if [ "$INCLUDE_MOCK_CAMERA" = "true" ]; then \
+        echo "Installing Pillow for mock camera support..." && \
+        grep "Pillow" requirements.txt | pip3 install --break-system-packages -r /dev/stdin; \
+    else \
+        echo "Skipping Pillow installation (INCLUDE_MOCK_CAMERA=false)"; \
     fi
 
 # ---- Final Stage ----
@@ -62,20 +70,12 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # python3-picamera2 is available in the same Python environment used by the application
 FROM debian:bookworm-slim
 
-# Install Python runtime and numpy (for binary compatibility with simplejpeg/picamera2)
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
-        python3 \
-        python3-numpy && \
-    rm -rf /var/lib/apt/lists/*
-
 # Copy Raspberry Pi repository and keys from builder
 COPY --from=builder /usr/share/keyrings/raspberrypi.gpg /usr/share/keyrings/raspberrypi.gpg
 COPY --from=builder /etc/apt/sources.list.d/raspi.list /etc/apt/sources.list.d/raspi.list
 
-# Install picamera2 and libcamera from Raspberry Pi repository
+# Install Python runtime and camera packages from Raspberry Pi repository
+# Consolidated into single layer for better caching and reduced image size
 # Note: opencv removed from apt (python3-opencv was 250MB), now installed via pip as opencv-python-headless (40MB)
 # Note: python3-flask removed (duplicate - installed via pip), libcap-dev and libcamera-dev removed (dev libraries not needed in runtime)
 # Note: curl removed (replaced with Python-based healthcheck script)
@@ -85,6 +85,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
     apt-get install -y --no-install-recommends \
+        python3 \
+        python3-numpy \
         python3-libcamera \
         python3-picamera2 && \
     rm -rf /var/lib/apt/lists/*

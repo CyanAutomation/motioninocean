@@ -60,7 +60,7 @@ echo ""
 
 # Test health endpoint
 echo "Testing /health..."
-if curl -fsS http://localhost:${PORT}/health >/dev/null 2>&1; then
+if curl -fsS "http://localhost:${PORT}/health" >/dev/null 2>&1; then
     echo "  ✓ /health endpoint responding"
 else
     echo "  ✗ /health endpoint not responding"
@@ -69,7 +69,7 @@ fi
 
 # Test metrics endpoint
 echo "Testing /metrics..."
-METRICS=$(curl -fsS http://localhost:${PORT}/metrics 2>/dev/null || echo "")
+METRICS=$(curl -fsS "http://localhost:${PORT}/metrics" 2>/dev/null || echo "")
 if [ -n "${METRICS}" ]; then
     echo "  ✓ /metrics endpoint responding"
     echo ""

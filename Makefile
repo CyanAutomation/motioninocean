@@ -30,9 +30,13 @@ help:
 	@echo "  make clean            Clean build artifacts and cache files"
 	@echo ""
 	@echo "Docker:"
-	@echo "  make docker-build     Build Docker image"
-	@echo "  make docker-run       Run Docker container"
-	@echo "  make docker-stop      Stop Docker container"
+	@echo "  make docker-build          Build default image (mock camera, no opencv)"
+	@echo "  make docker-build-minimal  Build minimal image (smallest, no mock/opencv)"
+	@echo "  make docker-build-full     Build full image (mock camera + opencv)"
+	@echo "  make docker-build-production  Build production image (opencv, no mock)"
+	@echo "  make docker-build-all      Build all image variants"
+	@echo "  make docker-run            Run Docker container"
+	@echo "  make docker-stop           Stop Docker container"
 	@echo ""
 	@echo "CI/CD:"
 	@echo "  make ci               Run all CI checks (lint, type-check, test)"
@@ -121,17 +125,30 @@ clean:
 # Docker targets
 # Using BuildKit for enhanced caching and faster builds
 docker-build:
-	@echo "Building minimal Docker image (no opencv, ~40MB smaller)..."
-	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=false -t motion-in-ocean:dev .
+	@echo "Building default Docker image (no opencv, with mock camera)..."
+	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=false --build-arg INCLUDE_MOCK_CAMERA=true -t motion-in-ocean:dev .
+
+docker-build-minimal:
+	@echo "Building minimal Docker image (no opencv, no mock camera, smallest size)..."
+	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=false --build-arg INCLUDE_MOCK_CAMERA=false -t motion-in-ocean:dev-minimal .
 
 docker-build-full:
-	@echo "Building full Docker image with edge detection support..."
-	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=true -t motion-in-ocean:dev-full .
+	@echo "Building full Docker image with edge detection and mock camera support..."
+	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=true --build-arg INCLUDE_MOCK_CAMERA=true -t motion-in-ocean:dev-full .
 
-docker-build-both:
-	@echo "Building both image variants..."
+docker-build-production:
+	@echo "Building production Docker image with edge detection (no mock camera)..."
+	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=true --build-arg INCLUDE_MOCK_CAMERA=false -t motion-in-ocean:dev-prod .
+
+docker-build-all:
+	@echo "Building all image variants..."
+	@$(MAKE) docker-build-minimal
 	@$(MAKE) docker-build
+	@$(MAKE) docker-build-production
 	@$(MAKE) docker-build-full
+
+# Legacy target for backward compatibility
+docker-build-both: docker-build docker-build-full
 
 docker-run:
 	@echo "Running Docker container..."
