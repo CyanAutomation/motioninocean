@@ -372,11 +372,14 @@ class FrameBuffer(io.BufferedIOBase):
 
 def get_stream_status(stats: StreamStats) -> Dict[str, Any]:
     """Return current streaming status with configuration details."""
+    # Capture current time first for consistent age calculation
+    current_time = time.monotonic()
     frame_count, last_frame_time, current_fps = stats.snapshot()
+    # Use the captured time for age calculation to ensure consistency
     last_frame_age_seconds = (
         None
         if last_frame_time is None
-        else round(time.monotonic() - last_frame_time, 2)
+        else round(current_time - last_frame_time, 2)
     )
     return {
         "frames_captured": frame_count,
@@ -436,24 +439,13 @@ def handle_shutdown(signum: int, frame: Optional[object]) -> None:
     """Handle SIGTERM/SIGINT for graceful shutdown.
     
     Signal handlers should only set atomic flags to avoid deadlocks.
-    Actual cleanup is performed in the main thread.
+    Actual cleanup is performed in the main thread's finally block.
     """
     logger.info(f"Received signal {signum}; setting shutdown flags.")
-    # Only set atomic flags - don't perform cleanup in signal handler
+    # Only set atomic flags - don't perform cleanup in signal handler to avoid deadlocks
     recording_started.clear()
     shutdown_event.set()
     # Exit to trigger cleanup in main thread's finally block
-
-    with picam2_lock:
-        global picam2_instance
-        if picam2_instance is not None:
-            try:
-                if picam2_instance.started:
-                    logger.info("Stopping camera recording due to shutdown signal...")
-                    picam2_instance.stop_recording()
-                    logger.info("Camera recording stopped")
-            except Exception as e:
-                logger.error(f"Error during camera shutdown: {e}", exc_info=True)
     raise SystemExit(0)
 
 
@@ -472,10 +464,11 @@ def health() -> Tuple[Response, int]:
 @app.route("/ready")
 def ready() -> Tuple[Response, int]:
     """Readiness probe - checks if camera is actually streaming."""
+    # Capture camera state first for consistency
+    is_recording = recording_started.is_set()
     status = get_stream_status(stream_stats)
     now = datetime.now()
     uptime_seconds = time.monotonic() - app.start_time_monotonic
-    is_recording = recording_started.is_set()
     base_payload = {
         "timestamp": now.isoformat(),
         "uptime_seconds": uptime_seconds,
@@ -487,6 +480,7 @@ def ready() -> Tuple[Response, int]:
         last_frame_age_seconds is not None
         and last_frame_age_seconds > max_frame_age_seconds
     )
+    # Check recording state captured at the start for consistency
     is_ready = is_recording and last_frame_age_seconds is not None and not is_stale
     if is_ready:
         readiness_status = "ready"
@@ -539,16 +533,10 @@ def gen() -> Iterator[bytes]:
     Yields:
         MJPEG frame data with multipart boundaries
     """
-    global active_stream_connections
-
-    # Track connection - increment counter
-    with stream_connection_lock:
-        active_stream_connections += 1
-        current_connections = active_stream_connections
-    logger.info(f"Stream client connected. Active connections: {current_connections}")
-
+    # Connection tracking moved to video_feed() to prevent race condition
     consecutive_timeouts = 0
     max_consecutive_timeouts = 3  # Exit after 3 consecutive timeouts (15 seconds)
+    last_frame_time = time.monotonic()
 
     try:
         while True:
@@ -561,26 +549,29 @@ def gen() -> Iterator[bytes]:
                 logger.info("Recording not started; ending MJPEG stream.")
                 break
 
+            wait_start = time.monotonic()
             with output.condition:
-                notified = output.condition.wait(timeout=5.0)
+                output.condition.wait(timeout=5.0)
                 frame = output.frame
 
-            # Check if wait timed out (notified=False) vs was notified (notified=True)
-            if not notified:
-                consecutive_timeouts += 1
-                if consecutive_timeouts >= max_consecutive_timeouts:
-                    logger.warning(
-                        f"Stream timeout: no frames received for {consecutive_timeouts * 5} seconds. "
-                        "Camera may have stopped producing frames."
-                    )
-                    break
-            else:
-                # Reset timeout counter when we get a frame
-                consecutive_timeouts = 0
-
-            # Skip if frame is not yet available
+            # Check actual condition: did we get a frame?
+            # Don't rely solely on wait() return value due to spurious wakeups
             if frame is None:
+                # No frame available - check if we actually timed out
+                elapsed = time.monotonic() - wait_start
+                if elapsed >= 4.5:  # Allow some margin for timeout detection
+                    consecutive_timeouts += 1
+                    if consecutive_timeouts >= max_consecutive_timeouts:
+                        logger.warning(
+                            f"Stream timeout: no frames received for {consecutive_timeouts * 5} seconds. "
+                            "Camera may have stopped producing frames."
+                        )
+                        break
                 continue
+
+            # Got a frame - reset timeout counter and update last frame time
+            consecutive_timeouts = 0
+            last_frame_time = time.monotonic()
             yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
     except Exception as e:
         logger.warning(f"Streaming client disconnected: {e}")
@@ -598,7 +589,7 @@ def video_feed() -> Response:
     if not recording_started.is_set():
         return Response("Camera stream not ready.", status=503)
 
-    # Check connection limit
+    # Check connection limit and increment counter atomically to prevent race condition
     with stream_connection_lock:
         if active_stream_connections >= max_stream_connections:
             logger.warning(
@@ -609,6 +600,12 @@ def video_feed() -> Response:
                 f"Maximum concurrent connections ({max_stream_connections}) reached. Try again later.",
                 status=429
             )
+        # Increment counter inside lock to make check-and-increment atomic
+        # This prevents multiple concurrent requests from bypassing the limit
+        global active_stream_connections
+        active_stream_connections += 1
+        current_connections = active_stream_connections
+    logger.info(f"Stream client connected. Active connections: {current_connections}")
 
     headers = {
         "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -658,8 +655,7 @@ if __name__ == "__main__":
             finally:
                 logger.info("Mock frame generator stopped")
 
-        mock_thread: Thread = Thread(target=generate_mock_frames)
-        mock_thread.daemon = False  # Non-daemon for proper cleanup
+        mock_thread: Thread = Thread(target=generate_mock_frames, daemon=True)
         mock_thread.start()
 
         # Wait for recording to start before Flask accepts requests
@@ -679,12 +675,10 @@ if __name__ == "__main__":
             shutdown_event.set()
             mock_thread.join(timeout=5.0)
             if mock_thread.is_alive():
-                logger.error(
+                logger.warning(
                     "Mock thread did not stop within 5 seconds timeout. "
-                    "Thread will be abandoned (daemon threads are terminated on exit)."
+                    "Thread will be abandoned as daemon (auto-terminated on exit)."
                 )
-                # Force daemon mode to ensure it doesn't block shutdown
-                mock_thread.daemon = True
             recording_started.clear()
             logger.info("Mock camera shutdown complete")
 
