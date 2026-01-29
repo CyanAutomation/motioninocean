@@ -46,8 +46,8 @@ services:
       - /dev/dri:/dev/dri
 
     # Fallback to privileged mode if explicit device access is insufficient
-    # Uncomment the line below if device mappings don't work on your hardware
-    # privileged: true
+    # Required for /dev/dma_heap/* device file access (directory volumes don't grant device permissions)
+    privileged: true
 
     healthcheck:
       test: ["CMD", "python3", "/app/healthcheck.py"]
