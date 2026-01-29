@@ -84,6 +84,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.7] - 2026-01-29
+
+- Refactor device permission checks to use 'stat' for improved output formatting
+- Rename docker-compose files from .yml to .yaml across the project
+
 ## [1.10.6] - 2026-01-29
 
 - Merge pull request #101 from CyanAutomation/codex/update-dockerfile-to-clean-apt-lists
