@@ -390,9 +390,7 @@ function renderMetrics(data) {
   if (statusState === 'connected') {
     resetBackoff();
   } else if (statusState === 'inactive' || statusState === 'stale') {
-    if (state.consecutiveFailures === 0) {
-      increaseBackoff();
-    }
+    increaseBackoff();
   }
 
   if (state.elements.fpsValue) {
