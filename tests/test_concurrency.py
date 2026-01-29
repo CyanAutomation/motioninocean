@@ -4,7 +4,6 @@ Tests race conditions, concurrent stream access, signal handling, and resource e
 """
 
 import io
-import signal
 import threading
 import time
 from collections import deque
@@ -125,7 +124,7 @@ class TestThreadSafety:
     def test_stream_stats_concurrent_reads(self):
         """Test that concurrent reads don't block each other excessively."""
         stats = StreamStats()
-        
+
         # Pre-populate with some data
         for _ in range(30):
             stats.record_frame(time.monotonic())
@@ -147,7 +146,7 @@ class TestThreadSafety:
             thread.join(timeout=10.0)
 
         elapsed = time.time() - start_time
-        
+
         # With proper locking (Lock instead of Condition), reads should be fast
         # 20 threads * 50 reads = 1000 total read operations should complete quickly
         assert elapsed < 5.0, f"Concurrent reads took too long: {elapsed}s"
@@ -217,13 +216,18 @@ class TestConcurrentStreamAccess:
 
         def simulate_stream_client(client_id: int):
             nonlocal active_connections
+
+            def check_connection_limit():
+                """Check if connection limit is reached and raise error."""
+                if active_connections >= max_connections:
+                    msg = "Too many connections"
+                    raise RuntimeError(msg)
+
             try:
                 # Increment connection counter
                 with connection_lock:
-                    if active_connections >= max_connections:
-                        raise RuntimeError("Too many connections")
+                    check_connection_limit()
                     active_connections += 1
-                    current = active_connections
 
                 # Simulate streaming for a short time
                 time.sleep(0.1)
@@ -237,8 +241,7 @@ class TestConcurrentStreamAccess:
         # Try to connect more clients than the limit
         num_clients = 15
         threads = [
-            threading.Thread(target=simulate_stream_client, args=(i,))
-            for i in range(num_clients)
+            threading.Thread(target=simulate_stream_client, args=(i,)) for i in range(num_clients)
         ]
 
         for thread in threads:
@@ -409,8 +412,7 @@ class TestResourceExhaustion:
         for size in sizes:
             frame = b"x" * size
             buffer.write(frame)
-            if buffer.get_dropped_frames() > dropped_count:
-                dropped_count = buffer.get_dropped_frames()
+            dropped_count = max(buffer.get_dropped_frames(), dropped_count)
 
         # At least one large frame should have been dropped
         assert dropped_count > 0, "Expected large frames to be dropped"
@@ -419,11 +421,11 @@ class TestResourceExhaustion:
         """Test that streams timeout when no frames are produced."""
         stats = StreamStats()
         buffer = FrameBuffer(stats)
-        
+
         # Simulate a stream consumer waiting for frames
         timeout_count = 0
         max_timeouts = 3
-        
+
         for _ in range(5):
             with buffer.condition:
                 notified = buffer.condition.wait(timeout=0.1)
@@ -431,7 +433,7 @@ class TestResourceExhaustion:
                     timeout_count += 1
                     if timeout_count >= max_timeouts:
                         break
-        
+
         # Should have hit the timeout limit
         assert timeout_count >= max_timeouts
 
@@ -440,7 +442,7 @@ class TestResourceExhaustion:
         stats = StreamStats()
         max_size = 1024 * 1024  # 1 MB
         buffer = FrameBuffer(stats, max_frame_size=max_size)
-        
+
         write_errors = []
         frames_written = 0
         frames_dropped = 0
@@ -450,11 +452,8 @@ class TestResourceExhaustion:
             for i in range(50):
                 try:
                     # Alternate between normal and oversized frames
-                    if i % 10 == 0:
-                        frame = b"x" * (max_size + 1000)  # Oversized
-                    else:
-                        frame = b"x" * 10000  # Normal
-                    
+                    frame = b"x" * (max_size + 1000) if i % 10 == 0 else b"x" * 10000
+
                     buffer.write(frame)
                     frames_written += 1
                 except Exception as e:
@@ -487,21 +486,21 @@ class TestMonotonicTiming:
         start_time = time.monotonic()
         time.sleep(0.1)
         uptime = time.monotonic() - start_time
-        
+
         assert uptime >= 0.1
         assert uptime < 1.0  # Sanity check
 
     def test_frame_age_calculation(self):
         """Test frame age calculation with monotonic time."""
         stats = StreamStats()
-        
+
         # Record a frame
         frame_time = time.monotonic()
         stats.record_frame(frame_time)
-        
+
         # Wait a bit
         time.sleep(0.1)
-        
+
         # Calculate age
         _, last_frame_time, _ = stats.snapshot()
         if last_frame_time is not None:
@@ -513,13 +512,13 @@ class TestMonotonicTiming:
         """Test that monotonic timing is immune to system clock changes."""
         # This test verifies we're using monotonic time, which doesn't change
         # with system clock adjustments
-        
+
         start_mono = time.monotonic()
         time.sleep(0.05)
         end_mono = time.monotonic()
-        
+
         elapsed_mono = end_mono - start_mono
-        
+
         # Monotonic time should always increase
         assert elapsed_mono > 0
         assert 0.04 < elapsed_mono < 0.2  # Allow for scheduling delays

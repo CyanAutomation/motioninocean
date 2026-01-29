@@ -111,21 +111,23 @@ if not mock_camera:
 
             from picamera2 import Picamera2
         else:
-            raise ImportError(
+            msg = (
                 "picamera2 import failed due to missing/incomplete DRM/KMS support. "
                 "Install pykms or set ALLOW_PYKMS_MOCK=true to allow a mock module."
-            ) from e
+            )
+            raise ImportError(msg) from e
     try:
         from picamera2.array import MappedArray
     except ModuleNotFoundError:
         try:
             from picamera2 import MappedArray  # type: ignore[attr-defined]
         except (ModuleNotFoundError, AttributeError) as e:
-            raise ImportError(
+            msg = (
                 "picamera2 MappedArray import failed. The installed picamera2 package "
                 "is missing the array module or MappedArray export. "
                 "Install a newer picamera2 build (python3-picamera2) that includes it."
-            ) from e
+            )
+            raise ImportError(msg) from e
     from picamera2.encoders import JpegEncoder
     from picamera2.outputs import FileOutput
 else:
@@ -134,21 +136,28 @@ else:
     JpegEncoder = None  # type: ignore[assignment]
     FileOutput = None  # type: ignore[assignment]
 
+
 # Parse resolution
-try:
+def _parse_resolution(resolution_str: str) -> Tuple[int, int]:
+    """Parse resolution string and return validated dimensions."""
     parts = resolution_str.split("x")
     if len(parts) != 2:
-        raise ValueError(f"Invalid resolution format: expected WIDTHxHEIGHT, got '{resolution_str}'")
+        msg = f"Invalid resolution format: expected WIDTHxHEIGHT, got '{resolution_str}'"
+        raise ValueError(msg)
+    return int(parts[0]), int(parts[1])
 
-    width = int(parts[0])
-    height = int(parts[1])
+
+try:
+    width, height = _parse_resolution(resolution_str)
 
     # Validate resolution dimensions
     if width <= 0 or height <= 0:
         logger.warning(f"Invalid RESOLUTION dimensions {width}x{height}. Using default 640x480.")
         resolution = (640, 480)
     elif width > 4096 or height > 4096:
-        logger.warning(f"RESOLUTION {width}x{height} exceeds maximum 4096x4096. Using default 640x480.")
+        logger.warning(
+            f"RESOLUTION {width}x{height} exceeds maximum 4096x4096. Using default 640x480."
+        )
         resolution = (640, 480)
     else:
         resolution = (width, height)
@@ -195,7 +204,9 @@ try:
         logger.warning(f"FPS cannot be negative ({fps}). Using camera default.")
         fps = 0
     elif fps > 60:
-        logger.warning(f"FPS {fps} exceeds recommended maximum of 60 for Raspberry Pi cameras. Using 60.")
+        logger.warning(
+            f"FPS {fps} exceeds recommended maximum of 60 for Raspberry Pi cameras. Using 60."
+        )
         fps = 60
     else:
         logger.info(f"Frame rate limited to {fps} FPS" if fps > 0 else "Using camera default FPS")
@@ -228,7 +239,9 @@ if max_frame_size_mb_str:
             max_frame_size_bytes: Optional[int] = None
         else:
             max_frame_size_bytes = int(max_frame_size_mb * 1024 * 1024)
-            logger.info(f"Max frame size set to {max_frame_size_mb} MB ({max_frame_size_bytes} bytes)")
+            logger.info(
+                f"Max frame size set to {max_frame_size_mb} MB ({max_frame_size_bytes} bytes)"
+            )
     except (ValueError, TypeError):
         logger.warning("Invalid MAX_FRAME_SIZE_MB format. Using auto-calculated limit.")
         max_frame_size_bytes = None
@@ -377,9 +390,7 @@ def get_stream_status(stats: StreamStats) -> Dict[str, Any]:
     frame_count, last_frame_time, current_fps = stats.snapshot()
     # Use the captured time for age calculation to ensure consistency
     last_frame_age_seconds = (
-        None
-        if last_frame_time is None
-        else round(current_time - last_frame_time, 2)
+        None if last_frame_time is None else round(current_time - last_frame_time, 2)
     )
     return {
         "frames_captured": frame_count,
@@ -401,6 +412,7 @@ if secret_key is None:
     # Generate a deterministic key from hostname (persists in same container)
     # This is a reasonable default for internal networks without authentication
     import socket
+
     hostname = socket.gethostname()
     secret_key = f"motion-in-ocean-{hostname}".encode().hex()
     logger.warning(
@@ -422,6 +434,7 @@ def add_no_cache_headers(response: Response) -> Response:
         response.headers["Pragma"] = "no-cache"
     return response
 
+
 stream_stats = StreamStats()
 output = FrameBuffer(stream_stats, max_frame_size=max_frame_size_bytes)
 app.start_time_monotonic = time.monotonic()  # Use monotonic clock for uptime calculations
@@ -430,14 +443,39 @@ picam2_lock = Lock()  # Lock for thread-safe access to picam2_instance
 recording_started = Event()  # Thread-safe flag to track if camera recording has started
 shutdown_event = Event()
 
+
 # Connection tracking for stream endpoint
-active_stream_connections = 0
-stream_connection_lock = Lock()
+class ConnectionTracker:
+    """Thread-safe connection counter."""
+
+    def __init__(self) -> None:
+        self._count = 0
+        self._lock = Lock()
+
+    def increment(self) -> int:
+        """Increment counter and return new value."""
+        with self._lock:
+            self._count += 1
+            return self._count
+
+    def decrement(self) -> int:
+        """Decrement counter and return new value."""
+        with self._lock:
+            self._count -= 1
+            return self._count
+
+    def get_count(self) -> int:
+        """Get current count."""
+        with self._lock:
+            return self._count
 
 
-def handle_shutdown(signum: int, frame: Optional[object]) -> None:
+connection_tracker = ConnectionTracker()
+
+
+def handle_shutdown(signum: int, _frame: Optional[object]) -> None:
     """Handle SIGTERM/SIGINT for graceful shutdown.
-    
+
     Signal handlers should only set atomic flags to avoid deadlocks.
     Actual cleanup is performed in the main thread's finally block.
     """
@@ -476,10 +514,7 @@ def ready() -> Tuple[Response, int]:
         **status,
     }
     last_frame_age_seconds = base_payload["last_frame_age_seconds"]
-    is_stale = (
-        last_frame_age_seconds is not None
-        and last_frame_age_seconds > max_frame_age_seconds
-    )
+    is_stale = last_frame_age_seconds is not None and last_frame_age_seconds > max_frame_age_seconds
     # Check recording state captured at the start for consistency
     is_ready = is_recording and last_frame_age_seconds is not None and not is_stale
     if is_ready:
@@ -536,7 +571,7 @@ def gen() -> Iterator[bytes]:
     # Connection tracking moved to video_feed() to prevent race condition
     consecutive_timeouts = 0
     max_consecutive_timeouts = 3  # Exit after 3 consecutive timeouts (15 seconds)
-    last_frame_time = time.monotonic()
+    time.monotonic()
 
     try:
         while True:
@@ -571,15 +606,13 @@ def gen() -> Iterator[bytes]:
 
             # Got a frame - reset timeout counter and update last frame time
             consecutive_timeouts = 0
-            last_frame_time = time.monotonic()
+            time.monotonic()
             yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
     except Exception as e:
         logger.warning(f"Streaming client disconnected: {e}")
     finally:
         # Track disconnection - decrement counter
-        with stream_connection_lock:
-            active_stream_connections -= 1
-            current_connections = active_stream_connections
+        current_connections = connection_tracker.decrement()
         logger.info(f"Stream client disconnected. Active connections: {current_connections}")
 
 
@@ -590,21 +623,19 @@ def video_feed() -> Response:
         return Response("Camera stream not ready.", status=503)
 
     # Check connection limit and increment counter atomically to prevent race condition
-    with stream_connection_lock:
-        if active_stream_connections >= max_stream_connections:
-            logger.warning(
-                f"Stream connection rejected: limit of {max_stream_connections} reached "
-                f"(current: {active_stream_connections})"
-            )
-            return Response(
-                f"Maximum concurrent connections ({max_stream_connections}) reached. Try again later.",
-                status=429
-            )
-        # Increment counter inside lock to make check-and-increment atomic
-        # This prevents multiple concurrent requests from bypassing the limit
-        global active_stream_connections
-        active_stream_connections += 1
-        current_connections = active_stream_connections
+    current_count = connection_tracker.get_count()
+    if current_count >= max_stream_connections:
+        logger.warning(
+            f"Stream connection rejected: limit of {max_stream_connections} reached "
+            f"(current: {current_count})"
+        )
+        return Response(
+            f"Maximum concurrent connections ({max_stream_connections}) reached. Try again later.",
+            status=429,
+        )
+
+    # Increment counter
+    current_connections = connection_tracker.increment()
     logger.info(f"Stream client connected. Active connections: {current_connections}")
 
     headers = {
@@ -663,7 +694,8 @@ if __name__ == "__main__":
         recording_started.wait(timeout=5.0)
         if not recording_started.is_set():
             logger.error("Mock camera failed to start within 5 seconds")
-            raise RuntimeError("Mock camera initialization timeout")
+            msg = "Mock camera initialization timeout"
+            raise RuntimeError(msg)
 
         try:
             # Start the Flask app

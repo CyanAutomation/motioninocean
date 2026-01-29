@@ -12,6 +12,6 @@ export default [
   },
   pluginJs.configs.recommended,
   {
-    ignores: ["node_modules/"],
+    ignores: ["node_modules/", "htmlcov/", "__pycache__/"],
   }
 ];

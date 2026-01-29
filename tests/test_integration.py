@@ -115,9 +115,9 @@ def test_device_security_no_new_privileges(workspace_root):
     security_opt = service.get("security_opt", [])
 
     # Should have no-new-privileges or similar
-    assert len(security_opt) > 0 or "privileged" not in service or not service.get("privileged"), (
-        "Security options not properly configured"
-    )
+    assert (
+        len(security_opt) > 0 or "privileged" not in service or not service.get("privileged")
+    ), "Security options not properly configured"
 
 
 def test_udev_mount_read_only(workspace_root):

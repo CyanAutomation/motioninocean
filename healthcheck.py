@@ -9,9 +9,9 @@ Optional environment variables:
   - HEALTHCHECK_TIMEOUT (default: 5 seconds)
 """
 
+import ipaddress
 import os
 import sys
-import ipaddress
 import urllib.error
 import urllib.request
 from urllib.parse import urlparse
@@ -74,17 +74,14 @@ def check_health():
                 "metadata.google.internal",
                 "169.254.169.254",
             }
-            or (literal_address and (literal_address == "invalid" or not _is_public_address(str(literal_address))))
-        ):
-            print(
-                f"Warning: Invalid HEALTHCHECK_URL '{env_healthcheck_url}', using default",
-                file=sys.stderr,
+            or (
+                literal_address
+                and (literal_address == "invalid" or not _is_public_address(str(literal_address)))
             )
+        ):
             healthcheck_url = default_healthcheck_url
     try:
-        timeout_seconds = float(
-            os.getenv("HEALTHCHECK_TIMEOUT") or DEFAULT_HEALTHCHECK_TIMEOUT
-        )
+        timeout_seconds = float(os.getenv("HEALTHCHECK_TIMEOUT") or DEFAULT_HEALTHCHECK_TIMEOUT)
     except ValueError:
         timeout_seconds = DEFAULT_HEALTHCHECK_TIMEOUT
     try:
