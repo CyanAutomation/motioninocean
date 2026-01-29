@@ -373,7 +373,7 @@ class FrameBuffer(io.BufferedIOBase):
         self.condition: Condition = Condition()
         self._stats = stats
         self._max_frame_size = max_frame_size
-        self._target_frame_interval = 1 / target_fps if target_fps > 0 else None
+        self._target_frame_interval = 1.0 / target_fps if target_fps > 0 else None
         self._last_frame_monotonic: Optional[float] = None
         self._dropped_frames = 0
 
