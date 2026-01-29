@@ -84,6 +84,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.9] - 2026-01-29
+
+- refactor(docker): enhance Dockerfile for mock camera support and image variants
+- refactor(env): enhance camera configuration and performance recommendations
+
 ## [1.10.8] - 2026-01-29
 
 - fix(env): adjust frame rate and JPEG quality for optimized performance
