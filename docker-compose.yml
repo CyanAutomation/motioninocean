@@ -35,7 +35,6 @@ services:
     # Use docker-compose.override.yaml (example file) if you need explicit device mappings.
     device_cgroup_rules:
       - 'c 253:* rmw'  # /dev/dma_heap/* (char device 253)
-      - 'c 511:* rmw'  # /dev/vchiq
       - 'c 81:* rmw'   # /dev/video* and /dev/v4l-subdev* devices (all indices automatically)
       - 'c 250:* rmw'  # /dev/media* devices (media controllers for libcamera)
     
