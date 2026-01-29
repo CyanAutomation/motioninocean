@@ -44,6 +44,9 @@ log/
 output/
 artifacts/
 .cache/
+Makefile
+*.sh
+docker-compose.yml
 venv/
 env/
 .venv/
