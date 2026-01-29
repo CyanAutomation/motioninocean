@@ -5,7 +5,10 @@
 
 const state = {
   updateInterval: null,
+  baseUpdateFrequency: 2000,
   updateFrequency: 2000,
+  maxUpdateFrequency: 30000,
+  consecutiveFailures: 0,
   connectionTimeout: null,
   isConnected: false,
   statsCollapsed: false,
@@ -94,7 +97,9 @@ function attachHandlers() {
       stopStatsUpdate();
     } else {
       startStatsUpdate();
-      updateStats().catch(error => console.error('Stats update failed:', error));
+      if (!state.statsCollapsed) {
+        updateStats().catch(error => console.error('Stats update failed:', error));
+      }
     }
   });
 }
@@ -104,6 +109,7 @@ function attachHandlers() {
  */
 async function updateStats() {
   if (state.statsInFlight) return;
+  if (state.statsCollapsed || document.hidden) return;
   
   try {
     state.statsInFlight = true;
@@ -113,11 +119,13 @@ async function updateStats() {
     } catch (error) {
       if (error && error.name === 'AbortError') {
         console.warn('Stats request timed out, will retry.');
+        increaseBackoff();
         return;
       }
 
       console.error('Failed to fetch stats:', error);
       setConnectionStatus('disconnected', 'Disconnected');
+      increaseBackoff();
 
       if (state.elements.fpsValue) {
         state.elements.fpsValue.textContent = '--';
@@ -171,6 +179,13 @@ function toggleStats() {
 
   if (state.elements.toggleStatsBtn) {
     state.elements.toggleStatsBtn.textContent = state.statsCollapsed ? '▼' : '▲';
+  }
+
+  if (state.statsCollapsed) {
+    stopStatsUpdate();
+  } else {
+    startStatsUpdate();
+    updateStats().catch(error => console.error('Stats update failed:', error));
   }
 }
 
@@ -257,6 +272,7 @@ function onStreamLoad() {
 function onStreamError() {
   console.error('Video stream error');
   setConnectionStatus('disconnected', 'Stream Error');
+  increaseBackoff();
 }
 
 /**
@@ -280,6 +296,7 @@ function setConnectionStatus(status, text) {
  */
 function startStatsUpdate() {
   if (state.updateInterval) return;
+  if (state.statsCollapsed || document.hidden) return;
 
   state.updateInterval = setInterval(() => {
     updateStats().catch(error => console.error('Stats update failed:', error));
@@ -294,6 +311,41 @@ function stopStatsUpdate() {
     clearInterval(state.updateInterval);
     state.updateInterval = null;
   }
+}
+
+/**
+ * Adjust the stats polling frequency and restart the timer if needed.
+ */
+function setUpdateFrequency(nextFrequency) {
+  if (state.updateFrequency === nextFrequency) return;
+  state.updateFrequency = nextFrequency;
+  if (state.updateInterval) {
+    stopStatsUpdate();
+    startStatsUpdate();
+  }
+}
+
+/**
+ * Increase polling backoff when failures or inactive streams occur.
+ */
+function increaseBackoff() {
+  state.consecutiveFailures += 1;
+  const nextFrequency = Math.min(
+    state.baseUpdateFrequency * Math.pow(2, state.consecutiveFailures),
+    state.maxUpdateFrequency
+  );
+  setUpdateFrequency(nextFrequency);
+}
+
+/**
+ * Reset polling backoff on successful, active streams.
+ */
+function resetBackoff() {
+  if (state.consecutiveFailures === 0 && state.updateFrequency === state.baseUpdateFrequency) {
+    return;
+  }
+  state.consecutiveFailures = 0;
+  setUpdateFrequency(state.baseUpdateFrequency);
 }
 
 /**
@@ -335,6 +387,13 @@ function renderMetrics(data) {
   const statusState = cameraActive ? (isStale ? 'stale' : 'connected') : 'inactive';
 
   setConnectionStatus(statusState, statusText);
+  if (statusState === 'connected') {
+    resetBackoff();
+  } else if (statusState === 'inactive' || statusState === 'stale') {
+    if (state.consecutiveFailures === 0) {
+      increaseBackoff();
+    }
+  }
 
   if (state.elements.fpsValue) {
     state.elements.fpsValue.textContent = data.current_fps
