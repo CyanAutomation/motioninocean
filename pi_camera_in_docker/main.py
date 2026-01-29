@@ -38,6 +38,8 @@ logger = logging.getLogger(__name__)
 resolution_str: str = os.environ.get("RESOLUTION", "640x480")
 edge_detection_str: str = os.environ.get("EDGE_DETECTION", "false")
 fps_str: str = os.environ.get("FPS", "0")  # 0 = use camera default
+target_fps_env = os.environ.get("TARGET_FPS")
+target_fps_str: str = target_fps_env if target_fps_env is not None else fps_str
 mock_camera_str: str = os.environ.get("MOCK_CAMERA", "false")
 jpeg_quality_str: str = os.environ.get("JPEG_QUALITY", "100")
 cors_origins_env_var = "MOTION_IN_OCEAN_CORS_ORIGINS"
@@ -214,6 +216,27 @@ except (ValueError, TypeError):
     logger.warning("Invalid FPS format. Using camera default.")
     fps = 0
 
+# Parse target FPS throttle
+try:
+    target_fps: int = int(target_fps_str)
+    if target_fps < 0:
+        logger.warning(f"TARGET_FPS cannot be negative ({target_fps}). Disabling throttle.")
+        target_fps = 0
+    elif target_fps > 60:
+        logger.warning(
+            f"TARGET_FPS {target_fps} exceeds recommended maximum of 60. Using 60."
+        )
+        target_fps = 60
+    else:
+        if target_fps > 0:
+            source = "TARGET_FPS" if target_fps_env is not None else "FPS"
+            logger.info(f"Target FPS throttle set to {target_fps} FPS (from {source})")
+        else:
+            logger.info("Target FPS throttle disabled")
+except (ValueError, TypeError):
+    logger.warning("Invalid TARGET_FPS format. Target FPS throttle disabled.")
+    target_fps = 0
+
 # Parse JPEG quality
 try:
     jpeg_quality: int = int(jpeg_quality_str)
@@ -340,11 +363,18 @@ class StreamStats:
 class FrameBuffer(io.BufferedIOBase):
     """Thread-safe output handler for camera frames."""
 
-    def __init__(self, stats: StreamStats, max_frame_size: Optional[int] = None) -> None:
+    def __init__(
+        self,
+        stats: StreamStats,
+        max_frame_size: Optional[int] = None,
+        target_fps: int = 0,
+    ) -> None:
         self.frame: Optional[bytes] = None
         self.condition: Condition = Condition()
         self._stats = stats
         self._max_frame_size = max_frame_size
+        self._target_frame_interval = 1 / target_fps if target_fps > 0 else None
+        self._last_frame_monotonic: Optional[float] = None
         self._dropped_frames = 0
 
     def write(self, buf: bytes) -> int:
@@ -371,15 +401,27 @@ class FrameBuffer(io.BufferedIOBase):
             # Return the size to satisfy encoder interface, but don't store the frame
             return frame_size
 
+        monotonic_now = time.monotonic()
         with self.condition:
+            if (
+                self._target_frame_interval is not None
+                and self._last_frame_monotonic is not None
+                and monotonic_now - self._last_frame_monotonic < self._target_frame_interval
+            ):
+                self._dropped_frames += 1
+                logger.debug(
+                    "Dropped frame due to target FPS throttle (total dropped: %s)",
+                    self._dropped_frames,
+                )
+                return frame_size
             self.frame = buf
-            monotonic_now = time.monotonic()
+            self._last_frame_monotonic = monotonic_now
             self._stats.record_frame(monotonic_now)
             self.condition.notify_all()
         return frame_size
 
     def get_dropped_frames(self) -> int:
-        """Return the number of dropped frames due to size limits."""
+        """Return the number of dropped frames due to size limits or throttling."""
         return self._dropped_frames
 
 
@@ -436,7 +478,11 @@ def add_no_cache_headers(response: Response) -> Response:
 
 
 stream_stats = StreamStats()
-output = FrameBuffer(stream_stats, max_frame_size=max_frame_size_bytes)
+output = FrameBuffer(
+    stream_stats,
+    max_frame_size=max_frame_size_bytes,
+    target_fps=target_fps,
+)
 app.start_time_monotonic = time.monotonic()  # Use monotonic clock for uptime calculations
 picam2_instance: Optional[Any] = None  # Picamera2 instance (Optional since it may not be available)
 picam2_lock = Lock()  # Lock for thread-safe access to picam2_instance
