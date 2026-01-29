@@ -1,59 +1,46 @@
-# Git and version control
+node_modules/
 .git/
-.gitignore
-.github/
-
-# Test files and coverage reports
-test_*.py
 tests/
-TEST_REPORT.md
-TESTING_COMPLETE.md
-htmlcov/
-coverage.xml
-.coverage
-.pytest_cache/
-
-# Documentation
-*.md
-!README.md
-
-# Environment files (should be provided at runtime)
-.env
-.env.*
-
-# Python cache and virtual environments
+*.log
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
-venv/
-env/
-.venv/
-
-# IDE and editor files
-.vscode/
-.idea/
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+.eggs/
+dist/
+build/
+*.tmp
 *.swp
 *.swo
-*~
-
-# OS files
 .DS_Store
 Thumbs.db
-
-# Build artifacts and scripts
-*.log
-Makefile
-*.sh
-docker-compose.yml
-eslint.config.js
-
-# Node.js (dev dependencies only)
-node_modules/
-package.json
-package-lock.json
-
-# Python development dependencies
-requirements-dev.txt
-pyproject.toml
+.npm/
+.yarn/
+.yarn-cache/
+.pnpm-store/
+.env
+.env.*
+*.local
+.idea/
+.vscode/
+*.pid
+*.seed
+*.tgz
+*.tar.gz
+*.zip
+*.gz
+*.bak
+*.orig
+*.rej
+*.out
+logs/
+log/
+output/
+artifacts/
+.cache/
