@@ -44,3 +44,6 @@ log/
 output/
 artifacts/
 .cache/
+venv/
+env/
+.venv/
