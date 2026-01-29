@@ -39,10 +39,11 @@ services:
       - 'c 81:* rmw'   # /dev/video* and /dev/v4l-subdev* devices (all indices automatically)
       - 'c 250:* rmw'  # /dev/media* devices (media controllers for libcamera)
     
+    volumes:
+      - /dev/dma_heap:/dev/dma_heap:rw  # Mount dma_heap directory as volume, not device
+    
     devices:
-      - /dev/dma_heap:/dev/dma_heap  # Mount entire directory
       - /dev/vchiq:/dev/vchiq
-      # DRM/KMS device (optional, for pykms support if available)
       # DRM/KMS device (optional, for pykms support if available)
       - /dev/dri:/dev/dri
 
