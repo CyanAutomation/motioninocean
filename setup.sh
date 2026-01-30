@@ -26,7 +26,11 @@ run_device_detection() {
     read -r RUN_DETECT
 
     if [[ "$RUN_DETECT" =~ ^[Yy]$ ]]; then
-        ./detect-devices.sh
+        if [ -x "./detect-devices.sh" ]; then
+            ./detect-devices.sh
+        else
+            echo "⚠️  ./detect-devices.sh not found or not executable. Skipping device detection."
+        fi
     else
         echo "Skipping device detection."
     fi
