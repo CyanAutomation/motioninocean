@@ -80,6 +80,7 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: var(--spacing-lg);
+  height: 2.5rem;
 }
 
 .header-title {
@@ -116,6 +117,8 @@ body {
   background: var(--bg-tertiary);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
+  height: 100%;
+  white-space: nowrap;
 }
 
 .status-indicator {
