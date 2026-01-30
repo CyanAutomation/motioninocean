@@ -27,11 +27,14 @@ This repo is a fork of `hyzhak/pi-camera-in-docker`, with the goal of making the
 
 ### 1) Create folder + config
 
+Copy `.env.example` to `.env` and edit it for your environment.
+
 ```bash
 mkdir -p ~/containers/motion-in-ocean
 cd ~/containers/motion-in-ocean
 
-curl -fsSL https://raw.githubusercontent.com/<your-org-or-user>/motion-in-ocean/main/.env.example -o .env
+curl -fsSL https://raw.githubusercontent.com/<your-org-or-user>/motion-in-ocean/main/.env.example -o .env.example
+cp .env.example .env
 nano .env
 ```
 
@@ -135,20 +138,24 @@ This project is small and intentionally focused:
 Create/edit `.env`:
 
 ```env
-RESOLUTION=640x480
-FPS=30
-EDGE_DETECTION=false
+MOTION_IN_OCEAN_RESOLUTION=640x480
+MOTION_IN_OCEAN_FPS=30
+MOTION_IN_OCEAN_EDGE_DETECTION=false
+MOTION_IN_OCEAN_JPEG_QUALITY=100
 MOTION_IN_OCEAN_CORS_ORIGINS=*
+MOTION_IN_OCEAN_HEALTHCHECK_READY=false
 TZ=Europe/London
 MOCK_CAMERA=false
 ```
 
 ### Options
 
-* `RESOLUTION` - Camera resolution (e.g., `640x480`, `1280x720`, `1920x1080`). Max `4096x4096`.
-* `FPS` - Frame rate limit. `0` uses camera default. Maximum recommended: `120`.
-* `EDGE_DETECTION` - `true` enables Canny edge detection (CPU overhead).
+* `MOTION_IN_OCEAN_RESOLUTION` - Camera resolution (e.g., `640x480`, `1280x720`, `1920x1080`). Max `4096x4096`.
+* `MOTION_IN_OCEAN_FPS` - Frame rate limit. `0` uses camera default. Maximum recommended: `120`.
+* `MOTION_IN_OCEAN_EDGE_DETECTION` - `true` enables Canny edge detection (CPU overhead).
+* `MOTION_IN_OCEAN_JPEG_QUALITY` - JPEG quality (1-100) for stream images.
 * `MOTION_IN_OCEAN_CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
+* `MOTION_IN_OCEAN_HEALTHCHECK_READY` - `true` uses `/ready` for healthchecks instead of `/health`.
 * `TZ` - Logging timezone.
 * `MOCK_CAMERA` - `true` disables Picamera2 initialisation and streams dummy frames (dev/testing).
 
@@ -232,7 +239,7 @@ make docker-build-all
 - `INCLUDE_OPENCV=true|false` - Include opencv-python-headless for edge detection (~40MB)
 - `INCLUDE_MOCK_CAMERA=true|false` - Include Pillow for mock camera testing (~7MB)
 
-**Note:** If you enable `EDGE_DETECTION=true` or `MOCK_CAMERA=true` without the required dependencies, the application will log a warning and continue without those features.
+**Note:** If you enable `MOTION_IN_OCEAN_EDGE_DETECTION=true` or `MOCK_CAMERA=true` without the required dependencies, the application will log a warning and continue without those features.
 
 ---
 
@@ -265,9 +272,9 @@ The container exposes two endpoints:
 The docker-compose healthcheck uses the bundled `healthcheck.py`, which defaults to `/health`.
 Switch to readiness checks with:
 
-* `HEALTHCHECK_READY=true` (uses `/ready` instead of `/health`)
+* `MOTION_IN_OCEAN_HEALTHCHECK_READY=true` (uses `/ready` instead of `/health`)
 
-Override the full URL (takes precedence over `HEALTHCHECK_READY`) with:
+Override the full URL (takes precedence over `MOTION_IN_OCEAN_HEALTHCHECK_READY`) with:
 
 * `HEALTHCHECK_URL` (e.g., `http://127.0.0.1:8000/ready`)
 * `HEALTHCHECK_TIMEOUT` (seconds, default `5`)
