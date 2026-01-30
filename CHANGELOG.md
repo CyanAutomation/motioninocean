@@ -84,6 +84,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-01-30
+
+- Improve DMA heap detection logic in detect-devices.sh
+- Refactor device access configuration and clean up code in main.py
+- Refine device access configuration in docker-compose.yaml for Raspberry Pi camera
+- Merge pull request #112 from CyanAutomation/codex/update-max_stream_connections-default-to-2
+- Update pi_camera_in_docker/main.py
+- Update pi_camera_in_docker/main.py
+- Adjust default max stream connections
+- Merge pull request #111 from CyanAutomation/codex/create-and-organize-prd-documents
+- Split PRD into backend and frontend docs
+
 ## [1.11.0] - 2026-01-30
 
 - feat: enhance shutdown logging and run Flask server in a separate thread
