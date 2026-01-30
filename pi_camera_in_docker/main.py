@@ -50,7 +50,7 @@ if cors_origins_str is None:
     cors_origins_str = os.environ.get(cors_origins_env_var)
 max_frame_age_seconds_str: str = os.environ.get("MAX_FRAME_AGE_SECONDS", "10")
 allow_pykms_mock_str: str = os.environ.get("ALLOW_PYKMS_MOCK", "false")
-max_stream_connections_str: str = os.environ.get("MAX_STREAM_CONNECTIONS", "10")
+max_stream_connections_str: str = os.environ.get("MAX_STREAM_CONNECTIONS", "2")
 max_frame_size_mb_str: str = os.environ.get("MAX_FRAME_SIZE_MB", "")  # Empty = auto-calculate
 
 mock_camera: bool = mock_camera_str.lower() in ("true", "1", "t")
@@ -63,9 +63,9 @@ try:
     max_stream_connections: int = int(max_stream_connections_str)
     if max_stream_connections < 1:
         logger.warning(
-            f"MAX_STREAM_CONNECTIONS must be positive ({max_stream_connections}). Using default 10."
+            f"MAX_STREAM_CONNECTIONS must be positive ({max_stream_connections}). Using default 2."
         )
-        max_stream_connections = 10
+        max_stream_connections = 2
     elif max_stream_connections > 100:
         logger.warning(
             f"MAX_STREAM_CONNECTIONS {max_stream_connections} exceeds maximum 100. Using 100."
@@ -74,8 +74,8 @@ try:
     else:
         logger.info(f"Max concurrent stream connections set to {max_stream_connections}")
 except (ValueError, TypeError):
-    logger.warning("Invalid MAX_STREAM_CONNECTIONS format. Using default 10.")
-    max_stream_connections = 10
+    logger.warning("Invalid MAX_STREAM_CONNECTIONS format. Using default 2.")
+    max_stream_connections = 2
 
 if not mock_camera:
     # Workaround for pykms import error in headless container environments
