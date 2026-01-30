@@ -84,6 +84,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-01-30
+
+- feat: enhance shutdown logging and run Flask server in a separate thread
+- feat: implement graceful shutdown for Flask server and set STOPSIGNAL in Dockerfile
+- feat: add configuration panel with dynamic updates and tab navigation
+- refactor: simplify assertion formatting in test cases
+- Merge pull request #110 from CyanAutomation/codex/standardize-on-.yaml-extension
+- chore: standardize compose yaml filenames
+- Merge pull request #109 from CyanAutomation/codex/add-setup-script-for-environment-setup
+- Update setup.sh
+- Merge pull request #108 from CyanAutomation/codex/update-readme.md-with-motion_in_ocean-examples
+- Add guided setup script and update docs
+- Update README env config keys
+
 ## [1.10.9] - 2026-01-29
 
 - refactor(docker): enhance Dockerfile for mock camera support and image variants
