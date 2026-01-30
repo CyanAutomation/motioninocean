@@ -108,5 +108,8 @@ RUN chmod +x /app/healthcheck.py
 # Validate required Python modules are present in the final image
 RUN python3 -c "import sys; import numpy; import flask; import flask_cors; import picamera2; print('All required modules imported successfully')"
 
+# Explicitly set STOPSIGNAL to SIGTERM for graceful shutdown handling
+STOPSIGNAL SIGTERM
+
 # Set the entry point
 CMD ["python3", "/app/main.py"]

@@ -15,6 +15,7 @@ import numpy as np
 from flask import Flask, Response, jsonify, render_template, request
 from flask_cors import CORS
 from PIL import Image
+from werkzeug.serving import make_server
 
 
 # Optional opencv import - only needed for edge detection feature
@@ -487,6 +488,7 @@ picam2_instance: Optional[Any] = None  # Picamera2 instance (Optional since it m
 picam2_lock = Lock()  # Lock for thread-safe access to picam2_instance
 recording_started = Event()  # Thread-safe flag to track if camera recording has started
 shutdown_event = Event()
+flask_server: Optional[Any] = None  # Flask WSGI server instance for explicit shutdown
 
 
 # Connection tracking for stream endpoint
@@ -528,6 +530,14 @@ def handle_shutdown(signum: int, _frame: Optional[object]) -> None:
     # Only set atomic flags - don't perform cleanup in signal handler to avoid deadlocks
     recording_started.clear()
     shutdown_event.set()
+    # Attempt to shutdown Flask server if it's running
+    global flask_server
+    if flask_server is not None:
+        logger.info("Shutting down Flask server...")
+        try:
+            flask_server.shutdown()
+        except Exception as e:
+            logger.warning(f"Error shutting down Flask server: {e}")
     # Exit to trigger cleanup in main thread's finally block
     raise SystemExit(0)
 
