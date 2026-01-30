@@ -84,6 +84,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.2] - 2026-01-30
+
+- Update layout of configuration panel for improved responsiveness and flexibility
+- Enhance tab navigation and update styles in CSS for improved layout and responsiveness
+
 ## [1.11.1] - 2026-01-30
 
 - Improve DMA heap detection logic in detect-devices.sh
