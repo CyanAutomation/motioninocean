@@ -65,7 +65,7 @@ try:
         logger.warning(
             f"MAX_STREAM_CONNECTIONS must be positive ({max_stream_connections}). Using default 2."
         )
-        max_stream_connections = 10
+        max_stream_connections = 2
     elif max_stream_connections > 100:
         logger.warning(
             f"MAX_STREAM_CONNECTIONS {max_stream_connections} exceeds maximum 100. Using 100."
