@@ -24,28 +24,36 @@ services:
       - /run/udev:/run/udev:ro
 
     # Device access for Raspberry Pi camera
-    # - /dev/dma_heap/*: Required for libcamera memory management on modern Pi OS (directory with subdirectories)
+    # - /dev/dma_heap/*: Required for libcamera memory management on modern Pi OS
     # - /dev/vchiq: Required for camera ISP on Raspberry Pi
-    # - /dev/video*: Camera device nodes (indices vary significantly by Pi model)
+    # - /dev/video*: Camera device nodes (indices vary by Pi model)
     # - /dev/v4l-subdev*: V4L2 sub-devices (required for camera sensor control on unicam driver)
     # - /dev/media*: Media controller devices (required for libcamera camera enumeration)
     #
     # IMPORTANT: Run ./detect-devices.sh to identify which devices exist on your system
-    # Note: device_cgroup_rules below provide automatic access to entire device classes.
-    # Use docker-compose.override.yaml (example file) if you need explicit device mappings.
-    device_cgroup_rules:
-      - 'c 253:* rmw'  # /dev/dma_heap/* (char device 253)
-      - 'c 81:* rmw'   # /dev/video* and /dev/v4l-subdev* devices (all indices automatically)
-      - 'c 250:* rmw'  # /dev/media* devices (media controllers for libcamera)
-    
     devices:
+      # DMA heap devices - required for libcamera memory management
+      - /dev/dma_heap/system:/dev/dma_heap/system
+      - /dev/dma_heap/linux,cma:/dev/dma_heap/linux,cma
+      # Camera and video control
       - /dev/vchiq:/dev/vchiq
-      # DRM/KMS device (optional, for pykms support if available)
+      - /dev/video0:/dev/video0
+      - /dev/media0:/dev/media0
+      - /dev/media1:/dev/media1
+      # DRM/KMS device (optional, for pykms support)
       - /dev/dri:/dev/dri
 
-    # Fallback to privileged mode if explicit device access is insufficient
-    # Required for /dev/dma_heap/* device file access (directory volumes don't grant device permissions)
-    privileged: true
+    # User/group mapping for device access
+    group_add:
+      - video
+      - input
+
+    # Device cgroup rules as fallback for any unmapped devices
+    device_cgroup_rules:
+      - 'c 253:* rmw'  # /dev/dma_heap/* (char device 253)
+      - 'c 511:* rmw'  # /dev/vchiq
+      - 'c 81:* rmw'   # /dev/video* and /dev/v4l-subdev* devices (all indices automatically)
+      - 'c 250:* rmw'  # /dev/media* devices (media controllers for libcamera)
 
     healthcheck:
       test: ["CMD", "python3", "/app/healthcheck.py"]
