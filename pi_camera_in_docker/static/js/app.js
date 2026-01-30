@@ -13,9 +13,12 @@ const state = {
   isConnected: false,
   statsCollapsed: false,
   statsInFlight: false,
+  configInFlight: false,
+  currentTab: 'main',
   elements: {
     videoStream: null,
     statsPanel: null,
+    configPanel: null,
     toggleStatsBtn: null,
     refreshBtn: null,
     fullscreenBtn: null,
@@ -40,6 +43,7 @@ function init() {
   attachHandlers();
   startStatsUpdate();
   updateStats().catch(error => console.error('Initial stats update failed:', error));
+  updateConfig().catch(error => console.error('Initial config update failed:', error));
 
   console.log('🎥 motion-in-ocean camera stream initialized');
 }
@@ -50,6 +54,7 @@ function init() {
 function cacheElements() {
   state.elements.videoStream = document.getElementById('video-stream');
   state.elements.statsPanel = document.getElementById('stats-panel');
+  state.elements.configPanel = document.getElementById('config-panel');
   state.elements.toggleStatsBtn = document.getElementById('toggle-stats-btn');
   state.elements.refreshBtn = document.getElementById('refresh-btn');
   state.elements.fullscreenBtn = document.getElementById('fullscreen-btn');
@@ -87,6 +92,22 @@ function attachHandlers() {
     state.elements.videoStream.addEventListener('error', onStreamError);
   }
 
+  // Tab navigation handlers
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.getAttribute('data-tab');
+      switchTab(tab);
+    });
+  });
+
+  // Config group toggle handlers
+  document.querySelectorAll('.config-group-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const group = btn.getAttribute('data-group');
+      toggleConfigGroup(group);
+    });
+  });
+
   document.addEventListener('fullscreenchange', onFullscreenChange);
   document.addEventListener('webkitfullscreenchange', onFullscreenChange);
   document.addEventListener('mozfullscreenchange', onFullscreenChange);
@@ -97,8 +118,10 @@ function attachHandlers() {
       stopStatsUpdate();
     } else {
       startStatsUpdate();
-      if (!state.statsCollapsed) {
+      if (!state.statsCollapsed && state.currentTab === 'main') {
         updateStats().catch(error => console.error('Stats update failed:', error));
+      } else if (state.currentTab === 'config') {
+        updateConfig().catch(error => console.error('Config update failed:', error));
       }
     }
   });
@@ -488,6 +511,205 @@ function hideLoading() {
       loadingOverlay.remove();
     }, 300);
   }
+}
+
+/**
+ * Switch between tabs (main/config)
+ */
+function switchTab(tabName) {
+  state.currentTab = tabName;
+  
+  // Update tab buttons
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.getAttribute('data-tab') === tabName) {
+      btn.classList.add('active');
+    }
+  });
+
+  // Update visible panels
+  const mainSection = document.querySelector('.video-section');
+  const statsPanel = state.elements.statsPanel;
+  const configPanel = state.elements.configPanel;
+
+  if (tabName === 'main') {
+    if (mainSection) mainSection.classList.remove('hidden');
+    if (statsPanel) statsPanel.classList.remove('hidden');
+    if (configPanel) configPanel.classList.add('hidden');
+    
+    // Resume stats updates
+    if (!state.statsCollapsed) {
+      startStatsUpdate();
+    }
+  } else if (tabName === 'config') {
+    if (mainSection) mainSection.classList.add('hidden');
+    if (statsPanel) statsPanel.classList.add('hidden');
+    if (configPanel) configPanel.classList.remove('hidden');
+    
+    // Stop stats updates and fetch config
+    stopStatsUpdate();
+    updateConfig().catch(error => console.error('Config update failed:', error));
+  }
+}
+
+/**
+ * Toggle config group expansion/collapse
+ */
+function toggleConfigGroup(groupName) {
+  const content = document.querySelector(`.config-group-content[data-group="${groupName}"]`);
+  const btn = document.querySelector(`.config-group-toggle[data-group="${groupName}"]`);
+  
+  if (content && btn) {
+    const isHidden = content.classList.contains('hidden');
+    content.classList.toggle('hidden', !isHidden);
+    btn.textContent = isHidden ? '▼' : '▶';
+  }
+}
+
+/**
+ * Fetch configuration from /api/config endpoint
+ */
+async function fetchConfig() {
+  const timeoutMs = 5000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    const response = await fetch('/api/config', { signal: controller.signal });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Update configuration display
+ */
+async function updateConfig() {
+  if (state.configInFlight) return;
+  if (state.currentTab !== 'config' || document.hidden) return;
+  
+  try {
+    state.configInFlight = true;
+    try {
+      const data = await fetchConfig();
+      renderConfig(data);
+    } catch (error) {
+      if (error && error.name === 'AbortError') {
+        console.warn('Config request timed out, will retry.');
+        return;
+      }
+
+      console.error('Failed to fetch config:', error);
+      clearConfigDisplay();
+      return;
+    }
+  } finally {
+    state.configInFlight = false;
+  }
+}
+
+/**
+ * Render configuration data in the UI
+ */
+function renderConfig(data) {
+  // Camera Settings
+  if (data.camera_settings) {
+    const cs = data.camera_settings;
+    
+    setConfigValue('config-resolution', 
+      cs.resolution ? `${cs.resolution[0]} × ${cs.resolution[1]}` : '--');
+    setConfigValue('config-fps', cs.fps !== undefined ? `${cs.fps} FPS` : '--');
+    setConfigValue('config-target-fps', cs.target_fps !== undefined ? `${cs.target_fps} FPS` : '--');
+    setConfigValue('config-jpeg-quality', cs.jpeg_quality !== undefined ? `${cs.jpeg_quality}%` : '--');
+    setConfigValue('config-edge-detection', formatBoolean(cs.edge_detection));
+    setConfigValue('config-opencv', formatBoolean(cs.opencv_available));
+  }
+
+  // Stream Control
+  if (data.stream_control) {
+    const sc = data.stream_control;
+    
+    setConfigValue('config-max-connections', sc.max_stream_connections ?? '--');
+    setConfigValue('config-current-connections', sc.current_stream_connections ?? '--');
+    setConfigValue('config-max-frame-age', 
+      sc.max_frame_age_seconds !== undefined ? `${sc.max_frame_age_seconds}s` : '--');
+    setConfigValue('config-cors', 
+      typeof sc.cors_origins === 'string' ? sc.cors_origins : '*');
+  }
+
+  // Runtime
+  if (data.runtime) {
+    const rt = data.runtime;
+    
+    setConfigValue('config-camera-active', formatBoolean(rt.camera_active));
+    setConfigValue('config-mock-camera', formatBoolean(rt.mock_camera));
+    setConfigValue('config-uptime', formatUptime(rt.uptime_seconds));
+  }
+
+  // Limits
+  if (data.limits) {
+    const lim = data.limits;
+    
+    setConfigValue('config-limit-resolution', 
+      lim.max_resolution ? `${lim.max_resolution[0]} × ${lim.max_resolution[1]}` : '--');
+    setConfigValue('config-limit-fps', lim.max_fps !== undefined ? `${lim.max_fps} FPS` : '--');
+    setConfigValue('config-limit-jpeg', 
+      lim.min_jpeg_quality && lim.max_jpeg_quality 
+        ? `${lim.min_jpeg_quality}% - ${lim.max_jpeg_quality}%` 
+        : '--');
+  }
+
+  // Timestamp
+  if (data.timestamp) {
+    const date = new Date(data.timestamp);
+    setConfigValue('config-timestamp', date.toLocaleTimeString());
+  }
+}
+
+/**
+ * Set a config value element's text content with badge styling for booleans
+ */
+function setConfigValue(elementId, value) {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  
+  element.textContent = value;
+  
+  // Apply badge styling for boolean values
+  if (value === 'Enabled' || value === 'Yes') {
+    element.className = 'config-value config-badge enabled';
+  } else if (value === 'Disabled' || value === 'No') {
+    element.className = 'config-value config-badge disabled';
+  } else {
+    element.className = 'config-value';
+  }
+}
+
+/**
+ * Format boolean value as Yes/No with proper styling
+ */
+function formatBoolean(value) {
+  if (value === null || value === undefined) return '--';
+  return value ? 'Enabled' : 'Disabled';
+}
+
+/**
+ * Clear all config display values
+ */
+function clearConfigDisplay() {
+  const configValues = document.querySelectorAll('[id^="config-"]');
+  configValues.forEach(el => {
+    el.textContent = '--';
+    el.className = 'config-value';
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);

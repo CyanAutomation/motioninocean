@@ -6,6 +6,7 @@
   <meta name="description" content="motion-in-ocean - Raspberry Pi Camera Live Stream">
   <title>motion-in-ocean - Camera Stream</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tabs-config.css') }}">
 </head>
 <body>
   <!-- Header -->
@@ -19,6 +20,18 @@
         <div id="status-indicator" class="status-indicator connecting"></div>
         <span id="status-text" class="status-text">Connecting...</span>
       </div>
+    </div>
+    
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <button class="tab-btn active" data-tab="main" id="main-tab-btn" title="Stream">
+        <span class="tab-icon">📹</span>
+        <span class="tab-label">Stream</span>
+      </button>
+      <button class="tab-btn" data-tab="config" id="config-tab-btn" title="Configuration">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label">Configuration</span>
+      </button>
     </div>
   </header>
 
@@ -111,6 +124,124 @@
         </div>
       </div>
     </aside>
+
+    <!-- Configuration Panel -->
+    <div id="config-panel" class="config-panel hidden">
+      <div class="config-content">
+        <!-- Camera Settings Group -->
+        <div class="config-group">
+          <div class="config-group-header">
+            <h3 class="config-group-title">📷 Camera Settings</h3>
+            <button class="config-group-toggle" data-group="camera" title="Toggle">▼</button>
+          </div>
+          <div class="config-group-content" data-group="camera">
+            <div class="config-item">
+              <span class="config-label">Resolution</span>
+              <span id="config-resolution" class="config-value">--</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">Frame Rate (FPS)</span>
+              <span id="config-fps" class="config-value">--</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">Target FPS (Throttle)</span>
+              <span id="config-target-fps" class="config-value">--</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">JPEG Quality</span>
+              <span id="config-jpeg-quality" class="config-value">--</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">Edge Detection</span>
+              <span id="config-edge-detection" class="config-value">--</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">OpenCV Available</span>
+              <span id="config-opencv" class="config-value">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stream Control Group -->
+        <div class="config-group">
+          <div class="config-group-header">
+            <h3 class="config-group-title">📡 Stream Control</h3>
+            <button class="config-group-toggle" data-group="stream" title="Toggle">▼</button>
+          </div>
+          <div class="config-group-content" data-group="stream">
+            <div class="config-item">
+              <span class="config-label">Max Connections</span>
+              <span id="config-max-connections" class="config-value">--</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">Current Connections</span>
+              <span id="config-current-connections" class="config-value">--</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">Max Frame Age (Timeout)</span>
+              <span id="config-max-frame-age" class="config-value">--</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">CORS Origins</span>
+              <span id="config-cors" class="config-value">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Runtime Info Group -->
+        <div class="config-group">
+          <div class="config-group-header">
+            <h3 class="config-group-title">⚙️ Runtime Information</h3>
+            <button class="config-group-toggle" data-group="runtime" title="Toggle">▼</button>
+          </div>
+          <div class="config-group-content" data-group="runtime">
+            <div class="config-item">
+              <span class="config-label">Camera Active</span>
+              <span id="config-camera-active" class="config-value">--</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">Mock Camera</span>
+              <span id="config-mock-camera" class="config-value">--</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">Uptime</span>
+              <span id="config-uptime" class="config-value">--</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">Last Updated</span>
+              <span id="config-timestamp" class="config-value">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Limits Info Group -->
+        <div class="config-group">
+          <div class="config-group-header">
+            <h3 class="config-group-title">📊 System Limits</h3>
+            <button class="config-group-toggle" data-group="limits" title="Toggle">▼</button>
+          </div>
+          <div class="config-group-content" data-group="limits">
+            <div class="config-item">
+              <span class="config-label">Max Resolution</span>
+              <span id="config-limit-resolution" class="config-value">--</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">Max FPS</span>
+              <span id="config-limit-fps" class="config-value">--</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">JPEG Quality Range</span>
+              <span id="config-limit-jpeg" class="config-value">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto-refresh note -->
+        <div class="config-footer">
+          <p class="config-info">Configuration auto-updates every 2 seconds</p>
+        </div>
+      </div>
+    </div>
   </main>
 
   <!-- JavaScript -->

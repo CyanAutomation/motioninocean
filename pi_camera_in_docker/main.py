@@ -607,6 +607,47 @@ def metrics() -> Tuple[Response, int]:
     ), 200
 
 
+@app.route("/api/config")
+def get_config() -> Tuple[Response, int]:
+    """Configuration endpoint - returns all application configuration settings.
+    
+    Returns current environment-based configuration and runtime settings.
+    Useful for UI dashboards and monitoring tools to display app configuration.
+    """
+    uptime = time.monotonic() - app.start_time_monotonic
+    
+    return jsonify(
+        {
+            "camera_settings": {
+                "resolution": list(resolution),  # Convert tuple to list for JSON
+                "fps": fps,
+                "target_fps": target_fps,
+                "jpeg_quality": jpeg_quality,
+                "edge_detection": edge_detection,
+                "opencv_available": OPENCV_AVAILABLE,
+            },
+            "stream_control": {
+                "max_stream_connections": max_stream_connections,
+                "max_frame_age_seconds": max_frame_age_seconds,
+                "cors_origins": cors_origins,
+                "current_stream_connections": connection_tracker.get_count(),
+            },
+            "runtime": {
+                "camera_active": recording_started.is_set(),
+                "uptime_seconds": round(uptime, 2),
+                "mock_camera": mock_camera,
+            },
+            "limits": {
+                "max_resolution": [4096, 4096],
+                "max_fps": 60,
+                "max_jpeg_quality": 100,
+                "min_jpeg_quality": 1,
+            },
+            "timestamp": datetime.now().isoformat(),
+        }
+    ), 200
+
+
 def gen() -> Iterator[bytes]:
     """Generate MJPEG stream frames.
 
