@@ -75,7 +75,7 @@ try:
         logger.info(f"Max concurrent stream connections set to {max_stream_connections}")
 except (ValueError, TypeError):
     logger.warning("Invalid MAX_STREAM_CONNECTIONS format. Using default 2.")
-    max_stream_connections = 10
+    max_stream_connections = 2
 
 if not mock_camera:
     # Workaround for pykms import error in headless container environments
