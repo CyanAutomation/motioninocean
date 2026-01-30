@@ -19,6 +19,15 @@ This repo is a fork of `hyzhak/pi-camera-in-docker`, with the goal of making the
 
 ---
 
+## Product Requirements
+
+For product requirements, see the split PRDs:
+
+- [PRD-backend.md](PRD-backend.md) (camera capture, Docker/deployment, health/readiness, metrics)
+- [PRD-frontend.md](PRD-frontend.md) (web UI, stream viewing, controls, UX behavior)
+
+---
+
 ## Quick Start (Recommended)
 
 > ✅ **Target:** Raspberry Pi OS (64-bit) / Debian Bookworm on ARM64  
