@@ -50,7 +50,7 @@ if cors_origins_str is None:
     cors_origins_str = os.environ.get(cors_origins_env_var)
 max_frame_age_seconds_str: str = os.environ.get("MAX_FRAME_AGE_SECONDS", "10")
 allow_pykms_mock_str: str = os.environ.get("ALLOW_PYKMS_MOCK", "false")
-max_stream_connections_str: str = os.environ.get("MAX_STREAM_CONNECTIONS", "2")
+max_stream_connections_str: str = os.environ.get("MAX_STREAM_CONNECTIONS", "10")
 max_frame_size_mb_str: str = os.environ.get("MAX_FRAME_SIZE_MB", "")  # Empty = auto-calculate
 
 mock_camera: bool = mock_camera_str.lower() in ("true", "1", "t")
@@ -63,9 +63,9 @@ try:
     max_stream_connections: int = int(max_stream_connections_str)
     if max_stream_connections < 1:
         logger.warning(
-            f"MAX_STREAM_CONNECTIONS must be positive ({max_stream_connections}). Using default 2."
+            f"MAX_STREAM_CONNECTIONS must be positive ({max_stream_connections}). Using default 10."
         )
-        max_stream_connections = 2
+        max_stream_connections = 10
     elif max_stream_connections > 100:
         logger.warning(
             f"MAX_STREAM_CONNECTIONS {max_stream_connections} exceeds maximum 100. Using 100."
@@ -74,8 +74,8 @@ try:
     else:
         logger.info(f"Max concurrent stream connections set to {max_stream_connections}")
 except (ValueError, TypeError):
-    logger.warning("Invalid MAX_STREAM_CONNECTIONS format. Using default 2.")
-    max_stream_connections = 2
+    logger.warning("Invalid MAX_STREAM_CONNECTIONS format. Using default 10.")
+    max_stream_connections = 10
 
 if not mock_camera:
     # Workaround for pykms import error in headless container environments
@@ -532,6 +532,7 @@ def handle_shutdown(signum: int, _frame: Optional[object]) -> None:
     recording_started.clear()
     shutdown_event.set()
     # Attempt to shutdown Flask server if it's running
+    global flask_server
     if flask_server is not None:
         logger.info(f"[{shutdown_timestamp}] Shutting down Flask server...")
         try:
@@ -707,8 +708,8 @@ def gen() -> Iterator[bytes]:
             yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
     except Exception as e:
         logger.warning(f"Streaming client disconnected: {e}")
-                finally:
-                    # Track disconnection - decrement counter
+    finally:
+        # Track disconnection - decrement counter
         current_connections = connection_tracker.decrement()
         logger.info(f"Stream client disconnected. Active connections: {current_connections}")
 
@@ -735,9 +736,8 @@ def video_feed() -> Response:
     current_connections = connection_tracker.increment()
     logger.info(f"Stream client connected. Active connections: {current_connections}")
 
-        headers = {
-
-            "Cache-Control": "no-cache, no-store, must-revalidate",
+    headers = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
         "Pragma": "no-cache",
         "Expires": "0",
         "X-Accel-Buffering": "no",
@@ -759,8 +759,10 @@ def run_flask_server(host: str = "0.0.0.0", port: int = 8000) -> None:
     logger.info(f"Creating Flask WSGI server on {host}:{port}")
     flask_server = make_server(host, port, app, threaded=True)
     logger.info(f"Starting Flask WSGI server on {host}:{port}")
-        flask_server.serve_forever()
-    if __name__ == "__main__":
+    flask_server.serve_forever()
+
+
+if __name__ == "__main__":
     signal.signal(signal.SIGTERM, handle_shutdown)
     signal.signal(signal.SIGINT, handle_shutdown)
     picam2_instance = None
@@ -815,17 +817,16 @@ def run_flask_server(host: str = "0.0.0.0", port: int = 8000) -> None:
             flask_thread.join()
         finally:
             # Clean up mock thread on shutdown
-            shutdown_timestamp = datetime.now().isoformat()
-            logger.info(f"[{shutdown_timestamp}] Shutting down mock camera...")
+            logger.info("Shutting down mock camera...")
             shutdown_event.set()
             mock_thread.join(timeout=5.0)
             if mock_thread.is_alive():
                 logger.warning(
-                    f"[{shutdown_timestamp}] Mock thread did not stop within 5 seconds timeout. "
+                    "Mock thread did not stop within 5 seconds timeout. "
                     "Thread will be abandoned as daemon (auto-terminated on exit)."
                 )
             recording_started.clear()
-            logger.info(f"[{shutdown_timestamp}] Mock camera shutdown complete")
+            logger.info("Mock camera shutdown complete")
 
     else:
         try:
@@ -914,15 +915,14 @@ def run_flask_server(host: str = "0.0.0.0", port: int = 8000) -> None:
             raise
         finally:
             # Stop recording safely
-            shutdown_timestamp = datetime.now().isoformat()
-            logger.info(f"[{shutdown_timestamp}] Stopping camera recording...")
             with picam2_lock:
                 if picam2_instance is not None:
                     try:
                         if picam2_instance.started:
+                            logger.info("Stopping camera recording...")
                             picam2_instance.stop_recording()
-                            logger.info(f"[{shutdown_timestamp}] Camera recording stopped")
+                            logger.info("Camera recording stopped")
                     except Exception as e:
-                        logger.error(f"[{shutdown_timestamp}] Error during camera shutdown: {e}", exc_info=True)
+                        logger.error(f"Error during camera shutdown: {e}", exc_info=True)
             recording_started.clear()
-            logger.info(f"[{shutdown_timestamp}] Application shutdown complete")
+            logger.info("Application shutdown complete")
