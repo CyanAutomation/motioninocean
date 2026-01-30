@@ -38,15 +38,15 @@ check_device() {
     fi
 }
 
-# Core devices
+# Core devices - DMA heap (map individual device nodes, not directory)
 if [ -d "/dev/dma_heap" ]; then
     echo "  ✓ /dev/dma_heap - Memory management for libcamera (directory)"
-    find /dev/dma_heap/ -maxdepth 1 -type c -o -type l 2>/dev/null | while read -r file; do
-        stat -c "    %A %U:%G %n" "$file"
+    for file in /dev/dma_heap/*; do
+        if [ -e "$file" ]; then
+            stat -c "    %A %U:%G %n" "$file"
+            CORE_DEVICES+=("$file")
+        fi
     done
-    CORE_DEVICES+=("/dev/dma_heap")
-elif [ -e "/dev/dma_heap" ]; then
-    check_device "/dev/dma_heap" "Memory management for libcamera"
 else
     echo "  ✗ /dev/dma_heap - Memory management for libcamera (NOT FOUND)"
 fi
