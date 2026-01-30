@@ -38,6 +38,8 @@ cp .env.example .env
 nano .env
 ```
 
+> Tip: If you cloned this repo, you can run `./setup.sh` for a guided setup that copies `.env`, optionally runs `./detect-devices.sh`, and prints the exact `docker compose` command to run.
+
 ### 2) Create `docker-compose.yaml`
 
 ```yaml

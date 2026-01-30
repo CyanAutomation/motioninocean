@@ -53,7 +53,7 @@ fi
 check_device "/dev/vchiq" "VideoCore Host Interface"
 
 echo ""
-echo "� Media Controller Devices (Required for libcamera):"  
+echo "🎛️  Media Controller Devices (Required for libcamera):"
 echo ""
 
 # Use a glob to find media devices
@@ -75,7 +75,7 @@ if [ ${#MEDIA_DEVICES[@]} -eq 0 ]; then
 fi
 
 echo ""
-echo "�📹 Video Devices (Camera Nodes):"
+echo "📹 Video Devices (Camera Nodes):"
 echo ""
 
 # Use a glob to find video devices
@@ -134,14 +134,6 @@ else
     echo "  ⚠️  rpicam-hello not found (install with: sudo apt install libcamera-apps)"
 fi
 
-echo ""
-echo "✅ Detection complete!"
-echo ""
-echo "Next steps:"
-echo "1. Update docker-compose.yaml with the devices shown above"
-echo "2. Or use device_cgroup_rules for automatic device access"
-echo "3. Run: docker compose up -d"
-echo ""
 echo -e "Do you want to create a docker-compose.override.yaml file with the detected devices? (y/N):"
 read -r CREATE_OVERRIDE
 
@@ -166,7 +158,20 @@ EOF
     privileged: true # Required for full device access
 EOF
     echo -e "✓ Created docker-compose.override.yaml with detected devices."
-    echo "You can now run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d"
 else
     echo "Skipping creation of docker-compose.override.yaml."
 fi
+
+echo ""
+echo "✅ Detection complete!"
+echo ""
+echo "Next steps:"
+echo "1. (Optional) Run ./setup.sh for guided setup (copies .env and prints the docker compose command)."
+echo "2. Update docker-compose.yaml with the devices shown above."
+echo "3. Or use device_cgroup_rules for automatic device access."
+if [ -f docker-compose.override.yaml ]; then
+    echo "4. Run: docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d"
+else
+    echo "4. Run: docker compose up -d"
+fi
+echo ""
