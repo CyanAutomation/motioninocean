@@ -46,7 +46,6 @@ services:
     # User/group mapping for device access
     group_add:
       - video
-      - input
 
     # Device cgroup rules as fallback for any unmapped devices
     device_cgroup_rules:

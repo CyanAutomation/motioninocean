@@ -532,7 +532,6 @@ def handle_shutdown(signum: int, _frame: Optional[object]) -> None:
     recording_started.clear()
     shutdown_event.set()
     # Attempt to shutdown Flask server if it's running
-    global flask_server
     if flask_server is not None:
         logger.info(f"[{shutdown_timestamp}] Shutting down Flask server...")
         try:
@@ -708,8 +707,8 @@ def gen() -> Iterator[bytes]:
             yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
     except Exception as e:
         logger.warning(f"Streaming client disconnected: {e}")
-    finally:
-        # Track disconnection - decrement counter
+                finally:
+                    # Track disconnection - decrement counter
         current_connections = connection_tracker.decrement()
         logger.info(f"Stream client disconnected. Active connections: {current_connections}")
 
@@ -736,8 +735,9 @@ def video_feed() -> Response:
     current_connections = connection_tracker.increment()
     logger.info(f"Stream client connected. Active connections: {current_connections}")
 
-    headers = {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
+        headers = {
+
+            "Cache-Control": "no-cache, no-store, must-revalidate",
         "Pragma": "no-cache",
         "Expires": "0",
         "X-Accel-Buffering": "no",
@@ -759,10 +759,8 @@ def run_flask_server(host: str = "0.0.0.0", port: int = 8000) -> None:
     logger.info(f"Creating Flask WSGI server on {host}:{port}")
     flask_server = make_server(host, port, app, threaded=True)
     logger.info(f"Starting Flask WSGI server on {host}:{port}")
-    flask_server.serve_forever()
-
-
-if __name__ == "__main__":
+        flask_server.serve_forever()
+    if __name__ == "__main__":
     signal.signal(signal.SIGTERM, handle_shutdown)
     signal.signal(signal.SIGINT, handle_shutdown)
     picam2_instance = None
