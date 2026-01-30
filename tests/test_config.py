@@ -100,9 +100,9 @@ def test_docker_compose_device_mappings(workspace_root):
     has_video_device_mapping = any("/dev/video" in str(d) for d in devices)
     has_video_cgroup_rule = any("81:*" in str(rule) for rule in device_cgroup_rules)
 
-    assert (
-        has_video_device_mapping or has_video_cgroup_rule
-    ), "Missing /dev/video* device configuration (neither explicit mapping nor cgroup rule)"
+    assert has_video_device_mapping or has_video_cgroup_rule, (
+        "Missing /dev/video* device configuration (neither explicit mapping nor cgroup rule)"
+    )
 
 
 def test_docker_compose_security(workspace_root):
