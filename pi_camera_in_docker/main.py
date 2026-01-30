@@ -526,18 +526,20 @@ def handle_shutdown(signum: int, _frame: Optional[object]) -> None:
     Signal handlers should only set atomic flags to avoid deadlocks.
     Actual cleanup is performed in the main thread's finally block.
     """
-    logger.info(f"Received signal {signum}; setting shutdown flags.")
+    shutdown_timestamp = datetime.now().isoformat()
+    logger.info(f"[{shutdown_timestamp}] Received signal {signum}; setting shutdown flags.")
     # Only set atomic flags - don't perform cleanup in signal handler to avoid deadlocks
     recording_started.clear()
     shutdown_event.set()
     # Attempt to shutdown Flask server if it's running
     global flask_server
     if flask_server is not None:
-        logger.info("Shutting down Flask server...")
+        logger.info(f"[{shutdown_timestamp}] Shutting down Flask server...")
         try:
             flask_server.shutdown()
+            logger.info(f"[{shutdown_timestamp}] Flask server shutdown complete")
         except Exception as e:
-            logger.warning(f"Error shutting down Flask server: {e}")
+            logger.warning(f"[{shutdown_timestamp}] Error shutting down Flask server: {e}")
     # Exit to trigger cleanup in main thread's finally block
     raise SystemExit(0)
 
@@ -747,6 +749,19 @@ def video_feed() -> Response:
     )
 
 
+def run_flask_server(host: str = "0.0.0.0", port: int = 8000) -> None:
+    """Run Flask server in a separate thread using werkzeug's make_server.
+    
+    This allows the main thread to manage shutdown gracefully instead of
+    being blocked by Flask's app.run() method.
+    """
+    global flask_server
+    logger.info(f"Creating Flask WSGI server on {host}:{port}")
+    flask_server = make_server(host, port, app, threaded=True)
+    logger.info(f"Starting Flask WSGI server on {host}:{port}")
+    flask_server.serve_forever()
+
+
 if __name__ == "__main__":
     signal.signal(signal.SIGTERM, handle_shutdown)
     signal.signal(signal.SIGINT, handle_shutdown)
@@ -794,21 +809,25 @@ if __name__ == "__main__":
             raise RuntimeError(msg)
 
         try:
-            # Start the Flask app
+            # Start the Flask app in a separate thread
             logger.info("Starting Flask server on 0.0.0.0:8000 with mock camera.")
-            app.run(host="0.0.0.0", port=8000, threaded=True)
+            flask_thread = Thread(target=run_flask_server, args=("0.0.0.0", 8000), daemon=False)
+            flask_thread.start()
+            # Main thread waits for Flask thread to complete
+            flask_thread.join()
         finally:
             # Clean up mock thread on shutdown
-            logger.info("Shutting down mock camera...")
+            shutdown_timestamp = datetime.now().isoformat()
+            logger.info(f"[{shutdown_timestamp}] Shutting down mock camera...")
             shutdown_event.set()
             mock_thread.join(timeout=5.0)
             if mock_thread.is_alive():
                 logger.warning(
-                    "Mock thread did not stop within 5 seconds timeout. "
+                    f"[{shutdown_timestamp}] Mock thread did not stop within 5 seconds timeout. "
                     "Thread will be abandoned as daemon (auto-terminated on exit)."
                 )
             recording_started.clear()
-            logger.info("Mock camera shutdown complete")
+            logger.info(f"[{shutdown_timestamp}] Mock camera shutdown complete")
 
     else:
         try:
@@ -875,9 +894,12 @@ if __name__ == "__main__":
             recording_started.set()
             logger.info(f"Camera recording started successfully (JPEG quality: {jpeg_quality})")
 
-            # Start the Flask app
+            # Start the Flask app in a separate thread
             logger.info("Starting Flask server on 0.0.0.0:8000")
-            app.run(host="0.0.0.0", port=8000, threaded=True)
+            flask_thread = Thread(target=run_flask_server, args=("0.0.0.0", 8000), daemon=False)
+            flask_thread.start()
+            # Main thread waits for Flask thread to complete
+            flask_thread.join()
 
         except PermissionError as e:
             logger.error(f"Permission denied accessing camera device: {e}")
@@ -894,14 +916,15 @@ if __name__ == "__main__":
             raise
         finally:
             # Stop recording safely
+            shutdown_timestamp = datetime.now().isoformat()
+            logger.info(f"[{shutdown_timestamp}] Stopping camera recording...")
             with picam2_lock:
                 if picam2_instance is not None:
                     try:
                         if picam2_instance.started:
-                            logger.info("Stopping camera recording...")
                             picam2_instance.stop_recording()
-                            logger.info("Camera recording stopped")
+                            logger.info(f"[{shutdown_timestamp}] Camera recording stopped")
                     except Exception as e:
-                        logger.error(f"Error during camera shutdown: {e}", exc_info=True)
+                        logger.error(f"[{shutdown_timestamp}] Error during camera shutdown: {e}", exc_info=True)
             recording_started.clear()
-            logger.info("Application shutdown complete")
+            logger.info(f"[{shutdown_timestamp}] Application shutdown complete")
