@@ -71,11 +71,14 @@
   max-width: 1800px;
   margin: 0 auto;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: var(--spacing-lg);
 }
 
 .config-group {
+  flex: 1 1 calc(25% - var(--spacing-lg));
+  min-width: 300px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
@@ -218,6 +221,10 @@
    ========================================== */
 
 @media (max-width: 1024px) {
+  .config-group {
+    flex: 1 1 calc(50% - var(--spacing-lg));
+  }
+
   .config-group-content {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
@@ -232,6 +239,10 @@
 }
 
 @media (max-width: 768px) {
+  .config-group {
+    flex: 1 1 100%;
+  }
+
   .config-group-content {
     grid-template-columns: 1fr;
   }
