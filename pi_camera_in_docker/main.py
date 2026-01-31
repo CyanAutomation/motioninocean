@@ -760,7 +760,7 @@ def run_flask_server(host: str = "0.0.0.0", port: int = 8000) -> None:
     server = make_server(host, port, app, threaded=True)
     flask_server_state["server"] = server
     logger.info(f"Starting Flask WSGI server on {host}:{port}")
-    flask_server.serve_forever()
+    server.serve_forever()
 
 
 if __name__ == "__main__":
