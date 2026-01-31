@@ -488,7 +488,7 @@ picam2_instance: Optional[Any] = None  # Picamera2 instance (Optional since it m
 picam2_lock = Lock()  # Lock for thread-safe access to picam2_instance
 recording_started = Event()  # Thread-safe flag to track if camera recording has started
 shutdown_event = Event()
-flask_server: Optional[Any] = None  # Flask WSGI server instance for explicit shutdown
+flask_server_state = {"server": None}  # Flask WSGI server instance for explicit shutdown
 
 
 # Connection tracking for stream endpoint
@@ -532,7 +532,7 @@ def handle_shutdown(signum: int, _frame: Optional[object]) -> None:
     recording_started.clear()
     shutdown_event.set()
     # Attempt to shutdown Flask server if it's running
-    global flask_server
+    flask_server = flask_server_state["server"]
     if flask_server is not None:
         logger.info(f"[{shutdown_timestamp}] Shutting down Flask server...")
         try:
@@ -622,12 +622,12 @@ def metrics() -> Tuple[Response, int]:
 @app.route("/api/config")
 def get_config() -> Tuple[Response, int]:
     """Configuration endpoint - returns all application configuration settings.
-    
+
     Returns current environment-based configuration and runtime settings.
     Useful for UI dashboards and monitoring tools to display app configuration.
     """
     uptime = time.monotonic() - app.start_time_monotonic
-    
+
     return jsonify(
         {
             "camera_settings": {
@@ -751,13 +751,13 @@ def video_feed() -> Response:
 
 def run_flask_server(host: str = "0.0.0.0", port: int = 8000) -> None:
     """Run Flask server in a separate thread using werkzeug's make_server.
-    
+
     This allows the main thread to manage shutdown gracefully instead of
     being blocked by Flask's app.run() method.
     """
-    global flask_server
     logger.info(f"Creating Flask WSGI server on {host}:{port}")
     flask_server = make_server(host, port, app, threaded=True)
+    flask_server_state["server"] = flask_server
     logger.info(f"Starting Flask WSGI server on {host}:{port}")
     flask_server.serve_forever()
 
