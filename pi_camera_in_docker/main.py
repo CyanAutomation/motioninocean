@@ -532,11 +532,11 @@ def handle_shutdown(signum: int, _frame: Optional[object]) -> None:
     recording_started.clear()
     shutdown_event.set()
     # Attempt to shutdown Flask server if it's running
-    flask_server = flask_server_state["server"]
-    if flask_server is not None:
+    server = flask_server_state["server"]
+    if server is not None:
         logger.info(f"[{shutdown_timestamp}] Shutting down Flask server...")
         try:
-            flask_server.shutdown()
+            server.shutdown()
             logger.info(f"[{shutdown_timestamp}] Flask server shutdown complete")
         except Exception as e:
             logger.warning(f"[{shutdown_timestamp}] Error shutting down Flask server: {e}")
