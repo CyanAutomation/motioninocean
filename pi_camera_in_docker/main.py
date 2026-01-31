@@ -756,8 +756,9 @@ def run_flask_server(host: str = "0.0.0.0", port: int = 8000) -> None:
     being blocked by Flask's app.run() method.
     """
     logger.info(f"Creating Flask WSGI server on {host}:{port}")
-    flask_server = make_server(host, port, app, threaded=True)
-    flask_server_state["server"] = flask_server
+    logger.info(f"Creating Flask WSGI server on {host}:{port}")
+    server = make_server(host, port, app, threaded=True)
+    flask_server_state["server"] = server
     logger.info(f"Starting Flask WSGI server on {host}:{port}")
     flask_server.serve_forever()
 
