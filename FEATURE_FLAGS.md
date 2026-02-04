@@ -13,6 +13,7 @@ MOTION_IN_OCEAN_DEBUG_LOGGING=true
 ### Backward Compatibility
 
 Some flags support legacy environment variable names for backward compatibility:
+
 - `MOCK_CAMERA` → `MOTION_IN_OCEAN_MOCK_CAMERA`
 
 Both the prefixed and legacy names work, with the prefixed name taking precedence.
@@ -20,6 +21,7 @@ Both the prefixed and legacy names work, with the prefixed name taking precedenc
 ### Valid Boolean Values
 
 All feature flags accept the following values (case-insensitive):
+
 - **True**: `true`, `1`, `t`, `yes`, `on`
 - **False**: `false`, `0`, `f`, `no`, `off`
 
@@ -36,14 +38,17 @@ These flags control performance optimizations and resource usage strategies.
 **Description**: Enable automatic JPEG quality adaptation based on network conditions.
 
 When enabled, the application adjusts JPEG quality dynamically to optimize for:
+
 - Bandwidth-constrained networks (lower quality)
 - High-speed networks (higher quality)
 
 **Use Cases**:
+
 - Serving streams over slow home networks
 - Variable network conditions
 
 **Example**:
+
 ```bash
 MOTION_IN_OCEAN_QUALITY_ADAPTATION=true
 ```
@@ -57,10 +62,12 @@ MOTION_IN_OCEAN_QUALITY_ADAPTATION=true
 **Description**: Enable adaptive FPS throttling based on client capabilities.
 
 When enabled, the system throttles frames independently per client based on:
+
 - Detected client download speed
 - Connection type (LAN vs WAN)
 
 **Use Cases**:
+
 - Multi-client deployments with varying network speeds
 - Reducing bandwidth for resource-constrained clients
 
@@ -75,6 +82,7 @@ When enabled, the system throttles frames independently per client based on:
 This flag controls whether frame size limits are automatically calculated based on resolution and JPEG quality. When enabled, prevents oversized frames from consuming excessive memory.
 
 **Use Cases**:
+
 - Memory-constrained Raspberry Pi devices
 - Preventing memory exhaustion in edge cases
 
@@ -92,11 +100,13 @@ These flags enable optional or experimental features that may not be stable.
 **Description**: Use mock camera for testing without real hardware.
 
 When enabled, generates synthetic black frames instead of reading from actual camera hardware. Useful for:
+
 - Testing in non-Docker environments
 - CI/CD pipelines
 - Development without Raspberry Pi
 
 **Example**:
+
 ```bash
 MOTION_IN_OCEAN_MOCK_CAMERA=true
 ```
@@ -138,6 +148,7 @@ These flags optimize behavior for specific Raspberry Pi models.
 **Description**: Enable Pi 3-specific optimizations (lower resolution, reduced FPS).
 
 When enabled, automatically applies recommended settings for Raspberry Pi 3:
+
 - Resolution: 1280x720 or lower
 - FPS: 25fps maximum
 - JPEG Quality: 80
@@ -153,6 +164,7 @@ Reduces CPU and memory pressure on older hardware.
 **Description**: Enable Pi 5-specific optimizations (higher resolution, increased FPS).
 
 When enabled, automatically applies recommended settings for Raspberry Pi 5:
+
 - Resolution: 2592x1944 or higher
 - FPS: 60fps or higher
 - JPEG Quality: 95
@@ -184,6 +196,7 @@ These flags enable logging, profiling, and debugging features.
 When enabled, sets logging level to DEBUG, producing verbose logs suitable for troubleshooting.
 
 **Example**:
+
 ```bash
 MOTION_IN_OCEAN_DEBUG_LOGGING=true
 ```
@@ -207,6 +220,7 @@ When enabled, logs detailed function-level execution traces (even more verbose t
 **Description**: Enable CPU/memory profiling for performance analysis.
 
 When enabled, collects performance metrics including:
+
 - CPU usage per operation
 - Memory allocation patterns
 - Frame processing times
@@ -222,6 +236,7 @@ Outputs profiling data to logs.
 **Description**: Enable development mode with relaxed validation and verbose output.
 
 When enabled:
+
 - Disables some security checks
 - Produces more verbose logs
 - Allows testing of unfinished features
@@ -229,6 +244,7 @@ When enabled:
 **Warning**: Do NOT enable in production.
 
 **Example**:
+
 ```bash
 MOTION_IN_OCEAN_DEVELOPMENT_MODE=true
 ```
@@ -246,6 +262,7 @@ These flags enable compatibility modes for specific integrations.
 **Description**: Enable CORS headers for cross-origin requests.
 
 When enabled, allows cross-origin requests from web browsers. Useful for:
+
 - Home Assistant integration
 - Dashboard web interfaces
 - Accessing camera stream from different domains
@@ -253,6 +270,7 @@ When enabled, allows cross-origin requests from web browsers. Useful for:
 When disabled, CORS headers are not sent (useful for strict security policies).
 
 **Example** (disable CORS):
+
 ```bash
 MOTION_IN_OCEAN_CORS_SUPPORT=false
 ```
@@ -292,6 +310,7 @@ These flags control metrics collection and observability features.
 When enabled, the `/metrics` endpoint returns data in Prometheus text format instead of JSON, for compatibility with Prometheus scrapers.
 
 **Example**:
+
 ```bash
 MOTION_IN_OCEAN_PROMETHEUS_METRICS=true
 ```
@@ -305,6 +324,7 @@ MOTION_IN_OCEAN_PROMETHEUS_METRICS=true
 **Description**: Enable per-frame processing time statistics.
 
 When enabled, tracks and logs processing time for each frame, useful for:
+
 - Performance analysis
 - Detecting bottlenecks
 - Identifying slow frames
@@ -318,6 +338,7 @@ When enabled, tracks and logs processing time for each frame, useful for:
 **Description**: Enable detailed request lifecycle tracing.
 
 When enabled, logs complete lifecycle of each HTTP request including:
+
 - Request arrival and routing
 - Stream client connection/disconnection
 - Response timing
@@ -339,6 +360,7 @@ These flags enable new APIs and features as they're developed.
 When enabled, enables experimental v2 API endpoints alongside v1 endpoints for backward compatibility testing.
 
 **New Endpoints** (when enabled):
+
 - `/api/v2/stream` - Enhanced streaming endpoint
 - `/api/v2/config` - New configuration interface
 
@@ -351,6 +373,7 @@ When enabled, enables experimental v2 API endpoints alongside v1 endpoints for b
 **Description**: Enable alternative streaming protocols (RTSP, HLS, WebRTC).
 
 When enabled, adds support for additional streaming protocols:
+
 - **RTSP**: `/stream.rtsp` (Real Time Streaming Protocol)
 - **HLS**: `/stream.m3u8` (HTTP Live Streaming)
 - **WebRTC**: `/api/stream/webrtc` (WebRTC streaming)
@@ -368,6 +391,7 @@ curl http://localhost:8000/api/feature-flags | jq
 ```
 
 **Response Format**:
+
 ```json
 {
   "summary": {
