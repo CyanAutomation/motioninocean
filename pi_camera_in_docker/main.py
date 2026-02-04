@@ -20,16 +20,6 @@ from werkzeug.serving import make_server
 # Import feature flags system
 from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 
-# Optional opencv import - only needed for edge detection feature
-try:
-    import cv2
-
-    OPENCV_AVAILABLE = True
-except ImportError:
-    OPENCV_AVAILABLE = False
-    cv2 = None  # type: ignore
-
-
 LOG_LEVEL_EMOJI = {
     "DEBUG": "🐛",
     "INFO": "ℹ️",
@@ -101,11 +91,10 @@ max_frame_size_mb_str: str = os.environ.get("MAX_FRAME_SIZE_MB", "")  # Empty = 
 
 # Load feature flags (with backward compatibility for legacy env vars)
 mock_camera: bool = is_flag_enabled("MOCK_CAMERA")
-edge_detection_requested: bool = is_flag_enabled("EDGE_DETECTION")
 cors_enabled: bool = is_flag_enabled("CORS_SUPPORT")
 allow_pykms_mock: bool = allow_pykms_mock_str.lower() in ("true", "1", "t")
 
-log_event(logging.INFO, "config", "Feature flag values loaded", mock_camera=mock_camera, edge_detection=edge_detection_requested, cors_enabled=cors_enabled)
+log_event(logging.INFO, "config", "Feature flag values loaded", mock_camera=mock_camera, cors_enabled=cors_enabled)
 
 # Parse max stream connections
 try:
@@ -217,19 +206,6 @@ try:
 except (ValueError, TypeError) as e:
     logger.warning(f"Invalid RESOLUTION format '{resolution_str}': {e}. Using default 640x480.")
     resolution = (640, 480)
-
-# Parse edge detection flag (using feature flag with OpenCV availability check)
-if edge_detection_requested and not OPENCV_AVAILABLE:
-    logger.warning(
-        "Edge detection requested but opencv-python-headless is not installed. "
-        "Edge detection will be disabled. To enable, rebuild with INCLUDE_OPENCV=true."
-    )
-    edge_detection = False
-else:
-    edge_detection = edge_detection_requested
-
-logger.info(f"Edge detection: {edge_detection}")
-log_event(logging.INFO, "config", "Edge detection setting", enabled=edge_detection, opencv_available=OPENCV_AVAILABLE)
 
 # Parse max frame age for readiness
 max_frame_age_seconds: float = 10.0  # Initialize with default value
@@ -353,8 +329,6 @@ def log_startup_summary() -> None:
         "fps",
         "target_fps",
         "jpeg_quality",
-        "edge_detection",
-        "OPENCV_AVAILABLE",
         "max_frame_age_seconds",
         "max_stream_connections",
         "cors_origins",
@@ -391,8 +365,6 @@ def log_startup_summary() -> None:
         fps=fps if fps > 0 else "default",
         target_fps=target_fps if target_fps > 0 else "disabled",
         jpeg_quality=jpeg_quality,
-        edge_detection=edge_detection,
-        opencv_available=OPENCV_AVAILABLE,
         max_frame_age_seconds=max_frame_age_seconds,
         max_stream_connections=max_stream_connections,
         max_frame_size_mb=max_frame_size_mb if max_frame_size_mb is not None else "auto",
@@ -400,29 +372,6 @@ def log_startup_summary() -> None:
         feature_flags_enabled=enabled_flags_count,
         feature_flags_total=len(all_flags),
     )
-
-
-def apply_edge_detection(request: Any) -> None:
-    """Apply edge detection filter to camera frame.
-
-    Args:
-        request: Camera frame request from picamera2
-    """
-    try:
-        with MappedArray(request, "main") as m:
-            # Convert to grayscale
-            grey = cv2.cvtColor(m.array, cv2.COLOR_BGR2GRAY)
-            # Apply Canny edge detection
-            edges = cv2.Canny(grey, 100, 200)
-            # Convert back to BGR so it can be encoded as JPEG
-            edges_bgr = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
-            # Copy the result back to the mapped array
-            np.copyto(m.array, edges_bgr)
-    except Exception as e:
-        logger.error("Edge detection processing failed: %s", e, exc_info=True)
-        # Return without modifying the frame to avoid corrupted output
-        # The original frame will be encoded instead
-        return
 
 
 class StreamStats:
@@ -549,7 +498,6 @@ def get_stream_status(stats: StreamStats) -> Dict[str, Any]:
         "frames_captured": frame_count,
         "current_fps": round(current_fps, 2),
         "resolution": resolution,
-        "edge_detection": edge_detection,
         "last_frame_age_seconds": last_frame_age_seconds,
     }
 
@@ -750,7 +698,6 @@ def metrics() -> Tuple[Response, int]:
             "max_frame_age_seconds": max_frame_age_seconds,
             "uptime_seconds": round(uptime, 2),
             "resolution": status["resolution"],
-            "edge_detection": status["edge_detection"],
             "timestamp": datetime.now().isoformat(),
         }
     ), 200
@@ -772,8 +719,6 @@ def get_config() -> Tuple[Response, int]:
                 "fps": fps,
                 "target_fps": target_fps,
                 "jpeg_quality": jpeg_quality,
-                "edge_detection": edge_detection,
-                "opencv_available": OPENCV_AVAILABLE,
             },
             "stream_control": {
                 "max_stream_connections": max_stream_connections,
@@ -1079,14 +1024,10 @@ if __name__ == "__main__":
                 format="BGR888",
                 fps=fps if fps > 0 else "default",
             )
-            # Configure for BGR format for opencv
+            # Configure for BGR format
             config_params = {"size": resolution, "format": "BGR888"}
             video_config = picam2_instance.create_video_configuration(main=config_params)
             picam2_instance.configure(video_config)
-
-            if edge_detection:
-                log_event(logging.INFO, "camera", "Enabling edge detection preprocessing.")
-                picam2_instance.pre_callback = apply_edge_detection
 
             log_event(logging.INFO, "camera", "Starting camera recording...")
             # Start recording with configured JPEG quality

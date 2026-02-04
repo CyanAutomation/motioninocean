@@ -98,16 +98,6 @@ class FeatureFlags:
         # OPTIONAL FEATURES
         self.register(
             FeatureFlag(
-                name="EDGE_DETECTION",
-                default=False,
-                category=FeatureFlagCategory.EXPERIMENTAL,
-                description="Enable OpenCV-based Canny edge detection filter.",
-                backward_compat_vars=["EDGE_DETECTION"],
-            )
-        )
-
-        self.register(
-            FeatureFlag(
                 name="MOCK_CAMERA",
                 default=False,
                 category=FeatureFlagCategory.EXPERIMENTAL,

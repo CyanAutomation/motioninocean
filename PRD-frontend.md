@@ -50,7 +50,7 @@ Operators need a simple, reliable web UI to view the Raspberry Pi CSI camera str
 - Displays the MJPEG stream in a responsive layout.
 - Includes a connection status indicator.
 - Provides refresh and fullscreen controls.
-- Displays stream stats (FPS, frame count, uptime, resolution, edge detection status).
+- Displays stream stats (FPS, frame count, uptime, resolution).
 
 ### 2. Stream Stats & Status UI (P2)
 

@@ -149,7 +149,7 @@ def test_error_handling_present(workspace_root, error_type, marker):
 
 @pytest.mark.parametrize(
     "env_var",
-    ["RESOLUTION", "EDGE_DETECTION", "FPS"],
+    ["RESOLUTION", "FPS"],
 )
 def test_environment_variable_handled(workspace_root, env_var):
     """Verify environment variables are handled in main.py.
@@ -177,7 +177,7 @@ def test_env_file_exists(workspace_root):
 
 @pytest.mark.parametrize(
     "env_var",
-    ["TZ", "RESOLUTION", "EDGE_DETECTION"],
+    ["TZ", "RESOLUTION"],
 )
 def test_env_file_has_required_variables(workspace_root, env_var):
     """Verify .env file has required variables."""

@@ -3,11 +3,6 @@
 # Using debian:bookworm-slim with system Python to ensure compatibility with apt-installed python3-picamera2
 FROM debian:bookworm-slim AS builder
 
-# Build argument to control opencv-python-headless installation
-# Set to "true" to include edge detection support (~40MB larger image)
-# Default is "false" for minimal image size
-ARG INCLUDE_OPENCV=false
-
 # Build argument to control Pillow installation for mock camera support
 # Set to "false" to exclude mock camera support (~5-7MB savings)
 # Default is "true" for development and testing flexibility
@@ -50,14 +45,8 @@ COPY requirements.txt /app/
 # Using --break-system-packages flag required for pip on Debian 12+
 # Exclude numpy from pip installation (using python3-numpy from apt for binary compatibility with simplejpeg)
 RUN --mount=type=cache,target=/root/.cache/pip \
-    grep -v "opencv-python-headless" requirements.txt | grep -v "numpy" | grep -v "Pillow" > /tmp/requirements-base.txt && \
+    grep -v "numpy" requirements.txt | grep -v "Pillow" > /tmp/requirements-base.txt && \
     pip3 install --break-system-packages -r /tmp/requirements-base.txt && \
-    if [ "$INCLUDE_OPENCV" = "true" ]; then \
-        echo "Installing opencv-python-headless for edge detection support..." && \
-        grep "opencv-python-headless" requirements.txt | pip3 install --break-system-packages -r /dev/stdin; \
-    else \
-        echo "Skipping opencv-python-headless installation (INCLUDE_OPENCV=false)"; \
-    fi && \
     if [ "$INCLUDE_MOCK_CAMERA" = "true" ]; then \
         echo "Installing Pillow for mock camera support..." && \
         grep "Pillow" requirements.txt | pip3 install --break-system-packages -r /dev/stdin; \

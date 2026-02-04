@@ -16,12 +16,6 @@ Pillow==11.3.0
 # NumPy for array processing
 numpy==2.2.3
 
-# Computer vision - minimal headless version (saves ~200MB vs python3-opencv)
-# NOTE: This is now conditionally installed via Dockerfile build arg INCLUDE_OPENCV
-# Default build excludes this dependency to save ~40MB
-# To include edge detection support, build with: --build-arg INCLUDE_OPENCV=true
-opencv-python-headless==4.13.0.90
-
 # Camera support for Raspberry Pi
 # Note: picamera2 is now installed via apt from Raspberry Pi repository
 # (python3-picamera2) along with system packages (python3-libcamera, libcamera-dev)

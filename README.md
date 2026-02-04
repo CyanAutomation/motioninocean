@@ -151,7 +151,6 @@ Create/edit `.env`:
 ```env
 MOTION_IN_OCEAN_RESOLUTION=640x480
 MOTION_IN_OCEAN_FPS=30
-MOTION_IN_OCEAN_EDGE_DETECTION=false
 MOTION_IN_OCEAN_JPEG_QUALITY=100
 MOTION_IN_OCEAN_CORS_ORIGINS=*
 MOTION_IN_OCEAN_HEALTHCHECK_READY=false
@@ -163,7 +162,6 @@ MOCK_CAMERA=false
 
 * `MOTION_IN_OCEAN_RESOLUTION` - Camera resolution (e.g., `640x480`, `1280x720`, `1920x1080`). Max `4096x4096`.
 * `MOTION_IN_OCEAN_FPS` - Frame rate limit. `0` uses camera default. Maximum recommended: `120`.
-* `MOTION_IN_OCEAN_EDGE_DETECTION` - `true` enables Canny edge detection (CPU overhead).
 * `MOTION_IN_OCEAN_JPEG_QUALITY` - JPEG quality (1-100) for stream images.
 * `MOTION_IN_OCEAN_CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
 * `MOTION_IN_OCEAN_HEALTHCHECK_READY` - `true` uses `/ready` for healthchecks instead of `/health`.
@@ -192,65 +190,28 @@ This allows you to validate:
 
 ## Building Custom Images
 
-The Docker image comes in two variants optimized for different use cases:
-
-### Minimal Image (Default, ~260MB)
-
-The default build **excludes opencv-python-headless** to reduce image size by ~40MB and speed up downloads. Edge detection is disabled in this variant.
+The Docker image is optimized for minimal size and fast downloads (~255MB).
 
 ```bash
 # Using Makefile
 make docker-build
 
 # Or directly with Docker
-DOCKER_BUILDKIT=1 docker build -t motion-in-ocean:minimal .
-```
-
-### Full Image (With Edge Detection, ~300MB)
-
-Include opencv-python-headless for edge detection support:
-
-```bash
-# Using Makefile
-make docker-build-full
-
-# Or directly with Docker
-DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=true -t motion-in-ocean:full .
+DOCKER_BUILDKIT=1 docker build -t motion-in-ocean:latest .
 ```
 
 ### Build Variants
 
 ```bash
-# Default: with mock camera support, no edge detection (~260MB)
+# Default: with mock camera support (~255MB)
 make docker-build
 
-# Minimal: production-ready, smallest size (~252MB)
-make docker-build-minimal
-
-# Production: with edge detection, no mock camera (~293MB)
-make docker-build-production
-
-# Full: all features enabled (~300MB)
-make docker-build-full
-
-# Build all variants
-make docker-build-all
+# Production: without mock camera support (~248MB)
+make docker-build-prod
 ```
 
-### Image Size Comparison
-
-| Variant | opencv | Mock Camera | Compressed Size | Use Case |
-|---------|--------|-------------|-----------------|----------|
-| **Minimal** | ❌ No | ❌ No | ~252MB | Production deployments (smallest size) |
-| **Default** | ❌ No | ✅ Yes | ~260MB | Development and testing |
-| **Production** | ✅ Yes | ❌ No | ~293MB | Production with edge detection |
-| **Full** | ✅ Yes | ✅ Yes | ~300MB | Development with all features |
-
 **Build Arguments:**
-- `INCLUDE_OPENCV=true|false` - Include opencv-python-headless for edge detection (~40MB)
 - `INCLUDE_MOCK_CAMERA=true|false` - Include Pillow for mock camera testing (~7MB)
-
-**Note:** If you enable `MOTION_IN_OCEAN_EDGE_DETECTION=true` or `MOCK_CAMERA=true` without the required dependencies, the application will log a warning and continue without those features.
 
 ---
 

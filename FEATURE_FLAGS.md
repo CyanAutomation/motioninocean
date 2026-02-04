@@ -4,16 +4,15 @@ This document describes all available feature flags for Motion in Ocean. Feature
 
 ## Overview
 
-Feature flags are controlled via environment variables with the `MOTION_IN_OCEAN_` prefix. For example, to enable the `EDGE_DETECTION` flag, set:
+Feature flags are controlled via environment variables with the `MOTION_IN_OCEAN_` prefix. For example, to enable the `DEBUG_LOGGING` flag, set:
 
 ```bash
-MOTION_IN_OCEAN_EDGE_DETECTION=true
+MOTION_IN_OCEAN_DEBUG_LOGGING=true
 ```
 
 ### Backward Compatibility
 
 Some flags support legacy environment variable names for backward compatibility:
-- `EDGE_DETECTION` → `MOTION_IN_OCEAN_EDGE_DETECTION`
 - `MOCK_CAMERA` → `MOTION_IN_OCEAN_MOCK_CAMERA`
 
 Both the prefixed and legacy names work, with the prefixed name taking precedence.
@@ -84,31 +83,6 @@ This flag controls whether frame size limits are automatically calculated based 
 ## Optional Features
 
 These flags enable optional or experimental features that may not be stable.
-
-### MOTION_IN_OCEAN_EDGE_DETECTION
-
-**Status**: Stable  
-**Default**: `false`  
-**Legacy Variable**: `EDGE_DETECTION`  
-**Description**: Enable OpenCV-based Canny edge detection filter.
-
-When enabled, applies Canny edge detection to camera frames, producing a black-and-white outline image.
-
-**Requirements**:
-- OpenCV (python3-opencv) must be installed
-- Increases CPU usage
-
-**Use Cases**:
-- Motion detection preprocessing
-- Testing edge detection algorithms
-- Low-bandwidth scenarios (edge maps are smaller)
-
-**Example**:
-```bash
-MOTION_IN_OCEAN_EDGE_DETECTION=true
-```
-
----
 
 ### MOTION_IN_OCEAN_MOCK_CAMERA
 
@@ -406,11 +380,11 @@ curl http://localhost:8000/api/feature-flags | jq
     ...
   },
   "flags": {
-    "EDGE_DETECTION": {
+    "MOCK_CAMERA": {
       "enabled": false,
       "default": false,
       "category": "Experimental",
-      "description": "Enable OpenCV-based Canny edge detection filter.",
+      "description": "Use mock camera for testing without real hardware.",
     },
     ...
   },
@@ -442,7 +416,6 @@ export MOTION_IN_OCEAN_HOME_ASSISTANT_INTEGRATION=true
 ### Edge Detection Testing
 
 ```bash
-export MOTION_IN_OCEAN_EDGE_DETECTION=true
 export MOTION_IN_OCEAN_DEBUG_LOGGING=true
 ```
 

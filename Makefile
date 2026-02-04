@@ -30,9 +30,8 @@ help:
 	@echo "  make clean            Clean build artifacts and cache files"
 	@echo ""
 	@echo "Docker:"
-	@echo "  make docker-build          Build default image (mock camera, no opencv)"
-	@echo "  make docker-build-minimal  Build minimal image (smallest, no mock/opencv)"
-	@echo "  make docker-build-full     Build full image (mock camera + opencv)"
+	@echo "  make docker-build          Build default image (with mock camera)"
+	@echo "  make docker-build-prod     Build production image (without mock camera)"
 	@echo "  make docker-build-production  Build production image (opencv, no mock)"
 	@echo "  make docker-build-all      Build all image variants"
 	@echo "  make docker-run            Run Docker container"
@@ -125,27 +124,12 @@ clean:
 # Docker targets
 # Using BuildKit for enhanced caching and faster builds
 docker-build:
-	@echo "Building default Docker image (no opencv, with mock camera)..."
-	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=false --build-arg INCLUDE_MOCK_CAMERA=true -t motion-in-ocean:dev .
+	@echo "Building default Docker image (with mock camera)..."
+	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_MOCK_CAMERA=true -t motion-in-ocean:dev .
 
-docker-build-minimal:
-	@echo "Building minimal Docker image (no opencv, no mock camera, smallest size)..."
-	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=false --build-arg INCLUDE_MOCK_CAMERA=false -t motion-in-ocean:dev-minimal .
-
-docker-build-full:
-	@echo "Building full Docker image with edge detection and mock camera support..."
-	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=true --build-arg INCLUDE_MOCK_CAMERA=true -t motion-in-ocean:dev-full .
-
-docker-build-production:
-	@echo "Building production Docker image with edge detection (no mock camera)..."
-	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_OPENCV=true --build-arg INCLUDE_MOCK_CAMERA=false -t motion-in-ocean:dev-prod .
-
-docker-build-all:
-	@echo "Building all image variants..."
-	@$(MAKE) docker-build-minimal
-	@$(MAKE) docker-build
-	@$(MAKE) docker-build-production
-	@$(MAKE) docker-build-full
+docker-build-prod:
+	@echo "Building production Docker image (without mock camera, smallest size)..."
+	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_MOCK_CAMERA=false -t motion-in-ocean:dev-prod .
 
 # Legacy target for backward compatibility
 docker-build-both: docker-build docker-build-full

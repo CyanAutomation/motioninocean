@@ -30,7 +30,6 @@ class TestFeatureFlagRegistry:
 
         # Check that flags from each category are present
         expected_flags = {
-            "EDGE_DETECTION",
             "MOCK_CAMERA",
             "CORS_SUPPORT",
             "DEBUG_LOGGING",
@@ -58,20 +57,6 @@ class TestFeatureFlagRegistry:
             set(all_flags.keys())
         ), f"Missing flags: {expected_flags - set(all_flags.keys())}"
 
-    def test_backward_compatibility_edge_detection(self):
-        """Test backward compatibility with legacy EDGE_DETECTION env var."""
-        from pi_camera_in_docker.feature_flags import FeatureFlags
-
-        with mock.patch.dict(os.environ, {"EDGE_DETECTION": "true"}, clear=True):
-            flags = FeatureFlags()
-            flags.load()
-            assert flags.is_enabled("EDGE_DETECTION") is True
-
-        with mock.patch.dict(os.environ, {"EDGE_DETECTION": "false"}, clear=True):
-            flags = FeatureFlags()
-            flags.load()
-            assert flags.is_enabled("EDGE_DETECTION") is False
-
     def test_backward_compatibility_mock_camera(self):
         """Test backward compatibility with legacy MOCK_CAMERA env var."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
@@ -92,12 +77,12 @@ class TestFeatureFlagRegistry:
 
         with mock.patch.dict(
             os.environ,
-            {"EDGE_DETECTION": "false", "MOTION_IN_OCEAN_EDGE_DETECTION": "true"},
+            {"MOCK_CAMERA": "false", "MOTION_IN_OCEAN_MOCK_CAMERA": "true"},
             clear=True,
         ):
             flags = FeatureFlags()
             flags.load()
-            assert flags.is_enabled("EDGE_DETECTION") is True
+            assert flags.is_enabled("MOCK_CAMERA") is True
 
     def test_flag_defaults(self):
         """Test that flag defaults are correct."""
@@ -108,7 +93,6 @@ class TestFeatureFlagRegistry:
             flags.load()
 
             # Most flags should be disabled by default
-            assert flags.is_enabled("EDGE_DETECTION") is False
             assert flags.is_enabled("MOCK_CAMERA") is False
             assert flags.is_enabled("DEBUG_LOGGING") is False
 
@@ -171,10 +155,10 @@ class TestFeatureFlagRegistry:
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
         flags = FeatureFlags()
-        info = flags.get_flag_info("EDGE_DETECTION")
+        info = flags.get_flag_info("MOCK_CAMERA")
 
         assert info is not None
-        assert info["name"] == "EDGE_DETECTION"
+        assert info["name"] == "MOCK_CAMERA"
         assert "description" in info
         assert "enabled" in info
         assert "default" in info

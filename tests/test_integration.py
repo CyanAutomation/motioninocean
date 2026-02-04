@@ -14,7 +14,6 @@ def test_startup_sequence_markers(workspace_root):
     startup_markers = [
         ("Configuration loading", "os.environ.get"),
         ("Resolution parsing", "resolution_str.split"),
-        ("Edge detection config", "edge_detection"),
         ("Camera initialization", "Picamera2()"),
         ("Camera configuration", "create_video_configuration"),
         ("Start recording", "start_recording"),

@@ -30,7 +30,6 @@ const state = {
     lastFrameAgeValue: null,
     maxFrameAgeValue: null,
     resolutionValue: null,
-    edgeDetectionValue: null,
     lastUpdated: null
   }
 };
@@ -67,7 +66,6 @@ function cacheElements() {
   state.elements.lastFrameAgeValue = document.getElementById('last-frame-age-value');
   state.elements.maxFrameAgeValue = document.getElementById('max-frame-age-value');
   state.elements.resolutionValue = document.getElementById('resolution-value');
-  state.elements.edgeDetectionValue = document.getElementById('edge-detection-value');
   state.elements.lastUpdated = document.getElementById('last-updated');
 }
 
@@ -172,11 +170,6 @@ async function updateStats() {
 
       if (state.elements.resolutionValue) {
         state.elements.resolutionValue.textContent = '--';
-      }
-
-      if (state.elements.edgeDetectionValue) {
-        state.elements.edgeDetectionValue.textContent = '--';
-        state.elements.edgeDetectionValue.className = 'stat-badge';
       }
 
       if (state.elements.lastUpdated) {
@@ -449,12 +442,6 @@ function renderMetrics(data) {
     }
   }
 
-  if (state.elements.edgeDetectionValue) {
-    const badge = state.elements.edgeDetectionValue;
-    badge.textContent = data.edge_detection ? 'Enabled' : 'Disabled';
-    badge.className = 'stat-badge';
-    badge.classList.add(data.edge_detection ? 'enabled' : 'disabled');
-  }
 
   if (state.elements.lastUpdated) {
     const now = new Date();
@@ -629,8 +616,6 @@ function renderConfig(data) {
     setConfigValue('config-fps', cs.fps !== undefined ? `${cs.fps} FPS` : '--');
     setConfigValue('config-target-fps', cs.target_fps !== undefined ? `${cs.target_fps} FPS` : '--');
     setConfigValue('config-jpeg-quality', cs.jpeg_quality !== undefined ? `${cs.jpeg_quality}%` : '--');
-    setConfigValue('config-edge-detection', formatBoolean(cs.edge_detection));
-    setConfigValue('config-opencv', formatBoolean(cs.opencv_available));
   }
 
   // Stream Control
