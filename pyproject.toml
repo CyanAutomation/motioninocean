@@ -73,6 +73,7 @@ ignore = [
     "UP035",   # typing.X deprecated (keeping for Python 3.9 compat)
     "TRY400",  # Use logging.exception (explicit error logging is clearer in this context)
     "G201",    # Logging .error with exc_info (explicit is better)
+    "RUF001",  # Ambiguous unicode character (intentional emoji for log levels)
 ]
 
 [tool.ruff.format]

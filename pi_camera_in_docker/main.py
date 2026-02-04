@@ -17,6 +17,8 @@ from flask_cors import CORS
 from PIL import Image
 from werkzeug.serving import make_server
 
+# Import feature flags system
+from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 
 # Optional opencv import - only needed for edge detection feature
 try:
@@ -49,9 +51,7 @@ class LogContextFilter(logging.Filter):
 # Configure structured logging early
 handler = logging.StreamHandler()
 handler.setFormatter(
-    logging.Formatter(
-        "%(asctime)s | %(levelname)s %(emoji)s | %(name)s | %(event)s | %(message)s"
-    )
+    logging.Formatter("%(asctime)s | %(levelname)s %(emoji)s | %(name)s | %(event)s | %(message)s")
 )
 handler.addFilter(LogContextFilter())
 root_logger = logging.getLogger()
@@ -68,13 +68,26 @@ def log_event(level: int, event: str, message: str, **fields: object) -> None:
     logger.log(level, message, extra={"event": event})
 
 
+# Initialize and load feature flags early, before main configuration
+feature_flags: FeatureFlags = get_feature_flags()
+feature_flags.load()
+
+# Check if debug logging should be enabled via feature flag
+if is_flag_enabled("DEBUG_LOGGING"):
+    root_logger.setLevel(logging.DEBUG)
+    logger.debug("Debug logging enabled via MOTION_IN_OCEAN_DEBUG_LOGGING feature flag")
+elif is_flag_enabled("TRACE_LOGGING"):
+    root_logger.setLevel(logging.DEBUG)  # TRACE level would require custom implementation
+    logger.debug("Trace logging enabled via MOTION_IN_OCEAN_TRACE_LOGGING feature flag")
+
+# Log feature flags summary
+log_event(logging.INFO, "startup", "Feature flags initialized", loaded_flags=len(feature_flags.get_all_flags()))
+
 # Get configuration from environment variables
 resolution_str: str = os.environ.get("RESOLUTION", "640x480")
-edge_detection_str: str = os.environ.get("EDGE_DETECTION", "false")
 fps_str: str = os.environ.get("FPS", "0")  # 0 = use camera default
 target_fps_env = os.environ.get("TARGET_FPS")
 target_fps_str: str = target_fps_env if target_fps_env is not None else fps_str
-mock_camera_str: str = os.environ.get("MOCK_CAMERA", "false")
 jpeg_quality_str: str = os.environ.get("JPEG_QUALITY", "100")
 cors_origins_env_var = "MOTION_IN_OCEAN_CORS_ORIGINS"
 cors_origins_str: Optional[str] = os.environ.get(cors_origins_env_var)
@@ -86,10 +99,13 @@ allow_pykms_mock_str: str = os.environ.get("ALLOW_PYKMS_MOCK", "false")
 max_stream_connections_str: str = os.environ.get("MAX_STREAM_CONNECTIONS", "10")
 max_frame_size_mb_str: str = os.environ.get("MAX_FRAME_SIZE_MB", "")  # Empty = auto-calculate
 
-mock_camera: bool = mock_camera_str.lower() in ("true", "1", "t")
+# Load feature flags (with backward compatibility for legacy env vars)
+mock_camera: bool = is_flag_enabled("MOCK_CAMERA")
+edge_detection_requested: bool = is_flag_enabled("EDGE_DETECTION")
+cors_enabled: bool = is_flag_enabled("CORS_SUPPORT")
 allow_pykms_mock: bool = allow_pykms_mock_str.lower() in ("true", "1", "t")
-log_event(logging.INFO, "config", "Mock camera setting loaded", enabled=mock_camera)
-log_event(logging.INFO, "config", "Allow pykms mock setting loaded", enabled=allow_pykms_mock)
+
+log_event(logging.INFO, "config", "Feature flag values loaded", mock_camera=mock_camera, edge_detection=edge_detection_requested, cors_enabled=cors_enabled)
 
 # Parse max stream connections
 try:
@@ -202,10 +218,7 @@ except (ValueError, TypeError) as e:
     logger.warning(f"Invalid RESOLUTION format '{resolution_str}': {e}. Using default 640x480.")
     resolution = (640, 480)
 
-# Parse edge detection flag
-edge_detection_requested: bool = edge_detection_str.lower() in ("true", "1", "t")
-
-# Check if opencv is available for edge detection
+# Parse edge detection flag (using feature flag with OpenCV availability check)
 if edge_detection_requested and not OPENCV_AVAILABLE:
     logger.warning(
         "Edge detection requested but opencv-python-headless is not installed. "
@@ -216,6 +229,7 @@ else:
     edge_detection = edge_detection_requested
 
 logger.info(f"Edge detection: {edge_detection}")
+log_event(logging.INFO, "config", "Edge detection setting", enabled=edge_detection, opencv_available=OPENCV_AVAILABLE)
 
 # Parse max frame age for readiness
 max_frame_age_seconds: float = 10.0  # Initialize with default value
@@ -314,14 +328,20 @@ else:
     )
 
 # Parse CORS origins (comma-separated). Default to wildcard only if not set.
-if cors_origins_str is None:
-    cors_origins = ["*"]
+# Only apply CORS if the CORS_SUPPORT feature flag is enabled
+if cors_enabled:
+    if cors_origins_str is None:
+        cors_origins = ["*"]
+    else:
+        cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+        if not cors_origins:
+            logger.warning(
+                f"{cors_origins_env_var} was set but empty. No origins will be allowed for CORS."
+            )
+    log_event(logging.INFO, "config", "CORS support enabled", origins=len(cors_origins))
 else:
-    cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
-    if not cors_origins:
-        logger.warning(
-            f"{cors_origins_env_var} was set but empty. No origins will be allowed for CORS."
-        )
+    cors_origins = []
+    logger.info("CORS support disabled via MOTION_IN_OCEAN_CORS_SUPPORT feature flag")
 
 
 def log_startup_summary() -> None:
@@ -338,6 +358,7 @@ def log_startup_summary() -> None:
         "max_frame_age_seconds",
         "max_stream_connections",
         "cors_origins",
+        "feature_flags",
     ]
     missing_keys = [key for key in required_keys if key not in globals() or globals()[key] is None]
     if missing_keys:
@@ -354,10 +375,13 @@ def log_startup_summary() -> None:
         return
 
     max_frame_size_mb = (
-        None
-        if max_frame_size_bytes is None
-        else round(max_frame_size_bytes / (1024 * 1024), 2)
+        None if max_frame_size_bytes is None else round(max_frame_size_bytes / (1024 * 1024), 2)
     )
+    
+    # Get enabled feature flags count
+    all_flags = feature_flags.get_all_flags()
+    enabled_flags_count = sum(1 for v in all_flags.values() if v)
+    
     log_event(
         logging.INFO,
         "startup",
@@ -372,7 +396,9 @@ def log_startup_summary() -> None:
         max_frame_age_seconds=max_frame_age_seconds,
         max_stream_connections=max_stream_connections,
         max_frame_size_mb=max_frame_size_mb if max_frame_size_mb is not None else "auto",
-        cors_origins=",".join(cors_origins),
+        cors_origins=",".join(cors_origins) if cors_origins else "none",
+        feature_flags_enabled=enabled_flags_count,
+        feature_flags_total=len(all_flags),
     )
 
 
@@ -549,8 +575,12 @@ if secret_key is None:
 app.config["SECRET_KEY"] = secret_key
 app.config["DEBUG"] = False
 
-# Enable CORS for cross-origin access (dashboards, Home Assistant, etc.)
-CORS(app, resources={r"/*": {"origins": cors_origins}})
+# Enable CORS for cross-origin access (dashboards, Home Assistant, etc.) if CORS support is enabled
+if cors_enabled:
+    CORS(app, resources={r"/*": {"origins": cors_origins}})
+    logger.info(f"CORS enabled with origins: {cors_origins}")
+else:
+    logger.info("CORS disabled via MOTION_IN_OCEAN_CORS_SUPPORT feature flag")
 
 
 @app.after_request
@@ -765,6 +795,38 @@ def get_config() -> Tuple[Response, int]:
             "timestamp": datetime.now().isoformat(),
         }
     ), 200
+
+
+@app.route("/api/feature-flags")
+def get_feature_flags_status() -> Tuple[Response, int]:
+    """Feature flags endpoint - returns all feature flags and their current state.
+
+    Returns current state of all feature flags, organized by category.
+    Useful for debugging and understanding which experimental features are enabled.
+    """
+    try:
+        flags_summary = feature_flags.get_summary()
+        
+        # Also include individual flag details with descriptions
+        all_flags = {}
+        for flag_name, flag in feature_flags._flags.items():
+            all_flags[flag_name] = {
+                "enabled": flag.enabled,
+                "default": flag.default,
+                "category": flag.category.value,
+                "description": flag.description,
+            }
+        
+        return jsonify(
+            {
+                "summary": flags_summary,
+                "flags": all_flags,
+                "timestamp": datetime.now().isoformat(),
+            }
+        ), 200
+    except Exception as e:
+        logger.error(f"Error retrieving feature flags status: {e}", exc_info=True)
+        return jsonify({"error": "Failed to retrieve feature flags"}), 500
 
 
 def gen() -> Iterator[bytes]:
