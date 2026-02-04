@@ -339,7 +339,7 @@ def log_startup_summary() -> None:
         "max_stream_connections",
         "cors_origins",
     ]
-    missing_keys = [key for key in required_keys if key not in globals()]
+    missing_keys = [key for key in required_keys if key not in globals() or globals()[key] is None]
     if missing_keys:
         missing_summary = ", ".join(missing_keys)
         logger.error(
