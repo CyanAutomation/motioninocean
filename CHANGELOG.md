@@ -84,6 +84,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.4] - 2026-02-04
+
+- Merge pull request #116 from CyanAutomation/codex/github-mention-enhance-docker-log-clarity-and-startup-visib
+- Update pi_camera_in_docker/main.py
+- Guard startup summary logging
+- Merge pull request #115 from CyanAutomation/codex/enhance-docker-log-outputs
+- Update pi_camera_in_docker/main.py
+- Enhance docker log clarity
+- Merge pull request #114 from CyanAutomation/codex/github-mention-replace-global-flask_server-with-state-dict
+- Rename shutdown server variable
+- Merge pull request #113 from CyanAutomation/codex/fix-linting-errors-in-main.py
+- Update main.py
+- Update main.py
+- Fix lint warnings in Flask shutdown
+
 ## [1.11.3] - 2026-01-31
 
 - Update max stream connections default value to 10 and improve logging messages
