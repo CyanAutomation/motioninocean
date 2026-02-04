@@ -326,25 +326,30 @@ else:
 
 def log_startup_summary() -> None:
     """Log a clear startup summary for Docker logs."""
-    max_frame_size_mb = (
-        None if max_frame_size_bytes is None else round(max_frame_size_bytes / (1024 * 1024), 2)
-    )
-    log_event(
-        logging.INFO,
-        "startup",
-        "Motion in Ocean configuration summary",
-        mock_camera=mock_camera,
-        resolution=f"{resolution[0]}x{resolution[1]}",
-        fps=fps if fps > 0 else "default",
-        target_fps=target_fps if target_fps > 0 else "disabled",
-        jpeg_quality=jpeg_quality,
-        edge_detection=edge_detection,
-        opencv_available=OPENCV_AVAILABLE,
-        max_frame_age_seconds=max_frame_age_seconds,
-        max_stream_connections=max_stream_connections,
-        max_frame_size_mb=max_frame_size_mb if max_frame_size_mb is not None else "auto",
-        cors_origins=",".join(cors_origins),
-    )
+    # Ensure all required variables are available
+    try:
+        max_frame_size_mb = (
+            None if max_frame_size_bytes is None else round(max_frame_size_bytes / (1024 * 1024), 2)
+        )
+        log_event(
+            logging.INFO,
+            "startup",
+            "Motion in Ocean configuration summary",
+            mock_camera=mock_camera,
+            resolution=f"{resolution[0]}x{resolution[1]}",
+            fps=fps if fps > 0 else "default",
+            target_fps=target_fps if target_fps > 0 else "disabled",
+            jpeg_quality=jpeg_quality,
+            edge_detection=edge_detection,
+            opencv_available=OPENCV_AVAILABLE,
+            max_frame_age_seconds=max_frame_age_seconds,
+            max_stream_connections=max_stream_connections,
+            max_frame_size_mb=max_frame_size_mb if max_frame_size_mb is not None else "auto",
+            cors_origins=",".join(cors_origins),
+        )
+    except NameError as e:
+        logger.error(f"Configuration variable not available during startup summary: {e}")
+        log_event(logging.ERROR, "startup", "Failed to log startup summary due to missing configuration variables", error=str(e))
 
 
 def apply_edge_detection(request: Any) -> None:
