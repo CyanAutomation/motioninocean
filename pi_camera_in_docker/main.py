@@ -28,11 +28,44 @@ except ImportError:
     cv2 = None  # type: ignore
 
 
+LOG_LEVEL_EMOJI = {
+    "DEBUG": "🐛",
+    "INFO": "ℹ️",
+    "WARNING": "⚠️",
+    "ERROR": "❌",
+    "CRITICAL": "🔥",
+}
+
+
+class LogContextFilter(logging.Filter):
+    """Inject emoji and event defaults into log records."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.emoji = LOG_LEVEL_EMOJI.get(record.levelname, "")
+        record.event = getattr(record, "event", "-")
+        return True
+
+
 # Configure structured logging early
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+handler = logging.StreamHandler()
+handler.setFormatter(
+    logging.Formatter(
+        "%(asctime)s | %(levelname)s %(emoji)s | %(name)s | %(event)s | %(message)s"
+    )
 )
+handler.addFilter(LogContextFilter())
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.handlers = [handler]
 logger = logging.getLogger(__name__)
+
+
+def log_event(level: int, event: str, message: str, **fields: object) -> None:
+    """Log a message with a consistent event tag and optional key/value fields."""
+    if fields:
+        details = " ".join(f"{key}={value}" for key, value in fields.items())
+        message = f"{message} | {details}"
+    logger.log(level, message, extra={"event": event})
 
 
 # Get configuration from environment variables
@@ -55,8 +88,8 @@ max_frame_size_mb_str: str = os.environ.get("MAX_FRAME_SIZE_MB", "")  # Empty = 
 
 mock_camera: bool = mock_camera_str.lower() in ("true", "1", "t")
 allow_pykms_mock: bool = allow_pykms_mock_str.lower() in ("true", "1", "t")
-logger.info(f"Mock camera enabled: {mock_camera}")
-logger.info(f"Allow pykms mock: {allow_pykms_mock}")
+log_event(logging.INFO, "config", "Mock camera setting loaded", enabled=mock_camera)
+log_event(logging.INFO, "config", "Allow pykms mock setting loaded", enabled=allow_pykms_mock)
 
 # Parse max stream connections
 try:
@@ -289,6 +322,29 @@ else:
         logger.warning(
             f"{cors_origins_env_var} was set but empty. No origins will be allowed for CORS."
         )
+
+
+def log_startup_summary() -> None:
+    """Log a clear startup summary for Docker logs."""
+    max_frame_size_mb = (
+        None if max_frame_size_bytes is None else round(max_frame_size_bytes / (1024 * 1024), 2)
+    )
+    log_event(
+        logging.INFO,
+        "startup",
+        "Motion in Ocean configuration summary",
+        mock_camera=mock_camera,
+        resolution=f"{resolution[0]}x{resolution[1]}",
+        fps=fps if fps > 0 else "default",
+        target_fps=target_fps if target_fps > 0 else "disabled",
+        jpeg_quality=jpeg_quality,
+        edge_detection=edge_detection,
+        opencv_available=OPENCV_AVAILABLE,
+        max_frame_age_seconds=max_frame_age_seconds,
+        max_stream_connections=max_stream_connections,
+        max_frame_size_mb=max_frame_size_mb if max_frame_size_mb is not None else "auto",
+        cors_origins=",".join(cors_origins),
+    )
 
 
 def apply_edge_detection(request: Any) -> None:
@@ -527,19 +583,41 @@ def handle_shutdown(signum: int, _frame: Optional[object]) -> None:
     Actual cleanup is performed in the main thread's finally block.
     """
     shutdown_timestamp = datetime.now().isoformat()
-    logger.info(f"[{shutdown_timestamp}] Received signal {signum}; setting shutdown flags.")
+    log_event(
+        logging.INFO,
+        "shutdown",
+        "Received shutdown signal; setting shutdown flags.",
+        signal=signum,
+        timestamp=shutdown_timestamp,
+    )
     # Only set atomic flags - don't perform cleanup in signal handler to avoid deadlocks
     recording_started.clear()
     shutdown_event.set()
     # Attempt to shutdown Flask server if it's running
     server = flask_server_state["server"]
     if server is not None:
-        logger.info(f"[{shutdown_timestamp}] Shutting down Flask server...")
+        log_event(
+            logging.INFO,
+            "shutdown",
+            "Shutting down Flask server...",
+            timestamp=shutdown_timestamp,
+        )
         try:
             server.shutdown()
-            logger.info(f"[{shutdown_timestamp}] Flask server shutdown complete")
+            log_event(
+                logging.INFO,
+                "shutdown",
+                "Flask server shutdown complete",
+                timestamp=shutdown_timestamp,
+            )
         except Exception as e:
-            logger.warning(f"[{shutdown_timestamp}] Error shutting down Flask server: {e}")
+            log_event(
+                logging.WARNING,
+                "shutdown",
+                "Error shutting down Flask server",
+                timestamp=shutdown_timestamp,
+                error=e,
+            )
     # Exit to trigger cleanup in main thread's finally block
     raise SystemExit(0)
 
@@ -675,11 +753,11 @@ def gen() -> Iterator[bytes]:
         while True:
             # Check for shutdown signal
             if shutdown_event.is_set():
-                logger.info("Shutdown event set; ending MJPEG stream.")
+                log_event(logging.INFO, "stream", "Shutdown event set; ending MJPEG stream.")
                 break
 
             if not recording_started.is_set():
-                logger.info("Recording not started; ending MJPEG stream.")
+                log_event(logging.INFO, "stream", "Recording not started; ending MJPEG stream.")
                 break
 
             wait_start = time.monotonic()
@@ -695,9 +773,11 @@ def gen() -> Iterator[bytes]:
                 if elapsed >= 4.5:  # Allow some margin for timeout detection
                     consecutive_timeouts += 1
                     if consecutive_timeouts >= max_consecutive_timeouts:
-                        logger.warning(
-                            f"Stream timeout: no frames received for {consecutive_timeouts * 5} seconds. "
-                            "Camera may have stopped producing frames."
+                        log_event(
+                            logging.WARNING,
+                            "stream",
+                            "Stream timeout: no frames received. Camera may have stopped producing frames.",
+                            timeout_seconds=consecutive_timeouts * 5,
                         )
                         break
                 continue
@@ -711,7 +791,12 @@ def gen() -> Iterator[bytes]:
     finally:
         # Track disconnection - decrement counter
         current_connections = connection_tracker.decrement()
-        logger.info(f"Stream client disconnected. Active connections: {current_connections}")
+        log_event(
+            logging.INFO,
+            "stream",
+            "Stream client disconnected.",
+            active_connections=current_connections,
+        )
 
 
 @app.route("/stream.mjpg")
@@ -723,9 +808,12 @@ def video_feed() -> Response:
     # Check connection limit and increment counter atomically to prevent race condition
     current_count = connection_tracker.get_count()
     if current_count >= max_stream_connections:
-        logger.warning(
-            f"Stream connection rejected: limit of {max_stream_connections} reached "
-            f"(current: {current_count})"
+        log_event(
+            logging.WARNING,
+            "stream",
+            "Stream connection rejected: connection limit reached.",
+            max_connections=max_stream_connections,
+            current_connections=current_count,
         )
         return Response(
             f"Maximum concurrent connections ({max_stream_connections}) reached. Try again later.",
@@ -734,7 +822,12 @@ def video_feed() -> Response:
 
     # Increment counter
     current_connections = connection_tracker.increment()
-    logger.info(f"Stream client connected. Active connections: {current_connections}")
+    log_event(
+        logging.INFO,
+        "stream",
+        "Stream client connected.",
+        active_connections=current_connections,
+    )
 
     headers = {
         "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -755,21 +848,35 @@ def run_flask_server(host: str = "0.0.0.0", port: int = 8000) -> None:
     This allows the main thread to manage shutdown gracefully instead of
     being blocked by Flask's app.run() method.
     """
-    logger.info(f"Creating Flask WSGI server on {host}:{port}")
-    logger.info(f"Creating Flask WSGI server on {host}:{port}")
+    log_event(
+        logging.INFO,
+        "server",
+        "Creating Flask WSGI server.",
+        host=host,
+        port=port,
+    )
     server = make_server(host, port, app, threaded=True)
     flask_server_state["server"] = server
-    logger.info(f"Starting Flask WSGI server on {host}:{port}")
+    log_event(
+        logging.INFO,
+        "server",
+        "Starting Flask WSGI server.",
+        host=host,
+        port=port,
+    )
     server.serve_forever()
 
 
 if __name__ == "__main__":
     signal.signal(signal.SIGTERM, handle_shutdown)
     signal.signal(signal.SIGINT, handle_shutdown)
+    log_startup_summary()
     picam2_instance = None
     if mock_camera:
-        logger.info(
-            "MOCK_CAMERA enabled. Skipping Picamera2 initialization and generating dummy frames."
+        log_event(
+            logging.INFO,
+            "startup",
+            "MOCK_CAMERA enabled. Skipping Picamera2 initialization and generating dummy frames.",
         )
         # Create a dummy black image
         dummy_image = np.zeros((resolution[1], resolution[0], 3), dtype=np.uint8)
@@ -780,10 +887,11 @@ if __name__ == "__main__":
             fallback_buffer = io.BytesIO()
             fallback_image.save(fallback_buffer, format="JPEG", quality=jpeg_quality)
             dummy_image_jpeg = fallback_buffer.getvalue()
-            logger.warning(
-                "Mock camera: opencv not available, using Pillow to generate %sx%s JPEG fallback",
-                resolution[0],
-                resolution[1],
+            log_event(
+                logging.WARNING,
+                "mock_camera",
+                "OpenCV unavailable; using Pillow to generate JPEG fallback.",
+                resolution=f"{resolution[0]}x{resolution[1]}",
             )
 
         # Simulate camera streaming for the StreamingOutput
@@ -796,42 +904,50 @@ if __name__ == "__main__":
                     time.sleep(1 / (fps if fps > 0 else 10))  # Simulate FPS
                     output.write(dummy_image_jpeg)
             finally:
-                logger.info("Mock frame generator stopped")
+                log_event(logging.INFO, "mock_camera", "Mock frame generator stopped.")
 
         mock_thread: Thread = Thread(target=generate_mock_frames, daemon=True)
         mock_thread.start()
 
         # Wait for recording to start before Flask accepts requests
-        logger.info("Waiting for mock camera to be ready...")
+        log_event(logging.INFO, "mock_camera", "Waiting for mock camera to be ready...")
         recording_started.wait(timeout=5.0)
         if not recording_started.is_set():
-            logger.error("Mock camera failed to start within 5 seconds")
+            log_event(logging.ERROR, "mock_camera", "Mock camera failed to start within 5 seconds.")
             msg = "Mock camera initialization timeout"
             raise RuntimeError(msg)
 
         try:
             # Start the Flask app in a separate thread
-            logger.info("Starting Flask server on 0.0.0.0:8000 with mock camera.")
+            log_event(
+                logging.INFO,
+                "server",
+                "Starting Flask server with mock camera.",
+                host="0.0.0.0",
+                port=8000,
+            )
             flask_thread = Thread(target=run_flask_server, args=("0.0.0.0", 8000), daemon=False)
             flask_thread.start()
             # Main thread waits for Flask thread to complete
             flask_thread.join()
         finally:
             # Clean up mock thread on shutdown
-            logger.info("Shutting down mock camera...")
+            log_event(logging.INFO, "mock_camera", "Shutting down mock camera...")
             shutdown_event.set()
             mock_thread.join(timeout=5.0)
             if mock_thread.is_alive():
-                logger.warning(
-                    "Mock thread did not stop within 5 seconds timeout. "
-                    "Thread will be abandoned as daemon (auto-terminated on exit)."
+                log_event(
+                    logging.WARNING,
+                    "mock_camera",
+                    "Mock thread did not stop within timeout; abandoning daemon thread.",
+                    timeout_seconds=5,
                 )
             recording_started.clear()
-            logger.info("Mock camera shutdown complete")
+            log_event(logging.INFO, "mock_camera", "Mock camera shutdown complete.")
 
     else:
         try:
-            logger.info("Initializing Picamera2...")
+            log_event(logging.INFO, "camera", "Initializing Picamera2...")
 
             # Check if cameras are available before initializing
             try:
@@ -845,7 +961,13 @@ if __name__ == "__main__":
                         "Run 'detect-devices.sh' to identify required devices for your hardware."
                     )
                     raise RuntimeError(error_msg)
-                logger.info(f"Detected {len(camera_info)} camera(s): {camera_info}")
+                log_event(
+                    logging.INFO,
+                    "camera",
+                    "Detected cameras.",
+                    count=len(camera_info),
+                    cameras=camera_info,
+                )
             except IndexError as e:
                 # This shouldn't happen with the check above, but handle it defensively
                 error_msg = (
@@ -858,8 +980,13 @@ if __name__ == "__main__":
 
             picam2_instance = Picamera2()
 
-            logger.info(
-                f"Configuring video: resolution={resolution}, format=BGR888, fps={fps if fps > 0 else 'default'}"
+            log_event(
+                logging.INFO,
+                "camera",
+                "Configuring video stream.",
+                resolution=f"{resolution[0]}x{resolution[1]}",
+                format="BGR888",
+                fps=fps if fps > 0 else "default",
             )
             # Configure for BGR format for opencv
             config_params = {"size": resolution, "format": "BGR888"}
@@ -867,10 +994,10 @@ if __name__ == "__main__":
             picam2_instance.configure(video_config)
 
             if edge_detection:
-                logger.info("Enabling edge detection preprocessing")
+                log_event(logging.INFO, "camera", "Enabling edge detection preprocessing.")
                 picam2_instance.pre_callback = apply_edge_detection
 
-            logger.info("Starting camera recording...")
+            log_event(logging.INFO, "camera", "Starting camera recording...")
             # Start recording with configured JPEG quality
             picam2_instance.start_recording(JpegEncoder(q=jpeg_quality), FileOutput(output))
 
@@ -882,37 +1009,73 @@ if __name__ == "__main__":
                     picam2_instance.set_controls(
                         {"FrameDurationLimits": (frame_duration_us, frame_duration_us)}
                     )
-                    logger.info(
-                        f"Applied FPS limit: {fps} FPS (frame duration: {frame_duration_us} µs)"
+                    log_event(
+                        logging.INFO,
+                        "camera",
+                        "Applied FPS limit.",
+                        fps=fps,
+                        frame_duration_us=frame_duration_us,
                     )
                 except Exception as e:
-                    logger.warning(
-                        f"Failed to set FPS control to {fps}: {e}. Using camera default framerate."
+                    log_event(
+                        logging.WARNING,
+                        "camera",
+                        "Failed to set FPS control; using camera default framerate.",
+                        fps=fps,
+                        error=e,
                     )
 
             # Mark recording as started only after start_recording succeeds
             recording_started.set()
-            logger.info(f"Camera recording started successfully (JPEG quality: {jpeg_quality})")
+            log_event(
+                logging.INFO,
+                "camera",
+                "Camera recording started successfully.",
+                jpeg_quality=jpeg_quality,
+            )
 
             # Start the Flask app in a separate thread
-            logger.info("Starting Flask server on 0.0.0.0:8000")
+            log_event(
+                logging.INFO,
+                "server",
+                "Starting Flask server.",
+                host="0.0.0.0",
+                port=8000,
+            )
             flask_thread = Thread(target=run_flask_server, args=("0.0.0.0", 8000), daemon=False)
             flask_thread.start()
             # Main thread waits for Flask thread to complete
             flask_thread.join()
 
         except PermissionError as e:
-            logger.error(f"Permission denied accessing camera device: {e}")
-            logger.error(
-                "Ensure the container has proper device access (--device mappings or --privileged)"
+            log_event(
+                logging.ERROR,
+                "camera",
+                "Permission denied accessing camera device.",
+                error=e,
+            )
+            log_event(
+                logging.ERROR,
+                "camera",
+                "Ensure the container has proper device access (--device mappings or --privileged).",
             )
             raise
         except RuntimeError as e:
-            logger.error(f"Camera initialization failed: {e}")
-            logger.error("Verify camera is enabled on the host and working (rpicam-hello test)")
+            log_event(logging.ERROR, "camera", "Camera initialization failed.", error=e)
+            log_event(
+                logging.ERROR,
+                "camera",
+                "Verify camera is enabled on the host and working (rpicam-hello test).",
+            )
             raise
         except Exception as e:
-            logger.error(f"Unexpected error during initialization: {e}", exc_info=True)
+            log_event(
+                logging.ERROR,
+                "camera",
+                "Unexpected error during initialization.",
+                error=e,
+            )
+            logger.error("Unexpected error during initialization.", exc_info=True)
             raise
         finally:
             # Stop recording safely
@@ -920,10 +1083,16 @@ if __name__ == "__main__":
                 if picam2_instance is not None:
                     try:
                         if picam2_instance.started:
-                            logger.info("Stopping camera recording...")
+                            log_event(logging.INFO, "camera", "Stopping camera recording...")
                             picam2_instance.stop_recording()
-                            logger.info("Camera recording stopped")
+                            log_event(logging.INFO, "camera", "Camera recording stopped.")
                     except Exception as e:
-                        logger.error(f"Error during camera shutdown: {e}", exc_info=True)
+                        log_event(
+                            logging.ERROR,
+                            "camera",
+                            "Error during camera shutdown.",
+                            error=e,
+                        )
+                        logger.error("Error during camera shutdown.", exc_info=True)
             recording_started.clear()
-            logger.info("Application shutdown complete")
+            log_event(logging.INFO, "shutdown", "Application shutdown complete.")
