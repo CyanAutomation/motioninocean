@@ -914,21 +914,11 @@ if __name__ == "__main__":
             "startup",
             "MOCK_CAMERA enabled. Skipping Picamera2 initialization and generating dummy frames.",
         )
-        # Create a dummy black image
-        dummy_image = np.zeros((resolution[1], resolution[0], 3), dtype=np.uint8)
-        if OPENCV_AVAILABLE:
-            dummy_image_jpeg = cv2.imencode(".jpg", dummy_image)[1].tobytes()
-        else:
-            fallback_image = Image.new("RGB", resolution, color=(0, 0, 0))
-            fallback_buffer = io.BytesIO()
-            fallback_image.save(fallback_buffer, format="JPEG", quality=jpeg_quality)
-            dummy_image_jpeg = fallback_buffer.getvalue()
-            log_event(
-                logging.WARNING,
-                "mock_camera",
-                "OpenCV unavailable; using Pillow to generate JPEG fallback.",
-                resolution=f"{resolution[0]}x{resolution[1]}",
-            )
+        # Create a dummy black image using Pillow
+        fallback_image = Image.new("RGB", resolution, color=(0, 0, 0))
+        fallback_buffer = io.BytesIO()
+        fallback_image.save(fallback_buffer, format="JPEG", quality=jpeg_quality)
+        dummy_image_jpeg = fallback_buffer.getvalue()
 
         # Simulate camera streaming for the StreamingOutput
         def generate_mock_frames() -> None:

@@ -41,7 +41,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 WORKDIR /app
 COPY requirements.txt /app/
 # Using BuildKit cache mount to speed up pip installs
-# Install base requirements, then conditionally install opencv and Pillow
+# Install base requirements, then conditionally install Pillow for mock camera support
 # Using --break-system-packages flag required for pip on Debian 12+
 # Exclude numpy from pip installation (using python3-numpy from apt for binary compatibility with simplejpeg)
 RUN --mount=type=cache,target=/root/.cache/pip \
@@ -65,7 +65,7 @@ COPY --from=builder /etc/apt/sources.list.d/raspi.list /etc/apt/sources.list.d/r
 
 # Install Python runtime and camera packages from Raspberry Pi repository
 # Consolidated into single layer for better caching and reduced image size
-# Note: opencv removed from apt (python3-opencv was 250MB), now installed via pip as opencv-python-headless (40MB)
+# Note: OpenCV not installed (edge detection feature was removed)
 # Note: python3-flask removed (duplicate - installed via pip), libcap-dev and libcamera-dev removed (dev libraries not needed in runtime)
 # Note: curl removed (replaced with Python-based healthcheck script)
 # Note: pykms/python3-kms not installed as DrmPreview functionality is not used in headless streaming mode
