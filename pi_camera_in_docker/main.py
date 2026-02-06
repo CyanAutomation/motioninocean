@@ -83,6 +83,8 @@ PI3_PROFILE_DEFAULTS = {
 
 def _parse_bool_env(value: str) -> bool:
     """Parse common boolean environment variable values."""
+    if not value:
+        return False
     return value.lower().strip() in ("true", "1", "t", "yes", "on")
 
 
