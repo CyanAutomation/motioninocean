@@ -11,14 +11,13 @@ from datetime import datetime
 from threading import Condition, Event, Lock, Thread
 from typing import Any, Dict, Optional, Tuple
 
-import numpy as np
+# Import feature flags system
+from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 from flask import Flask, Response, jsonify, render_template, request
 from flask_cors import CORS
 from PIL import Image
 from werkzeug.serving import make_server
 
-# Import feature flags system
-from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 
 LOG_LEVEL_EMOJI = {
     "DEBUG": "🐛",
@@ -157,23 +156,10 @@ if not mock_camera:
                 "Install pykms or set ALLOW_PYKMS_MOCK=true to allow a mock module."
             )
             raise ImportError(msg) from e
-    try:
-        from picamera2.array import MappedArray
-    except ModuleNotFoundError:
-        try:
-            from picamera2 import MappedArray  # type: ignore[attr-defined]
-        except (ModuleNotFoundError, AttributeError) as e:
-            msg = (
-                "picamera2 MappedArray import failed. The installed picamera2 package "
-                "is missing the array module or MappedArray export. "
-                "Install a newer picamera2 build (python3-picamera2) that includes it."
-            )
-            raise ImportError(msg) from e
     from picamera2.encoders import JpegEncoder
     from picamera2.outputs import FileOutput
 else:
     Picamera2 = None  # type: ignore[assignment]
-    MappedArray = None  # type: ignore[assignment]
     JpegEncoder = None  # type: ignore[assignment]
     FileOutput = None  # type: ignore[assignment]
 
@@ -351,11 +337,11 @@ def log_startup_summary() -> None:
     max_frame_size_mb = (
         None if max_frame_size_bytes is None else round(max_frame_size_bytes / (1024 * 1024), 2)
     )
-    
+
     # Get enabled feature flags count
     all_flags = feature_flags.get_all_flags()
     enabled_flags_count = sum(1 for v in all_flags.values() if v)
-    
+
     log_event(
         logging.INFO,
         "startup",
@@ -389,17 +375,6 @@ class StreamStats:
             self._frame_count += 1
             self._last_frame_monotonic = monotonic_timestamp
             self._frame_times_monotonic.append(monotonic_timestamp)
-
-    def get_fps(self) -> float:
-        """Calculate actual FPS from frame times."""
-        with self._lock:
-            frame_times = list(self._frame_times_monotonic)
-        if len(frame_times) < 2:
-            return 0.0
-        time_span = frame_times[-1] - frame_times[0]
-        if time_span == 0:
-            return 0.0
-        return (len(frame_times) - 1) / time_span
 
     def snapshot(self) -> Tuple[int, Optional[float], float]:
         """Return a snapshot of frame count, last frame time, and FPS."""
@@ -751,7 +726,7 @@ def get_feature_flags_status() -> Tuple[Response, int]:
     """
     try:
         flags_summary = feature_flags.get_summary()
-        
+
         # Also include individual flag details with descriptions
         all_flags = {}
         for flag_name, flag in feature_flags._flags.items():
@@ -761,7 +736,7 @@ def get_feature_flags_status() -> Tuple[Response, int]:
                 "category": flag.category.value,
                 "description": flag.description,
             }
-        
+
         return jsonify(
             {
                 "summary": flags_summary,
@@ -783,7 +758,6 @@ def gen() -> Iterator[bytes]:
     # Connection tracking moved to video_feed() to prevent race condition
     consecutive_timeouts = 0
     max_consecutive_timeouts = 3  # Exit after 3 consecutive timeouts (15 seconds)
-    time.monotonic()
 
     try:
         while True:
@@ -820,7 +794,6 @@ def gen() -> Iterator[bytes]:
 
             # Got a frame - reset timeout counter and update last frame time
             consecutive_timeouts = 0
-            time.monotonic()
             yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
     except Exception as e:
         logger.warning(f"Streaming client disconnected: {e}")
