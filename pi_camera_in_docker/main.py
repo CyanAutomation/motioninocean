@@ -73,12 +73,55 @@ elif is_flag_enabled("TRACE_LOGGING"):
 # Log feature flags summary
 log_event(logging.INFO, "startup", "Feature flags initialized", loaded_flags=len(feature_flags.get_all_flags()))
 
+PI3_PROFILE_DEFAULTS = {
+    "RESOLUTION": "640x480",
+    "FPS": "12",
+    "JPEG_QUALITY": "75",
+    "MAX_STREAM_CONNECTIONS": "3",
+}
+
+
+def _parse_bool_env(value: str) -> bool:
+    """Parse common boolean environment variable values."""
+    if not value:
+        return False
+    return value.lower().strip() in ("true", "1", "t", "yes", "on")
+
+
+def _resolve_config_value(
+    key: str,
+    default: str,
+    env: Optional[dict[str, str]] = None,
+    profile_defaults: Optional[dict[str, str]] = None,
+    profile_enabled: bool = False,
+) -> str:
+    """Resolve a config value, allowing profile defaults only when variable is absent."""
+    env_values = os.environ if env is None else env
+    defaults = PI3_PROFILE_DEFAULTS if profile_defaults is None else profile_defaults
+
+    if key in env_values:
+        return env_values[key]
+    if profile_enabled and key in defaults:
+        return defaults[key]
+    return default
+
+
+pi3_profile_env = os.environ.get("PI3_PROFILE")
+motion_pi3_profile_env = os.environ.get("MOTION_IN_OCEAN_PI3_PROFILE")
+pi3_profile_enabled = (
+    is_flag_enabled("PI3_OPTIMIZATION")
+    or (pi3_profile_env is not None and _parse_bool_env(pi3_profile_env))
+    or (motion_pi3_profile_env is not None and _parse_bool_env(motion_pi3_profile_env))
+)
+
 # Get configuration from environment variables
-resolution_str: str = os.environ.get("RESOLUTION", "640x480")
-fps_str: str = os.environ.get("FPS", "0")  # 0 = use camera default
+resolution_str: str = _resolve_config_value("RESOLUTION", "640x480", profile_enabled=pi3_profile_enabled)
+fps_str: str = _resolve_config_value("FPS", "0", profile_enabled=pi3_profile_enabled)  # 0 = use camera default
 target_fps_env = os.environ.get("TARGET_FPS")
 target_fps_str: str = target_fps_env if target_fps_env is not None else fps_str
-jpeg_quality_str: str = os.environ.get("JPEG_QUALITY", "100")
+jpeg_quality_str: str = _resolve_config_value(
+    "JPEG_QUALITY", "100", profile_enabled=pi3_profile_enabled
+)
 cors_origins_env_var = "MOTION_IN_OCEAN_CORS_ORIGINS"
 cors_origins_str: Optional[str] = os.environ.get(cors_origins_env_var)
 if cors_origins_str is None:
@@ -86,7 +129,9 @@ if cors_origins_str is None:
     cors_origins_str = os.environ.get(cors_origins_env_var)
 max_frame_age_seconds_str: str = os.environ.get("MAX_FRAME_AGE_SECONDS", "10")
 allow_pykms_mock_str: str = os.environ.get("ALLOW_PYKMS_MOCK", "false")
-max_stream_connections_str: str = os.environ.get("MAX_STREAM_CONNECTIONS", "10")
+max_stream_connections_str: str = _resolve_config_value(
+    "MAX_STREAM_CONNECTIONS", "10", profile_enabled=pi3_profile_enabled
+)
 max_frame_size_mb_str: str = os.environ.get("MAX_FRAME_SIZE_MB", "")  # Empty = auto-calculate
 
 # Load feature flags (with backward compatibility for legacy env vars)
@@ -95,6 +140,18 @@ cors_enabled: bool = is_flag_enabled("CORS_SUPPORT")
 allow_pykms_mock: bool = allow_pykms_mock_str.lower() in ("true", "1", "t")
 
 log_event(logging.INFO, "config", "Feature flag values loaded", mock_camera=mock_camera, cors_enabled=cors_enabled)
+
+if pi3_profile_enabled:
+    log_event(
+        logging.INFO,
+        "startup",
+        "Pi 3 profile active",
+        resolution=resolution_str,
+        fps=fps_str,
+        target_fps=target_fps_str,
+        jpeg_quality=jpeg_quality_str,
+        max_stream_connections=max_stream_connections_str,
+    )
 
 # Parse max stream connections
 try:

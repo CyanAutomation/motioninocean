@@ -151,7 +151,10 @@ Create/edit `.env`:
 ```env
 MOTION_IN_OCEAN_RESOLUTION=640x480
 MOTION_IN_OCEAN_FPS=30
+MOTION_IN_OCEAN_TARGET_FPS=30
 MOTION_IN_OCEAN_JPEG_QUALITY=100
+MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS=10
+MOTION_IN_OCEAN_PI3_PROFILE=false
 MOTION_IN_OCEAN_CORS_ORIGINS=*
 MOTION_IN_OCEAN_HEALTHCHECK_READY=false
 TZ=Europe/London
@@ -163,10 +166,28 @@ MOCK_CAMERA=false
 * `MOTION_IN_OCEAN_RESOLUTION` - Camera resolution (e.g., `640x480`, `1280x720`, `1920x1080`). Max `4096x4096`.
 * `MOTION_IN_OCEAN_FPS` - Frame rate limit. `0` uses camera default. Maximum recommended: `120`.
 * `MOTION_IN_OCEAN_JPEG_QUALITY` - JPEG quality (1-100) for stream images.
+* `MOTION_IN_OCEAN_TARGET_FPS` - Output throttle FPS. If unset, it defaults to `FPS`.
+* `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS` - Maximum simultaneous `/stream.mjpg` clients.
+* `MOTION_IN_OCEAN_PI3_PROFILE` - Pi 3 recommended defaults profile. When enabled, it only fills missing values with: `RESOLUTION=640x480`, `FPS=12`, `TARGET_FPS=12`, `JPEG_QUALITY=75`, `MAX_STREAM_CONNECTIONS=3`.
 * `MOTION_IN_OCEAN_CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
 * `MOTION_IN_OCEAN_HEALTHCHECK_READY` - `true` uses `/ready` for healthchecks instead of `/health`.
 * `TZ` - Logging timezone.
 * `MOCK_CAMERA` - `true` disables Picamera2 initialisation and streams dummy frames (dev/testing).
+
+
+### Pi 3 recommended preset
+
+For Raspberry Pi 3, enable profile mode to apply conservative defaults when explicit runtime env vars are absent:
+
+```env
+MOTION_IN_OCEAN_PI3_PROFILE=true
+# Optional explicit overrides (these win over profile defaults)
+MOTION_IN_OCEAN_RESOLUTION=640x480
+MOTION_IN_OCEAN_FPS=12
+MOTION_IN_OCEAN_TARGET_FPS=12
+MOTION_IN_OCEAN_JPEG_QUALITY=75
+MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS=3
+```
 
 ---
 

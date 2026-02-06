@@ -3,6 +3,10 @@ Configuration tests - verify Docker Compose, Dockerfile, and .env files.
 """
 
 import ast
+import json
+import os
+import subprocess
+import sys
 
 import pytest
 import yaml
@@ -213,3 +217,130 @@ def test_dockerfile_has_required_elements(workspace_root, check_name, pattern):
         return
 
     assert pattern in combined_content, f"Missing in Dockerfile/requirements.txt: {check_name}"
+
+
+def _load_main_config_with_env(workspace_root, env_updates, unset_keys=None):
+    """Load main.py in a clean subprocess and return selected config values."""
+    script = """
+import json
+import pathlib
+import sys
+
+repo = pathlib.Path.cwd()
+sys.path.insert(0, str(repo / "pi_camera_in_docker"))
+import main
+
+print(json.dumps({
+    "pi3_profile_enabled": main.pi3_profile_enabled,
+    "resolution": list(main.resolution),
+    "fps": main.fps,
+    "target_fps": main.target_fps,
+    "jpeg_quality": main.jpeg_quality,
+    "max_stream_connections": main.max_stream_connections,
+}))
+"""
+    env = os.environ.copy()
+    for key in unset_keys or []:
+        env.pop(key, None)
+    env.update(env_updates)
+    process = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=workspace_root,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return json.loads(process.stdout.strip().splitlines()[-1])
+
+
+def test_pi3_profile_applies_defaults_when_explicit_env_absent(workspace_root):
+    """PI3 profile should apply recommended defaults only when vars are absent."""
+    data = _load_main_config_with_env(
+        workspace_root,
+        {
+            "MOCK_CAMERA": "true",
+            "PI3_PROFILE": "true",
+            "MOTION_IN_OCEAN_PI3_OPTIMIZATION": "false",
+        },
+        unset_keys=["RESOLUTION", "FPS", "TARGET_FPS", "JPEG_QUALITY", "MAX_STREAM_CONNECTIONS"],
+    )
+
+    assert data["pi3_profile_enabled"] is True
+    assert data["resolution"] == [640, 480]
+    assert data["fps"] == 12
+    assert data["target_fps"] == 12
+    assert data["jpeg_quality"] == 75
+    assert data["max_stream_connections"] == 3
+
+
+def test_manual_env_values_override_pi3_profile_defaults(workspace_root):
+    """Manual env values should take precedence over PI3 profile defaults."""
+    data = _load_main_config_with_env(
+        workspace_root,
+        {
+            "MOCK_CAMERA": "true",
+            "PI3_PROFILE": "true",
+            "MOTION_IN_OCEAN_PI3_OPTIMIZATION": "false",
+            "RESOLUTION": "1024x768",
+            "FPS": "20",
+            "TARGET_FPS": "8",
+            "JPEG_QUALITY": "88",
+            "MAX_STREAM_CONNECTIONS": "9",
+        },
+    )
+
+    assert data["pi3_profile_enabled"] is True
+    assert data["resolution"] == [1024, 768]
+    assert data["fps"] == 20
+    assert data["target_fps"] == 8
+    assert data["jpeg_quality"] == 88
+    assert data["max_stream_connections"] == 9
+
+
+def test_metrics_remain_stable_under_pi3_target_fps_throttle(workspace_root):
+    """/metrics should report sane FPS and low frame age with Pi 3 throttle settings."""
+    script = """
+import json
+import pathlib
+import sys
+import time
+
+repo = pathlib.Path.cwd()
+sys.path.insert(0, str(repo / "pi_camera_in_docker"))
+import main
+
+buffer = main.FrameBuffer(main.stream_stats, target_fps=main.target_fps)
+for _ in range(30):
+    buffer.write(b"x" * 1024)
+    time.sleep(0.01)
+
+client = main.app.test_client()
+metrics = client.get("/metrics").get_json()
+print(json.dumps(metrics))
+"""
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "MOCK_CAMERA": "true",
+            "PI3_PROFILE": "true",
+            "MOTION_IN_OCEAN_PI3_OPTIMIZATION": "false",
+            "TARGET_FPS": "12",
+        }
+    )
+
+    process = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=workspace_root,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    metrics = json.loads(process.stdout.strip().splitlines()[-1])
+
+    assert metrics["camera_active"] is False
+    assert metrics["current_fps"] <= 13.5
+    assert metrics["last_frame_age_seconds"] is not None
+    assert metrics["last_frame_age_seconds"] < 1.5
