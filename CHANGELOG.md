@@ -84,6 +84,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.2] - 2026-02-06
+
+- Merge pull request #118 from CyanAutomation/codex/clean-up-unused-imports-and-methods
+- Merge pull request #117 from CyanAutomation/codex/implement-pi3_profile-mode-for-camera-settings
+- Update main.py
+- refactor: remove unused stream/stat imports and no-op monotonic calls
+- Add Pi 3 profile defaults and config coverage
+
 ## [1.12.1] - 2026-02-05
 
 - refactor: Update Dockerfile and main.py for mock camera support using Pillow
