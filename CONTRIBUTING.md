@@ -97,6 +97,16 @@ make ci                # Run all CI checks (lint, type-check, test)
 make validate          # Run all validation checks including security
 ```
 
+### Frontend lint setup
+
+If you are working on frontend/tooling files, run the JavaScript lint setup locally:
+
+```bash
+# Install Node.js (LTS) first
+npm ci
+npm run lint
+```
+
 ### Local build & run
 
 ```bash
