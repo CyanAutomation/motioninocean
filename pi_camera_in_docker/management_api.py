@@ -1,12 +1,60 @@
 import json
+import socket
 import urllib.error
 import urllib.request
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
+from urllib.parse import urlparse
 
 from flask import Flask, jsonify, request
 
 from node_registry import FileNodeRegistry, NodeValidationError
+
+
+class NodeRequestError(RuntimeError):
+    """Raised when a proxied node request cannot be completed safely."""
+
+
+def _validate_node_base_url(base_url: str) -> None:
+    import ipaddress
+
+    parsed = urlparse(base_url)
+    hostname = parsed.hostname
+    if parsed.scheme not in {"http", "https"} or not hostname:
+        raise NodeRequestError("node target is invalid")
+
+    blocked_hosts = {"localhost", "metadata.google.internal", "metadata", "169.254.169.254"}
+    if hostname.lower() in blocked_hosts:
+        raise NodeRequestError("node target is not allowed")
+
+    def _is_blocked_address(raw: str) -> bool:
+        ip = ipaddress.ip_address(raw)
+        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+            ip = ip.ipv4_mapped
+        return any(
+            (
+                ip.is_private,
+                ip.is_loopback,
+                ip.is_link_local,
+                ip.is_multicast,
+                ip.is_reserved,
+                ip.is_unspecified,
+            )
+        )
+
+    try:
+        if _is_blocked_address(hostname):
+            raise NodeRequestError("node target is not allowed")
+    except ValueError:
+        try:
+            records = socket.getaddrinfo(hostname, parsed.port or None, proto=socket.IPPROTO_TCP)
+        except socket.gaierror:
+            return
+
+        for record in records:
+            resolved_ip = record[4][0]
+            if _is_blocked_address(resolved_ip):
+                raise NodeRequestError("node target is not allowed")
 
 
 def _error_response(
@@ -38,25 +86,9 @@ def _build_headers(node: Dict[str, Any]) -> Dict[str, str]:
 
 
 def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[dict] = None):
-    import ipaddress
-    from urllib.parse import urlparse
-    
     base_url = node["base_url"].rstrip("/")
-    parsed = urlparse(base_url)
-    
-    # Validate URL to prevent SSRF
-    if parsed.hostname:
-        try:
-            ip = ipaddress.ip_address(parsed.hostname)
-            if ip.is_private or ip.is_loopback or ip.is_link_local:
-                raise ValueError(f"Access to private IP ranges not allowed: {parsed.hostname}")
-        except ValueError as e:
-            if "does not appear to be" not in str(e):
-                raise
-        # Block cloud metadata endpoints
-        if parsed.hostname in ["169.254.169.254", "metadata.google.internal"]:
-            raise ValueError(f"Access to metadata endpoints not allowed: {parsed.hostname}")
-    
+    _validate_node_base_url(base_url)
+
     url = base_url + path
     headers = {"Content-Type": "application/json", **_build_headers(node)}
     data = json.dumps(body).encode("utf-8") if body is not None else None
@@ -95,13 +127,21 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
         health_code, health_payload = _request_json(node, "GET", "/health")
         ready_code, ready_payload = _request_json(node, "GET", "/ready")
         metrics_code, metrics_payload = _request_json(node, "GET", "/metrics")
-    except ConnectionError as exc:
+    except NodeRequestError:
         return {}, (
             "NODE_UNREACHABLE",
             f"node {node_id} is unreachable",
             503,
             node_id,
-            {"reason": str(exc)},
+            {"reason": "target is blocked"},
+        )
+    except ConnectionError:
+        return {}, (
+            "NODE_UNREACHABLE",
+            f"node {node_id} is unreachable",
+            503,
+            node_id,
+            {"reason": "connection failed"},
         )
 
     if any(code in {401, 403} for code in (health_code, ready_code, metrics_code)):
@@ -196,13 +236,21 @@ def register_management_routes(app: Flask, registry_path: str) -> None:
         payload = request.get_json(silent=True) or {}
         try:
             status_code, response = _request_json(node, "POST", f"/api/actions/{action}", payload)
-        except ConnectionError as exc:
+        except NodeRequestError:
             return _error_response(
                 "NODE_UNREACHABLE",
                 f"node {node_id} is unreachable",
                 503,
                 node_id=node_id,
-                details={"reason": str(exc), "action": action},
+                details={"reason": "target is blocked", "action": action},
+            )
+        except ConnectionError:
+            return _error_response(
+                "NODE_UNREACHABLE",
+                f"node {node_id} is unreachable",
+                503,
+                node_id=node_id,
+                details={"reason": "connection failed", "action": action},
             )
 
         if status_code in {401, 403}:
