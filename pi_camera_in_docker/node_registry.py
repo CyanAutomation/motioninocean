@@ -122,11 +122,14 @@ class FileNodeRegistry(NodeRegistry):
     def _exclusive_lock(self):
         lock_path = self.path.parent / f"{self.path.name}.lock"
         with open(lock_path, "w", encoding="utf-8") as lock_file:
-            try:
-                import fcntl
+        try:
+            import fcntl
 
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
-                yield
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        except ImportError:
+            pass
+        try:
+            yield
             finally:
                 try:
                     import fcntl
