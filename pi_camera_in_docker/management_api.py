@@ -38,7 +38,26 @@ def _build_headers(node: Dict[str, Any]) -> Dict[str, str]:
 
 
 def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[dict] = None):
-    url = node["base_url"].rstrip("/") + path
+    import ipaddress
+    from urllib.parse import urlparse
+    
+    base_url = node["base_url"].rstrip("/")
+    parsed = urlparse(base_url)
+    
+    # Validate URL to prevent SSRF
+    if parsed.hostname:
+        try:
+            ip = ipaddress.ip_address(parsed.hostname)
+            if ip.is_private or ip.is_loopback or ip.is_link_local:
+                raise ValueError(f"Access to private IP ranges not allowed: {parsed.hostname}")
+        except ValueError as e:
+            if "does not appear to be" not in str(e):
+                raise
+        # Block cloud metadata endpoints
+        if parsed.hostname in ["169.254.169.254", "metadata.google.internal"]:
+            raise ValueError(f"Access to metadata endpoints not allowed: {parsed.hostname}")
+    
+    url = base_url + path
     headers = {"Content-Type": "application/json", **_build_headers(node)}
     data = json.dumps(body).encode("utf-8") if body is not None else None
     req = urllib.request.Request(url=url, method=method, headers=headers, data=data)
