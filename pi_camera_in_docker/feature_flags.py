@@ -9,7 +9,8 @@ import logging
 import os
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, Set
+from typing import Any, Callable, Dict, Optional
+
 
 logger = logging.getLogger(__name__)
 
@@ -32,22 +33,22 @@ class FeatureFlag:
 
     name: str
     """The flag name (without MOTION_IN_OCEAN_ prefix)."""
-    
+
     default: bool
     """Default value if not set in environment."""
-    
+
     category: FeatureFlagCategory
     """Category for organizing related flags."""
-    
+
     description: str
     """Human-readable description of the flag's purpose."""
-    
+
     backward_compat_vars: Optional[list[str]] = None
     """List of legacy environment variable names that map to this flag."""
-    
+
     validator: Optional[Callable[[str], bool]] = None
     """Optional custom validator function for parsing string values."""
-    
+
     enabled: bool = False
     """Current enabled state (populated at initialization)."""
 
@@ -329,8 +330,7 @@ class FeatureFlags:
                     value = os.environ.get(legacy_var)
                     if value is not None:
                         logger.debug(
-                            f"Feature flag '{flag_name}' loaded from legacy "
-                            f"variable '{legacy_var}'"
+                            f"Feature flag '{flag_name}' loaded from legacy variable '{legacy_var}'"
                         )
                         break
 
@@ -358,15 +358,14 @@ class FeatureFlags:
         value_lower = value.lower().strip()
         if value_lower in ("true", "1", "t", "yes", "on"):
             return True
-        elif value_lower in ("false", "0", "f", "no", "off"):
+        if value_lower in ("false", "0", "f", "no", "off"):
             return False
-        else:
-            logger.warning(
-                f"Invalid boolean value '{value}' for feature flag '{flag_name}'. "
-                f"Valid values: true, 1, t, yes, on, false, 0, f, no, off. "
-                f"Using default {self._flags[flag_name].default}"
-            )
-            return self._flags[flag_name].default
+        logger.warning(
+            f"Invalid boolean value '{value}' for feature flag '{flag_name}'. "
+            f"Valid values: true, 1, t, yes, on, false, 0, f, no, off. "
+            f"Using default {self._flags[flag_name].default}"
+        )
+        return self._flags[flag_name].default
 
     def is_enabled(self, flag_name: str) -> bool:
         """Check if a feature flag is enabled.
@@ -403,9 +402,7 @@ class FeatureFlags:
             Dict of flag names to enabled states for that category.
         """
         return {
-            name: flag.enabled
-            for name, flag in self._flags.items()
-            if flag.category == category
+            name: flag.enabled for name, flag in self._flags.items() if flag.category == category
         }
 
     def get_flag_info(self, flag_name: str) -> Optional[Dict[str, Any]]:

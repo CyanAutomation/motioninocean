@@ -4,9 +4,9 @@ Tests flag registration, loading, backward compatibility, and API endpoints.
 """
 
 import os
-import json
-import pytest
 from unittest import mock
+
+import pytest
 
 
 class TestFeatureFlagRegistry:
@@ -23,7 +23,7 @@ class TestFeatureFlagRegistry:
 
     def test_all_flags_registered(self):
         """Test that all expected flags are registered."""
-        from pi_camera_in_docker.feature_flags import FeatureFlags, FeatureFlagCategory
+        from pi_camera_in_docker.feature_flags import FeatureFlags
 
         flags = FeatureFlags()
         all_flags = flags.get_all_flags()
@@ -53,9 +53,9 @@ class TestFeatureFlagRegistry:
             "ALTERNATIVE_PROTOCOLS",
         }
 
-        assert expected_flags.issubset(
-            set(all_flags.keys())
-        ), f"Missing flags: {expected_flags - set(all_flags.keys())}"
+        assert expected_flags.issubset(set(all_flags.keys())), (
+            f"Missing flags: {expected_flags - set(all_flags.keys())}"
+        )
 
     def test_backward_compatibility_mock_camera(self):
         """Test backward compatibility with legacy MOCK_CAMERA env var."""
@@ -154,14 +154,10 @@ class TestFeatureFlagRegistry:
         ]
 
         for value, expected in test_cases:
-            with mock.patch.dict(
-                os.environ, {"MOTION_IN_OCEAN_DEBUG_LOGGING": value}, clear=True
-            ):
+            with mock.patch.dict(os.environ, {"MOTION_IN_OCEAN_DEBUG_LOGGING": value}, clear=True):
                 flags = FeatureFlags()
                 flags.load()
-                assert (
-                    flags.is_enabled("DEBUG_LOGGING") == expected
-                ), f"Failed for value: {value}"
+                assert flags.is_enabled("DEBUG_LOGGING") == expected, f"Failed for value: {value}"
 
     def test_unknown_flag_raises_error(self):
         """Test that querying unknown flag raises KeyError."""
@@ -173,7 +169,7 @@ class TestFeatureFlagRegistry:
 
     def test_get_flags_by_category(self):
         """Test retrieving flags by category."""
-        from pi_camera_in_docker.feature_flags import FeatureFlags, FeatureFlagCategory
+        from pi_camera_in_docker.feature_flags import FeatureFlagCategory, FeatureFlags
 
         flags = FeatureFlags()
         performance_flags = flags.get_flags_by_category(FeatureFlagCategory.PERFORMANCE)
@@ -262,8 +258,9 @@ class TestFeatureFlagsAPI:
     def test_feature_flags_api_endpoint_exists(self):
         """Test that the /api/feature-flags endpoint exists."""
         try:
-            from flask import Flask
             import json
+
+            from flask import Flask
 
             app = Flask(__name__)
 

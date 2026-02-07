@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 from flask import Flask, Response, request
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +37,9 @@ class StreamStats:
 
 
 class FrameBuffer(io.BufferedIOBase):
-    def __init__(self, stats: StreamStats, max_frame_size: Optional[int] = None, target_fps: int = 0) -> None:
+    def __init__(
+        self, stats: StreamStats, max_frame_size: Optional[int] = None, target_fps: int = 0
+    ) -> None:
         self.frame: Optional[bytes] = None
         self.condition = Condition()
         self._stats = stats
@@ -84,23 +87,23 @@ def import_camera_components(allow_pykms_mock: bool):
     try:
         from picamera2 import Picamera2
     except (ModuleNotFoundError, AttributeError) as e:
-        if allow_pykms_mock and ('pykms' in str(e) or 'kms' in str(e) or 'PixelFormat' in str(e)):
+        if allow_pykms_mock and ("pykms" in str(e) or "kms" in str(e) or "PixelFormat" in str(e)):
             import sys
             import types
 
-            pykms_mock = types.ModuleType('pykms')
-            kms_mock = types.ModuleType('kms')
+            pykms_mock = types.ModuleType("pykms")
+            kms_mock = types.ModuleType("kms")
 
             class PixelFormatMock:
-                RGB888 = 'RGB888'
-                XRGB8888 = 'XRGB8888'
-                BGR888 = 'BGR888'
-                XBGR8888 = 'XBGR8888'
+                RGB888 = "RGB888"
+                XRGB8888 = "XRGB8888"
+                BGR888 = "BGR888"
+                XBGR8888 = "XBGR8888"
 
             pykms_mock.PixelFormat = PixelFormatMock
             kms_mock.PixelFormat = PixelFormatMock
-            sys.modules['pykms'] = pykms_mock
-            sys.modules['kms'] = kms_mock
+            sys.modules["pykms"] = pykms_mock
+            sys.modules["kms"] = kms_mock
             from picamera2 import Picamera2
         else:
             raise
@@ -115,12 +118,19 @@ def get_stream_status(stats: StreamStats, resolution: Tuple[int, int]) -> Dict[s
     now = time.monotonic()
     frame_count, last_frame_time, current_fps = stats.snapshot()
     age = None if last_frame_time is None else round(now - last_frame_time, 2)
-    return {'frames_captured': frame_count, 'current_fps': round(current_fps, 2), 'resolution': resolution, 'last_frame_age_seconds': age}
+    return {
+        "frames_captured": frame_count,
+        "current_fps": round(current_fps, 2),
+        "resolution": resolution,
+        "last_frame_age_seconds": age,
+    }
 
 
-def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[str], bool], log_event: Callable[..., None]) -> None:
-    output = state['output']
-    tracker = state['connection_tracker']
+def register_webcam_routes(
+    app: Flask, state: dict, is_flag_enabled: Callable[[str], bool], log_event: Callable[..., None]
+) -> None:
+    output = state["output"]
+    tracker = state["connection_tracker"]
 
     def gen():
         try:
@@ -130,16 +140,16 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
                     frame = output.frame
                 if frame is None:
                     continue
-                yield b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n'
+                yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
         finally:
             tracker.decrement()
 
     def _build_stream_response() -> Response:
-        if not state['recording_started'].is_set():
-            return Response('Camera stream not ready.', status=503)
-        if tracker.get_count() >= state['max_stream_connections']:
-            return Response('Too many connections', status=429)
-        
+        if not state["recording_started"].is_set():
+            return Response("Camera stream not ready.", status=503)
+        if tracker.get_count() >= state["max_stream_connections"]:
+            return Response("Too many connections", status=429)
+
         def gen_with_tracking():
             tracker.increment()
             try:
@@ -149,44 +159,44 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
                         frame = output.frame
                     if frame is None:
                         continue
-                    yield b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n'
+                    yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
             finally:
                 tracker.decrement()
-        
-        return Response(gen_with_tracking(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+        return Response(gen_with_tracking(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
     def _build_snapshot_response() -> Response:
-        if not state['recording_started'].is_set():
-            return Response('Camera is not ready yet.', status=503)
+        if not state["recording_started"].is_set():
+            return Response("Camera is not ready yet.", status=503)
         with output.condition:
             frame = output.frame
         if frame is None:
-            return Response('No camera frame available yet.', status=503)
-        return Response(frame, mimetype='image/jpeg')
+            return Response("No camera frame available yet.", status=503)
+        return Response(frame, mimetype="image/jpeg")
 
-    @app.route('/stream.mjpg')
+    @app.route("/stream.mjpg")
     def video_feed() -> Response:
         return _build_stream_response()
 
-    @app.route('/snapshot.jpg')
+    @app.route("/snapshot.jpg")
     def snapshot() -> Response:
         return _build_snapshot_response()
 
-    @app.route('/webcam')
-    @app.route('/webcam/')
+    @app.route("/webcam")
+    @app.route("/webcam/")
     def octoprint_compat_webcam() -> Response:
-        if not is_flag_enabled('OCTOPRINT_COMPATIBILITY'):
-            return Response('OctoPrint compatibility routes are disabled.', status=404)
-        action = request.args.get('action', '').strip().lower()
-        if action == 'stream':
+        if not is_flag_enabled("OCTOPRINT_COMPATIBILITY"):
+            return Response("OctoPrint compatibility routes are disabled.", status=404)
+        action = request.args.get("action", "").strip().lower()
+        if action == "stream":
             return _build_stream_response()
-        if action == 'snapshot':
+        if action == "snapshot":
             return _build_snapshot_response()
-        return Response('Unsupported action', status=400)
+        return Response("Unsupported action", status=400)
 
 
 def register_management_camera_error_routes(app: Flask) -> None:
-    @app.route('/stream.mjpg')
-    @app.route('/snapshot.jpg')
+    @app.route("/stream.mjpg")
+    @app.route("/snapshot.jpg")
     def camera_routes_disabled() -> Response:
-        return Response('Camera endpoints are disabled in management mode.', status=404)
+        return Response("Camera endpoints are disabled in management mode.", status=404)

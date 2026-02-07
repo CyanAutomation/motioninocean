@@ -159,20 +159,22 @@ def test_error_handling_present(workspace_root, error_type, marker):
 )
 def test_environment_variable_handled(workspace_root, env_var):
     """Verify environment variables are handled in main.py.
-    
+
     Tests that env vars are handled either directly via os.environ.get()
     or through the feature flags system (which supports backward compatibility).
     """
     main_py = workspace_root / "pi_camera_in_docker" / "main.py"
     code = main_py.read_text()
-    
+
     # Check for direct env var handling OR feature flags system (backward compat)
     has_direct_access = f'os.environ.get("{env_var}"' in code
-    has_feature_flags = f'is_flag_enabled("{env_var}")' in code or "from feature_flags import" in code
-    
-    assert (
-        has_direct_access or has_feature_flags
-    ), f"Missing {env_var} handling (neither direct access nor feature flags found)"
+    has_feature_flags = (
+        f'is_flag_enabled("{env_var}")' in code or "from feature_flags import" in code
+    )
+
+    assert has_direct_access or has_feature_flags, (
+        f"Missing {env_var} handling (neither direct access nor feature flags found)"
+    )
 
 
 def test_env_file_exists(workspace_root):

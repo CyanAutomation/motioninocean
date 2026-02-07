@@ -5,16 +5,12 @@ import logging
 import os
 import signal
 import time
-from datetime import datetime
 from threading import Event, Thread
 from typing import Any, Dict, Optional, Tuple
 
 from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
-from flask import Flask, Response, jsonify, render_template
+from flask import Flask, jsonify, render_template
 from flask_cors import CORS
-from PIL import Image
-from werkzeug.serving import make_server
-
 from modes.webcam import (
     ConnectionTracker,
     FrameBuffer,
@@ -24,7 +20,9 @@ from modes.webcam import (
     register_management_camera_error_routes,
     register_webcam_routes,
 )
+from PIL import Image
 from shared import register_shared_routes
+from werkzeug.serving import make_server
 
 
 ALLOWED_APP_MODES = {"webcam_node", "management"}
@@ -56,17 +54,17 @@ def _load_config() -> Dict[str, Any]:
         resolution = _parse_resolution(os.environ.get("RESOLUTION", "640x480"))
     except ValueError:
         resolution = (640, 480)
-    
+
     try:
         fps = int(os.environ.get("FPS", "0"))
     except ValueError:
         fps = 0
-    
+
     try:
         target_fps = int(os.environ.get("TARGET_FPS", str(fps)))
     except ValueError:
         target_fps = fps
-    
+
     try:
         jpeg_quality = int(os.environ.get("JPEG_QUALITY", "90"))
         if not 1 <= jpeg_quality <= 100:
@@ -98,7 +96,8 @@ def _load_config() -> Dict[str, Any]:
         "max_stream_connections": max_stream_connections,
         "mock_camera": is_flag_enabled("MOCK_CAMERA"),
         "cors_enabled": is_flag_enabled("CORS_SUPPORT"),
-        "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower() in ("1", "true", "yes"),
+        "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
+        in ("1", "true", "yes"),
     }
 
 
@@ -117,11 +116,18 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
 
     @app.route("/")
     def index() -> str:
-        return render_template("index.html", width=config["resolution"][0], height=config["resolution"][1])
+        return render_template(
+            "index.html", width=config["resolution"][0], height=config["resolution"][1]
+        )
 
     @app.route("/api/config")
     def api_config():
-        return jsonify({"camera_settings": {"resolution": list(config["resolution"]), "fps": config["fps"]}, "app_mode": config["app_mode"]}), 200
+        return jsonify(
+            {
+                "camera_settings": {"resolution": list(config["resolution"]), "fps": config["fps"]},
+                "app_mode": config["app_mode"],
+            }
+        ), 200
 
     @app.route("/api/feature-flags")
     def api_flags():
@@ -155,8 +161,12 @@ def create_webcam_node_app(config: Optional[Dict[str, Any]] = None) -> Flask:
         }
     )
 
-    register_shared_routes(app, state, get_stream_status=lambda: get_stream_status(stream_stats, cfg["resolution"]))
-    register_webcam_routes(app, state, is_flag_enabled=is_flag_enabled, log_event=lambda *a, **k: None)
+    register_shared_routes(
+        app, state, get_stream_status=lambda: get_stream_status(stream_stats, cfg["resolution"])
+    )
+    register_webcam_routes(
+        app, state, is_flag_enabled=is_flag_enabled, log_event=lambda *a, **k: None
+    )
     _run_webcam_mode(state, cfg)
     return app
 
@@ -185,9 +195,13 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
         try:
             picam2_instance = Picamera2()  # Picamera2() marker
             state["picam2_instance"] = picam2_instance
-            video_config = picam2_instance.create_video_configuration(main={"size": cfg["resolution"], "format": "BGR888"})  # create_video_configuration marker
+            video_config = picam2_instance.create_video_configuration(
+                main={"size": cfg["resolution"], "format": "BGR888"}
+            )  # create_video_configuration marker
             picam2_instance.configure(video_config)
-            picam2_instance.start_recording(JpegEncoder(q=cfg["jpeg_quality"]), FileOutput(output))  # start_recording marker
+            picam2_instance.start_recording(
+                JpegEncoder(q=cfg["jpeg_quality"]), FileOutput(output)
+            )  # start_recording marker
             recording_started.set()
         except PermissionError as e:  # except PermissionError marker
             logger.error("Permission denied", exc_info=e)
@@ -204,7 +218,11 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
 
 
 config = _load_config()
-app = create_management_app(config) if config["app_mode"] == "management" else create_webcam_node_app(config)
+app = (
+    create_management_app(config)
+    if config["app_mode"] == "management"
+    else create_webcam_node_app(config)
+)
 
 
 def handle_shutdown(signum: int, _frame: Optional[object]) -> None:
