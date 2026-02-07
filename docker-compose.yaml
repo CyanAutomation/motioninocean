@@ -112,6 +112,7 @@ services:
       DELETE: 0
       PUT: 0
 
+  # NOTE: Webcam and management profiles must not be run simultaneously
   motion-in-ocean-management:
     <<: *motion-in-ocean-common
     container_name: motion-in-ocean-management
