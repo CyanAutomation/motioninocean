@@ -84,6 +84,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.5] - 2026-02-07
+
+- fix: correct indentation for motion-in-ocean-management service in docker-compose.yaml
+- feat: enhance multi-host deployment support with docker-socket-proxy and configuration options
+
 ## [1.12.4] - 2026-02-07
 
 - refactor: rename webcam-node to webcam and update related configurations
