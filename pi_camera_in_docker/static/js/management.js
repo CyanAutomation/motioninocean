@@ -74,6 +74,12 @@ function renderRows() {
     return;
   }
 
+  const escapeHtml = (str) => {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  };
+
   tableBody.innerHTML = nodes
     .map((node) => {
       const status = nodeStatusMap.get(node.id) || { status: "unknown", stream_available: false };
@@ -81,15 +87,15 @@ function renderRows() {
       const statusText = status.status || "unknown";
       return `
         <tr>
-          <td><strong>${node.name}</strong><br><small>${node.id}</small></td>
-          <td>${node.base_url}</td>
-          <td>${node.transport}</td>
-          <td><span class="status-pill ${statusClass(statusText)}">${statusText}</span></td>
+          <td><strong>${escapeHtml(node.name)}</strong><br><small>${escapeHtml(node.id)}</small></td>
+          <td>${escapeHtml(node.base_url)}</td>
+          <td>${escapeHtml(node.transport)}</td>
+          <td><span class="status-pill ${statusClass(statusText)}">${escapeHtml(statusText)}</span></td>
           <td>${streamText}</td>
           <td>
             <div class="row-actions">
-              <button class="secondary" data-action="edit" data-id="${node.id}">Edit</button>
-              <button class="danger" data-action="delete" data-id="${node.id}">Remove</button>
+              <button class="secondary" data-action="edit" data-id="${escapeHtml(node.id)}">Edit</button>
+              <button class="danger" data-action="delete" data-id="${escapeHtml(node.id)}">Remove</button>
             </div>
           </td>
         </tr>
