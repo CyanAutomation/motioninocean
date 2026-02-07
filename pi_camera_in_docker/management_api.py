@@ -29,6 +29,8 @@ def _validate_node_base_url(base_url: str) -> None:
 
     def _is_blocked_address(raw: str) -> bool:
         ip = ipaddress.ip_address(raw)
+        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+            ip = ip.ipv4_mapped
         return any(
             (
                 ip.is_private,
