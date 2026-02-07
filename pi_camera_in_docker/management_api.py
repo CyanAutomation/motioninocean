@@ -201,8 +201,7 @@ def register_management_routes(
     registry = FileNodeRegistry(registry_path)
     token_roles = _parse_token_roles(token_roles_raw)
 
-    def _enforce_admin_for_docker() -> Optional[Tuple[Any, int]]:
-        payload = request.get_json(silent=True) or {}
+    def _enforce_admin_for_docker(payload: Dict[str, Any]) -> Optional[Tuple[Any, int]]:
         transport = payload.get("transport")
         if transport != "docker":
             return None
@@ -222,10 +221,10 @@ def register_management_routes(
 
     @app.route("/api/nodes", methods=["POST"])
     def create_node():
-        admin_error = _enforce_admin_for_docker()
+        payload = request.get_json(silent=True) or {}
+        admin_error = _enforce_admin_for_docker(payload)
         if admin_error is not None:
             return admin_error
-        payload = request.get_json(silent=True) or {}
         try:
             created = registry.create_node(payload)
         except NodeValidationError as exc:
@@ -243,10 +242,10 @@ def register_management_routes(
 
     @app.route("/api/nodes/<node_id>", methods=["PUT"])
     def update_node(node_id: str):
-        admin_error = _enforce_admin_for_docker()
+        payload = request.get_json(silent=True) or {}
+        admin_error = _enforce_admin_for_docker(payload)
         if admin_error is not None:
             return admin_error
-        payload = request.get_json(silent=True) or {}
         try:
             updated = registry.update_node(node_id, payload)
         except NodeValidationError as exc:
