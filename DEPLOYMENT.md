@@ -33,7 +33,7 @@ Motion in Ocean supports a hub-and-spoke architecture where:
 │  │  - Web UI (port 8001)    │        │  │  - Stream        │    │
 │  │  - API (port 8001)       │        │  │    (port 8000)   │    │
 │  │  - Node Registry         │        │  │  - Health Check  │    │
-│  │  ◄──── HTTP GET/POST ─────┼─HTTP──────► /health          │    │
+│  │  ◄──── HTTP GET/POST ─────┼─HTTP──────► /health         │    │
 │  └──────────────────────────┘        │  │  /ready          │    │
 │                                      │  │  /metrics        │    │
 │  ┌──────────────────────────┐        │  └──────────────────┘    │
