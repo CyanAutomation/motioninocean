@@ -7,11 +7,11 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
-      }
-    }
+      },
+    },
   },
   pluginJs.configs.recommended,
   {
     ignores: ["node_modules/", "htmlcov/", "__pycache__/"],
-  }
+  },
 ];
