@@ -23,13 +23,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         curl \
         ca-certificates \
         gcc && \
-    rm -rf /var/lib/apt/lists/* && \
     # Add Raspberry Pi repository
     curl -Lfs https://archive.raspberrypi.org/debian/raspberrypi.gpg.key -o /tmp/raspberrypi.gpg.key && \
     gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
     echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
     rm /tmp/raspberrypi.gpg.key && \
-    # Install picamera2 and libcamera from Raspberry Pi repository
+    # Update apt cache after adding Raspberry Pi repository, then install picamera2 packages
     apt-get update && \
     apt-get install -y --no-install-recommends \
         python3-libcamera \
@@ -44,35 +43,43 @@ COPY requirements.txt /app/
 # Install base requirements, then conditionally install Pillow for mock camera support
 # Using --break-system-packages flag required for pip on Debian 12+
 # Exclude numpy from pip installation (using python3-numpy from apt for binary compatibility with simplejpeg)
+# Add --no-cache-dir to reduce pip cache in built packages
 RUN --mount=type=cache,target=/root/.cache/pip \
     grep -v "numpy" requirements.txt | grep -v "Pillow" > /tmp/requirements-base.txt && \
-    pip3 install --break-system-packages -r /tmp/requirements-base.txt && \
+    pip3 install --break-system-packages --no-cache-dir -r /tmp/requirements-base.txt && \
     if [ "$INCLUDE_MOCK_CAMERA" = "true" ]; then \
         echo "Installing Pillow for mock camera support..." && \
-        grep "Pillow" requirements.txt | pip3 install --break-system-packages -r /dev/stdin; \
+        grep "Pillow" requirements.txt | pip3 install --break-system-packages --no-cache-dir -r /dev/stdin; \
     else \
         echo "Skipping Pillow installation (INCLUDE_MOCK_CAMERA=false)"; \
-    fi
+    fi && \
+    rm -rf /tmp/requirements-base.txt /tmp/*
 
 # ---- Final Stage ----
 # The final image uses debian:bookworm-slim with system Python to ensure apt-installed
 # python3-picamera2 is available in the same Python environment used by the application
 FROM debian:bookworm-slim
 
-# Copy Raspberry Pi repository and keys from builder
-COPY --from=builder /usr/share/keyrings/raspberrypi.gpg /usr/share/keyrings/raspberrypi.gpg
-COPY --from=builder /etc/apt/sources.list.d/raspi.list /etc/apt/sources.list.d/raspi.list
-
-# Install Python runtime and camera packages from Raspberry Pi repository
-# Consolidated into single layer for better caching and reduced image size
+# Set up Raspberry Pi repository and install runtime packages
+# Using BuildKit cache mounts to speed up rebuilds
 # Note: OpenCV not installed (edge detection feature was removed)
 # Note: python3-flask removed (duplicate - installed via pip), libcap-dev and libcamera-dev removed (dev libraries not needed in runtime)
-# Note: curl removed (replaced with Python-based healthcheck script)
 # Note: pykms/python3-kms not installed as DrmPreview functionality is not used in headless streaming mode
-# Using BuildKit cache mounts to speed up rebuilds
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gnupg \
+        curl \
+        ca-certificates && \
+    # Add Raspberry Pi repository
+    curl -Lfs https://archive.raspberrypi.org/debian/raspberrypi.gpg.key -o /tmp/raspberrypi.gpg.key && \
+    gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
+    echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
+    rm /tmp/raspberrypi.gpg.key && \
+    # Update apt cache after adding Raspberry Pi repository
+    apt-get update && \
+    # Install Python runtime and camera packages from Raspberry Pi repository
     apt-get install -y --no-install-recommends \
         python3 \
         python3-numpy \

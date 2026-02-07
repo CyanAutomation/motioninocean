@@ -170,7 +170,6 @@ MOCK_CAMERA=false
 * `TZ` - Logging timezone.
 * `MOCK_CAMERA` - `true` disables Picamera2 initialisation and streams dummy frames (dev/testing).
 
-
 ### Pi 3 recommended preset
 
 For Raspberry Pi 3, enable profile mode to apply conservative defaults when explicit runtime env vars are absent:
@@ -228,6 +227,7 @@ make docker-build-prod
 ```
 
 **Build Arguments:**
+
 - `INCLUDE_MOCK_CAMERA=true|false` - Include Pillow for mock camera testing (~7MB)
 
 ---
