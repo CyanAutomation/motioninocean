@@ -84,6 +84,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.6] - 2026-02-07
+
+- docs: add note to prevent simultaneous running of webcam and management profiles
+- fix: update environment variable names for consistency and clarity in configuration files
+- chore: update environment configuration and docker-compose for clarity and role-specific settings
+- Merge pull request #153 from CyanAutomation/codex/add-request-logging-middleware-in-flask-apps
+- Update tests/test_management_mode.py
+- Add consistent Flask request logging and docs
+- fix: rename webcam port variable and update related documentation
+- Merge pull request #152 from CyanAutomation/codex/github-mention-add-env-driven-logging-configuration-helper
+- Harden logging env parsing for empty values
+- fix: update healthcheck settings and add management port configuration
+- fix: improve formatting and add comments in deployment and docker-compose files
+- Merge pull request #151 from CyanAutomation/codex/add-logging-setup-helper-and-configuration
+- Add configurable application logging setup
+- Merge pull request #150 from CyanAutomation/codex/replace-emoji-markers-with-severity-prefixes
+- Update test-docker-optimization.sh
+- fix: correct formatting for HTTP GET/POST line in deployment guide
+- chore: normalize logging markers to ascii severities
+
 ## [1.12.5] - 2026-02-07
 
 - fix: correct indentation for motion-in-ocean-management service in docker-compose.yaml
