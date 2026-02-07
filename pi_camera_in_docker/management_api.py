@@ -305,9 +305,9 @@ def register_management_routes(app: Flask, config: Dict[str, Any]) -> None:
                 return _error_response(
                     "DOCKER_SOCKET_DISABLED",
                     "docker transport is disabled; set MANAGEMENT_DOCKER_SOCKET_ENABLED=true to enable",
-                    403,
-                    node_id=node_id,
-                )
+        if node.get("transport") == "docker":
+            token = _extract_api_token()
+            role = _required_role_for_token(token, write_tokens, admin_tokens)
             if role != "admin":
                 return _error_response(
                     "MANAGEMENT_FORBIDDEN",
