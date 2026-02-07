@@ -955,7 +955,11 @@ def octoprint_compat_webcam() -> Response:
         return Response("Missing required query parameter: action.", status=400)
 
     sanitized_action = action.replace("\r", "\\r").replace("\n", "\\n")
-    return Response(f"Unsupported action: {sanitized_action!r}", status=400)
+    return Response(
+        f"Unsupported action: {sanitized_action!r}",
+        status=400,
+        mimetype="text/plain",
+    )
 
 
 def run_flask_server(host: str = "0.0.0.0", port: int = 8000) -> None:
