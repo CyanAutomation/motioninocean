@@ -101,7 +101,9 @@ services:
       # Deny all write operations for security
       POST: 0
       DELETE: 0
-      PUT: 0  motion-in-ocean-management:
+      PUT: 0
+
+  motion-in-ocean-management:
     <<: *motion-in-ocean-common
     container_name: motion-in-ocean-management
     profiles: ["management"]
