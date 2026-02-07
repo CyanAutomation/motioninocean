@@ -178,3 +178,92 @@ This PRD reflects the current backend implementation in:
 - Flask app and endpoints (`pi_camera_in_docker/main.py`)
 - Docker deployment and healthcheck setup (`Dockerfile`, `docker-compose.yaml`, `healthcheck.py`)
 - Configuration and usage documentation (`README.md`)
+
+---
+
+## Management Mode API Spec
+
+When `APP_MODE=management`, the backend exposes a node management control plane for multi-node operation.
+
+### Node Registry Model
+
+Node objects are persisted through a registry abstraction (initial implementation: file-backed JSON on a mounted volume via `NODE_REGISTRY_PATH`, default `/data/node-registry.json`). Future implementations may swap in DB or service-backed registries without changing HTTP contracts.
+
+**Node fields**
+
+- `id` (string, required, unique)
+- `name` (string, required)
+- `base_url` (string, required, `http://` or `https://`)
+- `auth` (object, required; e.g. `{ "type": "none" }` or bearer/basic variants)
+- `labels` (object, required)
+- `last_seen` (string, required, ISO timestamp)
+- `capabilities` (array of strings, required)
+- `transport` (string, required: `http` or `docker`)
+
+### Endpoints
+
+#### 1) Node CRUD: `/api/nodes`
+
+- `GET /api/nodes`
+  - Returns `{ "nodes": [Node, ...] }`
+- `POST /api/nodes`
+  - Creates a node from a full Node payload.
+  - Returns `201` with created Node.
+- `GET /api/nodes/{id}`
+  - Returns Node.
+  - Returns `404` if not found.
+- `PUT /api/nodes/{id}`
+  - Accepts partial Node payload and validates merged result.
+  - Returns updated Node.
+- `DELETE /api/nodes/{id}`
+  - Returns `204` when deleted.
+  - Returns `404` when missing.
+
+#### 2) Node health/status aggregation: `/api/nodes/{id}/status`
+
+- `GET /api/nodes/{id}/status`
+  - For `http` transport, aggregates downstream probe data from `/health`, `/ready`, and `/metrics`.
+  - Returns consolidated response:
+    - node status and readiness
+    - stream availability (`stream_available`)
+    - probe payloads/status codes
+  - For unsupported transport, returns transport-specific status with `TRANSPORT_UNSUPPORTED` details.
+
+#### 3) Optional control actions: `/api/nodes/{id}/actions/...`
+
+- `POST /api/nodes/{id}/actions/{action}`
+  - Optional passthrough for node-side action handlers.
+  - Current HTTP behavior forwards to `{base_url}/api/actions/{action}` with JSON body.
+  - Returns downstream response/status.
+
+#### 4) Consolidated overview: `/api/management/overview`
+
+- `GET /api/management/overview`
+  - Aggregates all registered nodes and status checks.
+  - Returns:
+    - `summary.total_nodes`
+    - `summary.unavailable_nodes`
+    - `summary.stream_available_nodes`
+    - per-node status entries, including errors for unreachable/unauthorized nodes.
+
+### Validation & Error Schema
+
+All management API errors follow:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR|NODE_NOT_FOUND|NODE_UNREACHABLE|NODE_UNAUTHORIZED|TRANSPORT_UNSUPPORTED",
+    "message": "human-readable message",
+    "node_id": "optional-node-id",
+    "details": {},
+    "timestamp": "ISO-8601 timestamp"
+  }
+}
+```
+
+Special cases:
+
+- `NODE_UNREACHABLE` (HTTP 503): downstream node not reachable / timeout / network failure.
+- `NODE_UNAUTHORIZED` (HTTP 401): downstream node returned auth failure (`401`/`403`).
+- `VALIDATION_ERROR` (HTTP 400): malformed node payload or unsupported field values.
