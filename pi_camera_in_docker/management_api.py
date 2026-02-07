@@ -23,7 +23,7 @@ def _validate_node_base_url(base_url: str) -> None:
     if parsed.scheme not in {"http", "https"} or not hostname:
         raise NodeRequestError("node target is invalid")
 
-    blocked_hosts = {"localhost", "metadata.google.internal", "metadata"}
+    blocked_hosts = {"localhost", "metadata.google.internal", "metadata", "169.254.169.254"}
     if hostname.lower() in blocked_hosts:
         raise NodeRequestError("node target is not allowed")
 
