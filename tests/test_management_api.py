@@ -75,7 +75,7 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
 
     action = client.post("/api/nodes/node-2/actions/restart", json={})
     assert action.status_code == 403
-    assert action.json["error"]["code"] == "DOCKER_SOCKET_DISABLED"
+    assert action.json["error"]["code"] == "MANAGEMENT_FORBIDDEN"
 
 
 def test_management_write_auth_required(monkeypatch, tmp_path):
@@ -127,5 +127,60 @@ def test_outbound_allowlist_enforced(monkeypatch, tmp_path):
         "transport": "http",
     }
     response = client.post("/api/nodes", json=blocked)
+    assert response.status_code == 400
+    assert response.json["error"]["code"] == "OUTBOUND_POLICY_VIOLATION"
+
+
+def test_docker_actions_require_admin_even_when_auth_disabled(monkeypatch, tmp_path):
+    monkeypatch.setenv("APP_MODE", "management")
+    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MANAGEMENT_AUTH_REQUIRED", "false")
+    monkeypatch.setenv("MANAGEMENT_WRITE_API_TOKENS", "write-token")
+    monkeypatch.setenv("MANAGEMENT_ADMIN_API_TOKENS", "admin-token")
+    monkeypatch.setenv("MANAGEMENT_DOCKER_SOCKET_ENABLED", "true")
+    sys.modules.pop("main", None)
+    main = importlib.import_module("main")
+    client = main.create_management_app(main._load_config()).test_client()
+
+    payload = {
+        "id": "docker-authz",
+        "name": "Docker Node",
+        "base_url": "http://docker.example.com",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["stream"],
+        "transport": "docker",
+    }
+    assert client.post("/api/nodes", json=payload).status_code == 201
+
+    forbidden = client.post("/api/nodes/docker-authz/actions/restart", json={})
+    assert forbidden.status_code == 403
+    assert forbidden.json["error"]["code"] == "MANAGEMENT_FORBIDDEN"
+
+    unavailable = client.post(
+        "/api/nodes/docker-authz/actions/restart",
+        json={},
+        headers={"Authorization": "Bearer admin-token"},
+    )
+    assert unavailable.status_code == 501
+    assert unavailable.json["error"]["code"] == "DOCKER_OPERATION_UNAVAILABLE"
+
+
+def test_numeric_loopback_is_blocked(monkeypatch, tmp_path):
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-loopback",
+        "name": "Loopback",
+        "base_url": "http://127.0.0.1:8080",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+
+    response = client.post("/api/nodes", json=payload)
     assert response.status_code == 400
     assert response.json["error"]["code"] == "OUTBOUND_POLICY_VIOLATION"
