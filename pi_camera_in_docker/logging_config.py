@@ -55,7 +55,9 @@ class TextFormatter(ISO8601Formatter):
         super().__init__(fmt=template)
 
 
-def _parse_bool(raw_value: str) -> bool:
+def _parse_bool(raw_value: Optional[str]) -> bool:
+    if raw_value is None:
+        return False
     return raw_value.strip().lower() in {"1", "true", "yes", "on"}
 
 
@@ -68,10 +70,10 @@ def configure_logging() -> None:
     - LOG_INCLUDE_IDENTIFIERS: true/false for process/thread ids (default: false)
     """
 
-    raw_level = os.environ.get("LOG_LEVEL", DEFAULT_LOG_LEVEL).strip().upper()
+    raw_level = (os.environ.get("LOG_LEVEL") or DEFAULT_LOG_LEVEL).strip().upper()
     level = getattr(logging, raw_level, logging.INFO)
 
-    log_format = os.environ.get("LOG_FORMAT", DEFAULT_LOG_FORMAT).strip().lower()
+    log_format = (os.environ.get("LOG_FORMAT") or DEFAULT_LOG_FORMAT).strip().lower()
     include_identifiers = _parse_bool(os.environ.get("LOG_INCLUDE_IDENTIFIERS", "false"))
 
     if log_format == "json":
