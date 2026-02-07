@@ -126,6 +126,8 @@ def test_docker_compose_security(workspace_root):
         ("/health", '@app.route("/health")'),
         ("/ready", '@app.route("/ready")'),
         ("/stream.mjpg", '@app.route("/stream.mjpg")'),
+        ("/webcam", '@app.route("/webcam")'),
+        ("/webcam/", '@app.route("/webcam/")'),
     ],
 )
 def test_flask_endpoint_defined(workspace_root, endpoint, marker):
@@ -344,6 +346,67 @@ print(json.dumps(metrics))
     assert metrics["current_fps"] <= 13.5
     assert metrics["last_frame_age_seconds"] is not None
     assert metrics["last_frame_age_seconds"] < 1.5
+
+
+def test_octoprint_compat_webcam_routes_support_trailing_and_non_trailing_slash(workspace_root):
+    """/webcam and /webcam/ should both directly serve OctoPrint actions."""
+    script = """
+import json
+import pathlib
+import sys
+
+repo = pathlib.Path.cwd()
+sys.path.insert(0, str(repo / "pi_camera_in_docker"))
+import main
+
+client = main.app.test_client()
+results = {}
+for route in ("/webcam", "/webcam/"):
+    stream_response = client.get(f"{route}?action=stream")
+    snapshot_response = client.get(f"{route}?action=snapshot")
+    key = "with_slash" if route.endswith("/") else "no_slash"
+    results[f"stream_{key}"] = {
+        "status": stream_response.status_code,
+        "location": stream_response.headers.get("Location"),
+    }
+    results[f"snapshot_{key}"] = {
+        "status": snapshot_response.status_code,
+        "location": snapshot_response.headers.get("Location"),
+        "content_type": snapshot_response.headers.get("Content-Type", ""),
+    }
+
+print(json.dumps(results))
+"""
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "MOCK_CAMERA": "true",
+            "OCTOPRINT_COMPATIBILITY": "true",
+        }
+    )
+
+    process = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=workspace_root,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    results = json.loads(process.stdout.strip().splitlines()[-1])
+
+    assert results["stream_no_slash"]["status"] == 503
+    assert results["stream_with_slash"]["status"] == 503
+    assert results["stream_no_slash"]["location"] is None
+    assert results["stream_with_slash"]["location"] is None
+
+    assert results["snapshot_no_slash"]["status"] == 503
+    assert results["snapshot_with_slash"]["status"] == 503
+    assert results["snapshot_no_slash"]["location"] is None
+    assert results["snapshot_with_slash"]["location"] is None
+    assert results["snapshot_no_slash"]["content_type"].startswith("text/html")
+    assert results["snapshot_with_slash"]["content_type"].startswith("text/html")
 
 
 def test_octoprint_compat_webcam_action_normalization(workspace_root):

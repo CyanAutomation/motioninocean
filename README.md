@@ -298,7 +298,10 @@ Use motion-in-ocean's direct routes:
 
 ### OctoPrint compatibility endpoints
 
-Use these if you want OctoPrint-style `?action=` routes:
+Use these if you want OctoPrint-style `?action=` routes.
+
+Both `/webcam?action=...` and `/webcam/?action=...` are supported.
+For consistency, prefer the canonical trailing-slash form in OctoPrint config:
 
 * `webcam.stream`: `http://<host>:8000/webcam/?action=stream`
 * `webcam.snapshot`: `http://<host>:8000/webcam/?action=snapshot`

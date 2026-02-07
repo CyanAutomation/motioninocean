@@ -958,6 +958,7 @@ def snapshot() -> Response:
     return _build_snapshot_response()
 
 
+@app.route("/webcam")
 @app.route("/webcam/")
 def octoprint_compat_webcam() -> Response:
     """OctoPrint-compatible webcam endpoint."""
