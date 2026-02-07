@@ -6,7 +6,7 @@ import os
 import signal
 import time
 from threading import Event, Thread
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Set, Tuple
 
 from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 from flask import Flask, jsonify, render_template
@@ -47,6 +47,10 @@ def _parse_resolution(resolution_str: str) -> Tuple[int, int]:
 
 
 def _load_config() -> Dict[str, Any]:
+    def _env(name: str, default: str = "") -> str:
+        prefixed_name = f"MOTION_IN_OCEAN_{name}"
+        return os.environ.get(name, os.environ.get(prefixed_name, default))
+
     app_mode = os.environ.get("APP_MODE", DEFAULT_APP_MODE).strip().lower()  # os.environ.get marker
     if app_mode not in ALLOWED_APP_MODES:
         raise ValueError(f"Invalid APP_MODE {app_mode}")
@@ -87,6 +91,19 @@ def _load_config() -> Dict[str, Any]:
     if not 1 <= max_stream_connections <= 100:
         max_stream_connections = 10
 
+    management_auth_required = _env("MANAGEMENT_AUTH_REQUIRED", "false").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    management_write_tokens = _env("MANAGEMENT_WRITE_API_TOKENS", "")
+    management_admin_tokens = _env("MANAGEMENT_ADMIN_API_TOKENS", "")
+    management_outbound_allowlist_raw = _env("MANAGEMENT_OUTBOUND_ALLOWLIST", "")
+
+    outbound_allowlist: Set[str] = {
+        item.strip() for item in management_outbound_allowlist_raw.split(",") if item.strip()
+    }
+
     return {
         "app_mode": app_mode,
         "resolution": resolution,
@@ -100,6 +117,18 @@ def _load_config() -> Dict[str, Any]:
         "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
         in ("1", "true", "yes"),
         "node_registry_path": os.environ.get("NODE_REGISTRY_PATH", "/data/node-registry.json"),
+        "management_auth_required": management_auth_required,
+        "management_write_api_tokens": {
+            token.strip() for token in management_write_tokens.split(",") if token.strip()
+        },
+        "management_admin_api_tokens": {
+            token.strip() for token in management_admin_tokens.split(",") if token.strip()
+        },
+        "management_docker_socket_enabled": _env("MANAGEMENT_DOCKER_SOCKET_ENABLED", "false")
+        .strip()
+        .lower()
+        in ("1", "true", "yes"),
+        "management_outbound_allowlist": outbound_allowlist,
     }
 
 
@@ -144,7 +173,7 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     app, state = _create_base_app(cfg)
     register_shared_routes(app, state)
     register_management_camera_error_routes(app)
-    register_management_routes(app, cfg["node_registry_path"])
+    register_management_routes(app, cfg)
     return app
 
 

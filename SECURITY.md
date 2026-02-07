@@ -38,6 +38,21 @@ Important security considerations:
 - The service may be accessible over LAN depending on compose configuration
 - The HTTP service is not intended to be publicly exposed
 
+### Management mode threat model
+
+When `APP_MODE=management`, the service acts as a control plane and can mutate node definitions and invoke remote actions. In this mode, security boundaries are:
+
+- **Management write API** (`POST/PUT/DELETE /api/nodes*`, `POST /api/nodes/<id>/actions/<action>`): must be treated as privileged and protected with API tokens.
+- **Outbound node communication** (`base_url` probes and actions): can become SSRF/open-proxy behavior if unrestricted.
+- **Docker transport operations**: should be considered highly privileged host-control operations and must remain explicitly disabled unless intentionally enabled.
+
+Implemented hardening controls:
+
+- Write endpoints support token-based auth with role separation (`write` and `admin`).
+- Docker transport actions require `admin` role and explicit opt-in (`MANAGEMENT_DOCKER_SOCKET_ENABLED=true`).
+- Outbound requests validate URL scheme/host and enforce optional hostname allowlist (`MANAGEMENT_OUTBOUND_ALLOWLIST`).
+- Private/loopback/link-local/metadata hosts are blocked for management outbound requests.
+
 ### Recommended mitigations
 
 - Bind to localhost where possible:
@@ -48,6 +63,19 @@ Important security considerations:
 
 * If remote access is needed, use a reverse proxy with authentication (Caddy/Nginx/Traefik)
 * Do not expose the service to the public internet without access controls
+
+### Deployment hardening checklist (management mode)
+
+- [ ] Set `MOTION_IN_OCEAN_APP_MODE=management` only for control-plane deployments.
+- [ ] Enable management write auth with `MOTION_IN_OCEAN_MANAGEMENT_AUTH_REQUIRED=true`.
+- [ ] Configure strong, rotated secrets for:
+  - `MOTION_IN_OCEAN_MANAGEMENT_WRITE_API_TOKENS`
+  - `MOTION_IN_OCEAN_MANAGEMENT_ADMIN_API_TOKENS`
+- [ ] Set `MOTION_IN_OCEAN_MANAGEMENT_OUTBOUND_ALLOWLIST` to approved node hostnames.
+- [ ] Keep `MOTION_IN_OCEAN_MANAGEMENT_DOCKER_SOCKET_ENABLED=false` unless docker transport is explicitly required.
+- [ ] If docker transport is enabled, restrict admin tokens and isolate host socket access.
+- [ ] Bind service to trusted networks only and front with authenticated reverse proxy when remote access is needed.
+- [ ] Monitor management API logs for rejected auth and outbound policy violations.
 
 ---
 

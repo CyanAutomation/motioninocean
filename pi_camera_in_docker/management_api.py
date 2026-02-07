@@ -1,8 +1,11 @@
 import json
+import ipaddress
 import urllib.error
 import urllib.request
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple
+from functools import wraps
+from typing import Any, Dict, Optional, Set, Tuple
+from urllib.parse import urlparse
 
 from flask import Flask, jsonify, request
 
@@ -37,26 +40,52 @@ def _build_headers(node: Dict[str, Any]) -> Dict[str, str]:
     return {}
 
 
-def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[dict] = None):
-    import ipaddress
-    from urllib.parse import urlparse
-    
-    base_url = node["base_url"].rstrip("/")
+def _extract_api_token() -> str:
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.lower().startswith("bearer "):
+        return auth_header[7:].strip()
+    return request.headers.get("X-API-Token", "").strip()
+
+
+def _required_role_for_token(
+    token: str, write_tokens: Set[str], admin_tokens: Set[str]
+) -> Optional[str]:
+    if token in admin_tokens:
+        return "admin"
+    if token in write_tokens:
+        return "write"
+    return None
+
+
+def _validate_outbound_url(base_url: str, allowlist: Set[str]) -> None:
     parsed = urlparse(base_url)
-    
-    # Validate URL to prevent SSRF
-    if parsed.hostname:
-        try:
-            ip = ipaddress.ip_address(parsed.hostname)
-            if ip.is_private or ip.is_loopback or ip.is_link_local:
-                raise ValueError(f"Access to private IP ranges not allowed: {parsed.hostname}")
-        except ValueError as e:
-            if "does not appear to be" not in str(e):
-                raise
-        # Block cloud metadata endpoints
-        if parsed.hostname in ["169.254.169.254", "metadata.google.internal"]:
-            raise ValueError(f"Access to metadata endpoints not allowed: {parsed.hostname}")
-    
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError("only http and https schemes are allowed")
+    if not parsed.hostname:
+        raise ValueError("base_url must include a hostname")
+
+    hostname = parsed.hostname.lower()
+    if hostname in {"localhost", "metadata.google.internal", "169.254.169.254"}:
+        raise ValueError(f"access to restricted host not allowed: {hostname}")
+
+    try:
+        ip = ipaddress.ip_address(hostname)
+        if ip.is_private or ip.is_loopback or ip.is_link_local:
+            raise ValueError(f"access to private IP ranges not allowed: {hostname}")
+    except ValueError as exc:
+        if "does not appear to be" not in str(exc):
+            raise
+
+    if allowlist and hostname not in allowlist:
+        raise ValueError(f"hostname {hostname} is not in MANAGEMENT_OUTBOUND_ALLOWLIST")
+
+
+def _request_json(
+    node: Dict[str, Any], method: str, path: str, allowlist: Set[str], body: Optional[dict] = None
+):
+    base_url = node["base_url"].rstrip("/")
+    _validate_outbound_url(base_url, allowlist)
+
     url = base_url + path
     headers = {"Content-Type": "application/json", **_build_headers(node)}
     data = json.dumps(body).encode("utf-8") if body is not None else None
@@ -77,7 +106,7 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
         raise ConnectionError(str(exc.reason)) from exc
 
 
-def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tuple]]:
+def _status_for_node(node: Dict[str, Any], allowlist: Set[str]) -> Tuple[Dict[str, Any], Optional[Tuple]]:
     node_id = node["id"]
     if node.get("transport") != "http":
         return {
@@ -92,9 +121,17 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
         }, None
 
     try:
-        health_code, health_payload = _request_json(node, "GET", "/health")
-        ready_code, ready_payload = _request_json(node, "GET", "/ready")
-        metrics_code, metrics_payload = _request_json(node, "GET", "/metrics")
+        health_code, health_payload = _request_json(node, "GET", "/health", allowlist)
+        ready_code, ready_payload = _request_json(node, "GET", "/ready", allowlist)
+        metrics_code, metrics_payload = _request_json(node, "GET", "/metrics", allowlist)
+    except ValueError as exc:
+        return {}, (
+            "OUTBOUND_POLICY_VIOLATION",
+            f"node {node_id} outbound request blocked",
+            400,
+            node_id,
+            {"reason": str(exc)},
+        )
     except ConnectionError as exc:
         return {}, (
             "NODE_UNREACHABLE",
@@ -129,16 +166,54 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
     return status, None
 
 
-def register_management_routes(app: Flask, registry_path: str) -> None:
-    registry = FileNodeRegistry(registry_path)
+def register_management_routes(app: Flask, config: Dict[str, Any]) -> None:
+    registry = FileNodeRegistry(config["node_registry_path"])
+    require_auth = config.get("management_auth_required", False)
+    write_tokens = config.get("management_write_api_tokens", set())
+    admin_tokens = config.get("management_admin_api_tokens", set())
+    docker_socket_enabled = config.get("management_docker_socket_enabled", False)
+    outbound_allowlist = config.get("management_outbound_allowlist", set())
+
+    def require_role(min_role: str):
+        def decorator(func):
+            @wraps(func)
+            def wrapped(*args, **kwargs):
+                if not require_auth:
+                    return func(*args, **kwargs)
+                token = _extract_api_token()
+                role = _required_role_for_token(token, write_tokens, admin_tokens)
+                if role is None:
+                    return _error_response(
+                        "MANAGEMENT_AUTH_REQUIRED",
+                        "valid management API token is required",
+                        401,
+                    )
+                if min_role == "admin" and role != "admin":
+                    return _error_response(
+                        "MANAGEMENT_FORBIDDEN",
+                        "admin role required for this operation",
+                        403,
+                    )
+                return func(*args, **kwargs)
+
+            return wrapped
+
+        return decorator
 
     @app.route("/api/nodes", methods=["GET"])
     def list_nodes():
         return jsonify({"nodes": registry.list_nodes()}), 200
 
     @app.route("/api/nodes", methods=["POST"])
+    @require_role("write")
     def create_node():
         payload = request.get_json(silent=True) or {}
+        base_url = payload.get("base_url", "")
+        if base_url:
+            try:
+                _validate_outbound_url(base_url, outbound_allowlist)
+            except ValueError as exc:
+                return _error_response("OUTBOUND_POLICY_VIOLATION", str(exc), 400)
         try:
             created = registry.create_node(payload)
         except NodeValidationError as exc:
@@ -153,8 +228,15 @@ def register_management_routes(app: Flask, registry_path: str) -> None:
         return jsonify(node), 200
 
     @app.route("/api/nodes/<node_id>", methods=["PUT"])
+    @require_role("write")
     def update_node(node_id: str):
         payload = request.get_json(silent=True) or {}
+        base_url = payload.get("base_url")
+        if isinstance(base_url, str):
+            try:
+                _validate_outbound_url(base_url, outbound_allowlist)
+            except ValueError as exc:
+                return _error_response("OUTBOUND_POLICY_VIOLATION", str(exc), 400, node_id=node_id)
         try:
             updated = registry.update_node(node_id, payload)
         except NodeValidationError as exc:
@@ -164,6 +246,7 @@ def register_management_routes(app: Flask, registry_path: str) -> None:
         return jsonify(updated), 200
 
     @app.route("/api/nodes/<node_id>", methods=["DELETE"])
+    @require_role("write")
     def delete_node(node_id: str):
         if not registry.delete_node(node_id):
             return _error_response("NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id)
@@ -174,17 +257,49 @@ def register_management_routes(app: Flask, registry_path: str) -> None:
         node = registry.get_node(node_id)
         if node is None:
             return _error_response("NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id)
+        if node.get("transport") == "docker" and not docker_socket_enabled:
+            return _error_response(
+                "DOCKER_SOCKET_DISABLED",
+                "docker transport is disabled; set MANAGEMENT_DOCKER_SOCKET_ENABLED=true to enable",
+                403,
+                node_id=node_id,
+            )
 
-        result, error = _status_for_node(node)
+        result, error = _status_for_node(node, outbound_allowlist)
         if error:
             return _error_response(*error)
         return jsonify(result), 200
 
     @app.route("/api/nodes/<node_id>/actions/<action>", methods=["POST"])
+    @require_role("write")
     def node_action(node_id: str, action: str):
         node = registry.get_node(node_id)
         if node is None:
             return _error_response("NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id)
+        if node.get("transport") == "docker":
+            token = _extract_api_token()
+            role = _required_role_for_token(token, write_tokens, admin_tokens)
+            if require_auth and role != "admin":
+                return _error_response(
+                    "MANAGEMENT_FORBIDDEN",
+                    "admin role required for docker operations",
+                    403,
+                    node_id=node_id,
+                )
+            if not docker_socket_enabled:
+                return _error_response(
+                    "DOCKER_SOCKET_DISABLED",
+                    "docker transport is disabled; set MANAGEMENT_DOCKER_SOCKET_ENABLED=true to enable",
+                    403,
+                    node_id=node_id,
+                )
+            return _error_response(
+                "DOCKER_OPERATION_UNAVAILABLE",
+                "docker operations are not yet implemented",
+                501,
+                node_id=node_id,
+            )
+
         if node.get("transport") != "http":
             return _error_response(
                 "TRANSPORT_UNSUPPORTED",
@@ -195,7 +310,17 @@ def register_management_routes(app: Flask, registry_path: str) -> None:
 
         payload = request.get_json(silent=True) or {}
         try:
-            status_code, response = _request_json(node, "POST", f"/api/actions/{action}", payload)
+            status_code, response = _request_json(
+                node, "POST", f"/api/actions/{action}", outbound_allowlist, payload
+            )
+        except ValueError as exc:
+            return _error_response(
+                "OUTBOUND_POLICY_VIOLATION",
+                f"node {node_id} outbound request blocked",
+                400,
+                node_id=node_id,
+                details={"reason": str(exc), "action": action},
+            )
         except ConnectionError as exc:
             return _error_response(
                 "NODE_UNREACHABLE",
@@ -221,7 +346,7 @@ def register_management_routes(app: Flask, registry_path: str) -> None:
         statuses = []
         unavailable_nodes = 0
         for node in nodes:
-            result, error = _status_for_node(node)
+            result, error = _status_for_node(node, outbound_allowlist)
             if error:
                 unavailable_nodes += 1
                 statuses.append(
