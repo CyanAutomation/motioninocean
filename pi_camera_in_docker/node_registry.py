@@ -146,17 +146,27 @@ class FileNodeRegistry(NodeRegistry):
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
     def update_node(self, node_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
+        import fcntl
+        
         validated_patch = validate_node(patch, partial=True)
-        data = self._load()
-        for index, existing in enumerate(data["nodes"]):
-            if existing.get("id") != node_id:
-                continue
-            merged = {**existing, **validated_patch}
-            merged = validate_node(merged)
-            data["nodes"][index] = merged
-            self._save(data)
-            return merged
-        raise KeyError(node_id)
+        
+        # Acquire exclusive lock for atomic read-modify-write
+        lock_path = self.path.parent / f"{self.path.name}.lock"
+        with open(lock_path, "w") as lock_file:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            try:
+                data = self._load()
+                for index, existing in enumerate(data["nodes"]):
+                    if existing.get("id") != node_id:
+                        continue
+                    merged = {**existing, **validated_patch}
+                    merged = validate_node(merged)
+                    data["nodes"][index] = merged
+                    self._save(data)
+                    return merged
+                raise KeyError(node_id)
+            finally:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
     def delete_node(self, node_id: str) -> bool:
         data = self._load()
