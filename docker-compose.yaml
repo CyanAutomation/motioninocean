@@ -52,9 +52,10 @@ x-motion-in-ocean-camera: &motion-in-ocean-camera
     - 'c 250:* rmw'  # /dev/media* devices (media controllers for libcamera)
 
 services:
-  motion-in-ocean:
+  motion-in-ocean-webcam:
     <<: [*motion-in-ocean-common, *motion-in-ocean-camera]
     container_name: motion-in-ocean
+    profiles: ["webcam"]
     environment:
       # Deployment settings from .env file
       TZ: ${TZ}
@@ -89,6 +90,7 @@ services:
   docker-socket-proxy:
     image: ghcr.io/tecnativa/docker-socket-proxy:${MOTION_IN_OCEAN_IMAGE_TAG}
     container_name: docker-socket-proxy
+    profiles: ["docker-socket-proxy"]
     restart: unless-stopped
     env_file: ./.env
     security_opt:
@@ -134,9 +136,10 @@ services:
       start_period: 10s
 
   # NOTE: Webcam and management profiles must not be run simultaneously
-  motion-in-ocean:
+  motion-in-ocean-management:
     <<: *motion-in-ocean-common
     container_name: motion-in-ocean-management
+    profiles: ["management"]
     environment:
       # Deployment settings from .env file
       TZ: ${TZ}
