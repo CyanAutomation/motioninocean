@@ -65,18 +65,18 @@ def _validate_outbound_url(base_url: str, allowlist: Set[str]) -> None:
         raise ValueError("base_url must include a hostname")
 
     hostname = parsed.hostname.lower()
-    
-    # Check for IP address first to catch numeric loopback/private IPs
+
+    # Check IP literals first to block numeric loopback/private addresses.
     try:
         ip = ipaddress.ip_address(hostname)
         if ip.is_private or ip.is_loopback or ip.is_link_local:
             raise ValueError(f"access to private IP ranges not allowed: {hostname}")
     except ValueError as exc:
-        # Not an IP address, continue with hostname checks
+        # Not an IP address, continue with hostname checks.
         if "does not appear to be" not in str(exc):
             raise
-    
-    # Block known metadata/restricted hostnames
+
+    # Block known metadata/restricted hostnames.
     if hostname in {"localhost", "metadata.google.internal", "169.254.169.254"}:
         raise ValueError(f"access to restricted host not allowed: {hostname}")
 
@@ -134,7 +134,7 @@ def _status_for_node(node: Dict[str, Any], allowlist: Set[str]) -> Tuple[Dict[st
             f"node {node_id} outbound request blocked",
             400,
             node_id,
-            {"reason": str(exc)},
+            {"reason": "outbound URL failed policy validation"},
         )
     except ConnectionError as exc:
         return {}, (
@@ -301,13 +301,6 @@ def register_management_routes(app: Flask, config: Dict[str, Any]) -> None:
         if node.get("transport") == "docker":
             token = _extract_api_token()
             role = _required_role_for_token(token, write_tokens, admin_tokens)
-            if not docker_socket_enabled:
-                return _error_response(
-                    "DOCKER_SOCKET_DISABLED",
-                    "docker transport is disabled; set MANAGEMENT_DOCKER_SOCKET_ENABLED=true to enable",
-        if node.get("transport") == "docker":
-            token = _extract_api_token()
-            role = _required_role_for_token(token, write_tokens, admin_tokens)
             if role != "admin":
                 return _error_response(
                     "MANAGEMENT_FORBIDDEN",
@@ -348,7 +341,7 @@ def register_management_routes(app: Flask, config: Dict[str, Any]) -> None:
                 f"node {node_id} outbound request blocked",
                 400,
                 node_id=node_id,
-                details={"reason": str(exc), "action": action},
+                details={"reason": "outbound URL failed policy validation", "action": action},
             )
         except ConnectionError as exc:
             return _error_response(
