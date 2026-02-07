@@ -20,16 +20,30 @@ services:
     container_name: motion-in-ocean
     profiles: ["webcam"]
     environment:
+      # Timezone for logging and timestamps
       TZ: ${TZ}
+      
+      # Camera capture settings: resolution (WIDTHxHEIGHT, default 640x480), 
+      # frame rate (0=auto, 30=30fps), target output fps throttle (0=same as FPS)
       RESOLUTION: ${MOTION_IN_OCEAN_RESOLUTION}
       FPS: ${MOTION_IN_OCEAN_FPS}
       TARGET_FPS: ${MOTION_IN_OCEAN_TARGET_FPS:-}
+      
+      # JPEG quality (1-100; 90=default, 60-70 for bandwidth-constrained networks)
       JPEG_QUALITY: ${MOTION_IN_OCEAN_JPEG_QUALITY}
+      
+      # Streaming limits: max concurrent MJPEG clients (Pi3: 2-3, Pi4: 5-10, Pi5: 20+)
       MAX_STREAM_CONNECTIONS: ${MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS:-10}
+      
+      # Performance profiles: Pi3_PROFILE=true applies conservative defaults if vars unset
       PI3_PROFILE: ${MOTION_IN_OCEAN_PI3_PROFILE:-false}
+      
+      # Compatibility and feature flags: OctoPrint routes, CORS origins, mock camera (testing)
       MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
       CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
+      
+      # Application mode and health check configuration (webcam mode uses /ready for readiness checks)
       APP_MODE: webcam
       HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM:-true}
     ports:
@@ -73,7 +87,7 @@ services:
       interval: 2m
       timeout: 10s
       retries: 3
-      start_period: 1m
+      start_period: 2m
 
   # Optional: Docker Socket Proxy for remote Docker host access from management mode
   # Enable by setting ENABLE_DOCKER_SOCKET_PROXY=true
@@ -108,16 +122,23 @@ services:
     container_name: motion-in-ocean-management
     profiles: ["management"]
     environment:
+      # Timezone for logging and timestamps
       TZ: ${TZ}
+      
+      # Camera settings (not used in management mode, but inherited from common config)
       RESOLUTION: ${MOTION_IN_OCEAN_RESOLUTION}
       FPS: ${MOTION_IN_OCEAN_FPS}
       TARGET_FPS: ${MOTION_IN_OCEAN_TARGET_FPS:-}
       JPEG_QUALITY: ${MOTION_IN_OCEAN_JPEG_QUALITY}
       MAX_STREAM_CONNECTIONS: ${MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS:-10}
       PI3_PROFILE: ${MOTION_IN_OCEAN_PI3_PROFILE:-false}
+      
+      # Feature flags and compatibility options
       MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
       CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
+      
+      # Application mode and health check configuration (management uses /health for liveness checks)
       APP_MODE: management
       HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT:-false}
     ports:

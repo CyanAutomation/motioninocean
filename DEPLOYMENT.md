@@ -323,7 +323,8 @@ docker-compose --profile webcam restart
 
 ### Management Cannot Reach Webcam (Connection Refused)
 
-**Symptom**: 
+**Symptom**:
+
 ```
 curl: (7) Failed to connect to 192.168.1.101 port 8000: Connection refused
 ```
@@ -358,6 +359,7 @@ curl: (7) Failed to connect to 192.168.1.101 port 8000: Connection refused
 ### Health/Ready Endpoint Returns 503
 
 **Symptom**:
+
 ```
 curl http://192.168.1.101:8000/ready
 {"status": "waiting"}  # or error
@@ -378,6 +380,7 @@ curl http://192.168.1.101:8000/ready
 ### Docker Socket Proxy Permission Denied
 
 **Symptom**:
+
 ```
 curl: (7) Failed to connect to 192.168.1.101 port 2375: Permission denied
 ```
@@ -414,6 +417,7 @@ docker-compose --profile docker-socket-proxy up -d docker-socket-proxy
 ### Node Registry File Not Found
 
 **Symptom**:
+
 ```
 ERROR: Node registry file not found at /data/node-registry.json
 ```
@@ -468,6 +472,7 @@ Motion in Ocean uses **security-first defaults**:
 1. **Firewall Configuration**:
    - Restrict port access to trusted hosts/subnets
    - Example (UFW):
+
      ```bash
      sudo ufw allow from 192.168.1.0/24 to any port 8000
      sudo ufw allow from 192.168.1.0/24 to any port 8001
@@ -480,10 +485,12 @@ Motion in Ocean uses **security-first defaults**:
 
 3. **Authentication for Production**:
    - Enable bearer token roles:
+
      ```bash
      MANAGEMENT_AUTH_REQUIRED=true
      MANAGEMENT_TOKEN_ROLES="token1:admin,token2:user"
      ```
+
    - Include tokens in node registry for HTTP transport nodes
    - Require admin role for docker transport
 
@@ -508,4 +515,3 @@ Motion in Ocean uses **security-first defaults**:
 - [SECURITY.md](SECURITY.md) - Security policy and reporting
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Development and testing
 - [pi-camera-troubleshooting skill](/.github/skills/pi-camera-troubleshooting/SKILL.md) - Camera diagnostics
-

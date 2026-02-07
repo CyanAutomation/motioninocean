@@ -308,12 +308,14 @@ For local networks with multiple cameras, run **management mode** on one host to
 ### Quick Reference
 
 **Webcam Host** (e.g., `192.168.1.101`):
+
 ```bash
 export MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
 docker-compose --profile webcam up -d
 ```
 
 **Management Host** (e.g., `192.168.1.100`):
+
 ```bash
 export MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
 docker-compose --profile management up -d
@@ -345,7 +347,6 @@ Then add nodes with `transport: "docker"` in management UI (requires admin role)
 ---
 
 ## Healthchecks
-
 
 The container exposes two endpoints:
 
