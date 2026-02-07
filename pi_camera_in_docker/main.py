@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional, Tuple
 from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 from flask import Flask, jsonify, render_template
 from flask_cors import CORS
+from logging_config import configure_logging
 from management_api import register_management_routes
 from modes.webcam import (
     ConnectionTracker,
@@ -29,8 +30,8 @@ from werkzeug.serving import make_server
 ALLOWED_APP_MODES = {"webcam", "management"}
 DEFAULT_APP_MODE = "webcam"
 
+configure_logging()
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 feature_flags: FeatureFlags = get_feature_flags()
 feature_flags.load()
