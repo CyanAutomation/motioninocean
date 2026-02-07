@@ -49,10 +49,27 @@ def _load_config() -> Dict[str, Any]:
     if app_mode not in ALLOWED_APP_MODES:
         raise ValueError(f"Invalid APP_MODE {app_mode}")
 
-    resolution = _parse_resolution(os.environ.get("RESOLUTION", "640x480"))
-    fps = int(os.environ.get("FPS", "0"))
-    target_fps = int(os.environ.get("TARGET_FPS", str(fps)))
-    jpeg_quality = int(os.environ.get("JPEG_QUALITY", "90"))
+    try:
+        resolution = _parse_resolution(os.environ.get("RESOLUTION", "640x480"))
+    except ValueError:
+        resolution = (640, 480)
+    
+    try:
+        fps = int(os.environ.get("FPS", "0"))
+    except ValueError:
+        fps = 0
+    
+    try:
+        target_fps = int(os.environ.get("TARGET_FPS", str(fps)))
+    except ValueError:
+        target_fps = fps
+    
+    try:
+        jpeg_quality = int(os.environ.get("JPEG_QUALITY", "90"))
+        if not 1 <= jpeg_quality <= 100:
+            jpeg_quality = 90
+    except ValueError:
+        jpeg_quality = 90
 
     return {
         "app_mode": app_mode,
