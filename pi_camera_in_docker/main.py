@@ -947,12 +947,15 @@ def octoprint_compat_webcam() -> Response:
         return Response("OctoPrint compatibility routes are disabled.", status=404)
 
     action = request.args.get("action")
-    if action == "stream":
-        return _build_stream_response()
-    if action == "snapshot":
-        return _build_snapshot_response()
     if action is None:
         return Response("Missing required query parameter: action.", status=400)
+
+    normalized_action = action.split("?", 1)[0].strip().lower()
+
+    if normalized_action == "stream":
+        return _build_stream_response()
+    if normalized_action == "snapshot":
+        return _build_snapshot_response()
 
     sanitized_action = action.replace("\r", "\\r").replace("\n", "\\n")
     return Response(

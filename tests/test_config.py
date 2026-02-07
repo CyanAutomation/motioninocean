@@ -344,3 +344,56 @@ print(json.dumps(metrics))
     assert metrics["current_fps"] <= 13.5
     assert metrics["last_frame_age_seconds"] is not None
     assert metrics["last_frame_age_seconds"] < 1.5
+
+
+def test_octoprint_compat_webcam_action_normalization(workspace_root):
+    """/webcam/ should normalize malformed/legacy action values before routing."""
+    script = """
+import json
+import pathlib
+import sys
+
+repo = pathlib.Path.cwd()
+sys.path.insert(0, str(repo / "pi_camera_in_docker"))
+import main
+
+client = main.app.test_client()
+results = {
+    "stream": {
+        "status": client.get("/webcam/?action=stream").status_code,
+    },
+    "snapshot": {
+        "status": client.get("/webcam/?action=snapshot").status_code,
+    },
+    "stream_cache_buster": {
+        "status": client.get("/webcam/?action=stream?123456").status_code,
+    },
+    "invalid": {
+        "status": client.get("/webcam/?action=invalid").status_code,
+    },
+}
+print(json.dumps(results))
+"""
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "MOCK_CAMERA": "true",
+            "OCTOPRINT_COMPATIBILITY": "true",
+        }
+    )
+
+    process = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=workspace_root,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    results = json.loads(process.stdout.strip().splitlines()[-1])
+
+    assert results["stream"]["status"] == 503
+    assert results["snapshot"]["status"] == 503
+    assert results["stream_cache_buster"]["status"] == results["stream"]["status"]
+    assert results["invalid"]["status"] == 400
