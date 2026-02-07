@@ -541,8 +541,31 @@ function switchTab(tabName) {
     stopStatsUpdate();
     updateConfig().catch((error) => console.error("Config update failed:", error));
     startConfigTimestampUpdate();
+    startConfigPolling();
   }
 }
+
+/**
+ * Start periodic config polling
+ */
+function startConfigPolling() {
+  if (state.configUpdateInterval) {
+    clearInterval(state.configUpdateInterval);
+  }
+
+  state.configUpdateInterval = setInterval(() => {
+    updateConfig().catch((error) => console.error("Config update failed:", error));
+  }, 2000);
+}
+
+/**
+ * Stop periodic config polling
+ */
+function stopConfigPolling() {
+  if (state.configUpdateInterval) {
+    clearInterval(state.configUpdateInterval);
+    state.configUpdateInterval = null;
+  }
 }
 
 /**
