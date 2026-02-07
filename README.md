@@ -274,6 +274,35 @@ Override the full URL (takes precedence over `MOTION_IN_OCEAN_HEALTHCHECK_READY`
 
 ---
 
+## OctoPrint webcam setup
+
+When configuring OctoPrint's webcam URLs, use the values that match your deployment mode.
+
+### Native endpoints (default)
+
+Use motion-in-ocean's direct routes:
+
+* `webcam.stream`: `http://<host>:8000/stream.mjpg`
+* `webcam.snapshot`: `http://<host>:8000/snapshot.jpg`
+
+### OctoPrint compatibility endpoints
+
+Use these if you want OctoPrint-style `?action=` routes:
+
+* `webcam.stream`: `http://<host>:8000/webcam/?action=stream`
+* `webcam.snapshot`: `http://<host>:8000/webcam/?action=snapshot`
+
+> Compatibility routes are only available when `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY=true`.
+
+### Troubleshooting checklist
+
+* Confirm the endpoint path is correct (`/stream.mjpg` vs `/webcam/?action=stream`).
+* Confirm `webcam.snapshot` is configured (missing snapshot URL can break previews/features).
+* Check readiness at `/ready` and ensure it reports ready (`true`) before testing streams.
+* Check `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS` if additional clients are rejected.
+
+---
+
 ## Security Notes
 
 This container requires access to host camera devices.
