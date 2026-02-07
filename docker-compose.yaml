@@ -88,10 +88,13 @@ services:
   # Enable by setting ENABLE_DOCKER_SOCKET_PROXY=true
   # Used for Docker API discovery/control when management mode needs to connect to remote Docker hosts
   docker-socket-proxy:
-    image: ghcr.io/tecnativa/docker-socket-proxy:latest
+    image: ghcr.io/tecnativa/docker-socket-proxy:${MOTION_IN_OCEAN_IMAGE_TAG}
     container_name: docker-socket-proxy
     profiles: ["docker-socket-proxy"]
     restart: unless-stopped
+    env_file: ./.env
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${DOCKER_PROXY_PORT:-2375}:2375"
     volumes:
@@ -100,17 +103,37 @@ services:
       # Grant minimal permissions for safe Docker API access
       # See: https://github.com/Tecnativa/docker-socket-proxy#restrictive-permissions
       CONTAINERS: 1
-      SERVICES: 1
-      TASKS: 1
-      NETWORKS: 1
-      VOLUMES: 1
+      IMAGES: 1
       INFO: 1
+      NETWORKS: 1
       PING: 1
+      SERVICES: 1
+      STATS: 1
+      TASKS: 1
       VERSION: 1
-      # Deny all write operations for security
+      # Explicitly deny dangerous operations for security
+      AUTH: 0
+      BUILD: 0
+      COMMIT: 0
+      CONFIGS: 0
+      DISTRIBUTION: 0
+      EXEC: 0
+      GRPC: 0
       POST: 0
-      DELETE: 0
-      PUT: 0
+      SECRETS: 0
+      SYSTEM: 0
+      VOLUMES: 0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:2375/version || exit 1"]
+      interval: 2m
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # NOTE: Webcam and management profiles must not be run simultaneously
   motion-in-ocean:
