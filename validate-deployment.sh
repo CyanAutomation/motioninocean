@@ -5,7 +5,7 @@
 set -e
 
 CONTAINER_NAME="motion-in-ocean"
-PORT="${MOTION_IN_OCEAN_PORT:-8000}"
+PORT="${MOTION_IN_OCEAN_WEBCAM_PORT:-8000}"
 MAX_WAIT=60
 
 echo "[INFO] motion-in-ocean Deployment Validation"

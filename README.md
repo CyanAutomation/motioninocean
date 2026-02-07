@@ -185,7 +185,7 @@ MOTION_IN_OCEAN_PI3_PROFILE=false
 MOTION_IN_OCEAN_CORS_ORIGINS=*
 MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM=true
 MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT=false
-MOTION_IN_OCEAN_PORT=8000
+MOTION_IN_OCEAN_WEBCAM_PORT=8000
 MOTION_IN_OCEAN_MANAGEMENT_PORT=8001
 MOTION_IN_OCEAN_BIND_HOST=127.0.0.1
 TZ=Europe/London
@@ -209,7 +209,7 @@ MOCK_CAMERA=false
 * `MOTION_IN_OCEAN_CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
 * `MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM` - Healthcheck endpoint selector for webcam mode. Default: `true` (uses `/ready`).
 * `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT` - Healthcheck endpoint selector for management mode. Default: `false` (uses `/health`).
-* `MOTION_IN_OCEAN_PORT` - Host port used by the `webcam` profile. Default: `8000`.
+* `MOTION_IN_OCEAN_WEBCAM_PORT` - Host port used by the `webcam` profile. Default: `8000`.
 * `MOTION_IN_OCEAN_MANAGEMENT_PORT` - Host port used by the `management` profile. Default: `8001` (avoids port conflict when both profiles run together).
 * `MOTION_IN_OCEAN_BIND_HOST` - Network interface to bind to (default: `127.0.0.1` for localhost only). Set to `0.0.0.0` to expose to network. **Multi-host deployments only**.
 * `DOCKER_PROXY_PORT` - Port for docker-socket-proxy service when `ENABLE_DOCKER_SOCKET_PROXY=true`. Default: `2375`. **Advanced / Docker-native deployments only**.

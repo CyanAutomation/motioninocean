@@ -77,7 +77,7 @@ On **each webcam host**, expose the service to the network:
 ```bash
 # Set environment variables to expose service beyond localhost
 export MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
-export MOTION_IN_OCEAN_PORT=8000
+export MOTION_IN_OCEAN_WEBCAM_PORT=8000
 
 # Start webcam mode
 docker-compose --profile webcam up -d
@@ -88,7 +88,7 @@ Or using `.env` file:
 ```bash
 # .env on webcam host
 MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
-MOTION_IN_OCEAN_PORT=8000
+MOTION_IN_OCEAN_WEBCAM_PORT=8000
 MOTION_IN_OCEAN_RESOLUTION=640x480
 MOTION_IN_OCEAN_FPS=30
 MOTION_IN_OCEAN_JPEG_QUALITY=90

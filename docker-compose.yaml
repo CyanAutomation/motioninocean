@@ -47,7 +47,7 @@ services:
       APP_MODE: webcam
       HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM:-true}
     ports:
-      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT}:8000"  # webcam binding (default: localhost only)
+      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_WEBCAM_PORT}:8000"  # webcam binding (default: localhost only)
     volumes:
       - /run/udev:/run/udev:ro
 
