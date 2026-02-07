@@ -907,10 +907,37 @@ def _build_stream_response() -> Response:
     )
 
 
+def _build_snapshot_response() -> Response:
+    """Return the latest JPEG frame as a single-image snapshot."""
+    if not recording_started.is_set():
+        return Response("Camera is not ready yet.", status=503)
+
+    with output.condition:
+        frame = output.frame
+        if frame is None:
+            return Response("No camera frame available yet.", status=503)
+
+    if frame is None:
+        return Response("No camera frame available yet.", status=503)
+
+    headers = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
+    return Response(frame, mimetype="image/jpeg", headers=headers)
+
+
 @app.route("/stream.mjpg")
 def video_feed() -> Response:
     """Stream MJPEG video feed."""
     return _build_stream_response()
+
+
+@app.route("/snapshot.jpg")
+def snapshot() -> Response:
+    """Return the latest camera frame as a JPEG image."""
+    return _build_snapshot_response()
 
 
 @app.route("/webcam/")
@@ -922,6 +949,8 @@ def octoprint_compat_webcam() -> Response:
     action = request.args.get("action")
     if action == "stream":
         return _build_stream_response()
+    if action == "snapshot":
+        return _build_snapshot_response()
     if action is None:
         return Response("Missing required query parameter: action.", status=400)
 
