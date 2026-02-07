@@ -72,6 +72,10 @@ elif is_flag_enabled("TRACE_LOGGING"):
 # Log feature flags summary
 log_event(logging.INFO, "startup", "Feature flags initialized", loaded_flags=len(feature_flags.get_all_flags()))
 
+ALLOWED_APP_MODES = {"webcam_node", "management"}
+DEFAULT_APP_MODE = "webcam_node"
+
+
 PI3_PROFILE_DEFAULTS = {
     "RESOLUTION": "640x480",
     "FPS": "12",
@@ -112,6 +116,19 @@ pi3_profile_enabled = (
     or (pi3_profile_env is not None and _parse_bool_env(pi3_profile_env))
     or (motion_pi3_profile_env is not None and _parse_bool_env(motion_pi3_profile_env))
 )
+
+app_mode_raw: str = os.environ.get("APP_MODE", DEFAULT_APP_MODE)
+app_mode: str = app_mode_raw.strip().lower()
+if app_mode not in ALLOWED_APP_MODES:
+    allowed_values = ", ".join(sorted(ALLOWED_APP_MODES))
+    log_event(
+        logging.ERROR,
+        "config",
+        "Invalid APP_MODE value",
+        app_mode=app_mode_raw,
+        allowed_values=allowed_values,
+    )
+    raise ValueError(f"Invalid APP_MODE '{app_mode_raw}'. Allowed values: {allowed_values}")
 
 # Get configuration from environment variables
 resolution_str: str = _resolve_config_value("RESOLUTION", "640x480", profile_enabled=pi3_profile_enabled)
@@ -670,7 +687,7 @@ def index() -> str:
 @app.route("/health")
 def health() -> Tuple[Response, int]:
     """Health check endpoint - returns 200 if service is running."""
-    return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()}), 200
+    return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat(), "app_mode": app_mode}), 200
 
 
 @app.route("/ready")
@@ -762,6 +779,7 @@ def get_config() -> Tuple[Response, int]:
                 "camera_active": recording_started.is_set(),
                 "uptime_seconds": round(uptime, 2),
                 "mock_camera": mock_camera,
+                "app_mode": app_mode,
             },
             "limits": {
                 "max_resolution": [4096, 4096],

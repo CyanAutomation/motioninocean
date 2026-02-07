@@ -152,6 +152,7 @@ MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY=false
 MOTION_IN_OCEAN_PI3_PROFILE=false
 MOTION_IN_OCEAN_CORS_ORIGINS=*
 MOTION_IN_OCEAN_HEALTHCHECK_READY=false
+MOTION_IN_OCEAN_APP_MODE=webcam_node
 TZ=Europe/London
 MOCK_CAMERA=false
 ```
@@ -168,8 +169,21 @@ MOCK_CAMERA=false
 * `MOTION_IN_OCEAN_PI3_PROFILE` - Pi 3 recommended defaults profile. When enabled, it only fills missing values with: `RESOLUTION=640x480`, `FPS=12`, `TARGET_FPS=12`, `JPEG_QUALITY=75`, `MAX_STREAM_CONNECTIONS=3`.
 * `MOTION_IN_OCEAN_CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
 * `MOTION_IN_OCEAN_HEALTHCHECK_READY` - `true` uses `/ready` for healthchecks instead of `/health`.
+* `MOTION_IN_OCEAN_APP_MODE` - Application mode. Allowed values: `webcam_node` (default) and `management`.
+  * `webcam_node`: camera streaming node behavior.
+  * `management`: management/control-plane behavior.
 * `TZ` - Logging timezone.
 * `MOCK_CAMERA` - `true` disables Picamera2 initialisation and streams dummy frames (dev/testing).
+
+### App mode examples
+
+```env
+# Default camera node behavior
+MOTION_IN_OCEAN_APP_MODE=webcam_node
+
+# Management/control-plane behavior
+MOTION_IN_OCEAN_APP_MODE=management
+```
 
 ### Pi 3 recommended preset
 
