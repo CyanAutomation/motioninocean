@@ -84,6 +84,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.3] - 2026-02-07
+
+- Merge pull request #130 from CyanAutomation/codex/github-mention-docs-add-octoprint-webcam-setup-section-to
+- docs: document OCTOPRINT_COMPATIBILITY config option
+- Merge pull request #128 from CyanAutomation/codex/github-mention-sanitize-octoprint-/webcam-action-in-error-r
+- Merge pull request #129 from CyanAutomation/codex/update-readme-for-octoprint-webcam-setup
+- docs: add OctoPrint webcam setup guidance
+- Harden /webcam error response content type
+- Merge pull request #127 from CyanAutomation/codex/github-mention-codex-generated-pull-request
+- Merge pull request #126 from CyanAutomation/codex/add-snapshot-http-route-in-main.py
+- Update main.py
+- Sanitize unsupported OctoPrint action in error response
+- Add single-frame snapshot JPEG endpoints
+- Merge pull request #125 from CyanAutomation/codex/add-octoprint-style-routes-to-video-feed
+- Update main.py
+- Add OctoPrint-compatible webcam stream route
+- Merge pull request #124 from CyanAutomation/codex/add-skill-template-and-maintenance-policy
+- Add skills template and maintenance policy
+- Merge pull request #123 from CyanAutomation/codex/create-troubleshooting-guide-for-pi-camera
+- Merge pull request #122 from CyanAutomation/codex/create-ci-triage-playbooks-in-skill.md
+- Merge pull request #121 from CyanAutomation/codex/document-release-flow-in-skill.md
+- Add Pi camera troubleshooting skill guide
+- Add CI triage skill playbooks for workflow jobs
+- docs: add release-publish skill for docker release workflow
+- Merge pull request #120 from CyanAutomation/codex/create-skills-directory-with-documentation
+- docs: add project skills index and workflow skill guides
+
 ## [1.12.2] - 2026-02-06
 
 - Merge pull request #118 from CyanAutomation/codex/clean-up-unused-imports-and-methods
