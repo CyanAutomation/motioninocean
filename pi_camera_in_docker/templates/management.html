@@ -20,10 +20,10 @@
         <input type="hidden" id="editing-node-id" value="">
 
         <label for="node-id">Node ID</label>
-        <input id="node-id" name="id" required>
+        <input id="node-id" name="id" pattern="[a-zA-Z0-9_-]+" maxlength="64" title="Only alphanumeric characters, hyphens, and underscores allowed" required>
 
         <label for="node-name">Name</label>
-        <input id="node-name" name="name" required>
+        <input id="node-name" name="name" maxlength="128" required>
 
         <label for="node-base-url">Base URL</label>
         <input id="node-base-url" name="base_url" placeholder="http://node.local:8000" required>
