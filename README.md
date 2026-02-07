@@ -81,7 +81,7 @@ services:
     profiles: ["management"]
 
     ports:
-      - "127.0.0.1:8000:8000"  # keep LAN access behind reverse proxy/auth
+      - "127.0.0.1:8001:8000"  # separate localhost port for management
 
     env_file:
       - .env
@@ -116,6 +116,8 @@ docker logs -f motion-in-ocean-management
 ```bash
 curl http://localhost:8000/health
 curl http://localhost:8000/ready
+# management profile (default port)
+curl http://localhost:8001/health
 ```
 
 ---
@@ -183,7 +185,8 @@ MOTION_IN_OCEAN_PI3_PROFILE=false
 MOTION_IN_OCEAN_CORS_ORIGINS=*
 MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM_NODE=true
 MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT=false
-MOTION_IN_OCEAN_APP_MODE=webcam_node
+MOTION_IN_OCEAN_PORT=8000
+MOTION_IN_OCEAN_MANAGEMENT_PORT=8001
 TZ=Europe/London
 MOCK_CAMERA=false
 ```
@@ -201,22 +204,13 @@ MOCK_CAMERA=false
 * `MOTION_IN_OCEAN_CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
 * `MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM_NODE` - Healthcheck endpoint selector for webcam mode. Default: `true` (uses `/ready`).
 * `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT` - Healthcheck endpoint selector for management mode. Default: `false` (uses `/health`).
-* `MOTION_IN_OCEAN_APP_MODE` - Application mode. Allowed values: `webcam_node` (default) and `management`.
-  * With the Compose profiles in this repository, this is set automatically per service (`webcam-node` -> `webcam_node`, `management` -> `management`) to prevent mode/profile mismatches.
-  * `webcam_node`: camera streaming node behavior.
-  * `management`: management/control-plane behavior (camera initialization disabled and camera endpoints return 404).
+* `MOTION_IN_OCEAN_PORT` - Host port used by the `webcam-node` profile. Default: `8000`.
+* `MOTION_IN_OCEAN_MANAGEMENT_PORT` - Host port used by the `management` profile. Default: `8001` (avoids port conflict when both profiles run together).
+* `APP_MODE` - Runtime application mode consumed by the container (`webcam_node` or `management`).
+  * In this repository’s Compose profiles it is set explicitly per service to prevent mode/profile mismatches.
+  * If you run the image outside these Compose files, set `APP_MODE` directly in your container environment.
 * `TZ` - Logging timezone.
 * `MOCK_CAMERA` - `true` disables Picamera2 initialisation and streams dummy frames (dev/testing).
-
-### App mode examples
-
-```env
-# Default camera node behavior
-MOTION_IN_OCEAN_APP_MODE=webcam_node
-
-# Management/control-plane behavior
-MOTION_IN_OCEAN_APP_MODE=management
-```
 
 ### Pi 3 recommended preset
 
@@ -310,6 +304,7 @@ The docker-compose healthcheck uses the bundled `healthcheck.py`, which defaults
 Switch to readiness checks with:
 
 * `HEALTHCHECK_READY=true` (uses `/ready` instead of `/health`)
+  * In this repo, Compose maps profile-scoped `.env` values (`MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM_NODE` / `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT`) into container `HEALTHCHECK_READY`.
 
 Recommended by deployment mode:
 
