@@ -184,11 +184,11 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
         picam2_instance: Optional[Any] = None
         try:
             picam2_instance = Picamera2()  # Picamera2() marker
+            state["picam2_instance"] = picam2_instance
             video_config = picam2_instance.create_video_configuration(main={"size": cfg["resolution"], "format": "BGR888"})  # create_video_configuration marker
             picam2_instance.configure(video_config)
             picam2_instance.start_recording(JpegEncoder(q=cfg["jpeg_quality"]), FileOutput(output))  # start_recording marker
             recording_started.set()
-            state["picam2_instance"] = picam2_instance
         except PermissionError as e:  # except PermissionError marker
             logger.error("Permission denied", exc_info=e)
             raise
