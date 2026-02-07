@@ -18,6 +18,7 @@ class NodeRequestError(RuntimeError):
 
 def _parse_token_roles(raw: str) -> Dict[str, str]:
     mapping: Dict[str, str] = {}
+    seen_tokens = set()
     for chunk in raw.split(","):
         pair = chunk.strip()
         if not pair or ":" not in pair:
@@ -25,8 +26,12 @@ def _parse_token_roles(raw: str) -> Dict[str, str]:
         token, role = pair.split(":", 1)
         token = token.strip()
         role = role.strip().lower()
-        if token and role:
-            mapping[token] = role
+        if not token or not role:
+            continue
+        if token in seen_tokens:
+            raise ValueError(f"Duplicate token found in MANAGEMENT_TOKEN_ROLES: {token}")
+        seen_tokens.add(token)
+        mapping[token] = role
     return mapping
 
 
