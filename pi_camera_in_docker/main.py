@@ -914,6 +914,8 @@ def _build_snapshot_response() -> Response:
 
     with output.condition:
         frame = output.frame
+        if frame is None:
+            return Response("No camera frame available yet.", status=503)
 
     if frame is None:
         return Response("No camera frame available yet.", status=503)
