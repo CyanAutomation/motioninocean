@@ -7,7 +7,6 @@ from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urlparse
 
 from flask import Flask, jsonify, request
-
 from node_registry import FileNodeRegistry, NodeValidationError
 
 
@@ -95,7 +94,7 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
         _validate_node_base_url(base_url)
         _validate_node_base_url(url)
         req = urllib.request.Request(url=url, method=method, headers=headers, data=data)
-        with urllib.request.urlopen(req, timeout=2.5) as response:  # noqa: S310
+        with urllib.request.urlopen(req, timeout=2.5) as response:
             payload = response.read().decode("utf-8")
             return response.status, json.loads(payload) if payload else {}
     except urllib.error.HTTPError as exc:
@@ -189,7 +188,9 @@ def register_management_routes(app: Flask, registry_path: str) -> None:
     def get_node(node_id: str):
         node = registry.get_node(node_id)
         if node is None:
-            return _error_response("NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id)
+            return _error_response(
+                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+            )
         return jsonify(node), 200
 
     @app.route("/api/nodes/<node_id>", methods=["PUT"])
@@ -200,20 +201,26 @@ def register_management_routes(app: Flask, registry_path: str) -> None:
         except NodeValidationError as exc:
             return _error_response("VALIDATION_ERROR", str(exc), 400, node_id=node_id)
         except KeyError:
-            return _error_response("NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id)
+            return _error_response(
+                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+            )
         return jsonify(updated), 200
 
     @app.route("/api/nodes/<node_id>", methods=["DELETE"])
     def delete_node(node_id: str):
         if not registry.delete_node(node_id):
-            return _error_response("NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id)
+            return _error_response(
+                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+            )
         return "", 204
 
     @app.route("/api/nodes/<node_id>/status", methods=["GET"])
     def node_status(node_id: str):
         node = registry.get_node(node_id)
         if node is None:
-            return _error_response("NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id)
+            return _error_response(
+                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+            )
 
         result, error = _status_for_node(node)
         if error:
@@ -224,7 +231,9 @@ def register_management_routes(app: Flask, registry_path: str) -> None:
     def node_action(node_id: str, action: str):
         node = registry.get_node(node_id)
         if node is None:
-            return _error_response("NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id)
+            return _error_response(
+                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+            )
         if node.get("transport") != "http":
             return _error_response(
                 "TRANSPORT_UNSUPPORTED",
@@ -261,7 +270,9 @@ def register_management_routes(app: Flask, registry_path: str) -> None:
                 node_id=node_id,
                 details={"action": action, "status_code": status_code},
             )
-        return jsonify({"node_id": node_id, "action": action, "status_code": status_code, "response": response}), status_code
+        return jsonify(
+            {"node_id": node_id, "action": action, "status_code": status_code, "response": response}
+        ), status_code
 
     @app.route("/api/management/overview", methods=["GET"])
     def management_overview():

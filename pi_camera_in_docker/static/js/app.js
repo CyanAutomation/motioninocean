@@ -14,7 +14,7 @@ const state = {
   statsCollapsed: false,
   statsInFlight: false,
   configInFlight: false,
-  currentTab: 'main',
+  currentTab: "main",
   elements: {
     videoStream: null,
     statsPanel: null,
@@ -30,8 +30,8 @@ const state = {
     lastFrameAgeValue: null,
     maxFrameAgeValue: null,
     resolutionValue: null,
-    lastUpdated: null
-  }
+    lastUpdated: null,
+  },
 };
 
 /**
@@ -41,32 +41,32 @@ function init() {
   cacheElements();
   attachHandlers();
   startStatsUpdate();
-  updateStats().catch(error => console.error('Initial stats update failed:', error));
-  updateConfig().catch(error => console.error('Initial config update failed:', error));
+  updateStats().catch((error) => console.error("Initial stats update failed:", error));
+  updateConfig().catch((error) => console.error("Initial config update failed:", error));
 
-  console.log('🎥 motion-in-ocean camera stream initialized');
+  console.log("🎥 motion-in-ocean camera stream initialized");
 }
 
 /**
  * Cache DOM elements for performance
  */
 function cacheElements() {
-  state.elements.videoStream = document.getElementById('video-stream');
-  state.elements.statsPanel = document.getElementById('stats-panel');
-  state.elements.configPanel = document.getElementById('config-panel');
-  state.elements.toggleStatsBtn = document.getElementById('toggle-stats-btn');
-  state.elements.refreshBtn = document.getElementById('refresh-btn');
-  state.elements.fullscreenBtn = document.getElementById('fullscreen-btn');
-  state.elements.statusIndicator = document.getElementById('status-indicator');
-  state.elements.statusText = document.getElementById('status-text');
+  state.elements.videoStream = document.getElementById("video-stream");
+  state.elements.statsPanel = document.getElementById("stats-panel");
+  state.elements.configPanel = document.getElementById("config-panel");
+  state.elements.toggleStatsBtn = document.getElementById("toggle-stats-btn");
+  state.elements.refreshBtn = document.getElementById("refresh-btn");
+  state.elements.fullscreenBtn = document.getElementById("fullscreen-btn");
+  state.elements.statusIndicator = document.getElementById("status-indicator");
+  state.elements.statusText = document.getElementById("status-text");
 
-  state.elements.fpsValue = document.getElementById('fps-value');
-  state.elements.uptimeValue = document.getElementById('uptime-value');
-  state.elements.framesValue = document.getElementById('frames-value');
-  state.elements.lastFrameAgeValue = document.getElementById('last-frame-age-value');
-  state.elements.maxFrameAgeValue = document.getElementById('max-frame-age-value');
-  state.elements.resolutionValue = document.getElementById('resolution-value');
-  state.elements.lastUpdated = document.getElementById('last-updated');
+  state.elements.fpsValue = document.getElementById("fps-value");
+  state.elements.uptimeValue = document.getElementById("uptime-value");
+  state.elements.framesValue = document.getElementById("frames-value");
+  state.elements.lastFrameAgeValue = document.getElementById("last-frame-age-value");
+  state.elements.maxFrameAgeValue = document.getElementById("max-frame-age-value");
+  state.elements.resolutionValue = document.getElementById("resolution-value");
+  state.elements.lastUpdated = document.getElementById("last-updated");
 }
 
 /**
@@ -74,52 +74,52 @@ function cacheElements() {
  */
 function attachHandlers() {
   if (state.elements.toggleStatsBtn) {
-    state.elements.toggleStatsBtn.addEventListener('click', toggleStats);
+    state.elements.toggleStatsBtn.addEventListener("click", toggleStats);
   }
 
   if (state.elements.refreshBtn) {
-    state.elements.refreshBtn.addEventListener('click', refreshStream);
+    state.elements.refreshBtn.addEventListener("click", refreshStream);
   }
 
   if (state.elements.fullscreenBtn) {
-    state.elements.fullscreenBtn.addEventListener('click', toggleFullscreen);
+    state.elements.fullscreenBtn.addEventListener("click", toggleFullscreen);
   }
 
   if (state.elements.videoStream) {
-    state.elements.videoStream.addEventListener('load', onStreamLoad);
-    state.elements.videoStream.addEventListener('error', onStreamError);
+    state.elements.videoStream.addEventListener("load", onStreamLoad);
+    state.elements.videoStream.addEventListener("error", onStreamError);
   }
 
   // Tab navigation handlers
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tab = btn.getAttribute('data-tab');
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.getAttribute("data-tab");
       switchTab(tab);
     });
   });
 
   // Config group toggle handlers
-  document.querySelectorAll('.config-group-toggle').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const group = btn.getAttribute('data-group');
+  document.querySelectorAll(".config-group-toggle").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const group = btn.getAttribute("data-group");
       toggleConfigGroup(group);
     });
   });
 
-  document.addEventListener('fullscreenchange', onFullscreenChange);
-  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
-  document.addEventListener('mozfullscreenchange', onFullscreenChange);
-  document.addEventListener('MSFullscreenChange', onFullscreenChange);
+  document.addEventListener("fullscreenchange", onFullscreenChange);
+  document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+  document.addEventListener("mozfullscreenchange", onFullscreenChange);
+  document.addEventListener("MSFullscreenChange", onFullscreenChange);
 
-  document.addEventListener('visibilitychange', () => {
+  document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       stopStatsUpdate();
     } else {
       startStatsUpdate();
-      if (!state.statsCollapsed && state.currentTab === 'main') {
-        updateStats().catch(error => console.error('Stats update failed:', error));
-      } else if (state.currentTab === 'config') {
-        updateConfig().catch(error => console.error('Config update failed:', error));
+      if (!state.statsCollapsed && state.currentTab === "main") {
+        updateStats().catch((error) => console.error("Stats update failed:", error));
+      } else if (state.currentTab === "config") {
+        updateConfig().catch((error) => console.error("Config update failed:", error));
       }
     }
   });
@@ -131,49 +131,49 @@ function attachHandlers() {
 async function updateStats() {
   if (state.statsInFlight) return;
   if (state.statsCollapsed || document.hidden) return;
-  
+
   try {
     state.statsInFlight = true;
     try {
       const data = await fetchMetrics();
       renderMetrics(data);
     } catch (error) {
-      if (error && error.name === 'AbortError') {
-        console.warn('Stats request timed out, will retry.');
+      if (error && error.name === "AbortError") {
+        console.warn("Stats request timed out, will retry.");
         increaseBackoff();
         return;
       }
 
-      console.error('Failed to fetch stats:', error);
-      setConnectionStatus('disconnected', 'Disconnected');
+      console.error("Failed to fetch stats:", error);
+      setConnectionStatus("disconnected", "Disconnected");
       increaseBackoff();
 
       if (state.elements.fpsValue) {
-        state.elements.fpsValue.textContent = '--';
+        state.elements.fpsValue.textContent = "--";
       }
 
       if (state.elements.uptimeValue) {
-        state.elements.uptimeValue.textContent = '--';
+        state.elements.uptimeValue.textContent = "--";
       }
 
       if (state.elements.framesValue) {
-        state.elements.framesValue.textContent = '--';
+        state.elements.framesValue.textContent = "--";
       }
 
       if (state.elements.lastFrameAgeValue) {
-        state.elements.lastFrameAgeValue.textContent = '--';
+        state.elements.lastFrameAgeValue.textContent = "--";
       }
 
       if (state.elements.maxFrameAgeValue) {
-        state.elements.maxFrameAgeValue.textContent = '--';
+        state.elements.maxFrameAgeValue.textContent = "--";
       }
 
       if (state.elements.resolutionValue) {
-        state.elements.resolutionValue.textContent = '--';
+        state.elements.resolutionValue.textContent = "--";
       }
 
       if (state.elements.lastUpdated) {
-        state.elements.lastUpdated.textContent = '--';
+        state.elements.lastUpdated.textContent = "--";
       }
 
       return;
@@ -190,18 +190,18 @@ function toggleStats() {
   state.statsCollapsed = !state.statsCollapsed;
 
   if (state.elements.statsPanel) {
-    state.elements.statsPanel.classList.toggle('collapsed', state.statsCollapsed);
+    state.elements.statsPanel.classList.toggle("collapsed", state.statsCollapsed);
   }
 
   if (state.elements.toggleStatsBtn) {
-    state.elements.toggleStatsBtn.textContent = state.statsCollapsed ? '▼' : '▲';
+    state.elements.toggleStatsBtn.textContent = state.statsCollapsed ? "▼" : "▲";
   }
 
   if (state.statsCollapsed) {
     stopStatsUpdate();
   } else {
     startStatsUpdate();
-    updateStats().catch(error => console.error('Stats update failed:', error));
+    updateStats().catch((error) => console.error("Stats update failed:", error));
   }
 }
 
@@ -211,13 +211,13 @@ function toggleStats() {
 function refreshStream() {
   if (!state.elements.videoStream) return;
 
-  const streamUrl = state.elements.videoStream.src.split('?')[0];
+  const streamUrl = state.elements.videoStream.src.split("?")[0];
   state.elements.videoStream.src = `${streamUrl}?t=${Date.now()}`;
 
   if (state.elements.refreshBtn) {
-    state.elements.refreshBtn.style.transform = 'rotate(360deg)';
+    state.elements.refreshBtn.style.transform = "rotate(360deg)";
     setTimeout(() => {
-      state.elements.refreshBtn.style.transform = '';
+      state.elements.refreshBtn.style.transform = "";
     }, 300);
   }
 }
@@ -226,13 +226,15 @@ function refreshStream() {
  * Toggle fullscreen mode
  */
 function toggleFullscreen() {
-  const container = document.querySelector('.video-container');
+  const container = document.querySelector(".video-container");
   if (!container) return;
 
-  if (!document.fullscreenElement &&
-      !document.webkitFullscreenElement &&
-      !document.mozFullScreenElement &&
-      !document.msFullscreenElement) {
+  if (
+    !document.fullscreenElement &&
+    !document.webkitFullscreenElement &&
+    !document.mozFullScreenElement &&
+    !document.msFullscreenElement
+  ) {
     if (container.requestFullscreen) {
       container.requestFullscreen();
     } else if (container.webkitRequestFullscreen) {
@@ -257,19 +259,21 @@ function toggleFullscreen() {
  * Handle fullscreen change events
  */
 function onFullscreenChange() {
-  const isFullscreen = !!(document.fullscreenElement ||
-                         document.webkitFullscreenElement ||
-                         document.mozFullScreenElement ||
-                         document.msFullscreenElement);
+  const isFullscreen = !!(
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement
+  );
 
   if (state.elements.fullscreenBtn) {
-    const btnText = state.elements.fullscreenBtn.querySelector('.control-btn-text');
+    const btnText = state.elements.fullscreenBtn.querySelector(".control-btn-text");
     if (btnText) {
-      btnText.textContent = isFullscreen ? 'Exit Fullscreen' : 'Fullscreen';
+      btnText.textContent = isFullscreen ? "Exit Fullscreen" : "Fullscreen";
     }
-    const btnIcon = state.elements.fullscreenBtn.querySelector('.control-btn-icon');
+    const btnIcon = state.elements.fullscreenBtn.querySelector(".control-btn-icon");
     if (btnIcon) {
-      btnIcon.textContent = isFullscreen ? '⛶' : '⛶';
+      btnIcon.textContent = isFullscreen ? "⛶" : "⛶";
     }
   }
 }
@@ -279,15 +283,15 @@ function onFullscreenChange() {
  */
 function onStreamLoad() {
   hideLoading();
-  setConnectionStatus('connected', 'Stream Connected');
+  setConnectionStatus("connected", "Stream Connected");
 }
 
 /**
  * Handle stream error event
  */
 function onStreamError() {
-  console.error('Video stream error');
-  setConnectionStatus('disconnected', 'Stream Error');
+  console.error("Video stream error");
+  setConnectionStatus("disconnected", "Stream Error");
   increaseBackoff();
 }
 
@@ -295,10 +299,10 @@ function onStreamError() {
  * Set connection status
  */
 function setConnectionStatus(status, text) {
-  state.isConnected = status === 'connected' || status === 'stale';
+  state.isConnected = status === "connected" || status === "stale";
 
   if (state.elements.statusIndicator) {
-    state.elements.statusIndicator.className = 'status-indicator';
+    state.elements.statusIndicator.className = "status-indicator";
     state.elements.statusIndicator.classList.add(status);
   }
 
@@ -315,7 +319,7 @@ function startStatsUpdate() {
   if (state.statsCollapsed || document.hidden) return;
 
   state.updateInterval = setInterval(() => {
-    updateStats().catch(error => console.error('Stats update failed:', error));
+    updateStats().catch((error) => console.error("Stats update failed:", error));
   }, state.updateFrequency);
 }
 
@@ -348,7 +352,7 @@ function increaseBackoff() {
   state.consecutiveFailures += 1;
   const nextFrequency = Math.min(
     state.baseUpdateFrequency * Math.pow(2, state.consecutiveFailures),
-    state.maxUpdateFrequency
+    state.maxUpdateFrequency,
   );
   setUpdateFrequency(nextFrequency);
 }
@@ -375,7 +379,7 @@ async function fetchMetrics() {
   }, timeoutMs);
 
   try {
-    const response = await fetch('/metrics', { signal: controller.signal });
+    const response = await fetch("/metrics", { signal: controller.signal });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -397,22 +401,18 @@ function renderMetrics(data) {
   const hasFrameAge = Number.isFinite(lastFrameAge);
   const hasMaxFrameAge = Number.isFinite(maxFrameAge);
   const isStale = cameraActive && hasFrameAge && hasMaxFrameAge && lastFrameAge > maxFrameAge;
-  const statusText = cameraActive
-    ? (isStale ? 'Stale stream' : 'Connected')
-    : 'Camera inactive';
-  const statusState = cameraActive ? (isStale ? 'stale' : 'connected') : 'inactive';
+  const statusText = cameraActive ? (isStale ? "Stale stream" : "Connected") : "Camera inactive";
+  const statusState = cameraActive ? (isStale ? "stale" : "connected") : "inactive";
 
   setConnectionStatus(statusState, statusText);
-  if (statusState === 'connected') {
+  if (statusState === "connected") {
     resetBackoff();
-  } else if (statusState === 'inactive' || statusState === 'stale') {
+  } else if (statusState === "inactive" || statusState === "stale") {
     increaseBackoff();
   }
 
   if (state.elements.fpsValue) {
-    state.elements.fpsValue.textContent = data.current_fps
-      ? data.current_fps.toFixed(1)
-      : '0.0';
+    state.elements.fpsValue.textContent = data.current_fps ? data.current_fps.toFixed(1) : "0.0";
   }
 
   if (state.elements.uptimeValue) {
@@ -424,29 +424,22 @@ function renderMetrics(data) {
   }
 
   if (state.elements.lastFrameAgeValue) {
-    state.elements.lastFrameAgeValue.textContent = formatSeconds(
-      data.last_frame_age_seconds
-    );
+    state.elements.lastFrameAgeValue.textContent = formatSeconds(data.last_frame_age_seconds);
   }
 
   if (state.elements.maxFrameAgeValue) {
-    state.elements.maxFrameAgeValue.textContent = formatSeconds(
-      data.max_frame_age_seconds
-    );
+    state.elements.maxFrameAgeValue.textContent = formatSeconds(data.max_frame_age_seconds);
   }
 
   if (state.elements.resolutionValue) {
     if (data.resolution && Array.isArray(data.resolution)) {
-      state.elements.resolutionValue.textContent =
-        `${data.resolution[0]} × ${data.resolution[1]}`;
+      state.elements.resolutionValue.textContent = `${data.resolution[0]} × ${data.resolution[1]}`;
     }
   }
 
-
   if (state.elements.lastUpdated) {
     const now = new Date();
-    state.elements.lastUpdated.textContent =
-      `Updated: ${now.toLocaleTimeString()}`;
+    state.elements.lastUpdated.textContent = `Updated: ${now.toLocaleTimeString()}`;
   }
 }
 
@@ -454,7 +447,7 @@ function renderMetrics(data) {
  * Format uptime in human-readable format
  */
 function formatUptime(seconds) {
-  if (!seconds || seconds < 0) return '0s';
+  if (!seconds || seconds < 0) return "0s";
 
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
@@ -467,14 +460,14 @@ function formatUptime(seconds) {
   if (minutes > 0) parts.push(`${minutes}m`);
   if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
 
-  return parts.join(' ');
+  return parts.join(" ");
 }
 
 /**
  * Format large numbers with commas
  */
 function formatNumber(num) {
-  if (num === null || num === undefined) return '0';
+  if (num === null || num === undefined) return "0";
   return num.toLocaleString();
 }
 
@@ -482,8 +475,8 @@ function formatNumber(num) {
  * Format seconds with a consistent precision
  */
 function formatSeconds(seconds) {
-  if (seconds === null || seconds === undefined) return '--';
-  if (Number.isNaN(seconds)) return '--';
+  if (seconds === null || seconds === undefined) return "--";
+  if (Number.isNaN(seconds)) return "--";
   return `${Number(seconds).toFixed(2)}s`;
 }
 
@@ -491,9 +484,9 @@ function formatSeconds(seconds) {
  * Hide loading overlay
  */
 function hideLoading() {
-  const loadingOverlay = document.querySelector('.loading-overlay');
+  const loadingOverlay = document.querySelector(".loading-overlay");
   if (loadingOverlay) {
-    loadingOverlay.style.opacity = '0';
+    loadingOverlay.style.opacity = "0";
     setTimeout(() => {
       loadingOverlay.remove();
     }, 300);
@@ -505,37 +498,37 @@ function hideLoading() {
  */
 function switchTab(tabName) {
   state.currentTab = tabName;
-  
+
   // Update tab buttons
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.getAttribute('data-tab') === tabName) {
-      btn.classList.add('active');
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.classList.remove("active");
+    if (btn.getAttribute("data-tab") === tabName) {
+      btn.classList.add("active");
     }
   });
 
   // Update visible panels
-  const mainSection = document.querySelector('.video-section');
+  const mainSection = document.querySelector(".video-section");
   const statsPanel = state.elements.statsPanel;
   const configPanel = state.elements.configPanel;
 
-  if (tabName === 'main') {
-    if (mainSection) mainSection.classList.remove('hidden');
-    if (statsPanel) statsPanel.classList.remove('hidden');
-    if (configPanel) configPanel.classList.add('hidden');
-    
+  if (tabName === "main") {
+    if (mainSection) mainSection.classList.remove("hidden");
+    if (statsPanel) statsPanel.classList.remove("hidden");
+    if (configPanel) configPanel.classList.add("hidden");
+
     // Resume stats updates
     if (!state.statsCollapsed) {
       startStatsUpdate();
     }
-  } else if (tabName === 'config') {
-    if (mainSection) mainSection.classList.add('hidden');
-    if (statsPanel) statsPanel.classList.add('hidden');
-    if (configPanel) configPanel.classList.remove('hidden');
-    
+  } else if (tabName === "config") {
+    if (mainSection) mainSection.classList.add("hidden");
+    if (statsPanel) statsPanel.classList.add("hidden");
+    if (configPanel) configPanel.classList.remove("hidden");
+
     // Stop stats updates and fetch config
     stopStatsUpdate();
-    updateConfig().catch(error => console.error('Config update failed:', error));
+    updateConfig().catch((error) => console.error("Config update failed:", error));
   }
 }
 
@@ -545,11 +538,11 @@ function switchTab(tabName) {
 function toggleConfigGroup(groupName) {
   const content = document.querySelector(`.config-group-content[data-group="${groupName}"]`);
   const btn = document.querySelector(`.config-group-toggle[data-group="${groupName}"]`);
-  
+
   if (content && btn) {
-    const isHidden = content.classList.contains('hidden');
-    content.classList.toggle('hidden', !isHidden);
-    btn.textContent = isHidden ? '▼' : '▶';
+    const isHidden = content.classList.contains("hidden");
+    content.classList.toggle("hidden", !isHidden);
+    btn.textContent = isHidden ? "▼" : "▶";
   }
 }
 
@@ -564,7 +557,7 @@ async function fetchConfig() {
   }, timeoutMs);
 
   try {
-    const response = await fetch('/api/config', { signal: controller.signal });
+    const response = await fetch("/api/config", { signal: controller.signal });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -581,20 +574,20 @@ async function fetchConfig() {
  */
 async function updateConfig() {
   if (state.configInFlight) return;
-  if (state.currentTab !== 'config' || document.hidden) return;
-  
+  if (state.currentTab !== "config" || document.hidden) return;
+
   try {
     state.configInFlight = true;
     try {
       const data = await fetchConfig();
       renderConfig(data);
     } catch (error) {
-      if (error && error.name === 'AbortError') {
-        console.warn('Config request timed out, will retry.');
+      if (error && error.name === "AbortError") {
+        console.warn("Config request timed out, will retry.");
         return;
       }
 
-      console.error('Failed to fetch config:', error);
+      console.error("Failed to fetch config:", error);
       clearConfigDisplay();
       return;
     }
@@ -610,52 +603,65 @@ function renderConfig(data) {
   // Camera Settings
   if (data.camera_settings) {
     const cs = data.camera_settings;
-    
-    setConfigValue('config-resolution', 
-      cs.resolution ? `${cs.resolution[0]} × ${cs.resolution[1]}` : '--');
-    setConfigValue('config-fps', cs.fps !== undefined ? `${cs.fps} FPS` : '--');
-    setConfigValue('config-target-fps', cs.target_fps !== undefined ? `${cs.target_fps} FPS` : '--');
-    setConfigValue('config-jpeg-quality', cs.jpeg_quality !== undefined ? `${cs.jpeg_quality}%` : '--');
+
+    setConfigValue(
+      "config-resolution",
+      cs.resolution ? `${cs.resolution[0]} × ${cs.resolution[1]}` : "--",
+    );
+    setConfigValue("config-fps", cs.fps !== undefined ? `${cs.fps} FPS` : "--");
+    setConfigValue(
+      "config-target-fps",
+      cs.target_fps !== undefined ? `${cs.target_fps} FPS` : "--",
+    );
+    setConfigValue(
+      "config-jpeg-quality",
+      cs.jpeg_quality !== undefined ? `${cs.jpeg_quality}%` : "--",
+    );
   }
 
   // Stream Control
   if (data.stream_control) {
     const sc = data.stream_control;
-    
-    setConfigValue('config-max-connections', sc.max_stream_connections ?? '--');
-    setConfigValue('config-current-connections', sc.current_stream_connections ?? '--');
-    setConfigValue('config-max-frame-age', 
-      sc.max_frame_age_seconds !== undefined ? `${sc.max_frame_age_seconds}s` : '--');
-    setConfigValue('config-cors', 
-      typeof sc.cors_origins === 'string' ? sc.cors_origins : '*');
+
+    setConfigValue("config-max-connections", sc.max_stream_connections ?? "--");
+    setConfigValue("config-current-connections", sc.current_stream_connections ?? "--");
+    setConfigValue(
+      "config-max-frame-age",
+      sc.max_frame_age_seconds !== undefined ? `${sc.max_frame_age_seconds}s` : "--",
+    );
+    setConfigValue("config-cors", typeof sc.cors_origins === "string" ? sc.cors_origins : "*");
   }
 
   // Runtime
   if (data.runtime) {
     const rt = data.runtime;
-    
-    setConfigValue('config-camera-active', formatBoolean(rt.camera_active));
-    setConfigValue('config-mock-camera', formatBoolean(rt.mock_camera));
-    setConfigValue('config-uptime', formatUptime(rt.uptime_seconds));
+
+    setConfigValue("config-camera-active", formatBoolean(rt.camera_active));
+    setConfigValue("config-mock-camera", formatBoolean(rt.mock_camera));
+    setConfigValue("config-uptime", formatUptime(rt.uptime_seconds));
   }
 
   // Limits
   if (data.limits) {
     const lim = data.limits;
-    
-    setConfigValue('config-limit-resolution', 
-      lim.max_resolution ? `${lim.max_resolution[0]} × ${lim.max_resolution[1]}` : '--');
-    setConfigValue('config-limit-fps', lim.max_fps !== undefined ? `${lim.max_fps} FPS` : '--');
-    setConfigValue('config-limit-jpeg', 
-      lim.min_jpeg_quality && lim.max_jpeg_quality 
-        ? `${lim.min_jpeg_quality}% - ${lim.max_jpeg_quality}%` 
-        : '--');
+
+    setConfigValue(
+      "config-limit-resolution",
+      lim.max_resolution ? `${lim.max_resolution[0]} × ${lim.max_resolution[1]}` : "--",
+    );
+    setConfigValue("config-limit-fps", lim.max_fps !== undefined ? `${lim.max_fps} FPS` : "--");
+    setConfigValue(
+      "config-limit-jpeg",
+      lim.min_jpeg_quality && lim.max_jpeg_quality
+        ? `${lim.min_jpeg_quality}% - ${lim.max_jpeg_quality}%`
+        : "--",
+    );
   }
 
   // Timestamp
   if (data.timestamp) {
     const date = new Date(data.timestamp);
-    setConfigValue('config-timestamp', date.toLocaleTimeString());
+    setConfigValue("config-timestamp", date.toLocaleTimeString());
   }
 }
 
@@ -665,16 +671,16 @@ function renderConfig(data) {
 function setConfigValue(elementId, value) {
   const element = document.getElementById(elementId);
   if (!element) return;
-  
+
   element.textContent = value;
-  
+
   // Apply badge styling for boolean values
-  if (value === 'Enabled' || value === 'Yes') {
-    element.className = 'config-value config-badge enabled';
-  } else if (value === 'Disabled' || value === 'No') {
-    element.className = 'config-value config-badge disabled';
+  if (value === "Enabled" || value === "Yes") {
+    element.className = "config-value config-badge enabled";
+  } else if (value === "Disabled" || value === "No") {
+    element.className = "config-value config-badge disabled";
   } else {
-    element.className = 'config-value';
+    element.className = "config-value";
   }
 }
 
@@ -682,8 +688,8 @@ function setConfigValue(elementId, value) {
  * Format boolean value as Yes/No with proper styling
  */
 function formatBoolean(value) {
-  if (value === null || value === undefined) return '--';
-  return value ? 'Enabled' : 'Disabled';
+  if (value === null || value === undefined) return "--";
+  return value ? "Enabled" : "Disabled";
 }
 
 /**
@@ -691,10 +697,10 @@ function formatBoolean(value) {
  */
 function clearConfigDisplay() {
   const configValues = document.querySelectorAll('[id^="config-"]');
-  configValues.forEach(el => {
-    el.textContent = '--';
-    el.className = 'config-value';
+  configValues.forEach((el) => {
+    el.textContent = "--";
+    el.className = "config-value";
   });
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener("DOMContentLoaded", init);

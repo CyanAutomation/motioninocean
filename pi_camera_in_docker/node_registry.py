@@ -8,7 +8,16 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
-REQUIRED_NODE_FIELDS = {"id", "name", "base_url", "auth", "labels", "last_seen", "capabilities", "transport"}
+REQUIRED_NODE_FIELDS = {
+    "id",
+    "name",
+    "base_url",
+    "auth",
+    "labels",
+    "last_seen",
+    "capabilities",
+    "transport",
+}
 ALLOWED_TRANSPORTS = {"http", "docker"}
 
 
@@ -110,7 +119,9 @@ class FileNodeRegistry(NodeRegistry):
         return {"nodes": nodes}
 
     def _save(self, data: Dict[str, Any]) -> None:
-        with tempfile.NamedTemporaryFile("w", delete=False, dir=self.path.parent, encoding="utf-8") as temp:
+        with tempfile.NamedTemporaryFile(
+            "w", delete=False, dir=self.path.parent, encoding="utf-8"
+        ) as temp:
             json.dump(data, temp, indent=2)
             temp.flush()
             os.fsync(temp.fileno())
