@@ -3,7 +3,7 @@
 # Run ./detect-devices.sh to identify devices on your system.
 
 services:
-  motion-in-ocean:
+  motion-in-ocean-webcam-node:
     devices:
       # Media controller devices (required for libcamera camera enumeration)
       - /dev/media0:/dev/media0
@@ -28,3 +28,8 @@ services:
       - /dev/video22:/dev/video22
       - /dev/video23:/dev/video23
       - /dev/video31:/dev/video31
+
+  # Optional: uncomment for management mode when Docker API discovery/control is enabled.
+  # motion-in-ocean-management:
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
