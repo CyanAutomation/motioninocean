@@ -65,16 +65,20 @@ def _validate_outbound_url(base_url: str, allowlist: Set[str]) -> None:
         raise ValueError("base_url must include a hostname")
 
     hostname = parsed.hostname.lower()
-    if hostname in {"localhost", "metadata.google.internal", "169.254.169.254"}:
-        raise ValueError(f"access to restricted host not allowed: {hostname}")
-
+    
+    # Check for IP address first to catch numeric loopback/private IPs
     try:
         ip = ipaddress.ip_address(hostname)
         if ip.is_private or ip.is_loopback or ip.is_link_local:
             raise ValueError(f"access to private IP ranges not allowed: {hostname}")
     except ValueError as exc:
+        # Not an IP address, continue with hostname checks
         if "does not appear to be" not in str(exc):
             raise
+    
+    # Block known metadata/restricted hostnames
+    if hostname in {"localhost", "metadata.google.internal", "169.254.169.254"}:
+        raise ValueError(f"access to restricted host not allowed: {hostname}")
 
     if allowlist and hostname not in allowlist:
         raise ValueError(f"hostname {hostname} is not in MANAGEMENT_OUTBOUND_ALLOWLIST")
