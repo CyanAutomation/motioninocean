@@ -11,12 +11,6 @@
 
 motion-in-ocean is a **Docker-first** project for running a **Raspberry Pi CSI camera** inside a container and streaming video across the network. It’s intended for **Raspberry Pi homelabs** and remote Docker hosts, where you want a reliable camera stream without installing a full stack directly on the host OS.
 
-This repo is a fork of `hyzhak/pi-camera-in-docker`, with the goal of making the solution more polished and **“homelab deployable”**:
-
-- build the image once
-- publish to GHCR
-- deploy from a `docker-compose.yaml` that pulls an image tag (no local builds required)
-
 ---
 
 ## Product Requirements
