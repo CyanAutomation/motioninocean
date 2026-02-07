@@ -1,0 +1,129 @@
+name: Nightly Code Quality Autofix
+
+on:
+  schedule:
+    # Run at 2 AM UTC every night
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    description: 'Manually trigger nightly autofix workflow'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    name: Run linters and formatters with autofix
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements-dev.txt
+
+      - name: Install npm dependencies
+        run: |
+          npm install
+
+      - name: Configure git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Run ruff linter with autofix
+        run: |
+          echo "Running ruff check with autofix..."
+          ruff check pi_camera_in_docker/ tests/ --fix || true
+
+      - name: Run ruff formatter
+        run: |
+          echo "Running ruff format..."
+          ruff format pi_camera_in_docker/ tests/
+
+      - name: Run ESLint with autofix
+        run: |
+          echo "Running ESLint with autofix..."
+          npm run lint -- --fix || true
+
+      - name: Run Prettier formatter
+        run: |
+          echo "Running Prettier..."
+          npx prettier --write "pi_camera_in_docker/static/js/app.js" "eslint.config.js" || true
+
+      - name: Check for changes
+        id: verify-changes
+        run: |
+          if git diff --quiet; then
+            echo "No changes detected"
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected"
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+            echo "---"
+            echo "Modified files:"
+            git diff --name-only
+            echo "---"
+          fi
+
+      - name: Create Pull Request
+        if: steps.verify-changes.outputs.has-changes == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: automated code quality fixes [nightly]'
+          title: 'chore: automated code quality fixes (nightly run)'
+          body: |
+            ## Automated Code Quality Fixes
+
+            This PR contains automated code quality fixes from the nightly autofix workflow.
+
+            **Changes applied:**
+            - Ruff linter autofix (ruff check --fix)
+            - Ruff code formatter (ruff format)
+            - ESLint autofix (npm run lint --fix)
+            - Prettier formatter (prettier --write)
+
+            Please review the changes and merge if they look good.
+          branch: autofix/nightly-${{ github.run_id }}
+          delete-branch: true
+          labels: |
+            automated
+            chore
+          assignees: |
+            ${{ github.repository_owner }}
+
+      - name: Enable auto-merge for PR
+        if: steps.verify-changes.outputs.has-changes == 'true'
+        run: |
+          gh pr merge --auto --squash "autofix/nightly-${{ github.run_id }}" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Output summary
+        run: |
+          echo "## Nightly Autofix Workflow Summary" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.verify-changes.outputs.has-changes }}" == "true" ]; then
+            echo "✅ Changes detected and PR created" >> $GITHUB_STEP_SUMMARY
+            echo "- **PR Branch:** autofix/nightly-${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Auto-merge:** Enabled" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ No changes detected - no PR created" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1,9 +1,13 @@
 {
   "type": "module",
   "scripts": {
-    "lint": "eslint . --ignore-pattern node_modules/"
+    "lint": "eslint . --ignore-pattern node_modules/",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "eslint": "^9.39.2"
+    "eslint": "^9.39.2",
+    "prettier": "^3.2.5"
   }
 }
+

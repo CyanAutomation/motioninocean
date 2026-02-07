@@ -1,0 +1,14 @@
+node_modules/
+__pycache__/
+*.pyc
+.git/
+.venv/
+venv/
+htmlcov/
+coverage.xml
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

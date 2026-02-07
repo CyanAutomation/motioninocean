@@ -11,6 +11,7 @@ Before opening the PR, please ensure:
 <!-- What does this PR change? Why is it needed? -->
 
 ## Type of change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Documentation update
@@ -31,6 +32,7 @@ Before opening the PR, please ensure:
   - [ ] `GET /ready`
 
 ### Test environment
+
 - Raspberry Pi model:
 - OS version (Bookworm?):
 - Camera module:
@@ -46,6 +48,7 @@ curl -i http://localhost:8000/health
 curl -i http://localhost:8000/ready
 docker logs motion-in-ocean --tail 200
 ```
+
 Screenshots (if applicable)
 <!-- Add screenshots for UI changes or stream output -->
 Documentation updates
