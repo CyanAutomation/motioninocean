@@ -84,6 +84,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.4] - 2026-02-07
+
+- refactor: rename webcam-node to webcam and update related configurations
+- Merge pull request #149 from CyanAutomation/codex/github-mention-follow-up-fix-review-comment-on-docker-admi
+- Refactor docker admin gate to reuse parsed payload
+- feat: add periodic config polling functionality
+- feat: add configuration panel with loading state and status indicators
+- Merge pull request #148 from CyanAutomation/codex/github-mention-fixsecurity-enforce-docker-admin-checks-a
+- Update pi_camera_in_docker/management_api.py
+- fix(security): enforce docker admin authorization checks
+- chore: automated code quality fixes [nightly] (#147)
+- Merge pull request #145 from CyanAutomation/codex/github-mention-follow-up-to-hardening-pr-fix-lock-portabil
+- Update pi_camera_in_docker/management_api.py
+- Fix SSRF validation ordering before Request creation
+- Merge pull request #144 from CyanAutomation/codex/github-mention-add-webcam-node-and-management-docker-co
+- Merge pull request #143 from CyanAutomation/codex/github-mention-follow-up-harden-management-node-proxying-a
+- Address PR review comments for compose profile safety and consistency
+- Address PR review: locking portability and SSRF hardening follow-ups
+- Merge pull request #141 from CyanAutomation/codex/add-management-template-and-routing
+- Update pi_camera_in_docker/static/js/management.js
+- Update pi_camera_in_docker/templates/management.html
+- Update pi_camera_in_docker/templates/management.html
+- Update pi_camera_in_docker/static/js/management.js
+- Update pi_camera_in_docker/static/js/management.js
+- Update pi_camera_in_docker/static/js/management.js
+- Merge pull request #140 from CyanAutomation/codex/add-docker-compose-profiles-and-documentation
+- Update docker-compose.yaml
+- Merge pull request #139 from CyanAutomation/codex/github-mention-add-management-node-registry,-node-apis,-and
+- Update pi_camera_in_docker/management_api.py
+- Update pi_camera_in_docker/management_api.py
+- Update pi_camera_in_docker/node_registry.py
+- Add dedicated management UI and mode-aware root template
+- Add compose profiles for webcam-node and management deployments
+- Harden management node proxying and registry operations
+- Refactor code structure for improved readability and maintainability
+- Merge pull request #138 from CyanAutomation/codex/add-management-api-spec-section-and-endpoints
+- Update pi_camera_in_docker/node_registry.py
+- Update pi_camera_in_docker/node_registry.py
+- Update pi_camera_in_docker/node_registry.py
+- Update pi_camera_in_docker/management_api.py
+- Add management node registry and aggregation API
+- Refactor code for improved readability and maintainability across multiple files
+- Merge pull request #137 from CyanAutomation/codex/github-mention-refactor-startup-into-mode-specific-app-buil
+- Update pi_camera_in_docker/main.py
+- Update pi_camera_in_docker/main.py
+- Fix webcam startup and harden config parsing
+- Merge pull request #136 from CyanAutomation/codex/refactor-camera-startup-and-imports
+- Update pi_camera_in_docker/main.py
+- Update pi_camera_in_docker/modes/webcam.py
+- Refactor app into webcam and management mode builders
+- Merge pull request #135 from CyanAutomation/codex/improve-route-compatibility-for-webcam-urls
+- Merge pull request #134 from CyanAutomation/codex/github-mention-add-app_mode-env,-validate-early,-and-expose
+- Update main.py
+- Support /webcam route with and without trailing slash
+- Use APP_MODE to control camera runtime behavior
+- Merge pull request #133 from CyanAutomation/codex/add-new-env-var-for-app-mode
+- Merge pull request #132 from CyanAutomation/codex/enhance-octoprint-compatibility-endpoint
+- Add APP_MODE configuration and expose mode metadata
+- Normalize OctoPrint webcam action before routing
+- Merge pull request #131 from CyanAutomation/codex/update-feature-flag-compatibility
+- Align OctoPrint feature flag env var compatibility
+- chore: remove edge detection feature and related configurations from documentation and tests
+- chore: optimize Dockerfile and add validation script for image size and build metrics
+- chore: update environment configuration and README for OctoPrint compatibility
+
 ## [1.12.3] - 2026-02-07
 
 - Merge pull request #130 from CyanAutomation/codex/github-mention-docs-add-octoprint-webcam-setup-section-to
