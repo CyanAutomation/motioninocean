@@ -199,7 +199,7 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
             logger.error("Unexpected error", exc_info=e)
             raise
         finally:  # finally: marker
-            if picam2_instance is not None and not recording_started.is_set() and getattr(picam2_instance, "started", False):
+            if picam2_instance is not None and getattr(picam2_instance, "started", False):
                 picam2_instance.stop_recording()  # stop_recording marker
 
 
