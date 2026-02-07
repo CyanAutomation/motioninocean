@@ -46,7 +46,7 @@ function init() {
   updateStats().catch((error) => console.error("Initial stats update failed:", error));
   updateConfig().catch((error) => console.error("Initial config update failed:", error));
 
-  console.log("🎥 motion-in-ocean camera stream initialized");
+  console.log("motion-in-ocean camera stream initialized");
 }
 
 /**

@@ -134,6 +134,11 @@ Please keep changes:
 * Avoid new dependencies unless strongly justified
 * Add comments where Raspberry Pi quirks require explanation
 
+### Logging style
+
+* Production/operator logs should avoid emoji markers.
+* Prefer stable ASCII severity prefixes such as `[INFO]`, `[WARN]`, and `[ERROR]` for machine-readable output.
+
 ---
 
 ## Commit messages
