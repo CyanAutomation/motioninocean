@@ -59,3 +59,36 @@ def test_webcam_mode_env_validation_and_startup(monkeypatch):
     app = main.create_webcam_node_app(cfg)
     ready = app.test_client().get("/ready")
     assert ready.status_code in (200, 503)
+
+
+def test_root_serves_management_template_in_management_mode(monkeypatch):
+    monkeypatch.setenv("APP_MODE", "management")
+
+    sys.modules.pop("main", None)
+    main = importlib.import_module("main")
+    client = main.create_management_app(main._load_config()).test_client()
+
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Node Management" in html
+    assert "/static/js/management.js" in html
+
+
+def test_root_serves_stream_template_in_webcam_mode(monkeypatch):
+    monkeypatch.setenv("APP_MODE", "management")
+    monkeypatch.setenv("MOCK_CAMERA", "true")
+
+    sys.modules.pop("main", None)
+    main = importlib.import_module("main")
+    cfg = main._load_config()
+    cfg["app_mode"] = "webcam_node"
+    cfg["mock_camera"] = True
+    app = main.create_webcam_node_app(cfg)
+    client = app.test_client()
+
+    response = client.get("/")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "motion-in-ocean - Camera Stream" in html
+    assert "/static/js/app.js" in html

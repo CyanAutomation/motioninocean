@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="motion-in-ocean - Node Management">
+  <title>motion-in-ocean - Node Management</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/management.css') }}">
+</head>
+<body>
+  <header class="management-header">
+    <h1>Node Management</h1>
+    <p class="subtitle">Manage webcam nodes and monitor node health.</p>
+  </header>
+
+  <main class="management-layout">
+    <section class="node-form-panel">
+      <h2 id="form-title">Add node</h2>
+      <form id="node-form">
+        <input type="hidden" id="editing-node-id" value="">
+
+        <label for="node-id">Node ID</label>
+        <input id="node-id" name="id" required>
+
+        <label for="node-name">Name</label>
+        <input id="node-name" name="name" required>
+
+        <label for="node-base-url">Base URL</label>
+        <input id="node-base-url" name="base_url" placeholder="http://node.local:8000" required>
+
+        <label for="node-transport">Transport</label>
+        <select id="node-transport" name="transport">
+          <option value="http" selected>http</option>
+          <option value="docker">docker</option>
+        </select>
+
+        <label for="node-auth-type">Auth Type</label>
+        <select id="node-auth-type" name="auth_type">
+          <option value="none" selected>none</option>
+          <option value="bearer">bearer</option>
+          <option value="basic">basic</option>
+        </select>
+
+        <label for="node-auth-token">Auth Token (optional)</label>
+        <input id="node-auth-token" name="auth_token" placeholder="Bearer token">
+
+        <label for="node-capabilities">Capabilities (comma-separated)</label>
+        <input id="node-capabilities" name="capabilities" placeholder="stream, snapshot">
+
+        <label for="node-labels">Labels JSON (optional)</label>
+        <textarea id="node-labels" name="labels" rows="4" placeholder='{"location":"lab"}'></textarea>
+
+        <div class="actions">
+          <button type="submit" id="save-node-btn">Save node</button>
+          <button type="button" id="cancel-edit-btn" class="secondary hidden">Cancel edit</button>
+        </div>
+      </form>
+      <p id="form-feedback" class="feedback" aria-live="polite"></p>
+    </section>
+
+    <section class="node-list-panel">
+      <div class="table-header">
+        <h2>Registered nodes</h2>
+        <button id="refresh-nodes-btn" class="secondary">Refresh</button>
+      </div>
+
+      <table class="node-table" aria-label="Registered node list">
+        <thead>
+          <tr>
+            <th>Node</th>
+            <th>Base URL</th>
+            <th>Transport</th>
+            <th>Status</th>
+            <th>Stream</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="nodes-table-body">
+          <tr>
+            <td colspan="6" class="empty">No nodes registered.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script type="module" src="{{ url_for('static', filename='js/management.js') }}"></script>
+</body>
+</html>

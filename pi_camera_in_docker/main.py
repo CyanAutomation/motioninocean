@@ -118,6 +118,8 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
 
     @app.route("/")
     def index() -> str:
+        if config["app_mode"] == "management":
+            return render_template("management.html")
         return render_template(
             "index.html", width=config["resolution"][0], height=config["resolution"][1]
         )
