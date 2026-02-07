@@ -130,6 +130,17 @@ if app_mode not in ALLOWED_APP_MODES:
     )
     raise ValueError(f"Invalid APP_MODE '{app_mode_raw}'. Allowed values: {allowed_values}")
 
+camera_mode_enabled = app_mode == "webcam_node"
+if camera_mode_enabled:
+    log_event(logging.INFO, "config", "Camera mode enabled", app_mode=app_mode)
+else:
+    log_event(
+        logging.INFO,
+        "config",
+        "Management mode enabled; camera initialization and camera endpoints are disabled",
+        app_mode=app_mode,
+    )
+
 # Get configuration from environment variables
 resolution_str: str = _resolve_config_value("RESOLUTION", "640x480", profile_enabled=pi3_profile_enabled)
 fps_str: str = _resolve_config_value("FPS", "0", profile_enabled=pi3_profile_enabled)  # 0 = use camera default
@@ -188,7 +199,7 @@ except (ValueError, TypeError):
     logger.warning("Invalid MAX_STREAM_CONNECTIONS format. Using default 10.")
     max_stream_connections = 10
 
-if not mock_camera:
+if camera_mode_enabled and not mock_camera:
     # Workaround for pykms import error in headless container environments
     # picamera2 imports DrmPreview which requires pykms, but we don't use preview functionality
     try:
@@ -693,6 +704,20 @@ def health() -> Tuple[Response, int]:
 @app.route("/ready")
 def ready() -> Tuple[Response, int]:
     """Readiness probe - checks if camera is actually streaming."""
+    if not camera_mode_enabled:
+        return (
+            jsonify(
+                {
+                    "status": "ready",
+                    "reason": "camera_disabled_for_management_mode",
+                    "timestamp": datetime.now().isoformat(),
+                    "uptime_seconds": time.monotonic() - app.start_time_monotonic,
+                    "app_mode": app_mode,
+                }
+            ),
+            200,
+        )
+
     # Capture camera state first for consistency
     is_recording = recording_started.is_set()
     status = get_stream_status(stream_stats)
@@ -741,6 +766,8 @@ def metrics() -> Tuple[Response, int]:
     return jsonify(
         {
             "camera_active": recording_started.is_set(),
+            "camera_mode_enabled": camera_mode_enabled,
+            "app_mode": app_mode,
             "frames_captured": status["frames_captured"],
             "current_fps": status["current_fps"],
             "last_frame_age_seconds": status["last_frame_age_seconds"],
@@ -885,6 +912,9 @@ def gen() -> Iterator[bytes]:
 
 def _build_stream_response() -> Response:
     """Create the MJPEG stream response with readiness and connection checks."""
+    if not camera_mode_enabled:
+        return Response("Camera endpoints are disabled in management mode.", status=404)
+
     if not recording_started.is_set():
         return Response("Camera stream not ready.", status=503)
 
@@ -927,6 +957,9 @@ def _build_stream_response() -> Response:
 
 def _build_snapshot_response() -> Response:
     """Return the latest JPEG frame as a single-image snapshot."""
+    if not camera_mode_enabled:
+        return Response("Camera endpoints are disabled in management mode.", status=404)
+
     if not recording_started.is_set():
         return Response("Camera is not ready yet.", status=503)
 
@@ -1013,7 +1046,25 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, handle_shutdown)
     log_startup_summary()
     picam2_instance = None
-    if mock_camera:
+    if not camera_mode_enabled:
+        try:
+            log_event(
+                logging.INFO,
+                "startup",
+                "Starting Flask server in management mode (camera disabled).",
+                host="0.0.0.0",
+                port=8000,
+            )
+            server = make_server("0.0.0.0", 8000, app, threaded=True)
+            flask_server_state["server"] = server
+            server.serve_forever()
+            flask_thread.start()
+            flask_thread.join()
+        finally:
+            recording_started.clear()
+            log_event(logging.INFO, "shutdown", "Application shutdown complete.")
+
+    elif mock_camera:
         log_event(
             logging.INFO,
             "startup",

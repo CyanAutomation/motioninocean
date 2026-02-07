@@ -171,7 +171,7 @@ MOCK_CAMERA=false
 * `MOTION_IN_OCEAN_HEALTHCHECK_READY` - `true` uses `/ready` for healthchecks instead of `/health`.
 * `MOTION_IN_OCEAN_APP_MODE` - Application mode. Allowed values: `webcam_node` (default) and `management`.
   * `webcam_node`: camera streaming node behavior.
-  * `management`: management/control-plane behavior.
+  * `management`: management/control-plane behavior (camera initialization disabled and camera endpoints return 404).
 * `TZ` - Logging timezone.
 * `MOCK_CAMERA` - `true` disables Picamera2 initialisation and streams dummy frames (dev/testing).
 
