@@ -203,20 +203,23 @@ async function removeNode(nodeId) {
     return;
   }
 
-  const response = await fetch(`/api/nodes/${encodeURIComponent(nodeId)}`, { method: "DELETE" });
-  if (!response.ok) {
-    const errorPayload = await response.json().catch(() => ({}));
-    showFeedback(errorPayload?.error?.message || "Delete failed", true);
-    return;
-  }
+  try {
+    const response = await fetch(`/api/nodes/${encodeURIComponent(nodeId)}`, { method: "DELETE" });
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(() => ({}));
+      showFeedback(errorPayload?.error?.message || "Delete failed", true);
+      return;
+    }
 
-  showFeedback(`Node ${nodeId} removed.`);
-  if (editingNodeIdInput.value === nodeId) {
-    resetForm();
+    showFeedback(`Node ${nodeId} removed.`);
+    if (editingNodeIdInput.value === nodeId) {
+      resetForm();
+    }
+    await fetchNodes();
+    await refreshStatuses();
+  } catch (error) {
+    showFeedback(error.message || "Network error occurred.", true);
   }
-  await fetchNodes();
-  await refreshStatuses();
-}
 
 function onTableClick(event) {
   const target = event.target;
