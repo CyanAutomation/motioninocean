@@ -100,6 +100,9 @@ def _load_config() -> Dict[str, Any]:
         "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
         in ("1", "true", "yes"),
         "node_registry_path": os.environ.get("NODE_REGISTRY_PATH", "/data/node-registry.json"),
+        "management_auth_required": os.environ.get("MANAGEMENT_AUTH_REQUIRED", "false").lower()
+        in ("1", "true", "yes"),
+        "management_token_roles": os.environ.get("MANAGEMENT_TOKEN_ROLES", ""),
     }
 
 
@@ -146,7 +149,12 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     app, state = _create_base_app(cfg)
     register_shared_routes(app, state)
     register_management_camera_error_routes(app)
-    register_management_routes(app, cfg["node_registry_path"])
+    register_management_routes(
+        app,
+        cfg["node_registry_path"],
+        auth_required=cfg["management_auth_required"],
+        token_roles_raw=cfg["management_token_roles"],
+    )
     return app
 
 

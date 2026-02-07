@@ -15,6 +15,28 @@ class NodeRequestError(RuntimeError):
     """Raised when a proxied node request cannot be completed safely."""
 
 
+
+def _parse_token_roles(raw: str) -> Dict[str, str]:
+    mapping: Dict[str, str] = {}
+    for chunk in raw.split(","):
+        pair = chunk.strip()
+        if not pair or ":" not in pair:
+            continue
+        token, role = pair.split(":", 1)
+        token = token.strip()
+        role = role.strip().lower()
+        if token and role:
+            mapping[token] = role
+    return mapping
+
+
+def _extract_bearer_token() -> Optional[str]:
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.lower().startswith("bearer "):
+        return None
+    token = auth_header[7:].strip()
+    return token or None
+
 def _validate_node_base_url(base_url: str) -> None:
     import ipaddress
 
@@ -169,8 +191,26 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
     return status, None
 
 
-def register_management_routes(app: Flask, registry_path: str) -> None:
+def register_management_routes(
+    app: Flask, registry_path: str, auth_required: bool = False, token_roles_raw: str = ""
+) -> None:
     registry = FileNodeRegistry(registry_path)
+    token_roles = _parse_token_roles(token_roles_raw)
+
+    def _enforce_admin_for_docker() -> Optional[Tuple[Any, int]]:
+        payload = request.get_json(silent=True) or {}
+        transport = payload.get("transport")
+        if transport != "docker":
+            return None
+
+        token = _extract_bearer_token()
+        role = token_roles.get(token) if token else None
+
+        if auth_required and role is None:
+            return _error_response("UNAUTHORIZED", "authentication required", 401)
+        if role != "admin":
+            return _error_response("FORBIDDEN", "admin role required for docker transport", 403)
+        return None
 
     @app.route("/api/nodes", methods=["GET"])
     def list_nodes():
@@ -178,6 +218,9 @@ def register_management_routes(app: Flask, registry_path: str) -> None:
 
     @app.route("/api/nodes", methods=["POST"])
     def create_node():
+        admin_error = _enforce_admin_for_docker()
+        if admin_error is not None:
+            return admin_error
         payload = request.get_json(silent=True) or {}
         try:
             created = registry.create_node(payload)
@@ -194,6 +237,9 @@ def register_management_routes(app: Flask, registry_path: str) -> None:
 
     @app.route("/api/nodes/<node_id>", methods=["PUT"])
     def update_node(node_id: str):
+        admin_error = _enforce_admin_for_docker()
+        if admin_error is not None:
+            return admin_error
         payload = request.get_json(silent=True) or {}
         try:
             updated = registry.update_node(node_id, payload)
