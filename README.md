@@ -187,8 +187,13 @@ MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM=true
 MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT=false
 MOTION_IN_OCEAN_PORT=8000
 MOTION_IN_OCEAN_MANAGEMENT_PORT=8001
+MOTION_IN_OCEAN_BIND_HOST=127.0.0.1
 TZ=Europe/London
 MOCK_CAMERA=false
+
+# Multi-host deployment (advanced)
+# ENABLE_DOCKER_SOCKET_PROXY=false
+# DOCKER_PROXY_PORT=2375
 ```
 
 ### Options
@@ -206,6 +211,9 @@ MOCK_CAMERA=false
 * `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT` - Healthcheck endpoint selector for management mode. Default: `false` (uses `/health`).
 * `MOTION_IN_OCEAN_PORT` - Host port used by the `webcam` profile. Default: `8000`.
 * `MOTION_IN_OCEAN_MANAGEMENT_PORT` - Host port used by the `management` profile. Default: `8001` (avoids port conflict when both profiles run together).
+* `MOTION_IN_OCEAN_BIND_HOST` - Network interface to bind to (default: `127.0.0.1` for localhost only). Set to `0.0.0.0` to expose to network. **Multi-host deployments only**.
+* `DOCKER_PROXY_PORT` - Port for docker-socket-proxy service when `ENABLE_DOCKER_SOCKET_PROXY=true`. Default: `2375`. **Advanced / Docker-native deployments only**.
+* `ENABLE_DOCKER_SOCKET_PROXY` - Enable optional docker-socket-proxy service in docker-compose (default: `false`). When `true`, adds a `docker-socket-proxy` container for Docker API access. **Advanced / Docker-native deployments only**.
 * `APP_MODE` - Runtime application mode consumed by the container (`webcam` or `management`).
   * In this repository’s Compose profiles it is set explicitly per service to prevent mode/profile mismatches.
   * If you run the image outside these Compose files, set `APP_MODE` directly in your container environment.
@@ -293,7 +301,51 @@ These settings prioritise **reliability** over strict hardening, which is reason
 
 ---
 
+## Multi-Host Deployment
+
+For local networks with multiple cameras, run **management mode** on one host to coordinate **webcam mode** instances on other hosts:
+
+### Quick Reference
+
+**Webcam Host** (e.g., `192.168.1.101`):
+```bash
+export MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
+docker-compose --profile webcam up -d
+```
+
+**Management Host** (e.g., `192.168.1.100`):
+```bash
+export MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
+docker-compose --profile management up -d
+```
+
+Then access the management UI at `http://192.168.1.100:8001/management` and add nodes with `base_url: http://192.168.1.101:8000`.
+
+### Features
+
+- ✅ HTTP-based remote node discovery
+- ✅ Aggregated stream status and health checks
+- ✅ Web UI for node management (add/remove/view streams)
+- ✅ Built-in SSRF protection
+
+### Advanced Options
+
+For Docker-native environments, use **docker-socket-proxy** for direct Docker API access:
+
+```bash
+# Webcam host
+export ENABLE_DOCKER_SOCKET_PROXY=true
+docker-compose --profile webcam --profile docker-socket-proxy up -d
+```
+
+Then add nodes with `transport: "docker"` in management UI (requires admin role).
+
+**⚠️ See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed setup, troubleshooting, and security best practices.**
+
+---
+
 ## Healthchecks
+
 
 The container exposes two endpoints:
 

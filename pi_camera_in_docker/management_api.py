@@ -14,6 +14,23 @@ class NodeRequestError(RuntimeError):
     """Raised when a proxied node request cannot be completed safely."""
 
 
+#
+# Docker Transport Support
+# =======================
+# This module supports two transport types for remote nodes:
+#
+# 1. "http" (HTTP/HTTPS) - Primary transport for most deployments
+#    - Nodes communicate via HTTP requests to base_url + endpoints
+#    - Simple setup, works across any network
+#    - Status and actions fully supported
+#
+# 2. "docker" (Docker API via docker-socket-proxy) - Advanced transport
+#    - Requires admin role and docker-socket-proxy setup on remote host
+#    - Allows direct Docker API queries to remote hosts
+#    - Status and actions not yet implemented (stub returns TRANSPORT_UNSUPPORTED)
+#    - Use ENABLE_DOCKER_SOCKET_PROXY=true to activate docker-socket-proxy service
+#    - See DEPLOYMENT.md for detailed setup instructions
+#
 
 def _parse_token_roles(raw: str) -> Dict[str, str]:
     mapping: Dict[str, str] = {}

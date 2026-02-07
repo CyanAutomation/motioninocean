@@ -33,7 +33,7 @@ services:
       APP_MODE: webcam
       HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM:-true}
     ports:
-      - "127.0.0.1:${MOTION_IN_OCEAN_PORT}:8000"  # webcam localhost binding
+      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT}:8000"  # webcam binding (default: localhost only)
     volumes:
       - /run/udev:/run/udev:ro
 
@@ -75,7 +75,33 @@ services:
       retries: 3
       start_period: 1m
 
-  motion-in-ocean-management:
+  # Optional: Docker Socket Proxy for remote Docker host access from management mode
+  # Enable by setting ENABLE_DOCKER_SOCKET_PROXY=true
+  # Used for Docker API discovery/control when management mode needs to connect to remote Docker hosts
+  docker-socket-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:latest
+    container_name: docker-socket-proxy
+    profiles: ["docker-socket-proxy"]
+    restart: unless-stopped
+    ports:
+      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${DOCKER_PROXY_PORT:-2375}:2375"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      # Grant minimal permissions for safe Docker API access
+      # See: https://github.com/Tecnativa/docker-socket-proxy#restrictive-permissions
+      CONTAINERS: 1
+      SERVICES: 1
+      TASKS: 1
+      NETWORKS: 1
+      VOLUMES: 1
+      INFO: 1
+      PING: 1
+      VERSION: 1
+      # Deny all write operations for security
+      POST: 0
+      DELETE: 0
+      PUT: 0  motion-in-ocean-management:
     <<: *motion-in-ocean-common
     container_name: motion-in-ocean-management
     profiles: ["management"]
@@ -93,7 +119,7 @@ services:
       APP_MODE: management
       HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT:-false}
     ports:
-      - "127.0.0.1:${MOTION_IN_OCEAN_MANAGEMENT_PORT:-8001}:8000"  # management localhost binding
+      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_MANAGEMENT_PORT:-8001}:8000"  # management binding (default: localhost only)
 
     healthcheck:
       test: ["CMD", "python3", "/app/healthcheck.py"]
