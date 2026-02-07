@@ -164,6 +164,7 @@ MOCK_CAMERA=false
 * `MOTION_IN_OCEAN_TARGET_FPS` - Output throttle FPS. If unset, it defaults to `FPS`.
 * `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS` - Maximum simultaneous `/stream.mjpg` clients.
 * `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` - Enables OctoPrint-compatible webcam routes (`/webcam/?action=stream` and `/webcam/?action=snapshot`). Default: `false`.
+  * Legacy `OCTOPRINT_COMPATIBILITY` is still accepted at runtime for backward compatibility, but `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` is the canonical documented variable.
 * `MOTION_IN_OCEAN_PI3_PROFILE` - Pi 3 recommended defaults profile. When enabled, it only fills missing values with: `RESOLUTION=640x480`, `FPS=12`, `TARGET_FPS=12`, `JPEG_QUALITY=75`, `MAX_STREAM_CONNECTIONS=3`.
 * `MOTION_IN_OCEAN_CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
 * `MOTION_IN_OCEAN_HEALTHCHECK_READY` - `true` uses `/ready` for healthchecks instead of `/health`.

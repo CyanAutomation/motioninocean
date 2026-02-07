@@ -84,6 +84,38 @@ class TestFeatureFlagRegistry:
             flags.load()
             assert flags.is_enabled("MOCK_CAMERA") is True
 
+    def test_backward_compatibility_octoprint_compatibility(self):
+        """Test OCTOPRINT_COMPATIBILITY supports both prefixed and legacy env vars."""
+        from pi_camera_in_docker.feature_flags import FeatureFlags
+
+        with mock.patch.dict(
+            os.environ, {"MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY": "true"}, clear=True
+        ):
+            flags = FeatureFlags()
+            flags.load()
+            assert flags.is_enabled("OCTOPRINT_COMPATIBILITY") is True
+
+        with mock.patch.dict(os.environ, {"OCTOPRINT_COMPATIBILITY": "true"}, clear=True):
+            flags = FeatureFlags()
+            flags.load()
+            assert flags.is_enabled("OCTOPRINT_COMPATIBILITY") is True
+
+    def test_prefixed_octoprint_env_var_takes_precedence(self):
+        """Test prefixed OCTOPRINT_COMPATIBILITY env var takes precedence over legacy."""
+        from pi_camera_in_docker.feature_flags import FeatureFlags
+
+        with mock.patch.dict(
+            os.environ,
+            {
+                "OCTOPRINT_COMPATIBILITY": "false",
+                "MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY": "true",
+            },
+            clear=True,
+        ):
+            flags = FeatureFlags()
+            flags.load()
+            assert flags.is_enabled("OCTOPRINT_COMPATIBILITY") is True
+
     def test_flag_defaults(self):
         """Test that flag defaults are correct."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
