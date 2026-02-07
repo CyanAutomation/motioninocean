@@ -139,8 +139,21 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
             return Response('Camera stream not ready.', status=503)
         if tracker.get_count() >= state['max_stream_connections']:
             return Response('Too many connections', status=429)
-        tracker.increment()
-        return Response(gen(), mimetype='multipart/x-mixed-replace; boundary=frame')
+        
+        def gen_with_tracking():
+            tracker.increment()
+            try:
+                while True:
+                    with output.condition:
+                        output.condition.wait(timeout=5)
+                        frame = output.frame
+                    if frame is None:
+                        continue
+                    yield b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame + b'\r\n'
+            finally:
+                tracker.decrement()
+        
+        return Response(gen_with_tracking(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
     def _build_snapshot_response() -> Response:
         if not state['recording_started'].is_set():
