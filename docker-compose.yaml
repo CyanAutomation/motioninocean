@@ -52,7 +52,7 @@ x-motion-in-ocean-camera: &motion-in-ocean-camera
     - 'c 250:* rmw'  # /dev/media* devices (media controllers for libcamera)
 
 services:
-  motion-in-ocean-webcam:
+  motion-in-ocean:
     <<: [*motion-in-ocean-common, *motion-in-ocean-camera]
     container_name: motion-in-ocean
     profiles: ["webcam"]
@@ -113,7 +113,7 @@ services:
       PUT: 0
 
   # NOTE: Webcam and management profiles must not be run simultaneously
-  motion-in-ocean-management:
+  motion-in-ocean:
     <<: *motion-in-ocean-common
     container_name: motion-in-ocean-management
     profiles: ["management"]
