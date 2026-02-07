@@ -54,9 +54,9 @@ def test_webcam_mode_env_validation_and_startup(monkeypatch):
     assert cfg["max_frame_age_seconds"] == 10.0
     assert cfg["max_stream_connections"] == 10
 
-    cfg["app_mode"] = "webcam_node"
+    cfg["app_mode"] = "webcam"
     cfg["mock_camera"] = True
-    app = main.create_webcam_node_app(cfg)
+    app = main.create_webcam_app(cfg)
     ready = app.test_client().get("/ready")
     assert ready.status_code in (200, 503)
 
@@ -82,9 +82,9 @@ def test_root_serves_stream_template_in_webcam_mode(monkeypatch):
     sys.modules.pop("main", None)
     main = importlib.import_module("main")
     cfg = main._load_config()
-    cfg["app_mode"] = "webcam_node"
+    cfg["app_mode"] = "webcam"
     cfg["mock_camera"] = True
-    app = main.create_webcam_node_app(cfg)
+    app = main.create_webcam_app(cfg)
     client = app.test_client()
 
     response = client.get("/")

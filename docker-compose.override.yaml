@@ -3,7 +3,7 @@
 # Run ./detect-devices.sh to identify devices on your system.
 
 services:
-  motion-in-ocean-webcam-node:
+  motion-in-ocean-webcam:
     devices:
       # Media controller devices (required for libcamera camera enumeration)
       - /dev/media0:/dev/media0

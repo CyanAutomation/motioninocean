@@ -20,7 +20,7 @@ def register_shared_routes(
 
     @app.route("/ready")
     def ready():
-        if state["app_mode"] != "webcam_node":
+        if state["app_mode"] != "webcam":
             return jsonify(
                 {
                     "status": "ready",
@@ -53,7 +53,7 @@ def register_shared_routes(
         return jsonify(
             {
                 "app_mode": state["app_mode"],
-                "camera_mode_enabled": state["app_mode"] == "webcam_node",
+                "camera_mode_enabled": state["app_mode"] == "webcam",
                 "camera_active": state["recording_started"].is_set(),
                 "max_frame_age_seconds": state["max_frame_age_seconds"],
                 "uptime_seconds": round(time.monotonic() - app.start_time_monotonic, 2),

@@ -15,10 +15,10 @@ x-motion-in-ocean-common: &motion-in-ocean-common
       max-file: "3"
 
 services:
-  motion-in-ocean-webcam-node:
+  motion-in-ocean-webcam:
     <<: *motion-in-ocean-common
     container_name: motion-in-ocean
-    profiles: ["webcam-node"]
+    profiles: ["webcam"]
     environment:
       TZ: ${TZ}
       RESOLUTION: ${MOTION_IN_OCEAN_RESOLUTION}
@@ -30,10 +30,10 @@ services:
       MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
       CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
-      APP_MODE: webcam_node
-      HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM_NODE:-true}
+      APP_MODE: webcam
+      HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM:-true}
     ports:
-      - "127.0.0.1:${MOTION_IN_OCEAN_PORT}:8000"  # webcam-node localhost binding
+      - "127.0.0.1:${MOTION_IN_OCEAN_PORT}:8000"  # webcam localhost binding
     volumes:
       - /run/udev:/run/udev:ro
 

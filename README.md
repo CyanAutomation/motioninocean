@@ -47,11 +47,11 @@ nano .env
 
 ```yaml
 services:
-  motion-in-ocean-webcam-node:
+  motion-in-ocean-webcam:
     image: ghcr.io/cyanautomation/motioninocean:latest
     container_name: motion-in-ocean
     restart: unless-stopped
-    profiles: ["webcam-node"]
+    profiles: ["webcam"]
 
     ports:
       - "127.0.0.1:8000:8000"  # localhost only (recommended)
@@ -100,7 +100,7 @@ services:
 ### 3) Run it
 
 ```bash
-docker compose --profile webcam-node up -d
+docker compose --profile webcam up -d
 docker logs -f motion-in-ocean
 ```
 
@@ -183,7 +183,7 @@ MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS=10
 MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY=false
 MOTION_IN_OCEAN_PI3_PROFILE=false
 MOTION_IN_OCEAN_CORS_ORIGINS=*
-MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM_NODE=true
+MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM=true
 MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT=false
 MOTION_IN_OCEAN_PORT=8000
 MOTION_IN_OCEAN_MANAGEMENT_PORT=8001
@@ -202,11 +202,11 @@ MOCK_CAMERA=false
   * Legacy `OCTOPRINT_COMPATIBILITY` is still accepted at runtime for backward compatibility, but `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` is the canonical documented variable.
 * `MOTION_IN_OCEAN_PI3_PROFILE` - Pi 3 recommended defaults profile. When enabled, it only fills missing values with: `RESOLUTION=640x480`, `FPS=12`, `TARGET_FPS=12`, `JPEG_QUALITY=75`, `MAX_STREAM_CONNECTIONS=3`.
 * `MOTION_IN_OCEAN_CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
-* `MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM_NODE` - Healthcheck endpoint selector for webcam mode. Default: `true` (uses `/ready`).
+* `MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM` - Healthcheck endpoint selector for webcam mode. Default: `true` (uses `/ready`).
 * `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT` - Healthcheck endpoint selector for management mode. Default: `false` (uses `/health`).
-* `MOTION_IN_OCEAN_PORT` - Host port used by the `webcam-node` profile. Default: `8000`.
+* `MOTION_IN_OCEAN_PORT` - Host port used by the `webcam` profile. Default: `8000`.
 * `MOTION_IN_OCEAN_MANAGEMENT_PORT` - Host port used by the `management` profile. Default: `8001` (avoids port conflict when both profiles run together).
-* `APP_MODE` - Runtime application mode consumed by the container (`webcam_node` or `management`).
+* `APP_MODE` - Runtime application mode consumed by the container (`webcam` or `management`).
   * In this repository’s Compose profiles it is set explicitly per service to prevent mode/profile mismatches.
   * If you run the image outside these Compose files, set `APP_MODE` directly in your container environment.
 * `TZ` - Logging timezone.
@@ -304,16 +304,16 @@ The docker-compose healthcheck uses the bundled `healthcheck.py`, which defaults
 Switch to readiness checks with:
 
 * `HEALTHCHECK_READY=true` (uses `/ready` instead of `/health`)
-  * In this repo, Compose maps profile-scoped `.env` values (`MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM_NODE` / `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT`) into container `HEALTHCHECK_READY`.
+  * In this repo, Compose maps profile-scoped `.env` values (`MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM` / `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT`) into container `HEALTHCHECK_READY`.
 
 Recommended by deployment mode:
 
-* `webcam-node` profile: use readiness checks (`/ready`) so unhealthy camera initialization is detected.
+* `webcam` profile: use readiness checks (`/ready`) so unhealthy camera initialization is detected.
 * `management` profile: use liveness checks (`/health`) so readiness does **not** depend on camera frames.
 
 Compose defaults in this repository already follow those recommendations:
 
-* `MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM_NODE=true`
+* `MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM=true`
 * `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT=false`
 
 Override the full URL (takes precedence over `HEALTHCHECK_READY`) with:

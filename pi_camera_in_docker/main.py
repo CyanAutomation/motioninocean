@@ -26,8 +26,8 @@ from shared import register_shared_routes
 from werkzeug.serving import make_server
 
 
-ALLOWED_APP_MODES = {"webcam_node", "management"}
-DEFAULT_APP_MODE = "webcam_node"
+ALLOWED_APP_MODES = {"webcam", "management"}
+DEFAULT_APP_MODE = "webcam"
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -158,9 +158,9 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     return app
 
 
-def create_webcam_node_app(config: Optional[Dict[str, Any]] = None) -> Flask:
+def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     cfg = _load_config() if config is None else config
-    cfg["app_mode"] = "webcam_node"
+    cfg["app_mode"] = "webcam"
     app, state = _create_base_app(cfg)
 
     stream_stats = StreamStats()
@@ -234,7 +234,7 @@ config = _load_config()
 app = (
     create_management_app(config)
     if config["app_mode"] == "management"
-    else create_webcam_node_app(config)
+    else create_webcam_app(config)
 )
 
 
