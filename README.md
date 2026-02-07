@@ -47,10 +47,11 @@ nano .env
 
 ```yaml
 services:
-  motion-in-ocean:
+  motion-in-ocean-webcam-node:
     image: ghcr.io/cyanautomation/motioninocean:latest
     container_name: motion-in-ocean
     restart: unless-stopped
+    profiles: ["webcam-node"]
 
     ports:
       - "127.0.0.1:8000:8000"  # localhost only (recommended)
@@ -72,13 +73,42 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+  motion-in-ocean-management:
+    image: ghcr.io/cyanautomation/motioninocean:latest
+    container_name: motion-in-ocean-management
+    restart: unless-stopped
+    profiles: ["management"]
+
+    ports:
+      - "127.0.0.1:8000:8000"  # keep LAN access behind reverse proxy/auth
+
+    env_file:
+      - .env
+
+    # Optional when Docker API discovery/control is enabled:
+    # volumes:
+    #   - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    healthcheck:
+      test: ["CMD", "python3", "/app/healthcheck.py"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 ```
 
 ### 3) Run it
 
 ```bash
-docker compose up -d
+docker compose --profile webcam-node up -d
 docker logs -f motion-in-ocean
+```
+
+For management/control-plane deployments (no camera devices mounted):
+
+```bash
+docker compose --profile management up -d
+docker logs -f motion-in-ocean-management
 ```
 
 ### 4) Check health
@@ -151,7 +181,8 @@ MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS=10
 MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY=false
 MOTION_IN_OCEAN_PI3_PROFILE=false
 MOTION_IN_OCEAN_CORS_ORIGINS=*
-MOTION_IN_OCEAN_HEALTHCHECK_READY=false
+MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM_NODE=true
+MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT=false
 MOTION_IN_OCEAN_APP_MODE=webcam_node
 TZ=Europe/London
 MOCK_CAMERA=false
@@ -168,8 +199,10 @@ MOCK_CAMERA=false
   * Legacy `OCTOPRINT_COMPATIBILITY` is still accepted at runtime for backward compatibility, but `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` is the canonical documented variable.
 * `MOTION_IN_OCEAN_PI3_PROFILE` - Pi 3 recommended defaults profile. When enabled, it only fills missing values with: `RESOLUTION=640x480`, `FPS=12`, `TARGET_FPS=12`, `JPEG_QUALITY=75`, `MAX_STREAM_CONNECTIONS=3`.
 * `MOTION_IN_OCEAN_CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
-* `MOTION_IN_OCEAN_HEALTHCHECK_READY` - `true` uses `/ready` for healthchecks instead of `/health`.
+* `MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM_NODE` - Healthcheck endpoint selector for webcam mode. Default: `true` (uses `/ready`).
+* `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT` - Healthcheck endpoint selector for management mode. Default: `false` (uses `/health`).
 * `MOTION_IN_OCEAN_APP_MODE` - Application mode. Allowed values: `webcam_node` (default) and `management`.
+  * With the Compose profiles in this repository, this is set automatically per service (`webcam-node` -> `webcam_node`, `management` -> `management`) to prevent mode/profile mismatches.
   * `webcam_node`: camera streaming node behavior.
   * `management`: management/control-plane behavior (camera initialization disabled and camera endpoints return 404).
 * `TZ` - Logging timezone.
@@ -276,9 +309,19 @@ The container exposes two endpoints:
 The docker-compose healthcheck uses the bundled `healthcheck.py`, which defaults to `/health`.
 Switch to readiness checks with:
 
-* `MOTION_IN_OCEAN_HEALTHCHECK_READY=true` (uses `/ready` instead of `/health`)
+* `HEALTHCHECK_READY=true` (uses `/ready` instead of `/health`)
 
-Override the full URL (takes precedence over `MOTION_IN_OCEAN_HEALTHCHECK_READY`) with:
+Recommended by deployment mode:
+
+* `webcam-node` profile: use readiness checks (`/ready`) so unhealthy camera initialization is detected.
+* `management` profile: use liveness checks (`/health`) so readiness does **not** depend on camera frames.
+
+Compose defaults in this repository already follow those recommendations:
+
+* `MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM_NODE=true`
+* `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT=false`
+
+Override the full URL (takes precedence over `HEALTHCHECK_READY`) with:
 
 * `HEALTHCHECK_URL` (e.g., `http://127.0.0.1:8000/ready`)
 * `HEALTHCHECK_TIMEOUT` (seconds, default `5`)
@@ -334,6 +377,17 @@ Recommended approach uses:
 * ❌ avoid: internet exposure without authentication
 
 If you need remote access, use a reverse proxy (nginx/Caddy/Traefik) with authentication.
+
+### Management mode hardening guidance
+
+When running the `management` profile, treat it as control-plane infrastructure:
+
+* Keep exposure LAN-only (or VPN-only). Do not publish directly to the public internet.
+* Put a reverse proxy in front (Caddy/Traefik/nginx) and terminate TLS there.
+* Require authentication/authorization at the proxy (OIDC, basic auth, mTLS, or equivalent).
+* Mount `/var/run/docker.sock` only when Docker discovery/control features are explicitly enabled.
+  * Prefer read-only mounting where possible.
+  * Restrict host-level socket access to trusted administrators.
 
 ---
 
