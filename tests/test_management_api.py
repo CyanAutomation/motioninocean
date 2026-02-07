@@ -51,6 +51,7 @@ def test_node_crud_and_overview(monkeypatch, tmp_path):
 
 
 def test_validation_and_transport_errors(monkeypatch, tmp_path):
+    monkeypatch.setenv("MANAGEMENT_TOKEN_ROLES", "admin-token:admin")
     client = _new_management_client(monkeypatch, tmp_path)
 
     invalid = client.post("/api/nodes", json={"id": "only-id"})
@@ -67,7 +68,14 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
         "capabilities": ["stream"],
         "transport": "docker",
     }
-    assert client.post("/api/nodes", json=payload).status_code == 201
+    assert (
+        client.post(
+            "/api/nodes",
+            json=payload,
+            headers={"Authorization": "Bearer admin-token"},
+        ).status_code
+        == 201
+    )
 
     status = client.get("/api/nodes/node-2/status")
     assert status.status_code == 200
@@ -91,7 +99,14 @@ def test_ssrf_protection_blocks_local_targets(monkeypatch, tmp_path):
         "capabilities": ["metrics"],
         "transport": "http",
     }
-    assert client.post("/api/nodes", json=payload).status_code == 201
+    assert (
+        client.post(
+            "/api/nodes",
+            json=payload,
+            headers={"Authorization": "Bearer admin-token"},
+        ).status_code
+        == 201
+    )
 
     status = client.get("/api/nodes/node-3/status")
     assert status.status_code == 503
@@ -127,7 +142,14 @@ def test_ssrf_protection_blocks_ipv6_mapped_loopback(monkeypatch, tmp_path):
         "capabilities": ["metrics"],
         "transport": "http",
     }
-    assert client.post("/api/nodes", json=payload).status_code == 201
+    assert (
+        client.post(
+            "/api/nodes",
+            json=payload,
+            headers={"Authorization": "Bearer admin-token"},
+        ).status_code
+        == 201
+    )
 
     status = client.get("/api/nodes/node-4/status")
     assert status.status_code == 503
@@ -148,9 +170,74 @@ def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
         "capabilities": ["metrics"],
         "transport": "http",
     }
-    assert client.post("/api/nodes", json=payload).status_code == 201
+    assert (
+        client.post(
+            "/api/nodes",
+            json=payload,
+            headers={"Authorization": "Bearer admin-token"},
+        ).status_code
+        == 201
+    )
 
     status = client.get("/api/nodes/node-5/status")
     assert status.status_code == 503
     assert status.json["error"]["code"] == "NODE_UNREACHABLE"
     assert status.json["error"]["details"]["reason"] == "target is blocked"
+
+
+def test_docker_transport_requires_admin_when_auth_disabled(monkeypatch, tmp_path):
+    monkeypatch.setenv("MANAGEMENT_AUTH_REQUIRED", "false")
+    monkeypatch.setenv("MANAGEMENT_TOKEN_ROLES", "admin-token:admin")
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-docker-no-auth",
+        "name": "Docker No Auth",
+        "base_url": "http://docker.local",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["stream"],
+        "transport": "docker",
+    }
+
+    forbidden = client.post("/api/nodes", json=payload)
+    assert forbidden.status_code == 403
+    assert forbidden.json["error"]["code"] == "FORBIDDEN"
+
+
+def test_docker_transport_allows_admin_token(monkeypatch, tmp_path):
+    monkeypatch.setenv("MANAGEMENT_AUTH_REQUIRED", "true")
+    monkeypatch.setenv("MANAGEMENT_TOKEN_ROLES", "admin-token:admin,writer-token:write")
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-docker-admin",
+        "name": "Docker Admin",
+        "base_url": "http://docker.local",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["stream"],
+        "transport": "docker",
+    }
+
+    unauthorized = client.post("/api/nodes", json=payload)
+    assert unauthorized.status_code == 401
+    assert unauthorized.json["error"]["code"] == "UNAUTHORIZED"
+
+    non_admin = client.post(
+        "/api/nodes",
+        json=payload,
+        headers={"Authorization": "Bearer writer-token"},
+    )
+    assert non_admin.status_code == 403
+    assert non_admin.json["error"]["code"] == "FORBIDDEN"
+
+    authorized = client.post(
+        "/api/nodes",
+        json=payload,
+        headers={"Authorization": "Bearer admin-token"},
+    )
+    assert authorized.status_code == 201
+    assert authorized.json["id"] == "node-docker-admin"
