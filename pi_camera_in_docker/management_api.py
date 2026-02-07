@@ -90,10 +90,11 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
     url = base_url + path
     headers = {"Content-Type": "application/json", **_build_headers(node)}
     data = json.dumps(body).encode("utf-8") if body is not None else None
-    req = urllib.request.Request(url=url, method=method, headers=headers, data=data)
 
     try:
         _validate_node_base_url(base_url)
+        _validate_node_base_url(url)
+        req = urllib.request.Request(url=url, method=method, headers=headers, data=data)
         with urllib.request.urlopen(req, timeout=2.5) as response:  # noqa: S310
             payload = response.read().decode("utf-8")
             return response.status, json.loads(payload) if payload else {}
