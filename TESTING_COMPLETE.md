@@ -18,6 +18,7 @@ All tests passed successfully. The motion-in-ocean Docker container is fully con
 ## What Was Tested
 
 ### 1️⃣ Configuration Validation
+
 - Python syntax parsing
 - Docker Compose YAML validity
 - Environment variables (.env file)
@@ -27,6 +28,7 @@ All tests passed successfully. The motion-in-ocean Docker container is fully con
 - Dockerfile dependencies
 
 ### 2️⃣ Integration & Startup Flow
+
 - Docker Compose build validation
 - Initialization sequence verification
 - Error recovery paths
@@ -35,7 +37,8 @@ All tests passed successfully. The motion-in-ocean Docker container is fully con
 - Device access security
 
 ### 3️⃣ Application Logic (Unit Tests)
-- Environment variable parsing (RESOLUTION, EDGE_DETECTION, FPS)
+
+- Environment variable parsing (RESOLUTION, FPS)
 - StreamingOutput class functionality
   - Frame buffering
   - FPS calculation
@@ -49,16 +52,19 @@ All tests passed successfully. The motion-in-ocean Docker container is fully con
 ### 🐛 Critical Bugs (3)
 
 **Bug #1: Picamera2 Initialization Error Handling**
+
 - **Problem:** Silent failures on camera initialization
 - **Solution:** Added PermissionError and RuntimeError handlers with helpful messages
 - **Benefit:** Users get clear guidance on what went wrong
 
 **Bug #2: Unsafe Picamera2 Lifecycle**
+
 - **Problem:** Resource leaks and unclean shutdown
 - **Solution:** Safe cleanup with null checks and exception handling
 - **Benefit:** Proper resource release and clean shutdown
 
 **Bug #3: Missing Logging**
+
 - **Problem:** No visibility into runtime events
 - **Solution:** Structured logging with INFO level throughout
 - **Benefit:** Easy troubleshooting and monitoring
@@ -66,13 +72,16 @@ All tests passed successfully. The motion-in-ocean Docker container is fully con
 ### 💡 Opportunities (3)
 
 **Opportunity #1: Health Check Endpoints**
+
 ```
 GET /health      → Liveness probe (returns 200)
 GET /ready       → Readiness probe (returns 200 if streaming, 503 if not)
 ```
+
 - **Benefit:** Kubernetes-ready, proper health semantics
 
 **Opportunity #2: Security (Device Mappings)**
+
 ```yaml
 # Before: privileged: true (broad access)
 # After:  Explicit device mappings
@@ -81,9 +90,11 @@ devices:
   - /dev/vchiq
   - /dev/video0-16
 ```
+
 - **Benefit:** Minimal security footprint, production-ready
 
 **Opportunity #3: Observability**
+
 - Frame rate calculation
 - Performance metrics via `/ready` endpoint
 - FPS environment variable for tuning
@@ -95,6 +106,7 @@ devices:
 
 ### test_config.py (9.8 KB)
 Validates configuration files and dependencies
+
 ```bash
 python3 test_config.py
 # Output: 8/8 tests passed ✓
@@ -102,6 +114,7 @@ python3 test_config.py
 
 ### test_integration.py (8.9 KB)
 Tests startup flow and integration points
+
 ```bash
 python3 test_integration.py
 # Output: 6/6 tests passed ✓
@@ -109,6 +122,7 @@ python3 test_integration.py
 
 ### test_units.py (8.7 KB)
 Unit tests for application logic (no hardware needed)
+
 ```bash
 python3 test_units.py
 # Output: 4/4 tests passed ✓
@@ -122,6 +136,7 @@ Comprehensive testing report with deployment guide
 ## Container Readiness
 
 ### ✅ Configuration
+
 - [x] Python code is syntactically valid
 - [x] Docker Compose is properly configured
 - [x] Environment variables are set (.env file)
@@ -129,6 +144,7 @@ Comprehensive testing report with deployment guide
 - [x] Healthcheck is configured
 
 ### ✅ Application
+
 - [x] Flask server with 4 endpoints
 - [x] Error handling for all failure modes
 - [x] Structured logging throughout
@@ -136,6 +152,7 @@ Comprehensive testing report with deployment guide
 - [x] Thread-safe streaming
 
 ### ✅ Operations
+
 - [x] Docker restart policy: unless-stopped
 - [x] Log rotation: 10MB files, max 3 files
 - [x] Healthcheck: every 30s with 3 retries
@@ -172,8 +189,7 @@ curl http://localhost:8000/ready
 
 ```
 2026-01-16 12:00:00,123 - __main__ - INFO - Camera resolution set to (1280, 720)
-2026-01-16 12:00:00,124 - __main__ - INFO - Edge detection: False
-2026-01-16 12:00:00,125 - __main__ - INFO - Using camera default FPS
+2026-01-16 12:00:00,124 - __main__ - INFO - Using camera default FPS
 2026-01-16 12:00:00,126 - __main__ - INFO - Initializing Picamera2...
 2026-01-16 12:00:00,200 - __main__ - INFO - Configuring video: resolution=(1280, 720), format=BGR888
 2026-01-16 12:00:00,250 - __main__ - INFO - Starting camera recording...
@@ -189,15 +205,18 @@ curl http://localhost:8000/ready
 HTML page with embedded MJPEG stream viewer
 
 ### GET /health
+
 ```json
 {
   "status": "healthy",
   "timestamp": "2026-01-16T12:00:00.123456"
 }
 ```
+
 **Status Code:** 200
 
 ### GET /ready
+
 ```json
 {
   "status": "ready",
@@ -205,10 +224,10 @@ HTML page with embedded MJPEG stream viewer
   "uptime_seconds": 123.45,
   "frames_captured": 1234,
   "current_fps": 29.8,
-  "resolution": [1280, 720],
-  "edge_detection": false
+  "resolution": [1280, 720]
 }
 ```
+
 **Status Code:** 200 (ready) or 503 (not ready)
 
 ### GET /stream.mjpg
@@ -219,14 +238,15 @@ Continuous MJPEG stream for video players
 ## Configuration
 
 ### Environment Variables (.env)
+
 ```
 TZ=Europe/London                # Timezone
 RESOLUTION=1280x720            # Video resolution
-EDGE_DETECTION=false           # Enable edge detection
 FPS=0                           # Frame rate (0 = camera default)
 ```
 
 ### Device Access
+
 ```
 /dev/dma_heap       → libcamera memory management
 /dev/vchiq          → Camera ISP
@@ -247,7 +267,7 @@ FPS=0                           # Frame rate (0 = camera default)
 **Solution:** Run `rpicam-hello` on host to verify camera works
 
 ### "No camera frames appearing"
-**Cause:** /dev/video* index incorrect for your Pi
+**Cause:** /dev/video*index incorrect for your Pi
 **Solution:** Check which /dev/video* are used: `ls -l /dev/video*`
 
 ### Container keeps restarting
@@ -264,7 +284,6 @@ FPS=0                           # Frame rate (0 = camera default)
 
 2. **Performance:** Monitor FPS and adjust resolution if needed
    - Set RESOLUTION to smaller value (e.g., 640x480)
-   - Disable EDGE_DETECTION if not needed
 
 3. **Monitoring:** Use `/health` and `/ready` endpoints
    - Docker healthcheck queries /health automatically

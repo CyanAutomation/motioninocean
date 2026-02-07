@@ -37,9 +37,8 @@ Running a Raspberry Pi CSI camera inside Docker is non-trivial due to libcamera 
 | P1 | MJPEG Streaming Endpoint | Provide a stable MJPEG stream at `/stream.mjpg` with appropriate headers and a 503 response if not ready. |
 | P1 | Health & Readiness Probes | `/health` returns 200 if the server is running; `/ready` returns 200 only when frames are flowing and not stale, else 503 with diagnostic details. |
 | P1 | Raspberry Pi CSI Camera Capture | Use Picamera2/libcamera to capture frames in a headless container, with required device mappings. |
-| P1 | Environment-Driven Configuration | Support resolution, FPS, JPEG quality, edge detection, CORS origins, and mock mode via environment variables. |
+| P1 | Environment-Driven Configuration | Support resolution, FPS, JPEG quality, CORS origins, and mock mode via environment variables. |
 | P2 | Metrics Endpoint | Expose `/metrics` with uptime, frame counts, FPS, and configuration details. |
-| P3 | Edge Detection Option | Enable Canny edge detection when OpenCV is available and the flag is set. |
 | P3 | Mock Camera Mode | Allow a mock stream for development environments without CSI hardware. |
 
 ---
@@ -51,6 +50,7 @@ Running a Raspberry Pi CSI camera inside Docker is non-trivial due to libcamera 
 **Endpoint:** `GET /stream.mjpg`
 
 **Behavior:**
+
 - Streams multipart MJPEG frames with `boundary=frame`.
 - Returns HTTP 503 with a short message if the camera is not ready.
 - Adds cache-control headers to prevent stale stream caching.
@@ -58,10 +58,12 @@ Running a Raspberry Pi CSI camera inside Docker is non-trivial due to libcamera 
 ### 2. Health & Readiness Probes (P1)
 
 **Endpoints:**
+
 - `GET /health` → Always returns 200 with `{ status: "healthy" }` and timestamp.
 - `GET /ready` → Returns 200 when the camera has started recording **and** the latest frame age is within the configured threshold; otherwise returns 503 with reason and diagnostic fields.
 
 **Readiness details:**
+
 - Must indicate `not_ready` status when:
   - Camera recording is not started.
   - No frames have been captured yet.
@@ -70,7 +72,8 @@ Running a Raspberry Pi CSI camera inside Docker is non-trivial due to libcamera 
 ### 3. Raspberry Pi CSI Camera Capture (P1)
 
 **Behavior:**
-- Use Picamera2 and libcamera with BGR format for compatibility with edge detection.
+
+- Use Picamera2 and libcamera to capture frames in BGR format.
 - Support FPS limiting when configured.
 - Start recording via JPEG encoder and stream output.
 - Gracefully shut down recording on exit.
@@ -78,35 +81,31 @@ Running a Raspberry Pi CSI camera inside Docker is non-trivial due to libcamera 
 ### 4. Environment-Driven Configuration (P1)
 
 **Required environment variables:**
+
 - `RESOLUTION` (default `640x480`, max `4096x4096`)
 - `FPS` (default `0` for camera default, max 120)
 - `JPEG_QUALITY` (default `100`)
-- `EDGE_DETECTION` (default `false`)
 - `CORS_ORIGINS` (default `*` unless set)
 - `MOCK_CAMERA` (default `false`)
 - `MAX_FRAME_AGE_SECONDS` (default `10`)
 
 **Validation rules:**
+
 - Invalid or out-of-range values fall back to safe defaults.
-- If edge detection is requested without OpenCV, the service logs a warning and disables the feature.
 
 ### 5. Metrics Endpoint (P2)
 
 **Endpoint:** `GET /metrics`
 
 **Behavior:**
-- Returns JSON with uptime, FPS, frame counts, last frame age, resolution, edge detection status, and timestamp.
+
+- Returns JSON with uptime, FPS, frame counts, last frame age, resolution, and timestamp.
 - Intended for light observability/monitoring integrations.
 
-### 6. Edge Detection Option (P3)
+### 6. Mock Camera Mode (P3)
 
 **Behavior:**
-- When enabled and OpenCV is available, applies Canny edge detection to frames before encoding.
-- When unavailable, service logs a warning and continues with unmodified frames.
 
-### 7. Mock Camera Mode (P3)
-
-**Behavior:**
 - When `MOCK_CAMERA=true`, skip Picamera2 initialization.
 - Generate dummy JPEG frames at a simulated FPS to enable local endpoint testing.
 
@@ -127,17 +126,21 @@ Running a Raspberry Pi CSI camera inside Docker is non-trivial due to libcamera 
 ## Non-Functional Requirements
 
 **Performance:**
+
 - MJPEG streaming must sustain the configured FPS without excessive CPU overhead on a Raspberry Pi 4/5.
 
 **Reliability:**
+
 - Health/readiness endpoints must remain responsive even when the camera fails to initialize.
 - Streaming output should not leak memory over long runtimes.
 
 **Security & Safety:**
+
 - Service is intended for LAN/homelab use and should discourage direct internet exposure.
 - CORS configuration must be explicit and documented.
 
 **Operability & Deployment:**
+
 - Docker healthcheck should be compatible with `/health` (or optionally `/ready`).
 - Logs should describe camera initialization, errors, and readiness state transitions.
 - Container runtime requires device mappings and `/run/udev` mount for camera discovery.
@@ -149,7 +152,6 @@ Running a Raspberry Pi CSI camera inside Docker is non-trivial due to libcamera 
 - Raspberry Pi CSI camera hardware with libcamera support
 - Picamera2 runtime and Raspberry Pi OS Bookworm-compatible packages
 - Flask for HTTP server and routing
-- Optional OpenCV (`opencv-python-headless`) for edge detection
 - Docker runtime with device mapping access to camera nodes
 
 ---
@@ -172,6 +174,7 @@ Running a Raspberry Pi CSI camera inside Docker is non-trivial due to libcamera 
 ## Source References (Current Implementation)
 
 This PRD reflects the current backend implementation in:
+
 - Flask app and endpoints (`pi_camera_in_docker/main.py`)
 - Docker deployment and healthcheck setup (`Dockerfile`, `docker-compose.yaml`, `healthcheck.py`)
 - Configuration and usage documentation (`README.md`)

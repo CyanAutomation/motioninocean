@@ -67,7 +67,6 @@ CONTAINER_ID=$(docker run -d --rm \
     -e HEALTHCHECK_READY=true \
     -e MOTION_IN_OCEAN_RESOLUTION=640x480 \
     -e MOTION_IN_OCEAN_FPS=15 \
-    -e MOTION_IN_OCEAN_EDGE_DETECTION=false \
     -e MOTION_IN_OCEAN_JPEG_QUALITY=80 \
     "$FULL_TAG" 2>/dev/null || true)
 

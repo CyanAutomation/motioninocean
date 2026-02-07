@@ -14,7 +14,7 @@ All tests passed successfully. The docker-compose configuration and Python appli
 - **Flask Endpoints**: All 4 endpoints defined (/health, /ready, /stream.mjpg, /)
 - **Error Handling**: Comprehensive exception handling with helpful error messages
 - **Logging Configuration**: Structured logging with INFO level
-- **Environment Variables**: All required env vars (RESOLUTION, EDGE_DETECTION, FPS)
+- **Environment Variables**: All required env vars (RESOLUTION, FPS)
 - **Dockerfile**: All dependencies properly declared
 
 ### ✅ Integration Tests (6/6 PASSED)
@@ -23,7 +23,6 @@ All tests passed successfully. The docker-compose configuration and Python appli
 - **Error Recovery Paths**: 
   - Permission denied → helpful error message
   - Camera init failure → helpful error message
-  - Edge detection failure → graceful error handling
   - Clean shutdown → safe cleanup
 - **Health Check Endpoints**:
   - `/health` - Liveness probe (returns 200)
@@ -41,7 +40,7 @@ All tests passed successfully. The docker-compose configuration and Python appli
 
 ### ✅ Unit Tests (4/4 PASSED)
 - **Flask Route Registration**: All routes registered (verified via Dockerfile dependency)
-- **Environment Variable Parsing**: RESOLUTION, EDGE_DETECTION, FPS all parse correctly
+- **Environment Variable Parsing**: RESOLUTION, FPS all parse correctly
 - **StreamingOutput Class**: 
   - Frame buffering works
   - FPS calculation accurate
@@ -86,7 +85,6 @@ All tests passed successfully. The docker-compose configuration and Python appli
 3. **Structured Logging, Metrics & FPS Control**
    - ✅ FPS environment variable support
    - ✅ Frame counting and rate calculation
-   - ✅ Error handling in edge detection callback
    - ✅ Detailed startup/shutdown logging
    - ✅ Performance metrics available via `/ready` endpoint
 
@@ -95,14 +93,13 @@ All tests passed successfully. The docker-compose configuration and Python appli
 ## Container Startup Flow
 
 ```
-1. Parse environment variables (RESOLUTION, EDGE_DETECTION, FPS, TZ)
+1. Parse environment variables (RESOLUTION, FPS, TZ)
 2. Configure structured logging
 3. Initialize Picamera2 library
 4. Configure video capture settings
-5. Enable edge detection if configured
-6. Start camera recording
-7. Launch Flask web server on 0.0.0.0:8000
-8. Docker healthcheck begins querying /health every 30s
+5. Start camera recording
+6. Launch Flask web server on 0.0.0.0:8000
+7. Docker healthcheck begins querying /health every 30s
 ```
 
 ---
@@ -113,7 +110,6 @@ All tests passed successfully. The docker-compose configuration and Python appli
 ```
 TZ=Europe/London
 RESOLUTION=1280x720
-EDGE_DETECTION=false
 FPS=(optional, defaults to camera max)
 ```
 
@@ -159,8 +155,7 @@ Returns the HTML template with embedded MJPEG stream viewer.
   "uptime_seconds": 123.45,
   "frames_captured": 1234,
   "current_fps": 29.8,
-  "resolution": [1280, 720],
-  "edge_detection": false
+  "resolution": [1280, 720]
 }
 ```
 **Failure Response (503):** Camera not initialized or not started
@@ -176,8 +171,7 @@ Returns the HTML template with embedded MJPEG stream viewer.
 
 ```
 2026-01-16 12:00:00,123 - __main__ - INFO - Camera resolution set to (1280, 720)
-2026-01-16 12:00:00,124 - __main__ - INFO - Edge detection: False
-2026-01-16 12:00:00,125 - __main__ - INFO - Using camera default FPS
+2026-01-16 12:00:00,124 - __main__ - INFO - Using camera default FPS
 2026-01-16 12:00:00,126 - __main__ - INFO - Initializing Picamera2...
 2026-01-16 12:00:00,150 - __main__ - INFO - Configuring video: resolution=(1280, 720), format=BGR888
 2026-01-16 12:00:00,200 - __main__ - INFO - Starting camera recording...
@@ -199,12 +193,6 @@ Ensure the container has proper device access (--device mappings or --privileged
 ```
 Camera initialization failed: ...
 Verify camera is enabled on the host and working (rpicam-hello test)
-```
-
-### Edge Detection Failure
-```
-Edge detection processing failed: ...
-[full exception traceback]
 ```
 
 ### Client Disconnect

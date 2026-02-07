@@ -437,12 +437,6 @@ export MOTION_IN_OCEAN_CORS_SUPPORT=true
 export MOTION_IN_OCEAN_HOME_ASSISTANT_INTEGRATION=true
 ```
 
-### Edge Detection Testing
-
-```bash
-export MOTION_IN_OCEAN_DEBUG_LOGGING=true
-```
-
 ### Performance Analysis
 
 ```bash

@@ -81,26 +81,6 @@ def test_resolution_parsing(resolution_str, expected):
 
 
 @pytest.mark.parametrize(
-    "edge_str,expected",
-    [
-        ("true", True),
-        ("True", True),
-        ("TRUE", True),
-        ("1", True),
-        ("t", True),
-        ("false", False),
-        ("False", False),
-        ("0", False),
-        ("f", False),
-    ],
-)
-def test_edge_detection_parsing(edge_str, expected):
-    """Test edge detection boolean parsing."""
-    result = edge_str.lower() in ("true", "1", "t")
-    assert result == expected
-
-
-@pytest.mark.parametrize(
     "fps_str,expected",
     [
         ("30", 30),
