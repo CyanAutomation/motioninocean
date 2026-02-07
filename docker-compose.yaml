@@ -8,7 +8,7 @@ x-motion-in-ocean-common: &motion-in-ocean-common
   security_opt:
     - no-new-privileges:true
   ports:
-    - "0.0.0.0:${MOTION_IN_OCEAN_PORT}:8000"  # Accessible from network (use firewall/VPN for production)
+    - "127.0.0.1:${MOTION_IN_OCEAN_PORT}:8000"  # localhost only (use 0.0.0.0 for LAN access with firewall/VPN)
   stop_grace_period: 30s
   logging:
     driver: json-file
