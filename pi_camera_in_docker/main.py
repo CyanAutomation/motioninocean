@@ -925,7 +925,7 @@ def octoprint_compat_webcam() -> Response:
     if action is None:
         return Response("Missing required query parameter: action.", status=400)
 
-    return Response(f"Unsupported action: {action}", status=400)
+    return Response(f"Unsupported action: {action!r}", status=400)
 
 
 def run_flask_server(host: str = "0.0.0.0", port: int = 8000) -> None:
