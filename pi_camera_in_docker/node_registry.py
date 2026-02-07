@@ -97,7 +97,11 @@ class FileNodeRegistry(NodeRegistry):
     def _load(self) -> Dict[str, Any]:
         if not self.path.exists():
             return {"nodes": []}
-        raw = json.loads(self.path.read_text(encoding="utf-8"))
+        try:
+            raw = json.loads(self.path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            # Handle corrupted registry file - return empty to allow recovery
+            return {"nodes": []}
         if not isinstance(raw, dict):
             return {"nodes": []}
         nodes = raw.get("nodes", [])
