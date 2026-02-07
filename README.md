@@ -101,15 +101,17 @@ services:
 
 ```bash
 docker compose --profile webcam up -d
-docker logs -f motion-in-ocean
+docker logs -f --timestamps motion-in-ocean
 ```
 
 For management/control-plane deployments (no camera devices mounted):
 
 ```bash
 docker compose --profile management up -d
-docker logs -f motion-in-ocean-management
+docker logs -f --timestamps motion-in-ocean-management
 ```
+
+Request logging is enabled in both app modes. Each request emits a compact line with method, path, status, and latency in milliseconds (for example: `request method=GET path=/metrics status=200 latency_ms=1.2`). To reduce noise in `docker logs`, `/health` and `/ready` are logged at `DEBUG`, while all other endpoints remain at `INFO`.
 
 ### 4) Check health
 

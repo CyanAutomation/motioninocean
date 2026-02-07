@@ -9,7 +9,7 @@ from threading import Event, Thread
 from typing import Any, Dict, Optional, Tuple
 
 from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
-from flask import Flask, jsonify, render_template
+from flask import Flask, g, jsonify, render_template, request
 from flask_cors import CORS
 from logging_config import configure_logging
 from management_api import register_management_routes
@@ -110,6 +110,7 @@ def _load_config() -> Dict[str, Any]:
 def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
     app = Flask(__name__, static_folder="static", static_url_path="/static")
     app.start_time_monotonic = time.monotonic()
+    _register_request_logging(app)
 
     if config["cors_enabled"]:
         CORS(app, resources={r"/*": {"origins": ["*"]}})
@@ -142,6 +143,32 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
         return jsonify(feature_flags.get_all_flags()), 200
 
     return app, state
+
+
+def _register_request_logging(app: Flask) -> None:
+    health_endpoints = {"/health", "/ready"}
+
+    @app.before_request
+    def _track_request_start() -> None:
+        g.request_started_monotonic = time.monotonic()
+
+    @app.after_request
+    def _log_request(response):
+        request_started = getattr(g, "request_started_monotonic", None)
+        latency_ms = 0.0
+        if request_started is not None:
+            latency_ms = (time.monotonic() - request_started) * 1000
+
+        level = logging.DEBUG if request.path in health_endpoints else logging.INFO
+        logger.log(
+            level,
+            "request method=%s path=%s status=%s latency_ms=%.1f",
+            request.method,
+            request.path,
+            response.status_code,
+            latency_ms,
+        )
+        return response
 
 
 def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:

@@ -88,3 +88,8 @@ def configure_logging() -> None:
     root_logger.handlers.clear()
     root_logger.setLevel(level)
     root_logger.addHandler(handler)
+
+    werkzeug_logger = logging.getLogger("werkzeug")
+    werkzeug_logger.handlers.clear()
+    werkzeug_logger.propagate = True
+    werkzeug_logger.setLevel(level)
