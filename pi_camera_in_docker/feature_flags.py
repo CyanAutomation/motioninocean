@@ -215,7 +215,7 @@ class FeatureFlags:
                 default=False,
                 category=FeatureFlagCategory.INTEGRATION_COMPATIBILITY,
                 description="Enable OctoPrint camera format compatibility mode.",
-                backward_compat_vars=None,
+                backward_compat_vars=["OCTOPRINT_COMPATIBILITY"],
             )
         )
 
