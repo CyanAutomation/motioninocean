@@ -213,11 +213,19 @@ def register_management_routes(app: Flask, config: Dict[str, Any]) -> None:
             try:
                 _validate_outbound_url(base_url, outbound_allowlist)
             except ValueError as exc:
-                return _error_response("OUTBOUND_POLICY_VIOLATION", str(exc), 400)
+                return _error_response(
+                    "OUTBOUND_POLICY_VIOLATION",
+                    "Outbound URL is not permitted by the current policy.",
+                    400,
+                )
         try:
             created = registry.create_node(payload)
         except NodeValidationError as exc:
-            return _error_response("VALIDATION_ERROR", str(exc), 400)
+            return _error_response(
+                "VALIDATION_ERROR",
+                "Request payload failed validation.",
+                400,
+            )
         return jsonify(created), 201
 
     @app.route("/api/nodes/<node_id>", methods=["GET"])
@@ -236,11 +244,21 @@ def register_management_routes(app: Flask, config: Dict[str, Any]) -> None:
             try:
                 _validate_outbound_url(base_url, outbound_allowlist)
             except ValueError as exc:
-                return _error_response("OUTBOUND_POLICY_VIOLATION", str(exc), 400, node_id=node_id)
+                return _error_response(
+                    "OUTBOUND_POLICY_VIOLATION",
+                    "Outbound URL is not permitted by the current policy.",
+                    400,
+                    node_id=node_id,
+                )
         try:
             updated = registry.update_node(node_id, payload)
         except NodeValidationError as exc:
-            return _error_response("VALIDATION_ERROR", str(exc), 400, node_id=node_id)
+            return _error_response(
+                "VALIDATION_ERROR",
+                "Request payload failed validation.",
+                400,
+                node_id=node_id,
+            )
         except KeyError:
             return _error_response("NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id)
         return jsonify(updated), 200
