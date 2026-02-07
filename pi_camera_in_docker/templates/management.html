@@ -26,7 +26,7 @@
         <input id="node-name" name="name" maxlength="128" required>
 
         <label for="node-base-url">Base URL</label>
-        <input id="node-base-url" name="base_url" placeholder="http://node.local:8000" required>
+        <input id="node-base-url" name="base_url" type="url" placeholder="" pattern="https?://.+" title="Must be a valid HTTP or HTTPS URL" required>
 
         <label for="node-transport">Transport</label>
         <select id="node-transport" name="transport">
