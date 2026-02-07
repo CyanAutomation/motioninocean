@@ -7,16 +7,16 @@ OVERRIDE_FILE="docker-compose.override.yaml"
 
 copy_env() {
     if [ -f "$ENV_FILE" ]; then
-        echo "✅ $ENV_FILE already exists."
+        echo "[INFO] $ENV_FILE already exists."
         return
     fi
 
     if [ -f "$ENV_EXAMPLE" ]; then
         cp "$ENV_EXAMPLE" "$ENV_FILE"
-        echo "✅ Copied $ENV_EXAMPLE to $ENV_FILE."
+        echo "[INFO] Copied $ENV_EXAMPLE to $ENV_FILE."
         echo "   Review and update $ENV_FILE as needed."
     else
-        echo "⚠️  $ENV_EXAMPLE not found. Please create $ENV_FILE manually."
+        echo "[WARN] $ENV_EXAMPLE not found. Please create $ENV_FILE manually."
     fi
 }
 
@@ -29,7 +29,7 @@ run_device_detection() {
         if [ -x "./detect-devices.sh" ]; then
             ./detect-devices.sh
         else
-            echo "⚠️  ./detect-devices.sh not found or not executable. Skipping device detection."
+            echo "[WARN] ./detect-devices.sh not found or not executable. Skipping device detection."
         fi
     else
         echo "Skipping device detection."

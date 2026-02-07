@@ -8,23 +8,23 @@ CONTAINER_NAME="motion-in-ocean"
 PORT="${MOTION_IN_OCEAN_PORT:-8000}"
 MAX_WAIT=60
 
-echo "🔍 motion-in-ocean Deployment Validation"
+echo "[INFO] motion-in-ocean Deployment Validation"
 echo "=========================================="
 echo ""
 
 # Check if container exists
 if ! docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-    echo "❌ Container '${CONTAINER_NAME}' not found"
+    echo "[ERROR] Container '${CONTAINER_NAME}' not found"
     echo "   Run: docker compose up -d"
     exit 1
 fi
 
 # Check container status
 CONTAINER_STATUS=$(docker inspect -f '{{.State.Status}}' "${CONTAINER_NAME}")
-echo "📦 Container Status: ${CONTAINER_STATUS}"
+echo "[INFO] Container Status: ${CONTAINER_STATUS}"
 
 if [ "${CONTAINER_STATUS}" != "running" ]; then
-    echo "❌ Container is not running"
+    echo "[ERROR] Container is not running"
     echo ""
     echo "Last 20 lines of logs:"
     docker logs --tail 20 "${CONTAINER_NAME}"
@@ -33,10 +33,10 @@ fi
 
 # Check health status
 HEALTH_STATUS=$(docker inspect -f '{{.State.Health.Status}}' "${CONTAINER_NAME}" 2>/dev/null || echo "none")
-echo "🏥 Health Status: ${HEALTH_STATUS}"
+echo "[INFO] Health Status: ${HEALTH_STATUS}"
 
 if [ "${HEALTH_STATUS}" = "starting" ]; then
-    echo "⏳ Container is starting, waiting for healthy status..."
+    echo "[INFO] Container is starting, waiting for healthy status..."
     WAITED=0
     while [ "${HEALTH_STATUS}" = "starting" ] && [ ${WAITED} -lt ${MAX_WAIT} ]; do
         sleep 2
@@ -47,7 +47,7 @@ if [ "${HEALTH_STATUS}" = "starting" ]; then
 fi
 
 if [ "${HEALTH_STATUS}" = "unhealthy" ] || [ "${HEALTH_STATUS}" = "starting" ]; then
-    echo "❌ Container is unhealthy or still starting after ${MAX_WAIT}s"
+    echo "[ERROR] Container is unhealthy or still starting after ${MAX_WAIT}s"
     echo ""
     echo "Recent logs:"
     docker logs --tail 30 "${CONTAINER_NAME}"
@@ -55,15 +55,15 @@ if [ "${HEALTH_STATUS}" = "unhealthy" ] || [ "${HEALTH_STATUS}" = "starting" ]; 
 fi
 
 echo ""
-echo "🌐 Testing Endpoints:"
+echo "[INFO] Testing endpoints:"
 echo ""
 
 # Test health endpoint
 echo "Testing /health..."
 if curl -fsS "http://localhost:${PORT}/health" >/dev/null 2>&1; then
-    echo "  ✓ /health endpoint responding"
+    echo "  [INFO] /health endpoint responding"
 else
-    echo "  ✗ /health endpoint not responding"
+    echo "  [ERROR] /health endpoint not responding"
     exit 1
 fi
 
@@ -71,17 +71,17 @@ fi
 echo "Testing /metrics..."
 METRICS=$(curl -fsS "http://localhost:${PORT}/metrics" 2>/dev/null || echo "")
 if [ -n "${METRICS}" ]; then
-    echo "  ✓ /metrics endpoint responding"
+    echo "  [INFO] /metrics endpoint responding"
     echo ""
-    echo "📊 Current Metrics:"
+    echo "[INFO] Current metrics:"
     echo "${METRICS}" | python3 -m json.tool 2>/dev/null || echo "${METRICS}"
 else
-    echo "  ✗ /metrics endpoint not responding"
+    echo "  [ERROR] /metrics endpoint not responding"
     exit 1
 fi
 
 echo ""
-echo "📹 Camera Status:"
+echo "[INFO] Camera status:"
 echo ""
 
 # Parse metrics for camera status
@@ -95,7 +95,7 @@ echo "  Current FPS: ${FPS}"
 
 if [ "${CAMERA_ACTIVE}" != "True" ] && [ "${CAMERA_ACTIVE}" != "true" ]; then
     echo ""
-    echo "⚠️  Camera not active - check logs for errors"
+    echo "[WARN] Camera not active - check logs for errors"
     echo ""
     echo "Recent logs:"
     docker logs --tail 20 "${CONTAINER_NAME}"
@@ -103,12 +103,12 @@ if [ "${CAMERA_ACTIVE}" != "True" ] && [ "${CAMERA_ACTIVE}" != "true" ]; then
 fi
 
 echo ""
-echo "💻 Resource Usage:"
+echo "[INFO] Resource usage:"
 echo ""
 docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}" "${CONTAINER_NAME}"
 
 echo ""
-echo "🌡️  System Temperature:"
+echo "[INFO] System temperature:"
 if command -v vcgencmd &> /dev/null; then
     vcgencmd measure_temp
 else
@@ -116,14 +116,14 @@ else
 fi
 
 echo ""
-echo "✅ Validation Complete!"
+echo "[INFO] Validation complete."
 echo ""
-echo "🌐 Access the camera stream:"
+echo "[INFO] Access the camera stream:"
 echo "   Local: http://localhost:${PORT}/"
 echo "   Network: http://$(hostname -I | awk '{print $1}'):${PORT}/"
 echo ""
-echo "📊 View metrics:"
+echo "[INFO] View metrics:"
 echo "   curl http://localhost:${PORT}/metrics"
 echo ""
-echo "📝 Monitor logs:"
+echo "[INFO] Monitor logs:"
 echo "   docker compose logs -f ${CONTAINER_NAME}"

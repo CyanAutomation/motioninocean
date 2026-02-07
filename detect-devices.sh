@@ -9,38 +9,38 @@ CORE_DEVICES=()
 MEDIA_DEVICES=()
 VIDEO_DEVICES=()
 
-echo "🔍 motion-in-ocean - Camera Device Detection"
+echo "[INFO] motion-in-ocean - Camera Device Detection"
 echo "=========================================="
 echo ""
 
 # Check if running on Raspberry Pi
 if [ ! -f /proc/device-tree/model ]; then
-    echo "⚠️  Warning: Not running on Raspberry Pi hardware"
+    echo "[WARN] Not running on Raspberry Pi hardware"
     echo "This script is designed for Raspberry Pi systems."
     echo ""
 fi
 
 # Check for required core devices
-echo "📋 Core Devices (Required):"
+echo "[INFO] Core devices (required):"
 echo ""
 
 check_device() {
     local device_path=$1
     local description=$2
     if [ -e "$device_path" ]; then
-        echo "  ✓ $device_path - $description"
+        echo "  [INFO] $device_path - $description"
         stat -c "    Permissions: %A Owner: %U:%G" "$device_path"
         CORE_DEVICES+=("$device_path")
         return 0
     else
-        echo "  ✗ $device_path - $description (NOT FOUND)"
+        echo "  [WARN] $device_path - $description (NOT FOUND)"
         return 1
     fi
 }
 
 # Core devices - DMA heap (map individual device nodes, not directory)
 if [ -d "/dev/dma_heap" ]; then
-    echo "  ✓ /dev/dma_heap - Memory management for libcamera (directory)"
+    echo "  [INFO] /dev/dma_heap - Memory management for libcamera (directory)"
     for file in /dev/dma_heap/*; do
         if [ -e "$file" ]; then
             stat -c "    %A %U:%G %n" "$file"
@@ -48,25 +48,25 @@ if [ -d "/dev/dma_heap" ]; then
         fi
     done
 else
-    echo "  ✗ /dev/dma_heap - Memory management for libcamera (NOT FOUND)"
+    echo "  [WARN] /dev/dma_heap - Memory management for libcamera (NOT FOUND)"
 fi
 check_device "/dev/vchiq" "VideoCore Host Interface"
 
 echo ""
-echo "🎛️  Media Controller Devices (Required for libcamera):"
+echo "[INFO] Media controller devices (required for libcamera):"
 echo ""
 
 # Use a glob to find media devices
 for device in /dev/media*; do
     if [ -e "$device" ]; then
-        echo "  ✓ $device"
+        echo "  [INFO] $device"
         stat -c "    Permissions: %A Owner: %U:%G" "$device"
         MEDIA_DEVICES+=("$device")
     fi
 done
 
 if [ ${#MEDIA_DEVICES[@]} -eq 0 ]; then
-    echo "  ✗ No /dev/media* devices found"
+    echo "  [WARN] No /dev/media* devices found"
     echo ""
     echo "  Troubleshooting:"
     echo "  1. Ensure camera is enabled: sudo raspi-config"
@@ -75,20 +75,20 @@ if [ ${#MEDIA_DEVICES[@]} -eq 0 ]; then
 fi
 
 echo ""
-echo "📹 Video Devices (Camera Nodes):"
+echo "[INFO] Video devices (camera nodes):"
 echo ""
 
 # Use a glob to find video devices
 for device in /dev/video*; do
     if [ -e "$device" ]; then
-        echo "  ✓ $device"
+        echo "  [INFO] $device"
         stat -c "    Permissions: %A Owner: %U:%G" "$device"
         VIDEO_DEVICES+=("$device")
     fi
 done
 
 if [ ${#VIDEO_DEVICES[@]} -eq 0 ]; then
-    echo "  ✗ No /dev/video* devices found"
+    echo "  [WARN] No /dev/video* devices found"
     echo ""
     echo "  Troubleshooting:"
     echo "  1. Ensure camera is enabled: sudo raspi-config"
@@ -97,7 +97,7 @@ if [ ${#VIDEO_DEVICES[@]} -eq 0 ]; then
 fi
 
 echo ""
-echo "🔧 Recommended docker-compose.yaml Configuration:"
+echo "[INFO] Recommended docker-compose.yaml configuration:"
 echo ""
 echo "devices:"
 for device in "${CORE_DEVICES[@]}"; do
@@ -111,7 +111,7 @@ for device in "${VIDEO_DEVICES[@]}"; do
 done
 
 echo ""
-echo "📝 Alternative: Use device_cgroup_rules (automatically allows all matching devices):"
+echo "[INFO] Alternative: use device_cgroup_rules (automatically allows all matching devices):"
 echo ""
 echo "device_cgroup_rules:"
 echo "  - 'c 253:* rmw'  # /dev/dma_heap/* (char device 253)"
@@ -121,20 +121,20 @@ echo "  - 'c 250:* rmw'  # /dev/media* (media controllers)"
 echo ""
 
 # Check camera functionality
-echo "🎥 Camera Test:"
+echo "[INFO] Camera test:"
 echo ""
 if command -v rpicam-hello &> /dev/null; then
     echo "Testing camera with rpicam-hello..."
     if timeout 3 rpicam-hello --list-cameras 2>/dev/null; then
-        echo "  ✓ Camera detected and working!"
+        echo "  [INFO] Camera detected and working."
     else
-        echo "  ✗ Camera test failed - check camera connection"
+        echo "  [ERROR] Camera test failed - check camera connection"
     fi
 else
-    echo "  ⚠️  rpicam-hello not found (install with: sudo apt install libcamera-apps)"
+    echo "  [WARN] rpicam-hello not found (install with: sudo apt install libcamera-apps)"
 fi
 
-echo -e "Do you want to create a docker-compose.override.yaml file with the detected devices? (y/N):"
+echo "Do you want to create a docker-compose.override.yaml file with the detected devices? (y/N):"
 read -r CREATE_OVERRIDE
 
 if [[ "${CREATE_OVERRIDE}" =~ ^[Yy]$ ]]; then
@@ -157,13 +157,13 @@ EOF
     cat << EOF >> docker-compose.override.yaml
     privileged: true # Required for full device access
 EOF
-    echo -e "✓ Created docker-compose.override.yaml with detected devices."
+    echo "[INFO] Created docker-compose.override.yaml with detected devices."
 else
     echo "Skipping creation of docker-compose.override.yaml."
 fi
 
 echo ""
-echo "✅ Detection complete!"
+echo "[INFO] Detection complete."
 echo ""
 echo "Next steps:"
 echo "1. (Optional) Run ./setup.sh for guided setup (copies .env and prints the docker compose command)."

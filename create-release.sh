@@ -16,46 +16,40 @@ REMOTE_URL=$(git remote get-url origin)
 REPO_SLUG=$(echo "${REMOTE_URL}" | sed -E 's/.*(github.com:|github.com\/)//; s/\.git$//')
 
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
 
-echo -e "${BLUE}🚀 motion-in-ocean Release Creator${NC}"
+echo "[INFO] motion-in-ocean Release Creator"
 echo "======================================"
-echo -e "Releasing from branch: ${GREEN}${CURRENT_BRANCH}${NC}"
+echo "Releasing from branch: ${CURRENT_BRANCH}"
 echo ""
 
 # Check if VERSION file exists
 if [ ! -f "${VERSION_FILE}" ]; then
-    echo -e "${RED}❌ VERSION file not found${NC}"
+    echo "[ERROR] VERSION file not found"
     exit 1
 fi
 
 # Read current version
 CURRENT_VERSION=$(cat "${VERSION_FILE}")
-echo -e "Current version: ${GREEN}${CURRENT_VERSION}${NC}"
+echo "Current version: ${CURRENT_VERSION}"
 echo ""
 
 # Ask for new version
-echo -e "${YELLOW}Enter new version (e.g., 1.0.1, 1.1.0, 2.0.0):${NC}"
+echo "[INFO] Enter new version (e.g., 1.0.1, 1.1.0, 2.0.0):"
 read -r NEW_VERSION
 
 # Validate version format (basic semver check)
 if ! [[ "${NEW_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    echo -e "${RED}❌ Invalid version format. Use semantic versioning (e.g., 1.0.0)${NC}"
+    echo "[ERROR] Invalid version format. Use semantic versioning (e.g., 1.0.0)"
     exit 1
 fi
 
 echo ""
-echo -e "New version will be: ${GREEN}v${NEW_VERSION}${NC}"
+echo "New version will be: v${NEW_VERSION}"
 echo ""
 
 # Check for uncommitted changes
 if ! git diff-index --quiet HEAD --; then
-    echo -e "${RED}❌ You have uncommitted changes.${NC}"
+    echo "[ERROR] You have uncommitted changes."
     echo "Please commit or stash them before creating a release."
     echo ""
     git status --short
@@ -65,7 +59,7 @@ fi
 
 # Update VERSION file
 echo "${NEW_VERSION}" > "${VERSION_FILE}"
-echo -e "${GREEN}✓${NC} Updated ${VERSION_FILE}"
+echo "[INFO] Updated ${VERSION_FILE}"
 
 # Update CHANGELOG
 TODAY=$(date +%Y-%m-%d)
@@ -75,11 +69,11 @@ CHANGELOG_ENTRY="## [${NEW_VERSION}] - ${TODAY}"
 LATEST_TAG=$(git describe --tags "$(git rev-list --tags --max-count=1)" --abbrev=0 2>/dev/null)
 
 if [ -z "$LATEST_TAG" ]; then
-    echo -e "${YELLOW}⚠️  No tags found. Generating changelog from all commits.${NC}"
+    echo "[WARN] No tags found. Generating changelog from all commits."
     # Get all commits if no tags are found
     COMMIT_LOG=$(git log --pretty=format:"- %s")
 else
-    echo -e "Generating changelog from commits since ${GREEN}${LATEST_TAG}${NC}"
+    echo "Generating changelog from commits since ${LATEST_TAG}"
     COMMIT_LOG=$(git log --pretty=format:"- %s" "${LATEST_TAG}"..HEAD)
 fi
 
@@ -91,37 +85,37 @@ if grep -q "## \[Unreleased\]" "${CHANGELOG_FILE}"; then
     # Create a temp file with the changelog entry to avoid issues with special characters in sed
     CHANGELOG_BODY=$(mktemp)
     # The empty line before the entry is important for markdown formatting
-    echo -e "\n${CHANGELOG_ENTRY}\n" >> "${CHANGELOG_BODY}"
-    echo -e "${COMMIT_LOG}" >> "${CHANGELOG_BODY}"
+    printf "\n%s\n\n" "${CHANGELOG_ENTRY}" >> "${CHANGELOG_BODY}"
+    echo "${COMMIT_LOG}" >> "${CHANGELOG_BODY}"
 
     # Use sed to insert the content of the temp file after the '[Unreleased]' line
     sed -i -e "/## \[Unreleased\]/r ${CHANGELOG_BODY}" "${CHANGELOG_FILE}"
 
     rm "${CHANGELOG_BODY}"
-    echo -e "${GREEN}✓${NC} Updated ${CHANGELOG_FILE}"
+    echo "[INFO] Updated ${CHANGELOG_FILE}"
 else
-    echo -e "${YELLOW}⚠️  Could not find '## [Unreleased]' in CHANGELOG.md. Please update manually.${NC}"
+    echo "[WARN] Could not find '## [Unreleased]' in CHANGELOG.md. Please update manually."
 fi
 
 echo ""
-echo -e "${BLUE}📝 Release Summary:${NC}"
+echo "[INFO] Release summary:"
 echo "-----------------------------------"
-echo -e "Version: ${GREEN}v${NEW_VERSION}${NC}"
-echo -e "Date: ${TODAY}"
+echo "Version: v${NEW_VERSION}"
+echo "Date: ${TODAY}"
 echo ""
 
 # Show what will be committed
-echo -e "${BLUE}Files to commit:${NC}"
+echo "[INFO] Files to commit:"
 git diff --name-only "${VERSION_FILE}" "${CHANGELOG_FILE}" 2>/dev/null || echo "  ${VERSION_FILE}"
 echo ""
 
 # Confirm release
-echo -e "${YELLOW}Ready to create release v${NEW_VERSION}? This will:${NC}"
+echo "[INFO] Ready to create release v${NEW_VERSION}? This will:"
 echo "  1. Commit VERSION and CHANGELOG updates"
 echo "  2. Create and push git tag v${NEW_VERSION}"
 echo "  3. Trigger GitHub Actions to build and publish Docker image"
 echo ""
-echo -e "${YELLOW}Continue? (y/N):${NC}"
+echo "[INFO] Continue? (y/N):"
 read -r CONFIRM
 
 if [[ ! "${CONFIRM}" =~ ^[Yy]$ ]]; then
@@ -134,67 +128,67 @@ fi
 
 # Commit changes
 echo ""
-echo -e "${BLUE}Committing changes...${NC}"
+echo "[INFO] Committing changes..."
 git add "${VERSION_FILE}" "${CHANGELOG_FILE}"
 git commit -m "Release v${NEW_VERSION}"
-echo -e "${GREEN}✓${NC} Changes committed"
+echo "[INFO] Changes committed"
 
 # Create tag
-echo -e "${BLUE}Creating tag v${NEW_VERSION}...${NC}"
+echo "[INFO] Creating tag v${NEW_VERSION}..."
 git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
-echo -e "${GREEN}✓${NC} Tag created"
+echo "[INFO] Tag created"
 
 # Push changes and tag
-echo -e "${BLUE}Pushing to remote...${NC}"
+echo "[INFO] Pushing to remote..."
 if git push origin "${CURRENT_BRANCH}"; then
-    echo -e "${GREEN}✓${NC} Pushed changes to ${CURRENT_BRANCH} branch."
+    echo "[INFO] Pushed changes to ${CURRENT_BRANCH} branch."
 else
-    echo -e "${RED}❌ Failed to push changes to ${CURRENT_BRANCH} branch.${NC}"
-    echo -e "${YELLOW}To revert the local commit, run: git reset --hard HEAD~1${NC}"
+    echo "[ERROR] Failed to push changes to ${CURRENT_BRANCH} branch."
+    echo "[INFO] To revert the local commit, run: git reset --hard HEAD~1"
     exit 1
 fi
 
 if git push origin "v${NEW_VERSION}"; then
-    echo -e "${GREEN}✓${NC} Pushed tag v${NEW_VERSION} to remote."
+    echo "[INFO] Pushed tag v${NEW_VERSION} to remote."
 else
-    echo -e "${RED}❌ Failed to push tag to remote.${NC}"
-    echo -e "${YELLOW}To remove the local tag, run: git tag -d v${NEW_VERSION}${NC}"
+    echo "[ERROR] Failed to push tag to remote."
+    echo "[INFO] To remove the local tag, run: git tag -d v${NEW_VERSION}"
     exit 1
 fi
 
 # Update 'latest' tag to point to this release
-echo -e "${BLUE}Updating 'latest' tag...${NC}"
+echo "[INFO] Updating 'latest' tag..."
 git tag -f latest
 if git push -f origin latest; then
-    echo -e "${GREEN}✓${NC} Updated 'latest' tag to point to v${NEW_VERSION}."
+    echo "[INFO] Updated 'latest' tag to point to v${NEW_VERSION}."
 else
-    echo -e "${RED}❌ Failed to push 'latest' tag.${NC}"
-    echo -e "${YELLOW}This is not critical, but you may want to manually run: git push -f origin latest${NC}"
+    echo "[ERROR] Failed to push 'latest' tag."
+    echo "[INFO] This is not critical, but you may want to manually run: git push -f origin latest"
 fi
 
 echo ""
-echo -e "${BLUE}⏳ Waiting for GitHub Actions workflow to start...${NC}"
+echo "[INFO] Waiting for GitHub Actions workflow to start..."
 echo "This ensures the Docker image is built and published before completing."
 echo ""
 
 # Function to check if gh CLI is available
 check_gh_cli() {
     if ! command -v gh &> /dev/null; then
-        echo -e "${YELLOW}⚠️  GitHub CLI (gh) is not installed.${NC}"
+        echo "[WARN] GitHub CLI (gh) is not installed."
         echo "Workflow verification requires the GitHub CLI."
         echo "Install it from: https://cli.github.com/"
         echo ""
-        echo -e "${YELLOW}Skipping workflow verification. Please manually check:${NC}"
+        echo "[INFO] Skipping workflow verification. Please manually check:"
         echo "  https://github.com/${REPO_SLUG}/actions"
         return 1
     fi
     
     # Check if gh is authenticated
     if ! gh auth status &> /dev/null; then
-        echo -e "${YELLOW}⚠️  GitHub CLI is not authenticated.${NC}"
+        echo "[WARN] GitHub CLI is not authenticated."
         echo "Please run: gh auth login"
         echo ""
-        echo -e "${YELLOW}Skipping workflow verification. Please manually check:${NC}"
+        echo "[INFO] Skipping workflow verification. Please manually check:"
         echo "  https://github.com/${REPO_SLUG}/actions"
         return 1
     fi
@@ -205,50 +199,50 @@ check_gh_cli() {
 # Function to rollback the release
 rollback_release() {
     echo ""
-    echo -e "${RED}❌ Workflow failed or was cancelled.${NC}"
-    echo -e "${YELLOW}Rolling back release v${NEW_VERSION}...${NC}"
+    echo "[ERROR] Workflow failed or was cancelled."
+    echo "[INFO] Rolling back release v${NEW_VERSION}..."
     echo ""
     
     # Delete remote tags
-    echo -e "${BLUE}Deleting remote tags...${NC}"
+    echo "[INFO] Deleting remote tags..."
     if git push origin --delete "v${NEW_VERSION}" 2>/dev/null; then
-        echo -e "${GREEN}✓${NC} Deleted remote tag v${NEW_VERSION}"
+        echo "[INFO] Deleted remote tag v${NEW_VERSION}"
     else
-        echo -e "${YELLOW}⚠️  Could not delete remote tag v${NEW_VERSION} (may not exist)${NC}"
+        echo "[WARN] Could not delete remote tag v${NEW_VERSION} (may not exist)"
     fi
     
     # Delete local tags
-    echo -e "${BLUE}Deleting local tags...${NC}"
+    echo "[INFO] Deleting local tags..."
     if git tag -d "v${NEW_VERSION}" 2>/dev/null; then
-        echo -e "${GREEN}✓${NC} Deleted local tag v${NEW_VERSION}"
+        echo "[INFO] Deleted local tag v${NEW_VERSION}"
     else
-        echo -e "${YELLOW}⚠️  Could not delete local tag v${NEW_VERSION}${NC}"
+        echo "[WARN] Could not delete local tag v${NEW_VERSION}"
     fi
     
     # Reset to previous commit
-    echo -e "${BLUE}Reverting release commit...${NC}"
+    echo "[INFO] Reverting release commit..."
     if git reset --hard HEAD~1; then
-        echo -e "${GREEN}✓${NC} Reverted local commit"
+        echo "[INFO] Reverted local commit"
     else
-        echo -e "${RED}❌ Failed to revert local commit${NC}"
+        echo "[ERROR] Failed to revert local commit"
     fi
     
     # Force push to remote to remove the commit
-    echo -e "${BLUE}Removing commit from remote...${NC}"
+    echo "[INFO] Removing commit from remote..."
     if git push -f origin "${CURRENT_BRANCH}"; then
-        echo -e "${GREEN}✓${NC} Removed commit from remote"
+        echo "[INFO] Removed commit from remote"
     else
-        echo -e "${RED}❌ Failed to remove commit from remote${NC}"
-        echo -e "${YELLOW}You may need to manually revert: git push -f origin ${CURRENT_BRANCH}${NC}"
+        echo "[ERROR] Failed to remove commit from remote"
+        echo "[INFO] You may need to manually revert: git push -f origin ${CURRENT_BRANCH}"
     fi
     
     # Restore VERSION and CHANGELOG files
-    echo -e "${BLUE}Restoring VERSION and CHANGELOG files...${NC}"
+    echo "[INFO] Restoring VERSION and CHANGELOG files..."
     git checkout HEAD -- "${VERSION_FILE}" "${CHANGELOG_FILE}" 2>/dev/null || true
-    echo -e "${GREEN}✓${NC} Restored files"
+    echo "[INFO] Restored files"
     
     echo ""
-    echo -e "${RED}🔄 Release rollback complete.${NC}"
+    echo "[ERROR] Release rollback complete."
     echo "The repository has been restored to its state before the release."
     exit 1
 }
@@ -278,7 +272,7 @@ if check_gh_cli; then
             --limit 1 2>/dev/null | head -1)
         
         if [ -n "${WORKFLOW_RUN_ID}" ]; then
-            echo -e "${GREEN}✓${NC} Found workflow run: ${WORKFLOW_RUN_ID}"
+            echo "[INFO] Found workflow run: ${WORKFLOW_RUN_ID}"
             break
         fi
         
@@ -288,13 +282,13 @@ if check_gh_cli; then
     done
     
     if [ -z "${WORKFLOW_RUN_ID}" ]; then
-        echo -e "${YELLOW}⚠️  Could not find workflow run after ${MAX_WAIT_MINUTES} minutes.${NC}"
+        echo "[WARN] Could not find workflow run after ${MAX_WAIT_MINUTES} minutes."
         echo "The workflow may not have been triggered or may be delayed."
         echo ""
-        echo -e "${YELLOW}Please manually verify the workflow:${NC}"
+        echo "[INFO] Please manually verify the workflow:"
         echo "  https://github.com/${REPO_SLUG}/actions"
         echo ""
-        echo -e "${YELLOW}Would you like to rollback this release? (y/N):${NC}"
+        echo "[INFO] Would you like to rollback this release? (y/N):"
         read -r ROLLBACK_CONFIRM
         if [[ "${ROLLBACK_CONFIRM}" =~ ^[Yy]$ ]]; then
             rollback_release
@@ -304,7 +298,7 @@ if check_gh_cli; then
     else
         # Monitor the workflow
         echo ""
-        echo -e "${BLUE}📊 Monitoring workflow progress...${NC}"
+        echo "[INFO] Monitoring workflow progress..."
         echo "View detailed logs: https://github.com/${REPO_SLUG}/actions/runs/${WORKFLOW_RUN_ID}"
         echo ""
         
@@ -323,18 +317,18 @@ if check_gh_cli; then
                 "completed")
                     echo ""
                     if [ "${WORKFLOW_CONCLUSION}" = "success" ]; then
-                        echo -e "${GREEN}✅ Workflow completed successfully!${NC}"
+                        echo "[INFO] Workflow completed successfully!"
                         echo ""
-                        echo -e "${BLUE}Docker image published:${NC}"
+                        echo "[INFO] Docker image published:"
                         echo "  ghcr.io/${REPO_SLUG,,}:${NEW_VERSION}"
                         echo "  ghcr.io/${REPO_SLUG,,}:latest"
                         echo ""
-                        echo -e "${BLUE}Next steps:${NC}"
+                        echo "[INFO] Next steps:"
                         echo "  1. Pull the new image: docker pull ghcr.io/${REPO_SLUG,,}:${NEW_VERSION}"
                         echo "  2. View the workflow: https://github.com/${REPO_SLUG}/actions/runs/${WORKFLOW_RUN_ID}"
                         echo "  3. GitHub Release was created automatically: https://github.com/${REPO_SLUG}/releases/tag/v${NEW_VERSION}"
                         echo ""
-                        echo -e "${GREEN}✅ Release v${NEW_VERSION} completed successfully!${NC}"
+                        echo "[INFO] Release v${NEW_VERSION} completed successfully!"
                         exit 0
                     else
                         rollback_release
@@ -344,7 +338,7 @@ if check_gh_cli; then
                     echo -ne "  Status: ${WORKFLOW_STATUS} (${ELAPSED}s elapsed)\r"
                     ;;
                 *)
-                    echo -e "${RED}❌ Workflow status: ${WORKFLOW_STATUS}${NC}"
+                    echo "[ERROR] Workflow status: ${WORKFLOW_STATUS}"
                     rollback_release
                     ;;
             esac
@@ -355,10 +349,10 @@ if check_gh_cli; then
         
         # Timeout reached
         echo ""
-        echo -e "${YELLOW}⚠️  Workflow did not complete within ${MAX_WAIT_MINUTES} minutes.${NC}"
+        echo "[WARN] Workflow did not complete within ${MAX_WAIT_MINUTES} minutes."
         echo "Current status: ${WORKFLOW_STATUS}"
         echo ""
-        echo -e "${YELLOW}Would you like to rollback this release? (y/N):${NC}"
+        echo "[INFO] Would you like to rollback this release? (y/N):"
         read -r ROLLBACK_CONFIRM
         if [[ "${ROLLBACK_CONFIRM}" =~ ^[Yy]$ ]]; then
             rollback_release
@@ -369,11 +363,11 @@ if check_gh_cli; then
     fi
 else
     # gh CLI not available
-    echo -e "${BLUE}Docker image will be available at:${NC}"
+    echo "[INFO] Docker image will be available at:"
     echo "  ghcr.io/${REPO_SLUG,,}:${NEW_VERSION}"
     echo "  ghcr.io/${REPO_SLUG,,}:latest"
     echo ""
-    echo -e "${GREEN}✅ Release v${NEW_VERSION} created!${NC}"
+    echo "[INFO] Release v${NEW_VERSION} created!"
     echo "Please manually verify the workflow completes successfully."
 fi
 
