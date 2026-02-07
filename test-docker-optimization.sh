@@ -9,7 +9,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 
-echo "[INFO] === Docker Optimization Validation ===\n"
+echo "[INFO] === Docker Optimization Validation ==="
+echo ""
 
 # Check if docker is available
 if ! command -v docker &> /dev/null; then
