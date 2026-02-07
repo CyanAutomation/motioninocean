@@ -105,13 +105,18 @@ function renderRows() {
 }
 
 async function fetchNodes() {
-  const response = await fetch("/api/nodes");
-  if (!response.ok) {
-    throw new Error("Failed to load nodes");
+  try {
+    const response = await fetch("/api/nodes");
+    if (!response.ok) {
+      throw new Error("Failed to load nodes");
+    }
+    const payload = await response.json();
+    nodes = payload.nodes || [];
+    renderRows();
+  } catch (error) {
+    showFeedback(error.message || "Failed to load nodes", true);
+    throw error;
   }
-  const payload = await response.json();
-  nodes = payload.nodes || [];
-  renderRows();
 }
 
 async function refreshStatuses() {
