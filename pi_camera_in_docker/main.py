@@ -865,9 +865,8 @@ def gen() -> Iterator[bytes]:
         )
 
 
-@app.route("/stream.mjpg")
-def video_feed() -> Response:
-    """Stream MJPEG video feed."""
+def _build_stream_response() -> Response:
+    """Create the MJPEG stream response with readiness and connection checks."""
     if not recording_started.is_set():
         return Response("Camera stream not ready.", status=503)
 
@@ -906,6 +905,27 @@ def video_feed() -> Response:
         mimetype="multipart/x-mixed-replace; boundary=frame",
         headers=headers,
     )
+
+
+@app.route("/stream.mjpg")
+def video_feed() -> Response:
+    """Stream MJPEG video feed."""
+    return _build_stream_response()
+
+
+@app.route("/webcam/")
+def octoprint_compat_webcam() -> Response:
+    """OctoPrint-compatible webcam endpoint."""
+    if not is_flag_enabled("OCTOPRINT_COMPATIBILITY"):
+        return Response("OctoPrint compatibility routes are disabled.", status=404)
+
+    action = request.args.get("action")
+    if action == "stream":
+        return _build_stream_response()
+    if action is None:
+        return Response("Missing required query parameter: action.", status=400)
+
+    return Response(f"Unsupported action: {action}", status=400)
 
 
 def run_flask_server(host: str = "0.0.0.0", port: int = 8000) -> None:
