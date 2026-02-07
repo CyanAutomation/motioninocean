@@ -112,3 +112,45 @@ def test_corrupted_registry_file_recovers(monkeypatch, tmp_path):
     listed = client.get("/api/nodes")
     assert listed.status_code == 200
     assert listed.json == {"nodes": []}
+
+
+def test_ssrf_protection_blocks_ipv6_mapped_loopback(monkeypatch, tmp_path):
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-4",
+        "name": "Mapped Loopback",
+        "base_url": "http://[::ffff:127.0.0.1]:8080",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["metrics"],
+        "transport": "http",
+    }
+    assert client.post("/api/nodes", json=payload).status_code == 201
+
+    status = client.get("/api/nodes/node-4/status")
+    assert status.status_code == 503
+    assert status.json["error"]["code"] == "NODE_UNREACHABLE"
+    assert status.json["error"]["details"]["reason"] == "target is blocked"
+
+
+def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-5",
+        "name": "Metadata Target",
+        "base_url": "http://169.254.169.254",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["metrics"],
+        "transport": "http",
+    }
+    assert client.post("/api/nodes", json=payload).status_code == 201
+
+    status = client.get("/api/nodes/node-5/status")
+    assert status.status_code == 503
+    assert status.json["error"]["code"] == "NODE_UNREACHABLE"
+    assert status.json["error"]["details"]["reason"] == "target is blocked"

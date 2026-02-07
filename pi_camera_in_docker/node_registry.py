@@ -46,7 +46,6 @@ def _validate_auth(auth: Any) -> None:
         raise NodeValidationError("auth.type must be one of: none, bearer, basic")
 
 
-
 def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]:
     if not isinstance(node, dict):
         raise NodeValidationError("node payload must be an object")
@@ -122,20 +121,23 @@ class FileNodeRegistry(NodeRegistry):
     def _exclusive_lock(self):
         lock_path = self.path.parent / f"{self.path.name}.lock"
         with open(lock_path, "w", encoding="utf-8") as lock_file:
-        try:
-            import fcntl
+            has_fcntl = False
+            try:
+                import fcntl
 
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
-        except ImportError:
-            pass
-        try:
-            yield
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                has_fcntl = True
+            except ImportError:
+                pass
+
+            try:
+                yield
             finally:
+                if not has_fcntl:
+                    return
                 try:
-                    import fcntl
-
                     fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-                except (ImportError, OSError):
+                except OSError:
                     pass
 
     def list_nodes(self) -> List[Dict[str, Any]]:
