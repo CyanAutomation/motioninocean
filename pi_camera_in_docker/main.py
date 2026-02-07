@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional, Tuple
 from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 from flask import Flask, jsonify, render_template
 from flask_cors import CORS
+from management_api import register_management_routes
 from modes.webcam import (
     ConnectionTracker,
     FrameBuffer,
@@ -98,6 +99,7 @@ def _load_config() -> Dict[str, Any]:
         "cors_enabled": is_flag_enabled("CORS_SUPPORT"),
         "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
         in ("1", "true", "yes"),
+        "node_registry_path": os.environ.get("NODE_REGISTRY_PATH", "/data/node-registry.json"),
     }
 
 
@@ -142,6 +144,7 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     app, state = _create_base_app(cfg)
     register_shared_routes(app, state)
     register_management_camera_error_routes(app)
+    register_management_routes(app, cfg["node_registry_path"])
     return app
 
 
