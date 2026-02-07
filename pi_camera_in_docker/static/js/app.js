@@ -15,6 +15,8 @@ const state = {
   statsInFlight: false,
   configInFlight: false,
   currentTab: "main",
+  lastConfigUpdate: null,
+  configUpdateInterval: null,
   elements: {
     videoStream: null,
     statsPanel: null,
@@ -67,6 +69,14 @@ function cacheElements() {
   state.elements.maxFrameAgeValue = document.getElementById("max-frame-age-value");
   state.elements.resolutionValue = document.getElementById("resolution-value");
   state.elements.lastUpdated = document.getElementById("last-updated");
+
+  // Config panel elements
+  state.elements.configLoading = document.getElementById("config-loading");
+  state.elements.configStatusIndicator = document.getElementById("config-status-indicator");
+  state.elements.configStatusText = document.getElementById("config-status-text");
+  state.elements.configLastUpdateTime = document.getElementById("config-last-update-time");
+  state.elements.configErrorAlert = document.getElementById("config-error-alert");
+  state.elements.configErrorMessage = document.getElementById("config-error-message");
 }
 
 /**
@@ -517,10 +527,11 @@ function switchTab(tabName) {
     if (statsPanel) statsPanel.classList.remove("hidden");
     if (configPanel) configPanel.classList.add("hidden");
 
-    // Resume stats updates
+    // Resume stats updates and stop config timestamp updates
     if (!state.statsCollapsed) {
       startStatsUpdate();
     }
+    stopConfigTimestampUpdate();
   } else if (tabName === "config") {
     if (mainSection) mainSection.classList.add("hidden");
     if (statsPanel) statsPanel.classList.add("hidden");
@@ -529,7 +540,9 @@ function switchTab(tabName) {
     // Stop stats updates and fetch config
     stopStatsUpdate();
     updateConfig().catch((error) => console.error("Config update failed:", error));
+    startConfigTimestampUpdate();
   }
+}
 }
 
 /**
@@ -578,22 +591,122 @@ async function updateConfig() {
 
   try {
     state.configInFlight = true;
+
+    // Show loading state
+    if (state.elements.configLoading) {
+      state.elements.configLoading.classList.remove("hidden");
+    }
+    updateConfigStatus("fetching", "Fetching configuration...");
+
     try {
       const data = await fetchConfig();
       renderConfig(data);
+
+      // Update success state
+      state.lastConfigUpdate = new Date();
+      updateConfigStatus("ready", "Configuration loaded");
+      updateConfigTimestampDisplay();
+
+      // Hide error alert on success
+      if (state.elements.configErrorAlert) {
+        state.elements.configErrorAlert.classList.add("hidden");
+      }
     } catch (error) {
       if (error && error.name === "AbortError") {
         console.warn("Config request timed out, will retry.");
+        updateConfigStatus("error", "Request timed out");
+        showConfigError("Configuration request timed out. Will retry automatically.");
         return;
       }
 
       console.error("Failed to fetch config:", error);
       clearConfigDisplay();
+      updateConfigStatus("error", "Failed to load configuration");
+      showConfigError(`Failed to load configuration: ${error.message || "Unknown error"}`);
       return;
     }
   } finally {
     state.configInFlight = false;
+
+    // Hide loading state
+    if (state.elements.configLoading) {
+      state.elements.configLoading.classList.add("hidden");
+    }
   }
+}
+
+/**
+ * Update config status indicator and message
+ */
+function updateConfigStatus(status, message) {
+  if (state.elements.configStatusIndicator) {
+    state.elements.configStatusIndicator.className = `config-status-dot ${status}`;
+  }
+  if (state.elements.configStatusText) {
+    state.elements.configStatusText.textContent = message;
+  }
+}
+
+/**
+ * Update the "last updated" timestamp display
+ */
+function updateConfigTimestampDisplay() {
+  if (!state.elements.configLastUpdateTime) return;
+
+  const now = new Date();
+
+  if (!state.lastConfigUpdate) {
+    state.elements.configLastUpdateTime.textContent = "Now";
+    return;
+  }
+
+  const diffSeconds = Math.floor((now - state.lastConfigUpdate) / 1000);
+
+  if (diffSeconds < 5) {
+    state.elements.configLastUpdateTime.textContent = "Just now";
+  } else if (diffSeconds < 60) {
+    state.elements.configLastUpdateTime.textContent = `${diffSeconds}s ago`;
+  } else {
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    state.elements.configLastUpdateTime.textContent = `${diffMinutes}m ago`;
+  }
+}
+
+/**
+ * Start periodic config timestamp updates
+ */
+function startConfigTimestampUpdate() {
+  if (state.configUpdateInterval) {
+    clearInterval(state.configUpdateInterval);
+  }
+
+  // Update immediately and then every second
+  updateConfigTimestampDisplay();
+  state.configUpdateInterval = setInterval(() => {
+    updateConfigTimestampDisplay();
+  }, 1000);
+}
+
+/**
+ * Stop periodic config timestamp updates
+ */
+function stopConfigTimestampUpdate() {
+  if (state.configUpdateInterval) {
+    clearInterval(state.configUpdateInterval);
+    state.configUpdateInterval = null;
+  }
+}
+
+/**
+ * Show error alert in config panel
+ */
+function showConfigError(message) {
+  if (!state.elements.configErrorAlert) return;
+
+  if (state.elements.configErrorMessage) {
+    state.elements.configErrorMessage.textContent = message;
+  }
+  state.elements.configErrorAlert.classList.remove("hidden");
 }
 
 /**

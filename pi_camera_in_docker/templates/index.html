@@ -124,9 +124,26 @@
 
     <!-- Configuration Panel -->
     <div id="config-panel" class="config-panel hidden">
+      <!-- Loading Overlay -->
+      <div id="config-loading" class="config-loading hidden">
+        <div class="config-spinner"></div>
+        <div class="config-loading-text">Loading configuration...</div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="config-status-bar">
+        <div class="status-left">
+          <div id="config-status-indicator" class="config-status-dot fetching"></div>
+          <span id="config-status-text" class="config-status-text">Fetching configuration...</span>
+        </div>
+        <div class="status-right">
+          <span id="config-last-update-time" class="config-timestamp-display">Now</span>
+        </div>
+      </div>
+
       <div class="config-content">
-        <!-- Camera Settings Group -->
-        <div class="config-group">
+        <!-- Camera Settings Group (Editable) -->
+        <div class="config-group editable-section">
           <div class="config-group-header">
             <h3 class="config-group-title">📷 Camera Settings</h3>
             <button class="config-group-toggle" data-group="camera" title="Toggle">▼</button>
@@ -151,8 +168,8 @@
           </div>
         </div>
 
-        <!-- Stream Control Group -->
-        <div class="config-group">
+        <!-- Stream Control Group (Read-only) -->
+        <div class="config-group readonly-section">
           <div class="config-group-header">
             <h3 class="config-group-title">📡 Stream Control</h3>
             <button class="config-group-toggle" data-group="stream" title="Toggle">▼</button>
@@ -164,7 +181,7 @@
             </div>
             <div class="config-item">
               <span class="config-label">Current Connections</span>
-              <span id="config-current-connections" class="config-value">--</span>
+              <span id="config-current-connections" class="config-value highlight">--</span>
             </div>
             <div class="config-item">
               <span class="config-label">Max Frame Age (Timeout)</span>
@@ -177,8 +194,8 @@
           </div>
         </div>
 
-        <!-- Runtime Info Group -->
-        <div class="config-group">
+        <!-- Runtime Info Group (Read-only) -->
+        <div class="config-group readonly-section">
           <div class="config-group-header">
             <h3 class="config-group-title">⚙️ Runtime Information</h3>
             <button class="config-group-toggle" data-group="runtime" title="Toggle">▼</button>
@@ -194,7 +211,7 @@
             </div>
             <div class="config-item">
               <span class="config-label">Uptime</span>
-              <span id="config-uptime" class="config-value">--</span>
+              <span id="config-uptime" class="config-value highlight">--</span>
             </div>
             <div class="config-item">
               <span class="config-label">Last Updated</span>
@@ -203,8 +220,8 @@
           </div>
         </div>
 
-        <!-- Limits Info Group -->
-        <div class="config-group">
+        <!-- Limits Info Group (Read-only) -->
+        <div class="config-group readonly-section">
           <div class="config-group-header">
             <h3 class="config-group-title">📊 System Limits</h3>
             <button class="config-group-toggle" data-group="limits" title="Toggle">▼</button>
@@ -225,7 +242,14 @@
           </div>
         </div>
 
-        <!-- Auto-refresh note -->
+        <!-- Error Alert -->
+        <div id="config-error-alert" class="config-alert error hidden">
+          <span class="alert-icon">⚠️</span>
+          <span id="config-error-message" class="alert-message">Failed to load configuration</span>
+          <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">×</button>
+        </div>
+
+        <!-- Footer -->
         <div class="config-footer">
           <p class="config-info">Configuration auto-updates every 2 seconds</p>
         </div>
