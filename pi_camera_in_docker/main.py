@@ -1055,7 +1055,9 @@ if __name__ == "__main__":
                 host="0.0.0.0",
                 port=8000,
             )
-            flask_thread = Thread(target=run_flask_server, args=("0.0.0.0", 8000), daemon=False)
+            server = make_server("0.0.0.0", 8000, app, threaded=True)
+            flask_server_state["server"] = server
+            server.serve_forever()
             flask_thread.start()
             flask_thread.join()
         finally:
