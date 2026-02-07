@@ -159,24 +159,27 @@ async function submitNodeForm(event) {
   const endpoint = isEdit ? `/api/nodes/${encodeURIComponent(editingNodeId)}` : "/api/nodes";
   const method = isEdit ? "PUT" : "POST";
 
-  const response = await fetch(endpoint, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const response = await fetch(endpoint, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-  if (!response.ok) {
-    const errorPayload = await response.json().catch(() => ({}));
-    const message = errorPayload?.error?.message || "Request failed.";
-    showFeedback(message, true);
-    return;
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(() => ({}));
+      const message = errorPayload?.error?.message || "Request failed.";
+      showFeedback(message, true);
+      return;
+    }
+
+    showFeedback(isEdit ? "Node updated." : "Node added.");
+    resetForm();
+    await fetchNodes();
+    await refreshStatuses();
+  } catch (error) {
+    showFeedback(error.message || "Network error occurred.", true);
   }
-
-  showFeedback(isEdit ? "Node updated." : "Node added.");
-  resetForm();
-  await fetchNodes();
-  await refreshStatuses();
-}
 
 function beginEditNode(nodeId) {
   const node = nodes.find((entry) => entry.id === nodeId);
