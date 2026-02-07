@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -117,6 +118,23 @@ class FileNodeRegistry(NodeRegistry):
             temp_path = temp.name
         Path(temp_path).replace(self.path)
 
+    @contextmanager
+    def _exclusive_lock(self):
+        lock_path = self.path.parent / f"{self.path.name}.lock"
+        with open(lock_path, "w", encoding="utf-8") as lock_file:
+            try:
+                import fcntl
+
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                yield
+            finally:
+                try:
+                    import fcntl
+
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                except (ImportError, OSError):
+                    pass
+
     def list_nodes(self) -> List[Dict[str, Any]]:
         return self._load()["nodes"]
 
@@ -127,52 +145,37 @@ class FileNodeRegistry(NodeRegistry):
         return None
 
     def create_node(self, node: Dict[str, Any]) -> Dict[str, Any]:
-        import fcntl
-        
         candidate = validate_node(node)
-        
-        # Acquire exclusive lock for atomic read-modify-write
-        lock_path = self.path.parent / f"{self.path.name}.lock"
-        with open(lock_path, "w") as lock_file:
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
-            try:
-                data = self._load()
-                if any(existing.get("id") == candidate["id"] for existing in data["nodes"]):
-                    raise NodeValidationError(f"node {candidate['id']} already exists")
-                data["nodes"].append(candidate)
-                self._save(data)
-                return candidate
-            finally:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+        with self._exclusive_lock():
+            data = self._load()
+            if any(existing.get("id") == candidate["id"] for existing in data["nodes"]):
+                raise NodeValidationError(f"node {candidate['id']} already exists")
+            data["nodes"].append(candidate)
+            self._save(data)
+            return candidate
 
     def update_node(self, node_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
-        import fcntl
-        
         validated_patch = validate_node(patch, partial=True)
-        
-        # Acquire exclusive lock for atomic read-modify-write
-        lock_path = self.path.parent / f"{self.path.name}.lock"
-        with open(lock_path, "w") as lock_file:
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
-            try:
-                data = self._load()
-                for index, existing in enumerate(data["nodes"]):
-                    if existing.get("id") != node_id:
-                        continue
-                    merged = {**existing, **validated_patch}
-                    merged = validate_node(merged)
-                    data["nodes"][index] = merged
-                    self._save(data)
-                    return merged
-                raise KeyError(node_id)
-            finally:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+        with self._exclusive_lock():
+            data = self._load()
+            for index, existing in enumerate(data["nodes"]):
+                if existing.get("id") != node_id:
+                    continue
+                merged = {**existing, **validated_patch}
+                merged = validate_node(merged)
+                data["nodes"][index] = merged
+                self._save(data)
+                return merged
+            raise KeyError(node_id)
 
     def delete_node(self, node_id: str) -> bool:
-        data = self._load()
-        previous_count = len(data["nodes"])
-        data["nodes"] = [node for node in data["nodes"] if node.get("id") != node_id]
-        if previous_count == len(data["nodes"]):
-            return False
-        self._save(data)
-        return True
+        with self._exclusive_lock():
+            data = self._load()
+            previous_count = len(data["nodes"])
+            data["nodes"] = [node for node in data["nodes"] if node.get("id") != node_id]
+            if previous_count == len(data["nodes"]):
+                return False
+            self._save(data)
+            return True
