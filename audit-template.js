@@ -57,7 +57,7 @@ async function testResponsiveDesign(page, baseFilename) {
   console.log(`  Testing responsive design...`);
   const results = {};
 
-  for (const [key, viewport] of Object.entries(AUDIT_CONFIG.viewports)) {
+  for (const [_, viewport] of Object.entries(AUDIT_CONFIG.viewports)) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.waitForLoadState('networkidle');
 
@@ -93,7 +93,7 @@ async function checkAccessibility(page) {
     const buttons = document.querySelectorAll('button');
     if (buttons.length > 0) {
       const firstButton = buttons[0];
-      const styles = window.getComputedStyle(firstButton, ':focus');
+      const _styles = window.getComputedStyle(firstButton, ':focus');
       // Note: Can't directly check :focus pseudo-class, but can verify no outline:0
       if (firstButton.style.outline === 'none' || firstButton.style.outline === '0') {
         issues.push('Buttons may have focus outline disabled');
@@ -166,9 +166,9 @@ async function auditWebcamMode(page) {
     console.log('\n5. Stream Interaction');
     try {
       await page.waitForSelector('img#video-stream', { timeout: 5000 });
-      const videoState = await capturePageState(page, 'webcam-streaming');
+      const _videoState = await capturePageState(page, 'webcam-streaming');
       console.log('  ✓ Video stream loaded');
-    } catch (e) {
+    } catch (_e) {
       findings.errors.push('Video stream did not load within 5 seconds');
       console.log('  ! Video stream timeout or not loaded');
     }
