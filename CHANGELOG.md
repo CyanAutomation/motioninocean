@@ -94,6 +94,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.2] - 2026-02-08
+
+- Merge pull request #185 from CyanAutomation/codex/refactor-camera-detection-tests
+- Refactor Dockerfile to validate picamera2 camera-info API contract with improved readability
+- Update tests/test_units.py
+- Refactor camera detection tests for behavior and fallback modes
+
 ## [1.13.1] - 2026-02-08
 
 - Fix: Update documentation to reflect bearer token authentication for Docker transport setup
