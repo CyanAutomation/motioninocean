@@ -8,7 +8,9 @@ from pathlib import Path
 import pytest
 
 
-# Add the app directory to path
+# Add the workspace root and app directory to path
+WORKSPACE_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(WORKSPACE_ROOT))
 APP_DIR = Path(__file__).parent.parent / "pi_camera_in_docker"
 sys.path.insert(0, str(APP_DIR))
 
@@ -22,4 +24,4 @@ def app_dir():
 @pytest.fixture
 def workspace_root():
     """Return the absolute path to the workspace root."""
-    return Path(__file__).parent.parent
+    return WORKSPACE_ROOT
