@@ -204,3 +204,169 @@ def test_healthcheck_url_validation_allows_valid_hostname(monkeypatch):
 
     assert healthcheck.check_health() is True
     assert captured["url"] == "https://example.com/health"
+
+
+def test_get_camera_info_prefers_module_level_global_camera_info(monkeypatch):
+    """Camera detection should work when picamera2 exposes module-level global_camera_info."""
+    import importlib
+    import sys
+    import tempfile
+    import types
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APP_MODE", "management")
+        monkeypatch.setenv("MOCK_CAMERA", "true")
+
+        fake_module = types.ModuleType("picamera2")
+
+        class FakePicamera2:
+            pass
+
+        fake_module.Picamera2 = FakePicamera2
+        fake_module.global_camera_info = lambda: [{"id": "cam0"}]
+
+        sys.modules["picamera2"] = fake_module
+        sys.modules.pop("main", None)
+        main = importlib.import_module("main")
+
+        camera_info, detection_path = main._get_camera_info(FakePicamera2)
+
+        assert camera_info == [{"id": "cam0"}]
+        assert detection_path == "picamera2.global_camera_info"
+
+        sys.modules.pop("main", None)
+        sys.modules.pop("picamera2", None)
+
+
+def test_get_camera_info_falls_back_to_class_method(monkeypatch):
+    """Camera detection should fallback to Picamera2.global_camera_info when needed."""
+    import importlib
+    import sys
+    import tempfile
+    import types
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APP_MODE", "management")
+        monkeypatch.setenv("MOCK_CAMERA", "true")
+
+        fake_module = types.ModuleType("picamera2")
+
+        class FakePicamera2:
+            @staticmethod
+            def global_camera_info():
+                return [{"id": "cam1"}]
+
+        fake_module.Picamera2 = FakePicamera2
+        sys.modules["picamera2"] = fake_module
+
+        sys.modules.pop("main", None)
+        main = importlib.import_module("main")
+
+        camera_info, detection_path = main._get_camera_info(FakePicamera2)
+
+        assert camera_info == [{"id": "cam1"}]
+        assert detection_path == "Picamera2.global_camera_info"
+
+        sys.modules.pop("main", None)
+        sys.modules.pop("picamera2", None)
+
+
+def test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes(monkeypatch):
+    """Both camera-info discovery modes should reach camera setup without ImportError."""
+    import importlib
+    import sys
+    import tempfile
+    from threading import Event, RLock
+
+    from modes.webcam import ConnectionTracker, FrameBuffer, StreamStats
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APP_MODE", "management")
+        monkeypatch.setenv("MOCK_CAMERA", "true")
+
+        sys.modules.pop("main", None)
+        main = importlib.import_module("main")
+
+        class FakePicamera2:
+            started = False
+
+            @staticmethod
+            def global_camera_info():
+                return [{"id": "camX"}]
+
+            def __init__(self):
+                self.configured = False
+                self.recording_started = False
+
+            def create_video_configuration(self, **kwargs):
+                return kwargs
+
+            def configure(self, config):
+                self.configured = True
+
+            def start_recording(self, encoder, output):
+                self.recording_started = True
+                self.started = True
+
+        class FakeJpegEncoder:
+            def __init__(self, q):
+                self.quality = q
+
+        class FakeFileOutput:
+            def __init__(self, output):
+                self.output = output
+
+        cfg = {
+            "mock_camera": False,
+            "allow_pykms_mock": False,
+            "resolution": (640, 480),
+            "fps": 0,
+            "jpeg_quality": 90,
+            "target_fps": 0,
+            "max_frame_age_seconds": 10.0,
+            "max_stream_connections": 10,
+        }
+
+        for mode in ("module_level", "class_fallback"):
+            stream_stats = StreamStats()
+            output = FrameBuffer(stream_stats, target_fps=cfg["target_fps"])
+            state = {
+                "recording_started": Event(),
+                "shutdown_requested": Event(),
+                "camera_lock": RLock(),
+                "output": output,
+                "stream_stats": stream_stats,
+                "connection_tracker": ConnectionTracker(),
+                "max_stream_connections": cfg["max_stream_connections"],
+                "picam2_instance": None,
+            }
+
+            monkeypatch.setattr(main, "_check_device_availability", lambda _cfg: None)
+            monkeypatch.setattr(
+                main,
+                "import_camera_components",
+                lambda _allow: (FakePicamera2, FakeJpegEncoder, FakeFileOutput),
+            )
+
+            if mode == "module_level":
+                monkeypatch.setattr(
+                    main,
+                    "_get_camera_info",
+                    lambda _cls: ([{"id": "cam0"}], "picamera2.global_camera_info"),
+                )
+            else:
+                monkeypatch.setattr(
+                    main,
+                    "_get_camera_info",
+                    lambda _cls: ([{"id": "cam0"}], "Picamera2.global_camera_info"),
+                )
+
+            main._run_webcam_mode(state, cfg)
+
+            assert state["recording_started"].is_set()
+            assert state["picam2_instance"] is not None
+
+        sys.modules.pop("main", None)
