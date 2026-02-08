@@ -101,8 +101,18 @@ COPY pi_camera_in_docker /app
 COPY healthcheck.py /app/healthcheck.py
 RUN chmod +x /app/healthcheck.py
 
-# Validate required Python modules are present in the final image
-RUN python3 -c "import sys; import numpy; import flask; import flask_cors; import picamera2; print('All required modules imported successfully')"
+# Validate required Python modules and picamera2 camera-info contract in the final image
+# Known-good baseline: Raspberry Pi Bookworm repo package for python3-picamera2 (archive.raspberrypi.org/debian)
+RUN python3 -c "import numpy; import flask; import flask_cors; import picamera2;
+module_fn = getattr(picamera2, 'global_camera_info', None);
+picamera2_class = getattr(picamera2, 'Picamera2', None);
+class_fn = getattr(picamera2_class, 'global_camera_info', None) if picamera2_class is not None else None;
+if callable(module_fn):
+    print('All required modules imported successfully; camera-info API via picamera2.global_camera_info');
+elif callable(class_fn):
+    print('All required modules imported successfully; camera-info API via Picamera2.global_camera_info');
+else:
+    raise SystemExit('Incompatible python3-picamera2 package revision: expected picamera2.global_camera_info or picamera2.Picamera2.global_camera_info')"
 
 # Explicitly set STOPSIGNAL to SIGTERM for graceful shutdown handling
 STOPSIGNAL SIGTERM

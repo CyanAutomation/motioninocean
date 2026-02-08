@@ -282,11 +282,11 @@ def _shutdown_camera(state: Dict[str, Any]) -> None:
             state["picam2_instance"] = None
 
 
-def _get_camera_info(picamera2_cls: Any) -> list:
+def _get_camera_info(picamera2_cls: Any) -> Tuple[list, str]:
     try:
         from picamera2 import global_camera_info
 
-        return global_camera_info()
+        return global_camera_info(), "picamera2.global_camera_info"
     except (ImportError, AttributeError):
         logger.debug(
             "picamera2.global_camera_info import unavailable; falling back to Picamera2 class method"
@@ -295,7 +295,7 @@ def _get_camera_info(picamera2_cls: Any) -> list:
     class_global_camera_info = getattr(picamera2_cls, "global_camera_info", None)
     if callable(class_global_camera_info):
         try:
-            return class_global_camera_info()
+            return class_global_camera_info(), "Picamera2.global_camera_info"
         except Exception:
             logger.debug("Picamera2.global_camera_info call failed at runtime")
 
@@ -303,7 +303,7 @@ def _get_camera_info(picamera2_cls: Any) -> list:
         "Unable to query camera inventory from picamera2. Proceeding with empty camera list. "
         "If camera detection fails, verify the installed picamera2 version supports global_camera_info."
     )
-    return []
+    return [], "none"
 
 
 def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
@@ -337,7 +337,8 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
         try:
             # Detect available cameras before initialization
             try:
-                camera_info = _get_camera_info(picamera2_cls)  # global_camera_info() marker
+                camera_info, detection_path = _get_camera_info(picamera2_cls)  # global_camera_info() marker
+                logger.info("Camera inventory detection path: %s", detection_path)
                 if not camera_info:
                     message = (
                         "No cameras detected. Check device mappings in docker-compose.yaml. "
