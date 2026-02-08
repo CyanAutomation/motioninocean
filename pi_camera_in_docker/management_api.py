@@ -147,9 +147,13 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
         raise NodeRequestError("node target is invalid")
 
     port = parsed_url.port
+    port = parsed_url.port
     try:
-        ipaddress.ip_address(hostname)
+        ip = ipaddress.ip_address(hostname)
+        if _is_blocked_address(hostname):
+            raise NodeRequestError("node target is not allowed")
         resolved_addresses = (hostname,)
+    except ValueError:
     except ValueError:
         try:
             records = socket.getaddrinfo(hostname, port or None, proto=socket.IPPROTO_TCP)
