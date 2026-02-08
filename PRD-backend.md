@@ -69,6 +69,44 @@ Running a Raspberry Pi CSI camera inside Docker is non-trivial due to libcamera 
   - No frames have been captured yet.
   - Latest frame age exceeds `MAX_FRAME_AGE_SECONDS`.
 
+**State transitions:**
+
+```mermaid
+stateDiagram-v2
+    [*] --> STOPPED
+    STOPPED --> INITIALIZING: camera_init()
+    INITIALIZING --> RECORDING: recording_started.set()
+    RECORDING --> STALE: frame age > MAX_FRAME_AGE_SECONDS
+    STALE --> RECORDING: new frame captured
+    RECORDING --> STOPPED: shutdown()
+    STALE --> STOPPED: shutdown()
+    STOPPED --> [*]
+
+    note right of STOPPED
+        /health: 200 ✓
+        /ready: 503 (not ready)
+    end note
+
+    note right of INITIALIZING
+        /health: 200 ✓
+        /ready: 503 (not recording)
+    end note
+
+    note right of RECORDING
+        /health: 200 ✓
+        /ready: 200 ✓ (frames fresh)
+    end note
+
+    note right of STALE
+        /health: 200 ✓
+        /ready: 503 (frames stale)
+    end note
+```
+
+**Figure 1: Health and Readiness State Transitions**
+
+The state machine clarifies that `/health` is a liveness probe (always 200) while `/ready` is a readiness probe that transitions between 200 and 503 based on camera recording state and frame freshness (MAX_FRAME_AGE_SECONDS threshold). Operators can use this to understand why `/ready` might return 503 even when the service is healthy, indicating transient unavailability (e.g., camera initializing or frames stale due to network delays).
+
 ### 3. Raspberry Pi CSI Camera Capture (P1)
 
 **Behavior:**
@@ -184,6 +222,34 @@ This PRD reflects the current backend implementation in:
 ## Management Mode API Spec
 
 When `APP_MODE=management`, the backend exposes a node management control plane for multi-node operation.
+
+**Node Registry CRUD and Status Workflow:**
+
+```mermaid
+sequenceDiagram
+    Browser ->> Management: POST /api/nodes<br/>(add webcam host)
+    Management ->> FileRegistry: store node entry<br/>(bearer token auth)
+    FileRegistry -->> Management: node saved
+    Management -->> Browser: node created (201)
+
+    Note over Management: Periodic status probe (background)
+    Management ->> WebcamHost: GET /health
+    WebcamHost -->> Management: 200 {healthy}
+    Management ->> WebcamHost: GET /ready
+    WebcamHost -->> Management: 200 or 503 {ready status}
+    Management ->> WebcamHost: GET /metrics
+    WebcamHost -->> Management: {uptime, fps, frame_count}
+
+    Management ->> FileRegistry: update node status cache
+    FileRegistry -->> Management: status cached
+    
+    Browser ->> Management: GET /api/nodes/{id}/status
+    Management -->> Browser: {node_status, stream_available, probe_data}
+```
+
+**Figure 2: Node Registry CRUD and Status Aggregation**
+
+The sequence diagram clarifies the lifecycle of node registration: synchronous node creation followed by asynchronous periodic probing of `/health`, `/ready`, and `/metrics` endpoints on remote webcam hosts. Status aggregation is continuous and background-driven, decoupled from node CRUD operations. This allows operators to add/remove nodes without disrupting ongoing health monitoring.
 
 ### Node Registry Model
 

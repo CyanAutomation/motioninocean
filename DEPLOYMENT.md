@@ -20,38 +20,32 @@ Motion in Ocean supports a hub-and-spoke architecture where:
 - **Webcam Hosts**: Run `webcam` profile; stream video and provide health/status endpoints
 - **Communication**: Management mode probes remote endpoints and aggregates status via HTTP
 
+**Architecture Diagram:**
+
+```mermaid
+graph TD
+    Browser["🌐 Browser / Client"]
+    Management["Management Host<br/>(192.168.1.100:8001)<br/>Management Mode"]
+    WebcamOne["Webcam Host 1<br/>(192.168.1.101:8000)<br/>Webcam Mode"]
+    WebcamTwo["Webcam Host 2<br/>(192.168.1.102:8000)<br/>Webcam Mode"]
+    FileRegistry["FileNodeRegistry<br/>(Persistent JSON)"]
+
+    Browser -->|Web UI & API| Management
+    Management -->|GET /health<br/>GET /ready<br/>GET /metrics| WebcamOne
+    Management -->|GET /health<br/>GET /ready<br/>GET /metrics| WebcamTwo
+    Management -->|CRUD /api/nodes| FileRegistry
+    WebcamOne -.->|Stream /stream.mjpg| Browser
+    WebcamTwo -.->|Stream /stream.mjpg| Browser
+    
+    style Management fill:#4A90E2,stroke:#333,stroke-width:2px,color:#fff
+    style WebcamOne fill:#7ED321,stroke:#333,stroke-width:2px,color:#fff
+    style WebcamTwo fill:#7ED321,stroke:#333,stroke-width:2px,color:#fff
+    style FileRegistry fill:#F5A623,stroke:#333,stroke-width:2px,color:#fff
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│ Local Network (192.168.1.0/24)                                  │
-├──────────────────────────────────────┬──────────────────────────┤
-│                                      │                          │
-│  Management Host                     │  Webcam Host 1           │
-│  (192.168.1.100)                     │  (192.168.1.101)         │
-│  ┌──────────────────────────┐        │  ┌──────────────────┐    │
-│  │  Motion in Ocean         │        │  │  Motion in Ocean │    │
-│  │  Management Mode         │        │  │  Webcam Mode     │    │
-│  │  - Web UI (port 8001)    │        │  │  - Stream        │    │
-│  │  - API (port 8001)       │        │  │    (port 8000)   │    │
-│  │  - Node Registry         │        │  │  - Health Check  │    │
-│  │  ◄──── HTTP GET/POST ─────┼─HTTP──────► /health         │    │
-│  └──────────────────────────┘        │  │  /ready          │    │
-│                                      │  │  /metrics        │    │
-│  ┌──────────────────────────┐        │  └──────────────────┘    │
-│  │  Browser / Client        │        │                          │
-│  │  http://192.168.1.100:   │        └──────────────────────────┘
-│  │  8001/management         │
-│  └──────────────────────────┘        ┌──────────────────────────┐
-│                                      │  Webcam Host 2           │
-│                                      │  (192.168.1.102)         │
-│                                      │  ┌──────────────────┐    │
-│                                      │  │  Motion in Ocean │    │
-│                                      │  │  Webcam Mode     │    │
-│                                      │  │  - Stream        │    │
-│                                      │  │    (port 8000)   │    │
-│                                      │  └──────────────────┘    │
-│                                      └──────────────────────────┘
-└─────────────────────────────────────────────────────────────────┘
-```
+
+**Figure 1: Multi-Host Hub-and-Spoke Architecture**
+
+The management host acts as a control plane, periodically probing remote webcam hosts via HTTP (`/health`, `/ready`, `/metrics`). The file-backed node registry persists host configuration and status. Solid lines represent control/probe traffic; dotted lines represent optional direct streaming paths from webcam hosts to browsers. This architecture allows dynamic addition/removal of camera hosts without central orchestration.
 
 ---
 

@@ -293,6 +293,23 @@ make docker-build-prod
 - Uses host udev info to discover camera devices
 - Requires elevated device access (see security model)
 
+**Frame Capture Pipeline:**
+
+```mermaid
+graph LR
+    Picamera2["Picamera2<br/>(libcamera)"] -->|frame buffer| JpegEncoder["JpegEncoder"]
+    JpegEncoder -->|encoded JPEG| FrameBuffer["FrameBuffer<br/>(sync)"]
+    FrameBuffer -->|multipart stream| MJPEG["/stream.mjpg<br/>(MJPEG output)"]
+    FrameBuffer -->|latest frame| Snapshot["/snapshot.jpg<br/>(frame capture)"]
+    FrameBuffer -->|frame age| Ready["Readiness<br/>Check"]
+    Ready -->|fresh| HealthReady["✓ /ready 200"]
+    Ready -->|stale| HealthNotReady["✗ /ready 503"]
+```
+
+**Figure 1: Frame Capture and Distribution Pipeline**
+
+Picamera2 captures frames in the container, which are JPEG-encoded and stored in a thread-safe FrameBuffer. This single buffer powers the MJPEG stream (`/stream.mjpg`), snapshot endpoint (`/snapshot.jpg`), and readiness probe logic (frame age check against `MAX_FRAME_AGE_SECONDS`). This design ensures all consumers see consistent, non-stale frames without redundant encoding.
+
 ### Hardware access requirements
 
 motion-in-ocean uses:
