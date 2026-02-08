@@ -94,6 +94,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.8] - 2026-02-08
+
+- Fix: Correctly return response code and body JSON in _request_json function
+- Fix: Update OctoPrint compatibility setting and enable mock camera mode for testing
+- Add UI auditing skill and audit template for motion-in-ocean web interface
+- Enhance Makefile with new installation and validation targets; update PRD-backend.md for accuracy
+- Enhance documentation with architecture diagrams and state transition visuals for deployment and backend processes
+- style: Apply Prettier formatting
+- Fix: Remove unused variable isConfigTab in app.js
+
 ## [1.12.7] - 2026-02-08
 
 - Merge pull request #181 from CyanAutomation/codex/update-generate_mock_frames-for-shutdown-handling
