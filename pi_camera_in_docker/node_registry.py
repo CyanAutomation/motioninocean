@@ -176,30 +176,18 @@ class FileNodeRegistry(NodeRegistry):
 
         with self._exclusive_lock():
             data = self._load()
-            for existing in data["nodes"]:
+            for index, existing in enumerate(data["nodes"]):
                 if existing.get("id") != node_id:
                     continue
                 merged = {**existing, **validated_patch}
                 merged = validate_node(merged)
-
-                latest = self._load()
-                target_index = None
-                for index, latest_existing in enumerate(latest["nodes"]):
-                    if latest_existing.get("id") == node_id:
-                        target_index = index
-                        break
-
-                if target_index is None:
-                    raise KeyError(node_id)
-
                 if any(
-                    other_index != target_index and other.get("id") == merged["id"]
-                    for other_index, other in enumerate(latest["nodes"])
+                    other_index != index and other.get("id") == merged["id"]
+                    for other_index, other in enumerate(data["nodes"])
                 ):
                     raise NodeValidationError(f"node {merged['id']} already exists")
-
-                latest["nodes"][target_index] = merged
-                self._save(latest)
+                data["nodes"][index] = merged
+                self._save(data)
                 return merged
             raise KeyError(node_id)
 
