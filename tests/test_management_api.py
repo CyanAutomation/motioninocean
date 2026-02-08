@@ -337,7 +337,7 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
     assert response.json["error"]["code"] == "NODE_NOT_FOUND"
 
 
-def test_build_headers_for_bearer_auth():
+def test_build_headers_for_bearer_auth_with_token():
     import management_api
 
     node = {"auth": {"type": "bearer", "token": "node-token"}}
@@ -346,10 +346,19 @@ def test_build_headers_for_bearer_auth():
     assert headers == {"Authorization": "Bearer node-token"}
 
 
-def test_build_headers_for_none_auth():
+def test_build_headers_for_bearer_auth_without_token_returns_empty_headers():
     import management_api
 
-    node = {"auth": {"type": "none"}}
+    node = {"auth": {"type": "bearer"}}
+
+    headers = management_api._build_headers(node)
+    assert headers == {}
+
+
+def test_build_headers_for_non_bearer_auth_returns_empty_headers():
+    import management_api
+
+    node = {"auth": {"type": "basic", "encoded": "abc", "username": "camera", "password": "secret"}}
 
     headers = management_api._build_headers(node)
     assert headers == {}
