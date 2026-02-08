@@ -498,6 +498,23 @@ def test_request_json_uses_vetted_resolved_ip_and_preserves_host_header(monkeypa
     assert captured["timeout"] == 2.5
 
 
+
+
+def test_request_json_maps_name_resolution_failure_to_node_request_error(monkeypatch):
+    import management_api
+
+    def fake_getaddrinfo(host, port, proto):
+        raise socket.gaierror("name or service not known")
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+
+    node = {"base_url": "http://example.com", "auth": {"type": "none"}}
+    try:
+        management_api._request_json(node, "GET", "/health")
+        raise AssertionError("expected NodeRequestError")
+    except management_api.NodeRequestError as exc:
+        assert str(exc) == "node target is invalid"
+
 def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
     import management_api
 

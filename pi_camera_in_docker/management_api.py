@@ -158,7 +158,8 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
         try:
             records = socket.getaddrinfo(hostname, port or None, proto=socket.IPPROTO_TCP)
         except socket.gaierror as exc:
-            raise ConnectionError(str(exc)) from exc
+            message = "node target is invalid"
+            raise NodeRequestError(message) from exc
         resolved_addresses = tuple(record[4][0] for record in records)
 
     vetted_addresses = _vet_resolved_addresses(resolved_addresses)
