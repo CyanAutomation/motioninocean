@@ -25,12 +25,14 @@ curl -sS -i http://localhost:8000/stream.mjpg
 ```
 
 Good signals:
+
 - Container is `Up` and health status is healthy.
 - `/health` returns HTTP `200` with `{"status":"healthy", ...}`.
 - `/ready` returns HTTP `200` with `"status":"ready"`.
 - `/stream.mjpg` returns HTTP `200` and `Content-Type: multipart/x-mixed-replace`.
 
 Bad signals:
+
 - Container restarting/crashed.
 - `/health` non-200 or timeout.
 - `/ready` HTTP `503` with reasons like camera not initialized, no frames, or stale stream.
@@ -56,6 +58,7 @@ Focus on these variables:
 - `MOCK_CAMERA`
 
 Expected behavior:
+
 - Healthcheck defaults to `/health`.
 - If `MOTION_IN_OCEAN_HEALTHCHECK_READY=true`, healthcheck uses readiness semantics (`/ready`).
 - If `MOCK_CAMERA=true`, Picamera2 init is skipped and dummy frames are produced (useful off-Pi).
@@ -69,11 +72,13 @@ Expected behavior:
 ```
 
 Good signals:
+
 - Required core devices exist (`/dev/dma_heap/*`, `/dev/vchiq`).
 - At least one `/dev/media*` and `/dev/video*` is detected.
 - `rpicam-hello --list-cameras` succeeds.
 
 Bad signals:
+
 - Missing `/dev/media*` or `/dev/video*`.
 - Missing `/dev/vchiq` or `/dev/dma_heap/*`.
 - Camera list command fails.
@@ -85,11 +90,13 @@ sed -n '/devices:/,/group_add:/p' docker-compose.yaml
 ```
 
 Good signals:
+
 - `devices:` includes host paths for dma heap, vchiq, media, and video nodes that actually exist on host.
 - `/run/udev:/run/udev:ro` is mounted.
 - `group_add: [video]` (or equivalent) is present.
 
 Bad signals:
+
 - Stale/static device entries that do not exist on current host.
 - Missing udev mount.
 - Missing video group access.
@@ -112,11 +119,13 @@ docker exec motion-in-ocean python3 /app/healthcheck.py; echo $?
 ```
 
 Good signals:
+
 - `/health` => `200`.
 - `/ready` => `200` and includes readiness payload with recent `last_frame_age_seconds`.
 - `healthcheck.py` exits `0`.
 
 Bad signals:
+
 - `/ready` => `503` + reason:
   - `Camera not initialized or recording not started`
   - `No frames captured yet`

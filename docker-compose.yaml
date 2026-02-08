@@ -46,10 +46,10 @@ x-motion-in-ocean-camera: &motion-in-ocean-camera
     - video
   # Device cgroup rules as fallback for any unmapped devices
   device_cgroup_rules:
-    - 'c 253:* rmw'  # /dev/dma_heap/* (char device 253)
-    - 'c 511:* rmw'  # /dev/vchiq
-    - 'c 81:* rmw'   # /dev/video* and /dev/v4l-subdev* devices (all indices automatically)
-    - 'c 250:* rmw'  # /dev/media* devices (media controllers for libcamera)
+    - "c 253:* rmw" # /dev/dma_heap/* (char device 253)
+    - "c 511:* rmw" # /dev/vchiq
+    - "c 81:* rmw" # /dev/video* and /dev/v4l-subdev* devices (all indices automatically)
+    - "c 250:* rmw" # /dev/media* devices (media controllers for libcamera)
 
 services:
   motion-in-ocean-webcam:
@@ -68,14 +68,14 @@ services:
       MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
       CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
-      
+
       # Role semantics: service identity and health check behavior
       # APP_MODE controls which endpoints and functionality are available
       APP_MODE: webcam
       # HEALTHCHECK_READY: true = /ready endpoint (readiness probe), false = /health endpoint (liveness probe)
       HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM:-true}
     ports:
-      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_WEBCAM_PORT}:8000"  # webcam binding (default: localhost only)
+      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_WEBCAM_PORT}:8000" # webcam binding (default: localhost only)
 
     healthcheck:
       test: ["CMD", "python3", "/app/healthcheck.py"]
@@ -143,7 +143,7 @@ services:
     environment:
       # Deployment settings from .env file
       TZ: ${TZ}
-      
+
       # Camera settings are explicitly unset for management mode
       # Management mode does NOT initialize the camera; these are defined in .env but not used here
       RESOLUTION: ""
@@ -152,19 +152,19 @@ services:
       JPEG_QUALITY: ""
       MAX_STREAM_CONNECTIONS: ""
       MOTION_IN_OCEAN_PI3_PROFILE: ""
-      
+
       # Feature flags and compatibility options (shared across modes)
       MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
       CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
-      
+
       # Role semantics: service identity and health check behavior
       # APP_MODE controls which endpoints and functionality are available
       APP_MODE: management
       # HEALTHCHECK_READY: true = /ready endpoint (readiness probe), false = /health endpoint (liveness probe)
       HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT:-false}
     ports:
-      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_MANAGEMENT_PORT:-8001}:8000"  # management binding (default: localhost only)
+      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_MANAGEMENT_PORT:-8001}:8000" # management binding (default: localhost only)
 
     healthcheck:
       test: ["CMD", "python3", "/app/healthcheck.py"]

@@ -174,7 +174,6 @@ docker-compose --profile management up -d
      }'
    ```
 
-
 ### Node Auth Migration (Breaking Change)
 
 Management mode now supports only:

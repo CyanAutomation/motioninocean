@@ -1,263 +1,267 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="motion-in-ocean - Raspberry Pi Camera Live Stream">
-  <title>motion-in-ocean - Camera Stream</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/tabs-config.css') }}">
-</head>
-<body>
-  <!-- Header -->
-  <header class="header">
-    <div class="header-content">
-      <div class="header-title">
-        <div class="logo-icon">📹</div>
-        <h1>motion-in-ocean</h1>
-      </div>
-      
-      <!-- Tab Navigation -->
-      <div class="tab-navigation">
-        <button class="tab-btn active" data-tab="main" id="main-tab-btn" title="Stream">
-          <span class="tab-icon">📹</span>
-          <span class="tab-label">Stream</span>
-        </button>
-        <button class="tab-btn" data-tab="config" id="config-tab-btn" title="Configuration">
-          <span class="tab-icon">⚙️</span>
-          <span class="tab-label">Configuration</span>
-        </button>
-      </div>
-      
-      <div class="connection-status" aria-live="polite" role="status">
-        <div id="status-indicator" class="status-indicator connecting"></div>
-        <span id="status-text" class="status-text">Connecting...</span>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Container -->
-  <main class="container">
-    <!-- Video Section -->
-    <section class="video-section">
-      <div class="video-container">
-        <div class="video-wrapper">
-          <!-- Loading Overlay -->
-          <div class="loading-overlay">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">Loading camera stream...</div>
-          </div>
-          
-          <!-- Video Stream -->
-          <img 
-            id="video-stream" 
-            class="video-stream" 
-            src="{{ url_for('video_feed') }}" 
-            alt="Camera Live Stream"
-            width="{{ width }}" 
-            height="{{ height }}"
-          />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="motion-in-ocean - Raspberry Pi Camera Live Stream" />
+    <title>motion-in-ocean - Camera Stream</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tabs-config.css') }}" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="header-title">
+          <div class="logo-icon">📹</div>
+          <h1>motion-in-ocean</h1>
         </div>
-        
-        <!-- Video Controls -->
-        <div class="video-controls">
-          <button id="refresh-btn" class="control-btn" title="Refresh Stream">
-            <span class="control-btn-icon">↻</span>
-            <span class="control-btn-text">Refresh</span>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+          <button class="tab-btn active" data-tab="main" id="main-tab-btn" title="Stream">
+            <span class="tab-icon">📹</span>
+            <span class="tab-label">Stream</span>
           </button>
-          <button id="fullscreen-btn" class="control-btn" title="Toggle Fullscreen">
-            <span class="control-btn-icon">⛶</span>
-            <span class="control-btn-text">Fullscreen</span>
+          <button class="tab-btn" data-tab="config" id="config-tab-btn" title="Configuration">
+            <span class="tab-icon">⚙️</span>
+            <span class="tab-label">Configuration</span>
           </button>
         </div>
-      </div>
-    </section>
 
-    <!-- Stats Panel -->
-    <aside id="stats-panel" class="stats-panel">
-      <div class="stats-header">
-        <h2>Stream Statistics</h2>
-        <button id="toggle-stats-btn" class="toggle-stats-btn" title="Toggle Stats">▲</button>
-      </div>
-      
-      <div class="stats-content">
-        <!-- Performance Stats -->
-        <div class="stat-group">
-          <div class="stat-group-title">Performance</div>
-          <div class="stat-item">
-            <span class="stat-label">Current FPS</span>
-            <span id="fps-value" class="stat-value highlight">--</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Frames Captured</span>
-            <span id="frames-value" class="stat-value">--</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Uptime</span>
-            <span id="uptime-value" class="stat-value">--</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Last Frame Age</span>
-            <span id="last-frame-age-value" class="stat-value">--</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Max Frame Age</span>
-            <span id="max-frame-age-value" class="stat-value">--</span>
-          </div>
-        </div>
-
-        <!-- Stream Configuration -->
-        <div class="stat-group">
-          <div class="stat-group-title">Configuration</div>
-          <div class="stat-item">
-            <span class="stat-label">Resolution</span>
-            <span id="resolution-value" class="stat-value">{{ width }} × {{ height }}</span>
-          </div>
-        </div>
-
-        <!-- Last Updated -->
-        <div id="last-updated" class="last-updated">
-          Fetching stats...
+        <div class="connection-status" aria-live="polite" role="status">
+          <div id="status-indicator" class="status-indicator connecting"></div>
+          <span id="status-text" class="status-text">Connecting...</span>
         </div>
       </div>
-    </aside>
+    </header>
 
-    <!-- Configuration Panel -->
-    <div id="config-panel" class="config-panel hidden">
-      <!-- Loading Overlay -->
-      <div id="config-loading" class="config-loading hidden">
-        <div class="config-spinner"></div>
-        <div class="config-loading-text">Loading configuration...</div>
+    <!-- Main Container -->
+    <main class="container">
+      <!-- Video Section -->
+      <section class="video-section">
+        <div class="video-container">
+          <div class="video-wrapper">
+            <!-- Loading Overlay -->
+            <div class="loading-overlay">
+              <div class="loading-spinner"></div>
+              <div class="loading-text">Loading camera stream...</div>
+            </div>
+
+            <!-- Video Stream -->
+            <img
+              id="video-stream"
+              class="video-stream"
+              src="{{ url_for('video_feed') }}"
+              alt="Camera Live Stream"
+              width="{{ width }}"
+              height="{{ height }}"
+            />
+          </div>
+
+          <!-- Video Controls -->
+          <div class="video-controls">
+            <button id="refresh-btn" class="control-btn" title="Refresh Stream">
+              <span class="control-btn-icon">↻</span>
+              <span class="control-btn-text">Refresh</span>
+            </button>
+            <button id="fullscreen-btn" class="control-btn" title="Toggle Fullscreen">
+              <span class="control-btn-icon">⛶</span>
+              <span class="control-btn-text">Fullscreen</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats Panel -->
+      <aside id="stats-panel" class="stats-panel">
+        <div class="stats-header">
+          <h2>Stream Statistics</h2>
+          <button id="toggle-stats-btn" class="toggle-stats-btn" title="Toggle Stats">▲</button>
+        </div>
+
+        <div class="stats-content">
+          <!-- Performance Stats -->
+          <div class="stat-group">
+            <div class="stat-group-title">Performance</div>
+            <div class="stat-item">
+              <span class="stat-label">Current FPS</span>
+              <span id="fps-value" class="stat-value highlight">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Frames Captured</span>
+              <span id="frames-value" class="stat-value">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Uptime</span>
+              <span id="uptime-value" class="stat-value">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Last Frame Age</span>
+              <span id="last-frame-age-value" class="stat-value">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Max Frame Age</span>
+              <span id="max-frame-age-value" class="stat-value">--</span>
+            </div>
+          </div>
+
+          <!-- Stream Configuration -->
+          <div class="stat-group">
+            <div class="stat-group-title">Configuration</div>
+            <div class="stat-item">
+              <span class="stat-label">Resolution</span>
+              <span id="resolution-value" class="stat-value">{{ width }} × {{ height }}</span>
+            </div>
+          </div>
+
+          <!-- Last Updated -->
+          <div id="last-updated" class="last-updated">Fetching stats...</div>
+        </div>
+      </aside>
+
+      <!-- Configuration Panel -->
+      <div id="config-panel" class="config-panel hidden">
+        <!-- Loading Overlay -->
+        <div id="config-loading" class="config-loading hidden">
+          <div class="config-spinner"></div>
+          <div class="config-loading-text">Loading configuration...</div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="config-status-bar">
+          <div class="status-left">
+            <div id="config-status-indicator" class="config-status-dot fetching"></div>
+            <span id="config-status-text" class="config-status-text"
+              >Fetching configuration...</span
+            >
+          </div>
+          <div class="status-right">
+            <span id="config-last-update-time" class="config-timestamp-display">Now</span>
+          </div>
+        </div>
+
+        <div class="config-content">
+          <!-- Camera Settings Group (Editable) -->
+          <div class="config-group editable-section">
+            <div class="config-group-header">
+              <h3 class="config-group-title">📷 Camera Settings</h3>
+              <button class="config-group-toggle" data-group="camera" title="Toggle">▼</button>
+            </div>
+            <div class="config-group-content" data-group="camera">
+              <div class="config-item">
+                <span class="config-label">Resolution</span>
+                <span id="config-resolution" class="config-value">--</span>
+              </div>
+              <div class="config-item">
+                <span class="config-label">Frame Rate (FPS)</span>
+                <span id="config-fps" class="config-value">--</span>
+              </div>
+              <div class="config-item">
+                <span class="config-label">Target FPS (Throttle)</span>
+                <span id="config-target-fps" class="config-value">--</span>
+              </div>
+              <div class="config-item">
+                <span class="config-label">JPEG Quality</span>
+                <span id="config-jpeg-quality" class="config-value">--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stream Control Group (Read-only) -->
+          <div class="config-group readonly-section">
+            <div class="config-group-header">
+              <h3 class="config-group-title">📡 Stream Control</h3>
+              <button class="config-group-toggle" data-group="stream" title="Toggle">▼</button>
+            </div>
+            <div class="config-group-content" data-group="stream">
+              <div class="config-item">
+                <span class="config-label">Max Connections</span>
+                <span id="config-max-connections" class="config-value">--</span>
+              </div>
+              <div class="config-item">
+                <span class="config-label">Current Connections</span>
+                <span id="config-current-connections" class="config-value highlight">--</span>
+              </div>
+              <div class="config-item">
+                <span class="config-label">Max Frame Age (Timeout)</span>
+                <span id="config-max-frame-age" class="config-value">--</span>
+              </div>
+              <div class="config-item">
+                <span class="config-label">CORS Origins</span>
+                <span id="config-cors" class="config-value">--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Runtime Info Group (Read-only) -->
+          <div class="config-group readonly-section">
+            <div class="config-group-header">
+              <h3 class="config-group-title">⚙️ Runtime Information</h3>
+              <button class="config-group-toggle" data-group="runtime" title="Toggle">▼</button>
+            </div>
+            <div class="config-group-content" data-group="runtime">
+              <div class="config-item">
+                <span class="config-label">Camera Active</span>
+                <span id="config-camera-active" class="config-value">--</span>
+              </div>
+              <div class="config-item">
+                <span class="config-label">Mock Camera</span>
+                <span id="config-mock-camera" class="config-value">--</span>
+              </div>
+              <div class="config-item">
+                <span class="config-label">Uptime</span>
+                <span id="config-uptime" class="config-value highlight">--</span>
+              </div>
+              <div class="config-item">
+                <span class="config-label">Last Updated</span>
+                <span id="config-timestamp" class="config-value">--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Limits Info Group (Read-only) -->
+          <div class="config-group readonly-section">
+            <div class="config-group-header">
+              <h3 class="config-group-title">📊 System Limits</h3>
+              <button class="config-group-toggle" data-group="limits" title="Toggle">▼</button>
+            </div>
+            <div class="config-group-content" data-group="limits">
+              <div class="config-item">
+                <span class="config-label">Max Resolution</span>
+                <span id="config-limit-resolution" class="config-value">--</span>
+              </div>
+              <div class="config-item">
+                <span class="config-label">Max FPS</span>
+                <span id="config-limit-fps" class="config-value">--</span>
+              </div>
+              <div class="config-item">
+                <span class="config-label">JPEG Quality Range</span>
+                <span id="config-limit-jpeg" class="config-value">--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error Alert -->
+          <div id="config-error-alert" class="config-alert error hidden">
+            <span class="alert-icon">⚠️</span>
+            <span id="config-error-message" class="alert-message"
+              >Failed to load configuration</span
+            >
+            <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">
+              ×
+            </button>
+          </div>
+
+          <!-- Footer -->
+          <div class="config-footer">
+            <p class="config-info">Configuration auto-updates every 2 seconds</p>
+          </div>
+        </div>
       </div>
+    </main>
 
-      <!-- Status Bar -->
-      <div class="config-status-bar">
-        <div class="status-left">
-          <div id="config-status-indicator" class="config-status-dot fetching"></div>
-          <span id="config-status-text" class="config-status-text">Fetching configuration...</span>
-        </div>
-        <div class="status-right">
-          <span id="config-last-update-time" class="config-timestamp-display">Now</span>
-        </div>
-      </div>
-
-      <div class="config-content">
-        <!-- Camera Settings Group (Editable) -->
-        <div class="config-group editable-section">
-          <div class="config-group-header">
-            <h3 class="config-group-title">📷 Camera Settings</h3>
-            <button class="config-group-toggle" data-group="camera" title="Toggle">▼</button>
-          </div>
-          <div class="config-group-content" data-group="camera">
-            <div class="config-item">
-              <span class="config-label">Resolution</span>
-              <span id="config-resolution" class="config-value">--</span>
-            </div>
-            <div class="config-item">
-              <span class="config-label">Frame Rate (FPS)</span>
-              <span id="config-fps" class="config-value">--</span>
-            </div>
-            <div class="config-item">
-              <span class="config-label">Target FPS (Throttle)</span>
-              <span id="config-target-fps" class="config-value">--</span>
-            </div>
-            <div class="config-item">
-              <span class="config-label">JPEG Quality</span>
-              <span id="config-jpeg-quality" class="config-value">--</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Stream Control Group (Read-only) -->
-        <div class="config-group readonly-section">
-          <div class="config-group-header">
-            <h3 class="config-group-title">📡 Stream Control</h3>
-            <button class="config-group-toggle" data-group="stream" title="Toggle">▼</button>
-          </div>
-          <div class="config-group-content" data-group="stream">
-            <div class="config-item">
-              <span class="config-label">Max Connections</span>
-              <span id="config-max-connections" class="config-value">--</span>
-            </div>
-            <div class="config-item">
-              <span class="config-label">Current Connections</span>
-              <span id="config-current-connections" class="config-value highlight">--</span>
-            </div>
-            <div class="config-item">
-              <span class="config-label">Max Frame Age (Timeout)</span>
-              <span id="config-max-frame-age" class="config-value">--</span>
-            </div>
-            <div class="config-item">
-              <span class="config-label">CORS Origins</span>
-              <span id="config-cors" class="config-value">--</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Runtime Info Group (Read-only) -->
-        <div class="config-group readonly-section">
-          <div class="config-group-header">
-            <h3 class="config-group-title">⚙️ Runtime Information</h3>
-            <button class="config-group-toggle" data-group="runtime" title="Toggle">▼</button>
-          </div>
-          <div class="config-group-content" data-group="runtime">
-            <div class="config-item">
-              <span class="config-label">Camera Active</span>
-              <span id="config-camera-active" class="config-value">--</span>
-            </div>
-            <div class="config-item">
-              <span class="config-label">Mock Camera</span>
-              <span id="config-mock-camera" class="config-value">--</span>
-            </div>
-            <div class="config-item">
-              <span class="config-label">Uptime</span>
-              <span id="config-uptime" class="config-value highlight">--</span>
-            </div>
-            <div class="config-item">
-              <span class="config-label">Last Updated</span>
-              <span id="config-timestamp" class="config-value">--</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Limits Info Group (Read-only) -->
-        <div class="config-group readonly-section">
-          <div class="config-group-header">
-            <h3 class="config-group-title">📊 System Limits</h3>
-            <button class="config-group-toggle" data-group="limits" title="Toggle">▼</button>
-          </div>
-          <div class="config-group-content" data-group="limits">
-            <div class="config-item">
-              <span class="config-label">Max Resolution</span>
-              <span id="config-limit-resolution" class="config-value">--</span>
-            </div>
-            <div class="config-item">
-              <span class="config-label">Max FPS</span>
-              <span id="config-limit-fps" class="config-value">--</span>
-            </div>
-            <div class="config-item">
-              <span class="config-label">JPEG Quality Range</span>
-              <span id="config-limit-jpeg" class="config-value">--</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Error Alert -->
-        <div id="config-error-alert" class="config-alert error hidden">
-          <span class="alert-icon">⚠️</span>
-          <span id="config-error-message" class="alert-message">Failed to load configuration</span>
-          <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">×</button>
-        </div>
-
-        <!-- Footer -->
-        <div class="config-footer">
-          <p class="config-info">Configuration auto-updates every 2 seconds</p>
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <!-- JavaScript -->
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-</body>
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  </body>
 </html>

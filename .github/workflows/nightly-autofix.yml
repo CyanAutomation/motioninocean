@@ -3,9 +3,9 @@ name: Nightly Code Quality Autofix
 on:
   schedule:
     # Run at 2 AM UTC every night
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
   workflow_dispatch:
-    description: 'Manually trigger nightly autofix workflow'
+    description: "Manually trigger nightly autofix workflow"
 
 permissions:
   contents: write
@@ -26,14 +26,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          cache: 'pip'
+          python-version: "3.12"
+          cache: "pip"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install Python dependencies
         run: |
@@ -88,8 +88,8 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore: automated code quality fixes [nightly]'
-          title: 'chore: automated code quality fixes (nightly run)'
+          commit-message: "chore: automated code quality fixes [nightly]"
+          title: "chore: automated code quality fixes (nightly run)"
           body: |
             ## Automated Code Quality Fixes
 

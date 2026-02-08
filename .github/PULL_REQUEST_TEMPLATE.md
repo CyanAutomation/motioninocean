@@ -8,6 +8,7 @@ Before opening the PR, please ensure:
 -->
 
 ## Summary
+
 <!-- What does this PR change? Why is it needed? -->
 
 ## Type of change
@@ -20,11 +21,15 @@ Before opening the PR, please ensure:
 - [ ] Other (please describe):
 
 ## Related issues
+
 <!-- Link issues: "Fixes #123" or "Closes #123" -->
+
 - Fixes #
 
 ## How has this been tested?
+
 <!-- Provide steps, logs, environment details (Pi model + OS) -->
+
 - [ ] Tested on Raspberry Pi hardware with CSI camera
 - [ ] Tested in `MOCK_CAMERA=true` mode
 - [ ] Smoke-tested endpoints:
@@ -40,7 +45,9 @@ Before opening the PR, please ensure:
 - Compose version:
 
 ### Test notes
+
 <!-- Paste commands run, brief results -->
+
 ```bash
 # e.g.
 docker compose up -d --build
@@ -50,17 +57,20 @@ docker logs motion-in-ocean --tail 200
 ```
 
 Screenshots (if applicable)
+
 <!-- Add screenshots for UI changes or stream output -->
+
 Documentation updates
- No docs changes needed
- README updated
- .env.example updated
- Other docs updated:
+No docs changes needed
+README updated
+.env.example updated
+Other docs updated:
 Checklist
- My code follows the project style
- I have kept the changes small and focused
- I added comments where Raspberry Pi quirks exist
- I updated docs where relevant
- I’ve checked the change does not weaken security defaults (e.g. binding to 0.0.0.0 without warning)
+My code follows the project style
+I have kept the changes small and focused
+I added comments where Raspberry Pi quirks exist
+I updated docs where relevant
+I’ve checked the change does not weaken security defaults (e.g. binding to 0.0.0.0 without warning)
 Notes for reviewers
+
 <!-- Anything that will help reviewing / future maintainers -->

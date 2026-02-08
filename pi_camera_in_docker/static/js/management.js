@@ -84,7 +84,7 @@ function renderRows() {
   }
 
   const escapeHtml = (str) => {
-    const div = document.createElement('div');
+    const div = document.createElement("div");
     div.textContent = str;
     return div.innerHTML;
   };
@@ -172,7 +172,7 @@ async function refreshStatuses({ fromInterval = false } = {}) {
           } catch {
             nextStatusMap.set(node.id, { status: "error", stream_available: false });
           }
-        })
+        }),
       );
 
       if (currentToken === statusRefreshToken) {

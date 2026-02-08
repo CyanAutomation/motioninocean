@@ -40,18 +40,21 @@ create-release.sh → Git Tag (vX.Y.Z) → GitHub Actions → Docker Image + Git
 ### Key Features
 
 **✅ Guarantees:**
+
 - Every GitHub release has a corresponding Docker image
 - `latest` tag always points to the newest successful build
 - Failed builds are automatically rolled back
 - No manual Docker image management needed
 
 **✅ Verification:**
+
 - Script waits up to 15 minutes for workflow completion
 - Polls GitHub Actions API for status updates
 - Displays real-time progress
 
 **✅ Rollback on Failure:**
 If the workflow fails or is cancelled:
+
 - Remote tag is deleted
 - Local tag is deleted
 - Release commit is reverted (local and remote)
@@ -79,6 +82,7 @@ gh auth login
 ### Git Configuration
 
 Ensure you have:
+
 - Clean working directory (no uncommitted changes)
 - Push access to the repository
 - GitHub Actions enabled
@@ -89,11 +93,13 @@ Ensure you have:
 ### Step-by-Step
 
 1. **Ensure clean state:**
+
    ```bash
    git status  # Should show "nothing to commit, working tree clean"
    ```
 
 2. **Run release script:**
+
    ```bash
    ./create-release.sh
    ```
@@ -110,13 +116,14 @@ Ensure you have:
    - Verifies successful completion
 
 5. **Success:**
+
    ```
    ✅ Release v1.0.1 completed successfully!
-   
+
    Docker image published:
      ghcr.io/hyzhak/pi-camera-in-docker:1.0.1
      ghcr.io/hyzhak/pi-camera-in-docker:latest
-   
+
    GitHub Release created automatically:
      https://github.com/hyzhak/pi-camera-in-docker/releases/tag/v1.0.1
    ```
@@ -124,21 +131,25 @@ Ensure you have:
 ### What Gets Updated
 
 **VERSION file:**
+
 ```
 1.0.1
 ```
 
 **CHANGELOG.md:**
+
 ```markdown
 ## [Unreleased]
 
 ## [1.0.1] - 2026-01-20
+
 - Fix camera initialization bug
 - Update dependencies
 - Improve documentation
 ```
 
 **Git:**
+
 - Commit: `Release v1.0.1`
 - Tag: `v1.0.1`
 - Tag: `latest` (force-updated)
@@ -148,12 +159,14 @@ Ensure you have:
 ### Automatic Rollback
 
 The script automatically rolls back if:
+
 - Workflow fails (conclusion: `failure`)
 - Workflow is cancelled (conclusion: `cancelled`)
 - Workflow doesn't start within 15 minutes
 - Workflow doesn't complete within 15 minutes (with confirmation)
 
 **Rollback actions:**
+
 1. Delete remote tag `vX.Y.Z`
 2. Delete local tag `vX.Y.Z`
 3. Revert release commit (local)
@@ -183,12 +196,12 @@ gh release delete v1.0.1 --repo hyzhak/pi-camera-in-docker --yes
 
 Each release creates multiple image tags:
 
-| Tag Format | Example | Purpose |
-|------------|---------|----------|
-| `vX.Y.Z` | `v1.0.1` | Exact git tag reference |
-| `X.Y.Z` | `1.0.1` | Semantic version |
-| `X.Y` | `1.0` | Major.minor (latest patch) |
-| `latest` | `latest` | Latest stable release |
+| Tag Format | Example  | Purpose                    |
+| ---------- | -------- | -------------------------- |
+| `vX.Y.Z`   | `v1.0.1` | Exact git tag reference    |
+| `X.Y.Z`    | `1.0.1`  | Semantic version           |
+| `X.Y`      | `1.0`    | Major.minor (latest patch) |
+| `latest`   | `latest` | Latest stable release      |
 
 **Usage:**
 
@@ -212,6 +225,7 @@ Follow [Semantic Versioning 2.0.0](https://semver.org/):
 - **PATCH** (0.0.X): Bug fixes, backward compatible
 
 **Examples:**
+
 - Bug fix: `1.0.0` → `1.0.1`
 - New feature: `1.0.1` → `1.1.0`
 - Breaking change: `1.1.0` → `2.0.0`
@@ -223,6 +237,7 @@ Follow [Semantic Versioning 2.0.0](https://semver.org/):
 **Symptom:** Tag pushed but no workflow run appears
 
 **Solutions:**
+
 1. Check GitHub Actions is enabled
 2. Verify workflow file exists: `.github/workflows/docker-publish.yaml`
 3. Check workflow triggers include `tags: [v*.*.*]`
@@ -233,6 +248,7 @@ Follow [Semantic Versioning 2.0.0](https://semver.org/):
 **Symptom:** Workflow starts but fails during build
 
 **Solutions:**
+
 1. Check workflow logs: https://github.com/hyzhak/pi-camera-in-docker/actions
 2. Common issues:
    - Docker build errors (check Dockerfile)
@@ -245,6 +261,7 @@ Follow [Semantic Versioning 2.0.0](https://semver.org/):
 **Symptom:** Workflow succeeds but image not visible
 
 **Solutions:**
+
 1. Check package visibility settings
 2. Verify GHCR permissions: https://github.com/hyzhak/pi-camera-in-docker/pkgs/container/pi-camera-in-docker
 3. Check workflow logs for push errors
@@ -293,6 +310,7 @@ A: The `latest` tag is updated during the release process. On rollback, it remai
 ## Contributing to Release Process
 
 Improvements welcome:
+
 - [ ] Support for pre-release versions (beta, rc)
 - [ ] Dry-run mode
 - [ ] Multi-arch builds (AMD64 + ARM64)

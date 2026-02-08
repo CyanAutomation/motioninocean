@@ -1,6 +1,7 @@
 # motion-in-ocean Testing Summary Report
 
 ## Overview
+
 All tests passed successfully. The docker-compose configuration and Python application are ready for deployment on a Raspberry Pi with a CSI camera.
 
 ---
@@ -8,6 +9,7 @@ All tests passed successfully. The docker-compose configuration and Python appli
 ## Test Results
 
 ### ✅ Configuration Tests (8/8 PASSED)
+
 - **Python Syntax**: Valid Python syntax in main.py
 - **Docker Compose**: Valid YAML with all required fields
 - **.env File**: Proper environment variable configuration
@@ -18,9 +20,10 @@ All tests passed successfully. The docker-compose configuration and Python appli
 - **Dockerfile**: All dependencies properly declared
 
 ### ✅ Integration Tests (6/6 PASSED)
+
 - **Docker Compose Validation**: YAML is valid and processable
 - **Startup Sequence**: All initialization steps present and ordered correctly
-- **Error Recovery Paths**: 
+- **Error Recovery Paths**:
   - Permission denied → helpful error message
   - Camera init failure → helpful error message
   - Clean shutdown → safe cleanup
@@ -39,9 +42,10 @@ All tests passed successfully. The docker-compose configuration and Python appli
   - Device mappings for /dev/video0-16
 
 ### ✅ Unit Tests (4/4 PASSED)
+
 - **Flask Route Registration**: All routes registered (verified via Dockerfile dependency)
 - **Environment Variable Parsing**: RESOLUTION, FPS all parse correctly
-- **StreamingOutput Class**: 
+- **StreamingOutput Class**:
   - Frame buffering works
   - FPS calculation accurate
   - Status endpoint returns proper JSON
@@ -78,7 +82,7 @@ All tests passed successfully. The docker-compose configuration and Python appli
 
 2. **Explicit Device Mappings**
    - ✅ Replaced `privileged: true` with explicit device mappings
-   - ✅ Secure access to /dev/dma_heap, /dev/vchiq, /dev/video*
+   - ✅ Secure access to /dev/dma_heap, /dev/vchiq, /dev/video\*
    - ✅ Fallback option for privileged mode if needed
    - ✅ Device requirements documented
 
@@ -107,6 +111,7 @@ All tests passed successfully. The docker-compose configuration and Python appli
 ## Environment Configuration
 
 **From .env file:**
+
 ```
 TZ=Europe/London
 RESOLUTION=1280x720
@@ -114,6 +119,7 @@ FPS=(optional, defaults to camera max)
 ```
 
 **Via docker-compose.yaml:**
+
 - Image: ghcr.io/cyanautomation/motion-in-ocean:latest
 - Platform: linux/arm64
 - Restart: unless-stopped
@@ -124,11 +130,13 @@ FPS=(optional, defaults to camera max)
 ## Device Access
 
 **Explicit Device Mappings:**
+
 - `/dev/dma_heap` - libcamera memory management (required)
 - `/dev/vchiq` - Camera ISP access (required)
 - `/dev/video0-16` - Camera device nodes (varies by Pi model)
 
 **Security:**
+
 - No unnecessary privilege escalation
 - Minimal required capabilities
 - Explicit device allowlist approach
@@ -138,16 +146,20 @@ FPS=(optional, defaults to camera max)
 ## API Endpoints
 
 ### GET `/`
+
 Returns the HTML template with embedded MJPEG stream viewer.
 
 ### GET `/health`
+
 **Purpose:** Liveness probe - is the service running?
 **Response:** `{"status": "healthy", "timestamp": "2026-01-16T..."}`
 **Status Code:** 200
 
 ### GET `/ready`
+
 **Purpose:** Readiness probe - is the camera actually streaming?
 **Success Response (200):**
+
 ```json
 {
   "status": "ready",
@@ -158,9 +170,11 @@ Returns the HTML template with embedded MJPEG stream viewer.
   "resolution": [1280, 720]
 }
 ```
+
 **Failure Response (503):** Camera not initialized or not started
 
 ### GET `/stream.mjpg`
+
 **Purpose:** MJPEG video stream for web clients
 **Content-Type:** multipart/x-mixed-replace; boundary=frame
 **Returns:** Continuous JPEG frames
@@ -184,18 +198,21 @@ Returns the HTML template with embedded MJPEG stream viewer.
 ## Error Scenarios Handled
 
 ### PermissionError
+
 ```
 Permission denied accessing camera device: ...
 Ensure the container has proper device access (--device mappings or --privileged)
 ```
 
 ### RuntimeError
+
 ```
 Camera initialization failed: ...
 Verify camera is enabled on the host and working (rpicam-hello test)
 ```
 
 ### Client Disconnect
+
 ```
 Streaming client disconnected: ...
 ```
@@ -224,16 +241,19 @@ Streaming client disconnected: ...
 ## Next Steps for Deployment
 
 1. **Verify host camera setup:**
+
    ```bash
    rpicam-hello --timeout 5000
    ```
 
 2. **Deploy container:**
+
    ```bash
    docker-compose up -d
    ```
 
 3. **Verify container is healthy:**
+
    ```bash
    docker-compose ps
    curl http://localhost:8000/health
@@ -241,6 +261,7 @@ Streaming client disconnected: ...
    ```
 
 4. **View logs:**
+
    ```bash
    docker-compose logs -f motion-in-ocean
    ```

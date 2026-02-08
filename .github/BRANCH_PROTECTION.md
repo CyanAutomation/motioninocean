@@ -15,11 +15,13 @@ Navigate to: **Settings → Branches → Add branch protection rule**
 #### Recommended Settings
 
 ✅ **Require a pull request before merging**
+
 - Require approvals: 1
 - Dismiss stale pull request approvals when new commits are pushed
 - Require review from Code Owners
 
 ✅ **Require status checks to pass before merging**
+
 - Require branches to be up to date before merging
 - Status checks that are required:
   - `test (3.9)` - Python 3.9 tests
@@ -58,9 +60,11 @@ Navigate to: **Settings → General**
 #### Pull Requests
 
 ✅ **Allow squash merging** - Keeps history clean
+
 - Default to pull request title
 
 ✅ **Allow merge commits** - Useful for feature branches
+
 - Default to pull request title
 
 ❌ **Allow rebase merging** - Disable to avoid confusion
@@ -90,6 +94,7 @@ Navigate to: **Settings → Security**
 ✅ **Dependabot version updates** - Already configured via `.github/dependabot.yaml`
 
 ✅ **Code scanning** - Enable GitHub Advanced Security if available
+
 - Trivy scanning is already configured via workflow
 
 ✅ **Secret scanning** - Enable for credential leak detection
@@ -101,6 +106,7 @@ Navigate to: **Settings → Security**
 Navigate to: **Settings → Actions → General → Workflow permissions**
 
 Recommended: **Read and write permissions**
+
 - Allow GitHub Actions to create pull requests: ✅
 
 This allows Dependabot and other automations to work properly.
@@ -143,16 +149,19 @@ Navigate to: **Settings → Rules → Rulesets → New ruleset**
 ## Enforcement Timeline
 
 ### Immediate (Day 1)
+
 1. Enable Dependabot alerts
 2. Enable secret scanning
 3. Set up basic branch protection on `main`
 
 ### Week 1
+
 1. Configure full branch protection rules
 2. Enable Dependabot security updates
 3. Train team on PR workflow
 
 ### Week 2
+
 1. Review and refine status check requirements
 2. Enable conversation resolution requirement
 3. Document exceptions process
@@ -173,11 +182,13 @@ For urgent hotfixes or exceptional circumstances:
 ## Monitoring and Review
 
 ### Quarterly Review
+
 - Check if status checks are passing reliably
 - Review bypass exceptions (if any)
 - Update required checks based on workflow changes
 
 ### After Major Changes
+
 - Verify new CI jobs are added to required checks
 - Test branch protection with a test PR
 - Update this document with any changes

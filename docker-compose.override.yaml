@@ -29,7 +29,7 @@ services:
       - /dev/video23:/dev/video23
       - /dev/video31:/dev/video31
 
-# Optional: uncomment for management mode when Docker API discovery/control via docker-socket-proxy is enabled.
+  # Optional: uncomment for management mode when Docker API discovery/control via docker-socket-proxy is enabled.
   # This allows management mode to connect to remote docker-socket-proxy instances.
   # Only needed when using "docker" transport type in node registry with ENABLE_DOCKER_SOCKET_PROXY=true
   motion-in-ocean-management:

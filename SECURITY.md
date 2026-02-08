@@ -5,6 +5,7 @@
 motion-in-ocean is currently in early development and focuses on Raspberry Pi OS / Debian Bookworm ARM64.
 
 Security fixes are applied to:
+
 - `main` branch
 - the most recent tagged release (if releases exist)
 
@@ -16,7 +17,7 @@ If you discover a security issue, please **do not open a public GitHub issue**.
 
 Instead:
 
-1. Use GitHub's **Private Vulnerability Reporting** (recommended), if enabled  
+1. Use GitHub's **Private Vulnerability Reporting** (recommended), if enabled
 2. Or email the maintainer directly (if contact details are listed in the repo)
 
 Please include:
@@ -55,14 +56,14 @@ Important security considerations:
 
 This project relies on:
 
-* libcamera + Picamera2 stack
-* OS-level packages from Raspberry Pi OS / Debian Bookworm
-* Python packages from `requirements.txt`
+- libcamera + Picamera2 stack
+- OS-level packages from Raspberry Pi OS / Debian Bookworm
+- Python packages from `requirements.txt`
 
 Security updates should include:
 
-* rebuilding images when base images or OS packages are updated
-* keeping python dependencies current when feasible
+- rebuilding images when base images or OS packages are updated
+- keeping python dependencies current when feasible
 
 ---
 
@@ -70,8 +71,8 @@ Security updates should include:
 
 If a security issue is confirmed:
 
-* a fix will be prepared privately when possible
-* a patch will be released to `main`
-* a release note may be published describing the issue at a high level
+- a fix will be prepared privately when possible
+- a patch will be released to `main`
+- a release note may be published describing the issue at a high level
 
 Thank you for helping keep motion-in-ocean secure.

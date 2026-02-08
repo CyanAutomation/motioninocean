@@ -2,12 +2,12 @@ name: Security - Docker Image Scan
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   schedule:
     # Run every Monday at 9:00 UTC
-    - cron: '0 9 * * 1'
+    - cron: "0 9 * * 1"
   workflow_dispatch: {}
 
 jobs:
@@ -29,32 +29,32 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'motion-in-ocean:scan'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          vuln-type: 'os,library'
+          image-ref: "motion-in-ocean:scan"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          vuln-type: "os,library"
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"
 
       - name: Run Trivy in table format
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'motion-in-ocean:scan'
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
+          image-ref: "motion-in-ocean:scan"
+          format: "table"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
 
       - name: Generate Trivy report artifact
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'motion-in-ocean:scan'
-          format: 'json'
-          output: 'trivy-report.json'
+          image-ref: "motion-in-ocean:scan"
+          format: "json"
+          output: "trivy-report.json"
 
       - name: Upload Trivy report
         uses: actions/upload-artifact@v6

@@ -32,14 +32,14 @@ Running a Raspberry Pi CSI camera inside Docker is non-trivial due to libcamera 
 
 ## Prioritized Functional Requirements
 
-| Priority | Feature | Description |
-| --- | --- | --- |
-| P1 | MJPEG Streaming Endpoint | Provide a stable MJPEG stream at `/stream.mjpg` with appropriate headers and a 503 response if not ready. |
-| P1 | Health & Readiness Probes | `/health` returns 200 if the server is running; `/ready` returns 200 only when frames are flowing and not stale, else 503 with diagnostic details. |
-| P1 | Raspberry Pi CSI Camera Capture | Use Picamera2/libcamera to capture frames in a headless container, with required device mappings. |
-| P1 | Environment-Driven Configuration | Support resolution, FPS, JPEG quality, CORS origins, and mock mode via environment variables. |
-| P2 | Metrics Endpoint | Expose `/metrics` with uptime, frame counts, FPS, and configuration details. |
-| P3 | Mock Camera Mode | Allow a mock stream for development environments without CSI hardware. |
+| Priority | Feature                          | Description                                                                                                                                        |
+| -------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1       | MJPEG Streaming Endpoint         | Provide a stable MJPEG stream at `/stream.mjpg` with appropriate headers and a 503 response if not ready.                                          |
+| P1       | Health & Readiness Probes        | `/health` returns 200 if the server is running; `/ready` returns 200 only when frames are flowing and not stale, else 503 with diagnostic details. |
+| P1       | Raspberry Pi CSI Camera Capture  | Use Picamera2/libcamera to capture frames in a headless container, with required device mappings.                                                  |
+| P1       | Environment-Driven Configuration | Support resolution, FPS, JPEG quality, CORS origins, and mock mode via environment variables.                                                      |
+| P2       | Metrics Endpoint                 | Expose `/metrics` with uptime, frame counts, FPS, and configuration details.                                                                       |
+| P3       | Mock Camera Mode                 | Allow a mock stream for development environments without CSI hardware.                                                                             |
 
 ---
 

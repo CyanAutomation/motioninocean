@@ -1,4 +1,5 @@
 # motion-in-ocean 🌊📷
+
 **Raspberry Pi CSI Camera Streaming in Docker (Picamera2 / libcamera)**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -54,7 +55,7 @@ services:
     profiles: ["webcam"]
 
     ports:
-      - "127.0.0.1:8000:8000"  # localhost only (recommended)
+      - "127.0.0.1:8000:8000" # localhost only (recommended)
 
     devices:
       - /dev/dma_heap:/dev/dma_heap
@@ -81,7 +82,7 @@ services:
     profiles: ["management"]
 
     ports:
-      - "127.0.0.1:8001:8000"  # separate localhost port for management
+      - "127.0.0.1:8001:8000" # separate localhost port for management
 
     env_file:
       - .env
@@ -128,20 +129,20 @@ curl http://localhost:8001/health
 
 ### ✅ What it is
 
-* A lightweight container image that uses:
+- A lightweight container image that uses:
+  - **Picamera2**
+  - **libcamera**
+  - Raspberry Pi OS Bookworm compatible packages
 
-  * **Picamera2**
-  * **libcamera**
-  * Raspberry Pi OS Bookworm compatible packages
-* Runs on Raspberry Pi 3/4/5 (ARM64) with CSI camera enabled
-* Exposes an HTTP endpoint that provides camera streaming / frames
-* Includes docker-compose examples for use on remote host deployment patterns
+- Runs on Raspberry Pi 3/4/5 (ARM64) with CSI camera enabled
+- Exposes an HTTP endpoint that provides camera streaming / frames
+- Includes docker-compose examples for use on remote host deployment patterns
 
 ### ❌ What it isn’t
 
-* Not “Motion” (classic Motion daemon / motion.conf workflow)
-* Not OctoPrint camera streaming (though it can be consumed by it)
-* Not a full NVR / motion detection system (it’s a stream provider)
+- Not “Motion” (classic Motion daemon / motion.conf workflow)
+- Not OctoPrint camera streaming (though it can be consumed by it)
+- Not a full NVR / motion detection system (it’s a stream provider)
 
 If you want motion detection / recording, use this project as a camera stream input to another service, or extend it.
 
@@ -153,9 +154,9 @@ Running the Pi camera inside Docker is harder than USB webcams because the moder
 
 Many popular Docker camera images:
 
-* don’t ship ARM64 builds
-* assume a traditional V4L2 webcam interface
-* require host-installed wrappers (e.g. `libcamerify`)
+- don’t ship ARM64 builds
+- assume a traditional V4L2 webcam interface
+- require host-installed wrappers (e.g. `libcamerify`)
 
 motion-in-ocean solves this by building a container that installs and runs Picamera2 directly on top of Bookworm-compatible Raspberry Pi repositories.
 
@@ -165,10 +166,10 @@ motion-in-ocean solves this by building a container that installs and runs Picam
 
 This project is small and intentionally focused:
 
-* ✅ solid “homelab” deployment baseline
-* ✅ health endpoints
-* ✅ Pi camera stack aligned with Bookworm
-* 🔄 still evolving device detection, CI/CD and packaging polish
+- ✅ solid “homelab” deployment baseline
+- ✅ health endpoints
+- ✅ Pi camera stack aligned with Bookworm
+- 🔄 still evolving device detection, CI/CD and packaging polish
 
 ---
 
@@ -200,27 +201,27 @@ MOCK_CAMERA=false
 
 ### Options
 
-* `MOTION_IN_OCEAN_RESOLUTION` - Camera resolution (e.g., `640x480`, `1280x720`, `1920x1080`). Max `4096x4096`.
-* `MOTION_IN_OCEAN_FPS` - Frame rate limit. `0` uses camera default. Maximum recommended: `120`.
-* `MOTION_IN_OCEAN_JPEG_QUALITY` - JPEG quality (1-100) for stream images.
-* `MOTION_IN_OCEAN_TARGET_FPS` - Output throttle FPS. If unset, it defaults to `FPS`.
-* `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS` - Maximum simultaneous `/stream.mjpg` clients.
-* `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` - Enables OctoPrint-compatible webcam routes (`/webcam/?action=stream` and `/webcam/?action=snapshot`). Default: `false`.
-  * Legacy `OCTOPRINT_COMPATIBILITY` is still accepted at runtime for backward compatibility, but `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` is the canonical documented variable.
-* `MOTION_IN_OCEAN_PI3_PROFILE` - Pi 3 recommended defaults profile. When enabled, it only fills missing values with: `RESOLUTION=640x480`, `FPS=12`, `TARGET_FPS=12`, `JPEG_QUALITY=75`, `MAX_STREAM_CONNECTIONS=3`.
-* `MOTION_IN_OCEAN_CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
-* `MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM` - Healthcheck endpoint selector for webcam mode. Default: `true` (uses `/ready`).
-* `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT` - Healthcheck endpoint selector for management mode. Default: `false` (uses `/health`).
-* `MOTION_IN_OCEAN_WEBCAM_PORT` - Host port used by the `webcam` profile. Default: `8000`.
-* `MOTION_IN_OCEAN_MANAGEMENT_PORT` - Host port used by the `management` profile. Default: `8001` (avoids port conflict when both profiles run together).
-* `MOTION_IN_OCEAN_BIND_HOST` - Network interface to bind to (default: `127.0.0.1` for localhost only). Set to `0.0.0.0` to expose to network. **Multi-host deployments only**.
-* `DOCKER_PROXY_PORT` - Port for docker-socket-proxy service when `ENABLE_DOCKER_SOCKET_PROXY=true`. Default: `2375`. **Advanced / Docker-native deployments only**.
-* `ENABLE_DOCKER_SOCKET_PROXY` - Enable optional docker-socket-proxy service in docker-compose (default: `false`). When `true`, adds a `docker-socket-proxy` container for Docker API access. **Advanced / Docker-native deployments only**.
-* `APP_MODE` - Runtime application mode consumed by the container (`webcam` or `management`).
-  * In this repository’s Compose profiles it is set explicitly per service to prevent mode/profile mismatches.
-  * If you run the image outside these Compose files, set `APP_MODE` directly in your container environment.
-* `TZ` - Logging timezone.
-* `MOCK_CAMERA` - `true` disables Picamera2 initialisation and streams dummy frames (dev/testing).
+- `MOTION_IN_OCEAN_RESOLUTION` - Camera resolution (e.g., `640x480`, `1280x720`, `1920x1080`). Max `4096x4096`.
+- `MOTION_IN_OCEAN_FPS` - Frame rate limit. `0` uses camera default. Maximum recommended: `120`.
+- `MOTION_IN_OCEAN_JPEG_QUALITY` - JPEG quality (1-100) for stream images.
+- `MOTION_IN_OCEAN_TARGET_FPS` - Output throttle FPS. If unset, it defaults to `FPS`.
+- `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS` - Maximum simultaneous `/stream.mjpg` clients.
+- `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` - Enables OctoPrint-compatible webcam routes (`/webcam/?action=stream` and `/webcam/?action=snapshot`). Default: `false`.
+  - Legacy `OCTOPRINT_COMPATIBILITY` is still accepted at runtime for backward compatibility, but `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` is the canonical documented variable.
+- `MOTION_IN_OCEAN_PI3_PROFILE` - Pi 3 recommended defaults profile. When enabled, it only fills missing values with: `RESOLUTION=640x480`, `FPS=12`, `TARGET_FPS=12`, `JPEG_QUALITY=75`, `MAX_STREAM_CONNECTIONS=3`.
+- `MOTION_IN_OCEAN_CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
+- `MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM` - Healthcheck endpoint selector for webcam mode. Default: `true` (uses `/ready`).
+- `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT` - Healthcheck endpoint selector for management mode. Default: `false` (uses `/health`).
+- `MOTION_IN_OCEAN_WEBCAM_PORT` - Host port used by the `webcam` profile. Default: `8000`.
+- `MOTION_IN_OCEAN_MANAGEMENT_PORT` - Host port used by the `management` profile. Default: `8001` (avoids port conflict when both profiles run together).
+- `MOTION_IN_OCEAN_BIND_HOST` - Network interface to bind to (default: `127.0.0.1` for localhost only). Set to `0.0.0.0` to expose to network. **Multi-host deployments only**.
+- `DOCKER_PROXY_PORT` - Port for docker-socket-proxy service when `ENABLE_DOCKER_SOCKET_PROXY=true`. Default: `2375`. **Advanced / Docker-native deployments only**.
+- `ENABLE_DOCKER_SOCKET_PROXY` - Enable optional docker-socket-proxy service in docker-compose (default: `false`). When `true`, adds a `docker-socket-proxy` container for Docker API access. **Advanced / Docker-native deployments only**.
+- `APP_MODE` - Runtime application mode consumed by the container (`webcam` or `management`).
+  - In this repository’s Compose profiles it is set explicitly per service to prevent mode/profile mismatches.
+  - If you run the image outside these Compose files, set `APP_MODE` directly in your container environment.
+- `TZ` - Logging timezone.
+- `MOCK_CAMERA` - `true` disables Picamera2 initialisation and streams dummy frames (dev/testing).
 
 ### Pi 3 recommended preset
 
@@ -250,9 +251,9 @@ MOCK_CAMERA=true
 
 This allows you to validate:
 
-* Flask server
-* `/health` and `/ready`
-* routing, config, general structure
+- Flask server
+- `/health` and `/ready`
+- routing, config, general structure
 
 ---
 
@@ -288,16 +289,16 @@ make docker-build-prod
 
 ### Runtime model
 
-* **Container** runs Python and Picamera2
-* Uses host udev info to discover camera devices
-* Requires elevated device access (see security model)
+- **Container** runs Python and Picamera2
+- Uses host udev info to discover camera devices
+- Requires elevated device access (see security model)
 
 ### Hardware access requirements
 
 motion-in-ocean uses:
 
-* `/run/udev:/run/udev:ro` mounted into the container
-* Explicit device mappings (`/dev/dma_heap`, `/dev/video*`, `/dev/vchiq`, `/dev/media*`)
+- `/run/udev:/run/udev:ro` mounted into the container
+- Explicit device mappings (`/dev/dma_heap`, `/dev/video*`, `/dev/vchiq`, `/dev/media*`)
 
 These settings prioritise **reliability** over strict hardening, which is reasonable for a homelab VLAN — but should not be exposed to the public internet.
 
@@ -367,29 +368,29 @@ Then add nodes with `transport: "docker"` in management UI (requires admin role)
 
 The container exposes two endpoints:
 
-* `/health` - Liveness (returns 200 if service is running)
-* `/ready` - Readiness (returns 200 only if camera is initialised and streaming)
+- `/health` - Liveness (returns 200 if service is running)
+- `/ready` - Readiness (returns 200 only if camera is initialised and streaming)
 
 The docker-compose healthcheck uses the bundled `healthcheck.py`, which defaults to `/health`.
 Switch to readiness checks with:
 
-* `HEALTHCHECK_READY=true` (uses `/ready` instead of `/health`)
-  * In this repo, Compose maps profile-scoped `.env` values (`MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM` / `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT`) into container `HEALTHCHECK_READY`.
+- `HEALTHCHECK_READY=true` (uses `/ready` instead of `/health`)
+  - In this repo, Compose maps profile-scoped `.env` values (`MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM` / `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT`) into container `HEALTHCHECK_READY`.
 
 Recommended by deployment mode:
 
-* `webcam` profile: use readiness checks (`/ready`) so unhealthy camera initialization is detected.
-* `management` profile: use liveness checks (`/health`) so readiness does **not** depend on camera frames.
+- `webcam` profile: use readiness checks (`/ready`) so unhealthy camera initialization is detected.
+- `management` profile: use liveness checks (`/health`) so readiness does **not** depend on camera frames.
 
 Compose defaults in this repository already follow those recommendations:
 
-* `MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM=true`
-* `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT=false`
+- `MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM=true`
+- `MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT=false`
 
 Override the full URL (takes precedence over `HEALTHCHECK_READY`) with:
 
-* `HEALTHCHECK_URL` (e.g., `http://127.0.0.1:8000/ready`)
-* `HEALTHCHECK_TIMEOUT` (seconds, default `5`)
+- `HEALTHCHECK_URL` (e.g., `http://127.0.0.1:8000/ready`)
+- `HEALTHCHECK_TIMEOUT` (seconds, default `5`)
 
 ---
 
@@ -401,8 +402,8 @@ When configuring OctoPrint's webcam URLs, use the values that match your deploym
 
 Use motion-in-ocean's direct routes:
 
-* `webcam.stream`: `http://<host>:8000/stream.mjpg`
-* `webcam.snapshot`: `http://<host>:8000/snapshot.jpg`
+- `webcam.stream`: `http://<host>:8000/stream.mjpg`
+- `webcam.snapshot`: `http://<host>:8000/snapshot.jpg`
 
 ### OctoPrint compatibility endpoints
 
@@ -411,17 +412,17 @@ Use these if you want OctoPrint-style `?action=` routes.
 Both `/webcam?action=...` and `/webcam/?action=...` are supported.
 For consistency, prefer the canonical trailing-slash form in OctoPrint config:
 
-* `webcam.stream`: `http://<host>:8000/webcam/?action=stream`
-* `webcam.snapshot`: `http://<host>:8000/webcam/?action=snapshot`
+- `webcam.stream`: `http://<host>:8000/webcam/?action=stream`
+- `webcam.snapshot`: `http://<host>:8000/webcam/?action=snapshot`
 
 > Compatibility routes are only available when `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY=true`.
 
 ### Troubleshooting checklist
 
-* Confirm the endpoint path is correct (`/stream.mjpg` vs `/webcam/?action=stream`).
-* Confirm `webcam.snapshot` is configured (missing snapshot URL can break previews/features).
-* Check readiness at `/ready` and ensure it reports ready (`true`) before testing streams.
-* Check `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS` if additional clients are rejected.
+- Confirm the endpoint path is correct (`/stream.mjpg` vs `/webcam/?action=stream`).
+- Confirm `webcam.snapshot` is configured (missing snapshot URL can break previews/features).
+- Check readiness at `/ready` and ensure it reports ready (`true`) before testing streams.
+- Check `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS` if additional clients are rejected.
 
 ---
 
@@ -431,15 +432,15 @@ This container requires access to host camera devices.
 
 Recommended approach uses:
 
-* explicit `devices:` mappings (not privileged mode)
-* `/run/udev` mount (read-only)
-* bind to localhost unless you *explicitly* need LAN access
+- explicit `devices:` mappings (not privileged mode)
+- `/run/udev` mount (read-only)
+- bind to localhost unless you _explicitly_ need LAN access
 
 ### Network recommendations
 
-* ✅ safest: `127.0.0.1:8000:8000`
-* ⚠ LAN access: `8000:8000` (trusted networks only)
-* ❌ avoid: internet exposure without authentication
+- ✅ safest: `127.0.0.1:8000:8000`
+- ⚠ LAN access: `8000:8000` (trusted networks only)
+- ❌ avoid: internet exposure without authentication
 
 If you need remote access, use a reverse proxy (nginx/Caddy/Traefik) with authentication.
 
@@ -447,12 +448,12 @@ If you need remote access, use a reverse proxy (nginx/Caddy/Traefik) with authen
 
 When running the `management` profile, treat it as control-plane infrastructure:
 
-* Keep exposure LAN-only (or VPN-only). Do not publish directly to the public internet.
-* Put a reverse proxy in front (Caddy/Traefik/nginx) and terminate TLS there.
-* Require authentication/authorization at the proxy (OIDC, basic auth, mTLS, or equivalent).
-* Mount `/var/run/docker.sock` only when Docker discovery/control features are explicitly enabled.
-  * Prefer read-only mounting where possible.
-  * Restrict host-level socket access to trusted administrators.
+- Keep exposure LAN-only (or VPN-only). Do not publish directly to the public internet.
+- Put a reverse proxy in front (Caddy/Traefik/nginx) and terminate TLS there.
+- Require authentication/authorization at the proxy (OIDC, basic auth, mTLS, or equivalent).
+- Mount `/var/run/docker.sock` only when Docker discovery/control features are explicitly enabled.
+  - Prefer read-only mounting where possible.
+  - Restrict host-level socket access to trusted administrators.
 
 ---
 
@@ -460,18 +461,18 @@ When running the `management` profile, treat it as control-plane infrastructure:
 
 This project uses the **official modern Raspberry Pi camera stack**:
 
-* **libcamera**
-* **python3-libcamera**
-* **Picamera2**
-* **Debian Bookworm**
-* **Python 3.11+**
-* **libcap-dev** (required for python-prctl)
+- **libcamera**
+- **python3-libcamera**
+- **Picamera2**
+- **Debian Bookworm**
+- **Python 3.11+**
+- **libcap-dev** (required for python-prctl)
 
 ### Deprecated stack (not supported)
 
-* ❌ picamera (v1.x)
-* ❌ raspistill/raspivid
-* ❌ MMAL
+- ❌ picamera (v1.x)
+- ❌ raspistill/raspivid
+- ❌ MMAL
 
 ### Verification
 
@@ -482,9 +483,9 @@ raspistill --help        # Command not found on Bookworm
 
 **References**
 
-* Picamera2 Manual (PDF): [https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf](https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf)
-* Camera Software Docs: [https://www.raspberrypi.com/documentation/computers/camera_software.html](https://www.raspberrypi.com/documentation/computers/camera_software.html)
-* libcamera Project: [https://libcamera.org/](https://libcamera.org/)
+- Picamera2 Manual (PDF): [https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf](https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf)
+- Camera Software Docs: [https://www.raspberrypi.com/documentation/computers/camera_software.html](https://www.raspberrypi.com/documentation/computers/camera_software.html)
+- libcamera Project: [https://libcamera.org/](https://libcamera.org/)
 
 ---
 
@@ -506,26 +507,26 @@ Releases are **tag-driven** and fully automated:
 
 All pull requests and pushes to main/develop branches automatically run:
 
-* **Test Suite** - Python 3.9, 3.11, and 3.12 compatibility tests
-* **Linting** - Ruff code quality checks
-* **Type Checking** - Mypy static type analysis
-* **Security Scanning** - Bandit security checks and Trivy Docker scanning
-* **Coverage Reporting** - Test coverage metrics with Codecov integration
+- **Test Suite** - Python 3.9, 3.11, and 3.12 compatibility tests
+- **Linting** - Ruff code quality checks
+- **Type Checking** - Mypy static type analysis
+- **Security Scanning** - Bandit security checks and Trivy Docker scanning
+- **Coverage Reporting** - Test coverage metrics with Codecov integration
 
 **Docker images are published to:**
 
-* `ghcr.io/cyanautomation/motioninocean:latest` (latest release)
-* `ghcr.io/cyanautomation/motioninocean:vX.Y.Z` (specific version)
-* `ghcr.io/cyanautomation/motioninocean:X.Y.Z` (semantic version)
-* `ghcr.io/cyanautomation/motioninocean:X.Y` (major.minor)
+- `ghcr.io/cyanautomation/motioninocean:latest` (latest release)
+- `ghcr.io/cyanautomation/motioninocean:vX.Y.Z` (specific version)
+- `ghcr.io/cyanautomation/motioninocean:X.Y.Z` (semantic version)
+- `ghcr.io/cyanautomation/motioninocean:X.Y` (major.minor)
 
 **Key guarantees:**
 
-* ✅ Every GitHub release has a corresponding Docker image
-* ✅ `latest` tag always points to the newest release
-* ✅ Failed builds trigger automatic rollback
-* ✅ Release script waits for CI completion before finishing
-* ✅ All PRs must pass CI checks before merging
+- ✅ Every GitHub release has a corresponding Docker image
+- ✅ `latest` tag always points to the newest release
+- ✅ Failed builds trigger automatic rollback
+- ✅ Release script waits for CI completion before finishing
+- ✅ All PRs must pass CI checks before merging
 
 See [RELEASE.md](RELEASE.md) for detailed release process documentation.
 
@@ -539,11 +540,11 @@ Contributions are welcome — even small ones like documentation tweaks.
 
 This project now includes modern development tooling:
 
-* **Pre-commit hooks** - Automatic code quality checks before commit
-* **Makefile** - Convenient commands for common tasks (`make help`)
-* **CI/CD** - Automated testing and linting on all PRs
-* **Type checking** - Mypy for Python type safety
-* **Security scanning** - Bandit and Trivy for vulnerability detection
+- **Pre-commit hooks** - Automatic code quality checks before commit
+- **Makefile** - Convenient commands for common tasks (`make help`)
+- **CI/CD** - Automated testing and linting on all PRs
+- **Type checking** - Mypy for Python type safety
+- **Security scanning** - Bandit and Trivy for vulnerability detection
 
 **Getting started:**
 
@@ -565,11 +566,11 @@ make ci
 
 ### Suggested contribution areas
 
-* Pi device mapping detection improvements
-* Compose examples for common homelab consumers (OctoPrint, Home Assistant)
-* Prometheus metrics export
-* Documentation improvements
-* Bug fixes and testing
+- Pi device mapping detection improvements
+- Compose examples for common homelab consumers (OctoPrint, Home Assistant)
+- Prometheus metrics export
+- Documentation improvements
+- Bug fixes and testing
 
 **See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.**
 
@@ -585,17 +586,17 @@ If you’d like to contribute:
 
 Near-term:
 
-* [x] GitHub Actions workflow for ARM64 builds to GHCR
-* [x] Release tagging + Changelog automation
-* [x] Automated GitHub Release creation
-* [x] Pre-commit hooks for code quality
-* [x] CI/CD pipeline (testing, linting, type checking)
-* [x] Security scanning (Bandit, Trivy)
-* [x] Dependabot for automated dependency updates
-* [x] Multi-arch builds (ARM64 + AMD64 support)
-* [ ] Home Assistant / OctoPrint examples
-* [ ] Improve device mapping auto-detection tooling
-* [ ] Prometheus metrics endpoint enhancements
+- [x] GitHub Actions workflow for ARM64 builds to GHCR
+- [x] Release tagging + Changelog automation
+- [x] Automated GitHub Release creation
+- [x] Pre-commit hooks for code quality
+- [x] CI/CD pipeline (testing, linting, type checking)
+- [x] Security scanning (Bandit, Trivy)
+- [x] Dependabot for automated dependency updates
+- [x] Multi-arch builds (ARM64 + AMD64 support)
+- [ ] Home Assistant / OctoPrint examples
+- [ ] Improve device mapping auto-detection tooling
+- [ ] Prometheus metrics endpoint enhancements
 
 ---
 
@@ -614,11 +615,11 @@ ls -l /dev/dma_heap
 
 If something doesn’t work, open an issue and include:
 
-* Pi model + OS version (Bookworm?)
-* camera module type
-* compose file snippet (devices/volumes)
-* container logs
-* output of `/health` and `/ready`
+- Pi model + OS version (Bookworm?)
+- camera module type
+- compose file snippet (devices/volumes)
+- container logs
+- output of `/health` and `/ready`
 
 ---
 
@@ -638,7 +639,7 @@ This repo is a fork of `hyzhak/pi-camera-in-docker`, with a focus on making the 
 
 ## Links
 
-* License section: [LICENSE](LICENSE.md)
-* Contributing section: [CONTRIBUTING](CONTRIBUTING.md)
-* Security section: [SECURITY](SECURITY.md)
-* Code of Conduct: [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md)
+- License section: [LICENSE](LICENSE.md)
+- Contributing section: [CONTRIBUTING](CONTRIBUTING.md)
+- Security section: [SECURITY](SECURITY.md)
+- Code of Conduct: [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md)

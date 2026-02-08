@@ -31,12 +31,12 @@ Operators need a simple, reliable web UI to view the Raspberry Pi CSI camera str
 
 ## Prioritized Functional Requirements
 
-| Priority | Feature | Description |
-| --- | --- | --- |
-| P1 | Web UI for Live Stream | Serve a UI at `/` that renders the MJPEG stream and basic stream stats. |
-| P1 | Stream View + Controls | Provide refresh and fullscreen controls for the stream viewport. |
-| P2 | Stream Stats & Status UI | Show connection status, frame metrics, and configuration badges in the UI. |
-| P2 | Resilience & Retry | UI retries stats fetching and stream reloads with backoff on error. |
+| Priority | Feature                  | Description                                                                |
+| -------- | ------------------------ | -------------------------------------------------------------------------- |
+| P1       | Web UI for Live Stream   | Serve a UI at `/` that renders the MJPEG stream and basic stream stats.    |
+| P1       | Stream View + Controls   | Provide refresh and fullscreen controls for the stream viewport.           |
+| P2       | Stream Stats & Status UI | Show connection status, frame metrics, and configuration badges in the UI. |
+| P2       | Resilience & Retry       | UI retries stats fetching and stream reloads with backoff on error.        |
 
 ---
 
@@ -47,6 +47,7 @@ Operators need a simple, reliable web UI to view the Raspberry Pi CSI camera str
 **Endpoint:** `GET /`
 
 **Behavior:**
+
 - Displays the MJPEG stream in a responsive layout.
 - Includes a connection status indicator.
 - Provides refresh and fullscreen controls.
@@ -55,6 +56,7 @@ Operators need a simple, reliable web UI to view the Raspberry Pi CSI camera str
 ### 2. Stream Stats & Status UI (P2)
 
 **Behavior:**
+
 - Polls `/ready` on an interval to update metrics.
 - Shows “Connecting”/“Connected”/“Disconnected” status.
 - Displays a collapsible stats panel on small screens.
@@ -62,6 +64,7 @@ Operators need a simple, reliable web UI to view the Raspberry Pi CSI camera str
 ### 3. Resilience & Retry (P2)
 
 **Behavior:**
+
 - UI retries stats requests with exponential backoff on failure.
 - UI schedules stream reload attempts on stream errors with a separate backoff policy.
 
@@ -81,9 +84,11 @@ Operators need a simple, reliable web UI to view the Raspberry Pi CSI camera str
 ## Non-Functional Requirements
 
 **Responsiveness:**
+
 - UI should be usable on mobile and desktop layouts.
 
 **Performance:**
+
 - UI polling interval defaults to a lightweight cadence (2 seconds).
 
 ---
@@ -105,6 +110,7 @@ Operators need a simple, reliable web UI to view the Raspberry Pi CSI camera str
 ## Source References (Current Implementation)
 
 This PRD reflects the current frontend implementation in:
+
 - Web UI template (`pi_camera_in_docker/templates/index.html`)
 - UI behavior and polling logic (`pi_camera_in_docker/static/js/app.js`)
 - UI styles (`pi_camera_in_docker/static/css/style.css`, `pi_camera_in_docker/static/css/tabs-config.css`)

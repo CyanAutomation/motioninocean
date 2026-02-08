@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.2] - 2026-01-21
 
 ### Fixed
+
 - Fixed `AttributeError: module 'kms' has no attribute 'PixelFormat'` crash when incomplete pykms package is installed
 - Enhanced pykms workaround to catch both `ModuleNotFoundError` and `AttributeError`
 - Added `PixelFormat` mock class with common pixel format attributes (RGB888, XRGB8888, BGR888, XBGR8888)
@@ -15,23 +16,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated test coverage to verify both missing and incomplete pykms scenarios
 
 ### Changed
+
 - Implemented multi-stage Docker build to reduce final image size by 80-150MB
 - Moved build dependencies (gcc, python3-dev) to builder stage only
 - Removed unused pytest-mock package from requirements-dev.txt
 - Added missing PyYAML dependency to requirements-dev.txt (used by test files)
 
 ### Removed
+
 - Removed unused pytest-mock==3.14.0 dependency (zero usage in codebase)
 - Removed gcc and python3-dev from runtime Docker image (moved to builder stage)
 
 ## [1.0.1] - 2026-01-19
 
 ### Fixed
+
 - Added missing `/dev/video18`, `/dev/video20-23`, and `/dev/video31` device mappings required for libcamera camera enumeration on Raspberry Pi 3A
 - Fixed camera initialization failure (IndexError: list index out of range) caused by incomplete device access
 - Improved `device_cgroup_rules` configuration with clarifying comments about automatic device access
 
 ### Documentation
+
 - Enhanced docker-compose.yaml device mapping comments to clarify Pi model variations
 - Updated README.md device configuration examples to include media controller devices
 - Added note about running `detect-devices.sh` script for hardware-specific device detection
@@ -39,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-01-18
 
 ### Added
+
 - Initial stable release of motion-in-ocean
 - Raspberry Pi camera streaming in Docker using Picamera2 and libcamera
 - Support for Raspberry Pi 3/4/5 (ARM64) with CSI cameras
@@ -58,11 +64,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Timezone support via TZ environment variable
 
 ### Security
+
 - Non-privileged container by default with explicit device access
 - Security option `no-new-privileges:true` enabled
 - Read-only udev mount for device discovery
 
 ### Documentation
+
 - Comprehensive README with technology stack verification
 - Pre-deployment validation commands
 - Camera compatibility documentation (IMX219, Camera Module v2/v3)
@@ -70,13 +78,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Testing documentation (TEST_REPORT.md, TESTING_COMPLETE.md)
 
 ### Configuration
+
 - Default configuration optimized for Pi 3 with IMX219 camera
 - Resolution: 1640x1232 @ 30fps
 - Support for /dev/dma_heap directory structure
-- Support for multiple /dev/video* device nodes
+- Support for multiple /dev/video\* device nodes
 - Configurable via environment variables in .env file
 
 ### Infrastructure
+
 - GitHub Actions workflow for automated Docker image builds
 - GHCR (GitHub Container Registry) publishing
 - Multi-platform Docker build support (ARM64)
@@ -156,10 +166,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix: unify motion-in-ocean service names for webcam and management profiles
 
 ### Changed
+
 - **Breaking:** management node auth now accepts only `auth.type=none` or `auth.type=bearer` with `auth.token`.
 - Added registry migration support for deprecated auth payloads in `NODE_REGISTRY_PATH`; convertible entries are normalized to bearer tokens and non-convertible entries now fail with actionable errors.
 
 ### Operator Action Required
+
 - Replace any legacy node credentials (`auth.type=basic`, `auth.username`, `auth.password`, `auth.encoded`) with API token auth: `{"type":"bearer","token":"<api_token>"}`.
 - Run `python scripts/migrate_node_registry_auth.py --path "$NODE_REGISTRY_PATH" --dry-run` before upgrade, then run without `--dry-run` to write migrated data.
 
@@ -473,7 +485,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update pi_camera_in_docker/static/js/app.js
 - Refine healthcheck validation flow
 - Refactor camera app initialization
-- Merge pull request #78 from CyanAutomation/codex/remove-_load_timeout-and-consolidate-parsing
+- Merge pull request #78 from CyanAutomation/codex/remove-\_load_timeout-and-consolidate-parsing
 - Merge pull request #77 from CyanAutomation/codex/refactor-streamingoutput-in-main.py
 - Update pi_camera_in_docker/main.py
 - Merge pull request #76 from CyanAutomation/codex/refactor-fetchmetrics-with-helper-function
@@ -499,8 +511,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix healthcheck SSRF validation
 - Merge pull request #67 from CyanAutomation/codex/remove-globals-and-simplify-error-handling
 - Merge pull request #66 from CyanAutomation/codex/update-streamingoutput.get_status-implementation
-- Merge pull request #65 from CyanAutomation/codex/inline-_load_timeout-logic-into-check_health
-- Merge branch 'main' into codex/inline-_load_timeout-logic-into-check_health
+- Merge pull request #65 from CyanAutomation/codex/inline-\_load_timeout-logic-into-check_health
+- Merge branch 'main' into codex/inline-\_load_timeout-logic-into-check_health
 - Simplify edge detection error logging
 - Merge pull request #64 from CyanAutomation/codex/remove-calculatebackoffdelay-function
 - Use get_fps in streaming status
@@ -727,22 +739,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.6.2] - 2026-01-20
 
 ### Changed
-- Release version 0.6.2
 
+- Release version 0.6.2
 
 ## [0.6.1] - 2026-01-20
 
 ### Changed
-- Release version 0.6.1
 
+- Release version 0.6.1
 
 ## [0.6.0] - 2026-01-20
 
 ### Changed
+
 - Release version 0.6.0
 
-
 ### Planned
+
 - Multi-camera support
 - Long-running stability improvements
 - Thermal throttling detection and handling

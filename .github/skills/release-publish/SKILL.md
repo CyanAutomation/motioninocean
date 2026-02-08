@@ -59,10 +59,12 @@ After a successful run for tag `vX.Y.Z`:
 ### Extract changelog for release
 
 **Symptoms**
+
 - Log shows: `Warning: No changelog section found for version X.Y.Z`
 - Release notes begin with generic fallback text.
 
 **Checks and fixes**
+
 - Confirm `CHANGELOG.md` includes exact header `## [X.Y.Z]` (no `v` prefix in the bracketed version).
 - Confirm tag/version mapping is correct (`v1.2.3` => `1.2.3`).
 - Re-run release with corrected changelog (new tag) if notes quality is unacceptable.
@@ -70,10 +72,12 @@ After a successful run for tag `vX.Y.Z`:
 ### Build release notes
 
 **Symptoms**
+
 - Step fails while reading `/tmp/changelog.txt`.
 - Notes are missing Docker image instructions.
 
 **Checks and fixes**
+
 - Ensure prior step completed and wrote `/tmp/changelog.txt`.
 - Verify repository variable resolution (`github.repository`) is valid in workflow context.
 - Re-run workflow after fixing script block syntax or variable expansion.
@@ -81,9 +85,11 @@ After a successful run for tag `vX.Y.Z`:
 ### Validate release notes
 
 **Symptoms**
+
 - Errors like `Release notes file not found`, `file is empty`, or `too short`.
 
 **Checks and fixes**
+
 - Confirm `/tmp/release_notes.md` is created by previous step.
 - Confirm generated file is non-empty and above minimum length threshold.
 - Inspect step logs preview output to verify expected content shape.
@@ -91,9 +97,11 @@ After a successful run for tag `vX.Y.Z`:
 ### Create GitHub Release
 
 **Symptoms**
+
 - `gh release create` fails or release not visible in GitHub UI.
 
 **Checks and fixes**
+
 - Verify `GH_TOKEN` is present (`secrets.GITHUB_TOKEN`) and job permissions include `contents: write`.
 - Confirm tag still exists remotely.
 - Check for duplicate existing release for same tag; edit/delete and rerun as needed.

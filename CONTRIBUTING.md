@@ -102,7 +102,7 @@ make validate          # Run all validation checks including security
 ```bash
 docker compose build
 docker compose up
-````
+```
 
 ### Mock camera mode (non-Raspberry Pi)
 
@@ -114,9 +114,9 @@ MOCK_CAMERA=true
 
 This allows testing of:
 
-* Flask server behaviour
-* `/health` and `/ready`
-* config and routing
+- Flask server behaviour
+- `/health` and `/ready`
+- config and routing
 
 ---
 
@@ -124,30 +124,47 @@ This allows testing of:
 
 Please keep changes:
 
-* Small and focused
-* Easy to understand
-* Consistent with the existing style
+- Small and focused
+- Easy to understand
+- Consistent with the existing style
 
 ### Recommendations
 
-* Prefer readability over cleverness
-* Avoid new dependencies unless strongly justified
-* Add comments where Raspberry Pi quirks require explanation
+- Prefer readability over cleverness
+- Avoid new dependencies unless strongly justified
+- Add comments where Raspberry Pi quirks require explanation
 
 ### Logging style
 
-* Production/operator logs should avoid emoji markers.
-* Prefer stable ASCII severity prefixes such as `[INFO]`, `[WARN]`, and `[ERROR]` for machine-readable output.
+- Production/operator logs should avoid emoji markers.
+- Prefer stable ASCII severity prefixes such as `[INFO]`, `[WARN]`, and `[ERROR]` for machine-readable output.
+### Diagramming guidelines
 
+When documenting architecture, workflows, or state transitions (especially in PRDs and deployment docs), use Mermaid diagrams embedded in markdown for clarity. Diagrams render natively in GitHub and greatly help both developers and operators understand complex interactions.
+
+**Guidelines:**
+
+* Refer to [`.github/skills/mermaid-creator/SKILL.md`](.github/skills/mermaid-creator/SKILL.md) for detailed instructions and examples specific to motion-in-ocean.
+* Keep diagrams close to the text they clarify (same section).
+* Use accurate terminology from PRDs (e.g., `/ready`, `MAX_FRAME_AGE_SECONDS`, `recording_started`, `Bearer Token Auth`).
+* Validate Mermaid syntax at [mermaid.live](https://mermaid.live) before committing.
+* Include a 2–4 line rationale below each diagram explaining the diagram type and key insight.
+
+Common diagram types in this project:
+
+* **State machines** (`stateDiagram-v2`) — Health/readiness transitions, camera lifecycle.
+* **Architecture flowcharts** (`graph TD`) — Multi-host deployment, system components.
+* **Sequence diagrams** (`sequenceDiagram`) — API workflows, node registry CRUD.
+* **Data flow diagrams** (`graph LR`) — Frame capture pipeline, stream to endpoints.
 ---
 
 ## Commit messages
 
 Please use clear commit messages:
 
-* `docs: clarify docker-compose example`
-* `fix: handle missing media devices`
-* `feat: add CAMERA_INDEX support`
+- `docs: clarify docker-compose example`
+- `fix: handle missing media devices`
+- `feat: add CAMERA_INDEX support`
 
 ---
 
@@ -159,6 +176,7 @@ Please use clear commit messages:
    ```bash
    git checkout -b feat/my-change
    ```
+
 3. Make your changes
 4. Run code quality checks:
 
@@ -180,15 +198,13 @@ Please use clear commit messages:
    ```
 
 5. Validate container builds:
-
-   * container builds successfully
-   * endpoints still work (`/health`, `/ready`)
+   - container builds successfully
+   - endpoints still work (`/health`, `/ready`)
 
 6. Submit a Pull Request with:
-
-   * what changed
-   * why it changed
-   * how it was tested
+   - what changed
+   - why it changed
+   - how it was tested
 
 If your PR changes behaviour or config, please update the README accordingly.
 
@@ -200,15 +216,16 @@ If your PR changes behaviour or config, please update the README accordingly.
 
 Please include:
 
-* Raspberry Pi model + OS version (`cat /etc/os-release`)
-* Camera module type
-* `docker-compose.yaml` (device + volume mappings)
-* Container logs:
+- Raspberry Pi model + OS version (`cat /etc/os-release`)
+- Camera module type
+- `docker-compose.yaml` (device + volume mappings)
+- Container logs:
 
   ```bash
   docker logs motion-in-ocean --tail 200
   ```
-* Output of:
+
+- Output of:
 
   ```bash
   curl http://localhost:8000/health
@@ -223,9 +240,9 @@ Feature requests are welcome, but the project intentionally stays lightweight.
 
 When suggesting a feature, please clarify:
 
-* The real-world homelab use case
-* Whether it can be optional (env flag)
-* Whether it adds dependencies or complexity
+- The real-world homelab use case
+- Whether it can be optional (env flag)
+- Whether it adds dependencies or complexity
 
 ---
 

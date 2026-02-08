@@ -6,7 +6,7 @@ on:
   # Trigger on pushed tags
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 jobs:
   build:
@@ -62,9 +62,9 @@ jobs:
           set -e
           TAG_NAME=${GITHUB_REF#refs/tags/}
           VERSION=${TAG_NAME#v}
-          
+
           echo "Extracting changelog for version: ${VERSION}"
-          
+
           # Extract the section for this version from CHANGELOG.md
           if [ -f "CHANGELOG.md" ]; then
             # Use awk to extract content between version headers
@@ -80,12 +80,12 @@ jobs:
             echo "Warning: CHANGELOG.md not found"
             CHANGELOG_CONTENT="Release ${VERSION} - See commit history for details."
           fi
-          
+
           # Write to file to preserve multiline content
           echo "$CHANGELOG_CONTENT" > /tmp/changelog.txt
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
-          
+
           # Debug output
           echo "Changelog content length: $(wc -c < /tmp/changelog.txt) bytes"
 
@@ -93,16 +93,16 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           set -e
-          
+
           # Read changelog from file
           CHANGELOG_BODY=$(cat /tmp/changelog.txt)
-          
+
           # Get variables
           TAG_NAME="${{ steps.changelog.outputs.tag_name }}"
           VERSION="${{ steps.changelog.outputs.version }}"
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           REPO_NAME=$(basename "${{ github.repository }}")
-          
+
           # Build release notes incrementally
           {
             echo "$CHANGELOG_BODY"
@@ -120,7 +120,7 @@ jobs:
             echo ""
             echo "View on GitHub Container Registry: https://github.com/${{ github.repository }}/pkgs/container/${REPO_NAME}"
           } > /tmp/release_notes.md
-          
+
           echo "Release notes built successfully"
           echo "Release notes length: $(wc -c < /tmp/release_notes.md) bytes"
 
@@ -128,28 +128,28 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           set -e
-          
+
           # Check if release notes file exists and is not empty
           if [ ! -f /tmp/release_notes.md ]; then
             echo "Error: Release notes file not found"
             exit 1
           fi
-          
+
           if [ ! -s /tmp/release_notes.md ]; then
             echo "Error: Release notes file is empty"
             exit 1
           fi
-          
+
           # Check minimum length (at least 10 characters)
           NOTES_LENGTH=$(wc -c < /tmp/release_notes.md)
           if [ "$NOTES_LENGTH" -lt 10 ]; then
             echo "Error: Release notes too short (${NOTES_LENGTH} bytes)"
             exit 1
           fi
-          
+
           echo "✓ Release notes validation passed"
           echo "  Length: ${NOTES_LENGTH} bytes"
-          
+
           # Show preview (first 200 chars)
           echo "  Preview:"
           head -c 200 /tmp/release_notes.md
@@ -161,16 +161,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          
+
           TAG_NAME="${{ steps.changelog.outputs.tag_name }}"
-          
+
           echo "Creating GitHub Release for ${TAG_NAME}"
-          
+
           # Create release using gh CLI with notes from file
           gh release create "${TAG_NAME}" \
             --repo "${{ github.repository }}" \
             --title "Release ${TAG_NAME}" \
             --notes-file /tmp/release_notes.md
-          
+
           echo "✓ GitHub Release created successfully"
           echo "  URL: https://github.com/${{ github.repository }}/releases/tag/${TAG_NAME}"

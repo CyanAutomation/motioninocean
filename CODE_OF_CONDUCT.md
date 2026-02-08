@@ -54,6 +54,7 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement.
 
 To report:
+
 - Open a GitHub issue marked **"Code of Conduct"**, if safe to do so; or
 - Contact the maintainer privately (preferred for sensitive issues)
 
