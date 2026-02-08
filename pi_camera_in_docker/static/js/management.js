@@ -31,7 +31,6 @@ function getAuthPayload() {
     if (username && password) {
       return { type, username, password };
     }
-    }
   }
 
   return { type };

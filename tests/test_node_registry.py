@@ -35,3 +35,27 @@ def test_update_node_detects_id_collision(tmp_path):
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
         assert str(exc) == "node node-2 already exists"
+
+
+def test_create_node_rejects_basic_auth_username_with_colon(tmp_path):
+    registry = FileNodeRegistry(str(tmp_path / "registry.json"))
+    node = _node("node-1", "One")
+    node["auth"] = {"type": "basic", "username": "bad:user", "password": "secret"}
+
+    try:
+        registry.create_node(node)
+        assert False, "Expected NodeValidationError"
+    except NodeValidationError as exc:
+        assert str(exc) == "auth.username cannot contain colon character"
+
+
+def test_create_node_rejects_basic_auth_empty_password(tmp_path):
+    registry = FileNodeRegistry(str(tmp_path / "registry.json"))
+    node = _node("node-1", "One")
+    node["auth"] = {"type": "basic", "username": "camera", "password": ""}
+
+    try:
+        registry.create_node(node)
+        assert False, "Expected NodeValidationError"
+    except NodeValidationError as exc:
+        assert str(exc) == "auth.password must be a non-empty string"
