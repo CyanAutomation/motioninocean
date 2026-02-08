@@ -181,7 +181,8 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
 
     vetted_addresses = _vet_resolved_addresses(resolved_addresses)
     if not vetted_addresses:
-        raise ConnectionError("name resolution returned no addresses")
+        message = "name resolution returned no addresses"
+        raise ConnectionError(message)
 
     connect_url = urlunparse(
         (
@@ -207,13 +208,15 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
             try:
                 return response.status, json.loads(payload)
             except json.JSONDecodeError as exc:
-                raise NodeInvalidResponseError("node returned malformed JSON") from exc
+                message = "node returned malformed JSON"
+                raise NodeInvalidResponseError(message) from exc
     except urllib.error.HTTPError as exc:
         body_text = exc.read().decode("utf-8") if exc.fp else ""
         try:
             body_json = json.loads(body_text) if body_text else {}
         except json.JSONDecodeError as decode_exc:
-            raise NodeInvalidResponseError("node returned malformed JSON") from decode_exc
+            message = "node returned malformed JSON"
+            raise NodeInvalidResponseError(message) from decode_exc
         return exc.code, body_json
         return exc.code, body_json
     except urllib.error.URLError as exc:
