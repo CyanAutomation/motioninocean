@@ -1,3 +1,4 @@
+import base64
 import json
 import socket
 import urllib.error
@@ -127,6 +128,17 @@ def _build_headers(node: Dict[str, Any]) -> Dict[str, str]:
     auth_type = auth.get("type", "none")
     if auth_type == "bearer" and auth.get("token"):
         return {"Authorization": f"Bearer {auth['token']}"}
+
+    if auth_type == "basic":
+        if auth.get("encoded"):
+            return {"Authorization": f"Basic {auth['encoded']}"}
+        username = auth.get("username")
+        password = auth.get("password")
+        if isinstance(username, str) and isinstance(password, str):
+            raw = f"{username}:{password}".encode("utf-8")
+            encoded = base64.b64encode(raw).decode("ascii")
+            return {"Authorization": f"Basic {encoded}"}
+
     return {}
 
 
