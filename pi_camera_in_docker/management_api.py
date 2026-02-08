@@ -14,6 +14,10 @@ class NodeRequestError(RuntimeError):
     """Raised when a proxied node request cannot be completed safely."""
 
 
+class NodeInvalidResponseError(NodeRequestError):
+    """Raised when a proxied node responds with malformed JSON payload."""
+
+
 #
 # Docker Transport Support
 # =======================
@@ -141,7 +145,12 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
         req = urllib.request.Request(url=url, method=method, headers=headers, data=data)
         with urllib.request.urlopen(req, timeout=2.5) as response:
             payload = response.read().decode("utf-8")
-            return response.status, json.loads(payload) if payload else {}
+            if not payload:
+                return response.status, {}
+            try:
+                return response.status, json.loads(payload)
+            except json.JSONDecodeError as exc:
+                raise NodeInvalidResponseError("node returned malformed JSON") from exc
     except urllib.error.HTTPError as exc:
         body_text = exc.read().decode("utf-8") if exc.fp else ""
         try:
@@ -171,6 +180,14 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
         health_code, health_payload = _request_json(node, "GET", "/health")
         ready_code, ready_payload = _request_json(node, "GET", "/ready")
         metrics_code, metrics_payload = _request_json(node, "GET", "/metrics")
+    except NodeInvalidResponseError:
+        return {}, (
+            "NODE_INVALID_RESPONSE",
+            f"node {node_id} returned an invalid response",
+            502,
+            node_id,
+            {"reason": "malformed json"},
+        )
     except NodeRequestError:
         return {}, (
             "NODE_UNREACHABLE",
@@ -330,6 +347,14 @@ def register_management_routes(
         payload = request.get_json(silent=True) or {}
         try:
             status_code, response = _request_json(node, "POST", f"/api/actions/{action}", payload)
+        except NodeInvalidResponseError:
+            return _error_response(
+                "NODE_INVALID_RESPONSE",
+                f"node {node_id} returned an invalid response",
+                502,
+                node_id=node_id,
+                details={"reason": "malformed json", "action": action},
+            )
         except NodeRequestError:
             return _error_response(
                 "NODE_UNREACHABLE",
