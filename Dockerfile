@@ -105,8 +105,8 @@ RUN chmod +x /app/healthcheck.py
 # Known-good baseline: Raspberry Pi Bookworm repo package for python3-picamera2 (archive.raspberrypi.org/debian)
 RUN python3 -c "import numpy; import flask; import flask_cors; import picamera2;
 module_fn = getattr(picamera2, 'global_camera_info', None);
-class_obj = getattr(picamera2, 'Picamera2', None);
-class_fn = getattr(class_obj, 'global_camera_info', None) if class_obj is not None else None;
+picamera2_class = getattr(picamera2, 'Picamera2', None);
+class_fn = getattr(picamera2_class, 'global_camera_info', None) if picamera2_class is not None else None;
 if callable(module_fn):
     print('All required modules imported successfully; camera-info API via picamera2.global_camera_info');
 elif callable(class_fn):
