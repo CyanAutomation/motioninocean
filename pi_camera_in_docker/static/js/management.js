@@ -8,6 +8,10 @@ const editingNodeIdInput = document.getElementById("editing-node-id");
 
 let nodes = [];
 let nodeStatusMap = new Map();
+let statusRefreshInFlight = false;
+let statusRefreshPending = false;
+let statusRefreshToken = 0;
+let statusRefreshIntervalId;
 
 function showFeedback(message, isError = false) {
   feedback.textContent = message;
@@ -135,23 +139,62 @@ async function fetchNodes() {
   }
 }
 
-async function refreshStatuses() {
-  await Promise.all(
-    nodes.map(async (node) => {
-      try {
-        const response = await fetch(`/api/nodes/${encodeURIComponent(node.id)}/status`);
-        if (!response.ok) {
-          nodeStatusMap.set(node.id, { status: "error", stream_available: false });
-          return;
+function startStatusRefreshInterval() {
+  if (!statusRefreshIntervalId) {
+    statusRefreshIntervalId = window.setInterval(() => {
+      refreshStatuses({ fromInterval: true });
+    }, 5000);
+  }
+}
+
+function stopStatusRefreshInterval() {
+  if (statusRefreshIntervalId) {
+    window.clearInterval(statusRefreshIntervalId);
+    statusRefreshIntervalId = undefined;
+  }
+}
+
+async function refreshStatuses({ fromInterval = false } = {}) {
+  if (statusRefreshInFlight) {
+    if (fromInterval) {
+      statusRefreshPending = true;
+      return;
+    }
+    return;
+  }
+
+  statusRefreshInFlight = true;
+  const currentToken = ++statusRefreshToken;
+
+  try {
+    const nextStatusMap = new Map();
+    await Promise.all(
+      nodes.map(async (node) => {
+        try {
+          const response = await fetch(`/api/nodes/${encodeURIComponent(node.id)}/status`);
+          if (!response.ok) {
+            nextStatusMap.set(node.id, { status: "error", stream_available: false });
+            return;
+          }
+          const payload = await response.json();
+          nextStatusMap.set(node.id, payload);
+        } catch {
+          nextStatusMap.set(node.id, { status: "error", stream_available: false });
         }
-        const payload = await response.json();
-        nodeStatusMap.set(node.id, payload);
-      } catch {
-        nodeStatusMap.set(node.id, { status: "error", stream_available: false });
-      }
-    })
-  );
-  renderRows();
+      })
+    );
+
+    if (currentToken === statusRefreshToken) {
+      nodeStatusMap = nextStatusMap;
+      renderRows();
+    }
+  } finally {
+    statusRefreshInFlight = false;
+    if (statusRefreshPending) {
+      statusRefreshPending = false;
+      await refreshStatuses();
+    }
+  }
 }
 
 function resetForm() {
@@ -275,15 +318,17 @@ async function init() {
     showFeedback("");
   });
   refreshBtn.addEventListener("click", async () => {
+    stopStatusRefreshInterval();
     await fetchNodes();
     await refreshStatuses();
+    startStatusRefreshInterval();
     showFeedback("Node list refreshed.");
   });
   tableBody.addEventListener("click", onTableClick);
 
   await fetchNodes();
   await refreshStatuses();
-  window.setInterval(refreshStatuses, 5000);
+  startStatusRefreshInterval();
 }
 
 init().catch((error) => {
