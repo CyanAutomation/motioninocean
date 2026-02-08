@@ -275,3 +275,35 @@ def test_update_existing_docker_node_requires_admin_without_transport_in_payload
     )
     assert forbidden.status_code == 403
     assert forbidden.json["error"]["code"] == "FORBIDDEN"
+
+
+def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch, tmp_path):
+    import management_api
+
+    original_update_node = management_api.FileNodeRegistry.update_node
+
+    def flaky_update_node(self, node_id, patch):
+        if node_id == "node-race":
+            raise KeyError(node_id)
+        return original_update_node(self, node_id, patch)
+
+    monkeypatch.setattr(management_api.FileNodeRegistry, "update_node", flaky_update_node)
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-race",
+        "name": "Race Node",
+        "base_url": "http://example.com",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+
+    created = client.post("/api/nodes", json=payload)
+    assert created.status_code == 201
+
+    response = client.put("/api/nodes/node-race", json={"name": "Updated Name"})
+    assert response.status_code == 404
+    assert response.json["error"]["code"] == "NODE_NOT_FOUND"
