@@ -544,7 +544,7 @@ function switchTab(tabName) {
     // Stop stats updates and start config refresh/timestamp updates
     stopStatsUpdate();
 
-    if (!wasConfigTab && isConfigTab) {
+    if (!wasConfigTab) {
       updateConfig().catch((error) => console.error("Config update failed:", error));
       startConfigPolling();
       startConfigTimestampUpdate();
