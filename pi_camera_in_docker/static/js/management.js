@@ -28,8 +28,9 @@ function getAuthPayload() {
     if (token) {
       return { type, encoded: token };
     }
-    if (username || password) {
+    if (username && password) {
       return { type, username, password };
+    }
     }
   }
 
