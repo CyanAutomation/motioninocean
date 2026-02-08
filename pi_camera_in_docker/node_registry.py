@@ -176,19 +176,30 @@ class FileNodeRegistry(NodeRegistry):
 
         with self._exclusive_lock():
             data = self._load()
-            for index, existing in enumerate(data["nodes"]):
+            merged: Optional[Dict[str, Any]] = None
+            for existing in data["nodes"]:
                 if existing.get("id") != node_id:
                     continue
                 merged = {**existing, **validated_patch}
                 merged = validate_node(merged)
+                break
+
+            if merged is None:
+                raise KeyError(node_id)
+
+            latest = self._load()
+            for index, existing in enumerate(latest["nodes"]):
+                if existing.get("id") != node_id:
+                    continue
                 if any(
                     other_index != index and other.get("id") == merged["id"]
-                    for other_index, other in enumerate(data["nodes"])
+                    for other_index, other in enumerate(latest["nodes"])
                 ):
                     raise NodeValidationError(f"node {merged['id']} already exists")
-                data["nodes"][index] = merged
-                self._save(data)
+                latest["nodes"][index] = merged
+                self._save(latest)
                 return merged
+
             raise KeyError(node_id)
 
     def delete_node(self, node_id: str) -> bool:
