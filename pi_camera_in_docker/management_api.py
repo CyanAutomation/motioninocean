@@ -263,7 +263,7 @@ def register_management_routes(
         payload = request.get_json(silent=True) or {}
 
         existing = registry.get_node(node_id)
-        effective_transport = payload.get("transport", existing.get("transport") if existing else None)
+        effective_transport = payload.get("transport", existing.get("transport") if (existing and isinstance(existing, dict)) else None)
         admin_error = _enforce_admin_for_docker(effective_transport)
         if admin_error is not None:
             return admin_error
