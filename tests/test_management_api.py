@@ -307,3 +307,70 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
     response = client.put("/api/nodes/node-race", json={"name": "Updated Name"})
     assert response.status_code == 404
     assert response.json["error"]["code"] == "NODE_NOT_FOUND"
+
+
+def test_status_returns_invalid_response_on_malformed_upstream_json(monkeypatch, tmp_path):
+    import management_api
+
+    original_request_json = management_api._request_json
+
+    def fake_request_json(node, method, path, body=None):
+        if path == "/health":
+            raise management_api.NodeInvalidResponseError("node returned malformed JSON")
+        return original_request_json(node, method, path, body)
+
+    monkeypatch.setattr(management_api, "_request_json", fake_request_json)
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-bad-status",
+        "name": "Bad Status",
+        "base_url": "http://example.com",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["metrics"],
+        "transport": "http",
+    }
+
+    created = client.post("/api/nodes", json=payload)
+    assert created.status_code == 201
+
+    status = client.get("/api/nodes/node-bad-status/status")
+    assert status.status_code == 502
+    assert status.json["error"]["code"] == "NODE_INVALID_RESPONSE"
+    assert status.json["error"]["details"]["reason"] == "malformed json"
+
+
+def test_action_returns_invalid_response_on_malformed_upstream_json(monkeypatch, tmp_path):
+    import management_api
+
+    original_request_json = management_api._request_json
+
+    def fake_request_json(node, method, path, body=None):
+        if path.startswith("/api/actions/"):
+            raise management_api.NodeInvalidResponseError("node returned malformed JSON")
+        return original_request_json(node, method, path, body)
+
+    monkeypatch.setattr(management_api, "_request_json", fake_request_json)
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-bad-action",
+        "name": "Bad Action",
+        "base_url": "http://example.com",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+
+    created = client.post("/api/nodes", json=payload)
+    assert created.status_code == 201
+
+    action = client.post("/api/nodes/node-bad-action/actions/restart", json={})
+    assert action.status_code == 502
+    assert action.json["error"]["code"] == "NODE_INVALID_RESPONSE"
+    assert action.json["error"]["details"]["reason"] == "malformed json"
+    assert action.json["error"]["details"]["action"] == "restart"
