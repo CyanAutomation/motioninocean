@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+
 try:
     import fcntl
 except ImportError:  # pragma: no cover - unavailable on non-POSIX

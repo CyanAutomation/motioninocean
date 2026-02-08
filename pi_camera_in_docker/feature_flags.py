@@ -292,10 +292,12 @@ class FeatureFlags:
             ValueError: If flag name already exists or is invalid.
         """
         if flag.name in self._flags:
-            raise ValueError(f"Feature flag '{flag.name}' already registered")
+            message = f"Feature flag '{flag.name}' already registered"
+            raise ValueError(message)
 
         if not flag.name:
-            raise ValueError("Feature flag name cannot be empty")
+            message = "Feature flag name cannot be empty"
+            raise ValueError(message)
 
         self._flags[flag.name] = flag
 
@@ -303,10 +305,11 @@ class FeatureFlags:
         if flag.backward_compat_vars:
             for legacy_var in flag.backward_compat_vars:
                 if legacy_var in self._legacy_mappings:
-                    raise ValueError(
+                    message = (
                         f"Legacy variable '{legacy_var}' mapped to multiple flags: "
                         f"'{self._legacy_mappings[legacy_var]}' and '{flag.name}'"
                     )
+                    raise ValueError(message)
                 self._legacy_mappings[legacy_var] = flag.name
 
     def load(self) -> None:
@@ -380,7 +383,8 @@ class FeatureFlags:
             KeyError: If flag not found.
         """
         if flag_name not in self._flags:
-            raise KeyError(f"Unknown feature flag: {flag_name}")
+            message = f"Unknown feature flag: {flag_name}"
+            raise KeyError(message)
 
         return self._flags[flag_name].enabled
 

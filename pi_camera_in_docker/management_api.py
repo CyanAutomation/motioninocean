@@ -1,5 +1,5 @@
-import json
 import ipaddress
+import json
 import socket
 import urllib.error
 import urllib.request

@@ -1,0 +1,11 @@
+# Override for MOCK_CAMERA mode - removes device dependencies
+version: '3.8'
+x-motion-in-ocean-camera: &motion-in-ocean-camera
+  volumes:
+    - /run/udev:/run/udev:ro
+
+services:
+  motion-in-ocean-webcam:
+    devices: []
+    group_add: []
+    device_cgroup_rules: []
