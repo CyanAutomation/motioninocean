@@ -94,6 +94,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.1] - 2026-02-08
+
+- Fix: Update documentation to reflect bearer token authentication for Docker transport setup
+- Refactor management API authentication: replace token roles with a single bearer token; update related documentation and tests
+
 ## [1.13.0] - 2026-02-08
 
 - Fix: Enhance management mode configuration with persistent storage setup; update logging and error handling for node registry; improve tests for management mode startup
