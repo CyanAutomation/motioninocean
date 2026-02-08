@@ -375,7 +375,7 @@ export ENABLE_DOCKER_SOCKET_PROXY=true
 docker-compose --profile webcam --profile docker-socket-proxy up -d
 ```
 
-Then add nodes with `transport: "docker"` in management UI (requires admin role).
+Then add nodes with `transport: "docker"` in management UI (requires bearer token authentication).
 
 **⚠️ See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed setup, troubleshooting, and security best practices.**
 

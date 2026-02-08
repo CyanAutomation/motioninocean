@@ -241,7 +241,7 @@ Docker Socket Proxy enables management mode to communicate with remote Docker ho
 
 - Docker running on both management and webcam hosts
 - Both hosts accessible via Docker socket proxy
-- Admin role token configured (if using auth)
+- Bearer token configured (if using auth)
 
 ### Step 1: Enable docker-socket-proxy on Webcam Host
 

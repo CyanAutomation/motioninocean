@@ -30,7 +30,7 @@ class NodeInvalidResponseError(NodeRequestError):
 #    - Status and actions fully supported
 #
 # 2. "docker" (Docker API via docker-socket-proxy) - Advanced transport
-#    - Requires admin role and docker-socket-proxy setup on remote host
+#    - Requires bearer token authentication and docker-socket-proxy setup on remote host
 #    - Allows direct Docker API queries to remote hosts
 #    - Status and actions not yet implemented (stub returns TRANSPORT_UNSUPPORTED)
 #    - Use ENABLE_DOCKER_SOCKET_PROXY=true to activate docker-socket-proxy service
