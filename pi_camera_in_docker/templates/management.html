@@ -38,17 +38,10 @@
         <select id="node-auth-type" name="auth_type">
           <option value="none" selected>none</option>
           <option value="bearer">bearer</option>
-          <option value="basic">basic</option>
         </select>
 
-        <label for="node-auth-token">Auth Token / Encoded Credential (optional)</label>
-        <input id="node-auth-token" name="auth_token" placeholder="Bearer token or base64(user:pass)">
-
-        <label for="node-auth-username">Auth Username (basic, optional)</label>
-        <input id="node-auth-username" name="auth_username" placeholder="camera-user">
-
-        <label for="node-auth-password">Auth Password (basic, optional)</label>
-        <input id="node-auth-password" name="auth_password" type="password" placeholder="password">
+        <label for="node-auth-token">Bearer Token (optional)</label>
+        <input id="node-auth-token" name="auth_token" placeholder="Bearer token">
 
         <label for="node-capabilities">Capabilities (comma-separated)</label>
         <input id="node-capabilities" name="capabilities" placeholder="stream, snapshot">
