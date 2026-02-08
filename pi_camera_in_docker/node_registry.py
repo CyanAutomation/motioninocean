@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import tempfile
 from abc import ABC, abstractmethod
@@ -17,6 +18,9 @@ try:
     import msvcrt
 except ImportError:  # pragma: no cover - unavailable on non-Windows
     msvcrt = None
+
+
+logger = logging.getLogger(__name__)
 
 
 REQUIRED_NODE_FIELDS = {
@@ -192,7 +196,16 @@ def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]
 class FileNodeRegistry(NodeRegistry):
     def __init__(self, path: str):
         self.path = Path(path)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+        except PermissionError as e:
+            message = (
+                f"Permission denied accessing registry path: {self.path.parent}. "
+                f"Set NODE_REGISTRY_PATH to a writable directory (e.g., ./data/node-registry.json) "
+                f"and ensure the container has write access. See DEPLOYMENT.md for details."
+            )
+            logger.error(message)
+            raise NodeValidationError(message) from e
 
     def _load(self) -> Dict[str, Any]:
         if not self.path.exists():

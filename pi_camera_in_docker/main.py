@@ -190,6 +190,12 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
         auth_required=cfg["management_auth_required"],
         token_roles_raw=cfg["management_token_roles"],
     )
+    # Log management mode startup configuration
+    logger.info(
+        "management_mode_initialized: auth_required=%s, registry_path=%s",
+        cfg["management_auth_required"],
+        cfg["node_registry_path"],
+    )
     return app
 
 
@@ -372,6 +378,7 @@ app = (
     else create_webcam_app(config)
 )
 
+logger.info("Application started in %s mode", config["app_mode"])
 
 def handle_shutdown(signum: int, _frame: Optional[object]) -> None:
     app_state = getattr(app, "motion_state", None)

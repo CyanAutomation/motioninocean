@@ -115,18 +115,43 @@ curl -X GET http://192.168.1.101:8000/ready
 
 ### Step 3: Configure Management Host
 
-On the **management host**, set up management mode:
+**Important: Persistent Storage Setup**
+
+The management mode relies on a **node registry file** to store node configurations. Without persistent storage, node configurations are lost when the container restarts. Docker Compose automatically creates a named volume (`motion-in-ocean-data`) for this purpose.
+
+For production deployments, you should also configure the registry path and authentication:
 
 ```bash
 # .env on management host
 MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
 MOTION_IN_OCEAN_MANAGEMENT_PORT=8001
+
+# Persistent storage for node registry (optional: override default /data/node-registry.json)
+# NODE_REGISTRY_PATH=/data/custom-registry.json
+
+# Authentication (highly recommended for production)
+# Generate a strong token: openssl rand -hex 32
+# MANAGEMENT_AUTH_REQUIRED=true
+# MANAGEMENT_TOKEN_ROLES=YOUR_GENERATED_TOKEN:admin
+
+# Note: MANAGEMENT_AUTH_REQUIRED defaults to true. For localhost-only deployments, 
+# you may set it to false, but always enable authentication for network-accessible deployments.
 ```
 
 Then:
 
 ```bash
 docker-compose --profile management up -d
+```
+
+**Verify persistent storage is working:**
+
+```bash
+# Check that the data volume was created
+docker volume ls | grep motion-in-ocean
+
+# Inspect the volume to see where data is stored
+docker volume inspect motion-in-ocean-data
 ```
 
 ### Step 4: Add Nodes via Management UI

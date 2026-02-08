@@ -24,7 +24,7 @@ def register_shared_routes(
             return jsonify(
                 {
                     "status": "ready",
-                    "reason": "camera_disabled_for_management_mode",
+                    "reason": "no_camera_required",
                     "app_mode": state["app_mode"],
                     "timestamp": datetime.now().isoformat(),
                 }

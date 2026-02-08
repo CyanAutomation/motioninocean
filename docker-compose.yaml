@@ -140,6 +140,9 @@ services:
     <<: *motion-in-ocean-common
     container_name: motion-in-ocean-management
     profiles: ["management"]
+    volumes:
+      # Persistent storage for node registry (required for management mode)
+      - motion-in-ocean-data:/data
     environment:
       # Deployment settings from .env file
       TZ: ${TZ}
@@ -172,3 +175,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 1m
+
+# Named volumes for persistent storage
+volumes:
+  motion-in-ocean-data:
+    driver: local
