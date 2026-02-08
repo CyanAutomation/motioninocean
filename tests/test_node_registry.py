@@ -37,25 +37,37 @@ def test_update_node_detects_id_collision(tmp_path):
         assert str(exc) == "node node-2 already exists"
 
 
-def test_create_node_rejects_basic_auth_username_with_colon(tmp_path):
+def test_create_node_rejects_basic_auth_type(tmp_path):
     registry = FileNodeRegistry(str(tmp_path / "registry.json"))
     node = _node("node-1", "One")
-    node["auth"] = {"type": "basic", "username": "bad:user", "password": "secret"}
+    node["auth"] = {"type": "basic"}
 
     try:
         registry.create_node(node)
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
-        assert str(exc) == "auth.username cannot contain colon character"
+        assert str(exc) == "auth.type must be one of: none, bearer"
 
 
-def test_create_node_rejects_basic_auth_empty_password(tmp_path):
+def test_create_node_rejects_legacy_auth_keys(tmp_path):
     registry = FileNodeRegistry(str(tmp_path / "registry.json"))
     node = _node("node-1", "One")
-    node["auth"] = {"type": "basic", "username": "camera", "password": ""}
+    node["auth"] = {"type": "none", "username": "camera"}
 
     try:
         registry.create_node(node)
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
-        assert str(exc) == "auth.password must be a non-empty string"
+        assert str(exc) == "auth.username is not supported; use auth.type='bearer' with auth.token"
+
+
+def test_create_node_requires_bearer_token(tmp_path):
+    registry = FileNodeRegistry(str(tmp_path / "registry.json"))
+    node = _node("node-1", "One")
+    node["auth"] = {"type": "bearer"}
+
+    try:
+        registry.create_node(node)
+        assert False, "Expected NodeValidationError"
+    except NodeValidationError as exc:
+        assert str(exc) == "auth.token is required for auth.type='bearer'"

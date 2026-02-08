@@ -91,6 +91,28 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
     assert action.json["error"]["code"] == "TRANSPORT_UNSUPPORTED"
 
 
+
+
+def test_create_node_rejects_legacy_basic_auth(monkeypatch, tmp_path):
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-legacy-auth",
+        "name": "Legacy Auth",
+        "base_url": "http://example.com",
+        "auth": {"type": "basic", "username": "camera", "password": "secret"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+
+    response = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    assert response.status_code == 400
+    assert response.json["error"]["code"] == "VALIDATION_ERROR"
+    assert response.json["error"]["message"] == "auth.type must be one of: none, bearer"
+
+
 def test_ssrf_protection_blocks_local_targets(monkeypatch, tmp_path):
     client = _new_management_client(monkeypatch, tmp_path)
 
@@ -315,28 +337,22 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
     assert response.json["error"]["code"] == "NODE_NOT_FOUND"
 
 
-def test_build_headers_for_basic_auth_with_username_password():
+def test_build_headers_for_bearer_auth():
     import management_api
 
-    node = {
-        "auth": {
-            "type": "basic",
-            "username": "camera",
-            "password": "secret",
-        }
-    }
+    node = {"auth": {"type": "bearer", "token": "node-token"}}
 
     headers = management_api._build_headers(node)
-    assert headers == {"Authorization": "Basic Y2FtZXJhOnNlY3JldA=="}
+    assert headers == {"Authorization": "Bearer node-token"}
 
 
-def test_build_headers_for_basic_auth_with_encoded_credentials():
+def test_build_headers_for_none_auth():
     import management_api
 
-    node = {"auth": {"type": "basic", "encoded": "dXNlcjpwYXNz"}}
+    node = {"auth": {"type": "none"}}
 
     headers = management_api._build_headers(node)
-    assert headers == {"Authorization": "Basic dXNlcjpwYXNz"}
+    assert headers == {}
 
 
 def test_management_routes_require_authentication(monkeypatch, tmp_path):
