@@ -94,6 +94,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-02-08
+
+- Fix: Enhance management mode configuration with persistent storage setup; update logging and error handling for node registry; improve tests for management mode startup
+- Fix: Enhance device availability checks and improve error logging in camera initialization; refactor FPS calculation in StreamStats for clarity
+
 ## [1.12.9] - 2026-02-08
 
 - Fix: Update variable naming conventions for clarity in audit-template.js; enhance ESLint configuration to enforce unused variable rules
