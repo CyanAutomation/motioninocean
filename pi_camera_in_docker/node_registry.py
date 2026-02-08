@@ -7,6 +7,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - unavailable on non-POSIX
+    fcntl = None
+
+try:
+    import msvcrt
+except ImportError:  # pragma: no cover - unavailable on non-Windows
+    msvcrt = None
+
 
 REQUIRED_NODE_FIELDS = {
     "id",
@@ -214,25 +224,30 @@ class FileNodeRegistry(NodeRegistry):
     @contextmanager
     def _exclusive_lock(self):
         lock_path = self.path.parent / f"{self.path.name}.lock"
-        with open(lock_path, "w", encoding="utf-8") as lock_file:
-            has_fcntl = False
-            try:
-                import fcntl
-
+        with open(lock_path, "a+b") as lock_file:
+            if fcntl is not None:
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
-                has_fcntl = True
-            except ImportError:
-                pass
-
-            try:
-                yield
-            finally:
-                if not has_fcntl:
-                    return
                 try:
+                    yield
+                finally:
                     fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-                except OSError:
-                    pass
+                return
+
+            if msvcrt is not None:
+                file_size = lock_file.seek(0, 2)  # Seek to end to get size
+                if file_size == 0:
+                    lock_file.write(b"\0")
+                    lock_file.flush()
+                lock_file.seek(0)
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+                try:
+                    yield
+                finally:
+                    lock_file.seek(0)
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                return
+
+            raise RuntimeError("No supported file-lock backend available for this platform")
 
     def list_nodes(self) -> List[Dict[str, Any]]:
         return self._load()["nodes"]
