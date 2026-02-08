@@ -133,11 +133,17 @@ def test_camera_detection_error_handling(workspace_root):
     main_py = workspace_root / "pi_camera_in_docker" / "main.py"
     code = main_py.read_text()
 
-    # Verify camera detection check is present
-    assert "global_camera_info()" in code, "Camera detection check missing"
+    # Verify startup path attempts to retrieve camera inventory
+    assert "camera_info, detection_path = _get_camera_info" in code, (
+        "Camera detection retrieval missing from startup path"
+    )
+    assert "Camera inventory detection path" in code, (
+        "Missing camera detection path logging"
+    )
 
     # Verify empty camera list handling
     assert "if not camera_info:" in code, "Empty camera list check missing"
+    assert "raise RuntimeError" in code, "Expected RuntimeError raise missing"
 
     # Verify IndexError handling
     assert "except IndexError" in code, "IndexError handler missing"
