@@ -167,7 +167,6 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
 
     port = parsed_url.port
     try:
-        ip = ipaddress.ip_address(hostname)
         if _is_blocked_address(hostname):
             message = "node target is not allowed"
             raise NodeRequestError(message)

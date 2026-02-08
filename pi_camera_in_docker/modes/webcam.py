@@ -53,10 +53,12 @@ class FrameBuffer(io.BufferedIOBase):
             return size
         with self.condition:
             now = time.monotonic()
-            if self._target_frame_interval is not None and self._last_frame_monotonic is not None:
-                if now - self._last_frame_monotonic < self._target_frame_interval:
-                    return size
-            self.frame = buf
+                            if (
+                                self._target_frame_interval is not None
+                                and self._last_frame_monotonic is not None
+                                and now - self._last_frame_monotonic < self._target_frame_interval
+                            ):
+                                return size            self.frame = buf
             self._last_frame_monotonic = now
             self._stats.record_frame(now)
             self.condition.notify_all()
@@ -134,7 +136,7 @@ def get_stream_status(stats: StreamStats, resolution: Tuple[int, int]) -> Dict[s
 
 
 def register_webcam_routes(
-    app: Flask, state: dict, is_flag_enabled: Callable[[str], bool], log_event: Callable[..., None]
+    app: Flask, state: dict, is_flag_enabled: Callable[[str], bool]
 ) -> None:
     output = state["output"]
     tracker = state["connection_tracker"]

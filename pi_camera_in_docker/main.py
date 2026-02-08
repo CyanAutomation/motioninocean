@@ -213,7 +213,7 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
         app, state, get_stream_status=lambda: get_stream_status(stream_stats, cfg["resolution"])
     )
     register_webcam_routes(
-        app, state, is_flag_enabled=is_flag_enabled, log_event=lambda *_, **__: None
+        app, state, is_flag_enabled=is_flag_enabled
     )
     _run_webcam_mode(state, cfg)
     return app

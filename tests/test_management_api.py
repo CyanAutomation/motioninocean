@@ -70,7 +70,7 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
         "base_url": "http://docker.local",
         "auth": {"type": "none"},
         "labels": {},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["stream"],
         "transport": "docker",
     }
@@ -103,7 +103,7 @@ def test_create_node_rejects_unmigratable_legacy_basic_auth(monkeypatch, tmp_pat
         "base_url": "http://example.com",
         "auth": {"type": "basic", "username": "camera", "password": "secret"},
         "labels": {},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["stream"],
         "transport": "http",
     }
@@ -123,7 +123,7 @@ def test_ssrf_protection_blocks_local_targets(monkeypatch, tmp_path):
         "base_url": "http://127.0.0.1:8080",
         "auth": {"type": "none"},
         "labels": {},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["metrics"],
         "transport": "http",
     }
@@ -172,7 +172,7 @@ def test_ssrf_protection_blocks_ipv6_mapped_loopback(monkeypatch, tmp_path):
         "base_url": "http://[::ffff:127.0.0.1]:8080",
         "auth": {"type": "none"},
         "labels": {},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["metrics"],
         "transport": "http",
     }
@@ -200,7 +200,7 @@ def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
         "base_url": "http://169.254.169.254",
         "auth": {"type": "none"},
         "labels": {},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["metrics"],
         "transport": "http",
     }
@@ -230,7 +230,7 @@ def test_docker_transport_requires_admin_when_auth_disabled(monkeypatch, tmp_pat
         "base_url": "http://docker.local",
         "auth": {"type": "none"},
         "labels": {},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["stream"],
         "transport": "docker",
     }
@@ -251,7 +251,7 @@ def test_docker_transport_allows_admin_token(monkeypatch, tmp_path):
         "base_url": "http://docker.local",
         "auth": {"type": "none"},
         "labels": {},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["stream"],
         "transport": "docker",
     }
@@ -290,7 +290,7 @@ def test_update_existing_docker_node_requires_admin_without_transport_in_payload
         "base_url": "http://docker.local",
         "auth": {"type": "none"},
         "labels": {},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["stream"],
         "transport": "docker",
     }
@@ -330,7 +330,7 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
         "base_url": "http://example.com",
         "auth": {"type": "none"},
         "labels": {},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["stream"],
         "transport": "http",
     }
@@ -379,7 +379,7 @@ def test_management_routes_require_authentication(monkeypatch, tmp_path):
         "base_url": "http://example.com",
         "auth": {"type": "none"},
         "labels": {},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["stream"],
         "transport": "http",
     }
@@ -426,7 +426,7 @@ def test_node_status_maps_invalid_upstream_payload_to_controlled_error(monkeypat
         "base_url": "http://example.com",
         "auth": {"type": "none"},
         "labels": {},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["stream"],
         "transport": "http",
     }
@@ -460,7 +460,7 @@ def test_node_action_maps_invalid_upstream_payload_to_controlled_error(monkeypat
         "base_url": "http://example.com",
         "auth": {"type": "none"},
         "labels": {},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["stream"],
         "transport": "http",
     }
@@ -497,7 +497,7 @@ def test_create_node_migrates_legacy_auth_with_token(monkeypatch, tmp_path):
             "password": "legacy",
         },
         "labels": {},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["stream"],
         "transport": "http",
     }

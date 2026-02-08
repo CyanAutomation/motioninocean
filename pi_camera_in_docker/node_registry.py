@@ -216,8 +216,6 @@ class FileNodeRegistry(NodeRegistry):
 
             migrated = dict(node)
             node_id = str(migrated.get("id", f"index {index}"))
-            migrated = dict(node)
-            node_id = str(migrated.get("id", f"index {index}"))
             migrated_nodes.append(validate_node(migrated))
 
         return {"nodes": migrated_nodes}
@@ -235,7 +233,7 @@ class FileNodeRegistry(NodeRegistry):
     @contextmanager
     def _exclusive_lock(self):
         lock_path = self.path.parent / f"{self.path.name}.lock"
-        with open(lock_path, "a+b") as lock_file:
+        with lock_path.open("a+b") as lock_file:
             if fcntl is not None:
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
                 try:
