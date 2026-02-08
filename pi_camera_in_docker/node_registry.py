@@ -195,8 +195,8 @@ class FileNodeRegistry(NodeRegistry):
 
             migrated = dict(node)
             node_id = str(migrated.get("id", f"index {index}"))
-            if "auth" in migrated:
-                migrated["auth"] = migrate_legacy_auth(migrated["auth"], node_id=node_id)
+            migrated = dict(node)
+            node_id = str(migrated.get("id", f"index {index}"))
             migrated_nodes.append(validate_node(migrated))
 
         return {"nodes": migrated_nodes}
