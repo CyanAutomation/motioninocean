@@ -99,7 +99,8 @@ def _vet_resolved_addresses(addresses: Tuple[str, ...]) -> Tuple[str, ...]:
     vetted = []
     for address in addresses:
         if _is_blocked_address(address):
-            raise NodeRequestError("node target is not allowed")
+            message = "node target is not allowed"
+            raise NodeRequestError(message)
         if address not in vetted:
             vetted.append(address)
     return tuple(vetted)
@@ -161,13 +162,15 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
     parsed_url = urlparse(url)
     hostname = parsed_url.hostname
     if not hostname:
-        raise NodeRequestError("node target is invalid")
+        message = "node target is invalid"
+        raise NodeRequestError(message)
 
     port = parsed_url.port
     try:
         ip = ipaddress.ip_address(hostname)
         if _is_blocked_address(hostname):
-            raise NodeRequestError("node target is not allowed")
+            message = "node target is not allowed"
+            raise NodeRequestError(message)
         resolved_addresses = (hostname,)
     except ValueError:
         try:
