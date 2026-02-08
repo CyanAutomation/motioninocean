@@ -145,6 +145,17 @@ def register_webcam_routes(
         if not tracker.try_increment(state["max_stream_connections"]):
             return Response("Too many connections", status=429)
 
+        slot_release_lock = Lock()
+        slot_released = False
+
+        def release_stream_slot() -> None:
+            nonlocal slot_released
+            with slot_release_lock:
+                if slot_released:
+                    return
+                slot_released = True
+            tracker.decrement()
+
         def gen_with_tracking():
             try:
                 while True:
@@ -155,9 +166,11 @@ def register_webcam_routes(
                         continue
                     yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
             finally:
-                tracker.decrement()
+                release_stream_slot()
 
-        return Response(gen_with_tracking(), mimetype="multipart/x-mixed-replace; boundary=frame")
+        response = Response(gen_with_tracking(), mimetype="multipart/x-mixed-replace; boundary=frame")
+        response.call_on_close(release_stream_slot)
+        return response
 
     def _build_snapshot_response() -> Response:
         if not state["recording_started"].is_set():
