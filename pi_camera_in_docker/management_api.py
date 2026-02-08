@@ -158,10 +158,6 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
         except json.JSONDecodeError as decode_exc:
             raise NodeInvalidResponseError("node returned malformed JSON") from decode_exc
         return exc.code, body_json
-            body_json = json.loads(body_text) if body_text else {}
-        except json.JSONDecodeError:
-            body_json = {"raw": body_text}
-        return exc.code, body_json
     except urllib.error.URLError as exc:
         raise ConnectionError(str(exc.reason)) from exc
 

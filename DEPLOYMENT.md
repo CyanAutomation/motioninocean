@@ -150,7 +150,8 @@ docker-compose --profile management up -d
      "base_url": "http://192.168.1.101:8000",
      "transport": "http",
      "auth": {
-       "type": "none"
+       "type": "bearer",
+       "token": "<webcam_node_api_token>"
      },
      "labels": {
        "location": "living-room",
@@ -168,9 +169,29 @@ docker-compose --profile management up -d
        "name": "Camera 1",
        "base_url": "http://192.168.1.101:8000",
        "transport": "http",
+       "auth": {"type": "bearer", "token": "<webcam_node_api_token>"},
        "labels": {"location": "living-room"}
      }'
    ```
+
+
+### Node Auth Migration (Breaking Change)
+
+Management mode now supports only:
+
+- `{"type": "none"}`
+- `{"type": "bearer", "token": "<api_token>"}`
+
+Deprecated auth payloads (`auth.type=basic` and `auth.username`/`auth.password`/`auth.encoded`) are rejected unless they can be safely converted to bearer token format.
+
+Run one-off migration before upgrade if your registry still contains legacy auth fields:
+
+```bash
+python scripts/migrate_node_registry_auth.py --path "$NODE_REGISTRY_PATH" --dry-run
+python scripts/migrate_node_registry_auth.py --path "$NODE_REGISTRY_PATH"
+```
+
+If migration reports an error, replace each legacy node auth object with a bearer API token manually, then re-run the script.
 
 ### Step 5: Verify Node Status
 

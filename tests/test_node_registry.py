@@ -37,28 +37,32 @@ def test_update_node_detects_id_collision(tmp_path):
         assert str(exc) == "node node-2 already exists"
 
 
-def test_create_node_rejects_basic_auth_type(tmp_path):
+def test_create_node_rejects_basic_auth_without_convertible_token(tmp_path):
     registry = FileNodeRegistry(str(tmp_path / "registry.json"))
     node = _node("node-1", "One")
-    node["auth"] = {"type": "basic"}
+    node["auth"] = {"type": "basic", "username": "camera", "password": "secret"}
 
     try:
         registry.create_node(node)
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
-        assert str(exc) == "auth.type must be one of: none, bearer"
+        assert (
+            "auth.type='basic' cannot be auto-migrated without an API token" in str(exc)
+        )
 
 
-def test_create_node_rejects_legacy_auth_keys(tmp_path):
+def test_create_node_migrates_legacy_auth_with_token(tmp_path):
     registry = FileNodeRegistry(str(tmp_path / "registry.json"))
     node = _node("node-1", "One")
-    node["auth"] = {"type": "none", "username": "camera"}
+    node["auth"] = {
+        "type": "basic",
+        "token": "new-api-token",
+        "username": "legacy",
+        "password": "legacy",
+    }
 
-    try:
-        registry.create_node(node)
-        assert False, "Expected NodeValidationError"
-    except NodeValidationError as exc:
-        assert str(exc) == "auth.username is not supported; use auth.type='bearer' with auth.token"
+    created = registry.create_node(node)
+    assert created["auth"] == {"type": "bearer", "token": "new-api-token"}
 
 
 def test_create_node_requires_bearer_token(tmp_path):
@@ -71,3 +75,68 @@ def test_create_node_requires_bearer_token(tmp_path):
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
         assert str(exc) == "auth.token is required for auth.type='bearer'"
+
+
+def test_load_migrates_legacy_auth_from_registry_file(tmp_path):
+    registry_path = tmp_path / "registry.json"
+    registry_path.write_text(
+        """
+{
+  "nodes": [
+    {
+      "id": "node-legacy",
+      "name": "Legacy",
+      "base_url": "http://example.com",
+      "auth": {
+        "type": "basic",
+        "token": "api-token",
+        "username": "old-user"
+      },
+      "labels": {},
+      "last_seen": "2024-01-01T00:00:00",
+      "capabilities": ["stream"],
+      "transport": "http"
+    }
+  ]
+}
+""".strip(),
+        encoding="utf-8",
+    )
+
+    registry = FileNodeRegistry(str(registry_path))
+    listed = registry.list_nodes()
+    assert listed[0]["auth"] == {"type": "bearer", "token": "api-token"}
+
+
+def test_load_rejects_unmigratable_legacy_auth(tmp_path):
+    registry_path = tmp_path / "registry.json"
+    registry_path.write_text(
+        """
+{
+  "nodes": [
+    {
+      "id": "node-legacy",
+      "name": "Legacy",
+      "base_url": "http://example.com",
+      "auth": {
+        "type": "basic",
+        "username": "old-user",
+        "password": "old-pass"
+      },
+      "labels": {},
+      "last_seen": "2024-01-01T00:00:00",
+      "capabilities": ["stream"],
+      "transport": "http"
+    }
+  ]
+}
+""".strip(),
+        encoding="utf-8",
+    )
+
+    registry = FileNodeRegistry(str(registry_path))
+    try:
+        registry.list_nodes()
+        assert False, "Expected NodeValidationError"
+    except NodeValidationError as exc:
+        assert "uses deprecated auth fields" in str(exc)
