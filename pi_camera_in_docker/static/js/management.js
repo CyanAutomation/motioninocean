@@ -130,7 +130,7 @@ async function refreshStatuses() {
         }
         const payload = await response.json();
         nodeStatusMap.set(node.id, payload);
-      } catch (_error) {
+      } catch {
         nodeStatusMap.set(node.id, { status: "error", stream_available: false });
       }
     })
@@ -156,7 +156,7 @@ async function submitNodeForm(event) {
   let payload;
   try {
     payload = buildNodePayload({ preserveLastSeen: isEdit });
-  } catch (_error) {
+  } catch {
     showFeedback("Labels must be valid JSON.", true);
     return;
   }
@@ -185,6 +185,7 @@ async function submitNodeForm(event) {
   } catch (error) {
     showFeedback(error.message || "Network error occurred.", true);
   }
+}
 
 function beginEditNode(nodeId) {
   const node = nodes.find((entry) => entry.id === nodeId);
@@ -228,6 +229,7 @@ async function removeNode(nodeId) {
   } catch (error) {
     showFeedback(error.message || "Network error occurred.", true);
   }
+}
 
 function onTableClick(event) {
   const target = event.target;
