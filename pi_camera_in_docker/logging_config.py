@@ -51,7 +51,9 @@ class TextFormatter(ISO8601Formatter):
     def __init__(self, include_identifiers: bool = False) -> None:
         template = "%(asctime)s %(levelname)s %(name)s: %(message)s"
         if include_identifiers:
-            template = "%(asctime)s %(levelname)s %(name)s [pid=%(process)d tid=%(thread)d]: %(message)s"
+            template = (
+                "%(asctime)s %(levelname)s %(name)s [pid=%(process)d tid=%(thread)d]: %(message)s"
+            )
         super().__init__(fmt=template)
 
 
