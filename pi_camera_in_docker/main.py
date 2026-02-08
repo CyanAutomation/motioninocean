@@ -296,8 +296,8 @@ def _get_camera_info(picamera2_cls: Any) -> list:
     if callable(class_global_camera_info):
         try:
             return class_global_camera_info()
-        except AttributeError:
-            logger.debug("Picamera2.global_camera_info unavailable at runtime")
+        except Exception:
+            logger.debug("Picamera2.global_camera_info call failed at runtime")
 
     logger.warning(
         "Unable to query camera inventory from picamera2. Proceeding with empty camera list. "
