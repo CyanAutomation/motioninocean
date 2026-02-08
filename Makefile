@@ -1,7 +1,7 @@
 # Makefile for motion-in-ocean development tasks
 # Provides convenient shortcuts for common operations
 
-.PHONY: help install install-dev install-node test lint format type-check security clean run-mock docker-build docker-run pre-commit validate-diagrams check-playwright
+.PHONY: help install install-dev install-node test lint format type-check security clean run-mock docker-build docker-run pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive
 
 # Default target: show help
 help:
@@ -23,6 +23,10 @@ help:
 	@echo "Validation:"
 	@echo "  make validate-diagrams    Validate Mermaid diagram syntax"
 	@echo "  make check-playwright     Check Playwright installation"
+	@echo "  make audit-ui             Run full UI audit (both modes, all viewports)"
+	@echo "  make audit-ui-webcam      Run UI audit for webcam mode only"
+	@echo "  make audit-ui-management  Run UI audit for management mode only"
+	@echo "  make audit-ui-interactive Open Playwright inspector for manual auditing"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test             Run all tests with coverage"
@@ -120,6 +124,43 @@ check-playwright:
 	@echo "Verifying Playwright is installed..."
 	npx playwright --version
 	@echo "✓ Playwright is ready for testing"
+
+# UI Audit targets
+audit-ui-webcam:
+	@echo "Running UI audit for webcam mode..."
+	@if [ ! -f "audit-template.js" ]; then \
+		echo "Error: audit-template.js not found"; \
+		exit 1; \
+	fi
+	MIO_MODE=webcam node audit-template.js
+	@echo "✓ Webcam UI audit complete. See audit-results/ for details."
+
+audit-ui-management:
+	@echo "Running UI audit for management mode..."
+	@if [ ! -f "audit-template.js" ]; then \
+		echo "Error: audit-template.js not found"; \
+		exit 1; \
+	fi
+	MIO_MODE=management node audit-template.js
+	@echo "✓ Management UI audit complete. See audit-results/ for details."
+
+audit-ui:
+	@echo "Running UI audit for both modes..."
+	@if [ ! -f "audit-template.js" ]; then \
+		echo "Error: audit-template.js not found"; \
+		exit 1; \
+	fi
+	MIO_MODE=both node audit-template.js
+	@echo "✓ Full UI audit complete. See audit-results/ for details."
+
+audit-ui-interactive:
+	@echo "Opening Playwright inspector for interactive auditing..."
+	@if ! command -v npx &> /dev/null; then \
+		echo "Error: Node.js/npm not found. Run 'make install-node' first."; \
+		exit 1; \
+	fi
+	npx playwright codegen http://localhost:8000
+	@echo "Inspector closed. Save the generated script if needed."
 
 # Testing targets
 test:

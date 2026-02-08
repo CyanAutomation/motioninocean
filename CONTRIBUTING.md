@@ -156,6 +156,40 @@ Common diagram types in this project:
 * **Architecture flowcharts** (`graph TD`) — Multi-host deployment, system components.
 * **Sequence diagrams** (`sequenceDiagram`) — API workflows, node registry CRUD.
 * **Data flow diagrams** (`graph LR`) — Frame capture pipeline, stream to endpoints.
+
+### UI auditing guidelines
+
+When changes touch the web UI (HTML, CSS, JavaScript, form interactions, responsiveness), perform or request a UI audit to validate design, layout, accessibility, and user workflows across device sizes.
+
+**Guidelines:**
+
+* Refer to [`.github/skills/ui-playwright/SKILL.md`](.github/skills/ui-playwright/SKILL.md) for comprehensive UI auditing methodology using Playwright.
+* Test both **webcam mode** (streaming viewer) and **management mode** (node registry) if applicable.
+* Validate responsive design at three breakpoints: desktop (>1024px), tablet (768-1024px), mobile (<480px).
+* Check accessibility: keyboard navigation, ARIA labels, color contrast, focus states.
+* Explore error scenarios: network failures, validation errors, stale streams, edge cases.
+* Capture evidence: screenshots at each viewport and state for findings.
+* Generate structured audit report (markdown with findings, severity, recommendations).
+
+Common audit scenarios:
+
+* **Before PR merge:** Validate UI changes don't break responsive layout, accessibility, or workflows.
+* **Component updates:** Check button sizing, form labels, color/contrast, error messaging.
+* **Responsive changes:** Test at mobile, tablet, desktop breakpoints.
+* **Feature additions:** Validate new form fields, controls, status indicators, interactions.
+
+**Execution:**
+
+```bash
+# Local audit (interactive)
+npx playwright codegen http://localhost:8000  # generates recording of interactions
+
+# Docker-based audit
+docker compose --profile webcam -e MOCK_CAMERA=true up
+# In another terminal:
+node audit-script.js  # runs audit workflow, captures screenshots
+```
+
 ---
 
 ## Commit messages
