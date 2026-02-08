@@ -343,6 +343,28 @@ docker-compose --profile management up -d
 
 Then access the management UI at `http://192.168.1.100:8001/management` and add nodes with `base_url: http://192.168.1.101:8000`.
 
+### Hawser-Style Token Handshake
+
+Use a shared token between each remote webcam node and its management node entry:
+
+1. On the **webcam host**, set a token in `.env`:
+
+```bash
+MANAGEMENT_AUTH_TOKEN=replace-with-strong-random-token
+```
+
+2. Start (or restart) webcam profile on that host.
+3. In management UI, set node auth to `bearer` and enter the same token.
+
+This protects webcam control-plane endpoints (`/health`, `/ready`, `/metrics`, `/api/actions/*`) while keeping stream routes unchanged.
+
+Authenticated probe examples (from management host or any trusted client):
+
+```bash
+curl -H "Authorization: Bearer <webcam_node_token>" http://192.168.1.101:8000/health
+curl -H "Authorization: Bearer <webcam_node_token>" http://192.168.1.101:8000/metrics
+```
+
 ### Node Auth Format
 
 Management node auth supports only:

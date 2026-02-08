@@ -12,6 +12,8 @@ let statusRefreshInFlight = false;
 let statusRefreshPending = false;
 let statusRefreshToken = 0;
 let statusRefreshIntervalId;
+const NODE_TOKEN_HINT =
+  "Node authentication failed. Check the remote node MANAGEMENT_AUTH_TOKEN and this node bearer token match.";
 
 function showFeedback(message, isError = false) {
   feedback.textContent = message;
@@ -164,6 +166,12 @@ async function refreshStatuses({ fromInterval = false } = {}) {
           try {
             const response = await fetch(`/api/nodes/${encodeURIComponent(node.id)}/status`);
             if (!response.ok) {
+              if (!fromInterval && response.status === 401) {
+                const errorPayload = await response.json().catch(() => ({}));
+                if (errorPayload?.error?.code === "NODE_UNAUTHORIZED") {
+                  showFeedback(NODE_TOKEN_HINT, true);
+                }
+              }
               nextStatusMap.set(node.id, { status: "error", stream_available: false });
               return;
             }

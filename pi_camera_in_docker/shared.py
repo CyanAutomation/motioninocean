@@ -1,8 +1,49 @@
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Callable, Optional
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
+
+
+def extract_bearer_token(auth_header: str) -> Optional[str]:
+    if not auth_header.lower().startswith("bearer "):
+        return None
+    token = auth_header[7:].strip()
+    return token or None
+
+
+def register_webcam_control_plane_auth(
+    app: Flask, auth_token: str, app_mode_provider: Callable[[], str]
+) -> None:
+    protected_exact_paths = {"/health", "/ready", "/metrics"}
+
+    @app.before_request
+    def _webcam_control_plane_auth_guard():
+        if app_mode_provider() != "webcam":
+            return None
+        if not auth_token:
+            return None
+
+        path = request.path
+        if path not in protected_exact_paths and not path.startswith("/api/actions/"):
+            return None
+
+        token = extract_bearer_token(request.headers.get("Authorization", ""))
+        if token is None or token != auth_token:
+            return (
+                jsonify(
+                    {
+                        "error": {
+                            "code": "UNAUTHORIZED",
+                            "message": "authentication required",
+                            "details": {},
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        }
+                    }
+                ),
+                401,
+            )
+        return None
 
 
 def register_shared_routes(

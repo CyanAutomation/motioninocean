@@ -55,8 +55,16 @@
             <option value="bearer">bearer</option>
           </select>
 
-          <label for="node-auth-token">Bearer Token (optional)</label>
-          <input id="node-auth-token" name="auth_token" placeholder="Bearer token" />
+          <label for="node-auth-token">Remote Node Token (optional)</label>
+          <input
+            id="node-auth-token"
+            name="auth_token"
+            placeholder="Set to the remote node MANAGEMENT_AUTH_TOKEN"
+          />
+          <small>
+            For webcam nodes, use the same token configured in that node's `.env`
+            (`MANAGEMENT_AUTH_TOKEN`).
+          </small>
 
           <label for="node-capabilities">Capabilities (comma-separated)</label>
           <input id="node-capabilities" name="capabilities" placeholder="stream, snapshot" />

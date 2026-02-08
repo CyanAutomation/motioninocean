@@ -23,7 +23,7 @@ from modes.webcam import (
     register_webcam_routes,
 )
 from PIL import Image
-from shared import register_shared_routes
+from shared import register_shared_routes, register_webcam_control_plane_auth
 from werkzeug.serving import make_server
 
 
@@ -217,6 +217,11 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
 
     register_shared_routes(
         app, state, get_stream_status=lambda: get_stream_status(stream_stats, cfg["resolution"])
+    )
+    register_webcam_control_plane_auth(
+        app,
+        cfg["management_auth_token"],
+        app_mode_provider=lambda: state["app_mode"],
     )
     register_webcam_routes(
         app, state, is_flag_enabled=is_flag_enabled

@@ -193,6 +193,35 @@ docker volume inspect motion-in-ocean-data
      }'
    ```
 
+### Hawser-Style Token Handshake
+
+For each remote webcam node:
+
+1. Set a token on the webcam host `.env`:
+
+```bash
+MANAGEMENT_AUTH_TOKEN=replace-with-strong-random-token
+```
+
+2. Restart webcam profile to apply the token.
+3. In management UI, set node `auth.type` to `bearer` and set `auth.token` to the same value.
+
+When `MANAGEMENT_AUTH_TOKEN` is set in webcam mode, these endpoints require bearer auth:
+
+- `/health`
+- `/ready`
+- `/metrics`
+- `/api/actions/*`
+
+Verify with authenticated requests:
+
+```bash
+curl -H "Authorization: Bearer <webcam_node_token>" http://192.168.1.101:8000/health
+curl -H "Authorization: Bearer <webcam_node_token>" http://192.168.1.101:8000/metrics
+```
+
+If management shows `NODE_UNAUTHORIZED`, check that the node auth token in management exactly matches the remote webcam host token.
+
 ### Node Auth Migration (Breaking Change)
 
 Management mode now supports only:

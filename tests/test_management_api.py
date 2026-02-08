@@ -296,6 +296,41 @@ def test_build_headers_for_bearer_auth_with_token():
     assert headers == {"Authorization": "Bearer node-token"}
 
 
+def test_request_json_sends_bearer_auth_header_for_node_probes(monkeypatch):
+    import management_api
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b'{"status":"ok"}'
+
+    captured = {"headers": []}
+
+    def fake_getaddrinfo(host, port, proto):
+        return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))]
+
+    def fake_urlopen(req, timeout):
+        captured["headers"].append(req.get_header("Authorization"))
+        return FakeResponse()
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+    monkeypatch.setattr(management_api.urllib.request, "urlopen", fake_urlopen)
+
+    node = {"base_url": "http://example.com", "auth": {"type": "bearer", "token": "node-token"}}
+    for path in ("/health", "/ready", "/metrics"):
+        status_code, _ = management_api._request_json(node, "GET", path)
+        assert status_code == 200
+
+    assert captured["headers"] == ["Bearer node-token", "Bearer node-token", "Bearer node-token"]
+
+
 def test_build_headers_for_bearer_auth_without_token_returns_empty_headers():
     import management_api
 
@@ -312,6 +347,73 @@ def test_build_headers_for_non_bearer_auth_returns_empty_headers():
 
     headers = management_api._build_headers(node)
     assert headers == {}
+
+
+def test_node_status_returns_node_unauthorized_when_upstream_rejects_token(monkeypatch, tmp_path):
+    import management_api
+
+    client = _new_management_client(monkeypatch, tmp_path)
+    payload = {
+        "id": "node-auth-fail",
+        "name": "Auth Fail Node",
+        "base_url": "http://example.com",
+        "auth": {"type": "bearer", "token": "wrong-token"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+
+    def fake_request_json(node, method, path, body=None):
+        if path == "/health":
+            return 401, {"status": "unauthorized"}
+        return 200, {"status": "ready"}
+
+    monkeypatch.setattr(management_api, "_request_json", fake_request_json)
+
+    status = client.get("/api/nodes/node-auth-fail/status", headers=_auth_headers())
+    assert status.status_code == 401
+    assert status.json["error"]["code"] == "NODE_UNAUTHORIZED"
+
+    overview = client.get("/api/management/overview", headers=_auth_headers())
+    assert overview.status_code == 200
+    assert overview.json["nodes"][0]["error"]["code"] == "NODE_UNAUTHORIZED"
+
+
+def test_node_status_succeeds_when_upstream_token_is_accepted(monkeypatch, tmp_path):
+    import management_api
+
+    client = _new_management_client(monkeypatch, tmp_path)
+    payload = {
+        "id": "node-auth-ok",
+        "name": "Auth OK Node",
+        "base_url": "http://example.com",
+        "auth": {"type": "bearer", "token": "shared-token"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+
+    def fake_request_json(node, method, path, body=None):
+        if path == "/health":
+            return 200, {"status": "healthy"}
+        if path == "/ready":
+            return 200, {"status": "ready"}
+        if path == "/metrics":
+            return 200, {"frames_captured": 10, "current_fps": 5.0}
+        raise AssertionError(f"unexpected path: {path}")
+
+    monkeypatch.setattr(management_api, "_request_json", fake_request_json)
+
+    status = client.get("/api/nodes/node-auth-ok/status", headers=_auth_headers())
+    assert status.status_code == 200
+    assert status.json["stream_available"] is True
+    assert status.json["status"] == "healthy"
 
 
 def test_management_routes_require_authentication(monkeypatch, tmp_path):

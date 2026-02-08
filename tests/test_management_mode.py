@@ -140,3 +140,66 @@ def test_request_logging_levels(monkeypatch):
     assert "request method=GET path=/metrics status=200 latency_ms=" in metrics_record
     assert health_level == main.logging.DEBUG
     assert metrics_level == main.logging.INFO
+
+
+def _new_webcam_client(monkeypatch, token: str):
+    tmpdir = tempfile.mkdtemp()
+    monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+    monkeypatch.setenv("APP_MODE", "management")
+    monkeypatch.setenv("MOCK_CAMERA", "true")
+    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", token)
+
+    sys.modules.pop("main", None)
+    main = importlib.import_module("main")
+    cfg = main._load_config()
+    cfg["app_mode"] = "webcam"
+    cfg["mock_camera"] = True
+    app = main.create_webcam_app(cfg)
+    return app.test_client()
+
+
+def test_webcam_control_plane_endpoints_do_not_require_auth_when_token_unset(monkeypatch):
+    client = _new_webcam_client(monkeypatch, "")
+
+    health = client.get("/health")
+    ready = client.get("/ready")
+    metrics = client.get("/metrics")
+
+    assert health.status_code == 200
+    assert ready.status_code in (200, 503)
+    assert metrics.status_code == 200
+
+
+def test_webcam_control_plane_endpoints_require_valid_bearer_when_token_set(monkeypatch):
+    client = _new_webcam_client(monkeypatch, "node-shared-token")
+
+    unauthorized_health = client.get("/health")
+    assert unauthorized_health.status_code == 401
+    assert unauthorized_health.json["error"]["code"] == "UNAUTHORIZED"
+
+    invalid_health = client.get("/health", headers={"Authorization": "Bearer wrong"})
+    assert invalid_health.status_code == 401
+    assert invalid_health.json["error"]["code"] == "UNAUTHORIZED"
+
+    unauthorized_action = client.post("/api/actions/restart", json={})
+    assert unauthorized_action.status_code == 401
+    assert unauthorized_action.json["error"]["code"] == "UNAUTHORIZED"
+
+    valid_headers = {"Authorization": "Bearer node-shared-token"}
+    authorized_health = client.get("/health", headers=valid_headers)
+    authorized_ready = client.get("/ready", headers=valid_headers)
+    authorized_metrics = client.get("/metrics", headers=valid_headers)
+
+    assert authorized_health.status_code == 200
+    assert authorized_ready.status_code in (200, 503)
+    assert authorized_metrics.status_code == 200
+
+
+def test_webcam_stream_and_snapshot_routes_are_not_protected_by_control_plane_auth(monkeypatch):
+    client = _new_webcam_client(monkeypatch, "node-shared-token")
+
+    stream = client.get("/stream.mjpg")
+    snapshot = client.get("/snapshot.jpg")
+
+    assert stream.status_code in (200, 503)
+    assert snapshot.status_code in (200, 503)
