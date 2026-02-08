@@ -234,8 +234,8 @@ class FileNodeRegistry(NodeRegistry):
                 return
 
             if msvcrt is not None:
-                lock_file.seek(0)
-                if lock_file.tell() == 0:
+                file_size = lock_file.seek(0, 2)  # Seek to end to get size
+                if file_size == 0:
                     lock_file.write(b"\0")
                     lock_file.flush()
                 lock_file.seek(0)
