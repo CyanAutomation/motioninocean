@@ -218,8 +218,7 @@ def register_management_routes(
     registry = FileNodeRegistry(registry_path)
     token_roles = _parse_token_roles(token_roles_raw)
 
-    def _enforce_admin_for_docker(payload: Dict[str, Any]) -> Optional[Tuple[Any, int]]:
-        transport = payload.get("transport")
+    def _enforce_admin_for_docker(transport: Optional[str]) -> Optional[Tuple[Any, int]]:
         if transport != "docker":
             return None
 
@@ -239,7 +238,7 @@ def register_management_routes(
     @app.route("/api/nodes", methods=["POST"])
     def create_node():
         payload = request.get_json(silent=True) or {}
-        admin_error = _enforce_admin_for_docker(payload)
+        admin_error = _enforce_admin_for_docker(payload.get("transport"))
         if admin_error is not None:
             return admin_error
         try:
@@ -260,17 +259,21 @@ def register_management_routes(
     @app.route("/api/nodes/<node_id>", methods=["PUT"])
     def update_node(node_id: str):
         payload = request.get_json(silent=True) or {}
-        admin_error = _enforce_admin_for_docker(payload)
+
+        existing = registry.get_node(node_id)
+        if existing is None:
+            return _error_response(
+                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+            )
+
+        effective_transport = payload.get("transport", existing.get("transport"))
+        admin_error = _enforce_admin_for_docker(effective_transport)
         if admin_error is not None:
             return admin_error
         try:
             updated = registry.update_node(node_id, payload)
         except NodeValidationError as exc:
             return _error_response("VALIDATION_ERROR", str(exc), 400, node_id=node_id)
-        except KeyError:
-            return _error_response(
-                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
-            )
         return jsonify(updated), 200
 
     @app.route("/api/nodes/<node_id>", methods=["DELETE"])

@@ -241,3 +241,37 @@ def test_docker_transport_allows_admin_token(monkeypatch, tmp_path):
     )
     assert authorized.status_code == 201
     assert authorized.json["id"] == "node-docker-admin"
+
+
+def test_update_existing_docker_node_requires_admin_without_transport_in_payload(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setenv("MANAGEMENT_AUTH_REQUIRED", "true")
+    monkeypatch.setenv("MANAGEMENT_TOKEN_ROLES", "admin-token:admin,writer-token:write")
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-docker-update",
+        "name": "Docker Update",
+        "base_url": "http://docker.local",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["stream"],
+        "transport": "docker",
+    }
+
+    created = client.post(
+        "/api/nodes",
+        json=payload,
+        headers={"Authorization": "Bearer admin-token"},
+    )
+    assert created.status_code == 201
+
+    forbidden = client.put(
+        "/api/nodes/node-docker-update",
+        json={"name": "Updated Name"},
+        headers={"Authorization": "Bearer writer-token"},
+    )
+    assert forbidden.status_code == 403
+    assert forbidden.json["error"]["code"] == "FORBIDDEN"
