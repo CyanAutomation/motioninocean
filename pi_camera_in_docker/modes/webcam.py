@@ -153,8 +153,8 @@ def register_webcam_routes(
             with slot_release_lock:
                 if slot_released:
                     return
+                tracker.decrement()
                 slot_released = True
-            tracker.decrement()
 
         def gen_with_tracking():
             try:
