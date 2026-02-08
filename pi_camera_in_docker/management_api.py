@@ -1,10 +1,11 @@
 import json
+import ipaddress
 import socket
 import urllib.error
 import urllib.request
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 from flask import Flask, jsonify, request
 from node_registry import FileNodeRegistry, NodeValidationError
@@ -65,8 +66,6 @@ def _extract_bearer_token() -> Optional[str]:
 
 
 def _validate_node_base_url(base_url: str) -> None:
-    import ipaddress
-
     parsed = urlparse(base_url)
     hostname = parsed.hostname
     if parsed.scheme not in {"http", "https"} or not hostname:
@@ -76,34 +75,38 @@ def _validate_node_base_url(base_url: str) -> None:
     if hostname.lower() in blocked_hosts:
         raise NodeRequestError("node target is not allowed")
 
-    def _is_blocked_address(raw: str) -> bool:
-        ip = ipaddress.ip_address(raw)
-        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
-            ip = ip.ipv4_mapped
-        return any(
-            (
-                ip.is_private,
-                ip.is_loopback,
-                ip.is_link_local,
-                ip.is_multicast,
-                ip.is_reserved,
-                ip.is_unspecified,
-            )
+
+def _is_blocked_address(raw: str) -> bool:
+    ip = ipaddress.ip_address(raw)
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+    return any(
+        (
+            ip.is_private,
+            ip.is_loopback,
+            ip.is_link_local,
+            ip.is_multicast,
+            ip.is_reserved,
+            ip.is_unspecified,
         )
+    )
 
-    try:
-        if _is_blocked_address(hostname):
+
+def _vet_resolved_addresses(addresses: Tuple[str, ...]) -> Tuple[str, ...]:
+    vetted = []
+    for address in addresses:
+        if _is_blocked_address(address):
             raise NodeRequestError("node target is not allowed")
-    except ValueError:
-        try:
-            records = socket.getaddrinfo(hostname, parsed.port or None, proto=socket.IPPROTO_TCP)
-        except socket.gaierror:
-            return
+        if address not in vetted:
+            vetted.append(address)
+    return tuple(vetted)
 
-        for record in records:
-            resolved_ip = record[4][0]
-            if _is_blocked_address(resolved_ip):
-                raise NodeRequestError("node target is not allowed")
+
+def _format_connect_netloc(address: str, port: Optional[int]) -> str:
+    host = f"[{address}]" if ":" in address else address
+    if port is None:
+        return host
+    return f"{host}:{port}"
 
 
 def _error_response(
@@ -149,14 +152,50 @@ def _build_headers(node: Dict[str, Any]) -> Dict[str, str]:
 
 def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[dict] = None):
     base_url = node["base_url"].rstrip("/")
+    _validate_node_base_url(base_url)
+
     url = base_url + path
+    parsed_url = urlparse(url)
+    hostname = parsed_url.hostname
+    if not hostname:
+        raise NodeRequestError("node target is invalid")
+
+    port = parsed_url.port
+    port = parsed_url.port
+    try:
+        ip = ipaddress.ip_address(hostname)
+        if _is_blocked_address(hostname):
+            raise NodeRequestError("node target is not allowed")
+        resolved_addresses = (hostname,)
+    except ValueError:
+    except ValueError:
+        try:
+            records = socket.getaddrinfo(hostname, port or None, proto=socket.IPPROTO_TCP)
+        except socket.gaierror as exc:
+            raise ConnectionError(str(exc)) from exc
+        resolved_addresses = tuple(record[4][0] for record in records)
+
+    vetted_addresses = _vet_resolved_addresses(resolved_addresses)
+    if not vetted_addresses:
+        raise ConnectionError("name resolution returned no addresses")
+
+    connect_url = urlunparse(
+        (
+            parsed_url.scheme,
+            _format_connect_netloc(vetted_addresses[0], port),
+            parsed_url.path,
+            parsed_url.params,
+            parsed_url.query,
+            parsed_url.fragment,
+        )
+    )
+
     headers = {"Content-Type": "application/json", **_build_headers(node)}
+    headers.setdefault("Host", parsed_url.netloc)
     data = json.dumps(body).encode("utf-8") if body is not None else None
 
     try:
-        _validate_node_base_url(base_url)
-        _validate_node_base_url(url)
-        req = urllib.request.Request(url=url, method=method, headers=headers, data=data)
+        req = urllib.request.Request(url=connect_url, method=method, headers=headers, data=data)
         with urllib.request.urlopen(req, timeout=2.5) as response:
             payload = response.read().decode("utf-8")
             if not payload:

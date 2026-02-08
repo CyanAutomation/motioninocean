@@ -1,4 +1,5 @@
 import importlib
+import socket
 import sys
 from datetime import datetime
 
@@ -504,3 +505,69 @@ def test_create_node_migrates_legacy_auth_with_token(monkeypatch, tmp_path):
     response = client.post("/api/nodes", json=payload, headers=_auth_headers())
     assert response.status_code == 201
     assert response.json["auth"] == {"type": "bearer", "token": "api-token"}
+
+
+def test_request_json_uses_vetted_resolved_ip_and_preserves_host_header(monkeypatch):
+    import management_api
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b'{"ok": true}'
+
+    captured = {}
+
+    def fake_getaddrinfo(host, port, proto):
+        captured["getaddrinfo"] = (host, port, proto)
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80)),
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80)),
+        ]
+
+    def fake_urlopen(req, timeout):
+        captured["url"] = req.full_url
+        captured["host"] = req.get_header("Host")
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+    monkeypatch.setattr(management_api.urllib.request, "urlopen", fake_urlopen)
+
+    status_code, payload = management_api._request_json(
+        {"base_url": "http://example.com", "auth": {"type": "none"}},
+        "GET",
+        "/health",
+    )
+
+    assert status_code == 200
+    assert payload == {"ok": True}
+    assert captured["getaddrinfo"] == ("example.com", None, socket.IPPROTO_TCP)
+    assert captured["url"] == "http://93.184.216.34/health"
+    assert captured["host"] == "example.com"
+    assert captured["timeout"] == 2.5
+
+
+def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
+    import management_api
+
+    def fake_getaddrinfo(host, port, proto):
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80)),
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("127.0.0.1", 80)),
+        ]
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+
+    node = {"base_url": "http://example.com", "auth": {"type": "none"}}
+    try:
+        management_api._request_json(node, "GET", "/health")
+        raise AssertionError("expected NodeRequestError")
+    except management_api.NodeRequestError as exc:
+        assert str(exc) == "node target is not allowed"
