@@ -20,24 +20,13 @@ function showFeedback(message, isError = false) {
 
 function getAuthPayload() {
   const type = document.getElementById("node-auth-type").value;
+
+  if (type !== "bearer") {
+    return { type: "none" };
+  }
+
   const token = document.getElementById("node-auth-token").value.trim();
-  const username = document.getElementById("node-auth-username").value.trim();
-  const password = document.getElementById("node-auth-password").value;
-
-  if (type === "bearer") {
-    return token ? { type, token } : { type };
-  }
-
-  if (type === "basic") {
-    if (token) {
-      return { type, encoded: token };
-    }
-    if (username && password) {
-      return { type, username, password };
-    }
-  }
-
-  return { type };
+  return token ? { type, token } : { type };
 }
 
 function getParsedLabels() {
@@ -259,9 +248,7 @@ function beginEditNode(nodeId) {
   document.getElementById("node-base-url").value = node.base_url || "";
   document.getElementById("node-transport").value = node.transport || "http";
   document.getElementById("node-auth-type").value = node.auth?.type || "none";
-  document.getElementById("node-auth-token").value = node.auth?.token || node.auth?.encoded || "";
-  document.getElementById("node-auth-username").value = node.auth?.username || "";
-  document.getElementById("node-auth-password").value = node.auth?.password || "";
+  document.getElementById("node-auth-token").value = node.auth?.token || "";
   document.getElementById("node-capabilities").value = (node.capabilities || []).join(", ");
   document.getElementById("node-labels").value = JSON.stringify(node.labels || {}, null, 2);
   cancelEditBtn.classList.remove("hidden");
