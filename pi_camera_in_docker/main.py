@@ -213,7 +213,7 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
         app, state, get_stream_status=lambda: get_stream_status(stream_stats, cfg["resolution"])
     )
     register_webcam_routes(
-        app, state, is_flag_enabled=is_flag_enabled, log_event=lambda *a, **k: None
+        app, state, is_flag_enabled=is_flag_enabled, log_event=lambda *_, **__: None
     )
     _run_webcam_mode(state, cfg)
     return app
@@ -283,21 +283,21 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
 
         Thread(target=generate_mock_frames, daemon=True).start()
     else:
-        Picamera2, JpegEncoder, FileOutput = import_camera_components(cfg["allow_pykms_mock"])
+        picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(cfg["allow_pykms_mock"])
         try:
             with camera_lock:
                 if shutdown_requested.is_set():
                     message = "Shutdown requested before camera startup completed"
                     raise RuntimeError(message)
 
-                picam2_instance = Picamera2()  # Picamera2() marker
+                picam2_instance = picamera2_cls()  # Picamera2() marker
                 state["picam2_instance"] = picam2_instance
                 video_config = picam2_instance.create_video_configuration(
                     main={"size": cfg["resolution"], "format": "BGR888"}
                 )  # create_video_configuration marker
                 picam2_instance.configure(video_config)
                 picam2_instance.start_recording(
-                    JpegEncoder(q=cfg["jpeg_quality"]), FileOutput(output)
+                    jpeg_encoder_cls(q=cfg["jpeg_quality"]), file_output_cls(output)
                 )  # start_recording marker
             recording_started.set()
         except PermissionError as e:  # except PermissionError marker

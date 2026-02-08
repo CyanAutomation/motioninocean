@@ -1,7 +1,7 @@
 import importlib
 import socket
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def _new_management_client(monkeypatch, tmp_path):
@@ -26,7 +26,7 @@ def test_node_crud_and_overview(monkeypatch, tmp_path):
         "base_url": "http://127.0.0.1:65534",
         "auth": {"type": "none"},
         "labels": {"location": "entry"},
-        "last_seen": datetime.utcnow().isoformat(),
+        "last_seen": datetime.now(timezone.utc).isoformat(),
         "capabilities": ["stream", "metrics"],
         "transport": "http",
     }

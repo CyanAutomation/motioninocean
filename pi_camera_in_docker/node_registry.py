@@ -3,7 +3,7 @@ import os
 import tempfile
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -50,7 +50,8 @@ def _node_auth_error(node_id: str, reason: str) -> NodeValidationError:
 
 def migrate_legacy_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
     if not isinstance(auth, dict):
-        raise NodeValidationError("auth must be an object")
+        message = "auth must be an object"
+        raise NodeValidationError(message)
 
     migrated = dict(auth)
     auth_type = migrated.get("type", "none")
@@ -121,31 +122,34 @@ def _validate_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
 
     auth_type = auth.get("type", "none")
     if auth_type not in {"none", "bearer"}:
-        raise NodeValidationError("auth.type must be one of: none, bearer")
+        message = "auth.type must be one of: none, bearer"
+        raise NodeValidationError(message)
 
     for legacy_key in ("encoded", "username", "password"):
         if legacy_key in auth:
-            raise NodeValidationError(
-                f"auth.{legacy_key} is not supported; use auth.type='bearer' with auth.token"
-            )
+            message = f"auth.{legacy_key} is not supported; use auth.type='bearer' with auth.token"
+            raise NodeValidationError(message)
 
     if auth_type == "bearer":
         token = auth.get("token")
         if not isinstance(token, str) or not token.strip():
-            raise NodeValidationError("auth.token is required for auth.type='bearer'")
+            message = "auth.token is required for auth.type='bearer'"
+            raise NodeValidationError(message)
 
     return auth
 
 
 def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]:
     if not isinstance(node, dict):
-        raise NodeValidationError("node payload must be an object")
+        message = "node payload must be an object"
+        raise NodeValidationError(message)
 
     if not partial:
         missing = REQUIRED_NODE_FIELDS.difference(node.keys())
         if missing:
             missing_fields = ", ".join(sorted(missing))
-            raise NodeValidationError(f"missing required fields: {missing_fields}")
+            message = f"missing required fields: {missing_fields}"
+            raise NodeValidationError(message)
 
     validated: Dict[str, Any] = {}
     fields = REQUIRED_NODE_FIELDS.intersection(node.keys())
@@ -154,28 +158,33 @@ def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]
         value = node[field]
         if field in {"id", "name", "base_url", "last_seen", "transport"}:
             if not isinstance(value, str) or not value.strip():
-                raise NodeValidationError(f"{field} must be a non-empty string")
+                message = f"{field} must be a non-empty string"
+                raise NodeValidationError(message)
             validated[field] = value.strip()
         elif field == "labels":
             if not isinstance(value, dict):
-                raise NodeValidationError("labels must be an object")
+                message = "labels must be an object"
+                raise NodeValidationError(message)
             validated[field] = value
         elif field == "capabilities":
             if not isinstance(value, list) or any(not isinstance(v, str) for v in value):
-                raise NodeValidationError("capabilities must be an array of strings")
+                message = "capabilities must be an array of strings"
+                raise NodeValidationError(message)
             validated[field] = value
         elif field == "auth":
             validated_auth = _validate_auth(value, node_id=str(node.get("id", "unknown")))
             validated[field] = validated_auth
 
     if "transport" in validated and validated["transport"] not in ALLOWED_TRANSPORTS:
-        raise NodeValidationError("transport must be one of: http, docker")
+        message = "transport must be one of: http, docker"
+        raise NodeValidationError(message)
 
     if "base_url" in validated and not validated["base_url"].startswith(("http://", "https://")):
-        raise NodeValidationError("base_url must start with http:// or https://")
+        message = "base_url must start with http:// or https://"
+        raise NodeValidationError(message)
 
     if not partial and "last_seen" not in validated:
-        validated["last_seen"] = datetime.utcnow().isoformat()
+        validated["last_seen"] = datetime.now(timezone.utc).isoformat()
 
     return validated
 
@@ -191,9 +200,8 @@ class FileNodeRegistry(NodeRegistry):
         try:
             raw = json.loads(self.path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
-            raise NodeValidationError(
-                f"node registry file is corrupted and cannot be parsed: {self.path}"
-            ) from exc
+            message = f"node registry file is corrupted and cannot be parsed: {self.path}"
+            raise NodeValidationError(message) from exc
         if not isinstance(raw, dict):
             return {"nodes": []}
         nodes = raw.get("nodes", [])
@@ -203,7 +211,8 @@ class FileNodeRegistry(NodeRegistry):
         migrated_nodes: List[Dict[str, Any]] = []
         for index, node in enumerate(nodes):
             if not isinstance(node, dict):
-                raise NodeValidationError(f"node at index {index} must be an object")
+                message = f"node at index {index} must be an object"
+                raise NodeValidationError(message)
 
             migrated = dict(node)
             node_id = str(migrated.get("id", f"index {index}"))
@@ -249,7 +258,10 @@ class FileNodeRegistry(NodeRegistry):
                     msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
                 return
 
-            raise RuntimeError("No supported file-lock backend available for this platform")
+            message = "No supported file-lock backend available for this platform"
+            raise RuntimeError(message)
+        message = "No supported file-lock backend available for this platform"
+        raise RuntimeError(message)
 
     def list_nodes(self) -> List[Dict[str, Any]]:
         return self._load()["nodes"]
@@ -266,7 +278,8 @@ class FileNodeRegistry(NodeRegistry):
         with self._exclusive_lock():
             data = self._load()
             if any(existing.get("id") == candidate["id"] for existing in data["nodes"]):
-                raise NodeValidationError(f"node {candidate['id']} already exists")
+                message = f"node {candidate['id']} already exists"
+                raise NodeValidationError(message)
             data["nodes"].append(candidate)
             self._save(data)
             return candidate
@@ -285,7 +298,8 @@ class FileNodeRegistry(NodeRegistry):
                     other_index != index and other.get("id") == merged["id"]
                     for other_index, other in enumerate(data["nodes"])
                 ):
-                    raise NodeValidationError(f"node {merged['id']} already exists")
+                    message = f"node {merged['id']} already exists"
+                    raise NodeValidationError(message)
                 data["nodes"][index] = merged
                 self._save(data)
                 return merged

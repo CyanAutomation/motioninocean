@@ -14,7 +14,7 @@ DEFAULT_LOG_FORMAT = "text"
 class ISO8601Formatter(logging.Formatter):
     """Formatter with ISO-8601 timestamps."""
 
-    def formatTime(self, record: logging.LogRecord, datefmt: Optional[str] = None) -> str:
+    def format_time(self, record: logging.LogRecord, datefmt: Optional[str] = None) -> str:
         dt = datetime.fromtimestamp(record.created, tz=timezone.utc).astimezone()
         if datefmt:
             return dt.strftime(datefmt)
@@ -30,7 +30,7 @@ class JSONFormatter(ISO8601Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         payload: Dict[str, Any] = {
-            "timestamp": self.formatTime(record),
+            "timestamp": self.format_time(record),
             "severity": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),

@@ -3,7 +3,7 @@ import json
 import socket
 import urllib.error
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urlparse, urlunparse
 
@@ -125,7 +125,7 @@ def _error_response(
             "code": code,
             "message": message,
             "details": details or {},
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     }
     if node_id:

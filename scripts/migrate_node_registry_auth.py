@@ -21,22 +21,26 @@ from pi_camera_in_docker.node_registry import NodeValidationError, validate_node
 
 def migrate_registry(path: Path, dry_run: bool = False) -> bool:
     if not path.exists():
-        raise FileNotFoundError(f"registry file not found: {path}")
+        message = f"registry file not found: {path}"
+        raise FileNotFoundError(message)
 
     raw = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
-        raise NodeValidationError("registry root must be a JSON object with a 'nodes' array")
+        message = "registry root must be a JSON object with a 'nodes' array"
+        raise NodeValidationError(message)
 
     nodes = raw.get("nodes", [])
     if not isinstance(nodes, list):
-        raise NodeValidationError("registry field 'nodes' must be an array")
+        message = "registry field 'nodes' must be an array"
+        raise NodeValidationError(message)
 
     migrated_nodes = []
     changed = False
 
     for index, node in enumerate(nodes):
         if not isinstance(node, dict):
-            raise NodeValidationError(f"node at index {index} must be an object")
+            message = f"node at index {index} must be an object"
+            raise NodeValidationError(message)
         migrated = validate_node(node)
         migrated_nodes.append(migrated)
         if migrated != node:

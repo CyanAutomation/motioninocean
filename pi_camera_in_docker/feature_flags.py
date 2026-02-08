@@ -461,18 +461,15 @@ class FeatureFlags:
 
 
 # Global instance
-_feature_flags: Optional[FeatureFlags] = None
+_feature_flags: FeatureFlags = FeatureFlags()
 
 
 def get_feature_flags() -> FeatureFlags:
-    """Get the global feature flags instance (lazy initialization).
+    """Get the global feature flags instance.
 
     Returns:
         FeatureFlags instance.
     """
-    global _feature_flags
-    if _feature_flags is None:
-        _feature_flags = FeatureFlags()
     return _feature_flags
 
 
