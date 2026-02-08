@@ -54,6 +54,34 @@ def _validate_auth(auth: Any) -> None:
     if auth_type not in {"none", "bearer", "basic"}:
         raise NodeValidationError("auth.type must be one of: none, bearer, basic")
 
+    if auth_type == "bearer" and "token" in auth:
+        if not isinstance(auth.get("token"), str) or not auth.get("token").strip():
+            raise NodeValidationError("auth.token must be a non-empty string")
+
+    if auth_type != "basic":
+        return
+
+    has_encoded = "encoded" in auth
+    has_username_or_password = "username" in auth or "password" in auth
+
+    if has_encoded:
+        encoded = auth.get("encoded")
+        if not isinstance(encoded, str) or not encoded.strip():
+            raise NodeValidationError("auth.encoded must be a non-empty string")
+
+    if has_username_or_password:
+        username = auth.get("username")
+        password = auth.get("password")
+        if not isinstance(username, str) or not username.strip():
+            raise NodeValidationError("auth.username must be a non-empty string")
+        if not isinstance(password, str) or len(password) == 0:
+            raise NodeValidationError("auth.password must be a non-empty string")
+
+    if not has_encoded and not has_username_or_password:
+        raise NodeValidationError(
+            "basic auth requires either auth.encoded or auth.username/auth.password"
+        )
+
 
 def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]:
     if not isinstance(node, dict):

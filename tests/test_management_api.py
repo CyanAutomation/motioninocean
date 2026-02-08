@@ -307,3 +307,27 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
     response = client.put("/api/nodes/node-race", json={"name": "Updated Name"})
     assert response.status_code == 404
     assert response.json["error"]["code"] == "NODE_NOT_FOUND"
+
+
+def test_build_headers_for_basic_auth_with_username_password():
+    import management_api
+
+    node = {
+        "auth": {
+            "type": "basic",
+            "username": "camera",
+            "password": "secret",
+        }
+    }
+
+    headers = management_api._build_headers(node)
+    assert headers == {"Authorization": "Basic Y2FtZXJhOnNlY3JldA=="}
+
+
+def test_build_headers_for_basic_auth_with_encoded_credentials():
+    import management_api
+
+    node = {"auth": {"type": "basic", "encoded": "dXNlcjpwYXNz"}}
+
+    headers = management_api._build_headers(node)
+    assert headers == {"Authorization": "Basic dXNlcjpwYXNz"}
