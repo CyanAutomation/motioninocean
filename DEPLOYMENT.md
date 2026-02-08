@@ -132,7 +132,7 @@ MOTION_IN_OCEAN_MANAGEMENT_PORT=8001
 # Authentication (highly recommended for production)
 # Generate a strong token: openssl rand -hex 32
 # MANAGEMENT_AUTH_REQUIRED=true
-# MANAGEMENT_TOKEN_ROLES=YOUR_GENERATED_TOKEN:admin
+# MANAGEMENT_AUTH_TOKEN=YOUR_GENERATED_TOKEN
 
 # Note: MANAGEMENT_AUTH_REQUIRED defaults to true. For localhost-only deployments, 
 # you may set it to false, but always enable authentication for network-accessible deployments.
@@ -523,15 +523,15 @@ Motion in Ocean uses **security-first defaults**:
    - Isolate from guest/untrusted networks
 
 3. **Authentication for Production**:
-   - Enable bearer token roles:
+   - Enable bearer token authentication:
 
      ```bash
      MANAGEMENT_AUTH_REQUIRED=true
-     MANAGEMENT_TOKEN_ROLES="token1:admin,token2:user"
+     MANAGEMENT_AUTH_TOKEN="$(openssl rand -hex 32)"
      ```
 
    - Include tokens in node registry for HTTP transport nodes
-   - Require admin role for docker transport
+   - All authenticated requests have full access to node CRUD and Docker transport
 
 4. **Docker Socket Proxy Hardening**:
    - Only enable on trusted hosts

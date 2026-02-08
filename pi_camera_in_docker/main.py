@@ -106,7 +106,7 @@ def _load_config() -> Dict[str, Any]:
         "node_registry_path": os.environ.get("NODE_REGISTRY_PATH", "/data/node-registry.json"),
         "management_auth_required": os.environ.get("MANAGEMENT_AUTH_REQUIRED", "true").lower()
         in ("1", "true", "yes"),
-        "management_token_roles": os.environ.get("MANAGEMENT_TOKEN_ROLES", ""),
+        "management_auth_token": os.environ.get("MANAGEMENT_AUTH_TOKEN", ""),
     }
 
 
@@ -188,7 +188,7 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
         app,
         cfg["node_registry_path"],
         auth_required=cfg["management_auth_required"],
-        token_roles_raw=cfg["management_token_roles"],
+        auth_token=cfg["management_auth_token"],
     )
     # Log management mode startup configuration
     logger.info(

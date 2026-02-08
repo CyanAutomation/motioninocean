@@ -7,13 +7,13 @@ from datetime import datetime, timezone
 def _new_management_client(monkeypatch, tmp_path):
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
-    monkeypatch.setenv("MANAGEMENT_TOKEN_ROLES", "admin-token:admin,writer-token:write")
+    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
     sys.modules.pop("main", None)
     main = importlib.import_module("main")
     return main.create_management_app(main._load_config()).test_client()
 
 
-def _auth_headers(token="admin-token"):
+def _auth_headers(token="test-token"):
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -57,7 +57,6 @@ def test_node_crud_and_overview(monkeypatch, tmp_path):
 
 
 def test_validation_and_transport_errors(monkeypatch, tmp_path):
-    monkeypatch.setenv("MANAGEMENT_TOKEN_ROLES", "admin-token:admin")
     client = _new_management_client(monkeypatch, tmp_path)
 
     invalid = client.post("/api/nodes", json={"id": "only-id"}, headers=_auth_headers())
@@ -78,7 +77,7 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
         client.post(
             "/api/nodes",
             json=payload,
-            headers={"Authorization": "Bearer admin-token"},
+            headers={"Authorization": "Bearer test-token"},
         ).status_code
         == 201
     )
@@ -131,7 +130,7 @@ def test_ssrf_protection_blocks_local_targets(monkeypatch, tmp_path):
         client.post(
             "/api/nodes",
             json=payload,
-            headers={"Authorization": "Bearer admin-token"},
+            headers={"Authorization": "Bearer test-token"},
         ).status_code
         == 201
     )
@@ -148,7 +147,7 @@ def test_corrupted_registry_file_returns_500_error_payload(monkeypatch, tmp_path
 
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("NODE_REGISTRY_PATH", str(registry_path))
-    monkeypatch.setenv("MANAGEMENT_TOKEN_ROLES", "admin-token:admin,writer-token:write")
+    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
     sys.modules.pop("main", None)
     main = importlib.import_module("main")
     client = main.create_management_app(main._load_config()).test_client()
@@ -180,7 +179,7 @@ def test_ssrf_protection_blocks_ipv6_mapped_loopback(monkeypatch, tmp_path):
         client.post(
             "/api/nodes",
             json=payload,
-            headers={"Authorization": "Bearer admin-token"},
+            headers={"Authorization": "Bearer test-token"},
         ).status_code
         == 201
     )
@@ -208,7 +207,7 @@ def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
         client.post(
             "/api/nodes",
             json=payload,
-            headers={"Authorization": "Bearer admin-token"},
+            headers={"Authorization": "Bearer test-token"},
         ).status_code
         == 201
     )
@@ -219,35 +218,13 @@ def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
     assert status.json["error"]["details"]["reason"] == "target is blocked"
 
 
-def test_docker_transport_requires_admin_when_auth_disabled(monkeypatch, tmp_path):
-    monkeypatch.setenv("MANAGEMENT_AUTH_REQUIRED", "false")
-    monkeypatch.setenv("MANAGEMENT_TOKEN_ROLES", "admin-token:admin")
-    client = _new_management_client(monkeypatch, tmp_path)
-
-    payload = {
-        "id": "node-docker-no-auth",
-        "name": "Docker No Auth",
-        "base_url": "http://docker.local",
-        "auth": {"type": "none"},
-        "labels": {},
-        "last_seen": datetime.now(timezone.utc).isoformat(),
-        "capabilities": ["stream"],
-        "transport": "docker",
-    }
-
-    forbidden = client.post("/api/nodes", json=payload)
-    assert forbidden.status_code == 403
-    assert forbidden.json["error"]["code"] == "FORBIDDEN"
-
-
-def test_docker_transport_allows_admin_token(monkeypatch, tmp_path):
+def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
     monkeypatch.setenv("MANAGEMENT_AUTH_REQUIRED", "true")
-    monkeypatch.setenv("MANAGEMENT_TOKEN_ROLES", "admin-token:admin,writer-token:write")
     client = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
-        "id": "node-docker-admin",
-        "name": "Docker Admin",
+        "id": "node-docker-shared",
+        "name": "Docker Shared Access",
         "base_url": "http://docker.local",
         "auth": {"type": "none"},
         "labels": {},
@@ -260,55 +237,22 @@ def test_docker_transport_allows_admin_token(monkeypatch, tmp_path):
     assert unauthorized.status_code == 401
     assert unauthorized.json["error"]["code"] == "UNAUTHORIZED"
 
-    non_admin = client.post(
+    invalid_token = client.post(
         "/api/nodes",
         json=payload,
-        headers={"Authorization": "Bearer writer-token"},
+        headers={"Authorization": "Bearer invalid-token"},
     )
-    assert non_admin.status_code == 403
-    assert non_admin.json["error"]["code"] == "FORBIDDEN"
+    assert invalid_token.status_code == 401
+    assert invalid_token.json["error"]["code"] == "UNAUTHORIZED"
 
     authorized = client.post(
         "/api/nodes",
         json=payload,
-        headers={"Authorization": "Bearer admin-token"},
+        headers={"Authorization": "Bearer test-token"},
     )
     assert authorized.status_code == 201
-    assert authorized.json["id"] == "node-docker-admin"
+    assert authorized.json["id"] == "node-docker-shared"
 
-
-def test_update_existing_docker_node_requires_admin_without_transport_in_payload(
-    monkeypatch, tmp_path
-):
-    monkeypatch.setenv("MANAGEMENT_AUTH_REQUIRED", "true")
-    monkeypatch.setenv("MANAGEMENT_TOKEN_ROLES", "admin-token:admin,writer-token:write")
-    client = _new_management_client(monkeypatch, tmp_path)
-
-    payload = {
-        "id": "node-docker-update",
-        "name": "Docker Update",
-        "base_url": "http://docker.local",
-        "auth": {"type": "none"},
-        "labels": {},
-        "last_seen": datetime.now(timezone.utc).isoformat(),
-        "capabilities": ["stream"],
-        "transport": "docker",
-    }
-
-    created = client.post(
-        "/api/nodes",
-        json=payload,
-        headers={"Authorization": "Bearer admin-token"},
-    )
-    assert created.status_code == 201
-
-    forbidden = client.put(
-        "/api/nodes/node-docker-update",
-        json={"name": "Updated Name"},
-        headers={"Authorization": "Bearer writer-token"},
-    )
-    assert forbidden.status_code == 403
-    assert forbidden.json["error"]["code"] == "FORBIDDEN"
 
 
 def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch, tmp_path):

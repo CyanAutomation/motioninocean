@@ -38,24 +38,7 @@ class NodeInvalidResponseError(NodeRequestError):
 #
 
 
-def _parse_token_roles(raw: str) -> Dict[str, str]:
-    mapping: Dict[str, str] = {}
-    seen_tokens = set()
-    for chunk in raw.split(","):
-        pair = chunk.strip()
-        if not pair or ":" not in pair:
-            continue
-        token, role = pair.split(":", 1)
-        token = token.strip()
-        role = role.strip().lower()
-        if not token or not role:
-            continue
-        if token in seen_tokens:
-            message = f"Duplicate token found in MANAGEMENT_TOKEN_ROLES: {token}"
-            raise ValueError(message)
-        seen_tokens.add(token)
-        mapping[token] = role
-    return mapping
+
 
 
 def _extract_bearer_token() -> Optional[str]:
@@ -291,30 +274,16 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
 
 
 def register_management_routes(
-    app: Flask, registry_path: str, auth_required: bool = False, token_roles_raw: str = ""
+    app: Flask, registry_path: str, auth_required: bool = False, auth_token: str = ""
 ) -> None:
     registry = FileNodeRegistry(registry_path)
-    token_roles = _parse_token_roles(token_roles_raw)
 
     def _enforce_management_auth() -> Optional[Tuple[Any, int]]:
-        if not auth_required:
+        if not auth_required or not auth_token:
             return None
         token = _extract_bearer_token()
-        if token is None or token_roles.get(token) is None:
+        if token is None or token != auth_token:
             return _error_response("UNAUTHORIZED", "authentication required", 401)
-        return None
-
-    def _enforce_admin_for_docker(transport: Optional[str]) -> Optional[Tuple[Any, int]]:
-        if transport != "docker":
-            return None
-
-        token = _extract_bearer_token()
-        role = token_roles.get(token) if token else None
-
-        if auth_required and role is None:
-            return _error_response("UNAUTHORIZED", "authentication required", 401)
-        if role != "admin":
-            return _error_response("FORBIDDEN", "admin role required for docker transport", 403)
         return None
 
     @app.before_request
@@ -336,9 +305,6 @@ def register_management_routes(
     @app.route("/api/nodes", methods=["POST"])
     def create_node():
         payload = request.get_json(silent=True) or {}
-        admin_error = _enforce_admin_for_docker(payload.get("transport"))
-        if admin_error is not None:
-            return admin_error
         try:
             created = registry.create_node(payload)
         except NodeValidationError as exc:
@@ -372,9 +338,6 @@ def register_management_routes(
                 return _registry_corruption_response(exc)
             raise
         effective_transport = payload.get("transport", existing.get("transport") if (existing and isinstance(existing, dict)) else None)
-        admin_error = _enforce_admin_for_docker(effective_transport)
-        if admin_error is not None:
-            return admin_error
         try:
             updated = registry.update_node(node_id, payload)
         except KeyError:
