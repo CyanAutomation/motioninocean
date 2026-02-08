@@ -192,7 +192,7 @@ async function refreshStatuses({ fromInterval = false } = {}) {
     statusRefreshInFlight = false;
     if (statusRefreshPending) {
       statusRefreshPending = false;
-      await refreshStatuses();
+      await refreshStatuses({ fromInterval: false });
     }
   }
 }
