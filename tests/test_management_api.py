@@ -241,3 +241,63 @@ def test_docker_transport_allows_admin_token(monkeypatch, tmp_path):
     )
     assert authorized.status_code == 201
     assert authorized.json["id"] == "node-docker-admin"
+
+
+def test_update_node_rejects_id_collision(monkeypatch, tmp_path):
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    node_one = {
+        "id": "node-1",
+        "name": "Node One",
+        "base_url": "http://127.0.0.1:65534",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+    node_two = {
+        "id": "node-2",
+        "name": "Node Two",
+        "base_url": "http://127.0.0.1:65533",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+
+    assert client.post("/api/nodes", json=node_one).status_code == 201
+    assert client.post("/api/nodes", json=node_two).status_code == 201
+
+    collision = client.put("/api/nodes/node-1", json={"id": "node-2"})
+    assert collision.status_code == 400
+    assert collision.json["error"]["code"] == "VALIDATION_ERROR"
+
+
+def test_update_node_allows_id_mutation_when_unique(monkeypatch, tmp_path):
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-10",
+        "name": "Mutable Node",
+        "base_url": "http://127.0.0.1:65532",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["metrics"],
+        "transport": "http",
+    }
+
+    assert client.post("/api/nodes", json=payload).status_code == 201
+
+    updated = client.put("/api/nodes/node-10", json={"id": "node-11"})
+    assert updated.status_code == 200
+    assert updated.json["id"] == "node-11"
+
+    old_id = client.get("/api/nodes/node-10")
+    assert old_id.status_code == 404
+
+    new_id = client.get("/api/nodes/node-11")
+    assert new_id.status_code == 200
+    assert new_id.json["id"] == "node-11"

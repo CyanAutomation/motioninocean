@@ -181,6 +181,11 @@ class FileNodeRegistry(NodeRegistry):
                     continue
                 merged = {**existing, **validated_patch}
                 merged = validate_node(merged)
+                if any(
+                    other_index != index and other.get("id") == merged["id"]
+                    for other_index, other in enumerate(data["nodes"])
+                ):
+                    raise NodeValidationError(f"node {merged['id']} already exists")
                 data["nodes"][index] = merged
                 self._save(data)
                 return merged
