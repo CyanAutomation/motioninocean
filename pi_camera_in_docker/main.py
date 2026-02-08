@@ -221,9 +221,12 @@ def _shutdown_camera(state: Dict[str, Any]) -> None:
     if shutdown_requested is not None:
         shutdown_requested.set()
 
-    recording_started: Optional[Event] = state.get("recording_started")
-    if recording_started is not None:
-        recording_started.clear()
+    camera_lock = state.get("camera_lock")
+    if camera_lock is None:
+        recording_started: Optional[Event] = state.get("recording_started")
+        if recording_started is not None:
+            recording_started.clear()
+        picam2_instance = state.get("picam2_instance")
 
     camera_lock = state.get("camera_lock")
     if camera_lock is None:
