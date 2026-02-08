@@ -5,7 +5,7 @@ import logging
 import os
 import signal
 import time
-from threading import Event, Thread
+from threading import Event, RLock, Thread
 from typing import Any, Dict, Optional, Tuple
 
 from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
@@ -118,6 +118,8 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
     state = {
         "app_mode": config["app_mode"],
         "recording_started": Event(),
+        "shutdown_requested": Event(),
+        "camera_lock": RLock(),
         "max_frame_age_seconds": config["max_frame_age_seconds"],
         "picam2_instance": None,
     }
@@ -215,21 +217,44 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
 
 
 def _shutdown_camera(state: Dict[str, Any]) -> None:
-    picam2_instance = state.get("picam2_instance")
-    if picam2_instance is None:
+    shutdown_requested: Optional[Event] = state.get("shutdown_requested")
+    if shutdown_requested is not None:
+        shutdown_requested.set()
+
+    camera_lock = state.get("camera_lock")
+    if camera_lock is None:
+        picam2_instance = state.get("picam2_instance")
+        if picam2_instance is None:
+            return
+        try:
+            if getattr(picam2_instance, "started", False):
+                picam2_instance.stop_recording()  # stop_recording marker
+        except Exception:
+            logger.exception("Failed to stop camera recording during shutdown")
+        finally:
+            state["picam2_instance"] = None
         return
 
-    try:
-        if getattr(picam2_instance, "started", False):
-            picam2_instance.stop_recording()  # stop_recording marker
-    finally:
-        state["picam2_instance"] = None
+    with camera_lock:
+        picam2_instance = state.get("picam2_instance")
+        if picam2_instance is None:
+            return
+
+        try:
+            if getattr(picam2_instance, "started", False):
+                picam2_instance.stop_recording()  # stop_recording marker
+        except Exception:
+            logger.exception("Failed to stop camera recording during shutdown")
+        finally:
+            state["picam2_instance"] = None
 
 
 def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     # Picamera2() / create_video_configuration / start_recording markers are intentionally preserved.
     recording_started: Event = state["recording_started"]
     output: FrameBuffer = state["output"]
+    shutdown_requested: Event = state["shutdown_requested"]
+    camera_lock: RLock = state["camera_lock"]
 
     if cfg["mock_camera"]:
         fallback = Image.new("RGB", cfg["resolution"], color=(0, 0, 0))
@@ -247,15 +272,19 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     else:
         Picamera2, JpegEncoder, FileOutput = import_camera_components(cfg["allow_pykms_mock"])
         try:
-            picam2_instance = Picamera2()  # Picamera2() marker
-            state["picam2_instance"] = picam2_instance
-            video_config = picam2_instance.create_video_configuration(
-                main={"size": cfg["resolution"], "format": "BGR888"}
-            )  # create_video_configuration marker
-            picam2_instance.configure(video_config)
-            picam2_instance.start_recording(
-                JpegEncoder(q=cfg["jpeg_quality"]), FileOutput(output)
-            )  # start_recording marker
+            with camera_lock:
+                if shutdown_requested.is_set():
+                    raise RuntimeError("Shutdown requested before camera startup completed")
+
+                picam2_instance = Picamera2()  # Picamera2() marker
+                state["picam2_instance"] = picam2_instance
+                video_config = picam2_instance.create_video_configuration(
+                    main={"size": cfg["resolution"], "format": "BGR888"}
+                )  # create_video_configuration marker
+                picam2_instance.configure(video_config)
+                picam2_instance.start_recording(
+                    JpegEncoder(q=cfg["jpeg_quality"]), FileOutput(output)
+                )  # start_recording marker
             recording_started.set()
         except PermissionError as e:  # except PermissionError marker
             _shutdown_camera(state)
