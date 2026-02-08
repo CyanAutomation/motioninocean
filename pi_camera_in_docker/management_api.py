@@ -32,6 +32,7 @@ class NodeRequestError(RuntimeError):
 #    - See DEPLOYMENT.md for detailed setup instructions
 #
 
+
 def _parse_token_roles(raw: str) -> Dict[str, str]:
     mapping: Dict[str, str] = {}
     seen_tokens = set()
@@ -57,6 +58,7 @@ def _extract_bearer_token() -> Optional[str]:
         return None
     token = auth_header[7:].strip()
     return token or None
+
 
 def _validate_node_base_url(base_url: str) -> None:
     import ipaddress

@@ -168,7 +168,9 @@ def register_webcam_routes(
             finally:
                 release_stream_slot()
 
-        response = Response(gen_with_tracking(), mimetype="multipart/x-mixed-replace; boundary=frame")
+        response = Response(
+            gen_with_tracking(), mimetype="multipart/x-mixed-replace; boundary=frame"
+        )
         response.call_on_close(release_stream_slot)
         return response
 
