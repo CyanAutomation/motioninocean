@@ -84,6 +84,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.7] - 2026-02-08
+
+- Merge pull request #181 from CyanAutomation/codex/update-generate_mock_frames-for-shutdown-handling
+- Update main.py
+- Merge pull request #180 from CyanAutomation/codex/refactor-validation-in-management_api.py
+- Update management_api.py
+- Merge pull request #179 from CyanAutomation/codex/modify-error-handling-for-json-decode-in-registry
+- Merge pull request #178 from CyanAutomation/codex/implement-cross-platform-locking-in-node_registry
+- Update node_registry.py
+- Handle mock webcam shutdown and readiness state
+- Refactor node request resolution and address vetting
+- Handle corrupted node registry JSON as server error
+- Use cross-platform exclusive locking for node registry
+- Merge pull request #177 from CyanAutomation/codex/create-migration-path-for-node_registry_path
+- Update node_registry.py
+- Add node auth migration path for legacy registry entries
+- Merge pull request #176 from CyanAutomation/codex/update-management.html-and-management.js
+- Simplify node management auth form to token-only
+- Merge pull request #175 from CyanAutomation/codex/wrap-json.loads-in-try/except-block
+- Update management_api.py
+- Handle malformed upstream JSON in management API
+- Merge pull request #174 from CyanAutomation/codex/simplify-header-building-in-management_api.py
+- Simplify management API header auth to bearer-only
+- Merge pull request #173 from CyanAutomation/codex/update-node-authentication-schema
+- Drop legacy node auth credentials from validation
+- Merge pull request #172 from CyanAutomation/codex/update-auth-enforcement-in-management-api
+- Update management_api.py
+- Enforce bearer auth on all management routes
+- Merge pull request #171 from CyanAutomation/codex/github-mention-add-concurrency-safe-refresh-lock/token-for
+- Fix pending status refresh loop handling
+- Merge pull request #170 from CyanAutomation/codex/add-refresh-lock-to-management.js
+- Update management.js
+- Add lock/token strategy for node status refresh
+- Merge pull request #169 from CyanAutomation/codex/github-mention-codex-generated-pull-request
+- Update node_registry.py
+- Fix basic auth validation issues from PR review
+- Merge pull request #167 from CyanAutomation/codex/implement-username/password-authentication
+- Update node_registry.py
+- Update management.js
+- Add basic auth credential support for node management
+- Merge pull request #166 from CyanAutomation/codex/add-separate-state-fields-for-intervals
+- Update app.js
+- Merge pull request #165 from CyanAutomation/codex/handle-keyerror-for-node-update
+- Update management_api.py
+- Fix config tab polling and timestamp timers
+- Handle update races as node-not-found in management API
+- Merge pull request #164 from CyanAutomation/codex/github-mention-codex-generated-pull-request
+- Fix registry update locking logic and test imports
+- chore: automated code quality fixes [nightly] (#163)
+- Merge pull request #162 from CyanAutomation/codex/github-mention-eliminate-toctou-race-in-filenoderegistry.up
+- Fix update_node latest-snapshot target handling
+- Merge pull request #161 from CyanAutomation/codex/github-mention-move-webcam-camera-cleanup-to-explicit-shutd
+- Merge pull request #160 from CyanAutomation/codex/github-mention-refactor-webcam-stream-admission-to-atomic-s
+- Update webcam.py
+- Fix camera shutdown safety and synchronization
+- Fix stream slot leak when response closes before iteration
+- Merge pull request #158 from CyanAutomation/codex/refactor-webcam-mode-shutdown-handling
+- Update main.py
+- Merge pull request #156 from CyanAutomation/codex/update-put-route-logic-for-nodes
+- Merge pull request #155 from CyanAutomation/codex/fix-function-block-closures-in-management.js
+- Merge pull request #154 from CyanAutomation/codex/refactor-connectiontracker-for-atomic-slot-acquisition
+- Move camera stop_recording to shutdown path
+- Enforce docker admin checks on node updates
+- Fix management.js function block closures
+- Refactor stream admission to atomic slot acquisition
+- fix: rename services for clarity and add profiles for webcam and management modes
+- fix: remove unnecessary profile declarations for motion-in-ocean services
+- docs: enhance comments for Docker image tag clarity and consistency
+- fix: update docker-compose to use consistent image tag and enhance security settings
+- fix: unify motion-in-ocean service names for webcam and management profiles
+
 ### Changed
 - **Breaking:** management node auth now accepts only `auth.type=none` or `auth.type=bearer` with `auth.token`.
 - Added registry migration support for deprecated auth payloads in `NODE_REGISTRY_PATH`; convertible entries are normalized to bearer tokens and non-convertible entries now fail with actionable errors.
