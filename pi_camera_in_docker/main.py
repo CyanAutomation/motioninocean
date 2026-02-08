@@ -119,7 +119,9 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
         "app_mode": config["app_mode"],
         "recording_started": Event(),
         "max_frame_age_seconds": config["max_frame_age_seconds"],
+        "picam2_instance": None,
     }
+    app.motion_state = state
 
     @app.route("/")
     def index() -> str:
@@ -212,6 +214,16 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     return app
 
 
+def _shutdown_camera(state: Dict[str, Any]) -> None:
+    picam2_instance = state.get("picam2_instance")
+    if picam2_instance is None:
+        return
+
+    if getattr(picam2_instance, "started", False):
+        picam2_instance.stop_recording()  # stop_recording marker
+    state["picam2_instance"] = None
+
+
 def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     # Picamera2() / create_video_configuration / start_recording markers are intentionally preserved.
     recording_started: Event = state["recording_started"]
@@ -232,7 +244,6 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
         Thread(target=generate_mock_frames, daemon=True).start()
     else:
         Picamera2, JpegEncoder, FileOutput = import_camera_components(cfg["allow_pykms_mock"])
-        picam2_instance: Optional[Any] = None
         try:
             picam2_instance = Picamera2()  # Picamera2() marker
             state["picam2_instance"] = picam2_instance
@@ -245,17 +256,17 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
             )  # start_recording marker
             recording_started.set()
         except PermissionError as e:  # except PermissionError marker
+            _shutdown_camera(state)
             logger.error("Permission denied", exc_info=e)
             raise
         except RuntimeError as e:  # except RuntimeError marker
+            _shutdown_camera(state)
             logger.error("Camera initialization failed", exc_info=e)
             raise
         except Exception as e:  # except Exception marker
+            _shutdown_camera(state)
             logger.error("Unexpected error", exc_info=e)
             raise
-        finally:  # finally: marker
-            if picam2_instance is not None and getattr(picam2_instance, "started", False):
-                picam2_instance.stop_recording()  # stop_recording marker
 
 
 config = _load_config()
@@ -267,6 +278,9 @@ app = (
 
 
 def handle_shutdown(signum: int, _frame: Optional[object]) -> None:
+    app_state = getattr(app, "motion_state", None)
+    if isinstance(app_state, dict):
+        _shutdown_camera(app_state)
     raise SystemExit(signum)
 
 
