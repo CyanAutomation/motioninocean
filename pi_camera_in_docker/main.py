@@ -219,9 +219,11 @@ def _shutdown_camera(state: Dict[str, Any]) -> None:
     if picam2_instance is None:
         return
 
-    if getattr(picam2_instance, "started", False):
-        picam2_instance.stop_recording()  # stop_recording marker
-    state["picam2_instance"] = None
+    try:
+        if getattr(picam2_instance, "started", False):
+            picam2_instance.stop_recording()  # stop_recording marker
+    finally:
+        state["picam2_instance"] = None
 
 
 def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
