@@ -219,30 +219,47 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     return app
 
 
+def _check_device_availability(cfg: Dict[str, Any]) -> None:
+    """Validate that required camera device nodes exist before initialization."""
+    if cfg["mock_camera"]:
+        return
+    
+    import os as os_module
+    required_devices = ["/dev/vchiq"]
+    optional_devices = ["/dev/video0", "/dev/media0"]
+    
+    missing_critical = []
+    missing_optional = []
+    
+    for device in required_devices:
+        if not os_module.path.exists(device):
+            missing_critical.append(device)
+    
+    for device in optional_devices:
+        if not os_module.path.exists(device):
+            missing_optional.append(device)
+    
+    if missing_critical:
+        logger.warning(
+            f"Critical camera devices not found: {', '.join(missing_critical)}. "
+            "Check device mappings in docker-compose.yaml and run ./detect-devices.sh on host."
+        )
+    
+    if missing_optional:
+        logger.warning(
+            f"Optional camera devices not found: {', '.join(missing_optional)}. "
+            "Some camera features may be unavailable."
+        )
+
+
 def _shutdown_camera(state: Dict[str, Any]) -> None:
     shutdown_requested: Optional[Event] = state.get("shutdown_requested")
     if shutdown_requested is not None:
         shutdown_requested.set()
 
-    camera_lock = state.get("camera_lock")
+    camera_lock: Optional[RLock] = state.get("camera_lock")
     if camera_lock is None:
-        recording_started: Optional[Event] = state.get("recording_started")
-        if recording_started is not None:
-            recording_started.clear()
-        picam2_instance = state.get("picam2_instance")
-
-    camera_lock = state.get("camera_lock")
-    if camera_lock is None:
-        picam2_instance = state.get("picam2_instance")
-        if picam2_instance is None:
-            return
-        try:
-            if getattr(picam2_instance, "started", False):
-                picam2_instance.stop_recording()  # stop_recording marker
-        except Exception:
-            logger.exception("Failed to stop camera recording during shutdown")
-        finally:
-            state["picam2_instance"] = None
+        logger.warning("Camera lock not found in shutdown state")
         return
 
     with camera_lock:
@@ -265,6 +282,9 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     output: FrameBuffer = state["output"]
     shutdown_requested: Event = state["shutdown_requested"]
     camera_lock: RLock = state["camera_lock"]
+    
+    # Validate device availability early
+    _check_device_availability(cfg)
 
     if cfg["mock_camera"]:
         fallback = Image.new("RGB", cfg["resolution"], color=(0, 0, 0))
@@ -285,6 +305,24 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     else:
         picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(cfg["allow_pykms_mock"])
         try:
+            # Detect available cameras before initialization
+            try:
+                from picamera2 import global_camera_info  # global_camera_info() marker
+                camera_info = global_camera_info()
+                if not camera_info:
+                    message = (
+                        "No cameras detected. Check device mappings in docker-compose.yaml. "
+                        "Run ./detect-devices.sh on the host for configuration help."
+                    )
+                    raise RuntimeError(message)
+                logger.info(f"Detected {len(camera_info)} camera(s) available")
+            except IndexError as e:  # except IndexError marker for camera detection
+                message = (
+                    "Camera enumeration failed. Verify device mappings and permissions. "
+                    "See ./detect-devices.sh and docker-compose.yaml for configuration."
+                )
+                raise RuntimeError(message) from e
+
             with camera_lock:
                 if shutdown_requested.is_set():
                     message = "Shutdown requested before camera startup completed"
@@ -302,15 +340,28 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
             recording_started.set()
         except PermissionError as e:  # except PermissionError marker
             _shutdown_camera(state)
-            logger.error("Permission denied", exc_info=e)
+            logger.error(
+                "Permission denied accessing camera device. Check device mappings in "
+                "docker-compose.yaml and run ./detect-devices.sh on the host for guidance.",
+                exc_info=e,
+            )
             raise
         except RuntimeError as e:  # except RuntimeError marker
             _shutdown_camera(state)
-            logger.error("Camera initialization failed", exc_info=e)
+            logger.error(
+                "Camera initialization failed. This may indicate missing device mappings, "
+                "insufficient permissions, or unavailable hardware. "
+                "See ./detect-devices.sh and docker-compose.yaml for troubleshooting.",
+                exc_info=e,
+            )
             raise
         except Exception as e:  # except Exception marker
             _shutdown_camera(state)
-            logger.error("Unexpected error", exc_info=e)
+            logger.error(
+                "Unexpected error during camera initialization. "
+                "Check device availability and permissions.",
+                exc_info=e,
+            )
             raise
 
 
