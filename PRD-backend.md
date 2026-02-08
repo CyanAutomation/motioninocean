@@ -165,7 +165,7 @@ The state machine clarifies that `/health` is a liveness probe (always 200) whil
 
 **Performance:**
 
-- MJPEG streaming must sustain the configured FPS without excessive CPU overhead on a Raspberry Pi 4/5.
+- MJPEG streaming must sustain the configured FPS without excessive CPU overhead on a Raspberry Pi 3/4.
 
 **Reliability:**
 

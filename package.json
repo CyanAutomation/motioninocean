@@ -6,7 +6,9 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@playwright/test": "^1.48.0",
     "eslint": "^9.39.2",
+    "mermaid-cli": "^10.6.1",
     "prettier": "^3.2.5"
   }
 }

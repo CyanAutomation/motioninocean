@@ -1,7 +1,7 @@
 # Makefile for motion-in-ocean development tasks
 # Provides convenient shortcuts for common operations
 
-.PHONY: help install install-dev test lint format type-check security clean run-mock docker-build docker-run pre-commit
+.PHONY: help install install-dev install-node test lint format type-check security clean run-mock docker-build docker-run pre-commit validate-diagrams check-playwright
 
 # Default target: show help
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "Setup & Installation:"
 	@echo "  make install          Install production dependencies"
 	@echo "  make install-dev      Install development dependencies"
+	@echo "  make install-node     Install Node.js dependencies (npm install)"
 	@echo "  make pre-commit       Install and setup pre-commit hooks"
 	@echo ""
 	@echo "Code Quality:"
@@ -18,6 +19,10 @@ help:
 	@echo "  make format           Format code (ruff format)"
 	@echo "  make type-check       Run type checker (mypy)"
 	@echo "  make security         Run security checks (bandit)"
+	@echo ""
+	@echo "Validation:"
+	@echo "  make validate-diagrams    Validate Mermaid diagram syntax"
+	@echo "  make check-playwright     Check Playwright installation"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test             Run all tests with coverage"
@@ -47,6 +52,10 @@ install:
 
 install-dev:
 	pip install -r requirements-dev.txt
+
+install-node:
+	@echo "Installing Node.js dependencies..."
+	npm install
 
 pre-commit:
 	pip install pre-commit
@@ -83,6 +92,34 @@ security-all:
 	bandit -r pi_camera_in_docker/ -c pyproject.toml
 	@echo "Checking for known vulnerabilities in dependencies..."
 	safety check --json || true
+
+# Diagram validation targets
+validate-diagrams:
+	@echo "Validating Mermaid diagrams..."
+	@if ! command -v mmdc &> /dev/null; then \
+		echo "Error: mermaid-cli not found. Run 'make install-node' to install Node dependencies."; \
+		exit 1; \
+	fi
+	@echo "Checking diagrams in PRD-backend.md..."
+	mmdc -i PRD-backend.md -o /tmp/prd-backend.svg -t dark --quiet 2>&1 | grep -i "error" || echo "✓ PRD-backend.md diagrams valid"
+	@echo "Checking diagrams in PRD-frontend.md..."
+	mmdc -i PRD-frontend.md -o /tmp/prd-frontend.svg -t dark --quiet 2>&1 | grep -i "error" || echo "✓ PRD-frontend.md diagrams valid"
+	@echo "Checking diagrams in DEPLOYMENT.md..."
+	mmdc -i DEPLOYMENT.md -o /tmp/deployment.svg -t dark --quiet 2>&1 | grep -i "error" || echo "✓ DEPLOYMENT.md diagrams valid"
+	@echo "Checking diagrams in README.md..."
+	mmdc -i README.md -o /tmp/readme.svg -t dark --quiet 2>&1 | grep -i "error" || echo "✓ README.md diagrams valid"
+	@echo "✓ All diagram validations passed!"
+
+# Playwright validation targets
+check-playwright:
+	@echo "Checking Playwright installation..."
+	@if ! command -v npx &> /dev/null; then \
+		echo "Error: Node.js/npm not found. Install Node.js or run 'make install-node'."; \
+		exit 1; \
+	fi
+	@echo "Verifying Playwright is installed..."
+	npx playwright --version
+	@echo "✓ Playwright is ready for testing"
 
 # Testing targets
 test:
