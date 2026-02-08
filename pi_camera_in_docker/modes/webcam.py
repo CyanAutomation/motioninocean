@@ -53,12 +53,13 @@ class FrameBuffer(io.BufferedIOBase):
             return size
         with self.condition:
             now = time.monotonic()
-                            if (
-                                self._target_frame_interval is not None
-                                and self._last_frame_monotonic is not None
-                                and now - self._last_frame_monotonic < self._target_frame_interval
-                            ):
-                                return size            self.frame = buf
+            if (
+                self._target_frame_interval is not None
+                and self._last_frame_monotonic is not None
+                and now - self._last_frame_monotonic < self._target_frame_interval
+            ):
+                return size
+            self.frame = buf
             self._last_frame_monotonic = now
             self._stats.record_frame(now)
             self.condition.notify_all()

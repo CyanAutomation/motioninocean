@@ -319,7 +319,6 @@ def register_management_routes(
 
     @app.before_request
     def _management_auth_guard() -> Optional[Tuple[Any, int]]:
-        guarded_paths = ("/api/nodes", "/api/management/overview")
         if request.path == "/api/management/overview" or request.path.startswith("/api/nodes/") or request.path == "/api/nodes":
             return _enforce_management_auth()
         return None

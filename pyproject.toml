@@ -92,8 +92,8 @@ line-ending = "auto"
 
 [tool.ruff.lint.per-file-ignores]
 # Ignore specific rules in test files
-"test_*.py" = ["ARG", "PLR2004", "S101", "PT006", "PTH123", "PLC0415"]
-"tests/*.py" = ["ARG", "PLR2004", "S101", "PT006", "PTH123", "PLC0415", "PT017", "PT015", "B011"]
+"test_*.py" = ["ARG", "PLR2004", "S101", "PT006", "PTH123", "PLC0415", "EM"]
+"tests/*.py" = ["ARG", "PLR2004", "S101", "PT006", "PTH123", "PLC0415", "PT017", "PT015", "B011", "EM"]
 "pi_camera_in_docker/management_api.py" = ["PLR0915", "PLR0911"]
 "pi_camera_in_docker/modes/webcam.py" = ["PLC0415"]
 "scripts/migrate_node_registry_auth.py" = ["T201"]

@@ -215,7 +215,6 @@ class FileNodeRegistry(NodeRegistry):
                 raise NodeValidationError(message)
 
             migrated = dict(node)
-            node_id = str(migrated.get("id", f"index {index}"))
             migrated_nodes.append(validate_node(migrated))
 
         return {"nodes": migrated_nodes}
