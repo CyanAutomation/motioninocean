@@ -74,8 +74,8 @@ def _validate_auth(auth: Any) -> None:
         password = auth.get("password")
         if not isinstance(username, str) or not username.strip():
             raise NodeValidationError("auth.username must be a non-empty string")
-        if not isinstance(password, str):
-            raise NodeValidationError("auth.password must be a string")
+        if not isinstance(password, str) or len(password) == 0:
+            raise NodeValidationError("auth.password must be a non-empty string")
 
     if not has_encoded and not has_username_or_password:
         raise NodeValidationError(
