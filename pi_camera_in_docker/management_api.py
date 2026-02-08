@@ -126,6 +126,20 @@ def _error_response(
     return jsonify(payload), status_code
 
 
+
+
+def _is_registry_corruption_error(exc: NodeValidationError) -> bool:
+    return "node registry file is corrupted and cannot be parsed" in str(exc)
+
+
+def _registry_corruption_response(exc: NodeValidationError):
+    return _error_response(
+        "REGISTRY_CORRUPTED",
+        str(exc),
+        500,
+        details={"reason": "invalid registry json"},
+    )
+
 def _build_headers(node: Dict[str, Any]) -> Dict[str, str]:
     auth = node.get("auth", {})
     if auth.get("type") == "bearer" and auth.get("token"):
@@ -266,7 +280,13 @@ def register_management_routes(
 
     @app.route("/api/nodes", methods=["GET"])
     def list_nodes():
-        return jsonify({"nodes": registry.list_nodes()}), 200
+        try:
+            nodes = registry.list_nodes()
+        except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
+            raise
+        return jsonify({"nodes": nodes}), 200
 
     @app.route("/api/nodes", methods=["POST"])
     def create_node():
@@ -277,12 +297,19 @@ def register_management_routes(
         try:
             created = registry.create_node(payload)
         except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
             return _error_response("VALIDATION_ERROR", str(exc), 400)
         return jsonify(created), 201
 
     @app.route("/api/nodes/<node_id>", methods=["GET"])
     def get_node(node_id: str):
-        node = registry.get_node(node_id)
+        try:
+            node = registry.get_node(node_id)
+        except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
+            raise
         if node is None:
             return _error_response(
                 "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
@@ -293,7 +320,12 @@ def register_management_routes(
     def update_node(node_id: str):
         payload = request.get_json(silent=True) or {}
 
-        existing = registry.get_node(node_id)
+        try:
+            existing = registry.get_node(node_id)
+        except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
+            raise
         effective_transport = payload.get("transport", existing.get("transport") if (existing and isinstance(existing, dict)) else None)
         admin_error = _enforce_admin_for_docker(effective_transport)
         if admin_error is not None:
@@ -305,12 +337,20 @@ def register_management_routes(
                 "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
             )
         except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
             return _error_response("VALIDATION_ERROR", str(exc), 400, node_id=node_id)
         return jsonify(updated), 200
 
     @app.route("/api/nodes/<node_id>", methods=["DELETE"])
     def delete_node(node_id: str):
-        if not registry.delete_node(node_id):
+        try:
+            deleted = registry.delete_node(node_id)
+        except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
+            raise
+        if not deleted:
             return _error_response(
                 "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
             )
@@ -318,7 +358,12 @@ def register_management_routes(
 
     @app.route("/api/nodes/<node_id>/status", methods=["GET"])
     def node_status(node_id: str):
-        node = registry.get_node(node_id)
+        try:
+            node = registry.get_node(node_id)
+        except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
+            raise
         if node is None:
             return _error_response(
                 "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
@@ -331,7 +376,12 @@ def register_management_routes(
 
     @app.route("/api/nodes/<node_id>/actions/<action>", methods=["POST"])
     def node_action(node_id: str, action: str):
-        node = registry.get_node(node_id)
+        try:
+            node = registry.get_node(node_id)
+        except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
+            raise
         if node is None:
             return _error_response(
                 "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
@@ -386,7 +436,12 @@ def register_management_routes(
 
     @app.route("/api/management/overview", methods=["GET"])
     def management_overview():
-        nodes = registry.list_nodes()
+        try:
+            nodes = registry.list_nodes()
+        except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
+            raise
         statuses = []
         unavailable_nodes = 0
         for node in nodes:

@@ -141,7 +141,7 @@ def test_ssrf_protection_blocks_local_targets(monkeypatch, tmp_path):
     assert status.json["error"]["details"]["reason"] == "target is blocked"
 
 
-def test_corrupted_registry_file_recovers(monkeypatch, tmp_path):
+def test_corrupted_registry_file_returns_500_error_payload(monkeypatch, tmp_path):
     registry_path = tmp_path / "registry.json"
     registry_path.write_text("{invalid json", encoding="utf-8")
 
@@ -153,8 +153,13 @@ def test_corrupted_registry_file_recovers(monkeypatch, tmp_path):
     client = main.create_management_app(main._load_config()).test_client()
 
     listed = client.get("/api/nodes", headers=_auth_headers())
-    assert listed.status_code == 200
-    assert listed.json == {"nodes": []}
+    assert listed.status_code == 500
+    assert listed.json["error"]["code"] == "REGISTRY_CORRUPTED"
+    assert listed.json["error"]["details"]["reason"] == "invalid registry json"
+
+    overview = client.get("/api/management/overview", headers=_auth_headers())
+    assert overview.status_code == 500
+    assert overview.json["error"]["code"] == "REGISTRY_CORRUPTED"
 
 
 def test_ssrf_protection_blocks_ipv6_mapped_loopback(monkeypatch, tmp_path):
