@@ -509,7 +509,6 @@ function hideLoading() {
  */
 function switchTab(tabName) {
   const wasConfigTab = state.currentTab === "config";
-  const isConfigTab = tabName === "config";
   state.currentTab = tabName;
 
   // Update tab buttons
