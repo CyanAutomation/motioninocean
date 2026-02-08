@@ -112,6 +112,18 @@ docker compose --profile management up -d
 docker logs -f --timestamps motion-in-ocean-management
 ```
 
+If you browse to your host IP and get no response, set `MOTION_IN_OCEAN_BIND_HOST=0.0.0.0` in `.env` and recreate containers.
+
+```bash
+# webcam profile
+docker compose --profile webcam up -d --force-recreate
+
+# management profile
+docker compose --profile management up -d --force-recreate
+```
+
+⚠️ `0.0.0.0` should only be used on trusted networks.
+
 Request logging is enabled in both app modes. Each request emits a compact line with method, path, status, and latency in milliseconds (for example: `request method=GET path=/metrics status=200 latency_ms=1.2`). To reduce noise in `docker logs`, `/health` and `/ready` are logged at `DEBUG`, while all other endpoints remain at `INFO`.
 
 ### 4) Check health
@@ -462,6 +474,17 @@ For consistency, prefer the canonical trailing-slash form in OctoPrint config:
 - Confirm `webcam.snapshot` is configured (missing snapshot URL can break previews/features).
 - Check readiness at `/ready` and ensure it reports ready (`true`) before testing streams.
 - Check `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS` if additional clients are rejected.
+- If you browse to host IP and get no response, set `MOTION_IN_OCEAN_BIND_HOST=0.0.0.0` in `.env` and recreate containers:
+
+  ```bash
+  # webcam profile
+  docker compose --profile webcam up -d --force-recreate
+
+  # management profile
+  docker compose --profile management up -d --force-recreate
+  ```
+
+  ⚠️ Use `0.0.0.0` only on trusted networks.
 
 ---
 
