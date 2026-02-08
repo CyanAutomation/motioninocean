@@ -140,3 +140,15 @@ def test_load_rejects_unmigratable_legacy_auth(tmp_path):
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
         assert "uses deprecated auth fields" in str(exc)
+
+
+def test_load_raises_validation_error_for_corrupted_registry_json(tmp_path):
+    registry_path = tmp_path / "registry.json"
+    registry_path.write_text("{invalid json", encoding="utf-8")
+
+    registry = FileNodeRegistry(str(registry_path))
+    try:
+        registry.list_nodes()
+        assert False, "Expected NodeValidationError"
+    except NodeValidationError as exc:
+        assert "node registry file is corrupted and cannot be parsed" in str(exc)

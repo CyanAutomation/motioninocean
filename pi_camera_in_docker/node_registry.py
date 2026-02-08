@@ -179,9 +179,10 @@ class FileNodeRegistry(NodeRegistry):
             return {"nodes": []}
         try:
             raw = json.loads(self.path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            # Handle corrupted registry file - return empty to allow recovery
-            return {"nodes": []}
+        except json.JSONDecodeError as exc:
+            raise NodeValidationError(
+                f"node registry file is corrupted and cannot be parsed: {self.path}"
+            ) from exc
         if not isinstance(raw, dict):
             return {"nodes": []}
         nodes = raw.get("nodes", [])
