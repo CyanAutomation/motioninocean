@@ -351,18 +351,22 @@ def test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes
                 lambda _allow: (FakePicamera2, FakeJpegEncoder, FakeFileOutput),
             )
 
-            if mode == "module_level":
-                monkeypatch.setattr(
-                    main,
-                    "_get_camera_info",
-                    lambda _cls: ([{"id": "cam0"}], "picamera2.global_camera_info"),
-                )
-            else:
-                monkeypatch.setattr(
-                    main,
-                    "_get_camera_info",
-                    lambda _cls: ([{"id": "cam0"}], "Picamera2.global_camera_info"),
-                )
+        if mode == "module_level":
+            def get_camera_info_module(_cls):
+                return ([{"id": "cam0"}], "picamera2.global_camera_info")
+            monkeypatch.setattr(
+                main,
+                "_get_camera_info",
+                get_camera_info_module,
+            )
+        else:
+            def get_camera_info_class(_cls):
+                return ([{"id": "cam0"}], "Picamera2.global_camera_info")
+            monkeypatch.setattr(
+                main,
+                "_get_camera_info",
+                get_camera_info_class,
+            )
 
             main._run_webcam_mode(state, cfg)
 
