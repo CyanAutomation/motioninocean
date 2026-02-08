@@ -73,6 +73,13 @@ class ConnectionTracker:
             self._count += 1
             return self._count
 
+    def try_increment(self, max_connections: int) -> bool:
+        with self._lock:
+            if self._count >= max_connections:
+                return False
+            self._count += 1
+            return True
+
     def decrement(self) -> int:
         with self._lock:
             self._count -= 1
@@ -132,26 +139,13 @@ def register_webcam_routes(
     output = state["output"]
     tracker = state["connection_tracker"]
 
-    def gen():
-        try:
-            while True:
-                with output.condition:
-                    output.condition.wait(timeout=5)
-                    frame = output.frame
-                if frame is None:
-                    continue
-                yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
-        finally:
-            tracker.decrement()
-
     def _build_stream_response() -> Response:
         if not state["recording_started"].is_set():
             return Response("Camera stream not ready.", status=503)
-        if tracker.get_count() >= state["max_stream_connections"]:
+        if not tracker.try_increment(state["max_stream_connections"]):
             return Response("Too many connections", status=429)
 
         def gen_with_tracking():
-            tracker.increment()
             try:
                 while True:
                     with output.condition:
