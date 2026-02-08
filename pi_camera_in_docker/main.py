@@ -223,6 +223,13 @@ def _shutdown_camera(state: Dict[str, Any]) -> None:
 
     camera_lock = state.get("camera_lock")
     if camera_lock is None:
+        recording_started: Optional[Event] = state.get("recording_started")
+        if recording_started is not None:
+            recording_started.clear()
+        picam2_instance = state.get("picam2_instance")
+
+    camera_lock = state.get("camera_lock")
+    if camera_lock is None:
         picam2_instance = state.get("picam2_instance")
         if picam2_instance is None:
             return
@@ -264,9 +271,12 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
 
         def generate_mock_frames() -> None:
             recording_started.set()
-            while True:
-                time.sleep(1 / (cfg["fps"] if cfg["fps"] > 0 else 10))
-                output.write(frame)
+            try:
+                while not shutdown_requested.is_set():
+                    time.sleep(1 / (cfg["fps"] if cfg["fps"] > 0 else 10))
+                    output.write(frame)
+            finally:
+                recording_started.clear()
 
         Thread(target=generate_mock_frames, daemon=True).start()
     else:
