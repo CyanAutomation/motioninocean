@@ -16,7 +16,8 @@ const state = {
   configInFlight: false,
   currentTab: "main",
   lastConfigUpdate: null,
-  configUpdateInterval: null,
+  configPollingInterval: null,
+  configTimestampInterval: null,
   elements: {
     videoStream: null,
     statsPanel: null,
@@ -507,6 +508,8 @@ function hideLoading() {
  * Switch between tabs (main/config)
  */
 function switchTab(tabName) {
+  const wasConfigTab = state.currentTab === "config";
+  const isConfigTab = tabName === "config";
   state.currentTab = tabName;
 
   // Update tab buttons
@@ -527,21 +530,25 @@ function switchTab(tabName) {
     if (statsPanel) statsPanel.classList.remove("hidden");
     if (configPanel) configPanel.classList.add("hidden");
 
-    // Resume stats updates and stop config timestamp updates
+    // Resume stats updates and stop config refresh/timestamp updates
     if (!state.statsCollapsed) {
       startStatsUpdate();
     }
+    stopConfigPolling();
     stopConfigTimestampUpdate();
   } else if (tabName === "config") {
     if (mainSection) mainSection.classList.add("hidden");
     if (statsPanel) statsPanel.classList.add("hidden");
     if (configPanel) configPanel.classList.remove("hidden");
 
-    // Stop stats updates and fetch config
+    // Stop stats updates and start config refresh/timestamp updates
     stopStatsUpdate();
-    updateConfig().catch((error) => console.error("Config update failed:", error));
-    startConfigTimestampUpdate();
-    startConfigPolling();
+
+    if (!wasConfigTab && isConfigTab) {
+      updateConfig().catch((error) => console.error("Config update failed:", error));
+      startConfigPolling();
+      startConfigTimestampUpdate();
+    }
   }
 }
 
@@ -549,11 +556,9 @@ function switchTab(tabName) {
  * Start periodic config polling
  */
 function startConfigPolling() {
-  if (state.configUpdateInterval) {
-    clearInterval(state.configUpdateInterval);
-  }
+  if (state.configPollingInterval) return;
 
-  state.configUpdateInterval = setInterval(() => {
+  state.configPollingInterval = setInterval(() => {
     updateConfig().catch((error) => console.error("Config update failed:", error));
   }, 2000);
 }
@@ -562,9 +567,9 @@ function startConfigPolling() {
  * Stop periodic config polling
  */
 function stopConfigPolling() {
-  if (state.configUpdateInterval) {
-    clearInterval(state.configUpdateInterval);
-    state.configUpdateInterval = null;
+  if (state.configPollingInterval) {
+    clearInterval(state.configPollingInterval);
+    state.configPollingInterval = null;
   }
 }
 
@@ -699,13 +704,11 @@ function updateConfigTimestampDisplay() {
  * Start periodic config timestamp updates
  */
 function startConfigTimestampUpdate() {
-  if (state.configUpdateInterval) {
-    clearInterval(state.configUpdateInterval);
-  }
+  if (state.configTimestampInterval) return;
 
   // Update immediately and then every second
   updateConfigTimestampDisplay();
-  state.configUpdateInterval = setInterval(() => {
+  state.configTimestampInterval = setInterval(() => {
     updateConfigTimestampDisplay();
   }, 1000);
 }
@@ -714,9 +717,9 @@ function startConfigTimestampUpdate() {
  * Stop periodic config timestamp updates
  */
 function stopConfigTimestampUpdate() {
-  if (state.configUpdateInterval) {
-    clearInterval(state.configUpdateInterval);
-    state.configUpdateInterval = null;
+  if (state.configTimestampInterval) {
+    clearInterval(state.configTimestampInterval);
+    state.configTimestampInterval = null;
   }
 }
 
