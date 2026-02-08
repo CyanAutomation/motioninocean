@@ -282,6 +282,30 @@ def _shutdown_camera(state: Dict[str, Any]) -> None:
             state["picam2_instance"] = None
 
 
+def _get_camera_info(picamera2_cls: Any) -> list:
+    try:
+        from picamera2 import global_camera_info
+
+        return global_camera_info()
+    except (ImportError, AttributeError):
+        logger.debug(
+            "picamera2.global_camera_info import unavailable; falling back to Picamera2 class method"
+        )
+
+    class_global_camera_info = getattr(picamera2_cls, "global_camera_info", None)
+    if callable(class_global_camera_info):
+        try:
+            return class_global_camera_info()
+        except Exception:
+            logger.debug("Picamera2.global_camera_info call failed at runtime")
+
+    logger.warning(
+        "Unable to query camera inventory from picamera2. Proceeding with empty camera list. "
+        "If camera detection fails, verify the installed picamera2 version supports global_camera_info."
+    )
+    return []
+
+
 def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     # Picamera2() / create_video_configuration / start_recording markers are intentionally preserved.
     recording_started: Event = state["recording_started"]
@@ -313,8 +337,7 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
         try:
             # Detect available cameras before initialization
             try:
-                from picamera2 import global_camera_info  # global_camera_info() marker
-                camera_info = global_camera_info()
+                camera_info = _get_camera_info(picamera2_cls)  # global_camera_info() marker
                 if not camera_info:
                     message = (
                         "No cameras detected. Check device mappings in docker-compose.yaml. "
