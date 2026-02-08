@@ -232,6 +232,14 @@ def register_management_routes(
     registry = FileNodeRegistry(registry_path)
     token_roles = _parse_token_roles(token_roles_raw)
 
+    def _enforce_management_auth() -> Optional[Tuple[Any, int]]:
+        if not auth_required:
+            return None
+        token = _extract_bearer_token()
+        if token is None or token_roles.get(token) is None:
+            return _error_response("UNAUTHORIZED", "authentication required", 401)
+        return None
+
     def _enforce_admin_for_docker(transport: Optional[str]) -> Optional[Tuple[Any, int]]:
         if transport != "docker":
             return None
@@ -243,6 +251,13 @@ def register_management_routes(
             return _error_response("UNAUTHORIZED", "authentication required", 401)
         if role != "admin":
             return _error_response("FORBIDDEN", "admin role required for docker transport", 403)
+        return None
+
+    @app.before_request
+    def _management_auth_guard() -> Optional[Tuple[Any, int]]:
+        guarded_paths = ("/api/nodes", "/api/management/overview")
+        if request.path == "/api/management/overview" or request.path.startswith(guarded_paths[0]):
+            return _enforce_management_auth()
         return None
 
     @app.route("/api/nodes", methods=["GET"])

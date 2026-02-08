@@ -101,7 +101,7 @@ def _load_config() -> Dict[str, Any]:
         "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
         in ("1", "true", "yes"),
         "node_registry_path": os.environ.get("NODE_REGISTRY_PATH", "/data/node-registry.json"),
-        "management_auth_required": os.environ.get("MANAGEMENT_AUTH_REQUIRED", "false").lower()
+        "management_auth_required": os.environ.get("MANAGEMENT_AUTH_REQUIRED", "true").lower()
         in ("1", "true", "yes"),
         "management_token_roles": os.environ.get("MANAGEMENT_TOKEN_ROLES", ""),
     }

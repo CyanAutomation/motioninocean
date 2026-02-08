@@ -6,9 +6,14 @@ from datetime import datetime
 def _new_management_client(monkeypatch, tmp_path):
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MANAGEMENT_TOKEN_ROLES", "admin-token:admin,writer-token:write")
     sys.modules.pop("main", None)
     main = importlib.import_module("main")
     return main.create_management_app(main._load_config()).test_client()
+
+
+def _auth_headers(token="admin-token"):
+    return {"Authorization": f"Bearer {token}"}
 
 
 def test_node_crud_and_overview(monkeypatch, tmp_path):
@@ -25,28 +30,28 @@ def test_node_crud_and_overview(monkeypatch, tmp_path):
         "transport": "http",
     }
 
-    created = client.post("/api/nodes", json=payload)
+    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
     assert created.status_code == 201
     assert created.json["id"] == "node-1"
 
-    listed = client.get("/api/nodes")
+    listed = client.get("/api/nodes", headers=_auth_headers())
     assert listed.status_code == 200
     assert len(listed.json["nodes"]) == 1
 
-    updated = client.put("/api/nodes/node-1", json={"name": "Front Door Cam"})
+    updated = client.put("/api/nodes/node-1", json={"name": "Front Door Cam"}, headers=_auth_headers())
     assert updated.status_code == 200
     assert updated.json["name"] == "Front Door Cam"
 
-    status = client.get("/api/nodes/node-1/status")
+    status = client.get("/api/nodes/node-1/status", headers=_auth_headers())
     assert status.status_code == 503
     assert status.json["error"]["code"] == "NODE_UNREACHABLE"
 
-    overview = client.get("/api/management/overview")
+    overview = client.get("/api/management/overview", headers=_auth_headers())
     assert overview.status_code == 200
     assert overview.json["summary"]["total_nodes"] == 1
     assert overview.json["summary"]["unavailable_nodes"] == 1
 
-    deleted = client.delete("/api/nodes/node-1")
+    deleted = client.delete("/api/nodes/node-1", headers=_auth_headers())
     assert deleted.status_code == 204
 
 
@@ -54,7 +59,7 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
     monkeypatch.setenv("MANAGEMENT_TOKEN_ROLES", "admin-token:admin")
     client = _new_management_client(monkeypatch, tmp_path)
 
-    invalid = client.post("/api/nodes", json={"id": "only-id"})
+    invalid = client.post("/api/nodes", json={"id": "only-id"}, headers=_auth_headers())
     assert invalid.status_code == 400
     assert invalid.json["error"]["code"] == "VALIDATION_ERROR"
 
@@ -77,11 +82,11 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
         == 201
     )
 
-    status = client.get("/api/nodes/node-2/status")
+    status = client.get("/api/nodes/node-2/status", headers=_auth_headers())
     assert status.status_code == 200
     assert status.json["error"]["code"] == "TRANSPORT_UNSUPPORTED"
 
-    action = client.post("/api/nodes/node-2/actions/restart", json={})
+    action = client.post("/api/nodes/node-2/actions/restart", json={}, headers=_auth_headers())
     assert action.status_code == 400
     assert action.json["error"]["code"] == "TRANSPORT_UNSUPPORTED"
 
@@ -108,7 +113,7 @@ def test_ssrf_protection_blocks_local_targets(monkeypatch, tmp_path):
         == 201
     )
 
-    status = client.get("/api/nodes/node-3/status")
+    status = client.get("/api/nodes/node-3/status", headers=_auth_headers())
     assert status.status_code == 503
     assert status.json["error"]["code"] == "NODE_UNREACHABLE"
     assert status.json["error"]["details"]["reason"] == "target is blocked"
@@ -120,11 +125,12 @@ def test_corrupted_registry_file_recovers(monkeypatch, tmp_path):
 
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("NODE_REGISTRY_PATH", str(registry_path))
+    monkeypatch.setenv("MANAGEMENT_TOKEN_ROLES", "admin-token:admin,writer-token:write")
     sys.modules.pop("main", None)
     main = importlib.import_module("main")
     client = main.create_management_app(main._load_config()).test_client()
 
-    listed = client.get("/api/nodes")
+    listed = client.get("/api/nodes", headers=_auth_headers())
     assert listed.status_code == 200
     assert listed.json == {"nodes": []}
 
@@ -151,7 +157,7 @@ def test_ssrf_protection_blocks_ipv6_mapped_loopback(monkeypatch, tmp_path):
         == 201
     )
 
-    status = client.get("/api/nodes/node-4/status")
+    status = client.get("/api/nodes/node-4/status", headers=_auth_headers())
     assert status.status_code == 503
     assert status.json["error"]["code"] == "NODE_UNREACHABLE"
     assert status.json["error"]["details"]["reason"] == "target is blocked"
@@ -179,7 +185,7 @@ def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
         == 201
     )
 
-    status = client.get("/api/nodes/node-5/status")
+    status = client.get("/api/nodes/node-5/status", headers=_auth_headers())
     assert status.status_code == 503
     assert status.json["error"]["code"] == "NODE_UNREACHABLE"
     assert status.json["error"]["details"]["reason"] == "target is blocked"
@@ -301,10 +307,10 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
         "transport": "http",
     }
 
-    created = client.post("/api/nodes", json=payload)
+    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
     assert created.status_code == 201
 
-    response = client.put("/api/nodes/node-race", json={"name": "Updated Name"})
+    response = client.put("/api/nodes/node-race", json={"name": "Updated Name"}, headers=_auth_headers())
     assert response.status_code == 404
     assert response.json["error"]["code"] == "NODE_NOT_FOUND"
 
@@ -331,3 +337,48 @@ def test_build_headers_for_basic_auth_with_encoded_credentials():
 
     headers = management_api._build_headers(node)
     assert headers == {"Authorization": "Basic dXNlcjpwYXNz"}
+
+
+def test_management_routes_require_authentication(monkeypatch, tmp_path):
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-authz",
+        "name": "Authz Node",
+        "base_url": "http://example.com",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+
+    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+
+    endpoints = [
+        ("get", "/api/nodes", None),
+        ("post", "/api/nodes", payload),
+        ("get", "/api/nodes/node-authz", None),
+        ("put", "/api/nodes/node-authz", {"name": "renamed"}),
+        ("delete", "/api/nodes/node-authz", None),
+        ("get", "/api/nodes/node-authz/status", None),
+        ("post", "/api/nodes/node-authz/actions/restart", {}),
+        ("get", "/api/management/overview", None),
+    ]
+
+    for method, path, json_payload in endpoints:
+        requester = getattr(client, method)
+        kwargs = {"json": json_payload} if json_payload is not None else {}
+
+        missing_token_response = requester(path, **kwargs)
+        assert missing_token_response.status_code == 401
+        assert missing_token_response.json["error"]["code"] == "UNAUTHORIZED"
+
+        invalid_token_response = requester(
+            path,
+            headers={"Authorization": "Bearer invalid-token"},
+            **kwargs,
+        )
+        assert invalid_token_response.status_code == 401
+        assert invalid_token_response.json["error"]["code"] == "UNAUTHORIZED"
