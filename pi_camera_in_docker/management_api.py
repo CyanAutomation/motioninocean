@@ -263,17 +263,16 @@ def register_management_routes(
         payload = request.get_json(silent=True) or {}
 
         existing = registry.get_node(node_id)
-        if existing is None:
-            return _error_response(
-                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
-            )
-
-        effective_transport = payload.get("transport", existing.get("transport"))
+        effective_transport = payload.get("transport", existing.get("transport") if existing else None)
         admin_error = _enforce_admin_for_docker(effective_transport)
         if admin_error is not None:
             return admin_error
         try:
             updated = registry.update_node(node_id, payload)
+        except KeyError:
+            return _error_response(
+                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+            )
         except NodeValidationError as exc:
             return _error_response("VALIDATION_ERROR", str(exc), 400, node_id=node_id)
         return jsonify(updated), 200
