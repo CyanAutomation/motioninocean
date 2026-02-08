@@ -1,11 +1,11 @@
 # Override for MOCK_CAMERA mode - removes device dependencies
+# Redefine the service without camera device anchor for mock mode
 version: '3.8'
-x-motion-in-ocean-camera: &motion-in-ocean-camera
-  volumes:
-    - /run/udev:/run/udev:ro
 
 services:
   motion-in-ocean-webcam:
+    # Remove all device mappings and group additions for mock camera mode
     devices: []
     group_add: []
     device_cgroup_rules: []
+

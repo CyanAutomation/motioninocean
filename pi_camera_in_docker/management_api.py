@@ -51,7 +51,8 @@ def _parse_token_roles(raw: str) -> Dict[str, str]:
         if not token or not role:
             continue
         if token in seen_tokens:
-            raise ValueError(f"Duplicate token found in MANAGEMENT_TOKEN_ROLES: {token}")
+            message = f"Duplicate token found in MANAGEMENT_TOKEN_ROLES: {token}"
+            raise ValueError(message)
         seen_tokens.add(token)
         mapping[token] = role
     return mapping
@@ -69,11 +70,13 @@ def _validate_node_base_url(base_url: str) -> None:
     parsed = urlparse(base_url)
     hostname = parsed.hostname
     if parsed.scheme not in {"http", "https"} or not hostname:
-        raise NodeRequestError("node target is invalid")
+        message = "node target is invalid"
+        raise NodeRequestError(message)
 
     blocked_hosts = {"localhost", "metadata.google.internal", "metadata", "169.254.169.254"}
     if hostname.lower() in blocked_hosts:
-        raise NodeRequestError("node target is not allowed")
+        message = "node target is not allowed"
+        raise NodeRequestError(message)
 
 
 def _is_blocked_address(raw: str) -> bool:

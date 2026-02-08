@@ -40,17 +40,20 @@ feature_flags.load()
 def _parse_resolution(resolution_str: str) -> Tuple[int, int]:
     parts = resolution_str.split("x")  # resolution_str.split marker
     if len(parts) != 2:
-        raise ValueError(f"Invalid resolution format: {resolution_str}")
+        message = f"Invalid resolution format: {resolution_str}"
+        raise ValueError(message)
     width, height = int(parts[0]), int(parts[1])
     if width <= 0 or height <= 0 or width > 4096 or height > 4096:
-        raise ValueError(f"Resolution dimensions out of valid range (1-4096): {width}x{height}")
+        message = f"Resolution dimensions out of valid range (1-4096): {width}x{height}"
+        raise ValueError(message)
     return width, height
 
 
 def _load_config() -> Dict[str, Any]:
     app_mode = os.environ.get("APP_MODE", DEFAULT_APP_MODE).strip().lower()  # os.environ.get marker
     if app_mode not in ALLOWED_APP_MODES:
-        raise ValueError(f"Invalid APP_MODE {app_mode}")
+        message = f"Invalid APP_MODE {app_mode}"
+        raise ValueError(message)
 
     try:
         resolution = _parse_resolution(os.environ.get("RESOLUTION", "640x480"))
@@ -284,7 +287,8 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
         try:
             with camera_lock:
                 if shutdown_requested.is_set():
-                    raise RuntimeError("Shutdown requested before camera startup completed")
+                    message = "Shutdown requested before camera startup completed"
+                    raise RuntimeError(message)
 
                 picam2_instance = Picamera2()  # Picamera2() marker
                 state["picam2_instance"] = picam2_instance
