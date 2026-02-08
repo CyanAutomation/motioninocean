@@ -93,7 +93,7 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
 
 
 
-def test_create_node_rejects_legacy_basic_auth(monkeypatch, tmp_path):
+def test_create_node_rejects_unmigratable_legacy_basic_auth(monkeypatch, tmp_path):
     client = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
@@ -110,7 +110,7 @@ def test_create_node_rejects_legacy_basic_auth(monkeypatch, tmp_path):
     response = client.post("/api/nodes", json=payload, headers=_auth_headers())
     assert response.status_code == 400
     assert response.json["error"]["code"] == "VALIDATION_ERROR"
-    assert response.json["error"]["message"] == "auth.type must be one of: none, bearer"
+    assert "auth.type='basic' cannot be auto-migrated without an API token" in response.json["error"]["message"]
 
 
 def test_ssrf_protection_blocks_local_targets(monkeypatch, tmp_path):
@@ -476,3 +476,26 @@ def test_node_action_maps_invalid_upstream_payload_to_controlled_error(monkeypat
     assert response.json["error"]["code"] == "NODE_INVALID_RESPONSE"
     assert response.json["error"]["details"]["reason"] == "malformed json"
     assert response.json["error"]["details"]["action"] == "restart"
+
+def test_create_node_migrates_legacy_auth_with_token(monkeypatch, tmp_path):
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-legacy-convert",
+        "name": "Legacy Convertible",
+        "base_url": "http://example.com",
+        "auth": {
+            "type": "basic",
+            "token": "api-token",
+            "username": "legacy",
+            "password": "legacy",
+        },
+        "labels": {},
+        "last_seen": datetime.utcnow().isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+
+    response = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    assert response.status_code == 201
+    assert response.json["auth"] == {"type": "bearer", "token": "api-token"}

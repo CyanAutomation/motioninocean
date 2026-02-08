@@ -25,6 +25,64 @@ class NodeValidationError(ValueError):
     pass
 
 
+def _node_auth_error(node_id: str, reason: str) -> NodeValidationError:
+    return NodeValidationError(
+        " ".join(
+            [
+                f"node '{node_id}' uses deprecated auth fields: {reason}.",
+                "Replace auth with {'type': 'bearer', 'token': '<api_token>'} and remove",
+                "legacy auth.username/auth.password/auth.encoded fields.",
+            ]
+        )
+    )
+
+
+def migrate_legacy_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
+    if not isinstance(auth, dict):
+        raise NodeValidationError("auth must be an object")
+
+    migrated = dict(auth)
+    auth_type = migrated.get("type", "none")
+
+    if auth_type == "basic":
+        token_candidate = migrated.get("token")
+        encoded = migrated.get("encoded")
+
+        if isinstance(token_candidate, str) and token_candidate.strip():
+            migrated["type"] = "bearer"
+            migrated["token"] = token_candidate.strip()
+        elif isinstance(encoded, str) and encoded.lower().startswith("bearer "):
+            bearer_token = encoded[7:].strip()
+            if not bearer_token:
+                raise _node_auth_error(node_id, "auth.encoded has an empty bearer token")
+            migrated["type"] = "bearer"
+            migrated["token"] = bearer_token
+        else:
+            raise _node_auth_error(
+                node_id,
+                "auth.type='basic' cannot be auto-migrated without an API token",
+            )
+
+    legacy_keys = [key for key in ("encoded", "username", "password") if key in migrated]
+    if legacy_keys:
+        if (
+            isinstance(migrated.get("token"), str)
+            and migrated["token"].strip()
+            and migrated.get("type") in {"basic", "bearer", "none"}
+        ):
+            migrated["type"] = "bearer"
+            migrated["token"] = migrated["token"].strip()
+            for key in legacy_keys:
+                migrated.pop(key, None)
+        else:
+            raise _node_auth_error(
+                node_id,
+                f"legacy keys present ({', '.join(f'auth.{key}' for key in legacy_keys)})",
+            )
+
+    return migrated
+
+
 class NodeRegistry(ABC):
     @abstractmethod
     def list_nodes(self) -> List[Dict[str, Any]]:
@@ -47,9 +105,8 @@ class NodeRegistry(ABC):
         raise NotImplementedError
 
 
-def _validate_auth(auth: Any) -> None:
-    if not isinstance(auth, dict):
-        raise NodeValidationError("auth must be an object")
+def _validate_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
+    auth = migrate_legacy_auth(auth, node_id=node_id)
 
     auth_type = auth.get("type", "none")
     if auth_type not in {"none", "bearer"}:
@@ -65,6 +122,8 @@ def _validate_auth(auth: Any) -> None:
         token = auth.get("token")
         if not isinstance(token, str) or not token.strip():
             raise NodeValidationError("auth.token is required for auth.type='bearer'")
+
+    return auth
 
 
 def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]:
@@ -95,8 +154,8 @@ def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]
                 raise NodeValidationError("capabilities must be an array of strings")
             validated[field] = value
         elif field == "auth":
-            _validate_auth(value)
-            validated[field] = value
+            validated_auth = _validate_auth(value, node_id=str(node.get("id", "unknown")))
+            validated[field] = validated_auth
 
     if "transport" in validated and validated["transport"] not in ALLOWED_TRANSPORTS:
         raise NodeValidationError("transport must be one of: http, docker")
@@ -128,7 +187,19 @@ class FileNodeRegistry(NodeRegistry):
         nodes = raw.get("nodes", [])
         if not isinstance(nodes, list):
             nodes = []
-        return {"nodes": nodes}
+
+        migrated_nodes: List[Dict[str, Any]] = []
+        for index, node in enumerate(nodes):
+            if not isinstance(node, dict):
+                raise NodeValidationError(f"node at index {index} must be an object")
+
+            migrated = dict(node)
+            node_id = str(migrated.get("id", f"index {index}"))
+            if "auth" in migrated:
+                migrated["auth"] = migrate_legacy_auth(migrated["auth"], node_id=node_id)
+            migrated_nodes.append(validate_node(migrated))
+
+        return {"nodes": migrated_nodes}
 
     def _save(self, data: Dict[str, Any]) -> None:
         with tempfile.NamedTemporaryFile(

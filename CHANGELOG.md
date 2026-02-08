@@ -84,6 +84,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Breaking:** management node auth now accepts only `auth.type=none` or `auth.type=bearer` with `auth.token`.
+- Added registry migration support for deprecated auth payloads in `NODE_REGISTRY_PATH`; convertible entries are normalized to bearer tokens and non-convertible entries now fail with actionable errors.
+
+### Operator Action Required
+- Replace any legacy node credentials (`auth.type=basic`, `auth.username`, `auth.password`, `auth.encoded`) with API token auth: `{"type":"bearer","token":"<api_token>"}`.
+- Run `python scripts/migrate_node_registry_auth.py --path "$NODE_REGISTRY_PATH" --dry-run` before upgrade, then run without `--dry-run` to write migrated data.
+
 ## [1.12.6] - 2026-02-07
 
 - docs: add note to prevent simultaneous running of webcam and management profiles

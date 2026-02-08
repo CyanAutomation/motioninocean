@@ -194,7 +194,8 @@ Node objects are persisted through a registry abstraction (initial implementatio
 - `id` (string, required, unique)
 - `name` (string, required)
 - `base_url` (string, required, `http://` or `https://`)
-- `auth` (object, required; e.g. `{ "type": "none" }` or bearer/basic variants)
+- `auth` (object, required; supported formats only: `{ "type": "none" }` or `{ "type": "bearer", "token": "<api_token>" }`)
+  - Deprecated legacy fields (`auth.type=basic`, `auth.username`, `auth.password`, `auth.encoded`) must be migrated to bearer tokens.
 - `labels` (object, required)
 - `last_seen` (string, required, ISO timestamp)
 - `capabilities` (array of strings, required)

@@ -325,6 +325,21 @@ docker-compose --profile management up -d
 
 Then access the management UI at `http://192.168.1.100:8001/management` and add nodes with `base_url: http://192.168.1.101:8000`.
 
+### Node Auth Format
+
+Management node auth supports only:
+
+- `{"type": "none"}`
+- `{"type": "bearer", "token": "<api_token>"}`
+
+Legacy node auth payloads (`auth.type=basic`, `auth.username`, `auth.password`, `auth.encoded`) are deprecated.
+Use `scripts/migrate_node_registry_auth.py` to validate and migrate `NODE_REGISTRY_PATH` before upgrading:
+
+```bash
+python scripts/migrate_node_registry_auth.py --path "$NODE_REGISTRY_PATH" --dry-run
+python scripts/migrate_node_registry_auth.py --path "$NODE_REGISTRY_PATH"
+```
+
 ### Features
 
 - ✅ HTTP-based remote node discovery
