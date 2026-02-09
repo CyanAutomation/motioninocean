@@ -4,7 +4,7 @@ import fs from "node:fs";
 import vm from "node:vm";
 
 function extractClearConfigDisplay(source) {
-  const match = source.match(/function clearConfigDisplay\(\) \{[\s\S]*?\n\}/);
+  const match = source.match(/function clearConfigDisplay\(\) \{[\s\S]*?\n^}/m);
   if (!match) {
     throw new Error("clearConfigDisplay() definition not found");
   }
