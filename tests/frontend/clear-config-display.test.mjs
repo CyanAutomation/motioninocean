@@ -12,7 +12,12 @@ function extractClearConfigDisplay(source) {
 }
 
 test("clearConfigDisplay only resets .config-item .config-value nodes", () => {
-  const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
+  let appJs;
+  try {
+    appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
+  } catch (error) {
+    throw new Error(`Failed to read app.js: ${error.message}`);
+  }
   const clearConfigDisplayFn = extractClearConfigDisplay(appJs);
 
   const targetValueA = { textContent: "Enabled", className: "config-value config-badge enabled" };
