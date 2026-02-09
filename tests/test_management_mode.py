@@ -203,3 +203,22 @@ def test_webcam_stream_and_snapshot_routes_are_not_protected_by_control_plane_au
 
     assert stream.status_code in (200, 503)
     assert snapshot.status_code in (200, 503)
+
+
+def test_webcam_action_route_requires_auth_and_returns_contract(monkeypatch):
+    client = _new_webcam_client(monkeypatch, "node-shared-token")
+
+    valid_headers = {"Authorization": "Bearer node-shared-token"}
+
+    restart = client.post("/api/actions/restart", json={}, headers=valid_headers)
+    assert restart.status_code == 202
+    assert restart.json == {
+        "action": "restart",
+        "status": "accepted",
+        "message": "restart action acknowledged",
+    }
+
+    unsupported = client.post("/api/actions/refresh", json={}, headers=valid_headers)
+    assert unsupported.status_code == 400
+    assert unsupported.json["error"]["code"] == "ACTION_UNSUPPORTED"
+    assert unsupported.json["error"]["details"]["supported_actions"] == ["restart"]

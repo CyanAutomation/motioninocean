@@ -495,6 +495,66 @@ def test_node_status_maps_invalid_upstream_payload_to_controlled_error(monkeypat
     assert overview.json["nodes"][0]["error"]["code"] == "NODE_INVALID_RESPONSE"
 
 
+def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch, tmp_path):
+    import management_api
+
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-action-contract",
+        "name": "Action Contract Node",
+        "base_url": "http://example.com",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+
+    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+
+    def fake_request_json(node, method, path, body=None):
+        assert node["id"] == "node-action-contract"
+        assert method == "POST"
+        if path == "/api/actions/restart":
+            return 202, {
+                "action": "restart",
+                "status": "accepted",
+                "message": "restart action acknowledged",
+            }
+        if path == "/api/actions/refresh":
+            return 400, {
+                "error": {
+                    "code": "ACTION_UNSUPPORTED",
+                    "message": "action 'refresh' is not supported",
+                    "details": {"supported_actions": ["restart"]},
+                }
+            }
+        raise AssertionError(f"unexpected path: {path}")
+
+    monkeypatch.setattr(management_api, "_request_json", fake_request_json)
+
+    restart = client.post(
+        "/api/nodes/node-action-contract/actions/restart",
+        json={},
+        headers=_auth_headers(),
+    )
+    assert restart.status_code == 202
+    assert restart.json["action"] == "restart"
+    assert restart.json["status_code"] == 202
+    assert restart.json["response"]["status"] == "accepted"
+
+    unsupported = client.post(
+        "/api/nodes/node-action-contract/actions/refresh",
+        json={},
+        headers=_auth_headers(),
+    )
+    assert unsupported.status_code == 400
+    assert unsupported.json["action"] == "refresh"
+    assert unsupported.json["status_code"] == 400
+    assert unsupported.json["response"]["error"]["code"] == "ACTION_UNSUPPORTED"
+
 def test_node_action_maps_invalid_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
     import management_api
 

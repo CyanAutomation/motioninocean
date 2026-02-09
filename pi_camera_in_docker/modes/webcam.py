@@ -5,7 +5,7 @@ from collections import deque
 from threading import Condition, Lock
 from typing import Any, Callable, Dict, Optional, Tuple
 
-from flask import Flask, Response, request
+from flask import Flask, Response, jsonify, request
 
 
 logger = logging.getLogger(__name__)
@@ -215,6 +215,34 @@ def register_webcam_routes(
         if action == "snapshot":
             return _build_snapshot_response()
         return Response("Unsupported action", status=400)
+
+    @app.route("/api/actions/<action>", methods=["POST"])
+    def webcam_action(action: str):
+        normalized_action = action.strip().lower()
+        if normalized_action == "restart":
+            return (
+                jsonify(
+                    {
+                        "action": "restart",
+                        "status": "accepted",
+                        "message": "restart action acknowledged",
+                    }
+                ),
+                202,
+            )
+
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "ACTION_UNSUPPORTED",
+                        "message": f"action '{normalized_action or action}' is not supported",
+                        "details": {"supported_actions": ["restart"]},
+                    }
+                }
+            ),
+            400,
+        )
 
 
 def register_management_camera_error_routes(app: Flask) -> None:
