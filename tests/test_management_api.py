@@ -600,6 +600,50 @@ def test_request_json_uses_vetted_resolved_ip_and_preserves_host_header(monkeypa
     assert captured["timeout"] == 2.5
 
 
+def test_request_json_retries_next_vetted_address_when_first_connection_fails(monkeypatch):
+    import management_api
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return b'{"ok": true}'
+
+    def fake_getaddrinfo(host, port, proto):
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80)),
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.35", 80)),
+        ]
+
+    attempted_urls = []
+
+    def fake_urlopen(req, timeout):
+        attempted_urls.append(req.full_url)
+        if req.full_url == "http://93.184.216.34/health":
+            raise management_api.urllib.error.URLError("timed out")
+        return FakeResponse()
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+    monkeypatch.setattr(management_api.urllib.request, "urlopen", fake_urlopen)
+
+    status_code, payload = management_api._request_json(
+        {"base_url": "http://example.com", "auth": {"type": "none"}},
+        "GET",
+        "/health",
+    )
+
+    assert status_code == 200
+    assert payload == {"ok": True}
+    assert attempted_urls == [
+        "http://93.184.216.34/health",
+        "http://93.184.216.35/health",
+    ]
 
 
 def test_request_json_maps_name_resolution_failure_to_node_request_error(monkeypatch):
