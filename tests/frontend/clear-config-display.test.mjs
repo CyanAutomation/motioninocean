@@ -11,7 +11,7 @@ function extractClearConfigDisplay(source) {
   return match[0];
 }
 
-test("clearConfigDisplay only resets .config-item .config-value nodes", () => {
+test("clearConfigDisplay only resets dedicated config value nodes", () => {
   let appJs;
   try {
     appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
@@ -69,7 +69,7 @@ test("clearConfigDisplay only resets .config-item .config-value nodes", () => {
     document: {
       querySelectorAll: (selector) => {
         selectorUsed = selector;
-        if (selector === ".config-item .config-value") {
+        if (selector === "[data-config-value=\"true\"]") {
           return [targetValueA, targetValueB];
         }
         return [];
@@ -79,7 +79,7 @@ test("clearConfigDisplay only resets .config-item .config-value nodes", () => {
 
   vm.runInNewContext(`${clearConfigDisplayFn}; clearConfigDisplay();`, context);
 
-  assert.equal(selectorUsed, ".config-item .config-value");
+  assert.equal(selectorUsed, "[data-config-value=\"true\"]");
 
   assert.equal(targetValueA.textContent, "--");
   assert.equal(targetValueA.className, "config-value");

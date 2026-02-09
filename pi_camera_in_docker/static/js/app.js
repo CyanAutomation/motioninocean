@@ -834,7 +834,7 @@ function formatBoolean(value) {
  * Clear all config display values
  */
 function clearConfigDisplay() {
-  const configValues = document.querySelectorAll(".config-item .config-value");
+  const configValues = document.querySelectorAll("[data-config-value=\"true\"]");
   configValues.forEach((el) => {
     el.textContent = "--";
     el.className = "config-value";
