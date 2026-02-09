@@ -664,6 +664,54 @@ Near-term:
 
 ## Support / Debugging
 
+### Cannot reach UI
+
+Run these checks in order:
+
+1. Check the container exists and is running for the profile you intended.
+
+   ```bash
+   docker compose ps
+   ```
+
+2. Confirm you started the correct app profile.
+
+   ```bash
+   # webcam UI/stream host
+   docker compose --profile webcam up -d
+
+   # management UI host
+   docker compose --profile management up -d
+   ```
+
+3. Verify port bindings include the expected host interface and port.
+
+   ```bash
+   docker compose ps
+   ```
+
+   - `127.0.0.1:8000->8000/tcp` = localhost only
+   - `0.0.0.0:8000->8000/tcp` = reachable via host IP/LAN
+
+4. Map symptoms to likely causes and fixes.
+
+   - **No container for the service in `docker compose ps`** → likely missing profile.
+
+     ```bash
+     # start the missing profile
+     docker compose --profile webcam up -d
+     # or
+     docker compose --profile management up -d
+     ```
+
+   - **Binding is `127.0.0.1` but you access via host IP** → service only listens on localhost.
+
+     ```bash
+     # update your compose ports from 127.0.0.1:PORT:8000 to 0.0.0.0:PORT:8000 (or PORT:8000)
+     # then recreate
+     docker compose up -d
+     ```
+
 Common commands:
 
 ```bash
