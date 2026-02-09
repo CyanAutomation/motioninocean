@@ -36,17 +36,47 @@ run_device_detection() {
     fi
 }
 
+choose_profile() {
+    local profile_input
+
+    echo ""
+    echo "Select which profile(s) to start:"
+    echo "  1) webcam"
+    echo "  2) management"
+    echo "  3) both (webcam + management)"
+    echo "Enter choice [1-3] (default: 1):"
+    read -r profile_input
+
+    case "$profile_input" in
+        ""|1)
+            COMPOSE_PROFILE_ARGS="--profile webcam"
+            ;;
+        2)
+            COMPOSE_PROFILE_ARGS="--profile management"
+            ;;
+        3)
+            COMPOSE_PROFILE_ARGS="--profile webcam --profile management"
+            ;;
+        *)
+            echo "[WARN] Invalid choice '$profile_input'. Defaulting to webcam profile."
+            COMPOSE_PROFILE_ARGS="--profile webcam"
+            ;;
+    esac
+}
+
 print_compose_command() {
     echo ""
+    echo "[WARN] Running 'docker compose up -d' without --profile will not start profile-gated services."
+    echo "Next, run:"
+
     if [ -f "$OVERRIDE_FILE" ]; then
-        echo "Next, run:"
-        echo "docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d"
+        echo "docker compose -f docker-compose.yaml -f docker-compose.override.yaml $COMPOSE_PROFILE_ARGS up -d"
     else
-        echo "Next, run:"
-        echo "docker compose up -d"
+        echo "docker compose $COMPOSE_PROFILE_ARGS up -d"
     fi
 }
 
 copy_env
 run_device_detection
+choose_profile
 print_compose_command
