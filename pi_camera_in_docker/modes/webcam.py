@@ -223,12 +223,14 @@ def register_webcam_routes(
             return (
                 jsonify(
                     {
-                        "action": "restart",
-                        "status": "accepted",
-                        "message": "restart action acknowledged",
+                        "error": {
+                            "code": "ACTION_NOT_IMPLEMENTED",
+                            "message": "action 'restart' is recognized but not implemented",
+                            "details": {"supported_actions": ["restart"]},
+                        }
                     }
                 ),
-                202,
+                501,
             )
 
         return (

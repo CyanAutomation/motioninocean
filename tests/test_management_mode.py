@@ -211,12 +211,9 @@ def test_webcam_action_route_requires_auth_and_returns_contract(monkeypatch):
     valid_headers = {"Authorization": "Bearer node-shared-token"}
 
     restart = client.post("/api/actions/restart", json={}, headers=valid_headers)
-    assert restart.status_code == 202
-    assert restart.json == {
-        "action": "restart",
-        "status": "accepted",
-        "message": "restart action acknowledged",
-    }
+    assert restart.status_code == 501
+    assert restart.json["error"]["code"] == "ACTION_NOT_IMPLEMENTED"
+    assert restart.json["error"]["details"]["supported_actions"] == ["restart"]
 
     unsupported = client.post("/api/actions/refresh", json={}, headers=valid_headers)
     assert unsupported.status_code == 400

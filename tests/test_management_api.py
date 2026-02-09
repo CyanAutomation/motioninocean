@@ -518,10 +518,12 @@ def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch
         assert node["id"] == "node-action-contract"
         assert method == "POST"
         if path == "/api/actions/restart":
-            return 202, {
-                "action": "restart",
-                "status": "accepted",
-                "message": "restart action acknowledged",
+            return 501, {
+                "error": {
+                    "code": "ACTION_NOT_IMPLEMENTED",
+                    "message": "action 'restart' is recognized but not implemented",
+                    "details": {"supported_actions": ["restart"]},
+                }
             }
         if path == "/api/actions/refresh":
             return 400, {
@@ -540,10 +542,10 @@ def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch
         json={},
         headers=_auth_headers(),
     )
-    assert restart.status_code == 202
+    assert restart.status_code == 501
     assert restart.json["action"] == "restart"
-    assert restart.json["status_code"] == 202
-    assert restart.json["response"]["status"] == "accepted"
+    assert restart.json["status_code"] == 501
+    assert restart.json["response"]["error"]["code"] == "ACTION_NOT_IMPLEMENTED"
 
     unsupported = client.post(
         "/api/nodes/node-action-contract/actions/refresh",
