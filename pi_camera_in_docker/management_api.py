@@ -167,43 +167,49 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
         message = "name resolution returned no addresses"
         raise ConnectionError(message)
 
-    connect_url = urlunparse(
-        (
-            parsed_url.scheme,
-            _format_connect_netloc(vetted_addresses[0], port),
-            parsed_url.path,
-            parsed_url.params,
-            parsed_url.query,
-            parsed_url.fragment,
-        )
-    )
-
     headers = {"Content-Type": "application/json", **_build_headers(node)}
     headers.setdefault("Host", parsed_url.netloc)
     data = json.dumps(body).encode("utf-8") if body is not None else None
 
-    try:
-        req = urllib.request.Request(url=connect_url, method=method, headers=headers, data=data)
-        with urllib.request.urlopen(req, timeout=2.5) as response:
-            payload = response.read().decode("utf-8")
-            if not payload:
-                return response.status, {}
-            try:
-                return response.status, json.loads(payload)
-            except json.JSONDecodeError as exc:
-                message = "node returned malformed JSON"
-                raise NodeInvalidResponseError(message) from exc
-    except urllib.error.HTTPError as exc:
-        body_text = exc.read().decode("utf-8") if exc.fp else ""
+    connection_errors = []
+    for address in vetted_addresses:
+        connect_url = urlunparse(
+            (
+                parsed_url.scheme,
+                _format_connect_netloc(address, port),
+                parsed_url.path,
+                parsed_url.params,
+                parsed_url.query,
+                parsed_url.fragment,
+            )
+        )
+
         try:
-            body_json = json.loads(body_text) if body_text else {}
-        except json.JSONDecodeError as decode_exc:
-            message = "node returned malformed JSON"
-            raise NodeInvalidResponseError(message) from decode_exc
-        return exc.code, body_json
-        return exc.code, body_json
-    except urllib.error.URLError as exc:
-        raise ConnectionError(str(exc.reason)) from exc
+            req = urllib.request.Request(url=connect_url, method=method, headers=headers, data=data)
+            with urllib.request.urlopen(req, timeout=2.5) as response:
+                payload = response.read().decode("utf-8")
+                if not payload:
+                    return response.status, {}
+                try:
+                    return response.status, json.loads(payload)
+                except json.JSONDecodeError as exc:
+                    message = "node returned malformed JSON"
+                    raise NodeInvalidResponseError(message) from exc
+        except urllib.error.HTTPError as exc:
+            body_text = exc.read().decode("utf-8") if exc.fp else ""
+            try:
+                body_json = json.loads(body_text) if body_text else {}
+            except json.JSONDecodeError as decode_exc:
+                message = "node returned malformed JSON"
+                raise NodeInvalidResponseError(message) from decode_exc
+            return exc.code, body_json
+        except urllib.error.URLError as exc:
+            connection_errors.append(str(exc.reason))
+
+    if connection_errors:
+        raise ConnectionError("; ".join(connection_errors))
+
+    raise ConnectionError("all connection attempts failed")
 
 
 def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tuple]]:
