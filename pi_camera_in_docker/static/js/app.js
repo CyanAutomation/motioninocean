@@ -128,15 +128,35 @@ function attachHandlers() {
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       stopStatsUpdate();
+      stopConfigPolling();
+      stopConfigTimestampUpdate();
     } else {
-      startStatsUpdate();
       if (!state.statsCollapsed && state.currentTab === "main") {
+        startStatsUpdate();
         updateStats().catch((error) => console.error("Stats update failed:", error));
       } else if (state.currentTab === "config") {
+        startConfigPolling();
+        startConfigTimestampUpdate();
         updateConfig().catch((error) => console.error("Config update failed:", error));
       }
+
+      assertSinglePollingMode();
     }
   });
+}
+
+/**
+ * Ensure only one polling mode is active at a time.
+ */
+function assertSinglePollingMode() {
+  const statsPollingActive = state.updateInterval !== null;
+  const configPollingActive =
+    state.configPollingInterval !== null || state.configTimestampInterval !== null;
+
+  console.assert(
+    !(statsPollingActive && configPollingActive),
+    "Invalid polling state: stats and config polling are both active.",
+  );
 }
 
 /**
@@ -533,11 +553,12 @@ function switchTab(tabName) {
     if (configPanel) configPanel.classList.add("hidden");
 
     // Resume stats updates and stop config refresh/timestamp updates
+    stopConfigPolling();
+    stopConfigTimestampUpdate();
+
     if (!state.statsCollapsed) {
       startStatsUpdate();
     }
-    stopConfigPolling();
-    stopConfigTimestampUpdate();
   } else if (tabName === "config") {
     if (mainSection) mainSection.classList.add("hidden");
     if (statsPanel) statsPanel.classList.add("hidden");
@@ -553,6 +574,8 @@ function switchTab(tabName) {
       startConfigTimestampUpdate();
     }
   }
+
+  assertSinglePollingMode();
 }
 
 /**
