@@ -18,6 +18,9 @@ const state = {
   lastConfigUpdate: null,
   configPollingInterval: null,
   configTimestampInterval: null,
+  configInitialLoadPending: false,
+  configLoadingDelayTimer: null,
+  configLoadingVisible: false,
   elements: {
     videoStream: null,
     statsPanel: null,
@@ -544,6 +547,7 @@ function switchTab(tabName) {
     stopStatsUpdate();
 
     if (!wasConfigTab) {
+      state.configInitialLoadPending = true;
       updateConfig().catch((error) => console.error("Config update failed:", error));
       startConfigPolling();
       startConfigTimestampUpdate();
@@ -616,14 +620,20 @@ async function updateConfig() {
   if (state.configInFlight) return;
   if (state.currentTab !== "config" || document.hidden) return;
 
+  const showHeavyLoading = state.configInitialLoadPending;
+
   try {
     state.configInFlight = true;
 
-    // Show loading state
-    if (state.elements.configLoading) {
-      state.elements.configLoading.classList.remove("hidden");
+    if (showHeavyLoading && state.elements.configLoading) {
+      state.configLoadingDelayTimer = setTimeout(() => {
+        state.configLoadingVisible = true;
+        state.elements.configLoading.classList.remove("hidden");
+      }, 400);
+      updateConfigStatus("fetching", "Loading configuration...");
+    } else {
+      updateConfigStatus("fetching", "Refreshing configuration...");
     }
-    updateConfigStatus("fetching", "Fetching configuration...");
 
     try {
       const data = await fetchConfig();
@@ -631,7 +641,7 @@ async function updateConfig() {
 
       // Update success state
       state.lastConfigUpdate = new Date();
-      updateConfigStatus("ready", "Configuration loaded");
+      updateConfigStatus("ready", "Updated just now");
       updateConfigTimestampDisplay();
 
       // Hide error alert on success
@@ -654,10 +664,17 @@ async function updateConfig() {
     }
   } finally {
     state.configInFlight = false;
+    state.configInitialLoadPending = false;
+
+    if (state.configLoadingDelayTimer) {
+      clearTimeout(state.configLoadingDelayTimer);
+      state.configLoadingDelayTimer = null;
+    }
 
     // Hide loading state
-    if (state.elements.configLoading) {
+    if (state.configLoadingVisible && state.elements.configLoading) {
       state.elements.configLoading.classList.add("hidden");
+      state.configLoadingVisible = false;
     }
   }
 }
