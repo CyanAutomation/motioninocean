@@ -99,6 +99,7 @@ def _load_config() -> Dict[str, Any]:
         "jpeg_quality": jpeg_quality,
         "max_frame_age_seconds": max_frame_age,
         "max_stream_connections": max_stream_connections,
+        "pi3_profile_enabled": os.environ.get("PI3_PROFILE", "false").lower() in ("1", "true", "yes"),
         "mock_camera": is_flag_enabled("MOCK_CAMERA"),
         "cors_enabled": is_flag_enabled("CORS_SUPPORT"),
         "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
@@ -127,6 +128,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
         "picam2_instance": None,
     }
     app.motion_state = state
+    app.motion_config = dict(config)
 
     @app.route("/")
     def index() -> str:
@@ -227,6 +229,13 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
         app, state, is_flag_enabled=is_flag_enabled
     )
     _run_webcam_mode(state, cfg)
+    return app
+
+
+def create_app_from_env() -> Flask:
+    cfg = _load_config()
+    app = create_management_app(cfg) if cfg["app_mode"] == "management" else create_webcam_app(cfg)
+    logger.info("Application started in %s mode", cfg["app_mode"])
     return app
 
 
@@ -399,17 +408,7 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
             )
             raise
 
-
-config = _load_config()
-app = (
-    create_management_app(config)
-    if config["app_mode"] == "management"
-    else create_webcam_app(config)
-)
-
-logger.info("Application started in %s mode", config["app_mode"])
-
-def handle_shutdown(signum: int, _frame: Optional[object]) -> None:
+def handle_shutdown(app: Flask, signum: int, _frame: Optional[object]) -> None:
     app_state = getattr(app, "motion_state", None)
     if isinstance(app_state, dict):
         _shutdown_camera(app_state)
@@ -417,8 +416,9 @@ def handle_shutdown(signum: int, _frame: Optional[object]) -> None:
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGTERM, handle_shutdown)
-    signal.signal(signal.SIGINT, handle_shutdown)
+    app = create_app_from_env()
+    signal.signal(signal.SIGTERM, lambda signum, frame: handle_shutdown(app, signum, frame))
+    signal.signal(signal.SIGINT, lambda signum, frame: handle_shutdown(app, signum, frame))
     # app.run marker preserved for compatibility checks with static tests.
     server = make_server("0.0.0.0", 8000, app, threaded=True)
     server.serve_forever()

@@ -234,13 +234,15 @@ repo = pathlib.Path.cwd()
 sys.path.insert(0, str(repo / "pi_camera_in_docker"))
 import main
 
+app = main.create_app_from_env()
+config = app.motion_config
 print(json.dumps({
-    "pi3_profile_enabled": main.pi3_profile_enabled,
-    "resolution": list(main.resolution),
-    "fps": main.fps,
-    "target_fps": main.target_fps,
-    "jpeg_quality": main.jpeg_quality,
-    "max_stream_connections": main.max_stream_connections,
+    "pi3_profile_enabled": config["pi3_profile_enabled"],
+    "resolution": list(config["resolution"]),
+    "fps": config["fps"],
+    "target_fps": config["target_fps"],
+    "jpeg_quality": config["jpeg_quality"],
+    "max_stream_connections": config["max_stream_connections"],
 }))
 """
     env = os.environ.copy()
@@ -314,12 +316,15 @@ repo = pathlib.Path.cwd()
 sys.path.insert(0, str(repo / "pi_camera_in_docker"))
 import main
 
-buffer = main.FrameBuffer(main.stream_stats, target_fps=main.target_fps)
+app = main.create_app_from_env()
+state = app.motion_state
+config = app.motion_config
+buffer = main.FrameBuffer(state["stream_stats"], target_fps=config["target_fps"])
 for _ in range(30):
     buffer.write(b"x" * 1024)
     time.sleep(0.01)
 
-client = main.app.test_client()
+client = app.test_client()
 metrics = client.get("/metrics").get_json()
 print(json.dumps(metrics))
 """
@@ -361,7 +366,8 @@ repo = pathlib.Path.cwd()
 sys.path.insert(0, str(repo / "pi_camera_in_docker"))
 import main
 
-client = main.app.test_client()
+app = main.create_app_from_env()
+client = app.test_client()
 results = {}
 for route in ("/webcam", "/webcam/"):
     stream_response = client.get(f"{route}?action=stream")
@@ -422,7 +428,8 @@ repo = pathlib.Path.cwd()
 sys.path.insert(0, str(repo / "pi_camera_in_docker"))
 import main
 
-client = main.app.test_client()
+app = main.create_app_from_env()
+client = app.test_client()
 results = {
     "stream": {
         "status": client.get("/webcam/?action=stream").status_code,
