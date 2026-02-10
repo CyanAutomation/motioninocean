@@ -6,6 +6,7 @@
     <meta name="description" content="motion-in-ocean - Raspberry Pi Camera Live Stream" />
     <title>motion-in-ocean - Camera Stream</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tabs-config.css') }}" />
   </head>
@@ -41,7 +42,7 @@
     <main class="container">
       <!-- Video Section -->
       <section class="video-section">
-        <div class="video-container">
+        <div class="video-container ui-card video-container-block">
           <div class="video-wrapper">
             <!-- Loading Overlay -->
             <div class="loading-overlay">
@@ -62,11 +63,11 @@
 
           <!-- Video Controls -->
           <div class="video-controls">
-            <button id="refresh-btn" class="control-btn" title="Refresh Stream">
+            <button id="refresh-btn" class="control-btn ui-btn ui-btn--overlay" title="Refresh Stream">
               <span class="control-btn-icon">↻</span>
               <span class="control-btn-text">Refresh</span>
             </button>
-            <button id="fullscreen-btn" class="control-btn" title="Toggle Fullscreen">
+            <button id="fullscreen-btn" class="control-btn ui-btn ui-btn--overlay" title="Toggle Fullscreen">
               <span class="control-btn-icon">⛶</span>
               <span class="control-btn-text">Fullscreen</span>
             </button>
@@ -75,15 +76,15 @@
       </section>
 
       <!-- Stats Panel -->
-      <aside id="stats-panel" class="stats-panel">
-        <div class="stats-header">
+      <aside id="stats-panel" class="stats-panel ui-card stats-panel-card">
+        <div class="stats-header ui-panel-header">
           <h2>Stream Statistics</h2>
           <button id="toggle-stats-btn" class="toggle-stats-btn" title="Toggle Stats">▲</button>
         </div>
 
         <div class="stats-content">
           <!-- Performance Stats -->
-          <div class="stat-group">
+          <div class="stat-group ui-list-block stats-panel-card">
             <div class="stat-group-title">Performance</div>
             <div class="stat-item">
               <span class="stat-label">Current FPS</span>
@@ -108,7 +109,7 @@
           </div>
 
           <!-- Stream Configuration -->
-          <div class="stat-group">
+          <div class="stat-group ui-list-block stats-panel-card">
             <div class="stat-group-title">Configuration</div>
             <div class="stat-item">
               <span class="stat-label">Resolution</span>
@@ -144,25 +145,25 @@
 
         <div class="config-content">
           <!-- Camera Settings Group (Editable) -->
-          <div class="config-group editable-section">
-            <div class="config-group-header">
+          <div class="config-group editable-section ui-card config-group-block">
+            <div class="config-group-header ui-panel-header">
               <h3 class="config-group-title">📷 Camera Settings</h3>
               <button class="config-group-toggle" data-group="camera" title="Toggle">▼</button>
             </div>
             <div class="config-group-content" data-group="camera">
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">Resolution</span>
                 <span id="config-resolution" class="config-value" data-config-value="true">--</span>
               </div>
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">Frame Rate (FPS)</span>
                 <span id="config-fps" class="config-value" data-config-value="true">--</span>
               </div>
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">Target FPS (Throttle)</span>
                 <span id="config-target-fps" class="config-value" data-config-value="true">--</span>
               </div>
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">JPEG Quality</span>
                 <span id="config-jpeg-quality" class="config-value" data-config-value="true">--</span>
               </div>
@@ -170,25 +171,25 @@
           </div>
 
           <!-- Stream Control Group (Read-only) -->
-          <div class="config-group readonly-section">
-            <div class="config-group-header">
+          <div class="config-group readonly-section ui-card config-group-block">
+            <div class="config-group-header ui-panel-header">
               <h3 class="config-group-title">📡 Stream Control</h3>
               <button class="config-group-toggle" data-group="stream" title="Toggle">▼</button>
             </div>
             <div class="config-group-content" data-group="stream">
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">Max Connections</span>
                 <span id="config-max-connections" class="config-value" data-config-value="true">--</span>
               </div>
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">Current Connections</span>
                 <span id="config-current-connections" class="config-value highlight" data-config-value="true">--</span>
               </div>
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">Max Frame Age (Timeout)</span>
                 <span id="config-max-frame-age" class="config-value" data-config-value="true">--</span>
               </div>
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">CORS Origins</span>
                 <span id="config-cors" class="config-value" data-config-value="true">--</span>
               </div>
@@ -196,25 +197,25 @@
           </div>
 
           <!-- Runtime Info Group (Read-only) -->
-          <div class="config-group readonly-section">
-            <div class="config-group-header">
+          <div class="config-group readonly-section ui-card config-group-block">
+            <div class="config-group-header ui-panel-header">
               <h3 class="config-group-title">⚙️ Runtime Information</h3>
               <button class="config-group-toggle" data-group="runtime" title="Toggle">▼</button>
             </div>
             <div class="config-group-content" data-group="runtime">
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">Camera Active</span>
                 <span id="config-camera-active" class="config-value" data-config-value="true">--</span>
               </div>
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">Mock Camera</span>
                 <span id="config-mock-camera" class="config-value" data-config-value="true">--</span>
               </div>
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">Uptime</span>
                 <span id="config-uptime" class="config-value highlight" data-config-value="true">--</span>
               </div>
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">Last Updated</span>
                 <span id="config-timestamp" class="config-value" data-config-value="true">--</span>
               </div>
@@ -222,21 +223,21 @@
           </div>
 
           <!-- Limits Info Group (Read-only) -->
-          <div class="config-group readonly-section">
-            <div class="config-group-header">
+          <div class="config-group readonly-section ui-card config-group-block">
+            <div class="config-group-header ui-panel-header">
               <h3 class="config-group-title">📊 System Limits</h3>
               <button class="config-group-toggle" data-group="limits" title="Toggle">▼</button>
             </div>
             <div class="config-group-content" data-group="limits">
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">Max Resolution</span>
                 <span id="config-limit-resolution" class="config-value" data-config-value="true">--</span>
               </div>
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">Max FPS</span>
                 <span id="config-limit-fps" class="config-value" data-config-value="true">--</span>
               </div>
-              <div class="config-item">
+              <div class="config-item ui-form-control">
                 <span class="config-label">JPEG Quality Range</span>
                 <span id="config-limit-jpeg" class="config-value" data-config-value="true">--</span>
               </div>

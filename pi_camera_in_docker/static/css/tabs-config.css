@@ -228,9 +228,6 @@
 .config-group {
   flex: 1 1 calc(25% - var(--spacing-lg));
   min-width: 300px;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
   overflow: hidden;
   transition: all var(--transition-normal);
 }
@@ -241,12 +238,8 @@
 }
 
 .config-group-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding: var(--spacing-lg);
   background: var(--color-bg-subtle);
-  border-bottom: 1px solid var(--color-border-default);
   cursor: pointer;
   user-select: none;
 }
@@ -297,18 +290,10 @@
 }
 
 .config-item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
   background: var(--color-bg-canvas);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
 }
 
 .config-item:hover {
-  border-color: var(--color-accent-secondary);
   background: var(--color-bg-surface);
 }
 
@@ -359,10 +344,6 @@
 
 .config-badge {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--radius-sm);
   font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;
