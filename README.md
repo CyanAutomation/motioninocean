@@ -511,8 +511,7 @@ If you need remote access, use a reverse proxy (nginx/Caddy/Traefik) with authen
 When running the `management` profile, treat it as control-plane infrastructure:
 
 - Keep exposure LAN-only (or VPN-only). Do not publish directly to the public internet.
-- Put a reverse proxy in front (Caddy/Traefik/nginx) and terminate TLS there.
-- Require authentication/authorization at the proxy (OIDC, basic auth, mTLS, or equivalent).
+- Require authentication/authorization via bearer tokens for remote access (see DEPLOYMENT.md).
 - Mount `/var/run/docker.sock` only when Docker discovery/control features are explicitly enabled.
   - Prefer read-only mounting where possible.
   - Restrict host-level socket access to trusted administrators.

@@ -199,11 +199,11 @@ def test_healthcheck_url_validation_allows_valid_hostname(monkeypatch):
         captured["timeout"] = timeout
         return DummyResponse()
 
-    monkeypatch.setenv("HEALTHCHECK_URL", "https://example.com/health")
+    monkeypatch.setenv("HEALTHCHECK_URL", "http://example.com/health")
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
 
     assert healthcheck.check_health() is True
-    assert captured["url"] == "https://example.com/health"
+    assert captured["url"] == "http://example.com/health"
 
 
 def test_get_camera_info_prefers_module_level_global_camera_info(monkeypatch):

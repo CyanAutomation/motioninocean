@@ -21,7 +21,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3-numpy \
         gnupg \
         curl \
-        ca-certificates \
         gcc && \
     # Add Raspberry Pi repository
     curl -Lfs https://archive.raspberrypi.org/debian/raspberrypi.gpg.key -o /tmp/raspberrypi.gpg.key && \
@@ -70,8 +69,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         gnupg \
-        curl \
-        ca-certificates && \
+        curl && \
     # Add Raspberry Pi repository
     curl -Lfs https://archive.raspberrypi.org/debian/raspberrypi.gpg.key -o /tmp/raspberrypi.gpg.key && \
     gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \

@@ -47,7 +47,7 @@ Important security considerations:
     - "127.0.0.1:8000:8000"
   ```
 
-* If remote access is needed, use a reverse proxy with authentication (Caddy/Nginx/Traefik)
+* If remote access is needed, use bearer token authentication (see DEPLOYMENT.md)
 * Do not expose the service to the public internet without access controls
 
 ---
