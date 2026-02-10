@@ -52,31 +52,48 @@ x-motion-in-ocean-camera: &motion-in-ocean-camera
     - "c 250:* rmw" # /dev/media* devices (media controllers for libcamera)
 
 services:
-  motion-in-ocean-webcam:
+  # Single unified Motion In Ocean service
+  # Controlled by MOTION_IN_OCEAN_MODE environment variable (webcam or management)
+  # APP_MODE determines which endpoints and functionality are available at runtime:
+  #   - webcam: Camera streaming endpoints (/stream.mjpg, /snapshot.jpg), readiness probe waits for stream
+  #   - management: Node registry management API endpoints (/api/nodes/*), immediate readiness
+  # All device mappings and volumes are included; management mode safely ignores unused camera devices.
+  motion-in-ocean:
     <<: [*motion-in-ocean-common, *motion-in-ocean-camera]
     container_name: motion-in-ocean
-    profiles: ["webcam"]
     environment:
       # Deployment settings from .env file
       TZ: ${TZ}
+      
+      # Service mode: controls which app features are available
+      # webcam = camera streaming service
+      # management = node registry hub service
+      APP_MODE: ${MOTION_IN_OCEAN_MODE:-webcam}
+      
+      # Camera configuration (used by webcam mode, safely ignored by management mode)
       RESOLUTION: ${MOTION_IN_OCEAN_RESOLUTION}
       FPS: ${MOTION_IN_OCEAN_FPS}
       TARGET_FPS: ${MOTION_IN_OCEAN_TARGET_FPS:-}
       JPEG_QUALITY: ${MOTION_IN_OCEAN_JPEG_QUALITY}
       MAX_STREAM_CONNECTIONS: ${MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS:-2}
       MOTION_IN_OCEAN_PI3_PROFILE: ${MOTION_IN_OCEAN_PI3_PROFILE:-false}
+      
+      # Shared settings (both modes)
       MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
       CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
-
-      # Role semantics: service identity and health check behavior
-      # APP_MODE controls which endpoints and functionality are available
-      APP_MODE: webcam
-      # HEALTHCHECK_READY: true = /ready endpoint (readiness probe), false = /health endpoint (liveness probe)
-      HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY_WEBCAM:-true}
+      
+      # Healthcheck endpoint selection
+      # true = /ready endpoint (readiness probe; webcam waits for stream, management returns immediate success)
+      # false = /health endpoint (liveness probe; always returns 200)
+      HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY:-true}
       
     ports:
-      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_WEBCAM_PORT}:8000" # webcam binding (default: localhost only)
+      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT:-8000}:8000"
+    
+    volumes:
+      # Persistent storage for management mode node registry (safely ignored by webcam mode)
+      - motion-in-ocean-data:/data
 
     healthcheck:
       test: ["CMD", "python3", "/app/healthcheck.py"]
@@ -85,9 +102,10 @@ services:
       retries: 3
       start_period: 2m
 
-  # Optional: Docker Socket Proxy for remote Docker host access from management mode
-  # Enable by setting ENABLE_DOCKER_SOCKET_PROXY=true
-  # Used for Docker API discovery/control when management mode needs to connect to remote Docker hosts
+  # Optional: Docker Socket Proxy for remote Docker host access
+  # Enable with: docker compose --profile docker-socket-proxy up
+  # Used by management mode to connect to remote Docker hosts for node discovery/control
+  # Only required if running management node with ENABLE_DOCKER_SOCKET_PROXY=true on remote Docker hosts
   docker-socket-proxy:
     image: ghcr.io/tecnativa/docker-socket-proxy:${MOTION_IN_OCEAN_IMAGE_TAG}
     container_name: docker-socket-proxy
@@ -138,47 +156,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-  # NOTE: Webcam and management profiles must not be run simultaneously
-  motion-in-ocean-management:
-    <<: *motion-in-ocean-common
-    container_name: motion-in-ocean-management
-    profiles: ["management"]
-    volumes:
-      # Persistent storage for node registry (required for management mode)
-      - motion-in-ocean-data:/data
-    environment:
-      # Deployment settings from .env file
-      TZ: ${TZ}
-
-      # Camera settings are explicitly unset for management mode
-      # Management mode does NOT initialize the camera; these are defined in .env but not used here
-      RESOLUTION: ""
-      FPS: ""
-      TARGET_FPS: ""
-      JPEG_QUALITY: ""
-      MAX_STREAM_CONNECTIONS: ""
-      MOTION_IN_OCEAN_PI3_PROFILE: ""
-
-      # Feature flags and compatibility options (shared across modes)
-      MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
-      CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
-      MOCK_CAMERA: ${MOCK_CAMERA:-false}
-
-      # Role semantics: service identity and health check behavior
-      # APP_MODE controls which endpoints and functionality are available
-      APP_MODE: management
-      # HEALTHCHECK_READY: true = /ready endpoint (readiness probe), false = /health endpoint (liveness probe)
-      HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY_MANAGEMENT:-false}
-    ports:
-      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_MANAGEMENT_PORT:-8001}:8000" # management binding (default: localhost only)
-
-    healthcheck:
-      test: ["CMD", "python3", "/app/healthcheck.py"]
-      interval: 2m
-      timeout: 10s
-      retries: 3
-      start_period: 1m
 
 # Named volumes for persistent storage
 volumes:

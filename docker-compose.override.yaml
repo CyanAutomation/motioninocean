@@ -3,7 +3,7 @@
 # Run ./detect-devices.sh to identify devices on your system.
 
 services:
-  motion-in-ocean-webcam:
+  motion-in-ocean:
     devices:
       # Media controller devices (required for libcamera camera enumeration)
       - /dev/media0:/dev/media0
@@ -32,6 +32,7 @@ services:
   # Optional: uncomment for management mode when Docker API discovery/control via docker-socket-proxy is enabled.
   # This allows management mode to connect to remote docker-socket-proxy instances.
   # Only needed when using "docker" transport type in node registry with ENABLE_DOCKER_SOCKET_PROXY=true
-  motion-in-ocean-management:
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+  # (Uncomment and deploy with: docker compose --profile docker-socket-proxy up -d)
+  # motion-in-ocean:
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro

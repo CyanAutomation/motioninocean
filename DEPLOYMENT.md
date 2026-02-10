@@ -16,8 +16,8 @@ This guide covers deploying Motion in Ocean across multiple hosts on a local net
 
 Motion in Ocean supports a hub-and-spoke architecture where:
 
-- **Management Host**: Runs `management` profile; provides control plane and web UI
-- **Webcam Hosts**: Run `webcam` profile; stream video and provide health/status endpoints
+- **Management Host**: Runs management mode (`MOTION_IN_OCEAN_MODE=management`); provides control plane and web UI
+- **Webcam Hosts**: Run webcam mode (`MOTION_IN_OCEAN_MODE=webcam`); stream video and provide health/status endpoints
 - **Communication**: Management mode probes remote endpoints and aggregates status via HTTP
 
 **Architecture Diagram:**
@@ -25,7 +25,7 @@ Motion in Ocean supports a hub-and-spoke architecture where:
 ```mermaid
 graph TD
     Browser["🌐 Browser / Client"]
-    Management["Management Host<br/>(192.168.1.100:8001)<br/>Management Mode"]
+    Management["Management Host<br/>(192.168.1.100:8000)<br/>Management Mode"]
     WebcamOne["Webcam Host 1<br/>(192.168.1.101:8000)<br/>Webcam Mode"]
     WebcamTwo["Webcam Host 2<br/>(192.168.1.102:8000)<br/>Webcam Mode"]
     FileRegistry["FileNodeRegistry<br/>(Persistent JSON)"]
@@ -71,18 +71,20 @@ On **each webcam host**, expose the service to the network:
 ```bash
 # Set environment variables to expose service beyond localhost
 export MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
-export MOTION_IN_OCEAN_WEBCAM_PORT=8000
+export MOTION_IN_OCEAN_MODE=webcam
+export MOTION_IN_OCEAN_PORT=8000
 
-# Start webcam mode
-docker-compose --profile webcam up -d
+# Start service (will use webcam mode from .env or export above)
+docker-compose up -d
 ```
 
 Or using `.env` file:
 
 ```bash
 # .env on webcam host
+MOTION_IN_OCEAN_MODE=webcam
 MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
-MOTION_IN_OCEAN_WEBCAM_PORT=8000
+MOTION_IN_OCEAN_PORT=8000
 MOTION_IN_OCEAN_RESOLUTION=640x480
 MOTION_IN_OCEAN_FPS=30
 MOTION_IN_OCEAN_JPEG_QUALITY=90
@@ -91,7 +93,7 @@ MOTION_IN_OCEAN_JPEG_QUALITY=90
 Then:
 
 ```bash
-docker-compose --profile webcam up -d
+docker-compose up -d
 ```
 
 ### Step 2: Verify Webcam Host Connectivity
@@ -123,8 +125,9 @@ For production deployments, you should also configure the registry path and auth
 
 ```bash
 # .env on management host
+MOTION_IN_OCEAN_MODE=management
 MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
-MOTION_IN_OCEAN_MANAGEMENT_PORT=8001
+MOTION_IN_OCEAN_PORT=8000
 
 # Persistent storage for node registry (optional: override default /data/node-registry.json)
 # NODE_REGISTRY_PATH=/data/custom-registry.json
@@ -141,7 +144,7 @@ MOTION_IN_OCEAN_MANAGEMENT_PORT=8001
 Then:
 
 ```bash
-docker-compose --profile management up -d
+docker-compose up -d
 ```
 
 **Verify persistent storage is working:**
@@ -278,6 +281,7 @@ On **each webcam host**, enable docker-socket-proxy:
 
 ```bash
 # .env on webcam host
+MOTION_IN_OCEAN_MODE=webcam
 ENABLE_DOCKER_SOCKET_PROXY=true
 DOCKER_PROXY_PORT=2375
 MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
@@ -286,8 +290,8 @@ MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
 Then:
 
 ```bash
-# Start webcam mode AND docker-socket-proxy service
-docker-compose --profile webcam --profile docker-socket-proxy up -d
+# Start service in webcam mode and docker-socket-proxy service
+docker-compose --profile docker-socket-proxy up -d
 ```
 
 ### Step 2: Verify docker-socket-proxy Access
@@ -318,10 +322,10 @@ Then start management mode:
 
 ```bash
 # .env on management host
+MOTION_IN_OCEAN_MODE=management
 MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
-MOTION_IN_OCEAN_MANAGEMENT_PORT=8001
 
-docker-compose --profile management up -d
+docker-compose up -d
 ```
 
 ### Step 4: Add Docker-Based Node
@@ -386,7 +390,7 @@ curl -X POST http://192.168.1.100:8001/api/nodes \
 ```bash
 # On webcam host, ensure port is not localhost-only
 export MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
-docker-compose --profile webcam restart
+docker-compose restart motion-in-ocean
 ```
 
 ### Management Cannot Reach Webcam (Connection Refused)
@@ -422,7 +426,7 @@ curl: (7) Failed to connect to 192.168.1.101 port 8000: Connection refused
 **Solution**:
 
 - Ensure `MOTION_IN_OCEAN_BIND_HOST` is set to 0.0.0.0, not 127.0.0.1
-- Restart container: `docker-compose --profile webcam restart`
+- Restart container: `docker-compose restart motion-in-ocean`
 
 ### Health/Ready Endpoint Returns 503
 
@@ -510,7 +514,7 @@ ERROR: Node registry file not found at /data/node-registry.json
 # Ensure /data directory exists and has correct permissions
 mkdir -p /data
 chmod 755 /data
-docker-compose --profile management restart
+docker-compose restart motion-in-ocean
 ```
 
 ---
