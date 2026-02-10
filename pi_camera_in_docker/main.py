@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import io
+import glob
 import logging
 import os
 import signal
@@ -627,32 +628,53 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
     """Validate that required camera device nodes exist before initialization."""
     if cfg["mock_camera"]:
         return
-    
-    import os as os_module
+
     required_devices = ["/dev/vchiq"]
-    optional_devices = ["/dev/video0", "/dev/media0"]
-    
-    missing_critical = []
-    missing_optional = []
-    
-    for device in required_devices:
-        if not os_module.path.exists(device):
-            missing_critical.append(device)
-    
-    for device in optional_devices:
-        if not os_module.path.exists(device):
-            missing_optional.append(device)
-    
+    discovered_nodes = {
+        "video": sorted(glob.glob("/dev/video*")),
+        "media": sorted(glob.glob("/dev/media*")),
+        "v4l_subdev": sorted(glob.glob("/dev/v4l-subdev*")),
+        "dma_heap": sorted(glob.glob("/dev/dma_heap/*")),
+    }
+
+    preflight_summary = {
+        "counts": {name: len(paths) for name, paths in discovered_nodes.items()},
+        "samples": {name: paths[:3] for name, paths in discovered_nodes.items()},
+    }
+    logger.info("Camera preflight device summary: %s", preflight_summary)
+
+    missing_critical = [device for device in required_devices if not os.path.exists(device)]
+
     if missing_critical:
         logger.warning(
-            f"Critical camera devices not found: {', '.join(missing_critical)}. "
-            "Check device mappings in docker-compose.yaml and run ./detect-devices.sh on host."
+            "Critical camera devices not found: %s. "
+            "Check device mappings in docker-compose.yaml and run ./detect-devices.sh on host.",
+            ", ".join(missing_critical),
         )
-    
-    if missing_optional:
+
+    if not (
+        discovered_nodes["video"]
+        or discovered_nodes["media"]
+        or discovered_nodes["v4l_subdev"]
+    ):
         logger.warning(
-            f"Optional camera devices not found: {', '.join(missing_optional)}. "
-            "Some camera features may be unavailable."
+            "No /dev/video*, /dev/media*, or /dev/v4l-subdev* nodes were detected during preflight. "
+            "Camera enumeration is likely to fail. Verify host camera drivers and container device mappings."
+        )
+    elif not discovered_nodes["video"] or not discovered_nodes["media"] or not discovered_nodes["v4l_subdev"]:
+        missing_node_groups = [
+            pattern
+            for group_name, pattern in (
+                ("video", "/dev/video*"),
+                ("media", "/dev/media*"),
+                ("v4l_subdev", "/dev/v4l-subdev*"),
+            )
+            if not discovered_nodes[group_name]
+        ]
+        logger.warning(
+            "Camera device preflight found partial node coverage. Missing: %s. "
+            "Some camera features may be unavailable; verify device mappings and driver state.",
+            ", ".join(missing_node_groups),
         )
 
 
