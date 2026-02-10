@@ -8,6 +8,88 @@ import json
 import pytest
 
 
+def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch):
+    """Preflight should summarize discovered node counts and samples."""
+    import main
+
+    def fake_glob(pattern):
+        matches = {
+            "/dev/video*": ["/dev/video0", "/dev/video1"],
+            "/dev/media*": ["/dev/media0"],
+            "/dev/v4l-subdev*": ["/dev/v4l-subdev0"],
+            "/dev/dma_heap/*": ["/dev/dma_heap/linux,cma", "/dev/dma_heap/system"],
+        }
+        return matches.get(pattern, [])
+
+    monkeypatch.setattr(main.glob, "glob", fake_glob)
+    monkeypatch.setattr(main.os.path, "exists", lambda path: True)
+
+    logged_info = []
+    monkeypatch.setattr(main.logger, "info", lambda msg, *args: logged_info.append(msg % args if args else msg))
+
+    main._check_device_availability({"mock_camera": False})
+
+    preflight_logs = [entry for entry in logged_info if "Camera preflight device summary" in entry]
+    assert preflight_logs
+    assert "'video': 2" in preflight_logs[0]
+    assert "'/dev/video0'" in preflight_logs[0]
+    assert "'/dev/dma_heap/linux,cma'" in preflight_logs[0]
+
+
+def test_check_device_availability_warns_on_partial_nodes(monkeypatch):
+    """Preflight should emit actionable warning when only partial nodes exist."""
+    import main
+
+    def fake_glob(pattern):
+        matches = {
+            "/dev/video*": ["/dev/video0"],
+            "/dev/media*": [],
+            "/dev/v4l-subdev*": [],
+            "/dev/dma_heap/*": ["/dev/dma_heap/system"],
+        }
+        return matches.get(pattern, [])
+
+    monkeypatch.setattr(main.glob, "glob", fake_glob)
+    monkeypatch.setattr(main.os.path, "exists", lambda path: True)
+
+    logged_warning = []
+    monkeypatch.setattr(
+        main.logger,
+        "warning",
+        lambda msg, *args: logged_warning.append(msg % args if args else msg),
+    )
+
+    main._check_device_availability({"mock_camera": False})
+
+    joined_warning = "\n".join(logged_warning)
+    assert "Camera device preflight found partial node coverage" in joined_warning
+    assert "/dev/media*" in joined_warning
+    assert "/dev/v4l-subdev*" in joined_warning
+    assert "verify device mappings and driver state" in joined_warning
+
+
+def test_check_device_availability_warns_when_no_camera_nodes_detected(monkeypatch):
+    """No video/media/subdev nodes should trigger stronger enumeration warning."""
+    import main
+
+    monkeypatch.setattr(main.glob, "glob", lambda pattern: [])
+    monkeypatch.setattr(main.os.path, "exists", lambda path: path != "/dev/vchiq")
+
+    logged_warning = []
+    monkeypatch.setattr(
+        main.logger,
+        "warning",
+        lambda msg, *args: logged_warning.append(msg % args if args else msg),
+    )
+
+    main._check_device_availability({"mock_camera": False})
+
+    joined_warning = "\n".join(logged_warning)
+    assert "Critical camera devices not found" in joined_warning
+    assert "Camera enumeration is likely to fail" in joined_warning
+    assert "Verify host camera drivers and container device mappings" in joined_warning
+
+
 def test_flask_routes():
     """Test that Flask routes are properly defined."""
     try:
