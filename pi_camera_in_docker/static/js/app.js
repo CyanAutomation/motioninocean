@@ -21,10 +21,15 @@ const state = {
   configInitialLoadPending: false,
   configLoadingDelayTimer: null,
   configLoadingVisible: false,
+  setupInitialLoadPending: false,
+  setupLoadingDelayTimer: null,
+  setupLoadingVisible: false,
+  setupFormState: {},
   elements: {
     videoStream: null,
     statsPanel: null,
     configPanel: null,
+    setupPanel: null,
     toggleStatsBtn: null,
     refreshBtn: null,
     fullscreenBtn: null,
@@ -60,6 +65,7 @@ function cacheElements() {
   state.elements.videoStream = document.getElementById("video-stream");
   state.elements.statsPanel = document.getElementById("stats-panel");
   state.elements.configPanel = document.getElementById("config-panel");
+  state.elements.setupPanel = document.getElementById("setup-panel");
   state.elements.toggleStatsBtn = document.getElementById("toggle-stats-btn");
   state.elements.refreshBtn = document.getElementById("refresh-btn");
   state.elements.fullscreenBtn = document.getElementById("fullscreen-btn");
@@ -532,6 +538,7 @@ function hideLoading() {
  */
 function switchTab(tabName) {
   const wasConfigTab = state.currentTab === "config";
+  const wasSetupTab = state.currentTab === "setup";
   state.currentTab = tabName;
 
   // Update tab buttons
@@ -546,11 +553,13 @@ function switchTab(tabName) {
   const mainSection = document.querySelector(".video-section");
   const statsPanel = state.elements.statsPanel;
   const configPanel = state.elements.configPanel;
+  const setupPanel = state.elements.setupPanel;
 
   if (tabName === "main") {
     if (mainSection) mainSection.classList.remove("hidden");
     if (statsPanel) statsPanel.classList.remove("hidden");
     if (configPanel) configPanel.classList.add("hidden");
+    if (setupPanel) setupPanel.classList.add("hidden");
 
     // Resume stats updates and stop config refresh/timestamp updates
     stopConfigPolling();
@@ -563,6 +572,7 @@ function switchTab(tabName) {
     if (mainSection) mainSection.classList.add("hidden");
     if (statsPanel) statsPanel.classList.add("hidden");
     if (configPanel) configPanel.classList.remove("hidden");
+    if (setupPanel) setupPanel.classList.add("hidden");
 
     // Stop stats updates and start config refresh/timestamp updates
     stopStatsUpdate();
@@ -572,6 +582,22 @@ function switchTab(tabName) {
       updateConfig().catch((error) => console.error("Config update failed:", error));
       startConfigPolling();
       startConfigTimestampUpdate();
+    }
+  } else if (tabName === "setup") {
+    if (mainSection) mainSection.classList.add("hidden");
+    if (statsPanel) statsPanel.classList.add("hidden");
+    if (configPanel) configPanel.classList.add("hidden");
+    if (setupPanel) setupPanel.classList.remove("hidden");
+
+    // Stop all polling
+    stopStatsUpdate();
+    stopConfigPolling();
+    stopConfigTimestampUpdate();
+
+    // Load setup tab if not already loaded
+    if (!wasSetupTab) {
+      state.setupInitialLoadPending = true;
+      loadSetupTab().catch((error) => console.error("Setup tab load failed:", error));
     }
   }
 
@@ -879,6 +905,330 @@ function clearConfigDisplay() {
     el.textContent = "--";
     el.className = "config-value";
   });
+}
+
+/* ==========================================
+   Setup Tab Functions
+   ========================================== */
+
+/**
+ * Load setup tab data and initialize event listeners
+ */
+async function loadSetupTab() {
+  try {
+    const setupPanel = state.elements.setupPanel;
+    if (!setupPanel) return;
+
+    // Show loading state
+    const setupLoading = document.getElementById("setup-loading");
+    if (setupLoading) setupLoading.classList.remove("hidden");
+
+    // Fetch setup templates
+    const response = await fetch("/api/setup/templates");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const data = await response.json();
+    state.setupFormState = data.current_config || {};
+
+    // Update UI with fetched data
+    updateSetupUI(data);
+
+    // Hide loading state
+    if (setupLoading) setupLoading.classList.add("hidden");
+
+    // Attach event listeners
+    attachSetupEventListeners();
+
+    // Update status
+    const statusDot = document.getElementById("setup-status-indicator");
+    const statusText = document.getElementById("setup-status-text");
+    if (statusDot) statusDot.className = "setup-status-dot ready";
+    if (statusText) statusText.textContent = "Setup ready";
+  } catch (error) {
+    console.error("Failed to load setup tab:", error);
+    showSetupError(`Failed to load setup: ${error.message}`);
+    const statusDot = document.getElementById("setup-status-indicator");
+    const statusText = document.getElementById("setup-status-text");
+    if (statusDot) statusDot.className = "setup-status-dot error";
+    if (statusText) statusText.textContent = "Setup load failed";
+  }
+}
+
+/**
+ * Update setup UI with templates and current config
+ */
+function updateSetupUI(data) {
+  // Populate device status
+  const deviceStatus = document.getElementById("device-status");
+  if (deviceStatus && data.detected_devices) {
+    const devices = data.detected_devices;
+    if (Object.keys(devices).length > 0) {
+      let deviceInfo = "<strong>Detected Camera Devices:</strong><br>";
+      if (devices.video_devices?.length) deviceInfo += `📹 Video: ${devices.video_devices.join(", ")}<br>`;
+      if (devices.media_devices?.length) deviceInfo += `📡 Media: ${devices.media_devices.join(", ")}<br>`;
+      if (devices.dma_heap_devices?.length) deviceInfo += `💾 DMA: ${devices.dma_heap_devices.join(", ")}<br>`;
+      if (devices.vchiq_device) deviceInfo += `🔧 VCHIQ: Detected<br>`;
+      deviceStatus.innerHTML = deviceInfo;
+      deviceStatus.className = "device-status detected";
+    } else {
+      deviceStatus.textContent = "No camera devices detected (may be normal on non-Pi systems)";
+      deviceStatus.className = "device-status";
+    }
+  }
+
+  // Populate form fields with current config
+  if (data.current_config) {
+    const config = data.current_config;
+    const resolution = document.getElementById("setup-resolution");
+    if (resolution && config.resolution) resolution.value = config.resolution;
+
+    const fps = document.getElementById("setup-fps");
+    if (fps && config.fps !== undefined) fps.value = config.fps;
+
+    const jpegQuality = document.getElementById("setup-jpeg-quality");
+    if (jpegQuality && config.jpeg_quality !== undefined) jpegQuality.value = config.jpeg_quality;
+
+    const maxConnections = document.getElementById("setup-max-connections");
+    if (maxConnections && config.max_connections !== undefined) maxConnections.value = config.max_connections;
+
+    const targetFps = document.getElementById("setup-target-fps");
+    if (targetFps && config.target_fps !== undefined) targetFps.value = config.target_fps || "";
+
+    const pi3Profile = document.getElementById("setup-pi3-profile");
+    if (pi3Profile && config.pi3_profile !== undefined) pi3Profile.value = config.pi3_profile ? "true" : "false";
+
+    const corsOrigins = document.getElementById("setup-cors-origins");
+    if (corsOrigins && config.cors_origins !== undefined) corsOrigins.value = config.cors_origins || "";
+
+    const mockCamera = document.getElementById("setup-mock-camera");
+    if (mockCamera && config.mock_camera !== undefined) mockCamera.value = config.mock_camera ? "true" : "false";
+  }
+}
+
+/**
+ * Attach event listeners to setup form elements
+ */
+function attachSetupEventListeners() {
+  // Preset selector
+  const presetSelect = document.getElementById("preset-select");
+  if (presetSelect) {
+    presetSelect.addEventListener("change", onPresetChange);
+  }
+
+  // Advanced toggle
+  const advancedToggleBtn = document.getElementById("advanced-toggle-btn");
+  if (advancedToggleBtn) {
+    advancedToggleBtn.addEventListener("click", toggleAdvanced);
+  }
+
+  // Generate button
+  const generateBtn = document.getElementById("generate-btn");
+  if (generateBtn) {
+    generateBtn.addEventListener("click", onGenerateClick);
+  }
+
+  // Copy buttons
+  document.querySelectorAll(".output-copy-btn").forEach((btn) => {
+    btn.addEventListener("click", function () {
+      const targetId = this.getAttribute("data-target");
+      copyToClipboard(targetId, this);
+    });
+  });
+
+  // Form field changes for real-time validation
+  const formFields = document.querySelectorAll("[data-field]");
+  formFields.forEach((field) => {
+    field.addEventListener("change", validateSetupForm);
+    field.addEventListener("blur", validateSetupForm);
+  });
+}
+
+/**
+ * Handle preset selection change
+ */
+function onPresetChange(event) {
+  const preset = event.target.value;
+  const config = state.setupFormState;
+
+  if (preset === "pi3_low_power") {
+    document.getElementById("setup-resolution").value = "640x480";
+    document.getElementById("setup-fps").value = 12;
+    document.getElementById("setup-jpeg-quality").value = 75;
+    document.getElementById("setup-max-connections").value = 3;
+    document.getElementById("setup-pi3-profile").value = "true";
+    document.getElementById("setup-target-fps").value = 12;
+  } else if (preset === "pi5_high_quality") {
+    document.getElementById("setup-resolution").value = "1280x720";
+    document.getElementById("setup-fps").value = 24;
+    document.getElementById("setup-jpeg-quality").value = 90;
+    document.getElementById("setup-max-connections").value = 10;
+    document.getElementById("setup-pi3-profile").value = "false";
+    document.getElementById("setup-target-fps").value = 24;
+  } else if (preset === "custom") {
+    // Already set from current config in updateSetupUI
+  }
+
+  validateSetupForm();
+}
+
+/**
+ * Toggle advanced settings visibility
+ */
+function toggleAdvanced(event) {
+  if (event) event.preventDefault();
+
+  const btn = document.getElementById("advanced-toggle-btn");
+  const advancedContent = document.getElementById("advanced-content");
+
+  if (btn && advancedContent) {
+    const isExpanded = btn.classList.contains("expanded");
+
+    if (isExpanded) {
+      btn.classList.remove("expanded");
+      advancedContent.classList.remove("visible");
+      advancedContent.classList.add("hidden");
+    } else {
+      btn.classList.add("expanded");
+      advancedContent.classList.add("visible");
+      advancedContent.classList.remove("hidden");
+    }
+  }
+}
+
+/**
+ * Validate setup form fields
+ */
+function validateSetupForm() {
+  const resolution = document.getElementById("setup-resolution")?.value || "";
+  const fps = document.getElementById("setup-fps")?.value || "";
+
+  // Basic validation: resolution format
+  if (resolution && !/^\d+x\d+$/i.test(resolution)) {
+    console.warn("Invalid resolution format. Use WIDTHxHEIGHT (e.g., 640x480)");
+  }
+
+  // FPS validation
+  if (fps && (isNaN(fps) || parseInt(fps) < 0 || parseInt(fps) > 120)) {
+    console.warn("FPS must be between 0 and 120");
+  }
+}
+
+/**
+ * Handle Generate button click
+ */
+async function onGenerateClick() {
+  try {
+    // Validate form
+    validateSetupForm();
+
+    // Collect form values
+    const config = {
+      resolution: document.getElementById("setup-resolution")?.value || "",
+      fps: parseInt(document.getElementById("setup-fps")?.value || "0") || 0,
+      jpeg_quality: parseInt(document.getElementById("setup-jpeg-quality")?.value || "90") || 90,
+      max_connections: parseInt(document.getElementById("setup-max-connections")?.value || "10") || 10,
+      target_fps: document.getElementById("setup-target-fps")?.value ? parseInt(document.getElementById("setup-target-fps")?.value) : null,
+      pi3_profile: document.getElementById("setup-pi3-profile")?.value === "true",
+      cors_origins: document.getElementById("setup-cors-origins")?.value || "",
+      mock_camera: document.getElementById("setup-mock-camera")?.value === "true",
+      auth_token: document.getElementById("setup-auth-token")?.value || "",
+    };
+
+    // Validate via API
+    const validateResponse = await fetch("/api/setup/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(config),
+    });
+
+    if (!validateResponse.ok) {
+      const errorData = await validateResponse.json();
+      throw new Error(errorData.error?.message || "Validation failed");
+    }
+
+    const validationResult = await validateResponse.json();
+    if (!validationResult.valid && validationResult.errors?.length > 0) {
+      showSetupError(`Validation errors: ${validationResult.errors.join(", ")}`);
+      return;
+    }
+
+    // Generate files
+    const generateResponse = await fetch("/api/setup/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(config),
+    });
+
+    if (!generateResponse.ok) {
+      const errorData = await generateResponse.json();
+      throw new Error(errorData.error?.message || "Generation failed");
+    }
+
+    const result = await generateResponse.json();
+
+    // Populate output textareas
+    const dockerComposeOutput = document.getElementById("docker-compose-output");
+    if (dockerComposeOutput) dockerComposeOutput.value = result.docker_compose_yaml || "";
+
+    const envOutput = document.getElementById("env-output");
+    if (envOutput) envOutput.value = result.env_content || "";
+
+    showSetupSuccess("Configuration generated successfully!");
+  } catch (error) {
+    console.error("Generation failed:", error);
+    showSetupError(`Generation failed: ${error.message}`);
+  }
+}
+
+/**
+ * Copy textarea content to clipboard
+ */
+function copyToClipboard(targetId, buttonElement) {
+  const textarea = document.getElementById(targetId);
+  if (!textarea) return;
+
+  textarea.select();
+  document.execCommand("copy");
+
+  // Provide visual feedback
+  const originalText = buttonElement.textContent;
+  buttonElement.textContent = "✓ Copied!";
+  buttonElement.classList.add("copied");
+
+  setTimeout(() => {
+    buttonElement.textContent = originalText;
+    buttonElement.classList.remove("copied");
+  }, 2000);
+}
+
+/**
+ * Show setup error alert
+ */
+function showSetupError(message) {
+  const errorAlert = document.getElementById("setup-error-alert");
+  const errorMessage = document.getElementById("setup-error-message");
+
+  if (errorAlert && errorMessage) {
+    errorMessage.textContent = message;
+    errorAlert.classList.remove("hidden");
+  }
+}
+
+/**
+ * Show setup success alert
+ */
+function showSetupSuccess(message) {
+  const successAlert = document.getElementById("setup-success-alert");
+  const successMessage = document.getElementById("setup-success-message");
+
+  if (successAlert && successMessage) {
+    successMessage.textContent = message;
+    successAlert.classList.remove("hidden");
+
+    setTimeout(() => {
+      successAlert.classList.add("hidden");
+    }, 3000);
+  }
 }
 
 document.addEventListener("DOMContentLoaded", init);

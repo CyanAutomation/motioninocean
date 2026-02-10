@@ -111,6 +111,323 @@ def _load_config() -> Dict[str, Any]:
     }
 
 
+def _detect_camera_devices() -> Dict[str, Any]:
+    """
+    Detect available camera-related device nodes on the system.
+    Returns a dict with detected device information.
+    Failures are logged but don't raise exceptions (graceful fallback).
+    """
+    result = {
+        "has_camera": False,
+        "video_devices": [],
+        "media_devices": [],
+        "dma_heap_devices": [],
+        "vchiq_device": False,
+        "dri_device": False,
+    }
+
+    try:
+        # Check DMA heap devices
+        dma_heap_dir = "/dev/dma_heap"
+        if os.path.isdir(dma_heap_dir):
+            try:
+                dma_devices = os.listdir(dma_heap_dir)
+                result["dma_heap_devices"] = [f"/dev/dma_heap/{d}" for d in dma_devices]
+            except OSError:
+                logger.debug("Could not list /dev/dma_heap directory")
+
+        # Check video devices
+        for i in range(10):
+            video_device = f"/dev/video{i}"
+            if os.path.exists(video_device):
+                result["video_devices"].append(video_device)
+
+        # Check media devices
+        for i in range(10):
+            media_device = f"/dev/media{i}"
+            if os.path.exists(media_device):
+                result["media_devices"].append(media_device)
+
+        # Check VCHIQ
+        if os.path.exists("/dev/vchiq"):
+            result["vchiq_device"] = True
+
+        # Check DRI (graphics)
+        if os.path.exists("/dev/dri"):
+            result["dri_device"] = True
+
+        # Set has_camera flag
+        result["has_camera"] = bool(
+            result["video_devices"]
+            or result["media_devices"]
+            or result["vchiq_device"]
+        )
+    except Exception as e:
+        logger.warning(f"Device detection encountered error: {e}")
+
+    return result
+
+
+def _collect_current_config() -> Dict[str, Any]:
+    """
+    Collect current configuration from environment variables.
+    Returns a simplified config dict for the setup API.
+    """
+    try:
+        resolution = _parse_resolution(os.environ.get("RESOLUTION", "640x480"))
+    except ValueError:
+        resolution = (640, 480)
+
+    try:
+        fps = int(os.environ.get("FPS", "0"))
+    except ValueError:
+        fps = 0
+
+    try:
+        target_fps_str = os.environ.get("TARGET_FPS", "")
+        target_fps = int(target_fps_str) if target_fps_str else None
+    except ValueError:
+        target_fps = None
+
+    try:
+        jpeg_quality = int(os.environ.get("JPEG_QUALITY", "90"))
+        if not 1 <= jpeg_quality <= 100:
+            jpeg_quality = 90
+    except ValueError:
+        jpeg_quality = 90
+
+    try:
+        max_stream_connections = int(os.environ.get("MAX_STREAM_CONNECTIONS", "10"))
+        if not 1 <= max_stream_connections <= 100:
+            max_stream_connections = 10
+    except ValueError:
+        max_stream_connections = 10
+
+    pi3_profile = os.environ.get("MOTION_IN_OCEAN_PI3_PROFILE", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    mock_camera = is_flag_enabled("MOCK_CAMERA")
+    cors_origins = os.environ.get("MOTION_IN_OCEAN_CORS_ORIGINS", "")
+    auth_token = os.environ.get("MANAGEMENT_AUTH_TOKEN", "")
+
+    return {
+        "resolution": f"{resolution[0]}x{resolution[1]}",
+        "fps": fps,
+        "target_fps": target_fps,
+        "jpeg_quality": jpeg_quality,
+        "max_connections": max_stream_connections,
+        "pi3_profile": pi3_profile,
+        "mock_camera": mock_camera,
+        "cors_origins": cors_origins,
+        "auth_token": auth_token,
+    }
+
+
+def _get_setup_presets() -> Dict[str, Dict[str, Any]]:
+    """
+    Return available setup presets with default values.
+    """
+    return {
+        "pi3_low_power": {
+            "name": "Pi3 Low Power",
+            "description": "Optimized for Raspberry Pi 3 with low resource usage",
+            "resolution": "640x480",
+            "fps": 12,
+            "target_fps": 12,
+            "jpeg_quality": 75,
+            "max_connections": 3,
+            "pi3_profile": True,
+            "mock_camera": False,
+        },
+        "pi5_high_quality": {
+            "name": "Pi5 High Quality",
+            "description": "High quality streaming for Raspberry Pi 5",
+            "resolution": "1280x720",
+            "fps": 24,
+            "target_fps": 24,
+            "jpeg_quality": 90,
+            "max_connections": 10,
+            "pi3_profile": False,
+            "mock_camera": False,
+        },
+    }
+
+
+def _validate_setup_config(config: Dict[str, Any]) -> Tuple[bool, list]:
+    """
+    Validate setup configuration values.
+    Returns (is_valid, list_of_errors).
+    """
+    errors = []
+
+    # Validate resolution
+    if "resolution" in config:
+        try:
+            _parse_resolution(config["resolution"])
+        except ValueError as e:
+            errors.append(f"Resolution: {str(e)}")
+
+    # Validate FPS
+    if "fps" in config:
+        fps = config.get("fps", 0)
+        if not isinstance(fps, int) or fps < 0 or fps > 120:
+            errors.append("FPS must be an integer between 0 and 120")
+
+    # Validate target FPS
+    if "target_fps" in config and config["target_fps"] is not None:
+        target_fps = config["target_fps"]
+        if not isinstance(target_fps, int) or target_fps < 1 or target_fps > 120:
+            errors.append("Target FPS must be an integer between 1 and 120 (or null to disable)")
+
+    # Validate JPEG quality
+    if "jpeg_quality" in config:
+        quality = config.get("jpeg_quality", 90)
+        if not isinstance(quality, int) or quality < 1 or quality > 100:
+            errors.append("JPEG Quality must be between 1 and 100")
+
+    # Validate max connections
+    if "max_connections" in config:
+        conns = config.get("max_connections", 10)
+        if not isinstance(conns, int) or conns < 1 or conns > 100:
+            errors.append("Max Connections must be between 1 and 100")
+
+    return len(errors) == 0, errors
+
+
+def _generate_docker_compose_content(config: Dict[str, Any], detected_devices: Dict[str, Any]) -> str:
+    """
+    Generate docker-compose.yaml content based on configuration and detected devices.
+    """
+    # Base docker-compose with anchors
+    compose = """# Motion In Ocean Docker Compose Configuration
+# Generated by the Set-Up UI
+
+x-motion-in-ocean-common: &motion-in-ocean-common
+  image: ghcr.io/cyanautomation/motioninocean:latest
+  platform: linux/arm64
+  restart: unless-stopped
+  env_file: ./.env
+  security_opt:
+    - no-new-privileges:true
+  stop_grace_period: 30s
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-motion-in-ocean-camera: &motion-in-ocean-camera
+  volumes:
+    - /run/udev:/run/udev:ro
+  devices:
+"""
+
+    # Add detected devices
+    if detected_devices.get("dma_heap_devices"):
+        for device in detected_devices["dma_heap_devices"]:
+            compose += f"    - {device}:{device}\n"
+
+    if detected_devices.get("vchiq_device"):
+        compose += "    - /dev/vchiq:/dev/vchiq\n"
+
+    if detected_devices.get("video_devices"):
+        for device in detected_devices["video_devices"]:
+            compose += f"    - {device}:{device}\n"
+
+    if detected_devices.get("media_devices"):
+        for device in detected_devices["media_devices"]:
+            compose += f"    - {device}:{device}\n"
+
+    if detected_devices.get("dri_device"):
+        compose += "    - /dev/dri:/dev/dri\n"
+
+    compose += """  group_add:
+    - video
+  device_cgroup_rules:
+    - "c 253:* rmw"
+    - "c 511:* rmw"
+    - "c 81:* rmw"
+    - "c 250:* rmw"
+
+services:
+  motion-in-ocean:
+    <<: [*motion-in-ocean-common, *motion-in-ocean-camera]
+    container_name: motion-in-ocean
+    environment:
+      TZ: ${TZ}
+      APP_MODE: ${MOTION_IN_OCEAN_MODE:-webcam}
+      RESOLUTION: ${MOTION_IN_OCEAN_RESOLUTION}
+      FPS: ${MOTION_IN_OCEAN_FPS}
+      TARGET_FPS: ${MOTION_IN_OCEAN_TARGET_FPS:-}
+      JPEG_QUALITY: ${MOTION_IN_OCEAN_JPEG_QUALITY}
+      MAX_STREAM_CONNECTIONS: ${MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS:-2}
+      MOTION_IN_OCEAN_PI3_PROFILE: ${MOTION_IN_OCEAN_PI3_PROFILE:-false}
+      MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
+      CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
+      MOCK_CAMERA: ${MOCK_CAMERA:-false}
+      HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY:-true}
+    ports:
+      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT:-8000}:8000"
+    volumes:
+      - motion-in-ocean-data:/data
+    healthcheck:
+      test: ["CMD", "python3", "/app/healthcheck.py"]
+      interval: 2m
+      timeout: 10s
+      retries: 3
+      start_period: 2m
+
+volumes:
+  motion-in-ocean-data:
+    driver: local
+"""
+    return compose
+
+
+def _generate_env_content(config: Dict[str, Any]) -> str:
+    """
+    Generate .env content based on configuration.
+    """
+    env_lines = [
+        "# Motion In Ocean Environment Configuration",
+        "# Generated by the Set-Up UI",
+        "",
+        "# Timezone",
+        f"TZ=UTC",
+        "",
+        "# Application Mode (webcam or management)",
+        f"MOTION_IN_OCEAN_MODE=webcam",
+        "",
+        "# Camera Configuration",
+        f"MOTION_IN_OCEAN_RESOLUTION={config.get('resolution', '640x480')}",
+        f"MOTION_IN_OCEAN_FPS={config.get('fps', 0)}",
+        f"MOTION_IN_OCEAN_TARGET_FPS={config.get('target_fps', '') or ''}",
+        f"MOTION_IN_OCEAN_JPEG_QUALITY={config.get('jpeg_quality', 90)}",
+        f"MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS={config.get('max_connections', 10)}",
+        f"MOTION_IN_OCEAN_PI3_PROFILE={'true' if config.get('pi3_profile') else 'false'}",
+        "",
+        "# Features and Integration",
+        f"MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY=false",
+        f"MOTION_IN_OCEAN_CORS_ORIGINS={config.get('cors_origins', '')}",
+        f"MOCK_CAMERA={'true' if config.get('mock_camera') else 'false'}",
+        f"MOTION_IN_OCEAN_HEALTHCHECK_READY=true",
+        "",
+        "# Networking",
+        "MOTION_IN_OCEAN_BIND_HOST=127.0.0.1",
+        "MOTION_IN_OCEAN_PORT=8000",
+        "MOTION_IN_OCEAN_IMAGE_TAG=latest",
+        "",
+        "# Management/Security",
+        f"MANAGEMENT_AUTH_TOKEN={config.get('auth_token', '')}",
+        "MANAGEMENT_AUTH_REQUIRED=true",
+        "",
+    ]
+
+    return "\n".join(env_lines)
+
+
 def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
     app = Flask(__name__, static_folder="static", static_url_path="/static")
     app.start_time_monotonic = time.monotonic()
@@ -150,6 +467,73 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
     @app.route("/api/feature-flags")
     def api_flags():
         return jsonify(feature_flags.get_all_flags()), 200
+
+    @app.route("/api/setup/templates", methods=["GET"])
+    def api_setup_templates():
+        """Return setup templates, current config, detected devices, and constraints."""
+        try:
+            current_config = _collect_current_config()
+            detected_devices = _detect_camera_devices()
+            presets = _get_setup_presets()
+
+            return jsonify({
+                "current_config": current_config,
+                "available_presets": presets,
+                "detected_devices": detected_devices,
+                "constraints": {
+                    "resolution_examples": ["640x480", "1280x720", "1920x1080"],
+                    "fps_range": [0, 120],
+                    "jpeg_quality_range": [1, 100],
+                    "max_connections_range": [1, 100],
+                },
+                "app_mode": config["app_mode"],
+            }), 200
+        except Exception as e:
+            logger.exception("Setup templates endpoint failed")
+            return jsonify({"error": f"Failed to load setup templates: {str(e)}"}), 500
+
+    @app.route("/api/setup/validate", methods=["POST"])
+    def api_setup_validate():
+        """Validate setup configuration values."""
+        try:
+            data = request.get_json() or {}
+            is_valid, errors = _validate_setup_config(data)
+
+            return jsonify({
+                "valid": is_valid,
+                "errors": errors,
+            }), 200
+        except Exception as e:
+            logger.exception("Setup validation endpoint failed")
+            return jsonify({"valid": False, "errors": [f"Validation error: {str(e)}"]}), 200
+
+    @app.route("/api/setup/generate", methods=["POST"])
+    def api_setup_generate():
+        """Generate docker-compose.yaml and .env files based on provided configuration."""
+        try:
+            data = request.get_json() or {}
+
+            # Validate first
+            is_valid, errors = _validate_setup_config(data)
+            if not is_valid:
+                error_msg = "; ".join(errors)
+                logger.warning(f"Setup generation validation failed: {error_msg}")
+                return jsonify({"error": f"Configuration invalid: {error_msg}"}), 400
+
+            # Detect devices
+            detected_devices = _detect_camera_devices()
+
+            # Generate files
+            docker_compose_content = _generate_docker_compose_content(data, detected_devices)
+            env_content = _generate_env_content(data)
+
+            return jsonify({
+                "docker_compose_yaml": docker_compose_content,
+                "env_content": env_content,
+            }), 200
+        except Exception as e:
+            logger.exception("Setup generation endpoint failed")
+            return jsonify({"error": f"Failed to generate configuration: {str(e)}"}), 500
 
     return app, state
 
