@@ -11,8 +11,10 @@ ARG INCLUDE_MOCK_CAMERA=true
 # Install dependencies and configure Raspberry Pi repository
 # Consolidated into single layer for better caching and reduced image size
 # Using BuildKit cache mounts to speed up rebuilds
+# Includes resilient installation with retry logic for transient network failures
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -e && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         python3 \
@@ -22,14 +24,46 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         gnupg \
         curl \
         gcc && \
-    # Add Raspberry Pi repository
-    curl -Lfs https://archive.raspberrypi.org/debian/raspberrypi.gpg.key -o /tmp/raspberrypi.gpg.key && \
+    # Function to download GPG key with retry logic (exponential backoff)
+    download_gpg_key() { \
+        local url="$1" \
+        local output="$2" \
+        local max_attempts=3 \
+        local attempt=1 \
+        local backoff=2; \
+        while [ $attempt -le $max_attempts ]; do \
+            echo "[Attempt $attempt/$max_attempts] Downloading Raspberry Pi GPG key..."; \
+            if curl -Lfs --max-time 30 "$url" -o "$output"; then \
+                if [ -s "$output" ]; then \
+                    echo "GPG key downloaded successfully ($(stat -f%z "$output" 2>/dev/null || stat -c%s "$output") bytes)"; \
+                    return 0; \
+                else \
+                    echo "ERROR: GPG key file is empty"; \
+                    rm -f "$output"; \
+                fi; \
+            else \
+                echo "ERROR: curl failed with exit code $?"; \
+            fi; \
+            if [ $attempt -lt $max_attempts ]; then \
+                echo "Retrying in ${backoff}s..."; \
+                sleep $backoff; \
+                backoff=$((backoff * 2)); \
+            fi; \
+            attempt=$((attempt + 1)); \
+        done; \
+        echo "FATAL: Failed to download GPG key after $max_attempts attempts"; \
+        return 1; \
+    } && \
+    # Add Raspberry Pi repository with resilient GPG key download
+    download_gpg_key "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" && \
     gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
+    test -s /usr/share/keyrings/raspberrypi.gpg || (echo "ERROR: GPG dearmor produced empty file"; exit 1) && \
     echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
     rm /tmp/raspberrypi.gpg.key && \
-    # Update apt cache after adding Raspberry Pi repository, then install picamera2 packages
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
+    # Update apt cache after adding Raspberry Pi repository with retries
+    apt-get update -o Acquire::Retries=3 && \
+    # Install picamera2 packages with retries
+    apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         python3-libcamera \
         python3-picamera2 && \
     rm -rf /var/lib/apt/lists/*
@@ -64,21 +98,54 @@ FROM debian:bookworm-slim
 # Note: OpenCV not installed (edge detection feature was removed)
 # Note: python3-flask removed (duplicate - installed via pip), libcap-dev and libcamera-dev removed (dev libraries not needed in runtime)
 # Note: pykms/python3-kms not installed as DrmPreview functionality is not used in headless streaming mode
+# Includes resilient installation with retry logic for transient network failures
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -e && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         gnupg \
         curl && \
-    # Add Raspberry Pi repository
-    curl -Lfs https://archive.raspberrypi.org/debian/raspberrypi.gpg.key -o /tmp/raspberrypi.gpg.key && \
+    # Function to download GPG key with retry logic (exponential backoff)
+    download_gpg_key() { \
+        local url="$1" \
+        local output="$2" \
+        local max_attempts=3 \
+        local attempt=1 \
+        local backoff=2; \
+        while [ $attempt -le $max_attempts ]; do \
+            echo "[Attempt $attempt/$max_attempts] Downloading Raspberry Pi GPG key..."; \
+            if curl -Lfs --max-time 30 "$url" -o "$output"; then \
+                if [ -s "$output" ]; then \
+                    echo "GPG key downloaded successfully ($(stat -f%z "$output" 2>/dev/null || stat -c%s "$output") bytes)"; \
+                    return 0; \
+                else \
+                    echo "ERROR: GPG key file is empty"; \
+                    rm -f "$output"; \
+                fi; \
+            else \
+                echo "ERROR: curl failed with exit code $?"; \
+            fi; \
+            if [ $attempt -lt $max_attempts ]; then \
+                echo "Retrying in ${backoff}s..."; \
+                sleep $backoff; \
+                backoff=$((backoff * 2)); \
+            fi; \
+            attempt=$((attempt + 1)); \
+        done; \
+        echo "FATAL: Failed to download GPG key after $max_attempts attempts"; \
+        return 1; \
+    } && \
+    # Add Raspberry Pi repository with resilient GPG key download
+    download_gpg_key "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" && \
     gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
+    test -s /usr/share/keyrings/raspberrypi.gpg || (echo "ERROR: GPG dearmor produced empty file"; exit 1) && \
     echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
     rm /tmp/raspberrypi.gpg.key && \
-    # Update apt cache after adding Raspberry Pi repository
-    apt-get update && \
-    # Install Python runtime and camera packages from Raspberry Pi repository
-    apt-get install -y --no-install-recommends \
+    # Update apt cache after adding Raspberry Pi repository with retries
+    apt-get update -o Acquire::Retries=3 && \
+    # Install Python runtime and camera packages from Raspberry Pi repository with retries
+    apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         python3 \
         python3-numpy \
         python3-libcamera \
