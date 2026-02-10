@@ -661,7 +661,7 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
             "No /dev/video*, /dev/media*, or /dev/v4l-subdev* nodes were detected during preflight. "
             "Camera enumeration is likely to fail. Verify host camera drivers and container device mappings."
         )
-    elif not discovered_nodes["video"] or not discovered_nodes["media"] or not discovered_nodes["v4l_subdev"]:
+    elif not discovered_nodes["video"]:
         missing_node_groups = [
             pattern
             for group_name, pattern in (
@@ -672,8 +672,8 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
             if not discovered_nodes[group_name]
         ]
         logger.warning(
-            "Camera device preflight found partial node coverage. Missing: %s. "
-            "Some camera features may be unavailable; verify device mappings and driver state.",
+            "Camera device preflight found no /dev/video* nodes. Missing groups: %s. "
+            "Streaming is likely unavailable; verify device mappings and driver state.",
             ", ".join(missing_node_groups),
         )
 

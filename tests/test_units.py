@@ -36,8 +36,8 @@ def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch
     assert "'/dev/dma_heap/linux,cma'" in preflight_logs[0]
 
 
-def test_check_device_availability_warns_on_partial_nodes(monkeypatch):
-    """Preflight should emit actionable warning when only partial nodes exist."""
+def test_check_device_availability_does_not_warn_when_video_nodes_exist(monkeypatch):
+    """Preflight should not warn for missing non-video node groups when video nodes exist."""
     import main
 
     def fake_glob(pattern):
@@ -61,11 +61,38 @@ def test_check_device_availability_warns_on_partial_nodes(monkeypatch):
 
     main._check_device_availability({"mock_camera": False})
 
+    assert not logged_warning
+
+
+def test_check_device_availability_warns_when_video_nodes_missing(monkeypatch):
+    """Preflight should warn when no video node is present, even if others exist."""
+    import main
+
+    def fake_glob(pattern):
+        matches = {
+            "/dev/video*": [],
+            "/dev/media*": ["/dev/media0"],
+            "/dev/v4l-subdev*": ["/dev/v4l-subdev0"],
+            "/dev/dma_heap/*": ["/dev/dma_heap/system"],
+        }
+        return matches.get(pattern, [])
+
+    monkeypatch.setattr(main.glob, "glob", fake_glob)
+    monkeypatch.setattr(main.os.path, "exists", lambda path: True)
+
+    logged_warning = []
+    monkeypatch.setattr(
+        main.logger,
+        "warning",
+        lambda msg, *args: logged_warning.append(msg % args if args else msg),
+    )
+
+    main._check_device_availability({"mock_camera": False})
+
     joined_warning = "\n".join(logged_warning)
-    assert "Camera device preflight found partial node coverage" in joined_warning
-    assert "/dev/media*" in joined_warning
-    assert "/dev/v4l-subdev*" in joined_warning
-    assert "verify device mappings and driver state" in joined_warning
+    assert "Camera device preflight found no /dev/video* nodes" in joined_warning
+    assert "/dev/video*" in joined_warning
+    assert "Streaming is likely unavailable" in joined_warning
 
 
 def test_check_device_availability_warns_when_no_camera_nodes_detected(monkeypatch):
