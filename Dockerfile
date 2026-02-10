@@ -28,21 +28,22 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     download_gpg_key() { \
         local url="$1" \
         local output="$2" \
-        local max_attempts=3 \
+        local max_attempts=5 \
         local attempt=1 \
         local backoff=2; \
         while [ $attempt -le $max_attempts ]; do \
-            echo "[Attempt $attempt/$max_attempts] Downloading Raspberry Pi GPG key..."; \
-            if curl -Lfs --max-time 30 "$url" -o "$output"; then \
+            echo "[Attempt $attempt/$max_attempts] Downloading Raspberry Pi GPG key from $url..."; \
+            if curl -L --connect-timeout 10 --max-time 60 --retry 3 --retry-all-errors --retry-delay 2 -f "$url" -o "$output" 2>&1; then \
                 if [ -s "$output" ]; then \
-                    echo "GPG key downloaded successfully ($(stat -f%z "$output" 2>/dev/null || stat -c%s "$output") bytes)"; \
+                    size=$(stat -c%s "$output" 2>/dev/null || stat -f%z "$output" 2>/dev/null || echo "unknown"); \
+                    echo "✓ GPG key downloaded successfully ($size bytes)"; \
                     return 0; \
                 else \
                     echo "ERROR: GPG key file is empty"; \
                     rm -f "$output"; \
                 fi; \
             else \
-                echo "ERROR: curl failed with exit code $?"; \
+                echo "ERROR: curl failed with exit code $? for URL: $url"; \
             fi; \
             if [ $attempt -lt $max_attempts ]; then \
                 echo "Retrying in ${backoff}s..."; \
@@ -55,13 +56,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         return 1; \
     } && \
     # Add Raspberry Pi repository with resilient GPG key download
-    download_gpg_key "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" && \
+    download_gpg_key "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" || \
+    download_gpg_key "http://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" || \
+    (echo "ERROR: Failed to download GPG key from all sources"; exit 1) && \
     gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
     test -s /usr/share/keyrings/raspberrypi.gpg || (echo "ERROR: GPG dearmor produced empty file"; exit 1) && \
     echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
     rm /tmp/raspberrypi.gpg.key && \
     # Update apt cache after adding Raspberry Pi repository with retries
-    apt-get update -o Acquire::Retries=3 && \
+    apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
     # Install picamera2 packages with retries
     apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         python3-libcamera \
@@ -110,21 +113,22 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     download_gpg_key() { \
         local url="$1" \
         local output="$2" \
-        local max_attempts=3 \
+        local max_attempts=5 \
         local attempt=1 \
         local backoff=2; \
         while [ $attempt -le $max_attempts ]; do \
-            echo "[Attempt $attempt/$max_attempts] Downloading Raspberry Pi GPG key..."; \
-            if curl -Lfs --max-time 30 "$url" -o "$output"; then \
+            echo "[Attempt $attempt/$max_attempts] Downloading Raspberry Pi GPG key from $url..."; \
+            if curl -L --connect-timeout 10 --max-time 60 --retry 3 --retry-all-errors --retry-delay 2 -f "$url" -o "$output" 2>&1; then \
                 if [ -s "$output" ]; then \
-                    echo "GPG key downloaded successfully ($(stat -f%z "$output" 2>/dev/null || stat -c%s "$output") bytes)"; \
+                    size=$(stat -c%s "$output" 2>/dev/null || stat -f%z "$output" 2>/dev/null || echo "unknown"); \
+                    echo "✓ GPG key downloaded successfully ($size bytes)"; \
                     return 0; \
                 else \
                     echo "ERROR: GPG key file is empty"; \
                     rm -f "$output"; \
                 fi; \
             else \
-                echo "ERROR: curl failed with exit code $?"; \
+                echo "ERROR: curl failed with exit code $? for URL: $url"; \
             fi; \
             if [ $attempt -lt $max_attempts ]; then \
                 echo "Retrying in ${backoff}s..."; \
@@ -137,13 +141,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         return 1; \
     } && \
     # Add Raspberry Pi repository with resilient GPG key download
-    download_gpg_key "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" && \
+    download_gpg_key "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" || \
+    download_gpg_key "http://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" || \
+    (echo "ERROR: Failed to download GPG key from all sources"; exit 1) && \
     gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
     test -s /usr/share/keyrings/raspberrypi.gpg || (echo "ERROR: GPG dearmor produced empty file"; exit 1) && \
     echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
     rm /tmp/raspberrypi.gpg.key && \
     # Update apt cache after adding Raspberry Pi repository with retries
-    apt-get update -o Acquire::Retries=3 && \
+    apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
     # Install Python runtime and camera packages from Raspberry Pi repository with retries
     apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         python3 \
