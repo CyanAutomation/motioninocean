@@ -94,6 +94,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.3] - 2026-02-10
+
+- refactor: enhance GPG key download process with improved error handling and retry logic
+- feat: add initial setup for Python virtual environment and activation scripts
+
 ## [1.13.2] - 2026-02-08
 
 - Merge pull request #185 from CyanAutomation/codex/refactor-camera-detection-tests
