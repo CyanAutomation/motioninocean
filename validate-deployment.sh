@@ -1,11 +1,42 @@
 #!/bin/bash
-# validate-deployment.sh - Test motion-in-ocean deployment on Raspberry Pi
-# This script validates that the container is running correctly with camera access
+# validate-deployment.sh - Test motion-in-ocean deployment
+# Validates that the container is running correctly with proper access
+#
+# Usage:
+#   ./validate-deployment.sh [deployment_directory]
+#
+# If deployment_directory is provided (directory-based), validates that deployment.
+# Otherwise, validates the container in current directory or root-level deployment.
+#
+# Examples:
+#   ./validate-deployment.sh                              # Validate local container
+#   ./validate-deployment.sh containers/motioniocean-webcam/  # Validate specific deployment
 
 set -e
 
 CONTAINER_NAME="motion-in-ocean"
-PORT="${MOTION_IN_OCEAN_WEBCAM_PORT:-8000}"
+
+# Detect deployment mode from directory argument or environment
+DEPLOY_DIR="${1:-.}"
+if [ "$DEPLOY_DIR" != "." ]; then
+    # If deploying from a specific directory, change into it
+    if [ ! -d "$DEPLOY_DIR" ]; then
+        echo "[ERROR] Deployment directory not found: $DEPLOY_DIR"
+        exit 1
+    fi
+    cd "$DEPLOY_DIR"
+    echo "[INFO] Validating deployment in: $DEPLOY_DIR"
+else
+    echo "[INFO] Validating container in current/local deployment"
+fi
+
+# Detect port from .env if it exists
+if [ -f ".env" ]; then
+    PORT=$(grep "^MOTION_IN_OCEAN_PORT=" .env | cut -d'=' -f2 || echo "8000")
+else
+    PORT="${MOTION_IN_OCEAN_PORT:-8000}"
+fi
+
 MAX_WAIT=60
 
 echo "[INFO] motion-in-ocean Deployment Validation"

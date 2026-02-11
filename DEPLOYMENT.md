@@ -1,12 +1,121 @@
-# Motion in Ocean - Multi-Host Deployment Guide
+# Motion in Ocean - Deployment Guide
 
-This guide covers deploying Motion in Ocean across multiple hosts on a local network, with management mode on one host coordinating webcam mode instances on remote hosts.
+This guide covers deploying Motion in Ocean using the **recommended directory-based approach** as well as legacy single-file patterns. Directory-based deployments are tool-compatible (e.g., with Dockhand) and provide clear isolation between deployments.
 
-> **Note:** As of February 2026, Motion in Ocean uses simplified, mode-specific compose files. See **Compose Files** section below.
+> **February 2026 Update:** Motion in Ocean now supports both directory-based deployments (recommended) and legacy compose files. See [Recommended: Directory-Based Deployment](#recommended-directory-based-deployment) first, then [Legacy: Root-Level Compose Files](#legacy-root-level-compose-files) for migration guidance.
 
-## Quick Reference: Compose Files
+---
 
-Motion in Ocean provides three main compose files for different deployment patterns:
+## Recommended: Directory-Based Deployment
+
+Each deployment (webcam, management, etc.) lives in its own directory with a standard `docker-compose.yml` filename. This pattern is compatible with container orchestration tools and eliminates complexity from custom filenames and `-f` flags.
+
+**Directory Structure:**
+
+```
+~/containers/
+├── motioniocean-webcam/
+│   ├── docker-compose.yml          # Main config
+│   ├── docker-compose.hardened.yml # Security overlay (optional)
+│   ├── docker-compose.mock.yml     # Mock camera (optional)
+│   └── .env                        # Configuration
+│
+└── motioniocean-management/
+    ├── docker-compose.yml          # Main config
+    └── .env                        # Configuration
+```
+
+**Quick Start - Webcam Mode:**
+
+```bash
+cd ~/containers/motioniocean-webcam
+docker compose up -d
+```
+
+**Quick Start - Management Mode:**
+
+```bash
+cd ~/containers/motioniocean-management
+docker compose up -d
+```
+
+**Ports:**
+- Webcam: Port 8000 (configurable via `.env`)
+- Management: Port 8001 (configurable via `.env`)
+
+**Advanced - Hardened Security:**
+
+```bash
+cd ~/containers/motioniocean-webcam
+# Auto-detect camera devices on your Raspberry Pi
+../../../detect-devices.sh .
+# Start with hardened (non-privileged) mode
+docker compose -f docker-compose.yml -f docker-compose.hardened.yml up -d
+```
+
+**Advanced - Mock Camera (Testing):**
+
+```bash
+cd ~/containers/motioniocean-webcam
+# Test without hardware
+docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
+```
+
+**Setup Helper Script:**
+
+```bash
+# From the repo root
+cd containers/motioniocean-webcam
+/path/to/setup.sh   # Guides through .env setup and optional device detection
+```
+
+**Validation:**
+
+```bash
+cd containers/motioniocean-webcam
+/path/to/validate-deployment.sh
+```
+
+### Multi-Host Setup (Directory-Based)
+
+For a distributed setup with management hub + remote webcams:
+
+1. **On the management host:**
+   ```bash
+   cd ~/containers/motioniocean-management
+   cat > .env << EOF
+   MOTION_IN_OCEAN_PORT=8001
+   MOTION_IN_OCEAN_BIND_HOST=0.0.0.0  # Listen on all interfaces
+   MANAGEMENT_AUTH_TOKEN=secure_token
+   EOF
+   docker compose up -d
+   ```
+
+2. **On each webcam host:**
+   ```bash
+   cd ~/containers/motioniocean-webcam
+   cat > .env << EOF
+   MOTION_IN_OCEAN_PORT=8000
+   MOTION_IN_OCEAN_BIND_HOST=0.0.0.0  # Listen on all interfaces
+   MANAGEMENT_AUTH_TOKEN=secure_token  # Same token as management
+   EOF
+   docker compose up -d
+   ```
+
+3. **Access the management UI:**
+   - Open `http://<management-host>:8001/` in your browser
+   - Add webcam nodes via the management interface
+   - Use the same `MANAGEMENT_AUTH_TOKEN` for secure communication
+
+---
+
+## Legacy: Root-Level Compose Files
+
+⚠️ **DEPRECATED** - The following section documents legacy deployment patterns using custom-named compose files. These are kept for backward compatibility but will be removed in a future release. **New deployments should use the directory-based approach above.**
+
+### Quick Reference: Compose Files
+
+Motion in Ocean provides legacy compose files for different deployment patterns:
 
 | File | Mode | Use Case | Command |
 |------|------|----------|---------|
@@ -29,22 +138,12 @@ MANAGEMENT_AUTH_TOKEN=              # Leave empty for LAN-only
 
 ---
 
-## Table of Contents
-
-- [Architecture](#architecture)
-- [Scenario 1: HTTP-Based Remote Access](#scenario-1-http-based-remote-access-recommended)
-- [Scenario 2: Docker Socket Proxy](#scenario-2-docker-socket-proxy-advanced)
-- [Troubleshooting](#troubleshooting)
-- [Security Considerations](#security-considerations)
-
----
-
-## Architecture
+## Multi-Host Architecture
 
 Motion in Ocean supports a hub-and-spoke architecture where:
 
-- **Management Host**: Runs management mode (`MOTION_IN_OCEAN_MODE=management`); provides control plane and web UI
-- **Webcam Hosts**: Run webcam mode (`MOTION_IN_OCEAN_MODE=webcam`); stream video and provide health/status endpoints
+- **Management Host**: Runs management mode; provides control plane and web UI
+- **Webcam Hosts**: Run webcam mode; stream video and provide health/status endpoints
 - **Communication**: Management mode probes remote endpoints and aggregates status via HTTP
 
 **Architecture Diagram:**
@@ -70,13 +169,7 @@ graph TD
     style FileRegistry fill:#F5A623,stroke:#333,stroke-width:2px,color:#fff
 ```
 
-**Figure 1: Multi-Host Hub-and-Spoke Architecture**
 
-The management host acts as a control plane, periodically probing remote webcam hosts via HTTP (`/health`, `/ready`, `/metrics`). The file-backed node registry persists host configuration and status. Solid lines represent control/probe traffic; dotted lines represent optional direct streaming paths from webcam hosts to browsers. This architecture allows dynamic addition/removal of camera hosts without central orchestration.
-
----
-
-## Scenario 1: HTTP-Based Remote Access (Recommended)
 
 HTTP-based access is the recommended approach for most deployments:
 

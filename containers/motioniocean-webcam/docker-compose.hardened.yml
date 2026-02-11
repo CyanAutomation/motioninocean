@@ -8,8 +8,6 @@
 # and replaces it with explicit device mappings and cgroup rules for fine-grained access control.
 # Use this in production environments where defense-in-depth is required.
 
-version: '3.8'
-
 services:
   motion-in-ocean:
     # Remove privileged mode; use explicit device access instead

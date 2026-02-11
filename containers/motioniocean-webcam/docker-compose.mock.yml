@@ -6,8 +6,6 @@
 #
 # This is useful for testing on non-Pi environments or when hardware is not available
 
-version: '3.8'
-
 services:
   motion-in-ocean:
     # Remove all device mappings and group additions for mock camera mode
