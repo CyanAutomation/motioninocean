@@ -29,20 +29,79 @@ For product requirements, see the split PRDs:
 > ✅ **Assumption:** CSI camera enabled and working on the host  
 > ✅ **Usage:** Homelab LAN / VLAN only (do not expose directly to the internet)
 
-### 1) Prepare Configuration
+### Recommended: Directory-Based Deployment
 
-Copy `.env.example` to `.env`:
+The project provides pre-configured deployment directories in `containers/`:
 
 ```bash
-mkdir -p ~/containers/motion-in-ocean
-cd ~/containers/motion-in-ocean
+# Copy the webcam deployment directory to your machine
+cp -r containers/motioniocean-webcam ~/containers/motioniocean-webcam
+cd ~/containers/motioniocean-webcam
 
 # Copy example config
-curl -fsSL https://raw.githubusercontent.com/CyanAutomation/motioninocean/main/.env.example -o .env
+cp .env.example .env
 
-# Edit if needed (optional; defaults work for most homelabs)
-nano .env
+# (Optional) Auto-detect camera devices on Raspberry Pi
+../../detect-devices.sh .
+
+# Start
+docker compose up -d
+
+# View logs
+docker compose logs -f
 ```
+
+Access the stream at `http://localhost:8000`
+
+**For Management Mode (Node Coordination Hub):**
+
+```bash
+cp -r containers/motioniocean-management ~/containers/motioniocean-management
+cd ~/containers/motioniocean-management
+cp .env.example .env
+docker compose up -d
+```
+
+Access at `http://localhost:8001`
+
+### Full Setup Script (Interactive)
+
+For guided setup with device detection and configuration:
+
+```bash
+cd ~/containers/motioniocean-webcam
+/path/to/repo/setup.sh
+```
+
+---
+
+### Legacy: Root-Level Compose Files
+
+⚠️ **Deprecated** - The following commands use legacy custom-named compose files. New deployments should use the directory-based approach above. See [DEPLOYMENT.md](DEPLOYMENT.md) for migration.
+
+**Webcam Mode:**
+
+```bash
+docker compose -f docker-compose.webcam.yaml up -d
+docker logs -f --timestamps motion-in-ocean
+curl http://localhost:8000/health
+```
+
+**Management Mode:**
+
+```bash
+docker compose -f docker-compose.management.yaml up -d
+```
+
+**Hardened Security Mode:**
+
+```bash
+docker compose -f docker-compose.webcam.yaml -f docker-compose.hardened.yaml up -d
+```
+
+---
+
+## Configuration
 
 The minimal `.env` requires only 5 variables (all have defaults):
 
@@ -50,51 +109,11 @@ The minimal `.env` requires only 5 variables (all have defaults):
 MOTION_IN_OCEAN_IMAGE_TAG=latest
 MOTION_IN_OCEAN_PORT=8000
 TZ=Europe/London
-MOTION_IN_OCEAN_MODE=webcam
-MANAGEMENT_AUTH_TOKEN=                  # Leave empty for localhost
+MOTION_IN_OCEAN_MODE=webcam            # or 'management'
+MANAGEMENT_AUTH_TOKEN=                 # Leave empty for localhost
 ```
 
-### 2) Run in Webcam Mode (Default)
-
-For camera streaming and MJPEG output:
-
-```bash
-docker compose -f docker-compose.webcam.yaml up -d
-docker logs -f --timestamps motion-in-ocean
-```
-
-Then test:
-
-```bash
-curl http://localhost:8000/health
-curl http://localhost:8000/stream.mjpg     # Open in browser or VLC
-```
-
-### 3) Run in Management Mode (Optional)
-
-For multi-camera hub / node registry (no camera hardware required):
-
-```bash
-# First, edit .env:
-# MOTION_IN_OCEAN_MODE=management
-
-docker compose -f docker-compose.management.yaml up -d
-docker logs -f --timestamps motion-in-ocean
-```
-
-Then test:
-
-```bash
-curl http://localhost:8000/api/nodes
-```
-
-### 4) (Optional) Use Hardened Security Mode
-
-For production deployments with explicit device mappings instead of `privileged: true`:
-
-```bash
-docker compose -f docker-compose.webcam.yaml -f docker-compose.hardened.yaml up -d
-```
+See `.env.example` in the respective `containers/` directory for all available options.
 
 ---
 ## Deployment Modes Explained

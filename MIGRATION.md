@@ -1,4 +1,137 @@
-# Migration Guide: Docker Configuration Simplification
+# Migration Guide: Docker Configuration
+
+> **Latest Update:** February 11, 2026  
+> **Breaking Changes:** v3 directory-based deployment, v2 environment variables  
+> **Scope:** Docker Compose files, .env configuration, and authentication model
+
+---
+
+## v3: Directory-Based Deployment (Breaking Change)
+
+**Status:** Released February 11, 2026 ✅
+
+Motion In Ocean now uses **directory-based deployments** instead of custom-named compose files in the root. This improves tool compatibility (e.g., Dockhand, container managers) and provides clear isolation between deployments.
+
+### What Changed
+
+**Old Pattern (Deprecated):**
+```
+project root:
+├── docker-compose.webcam.yaml       # Use with -f flag
+├── docker-compose.management.yaml   # Use with -f flag  
+├── docker-compose.hardened.yaml     # Use with -f flag
+├── docker-compose.mock.yaml         # Use with -f flag
+└── .env                             # Single .env
+```
+
+**New Pattern (Recommended):**
+```
+project root/containers/:
+├── motioniocean-webcam/
+│   ├── docker-compose.yml           # Standard filename, no -f needed
+│   ├── docker-compose.hardened.yml  # Optional overlay, no -f confusion
+│   ├── docker-compose.mock.yml      # Optional overlay for testing
+│   └── .env
+│
+└── motioniocean-management/
+    ├── docker-compose.yml           # Standard filename
+    └── .env
+```
+
+### How to Migrate
+
+#### 1. Copy the Deployment Directory
+
+Choose the mode you need and copy it to your machine:
+
+**For Webcam Mode (Camera Streaming):**
+```bash
+cp -r containers/motioniocean-webcam ~/containers/motioniocean-webcam
+cd ~/containers/motioniocean-webcam
+```
+
+**For Management Mode (Node Hub):**
+```bash
+cp -r containers/motioniocean-management ~/containers/motioniocean-management
+cd ~/containers/motioniocean-management
+```
+
+#### 2. Copy Your Existing Configuration
+
+If you have an existing `.env` file from the old pattern:
+
+```bash
+cp ~/.env ~/containers/motioniocean-{mode}/.env
+```
+
+Or create a new one from the template:
+```bash
+cp .env.example .env
+nano .env  # Review and customize if needed
+```
+
+#### 3. Start Using the New Pattern
+
+**Old way (Deprecated):**
+```bash
+docker compose -f docker-compose.webcam.yaml up -d
+```
+
+**New way (Recommended):**
+```bash
+cd ~/containers/motioniocean-webcam
+docker compose up -d
+```
+
+**No more `-f` flags needed!** Simply run `docker compose` from the deployment directory.
+
+### Updating Scripts & Automation
+
+If you have custom scripts or CI/CD pipelines using the old pattern:
+
+**Old Pattern:**
+```bash
+docker compose -f docker-compose.webcam.yaml up -d
+docker compose -f docker-compose.management.yaml up -d
+```
+
+**New Pattern:**
+```bash
+cd containers/motioniocean-webcam && docker compose up -d
+cd containers/motioniocean-management && docker compose up -d
+```
+
+**Updated Repository Scripts:**
+
+The repository scripts have been updated to support both patterns:
+
+- **setup.sh** – Now detects deployment mode and guides setup
+- **detect-devices.sh [directory]** – Now accepts target directory parameter
+- **validate-deployment.sh [directory]** – Now validates a specific deployment
+
+Usage:
+```bash
+cd ~/containers/motioniocean-webcam
+/path/to/repo/setup.sh
+
+/path/to/repo/detect-devices.sh .
+/path/to/repo/validate-deployment.sh .
+```
+
+### Backward Compatibility & Timeline
+
+- **Feb 11, 2026:** v3 released with directory-based structure and deprecation warnings
+- **TBD:** Transition period where legacy root-level files still work but print deprecation notices
+- **Future Release:** Legacy root-level files removed; directory-based is only option
+
+**During the transition period:**
+- ✅ Old files (`docker-compose.webcam.yaml`, etc.) still work with `-f` flags
+- ✅ New directories (`containers/motioniocean-{mode}/`) are the recommended approach
+- ⚠️ Old files print deprecation notices to encourage migration
+
+---
+
+## v2: Docker Configuration Simplification (Earlier Breaking Change)
 
 > **Effective Date:** February 11, 2026
 > **Type:** Clean break – environment variable schema redesign
