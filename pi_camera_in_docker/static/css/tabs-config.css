@@ -673,7 +673,9 @@
 .advanced-content {
   overflow: hidden;
   max-height: 0;
-  transition: max-height var(--transition-normal), opacity var(--transition-normal);
+  transition:
+    max-height var(--transition-normal),
+    opacity var(--transition-normal);
   opacity: 0;
 }
 
@@ -726,7 +728,7 @@
 }
 
 .output-filename {
-  font-family: 'Monaco', 'Courier New', monospace;
+  font-family: "Monaco", "Courier New", monospace;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -773,7 +775,7 @@
   border-radius: 0 0 var(--radius-md) var(--radius-md);
   background: var(--color-bg-canvas);
   color: var(--color-text-primary);
-  font-family: 'Monaco', 'Courier New', monospace;
+  font-family: "Monaco", "Courier New", monospace;
   font-size: 0.85rem;
   line-height: 1.5;
   overflow: auto;
@@ -829,7 +831,7 @@
   background: var(--color-bg-surface);
   padding: 0.2rem 0.4rem;
   border-radius: var(--radius-sm);
-  font-family: 'Monaco', 'Courier New', monospace;
+  font-family: "Monaco", "Courier New", monospace;
   font-size: 0.85rem;
   color: var(--color-accent-primary);
 }
@@ -922,4 +924,3 @@
     margin-left: var(--spacing-md);
   }
 }
-

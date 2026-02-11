@@ -12,6 +12,7 @@ This directory contains comprehensive UI auditing guidance for AI agents to insp
 ### 1. Read the Skill
 
 Start by reading [SKILL.md](SKILL.md) to understand:
+
 - Audit methodology and mandatory rules
 - Page object selectors for both UI modes
 - Responsive design breakpoints (desktop/tablet/mobile)
@@ -49,12 +50,14 @@ make audit-ui-management
 ```
 
 Results are saved to `audit-results/`:
+
 - Screenshots at each viewport (desktop/tablet/mobile)
 - `UI-AUDIT-REPORT.md` with findings
 
 ### 4. Generate Findings
 
 Create a structured audit report documenting:
+
 - Layout and visual design issues
 - Responsive design problems (specific viewport)
 - Accessibility violations
@@ -69,6 +72,7 @@ See SKILL.md "Output Format" section for report structure.
 ### Before Merging UI Changes
 
 Request an AI agent UI audit to validate:
+
 - Responsive design at all breakpoints
 - Accessibility compliance (keyboard, ARIA, color contrast)
 - User workflows end-to-end
@@ -102,11 +106,13 @@ Request an AI agent UI audit to validate:
 ### Responsive Testing
 
 Test at three viewports defined in SKILL.md:
+
 - **Desktop:** 1280×720 (> 1024px)
 - **Tablet:** 768×1024 (768-1024px)
 - **Mobile:** 375×667 (< 480px)
 
 Compare layout at each to verify:
+
 - Proper element stacking/reflow
 - Touch targets remain 44×44px minimum
 - Text readable (no truncation)
@@ -115,6 +121,7 @@ Compare layout at each to verify:
 ### Accessibility Audit
 
 Check programmatically:
+
 - [ ] Keyboard tab order (Tab key cycles through interactive elements)
 - [ ] ARIA labels and roles present
 - [ ] Color contrast 4.5:1 (body text), 3:1 (UI components)
@@ -125,6 +132,7 @@ Check programmatically:
 ### Error Scenario Testing
 
 Systematically explore failures:
+
 - [ ] Stream unavailable (503) → graceful error display
 - [ ] Network timeout → backoff and retry
 - [ ] Stale stream (frame age exceeded) → status change
@@ -135,21 +143,25 @@ Systematically explore failures:
 ## Troubleshooting
 
 **Q: Playwright inspector won't open**
+
 - Ensure Node.js/npm installed: `node --version`
 - Install Playwright: `npm install`
 - Check port 8000 not blocked
 
 **Q: Can't connect to server**
+
 - Verify motion-in-ocean running: `docker ps` or `lsof -i :8000`
 - Check baseUrl in audit script (default: http://localhost:8000)
 - Ensure mock camera mode if no hardware: `MOCK_CAMERA=true`
 
 **Q: Screenshots not captured**
+
 - Check `audit-results/` directory writeable
 - Verify Playwright browser launched successfully
 - Check console output for errors
 
 **Q: Audit findings unclear or not specific enough**
+
 - Always include screenshot evidence
 - Measure exact dimensions (pixels, breakpoint)
 - Reference selector or element description

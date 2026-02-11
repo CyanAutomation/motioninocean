@@ -67,11 +67,19 @@
 
           <!-- Video Controls -->
           <div class="video-controls">
-            <button id="refresh-btn" class="control-btn ui-btn ui-btn--overlay" title="Refresh Stream">
+            <button
+              id="refresh-btn"
+              class="control-btn ui-btn ui-btn--overlay"
+              title="Refresh Stream"
+            >
               <span class="control-btn-icon">↻</span>
               <span class="control-btn-text">Refresh</span>
             </button>
-            <button id="fullscreen-btn" class="control-btn ui-btn ui-btn--overlay" title="Toggle Fullscreen">
+            <button
+              id="fullscreen-btn"
+              class="control-btn ui-btn ui-btn--overlay"
+              title="Toggle Fullscreen"
+            >
               <span class="control-btn-icon">⛶</span>
               <span class="control-btn-text">Fullscreen</span>
             </button>
@@ -156,7 +164,9 @@
               </div>
               <div class="config-item ui-form-control">
                 <span class="config-label">JPEG Quality</span>
-                <span id="config-jpeg-quality" class="config-value" data-config-value="true">--</span>
+                <span id="config-jpeg-quality" class="config-value" data-config-value="true"
+                  >--</span
+                >
               </div>
             </div>
           </div>
@@ -170,15 +180,24 @@
             <div class="config-group-content" data-group="stream">
               <div class="config-item ui-form-control">
                 <span class="config-label">Max Connections</span>
-                <span id="config-max-connections" class="config-value" data-config-value="true">--</span>
+                <span id="config-max-connections" class="config-value" data-config-value="true"
+                  >--</span
+                >
               </div>
               <div class="config-item ui-form-control">
                 <span class="config-label">Current Connections</span>
-                <span id="config-current-connections" class="config-value highlight" data-config-value="true">--</span>
+                <span
+                  id="config-current-connections"
+                  class="config-value highlight"
+                  data-config-value="true"
+                  >--</span
+                >
               </div>
               <div class="config-item ui-form-control">
                 <span class="config-label">Max Frame Age (Timeout)</span>
-                <span id="config-max-frame-age" class="config-value" data-config-value="true">--</span>
+                <span id="config-max-frame-age" class="config-value" data-config-value="true"
+                  >--</span
+                >
               </div>
               <div class="config-item ui-form-control">
                 <span class="config-label">CORS Origins</span>
@@ -196,15 +215,21 @@
             <div class="config-group-content" data-group="runtime">
               <div class="config-item ui-form-control">
                 <span class="config-label">Camera Active</span>
-                <span id="config-camera-active" class="config-value" data-config-value="true">--</span>
+                <span id="config-camera-active" class="config-value" data-config-value="true"
+                  >--</span
+                >
               </div>
               <div class="config-item ui-form-control">
                 <span class="config-label">Mock Camera</span>
-                <span id="config-mock-camera" class="config-value" data-config-value="true">--</span>
+                <span id="config-mock-camera" class="config-value" data-config-value="true"
+                  >--</span
+                >
               </div>
               <div class="config-item ui-form-control">
                 <span class="config-label">Uptime</span>
-                <span id="config-uptime" class="config-value highlight" data-config-value="true">--</span>
+                <span id="config-uptime" class="config-value highlight" data-config-value="true"
+                  >--</span
+                >
               </div>
               <div class="config-item ui-form-control">
                 <span class="config-label">Last Updated</span>
@@ -222,7 +247,9 @@
             <div class="config-group-content" data-group="limits">
               <div class="config-item ui-form-control">
                 <span class="config-label">Max Resolution</span>
-                <span id="config-limit-resolution" class="config-value" data-config-value="true">--</span>
+                <span id="config-limit-resolution" class="config-value" data-config-value="true"
+                  >--</span
+                >
               </div>
               <div class="config-item ui-form-control">
                 <span class="config-label">Max FPS</span>
@@ -297,25 +324,61 @@
               <div class="settings-group">
                 <div class="setup-field ui-form-control">
                   <label for="setup-resolution" class="field-label">Resolution</label>
-                  <input type="text" id="setup-resolution" class="field-input" placeholder="e.g., 640x480" data-field="resolution" />
-                  <span class="field-hint">Format: WIDTHxHEIGHT (e.g., 640x480, 1280x720, 1920x1080)</span>
+                  <input
+                    type="text"
+                    id="setup-resolution"
+                    class="field-input"
+                    placeholder="e.g., 640x480"
+                    data-field="resolution"
+                  />
+                  <span class="field-hint"
+                    >Format: WIDTHxHEIGHT (e.g., 640x480, 1280x720, 1920x1080)</span
+                  >
                 </div>
 
                 <div class="setup-field ui-form-control">
                   <label for="setup-fps" class="field-label">Frame Rate (FPS)</label>
-                  <input type="number" id="setup-fps" class="field-input" placeholder="e.g., 12" min="0" max="120" data-field="fps" />
+                  <input
+                    type="number"
+                    id="setup-fps"
+                    class="field-input"
+                    placeholder="e.g., 12"
+                    min="0"
+                    max="120"
+                    data-field="fps"
+                  />
                   <span class="field-hint">0 = auto-detect, range: 0-120 FPS</span>
                 </div>
 
                 <div class="setup-field ui-form-control">
                   <label for="setup-jpeg-quality" class="field-label">JPEG Quality</label>
-                  <input type="number" id="setup-jpeg-quality" class="field-input" placeholder="e.g., 90" min="1" max="100" data-field="jpeg_quality" />
-                  <span class="field-hint">Range: 1-100 (higher = better quality, larger file size)</span>
+                  <input
+                    type="number"
+                    id="setup-jpeg-quality"
+                    class="field-input"
+                    placeholder="e.g., 90"
+                    min="1"
+                    max="100"
+                    data-field="jpeg_quality"
+                  />
+                  <span class="field-hint"
+                    >Range: 1-100 (higher = better quality, larger file size)</span
+                  >
                 </div>
 
                 <div class="setup-field ui-form-control">
-                  <label for="setup-max-connections" class="field-label">Max Stream Connections</label>
-                  <input type="number" id="setup-max-connections" class="field-input" placeholder="e.g., 10" min="1" max="100" data-field="max_connections" />
+                  <label for="setup-max-connections" class="field-label"
+                    >Max Stream Connections</label
+                  >
+                  <input
+                    type="number"
+                    id="setup-max-connections"
+                    class="field-input"
+                    placeholder="e.g., 10"
+                    min="1"
+                    max="100"
+                    data-field="max_connections"
+                  />
                   <span class="field-hint">Maximum simultaneous stream viewers</span>
                 </div>
               </div>
@@ -334,12 +397,25 @@
               <div class="settings-group">
                 <div class="setup-field ui-form-control">
                   <label for="setup-target-fps" class="field-label">Target FPS (Throttle)</label>
-                  <input type="number" id="setup-target-fps" class="field-input" placeholder="Leave empty to disable" min="1" max="120" data-field="target_fps" />
-                  <span class="field-hint">Optional: Limit captured FPS below camera max. Leave empty to disable throttling</span>
+                  <input
+                    type="number"
+                    id="setup-target-fps"
+                    class="field-input"
+                    placeholder="Leave empty to disable"
+                    min="1"
+                    max="120"
+                    data-field="target_fps"
+                  />
+                  <span class="field-hint"
+                    >Optional: Limit captured FPS below camera max. Leave empty to disable
+                    throttling</span
+                  >
                 </div>
 
                 <div class="setup-field ui-form-control">
-                  <label for="setup-pi3-profile" class="field-label">Enable Pi3 Optimization Profile</label>
+                  <label for="setup-pi3-profile" class="field-label"
+                    >Enable Pi3 Optimization Profile</label
+                  >
                   <select id="setup-pi3-profile" class="field-input" data-field="pi3_profile">
                     <option value="false">No (default)</option>
                     <option value="true">Yes (applies Pi3 presets)</option>
@@ -349,8 +425,16 @@
 
                 <div class="setup-field ui-form-control">
                   <label for="setup-cors-origins" class="field-label">CORS Origins</label>
-                  <input type="text" id="setup-cors-origins" class="field-input" placeholder="e.g., http://localhost:3000" data-field="cors_origins" />
-                  <span class="field-hint">Comma-separated list of allowed CORS origins (leave empty for no CORS)</span>
+                  <input
+                    type="text"
+                    id="setup-cors-origins"
+                    class="field-input"
+                    placeholder="e.g., http://localhost:3000"
+                    data-field="cors_origins"
+                  />
+                  <span class="field-hint"
+                    >Comma-separated list of allowed CORS origins (leave empty for no CORS)</span
+                  >
                 </div>
 
                 <div class="setup-field ui-form-control">
@@ -359,13 +443,24 @@
                     <option value="false">No (use real camera)</option>
                     <option value="true">Yes (for testing)</option>
                   </select>
-                  <span class="field-hint">Generate test stream pattern instead of camera feed</span>
+                  <span class="field-hint"
+                    >Generate test stream pattern instead of camera feed</span
+                  >
                 </div>
 
                 <div class="setup-field ui-form-control">
                   <label for="setup-auth-token" class="field-label">Management Auth Token</label>
-                  <input type="password" id="setup-auth-token" class="field-input" placeholder="Leave empty for no authentication" data-field="auth_token" />
-                  <span class="field-hint">Bearer token for protecting management API endpoints. Leave empty to disable auth.</span>
+                  <input
+                    type="password"
+                    id="setup-auth-token"
+                    class="field-input"
+                    placeholder="Leave empty for no authentication"
+                    data-field="auth_token"
+                  />
+                  <span class="field-hint"
+                    >Bearer token for protecting management API endpoints. Leave empty to disable
+                    auth.</span
+                  >
                 </div>
               </div>
             </div>
@@ -387,30 +482,50 @@
               <h3 class="setup-section-title">📄 Generated Configuration</h3>
             </div>
             <div class="setup-section-content">
-              <button id="generate-btn" class="generate-btn ui-btn ui-btn--primary">Generate Files</button>
+              <button id="generate-btn" class="generate-btn ui-btn ui-btn--primary">
+                Generate Files
+              </button>
 
               <!-- docker-compose.yaml Output -->
               <div class="output-group">
                 <div class="output-header">
                   <span class="output-filename">docker-compose.yaml</span>
-                  <button class="output-copy-btn" data-target="docker-compose-output" title="Copy to clipboard">
+                  <button
+                    class="output-copy-btn"
+                    data-target="docker-compose-output"
+                    title="Copy to clipboard"
+                  >
                     <span class="copy-icon">📋</span>
                     Copy
                   </button>
                 </div>
-                <textarea id="docker-compose-output" class="output-textarea" readonly placeholder="docker-compose.yaml will appear here after generation"></textarea>
+                <textarea
+                  id="docker-compose-output"
+                  class="output-textarea"
+                  readonly
+                  placeholder="docker-compose.yaml will appear here after generation"
+                ></textarea>
               </div>
 
               <!-- .env Output -->
               <div class="output-group">
                 <div class="output-header">
                   <span class="output-filename">.env</span>
-                  <button class="output-copy-btn" data-target="env-output" title="Copy to clipboard">
+                  <button
+                    class="output-copy-btn"
+                    data-target="env-output"
+                    title="Copy to clipboard"
+                  >
                     <span class="copy-icon">📋</span>
                     Copy
                   </button>
                 </div>
-                <textarea id="env-output" class="output-textarea" readonly placeholder=".env will appear here after generation"></textarea>
+                <textarea
+                  id="env-output"
+                  class="output-textarea"
+                  readonly
+                  placeholder=".env will appear here after generation"
+                ></textarea>
               </div>
 
               <!-- Instructions -->
@@ -418,8 +533,14 @@
                 <div class="instructions-header">📝 Next Steps:</div>
                 <ol class="instructions-list">
                   <li>Click the <strong>Copy</strong> button next to each output box</li>
-                  <li>Paste the content into your actual <code>docker-compose.yaml</code> and <code>.env</code> files on your system</li>
-                  <li>Restart the Motion In Ocean service: <code>docker compose restart motion-in-ocean</code></li>
+                  <li>
+                    Paste the content into your actual <code>docker-compose.yaml</code> and
+                    <code>.env</code> files on your system
+                  </li>
+                  <li>
+                    Restart the Motion In Ocean service:
+                    <code>docker compose restart motion-in-ocean</code>
+                  </li>
                   <li>Refresh this page to see the new configuration take effect</li>
                 </ol>
               </div>
@@ -430,14 +551,20 @@
           <div id="setup-error-alert" class="setup-alert error hidden">
             <span class="alert-icon">⚠️</span>
             <span id="setup-error-message" class="alert-message">Setup error</span>
-            <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">×</button>
+            <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">
+              ×
+            </button>
           </div>
 
           <!-- Success Alert -->
           <div id="setup-success-alert" class="setup-alert success hidden">
             <span class="alert-icon">✅</span>
-            <span id="setup-success-message" class="alert-message">Configuration generated successfully!</span>
-            <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">×</button>
+            <span id="setup-success-message" class="alert-message"
+              >Configuration generated successfully!</span
+            >
+            <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">
+              ×
+            </button>
           </div>
         </div>
       </div>

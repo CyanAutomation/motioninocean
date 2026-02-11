@@ -143,7 +143,7 @@ Use Docker's `--network host` to simulate multi-host on single machine.
 ### Setup
 
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   webcam:
     image: motioninocean:latest
@@ -322,13 +322,13 @@ Use existing test suite in `tests/test_management_api.py`:
 # Already tests API behavior without network blocking
 def test_node_crud_and_overview(monkeypatch, tmp_path):
     client = _new_management_client(monkeypatch, tmp_path)
-    
+
     payload = {
         "id": "local-node",
         "base_url": "http://127.0.0.1:65534",  # Intentionally unreachable
         ...
     }
-    
+
     # Tests expect 503 NODE_UNREACHABLE - correct!
     status = client.get("/api/nodes/node-1/status")
     assert status.status_code == 503
@@ -336,6 +336,7 @@ def test_node_crud_and_overview(monkeypatch, tmp_path):
 ```
 
 **Run with:**
+
 ```bash
 pytest tests/test_management_api.py -v
 ```
@@ -345,6 +346,7 @@ pytest tests/test_management_api.py -v
 Deploy on multiple Raspberry Pis on home network.
 
 **Deployment checklist:**
+
 - [ ] Pi 1: Management node at 192.168.1.100:8001
 - [ ] Pi 2: Webcam node at 192.168.1.101:8000
 - [ ] Pi 3: Webcam node at 192.168.1.102:8000
@@ -371,13 +373,13 @@ curl http://localhost:8001/api/nodes   # Management
 
 ## Comparison Table
 
-| Scenario | Effort | Cost | Accuracy | SSRF Works | Recommended |
-|----------|--------|------|----------|-----------|-------------|
-| Multi-Host (Real Pis) | High | High | 100% | Yes | ✅ YES |
-| Host Network Mode | Medium | None | 75% | No | ⚠️ Maybe |
-| External DNS Mock | Medium | None | 60% | Yes | ⚠️ Maybe |
-| Code Modification | Low | None | 0% | No | ❌ NO |
-| Unit Tests | Low | None | 80% | N/A | ✅ YES |
+| Scenario              | Effort | Cost | Accuracy | SSRF Works | Recommended |
+| --------------------- | ------ | ---- | -------- | ---------- | ----------- |
+| Multi-Host (Real Pis) | High   | High | 100%     | Yes        | ✅ YES      |
+| Host Network Mode     | Medium | None | 75%      | No         | ⚠️ Maybe    |
+| External DNS Mock     | Medium | None | 60%      | Yes        | ⚠️ Maybe    |
+| Code Modification     | Low    | None | 0%       | No         | ❌ NO       |
+| Unit Tests            | Low    | None | 80%      | N/A        | ✅ YES      |
 
 ---
 
@@ -386,6 +388,7 @@ curl http://localhost:8001/api/nodes   # Management
 ### Best Practice for Full Testing
 
 1. **Immediate:** Run existing unit tests (75% coverage)
+
    ```bash
    pytest tests/test_management_api.py -v
    python3 tests/test_parallel_containers.py
@@ -403,6 +406,7 @@ curl http://localhost:8001/api/nodes   # Management
 ### Current Docker-Based Testing Limitations
 
 The Docker Compose testing reveals a design choice, not a bug:
+
 - Webcam containers: ✅ Fully testable
 - Management container: ✅ Fully testable
 - Inter-container comms: ⚠️ Requires multi-host setup

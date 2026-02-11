@@ -29,7 +29,7 @@ services:
     environment:
       TZ: ${TZ:-Europe/London}
       APP_MODE: management
-      
+
       # Management mode ignores camera configuration
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
 

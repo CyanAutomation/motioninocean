@@ -12,7 +12,7 @@ export default [
   },
   pluginJs.configs.recommended,
   {
-    ignores: ["node_modules/", "htmlcov/", "__pycache__/"],
+    ignores: ["node_modules/", "htmlcov/", "__pycache__/", ".venv/", "test_env/", "coverage/"],
   },
   {
     rules: {

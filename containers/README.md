@@ -135,6 +135,7 @@ docker compose \
 For a distributed setup:
 
 1. **Management Hub** (on a stable host):
+
    ```bash
    cd containers/motioniocean-management
    docker compose up -d
@@ -153,6 +154,7 @@ Set `MANAGEMENT_AUTH_TOKEN` in both `.env` files to the same value for secure co
 ### Ports Already in Use
 
 Modify `.env`:
+
 ```bash
 MOTION_IN_OCEAN_PORT=8080  # Use 8080 instead of 8000
 ```
@@ -160,11 +162,13 @@ MOTION_IN_OCEAN_PORT=8080  # Use 8080 instead of 8000
 ### Camera Not Working
 
 1. Run device detection (if using webcam mode):
+
    ```bash
    ../../detect-devices.sh
    ```
 
 2. Check logs:
+
    ```bash
    docker compose logs -f motion-in-ocean
    ```
@@ -183,6 +187,7 @@ curl http://localhost:8000/health
 ## Deprecated: Root-Level Compose Files
 
 The repository previously included multiple custom-named compose files in the root directory:
+
 - `docker-compose.webcam.yaml`
 - `docker-compose.management.yaml`
 - `docker-compose.hardened.yaml`

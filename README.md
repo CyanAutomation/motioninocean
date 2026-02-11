@@ -11,7 +11,9 @@
 [![Status](https://img.shields.io/badge/status-alpha-orange)](#project-status)
 
 motion-in-ocean is a **Docker-first** project for running a **Raspberry Pi CSI camera** inside a container and streaming video across the network. It’s intended for **Raspberry Pi homelabs** and remote Docker hosts, where you want a reliable camera stream without installing a full stack directly on the host OS.
+
 > **🔄 Recent Change:** Configuration has been simplified. If you have an existing deployment, please see [MIGRATION.md](MIGRATION.md) for upgrade instructions.
+
 ---
 
 ## Product Requirements
@@ -116,16 +118,18 @@ MANAGEMENT_AUTH_TOKEN=                 # Leave empty for localhost
 See `.env.example` in the respective `containers/` directory for all available options.
 
 ---
+
 ## Deployment Modes Explained
 
-| Mode | Use Case | Requires Camera | Compose File |
-|------|----------|-----------------|--------------|
-| **Webcam** | Stream camera to network | Yes | `docker-compose.webcam.yaml` |
-| **Management** | Control plane for remote cameras | No | `docker-compose.management.yaml` |
-| **Hardened** | Production security posture | Yes | `docker-compose.webcam.yaml` + `docker-compose.hardened.yaml` |
-| **With Docker Proxy** | Fine-grained socket access | Optional | Add `docker-compose.docker-proxy.yaml` |
+| Mode                  | Use Case                         | Requires Camera | Compose File                                                  |
+| --------------------- | -------------------------------- | --------------- | ------------------------------------------------------------- |
+| **Webcam**            | Stream camera to network         | Yes             | `docker-compose.webcam.yaml`                                  |
+| **Management**        | Control plane for remote cameras | No              | `docker-compose.management.yaml`                              |
+| **Hardened**          | Production security posture      | Yes             | `docker-compose.webcam.yaml` + `docker-compose.hardened.yaml` |
+| **With Docker Proxy** | Fine-grained socket access       | Optional        | Add `docker-compose.docker-proxy.yaml`                        |
 
 ---
+
 ## What this project is (and isn’t)
 
 ### ✅ What it is
@@ -652,7 +656,6 @@ Run these checks in order:
    - `0.0.0.0:8000->8000/tcp` = reachable via host IP/LAN
 
 4. Map symptoms to likely causes and fixes.
-
    - **No container for the service in `docker compose ps`** → likely missing profile.
 
      ```bash

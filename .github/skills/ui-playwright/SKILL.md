@@ -65,26 +65,28 @@ Use this skill when:
 
 **Key Elements:**
 
-| Element | Selector | Purpose |
-|---------|----------|---------|
-| Header | `.header` | Sticky, contains logo, tabs, connection status |
-| Video Container | `.video-container` | 4:3 aspect ratio, holds stream video feed |
-| Video Stream | `img#video-stream` | MJPEG stream image |
-| Loading Overlay | `.loading-overlay` | Spinner visible while stream loads |
-| Video Controls | `.video-controls` | Refresh, fullscreen, play buttons |
-| Status Indicator | `.status-indicator` | Pill showing "connected", "disconnected", "stale" |
-| Stats Panel | `#stats-panel` | Collapsible; FPS, uptime, frames, system info |
-| Tab Navigation | `.tab-navigation` (buttons with `data-tab`) | Switch between stream and config |
-| Config Panel | `#config-panel` | Shows system configuration details |
-| Last Updated | `.last-updated` | Relative timestamp display |
+| Element          | Selector                                    | Purpose                                           |
+| ---------------- | ------------------------------------------- | ------------------------------------------------- |
+| Header           | `.header`                                   | Sticky, contains logo, tabs, connection status    |
+| Video Container  | `.video-container`                          | 4:3 aspect ratio, holds stream video feed         |
+| Video Stream     | `img#video-stream`                          | MJPEG stream image                                |
+| Loading Overlay  | `.loading-overlay`                          | Spinner visible while stream loads                |
+| Video Controls   | `.video-controls`                           | Refresh, fullscreen, play buttons                 |
+| Status Indicator | `.status-indicator`                         | Pill showing "connected", "disconnected", "stale" |
+| Stats Panel      | `#stats-panel`                              | Collapsible; FPS, uptime, frames, system info     |
+| Tab Navigation   | `.tab-navigation` (buttons with `data-tab`) | Switch between stream and config                  |
+| Config Panel     | `#config-panel`                             | Shows system configuration details                |
+| Last Updated     | `.last-updated`                             | Relative timestamp display                        |
 
 **States:**
+
 - `.connection-status` classes: `"connecting"` (amber), `"connected"` (green), `"stale"` (amber), `"disconnected"` (red)
 - `.loading-overlay` disappears when stream loads
 - Controls hidden on desktop (hover-revealed), always visible on mobile
 - Stats panel collapsible on mobile/tablet via `.stats-header` button
 
 **Responsive Behavior:**
+
 - Desktop (>1024px): Side-by-side layout (video left, stats right)
 - Tablet (768-1024px): Single column, stats toggleable
 - Mobile (<480px): Full width, stats collapsed by default, control text hidden (icon-only)
@@ -93,21 +95,22 @@ Use this skill when:
 
 **Key Elements:**
 
-| Element | Selector | Purpose |
-|---------|----------|---------|
-| Header | `.header` | Title, description |
-| Node Form | `#node-form` | Add/edit node; fields: ID, name, URL, auth, etc. |
-| Form Feedback | `#form-feedback` | Success/error messages |
-| Node Table | `#nodes-table-body` | List of registered nodes with status pills |
-| Node Status Pills | `.status-{ready\|error\|unknown}` | Color-coded node health (green, red, gray) |
-| Edit Button | `button[data-action="edit"]` | Populate form for editing |
-| Delete Button | `button[data-action="delete"]` | Remove node with confirmation |
-| Form Inputs | `input#node-id`, `input#node-name`, `input#base-url`, `select#transport`, `select#auth-type`, `input#bearer-token`, `textarea#labels` | Form fields |
-| Save Button | `button[type="submit"]` | Submit form (POST for new, PUT for edit) |
-| Cancel Button | `.node-form-cancel` (shown during edit) | Reset form to "Add node" mode |
-| Empty State | `.empty-state-message` | "No nodes registered" message |
+| Element           | Selector                                                                                                                              | Purpose                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Header            | `.header`                                                                                                                             | Title, description                               |
+| Node Form         | `#node-form`                                                                                                                          | Add/edit node; fields: ID, name, URL, auth, etc. |
+| Form Feedback     | `#form-feedback`                                                                                                                      | Success/error messages                           |
+| Node Table        | `#nodes-table-body`                                                                                                                   | List of registered nodes with status pills       |
+| Node Status Pills | `.status-{ready\|error\|unknown}`                                                                                                     | Color-coded node health (green, red, gray)       |
+| Edit Button       | `button[data-action="edit"]`                                                                                                          | Populate form for editing                        |
+| Delete Button     | `button[data-action="delete"]`                                                                                                        | Remove node with confirmation                    |
+| Form Inputs       | `input#node-id`, `input#node-name`, `input#base-url`, `select#transport`, `select#auth-type`, `input#bearer-token`, `textarea#labels` | Form fields                                      |
+| Save Button       | `button[type="submit"]`                                                                                                               | Submit form (POST for new, PUT for edit)         |
+| Cancel Button     | `.node-form-cancel` (shown during edit)                                                                                               | Reset form to "Add node" mode                    |
+| Empty State       | `.empty-state-message`                                                                                                                | "No nodes registered" message                    |
 
 **States:**
+
 - Form shows "Add node" title when creating, "Edit node {id}" when editing
 - "Save node" and "Cancel edit" buttons appear only during edit
 - Status pills update every 5 seconds (`.status-ready` green, `.status-error` red, `.status-unknown` gray)
@@ -115,6 +118,7 @@ Use this skill when:
 - Row actions: edit, delete buttons on each row
 
 **Responsive Behavior:**
+
 - Desktop (>1024px): Two-column layout (form left ~320px fixed, table right)
 - Tablet (768-1024px): Form above table, stacked vertically
 - Mobile (<480px): Form full width, table scrollable, button labels hidden on very small screens
@@ -126,15 +130,19 @@ Use this skill when:
 ### Phase 1: Setup & Navigation
 
 1. **Start mock server** (if local):
+
    ```bash
    MOCK_CAMERA=true FLASK_ENV=development python3 pi_camera_in_docker/main.py
    ```
+
    Or use Docker:
+
    ```bash
    docker compose --profile webcam -e MOCK_CAMERA=true up
    ```
 
 2. **Initialize Playwright browser:**
+
    ```javascript
    const browser = await chromium.launch();
    const context = await browser.newContext();
@@ -142,13 +150,14 @@ Use this skill when:
    ```
 
 3. **Navigate to webcam mode:**
+
    ```javascript
-   await page.goto('http://localhost:8000', { waitUntil: 'networkidle' });
+   await page.goto("http://localhost:8000", { waitUntil: "networkidle" });
    ```
 
 4. **Capture initial state** (screenshot at default viewport 1280×720):
    ```javascript
-   await page.screenshot({ path: 'webcam-initial-desktop.png' });
+   await page.screenshot({ path: "webcam-initial-desktop.png" });
    ```
 
 ### Phase 2: Webcam Mode Audit
@@ -223,6 +232,7 @@ Use this skill when:
 For each viewport, take screenshots and verify:
 
 **Tablet (768×1024):**
+
 - [ ] Stats panel width adjusts (no longer right sidebar)
 - [ ] Stats collapse toggle button visible
 - [ ] Video still 4:3 aspect ratio
@@ -233,6 +243,7 @@ For each viewport, take screenshots and verify:
 - Capture: `await page.setViewportSize({ width: 768, height: 1024 }); await page.screenshot({ path: 'webcam-tablet.png' });`
 
 **Mobile (375×667):**
+
 - [ ] Video full width
 - [ ] Stats panel collapsed by default
 - [ ] Tab labels hidden (icon-only) or small
@@ -343,12 +354,12 @@ For each viewport, take screenshots and verify:
    - [ ] Form shows "Add node" title
    - [ ] Fill form fields:
      ```javascript
-     await page.fill('input#node-id', 'cam-office');
-     await page.fill('input#node-name', 'Office Camera');
-     await page.fill('input#base-url', 'http://192.168.1.101:8000');
-     await page.selectOption('select#transport', 'http');
-     await page.selectOption('select#auth-type', 'bearer');
-     await page.fill('input#bearer-token', 'secret-token-123');
+     await page.fill("input#node-id", "cam-office");
+     await page.fill("input#node-name", "Office Camera");
+     await page.fill("input#base-url", "http://192.168.1.101:8000");
+     await page.selectOption("select#transport", "http");
+     await page.selectOption("select#auth-type", "bearer");
+     await page.fill("input#bearer-token", "secret-token-123");
      ```
    - Click Save: `await page.click('button[type="submit"]');`
    - [ ] Form feedback shows success message (green)
@@ -388,6 +399,7 @@ For each viewport, take screenshots and verify:
 #### **Responsive Design: Management Mode**
 
 **Tablet (768×1024):**
+
 - [ ] Form full width
 - [ ] Table below form, columns adjusted
 - [ ] No horizontal scroll if columns fit
@@ -395,6 +407,7 @@ For each viewport, take screenshots and verify:
 - Capture: `await page.setViewportSize({ width: 768, height: 1024 }); await page.screenshot({ path: 'management-tablet.png' });`
 
 **Mobile (375×667):**
+
 - [ ] Form full width, fields stacked vertically
 - [ ] Table below, with horizontal scroll for columns
 - [ ] Touch targets 44×44px minimum
@@ -462,7 +475,7 @@ For each viewport, take screenshots and verify:
 async function capturePageState(page, filename) {
   // Screenshot
   await page.screenshot({ path: filename });
-  
+
   // DOM state
   const domState = await page.evaluate(() => {
     return {
@@ -470,22 +483,22 @@ async function capturePageState(page, filename) {
       url: window.location.href,
       viewportSize: { width: window.innerWidth, height: window.innerHeight },
       visibleElements: {
-        header: document.querySelector('.header')?.offsetHeight,
-        video: document.querySelector('.video-container')?.offsetHeight,
-        stats: document.querySelector('#stats-panel')?.offsetHeight,
-        form: document.querySelector('#node-form')?.offsetHeight,
-        table: document.querySelector('#nodes-table-body')?.offsetHeight,
+        header: document.querySelector(".header")?.offsetHeight,
+        video: document.querySelector(".video-container")?.offsetHeight,
+        stats: document.querySelector("#stats-panel")?.offsetHeight,
+        form: document.querySelector("#node-form")?.offsetHeight,
+        table: document.querySelector("#nodes-table-body")?.offsetHeight,
       },
       hasErrors: document.querySelectorAll('.error, [role="alert"]').length > 0,
     };
   });
-  
+
   console.log(`State (${filename}):`, domState);
   return domState;
 }
 
 // Usage:
-await capturePageState(page, 'webcam-state.png');
+await capturePageState(page, "webcam-state.png");
 ```
 
 ### Responsive Test Loop
@@ -493,9 +506,9 @@ await capturePageState(page, 'webcam-state.png');
 ```javascript
 async function testResponsive(page, baseUrl, filename) {
   const viewports = [
-    { name: 'desktop', width: 1280, height: 720 },
-    { name: 'tablet', width: 768, height: 1024 },
-    { name: 'mobile', width: 375, height: 667 },
+    { name: "desktop", width: 1280, height: 720 },
+    { name: "tablet", width: 768, height: 1024 },
+    { name: "mobile", width: 375, height: 667 },
   ];
 
   for (const vp of viewports) {
@@ -506,7 +519,7 @@ async function testResponsive(page, baseUrl, filename) {
 }
 
 // Usage:
-await testResponsive(page, 'http://localhost:8000', 'webcam');
+await testResponsive(page, "http://localhost:8000", "webcam");
 ```
 
 ### Interaction Trace
@@ -515,7 +528,7 @@ await testResponsive(page, 'http://localhost:8000', 'webcam');
 async function traceInteraction(page, actionName, interactionFn) {
   console.log(`[START] ${actionName}`);
   const startTime = Date.now();
-  
+
   try {
     await interactionFn();
     const elapsed = Date.now() - startTime;
@@ -528,10 +541,10 @@ async function traceInteraction(page, actionName, interactionFn) {
 }
 
 // Usage:
-await traceInteraction(page, 'Add Node', async () => {
-  await page.fill('input#node-id', 'test-cam');
+await traceInteraction(page, "Add Node", async () => {
+  await page.fill("input#node-id", "test-cam");
   await page.click('button[type="submit"]');
-  await page.waitForSelector('.success-message');
+  await page.waitForSelector(".success-message");
 });
 ```
 
@@ -564,6 +577,7 @@ await traceInteraction(page, 'Add Node', async () => {
 ### Category: Layout & Visual Design
 
 #### Finding 1: [Title]
+
 - **Severity:** [Critical / Major / Minor]
 - **Mode:** Webcam / Management / Both
 - **Location:** [Selector or description]
@@ -574,6 +588,7 @@ await traceInteraction(page, 'Add Node', async () => {
 ### Category: Responsive Design
 
 #### Finding 2: [Title]
+
 - **Severity:** [Critical / Major / Minor]
 - **Viewport:** 375×667 (mobile)
 - **Description:** [Layout issue at mobile size]
@@ -582,6 +597,7 @@ await traceInteraction(page, 'Add Node', async () => {
 ### Category: Accessibility
 
 #### Finding 3: [Title]
+
 - **Severity:** [Critical / Major / Minor]
 - **Issue:** [WCAG violation]
 - **Affected Users:** [Screen reader users, keyboard-only, etc.]
@@ -590,6 +606,7 @@ await traceInteraction(page, 'Add Node', async () => {
 ### Category: UX Flows
 
 #### Finding 4: [Title]
+
 - **Flow:** Stream Viewing / Node Management
 - **Issue:** [User friction, unclear feedback, etc.]
 - **Evidence:** [Screenshots or interaction trace]
@@ -597,6 +614,7 @@ await traceInteraction(page, 'Add Node', async () => {
 ### Category: Error Handling
 
 #### Finding 5: [Title]
+
 - **Scenario:** [Error condition, e.g., network timeout]
 - **Current Behavior:** [What happens]
 - **Expected Behavior:** [What should happen]
@@ -637,6 +655,7 @@ await traceInteraction(page, 'Add Node', async () => {
 ### Local Audit (Manual)
 
 1. **Start server:**
+
    ```bash
    MOCK_CAMERA=true python3 pi_camera_in_docker/main.py
    # or
@@ -644,31 +663,34 @@ await traceInteraction(page, 'Add Node', async () => {
    ```
 
 2. **Run Playwright inspector:**
+
    ```bash
    npx playwright install  # if needed
    npx playwright codegen http://localhost:8000  # interactive record
    ```
 
 3. **Execute audit script:**
+
    ```javascript
    // audit.js (template in this skill)
-   const { chromium } = require('@playwright/test');
+   const { chromium } = require("@playwright/test");
 
    (async () => {
      const browser = await chromium.launch();
      const page = await browser.newPage();
-     
+
      // Webcam mode
-     await page.goto('http://localhost:8000');
+     await page.goto("http://localhost:8000");
      // ... audit steps ...
-     
+
      // Management mode (requires server running in management mode)
-     await page.goto('http://localhost:8001/');
+     await page.goto("http://localhost:8001/");
      // ... audit steps ...
-     
+
      await browser.close();
    })();
    ```
+
    Run: `node audit.js`
 
 4. **Capture artifacts:**
@@ -692,7 +714,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
       - run: npm install
       - run: docker compose --profile webcam -e MOCK_CAMERA=true up -d
       - run: npx playwright install

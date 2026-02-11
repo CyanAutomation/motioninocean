@@ -138,24 +138,25 @@ Please keep changes:
 
 - Production/operator logs should avoid emoji markers.
 - Prefer stable ASCII severity prefixes such as `[INFO]`, `[WARN]`, and `[ERROR]` for machine-readable output.
+
 ### Diagramming guidelines
 
 When documenting architecture, workflows, or state transitions (especially in PRDs and deployment docs), use Mermaid diagrams embedded in markdown for clarity. Diagrams render natively in GitHub and greatly help both developers and operators understand complex interactions.
 
 **Guidelines:**
 
-* Refer to [`.github/skills/mermaid-creator/SKILL.md`](.github/skills/mermaid-creator/SKILL.md) for detailed instructions and examples specific to motion-in-ocean.
-* Keep diagrams close to the text they clarify (same section).
-* Use accurate terminology from PRDs (e.g., `/ready`, `MAX_FRAME_AGE_SECONDS`, `recording_started`, `Bearer Token Auth`).
-* Validate Mermaid syntax at [mermaid.live](https://mermaid.live) before committing.
-* Include a 2–4 line rationale below each diagram explaining the diagram type and key insight.
+- Refer to [`.github/skills/mermaid-creator/SKILL.md`](.github/skills/mermaid-creator/SKILL.md) for detailed instructions and examples specific to motion-in-ocean.
+- Keep diagrams close to the text they clarify (same section).
+- Use accurate terminology from PRDs (e.g., `/ready`, `MAX_FRAME_AGE_SECONDS`, `recording_started`, `Bearer Token Auth`).
+- Validate Mermaid syntax at [mermaid.live](https://mermaid.live) before committing.
+- Include a 2–4 line rationale below each diagram explaining the diagram type and key insight.
 
 Common diagram types in this project:
 
-* **State machines** (`stateDiagram-v2`) — Health/readiness transitions, camera lifecycle.
-* **Architecture flowcharts** (`graph TD`) — Multi-host deployment, system components.
-* **Sequence diagrams** (`sequenceDiagram`) — API workflows, node registry CRUD.
-* **Data flow diagrams** (`graph LR`) — Frame capture pipeline, stream to endpoints.
+- **State machines** (`stateDiagram-v2`) — Health/readiness transitions, camera lifecycle.
+- **Architecture flowcharts** (`graph TD`) — Multi-host deployment, system components.
+- **Sequence diagrams** (`sequenceDiagram`) — API workflows, node registry CRUD.
+- **Data flow diagrams** (`graph LR`) — Frame capture pipeline, stream to endpoints.
 
 ### UI auditing guidelines
 
@@ -163,20 +164,20 @@ When changes touch the web UI (HTML, CSS, JavaScript, form interactions, respons
 
 **Guidelines:**
 
-* Refer to [`.github/skills/ui-playwright/SKILL.md`](.github/skills/ui-playwright/SKILL.md) for comprehensive UI auditing methodology using Playwright.
-* Test both **webcam mode** (streaming viewer) and **management mode** (node registry) if applicable.
-* Validate responsive design at three breakpoints: desktop (>1024px), tablet (768-1024px), mobile (<480px).
-* Check accessibility: keyboard navigation, ARIA labels, color contrast, focus states.
-* Explore error scenarios: network failures, validation errors, stale streams, edge cases.
-* Capture evidence: screenshots at each viewport and state for findings.
-* Generate structured audit report (markdown with findings, severity, recommendations).
+- Refer to [`.github/skills/ui-playwright/SKILL.md`](.github/skills/ui-playwright/SKILL.md) for comprehensive UI auditing methodology using Playwright.
+- Test both **webcam mode** (streaming viewer) and **management mode** (node registry) if applicable.
+- Validate responsive design at three breakpoints: desktop (>1024px), tablet (768-1024px), mobile (<480px).
+- Check accessibility: keyboard navigation, ARIA labels, color contrast, focus states.
+- Explore error scenarios: network failures, validation errors, stale streams, edge cases.
+- Capture evidence: screenshots at each viewport and state for findings.
+- Generate structured audit report (markdown with findings, severity, recommendations).
 
 Common audit scenarios:
 
-* **Before PR merge:** Validate UI changes don't break responsive layout, accessibility, or workflows.
-* **Component updates:** Check button sizing, form labels, color/contrast, error messaging.
-* **Responsive changes:** Test at mobile, tablet, desktop breakpoints.
-* **Feature additions:** Validate new form fields, controls, status indicators, interactions.
+- **Before PR merge:** Validate UI changes don't break responsive layout, accessibility, or workflows.
+- **Component updates:** Check button sizing, form labels, color/contrast, error messaging.
+- **Responsive changes:** Test at mobile, tablet, desktop breakpoints.
+- **Feature additions:** Validate new form fields, controls, status indicators, interactions.
 
 **Execution:**
 

@@ -162,14 +162,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix: Update management API authentication guard to streamline path checks; refactor frame buffer logic for clarity; adjust linter ignores in pyproject.toml
 - Fix: Refactor error handling and improve timestamp usage in management API tests; clean up webcam and node registry code
 - Fix: Update error messages for clarity and consistency; refactor datetime usage for timezone awareness
-- Fix: Improve error messages in _request_json function for connection and JSON decoding errors
+- Fix: Improve error messages in \_request_json function for connection and JSON decoding errors
 - Fix: Improve error handling by assigning messages to NodeRequestError in address validation and request functions
 - Fix: Enhance error messages for resolution and APP_MODE validation; update management API error handling
 - Refactor: Improve error messages in FeatureFlags class; add json import in management_api.py; clean up node_registry.py; add blank line in migrate_node_registry_auth.py; create docker-compose.mock.yaml for mock camera mode
 
 ## [1.12.8] - 2026-02-08
 
-- Fix: Correctly return response code and body JSON in _request_json function
+- Fix: Correctly return response code and body JSON in \_request_json function
 - Fix: Update OctoPrint compatibility setting and enable mock camera mode for testing
 - Add UI auditing skill and audit template for motion-in-ocean web interface
 - Enhance Makefile with new installation and validation targets; update PRD-backend.md for accuracy

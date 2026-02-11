@@ -8,14 +8,14 @@
 
 ## Test Environment
 
-| Component | Configuration |
-|-----------|----------------|
-| **Host OS** | Ubuntu 24.04.3 LTS (Dev Container) |
-| **Host Architecture** | x86_64 |
-| **Docker Build** | Local build of motioninocean image |
-| **Webcam Container** | `motion-in-ocean-webcam` (PORT: 8000) with mock camera |
-| **Management Container** | `motion-in-ocean-management` (PORT: 8001) |
-| **Network** | Docker Compose default bridge network |
+| Component                | Configuration                                          |
+| ------------------------ | ------------------------------------------------------ |
+| **Host OS**              | Ubuntu 24.04.3 LTS (Dev Container)                     |
+| **Host Architecture**    | x86_64                                                 |
+| **Docker Build**         | Local build of motioninocean image                     |
+| **Webcam Container**     | `motion-in-ocean-webcam` (PORT: 8000) with mock camera |
+| **Management Container** | `motion-in-ocean-management` (PORT: 8001)              |
+| **Network**              | Docker Compose default bridge network                  |
 
 ---
 
@@ -24,64 +24,71 @@
 ### ✅ Part 1: Webcam Container Functionality
 
 #### Health Endpoint
+
 ```bash
 curl http://localhost:8000/health
 ```
 
 **Response (200 OK):**
+
 ```json
 {
-    "app_mode": "webcam",
-    "status": "healthy",
-    "timestamp": "2026-02-11T21:50:02.417627"
+  "app_mode": "webcam",
+  "status": "healthy",
+  "timestamp": "2026-02-11T21:50:02.417627"
 }
 ```
 
 **Status:** PASS ✅
 
 #### Ready Endpoint
+
 ```bash
 curl http://localhost:8000/ready
 ```
 
 **Response (200 OK):**
+
 ```json
 {
-    "app_mode": "webcam",
-    "current_fps": 9.99,
-    "frames_captured": 160,
-    "last_frame_age_seconds": 0.05,
-    "resolution": [640, 480],
-    "status": "ready"
+  "app_mode": "webcam",
+  "current_fps": 9.99,
+  "frames_captured": 160,
+  "last_frame_age_seconds": 0.05,
+  "resolution": [640, 480],
+  "status": "ready"
 }
 ```
 
 **Status:** PASS ✅
 
 #### Metrics Endpoint
+
 ```bash
 curl http://localhost:8000/metrics
 ```
 
 **Response (200 OK):**
+
 ```json
 {
-    "app_mode": "webcam",
-    "camera_active": true,
-    "camera_mode_enabled": true,
-    "current_fps": 9.99,
-    "frames_captured": 160,
-    "last_frame_age_seconds": 0.09,
-    "max_frame_age_seconds": 10.0,
-    "resolution": [640, 480],
-    "timestamp": "2026-02-11T21:50:08.769348",
-    "uptime_seconds": 16.14
+  "app_mode": "webcam",
+  "camera_active": true,
+  "camera_mode_enabled": true,
+  "current_fps": 9.99,
+  "frames_captured": 160,
+  "last_frame_age_seconds": 0.09,
+  "max_frame_age_seconds": 10.0,
+  "resolution": [640, 480],
+  "timestamp": "2026-02-11T21:50:08.769348",
+  "uptime_seconds": 16.14
 }
 ```
 
 **Status:** PASS ✅
 
 **Observations:**
+
 - Mock camera is successfully generating frames at ~10 FPS
 - All health/readiness/metrics endpoints are accessible
 - Container is fully operational in webcam mode
@@ -91,36 +98,41 @@ curl http://localhost:8000/metrics
 ### ✅ Part 2: Management Container Functionality
 
 #### Health Endpoint
+
 ```bash
 curl http://localhost:8001/health
 ```
 
 **Response (200 OK):**
+
 ```json
 {
-    "app_mode": "management",
-    "status": "healthy",
-    "timestamp": "2026-02-11T21:50:14.000439"
+  "app_mode": "management",
+  "status": "healthy",
+  "timestamp": "2026-02-11T21:50:14.000439"
 }
 ```
 
 **Status:** PASS ✅
 
 #### Node Registry (List Empty)
+
 ```bash
 curl http://localhost:8001/api/nodes
 ```
 
 **Response (200 OK):**
+
 ```json
 {
-    "nodes": []
+  "nodes": []
 }
 ```
 
 **Status:** PASS ✅
 
 #### Node Registration
+
 ```bash
 curl -X POST http://localhost:8001/api/nodes \
   -H "Content-Type: application/json" \
@@ -137,22 +149,24 @@ curl -X POST http://localhost:8001/api/nodes \
 ```
 
 **Response (201 Created):**
+
 ```json
 {
-    "id": "webcam-01",
-    "name": "Main Webcam",
-    "base_url": "http://motion-in-ocean-webcam:8000",
-    "transport": "http",
-    "auth": {"type": "none"},
-    "labels": {"location": "test-lab", "type": "mock-camera"},
-    "capabilities": ["streaming", "health_check"],
-    "last_seen": "2026-02-11T21:50:39Z"
+  "id": "webcam-01",
+  "name": "Main Webcam",
+  "base_url": "http://motion-in-ocean-webcam:8000",
+  "transport": "http",
+  "auth": { "type": "none" },
+  "labels": { "location": "test-lab", "type": "mock-camera" },
+  "capabilities": ["streaming", "health_check"],
+  "last_seen": "2026-02-11T21:50:39Z"
 }
 ```
 
 **Status:** PASS ✅
 
 **Observations:**
+
 - Management container successfully running
 - Node registration API functioning properly
 - Registry accepting valid node configurations
@@ -162,22 +176,24 @@ curl -X POST http://localhost:8001/api/nodes \
 ### ❌ Part 3: Cross-Container Communication (Challenge)
 
 #### Attempting to Query Webcam Node from Management
+
 ```bash
 curl http://localhost:8001/api/nodes/webcam-01/status
 ```
 
 **Response (503 Service Unavailable):**
+
 ```json
 {
-    "error": {
-        "code": "NODE_UNREACHABLE",
-        "details": {
-            "reason": "target is blocked"
-        },
-        "message": "node webcam-01 is unreachable",
-        "node_id": "webcam-01",
-        "timestamp": "2026-02-11T21:50:43.874627+00:00"
-    }
+  "error": {
+    "code": "NODE_UNREACHABLE",
+    "details": {
+      "reason": "target is blocked"
+    },
+    "message": "node webcam-01 is unreachable",
+    "node_id": "webcam-01",
+    "timestamp": "2026-02-11T21:50:43.874627+00:00"
+  }
 }
 ```
 
@@ -186,6 +202,7 @@ curl http://localhost:8001/api/nodes/webcam-01/status
 #### Network Analysis
 
 Container Network Details:
+
 - **Webcam Container IP:** 172.18.0.2
 - **Management Container IP:** 172.18.0.3 (inferred)
 - **Network:** `motioninocean_default` (Docker bridge network)
@@ -220,6 +237,7 @@ def _is_blocked_address(raw: str) -> bool:
 **Security Rationale:**
 
 This protection prevents:
+
 - Accessing metadata endpoints (169.254.169.254)
 - SSRF attacks against internal services
 - Accidental exposure of internal network topology
@@ -242,18 +260,18 @@ In this scenario, all IPs are publicly routable on the home LAN, so the SSRF pro
 
 ### What Works ✅
 
-| Component | Test | Result |
-|-----------|------|--------|
-| Webcam container startup | Health/ready/metrics endpoints | PASS |
-| Webcam mock camera | Frame generation at 10 FPS | PASS |
-| Management container startup | Health endpoint | PASS |
-| Management node registry | Create, list nodes | PASS |
-| Node database persistence | Registry file I/O | PASS (implied) |
+| Component                    | Test                           | Result         |
+| ---------------------------- | ------------------------------ | -------------- |
+| Webcam container startup     | Health/ready/metrics endpoints | PASS           |
+| Webcam mock camera           | Frame generation at 10 FPS     | PASS           |
+| Management container startup | Health endpoint                | PASS           |
+| Management node registry     | Create, list nodes             | PASS           |
+| Node database persistence    | Registry file I/O              | PASS (implied) |
 
 ### What Doesn't Work (Expected) ⚠️
 
-| Component | Test | Result | Reason |
-|-----------|------|--------|--------|
+| Component                     | Test                             | Result  | Reason                             |
+| ----------------------------- | -------------------------------- | ------- | ---------------------------------- |
 | Inter-container communication | Management → Webcam status query | BLOCKED | SSRF protection blocks private IPs |
 
 ### Root Cause
@@ -269,15 +287,18 @@ The SSRF protection in `management_api.py` is **functioning correctly** for secu
 Deploy containers on **separate physical hosts** on the same home network:
 
 **Pros:**
+
 - Matches intended architecture in DEPLOYMENT.md
 - SSRF protection still effective
 - Requires no code changes
 
 **Cons:**
+
 - Requires multiple Raspberry Pis or hosts
 - More complex to set up
 
 **Configuration:**
+
 ```
 Host A (192.168.1.100): Management container
 Host B (192.168.1.101): Webcam container
@@ -293,10 +314,12 @@ Management at 192.168.1.100:8000 can reach:
 Run containers with `--network host` on the dev machine:
 
 **Pros:**
+
 - Containers can reach each other via localhost
 - Single-machine testing
 
 **Cons:**
+
 - Not practical on Raspberry Pi (host network isolation is important)
 - Security implications
 - Port conflicts between containers
@@ -308,14 +331,17 @@ Run containers with `--network host` on the dev machine:
 Use Docker port mapping to simulate multi-host scenario:
 
 **Pros:**
+
 - Tests SSRF bypass mechanism
 - Relatively simple setup
 
 **Cons:**
+
 - Requires configuration changes
 - May not reflect real deployment
 
 **Implementation:**
+
 1. Publish webcam container on 127.0.0.1:9000 (in addition to 8000)
 2. Register node with http://127.0.0.1:9000 (public-facing, if were host network)
 3. Would still be blocked due to localhost/loopback check
@@ -325,9 +351,11 @@ Use Docker port mapping to simulate multi-host scenario:
 Add an escape hatch in management_api.py for testing:
 
 **Pros:**
+
 - Enables Docker-based testing
 
 **Cons:**
+
 - Modifies security behavior
 - Not recommended for production
 - Reduces confidence in SSRF protections

@@ -40,6 +40,7 @@ docker compose up -d
 ```
 
 **Ports:**
+
 - Webcam: Port 8000 (configurable via `.env`)
 - Management: Port 8001 (configurable via `.env`)
 
@@ -81,6 +82,7 @@ cd containers/motioniocean-webcam
 For a distributed setup with management hub + remote webcams:
 
 1. **On the management host:**
+
    ```bash
    cd ~/containers/motioniocean-management
    cat > .env << EOF
@@ -92,6 +94,7 @@ For a distributed setup with management hub + remote webcams:
    ```
 
 2. **On each webcam host:**
+
    ```bash
    cd ~/containers/motioniocean-webcam
    cat > .env << EOF
@@ -117,12 +120,12 @@ For a distributed setup with management hub + remote webcams:
 
 Motion in Ocean provides legacy compose files for different deployment patterns:
 
-| File | Mode | Use Case | Command |
-|------|------|----------|---------|
-| `docker-compose.webcam.yaml` | Webcam | Single camera streaming | `docker compose -f docker-compose.webcam.yaml up` |
-| `docker-compose.management.yaml` | Management | Multi-camera hub | `docker compose -f docker-compose.management.yaml up` |
-| `docker-compose.hardened.yaml` | Webcam (hardened) | Production with explicit devices | `docker compose -f docker-compose.webcam.yaml -f docker-compose.hardened.yaml up` |
-| `docker-compose.docker-proxy.yaml` | Optional overlay | Fine-grained Docker socket access | Add to any compose stack |
+| File                               | Mode              | Use Case                          | Command                                                                           |
+| ---------------------------------- | ----------------- | --------------------------------- | --------------------------------------------------------------------------------- |
+| `docker-compose.webcam.yaml`       | Webcam            | Single camera streaming           | `docker compose -f docker-compose.webcam.yaml up`                                 |
+| `docker-compose.management.yaml`   | Management        | Multi-camera hub                  | `docker compose -f docker-compose.management.yaml up`                             |
+| `docker-compose.hardened.yaml`     | Webcam (hardened) | Production with explicit devices  | `docker compose -f docker-compose.webcam.yaml -f docker-compose.hardened.yaml up` |
+| `docker-compose.docker-proxy.yaml` | Optional overlay  | Fine-grained Docker socket access | Add to any compose stack                                                          |
 
 ### Minimal .env
 
@@ -162,14 +165,12 @@ graph TD
     Management -->|CRUD /api/nodes| FileRegistry
     WebcamOne -.->|Stream /stream.mjpg| Browser
     WebcamTwo -.->|Stream /stream.mjpg| Browser
-    
+
     style Management fill:#4A90E2,stroke:#333,stroke-width:2px,color:#fff
     style WebcamOne fill:#7ED321,stroke:#333,stroke-width:2px,color:#fff
     style WebcamTwo fill:#7ED321,stroke:#333,stroke-width:2px,color:#fff
     style FileRegistry fill:#F5A623,stroke:#333,stroke-width:2px,color:#fff
 ```
-
-
 
 HTTP-based access is the recommended approach for most deployments:
 

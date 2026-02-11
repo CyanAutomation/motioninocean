@@ -69,7 +69,7 @@ test("clearConfigDisplay only resets dedicated config value nodes", () => {
     document: {
       querySelectorAll: (selector) => {
         selectorUsed = selector;
-        if (selector === "[data-config-value=\"true\"]") {
+        if (selector === '[data-config-value="true"]') {
           return [targetValueA, targetValueB];
         }
         return [];
@@ -79,7 +79,7 @@ test("clearConfigDisplay only resets dedicated config value nodes", () => {
 
   vm.runInNewContext(`${clearConfigDisplayFn}; clearConfigDisplay();`, context);
 
-  assert.equal(selectorUsed, "[data-config-value=\"true\"]");
+  assert.equal(selectorUsed, '[data-config-value="true"]');
 
   assert.equal(targetValueA.textContent, "--");
   assert.equal(targetValueA.className, "config-value");

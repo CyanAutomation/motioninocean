@@ -25,12 +25,12 @@ services:
     environment:
       # Deployment settings from .env file
       TZ: ${TZ}
-      
+
       # Service mode: controls which app features are available
       # webcam = camera streaming service
       # management = node registry hub service
       APP_MODE: ${MOTION_IN_OCEAN_MODE:-webcam}
-      
+
       # Camera configuration (used by webcam mode, safely ignored by management mode)
       RESOLUTION: ${MOTION_IN_OCEAN_RESOLUTION}
       FPS: ${MOTION_IN_OCEAN_FPS}
@@ -38,20 +38,20 @@ services:
       JPEG_QUALITY: ${MOTION_IN_OCEAN_JPEG_QUALITY}
       MAX_STREAM_CONNECTIONS: ${MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS:-2}
       MOTION_IN_OCEAN_PI3_PROFILE: ${MOTION_IN_OCEAN_PI3_PROFILE:-false}
-      
+
       # Shared settings (both modes)
       MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
       CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
-      
+
       # Healthcheck endpoint selection
       # true = /ready endpoint (readiness probe; webcam waits for stream, management returns immediate success)
       # false = /health endpoint (liveness probe; always returns 200)
       HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY:-true}
-    
+
     ports:
       - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT:-8000}:8000"
-    
+
     volumes:
       - /run/udev:/run/udev:ro
       # Device access for Raspberry Pi camera

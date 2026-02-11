@@ -254,7 +254,7 @@ if check_gh_cli; then
     
     # Find the workflow run for this tag
     WORKFLOW_NAME="Build and publish Docker image"
-    MAX_WAIT_MINUTES=15
+    MAX_WAIT_MINUTES=20
     MAX_WAIT_SECONDS=$((MAX_WAIT_MINUTES * 60))
     POLL_INTERVAL=10
     ELAPSED=0

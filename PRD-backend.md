@@ -242,7 +242,7 @@ sequenceDiagram
 
     Management ->> FileRegistry: update node status cache
     FileRegistry -->> Management: status cached
-    
+
     Browser ->> Management: GET /api/nodes/{id}/status
     Management -->> Browser: {node_status, stream_available, probe_data}
 ```

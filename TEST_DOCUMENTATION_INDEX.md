@@ -52,24 +52,24 @@ curl -X POST http://localhost:8001/api/nodes \
 
 ### Created Test Files
 
-| File | Purpose | Key Content |
-|------|---------|-------------|
-| **docker-compose.test.yaml** | Test container orchestration | Two-service setup: webcam + management |
-| **.env.test** | Test environment config | Mock camera enabled, CORS open |
-| **tests/test_parallel_containers.py** | Test suite script | 8 automated tests with reporting |
+| File                                  | Purpose                      | Key Content                            |
+| ------------------------------------- | ---------------------------- | -------------------------------------- |
+| **docker-compose.test.yaml**          | Test container orchestration | Two-service setup: webcam + management |
+| **.env.test**                         | Test environment config      | Mock camera enabled, CORS open         |
+| **tests/test_parallel_containers.py** | Test suite script            | 8 automated tests with reporting       |
 
 ### Test Reports
 
-| Document | Content | Size |
-|----------|---------|------|
-| **TEST_PARALLEL_CONTAINERS.md** | Detailed investigation report | Complete findings with code analysis |
-| **TEST_RESULTS_EXECUTIVE_SUMMARY.md** | High-level summary | Key findings, recommendations, conclusions |
-| **CROSS_CONTAINER_TESTING_GUIDE.md** | Implementation strategies | 4 scenarios with pros/cons comparison |
+| Document                              | Content                       | Size                                       |
+| ------------------------------------- | ----------------------------- | ------------------------------------------ |
+| **TEST_PARALLEL_CONTAINERS.md**       | Detailed investigation report | Complete findings with code analysis       |
+| **TEST_RESULTS_EXECUTIVE_SUMMARY.md** | High-level summary            | Key findings, recommendations, conclusions |
+| **CROSS_CONTAINER_TESTING_GUIDE.md**  | Implementation strategies     | 4 scenarios with pros/cons comparison      |
 
 ### This File
 
-| File | Purpose |
-|------|---------|
+| File                            | Purpose                               |
+| ------------------------------- | ------------------------------------- |
 | **TEST_DOCUMENTATION_INDEX.md** | Reference index to all test artifacts |
 
 ---
@@ -78,17 +78,18 @@ curl -X POST http://localhost:8001/api/nodes \
 
 ### Test Metrics
 
-| Metric | Result |
-|--------|--------|
-| **Containers Started** | 2 × 1 = 2 ✅ |
-| **Containers Healthy** | 2 / 2 = 100% ✅ |
-| **Uptime** | 165+ seconds per container ✅ |
-| **API Endpoints Tested** | 8 endpoints ✅ |
-| **Test Pass Rate** | 7/8 = 87.5% (1 expected failure) ✅ |
+| Metric                   | Result                              |
+| ------------------------ | ----------------------------------- |
+| **Containers Started**   | 2 × 1 = 2 ✅                        |
+| **Containers Healthy**   | 2 / 2 = 100% ✅                     |
+| **Uptime**               | 165+ seconds per container ✅       |
+| **API Endpoints Tested** | 8 endpoints ✅                      |
+| **Test Pass Rate**       | 7/8 = 87.5% (1 expected failure) ✅ |
 
 ### Performance Data
 
 **Webcam Container (Mock Camera):**
+
 - Frames generated: 1,655
 - Duration: 165.92 seconds
 - Frame rate: 9.99 FPS ✅
@@ -96,6 +97,7 @@ curl -X POST http://localhost:8001/api/nodes \
 - Resolution: 640×480
 
 **Management Container:**
+
 - Nodes registered: 1
 - Registry persistent: Yes
 - API latency: <50ms
@@ -119,6 +121,7 @@ curl -X POST http://localhost:8001/api/nodes \
 ### ⚠️ Important Finding
 
 **SSRF Protection Blocks Cross-Container Communication**
+
 - Management cannot query webcam node over internal Docker network
 - **This is expected behavior**, not a bug
 - **Reason:** SSRF protection blocks all private IPs (RFC1918, loopback, etc.)
@@ -191,14 +194,14 @@ curl -X POST http://localhost:8001/api/nodes \
 
 ### Container Configuration
 
-| Component | Webcam | Management |
-|-----------|--------|------------|
-| **Image** | motioninocean:local | motioninocean:local |
-| **Mode** | webapp | management |
-| **Port** | 8000 | 8000 (as 8001) |
-| **Mock Camera** | Enabled | N/A |
-| **Registry** | N/A | /data/nodes.json |
-| **Health Probe** | /ready (readiness) | /health (liveness) |
+| Component        | Webcam              | Management          |
+| ---------------- | ------------------- | ------------------- |
+| **Image**        | motioninocean:local | motioninocean:local |
+| **Mode**         | webapp              | management          |
+| **Port**         | 8000                | 8000 (as 8001)      |
+| **Mock Camera**  | Enabled             | N/A                 |
+| **Registry**     | N/A                 | /data/nodes.json    |
+| **Health Probe** | /ready (readiness)  | /health (liveness)  |
 
 ### Endpoints Tested
 
@@ -223,13 +226,13 @@ curl -X POST http://localhost:8001/api/nodes \
 
 ## 🔒 Security Validation
 
-| Security Feature | Status | Evidence |
-|------------------|--------|----------|
-| SSRF Protection | ✅ Active | Returns 503 NODE_UNREACHABLE for private IPs |
-| Healthchecks | ✅ Working | Both containers report healthy |
-| Permission Model | ✅ Secure | no-new-privileges:true set |
-| Resource Limits | ✅ Configured | Stop grace period: 30s |
-| Logging | ✅ Enabled | json-file driver with 10m limit |
+| Security Feature | Status        | Evidence                                     |
+| ---------------- | ------------- | -------------------------------------------- |
+| SSRF Protection  | ✅ Active     | Returns 503 NODE_UNREACHABLE for private IPs |
+| Healthchecks     | ✅ Working    | Both containers report healthy               |
+| Permission Model | ✅ Secure     | no-new-privileges:true set                   |
+| Resource Limits  | ✅ Configured | Stop grace period: 30s                       |
+| Logging          | ✅ Enabled    | json-file driver with 10m limit              |
 
 ---
 
@@ -237,26 +240,26 @@ curl -X POST http://localhost:8001/api/nodes \
 
 ### By Component
 
-| Component | Coverage | Status |
-|-----------|----------|--------|
-| **Webcam Service** | 100% | All endpoints tested ✅ |
-| **Management API** | 95% | All except cross-client comms ⚠️ |
-| **Node Registry** | 100% | CRUD operations tested ✅ |
-| **Docker Integration** | 90% | Parallel execution, healthchecks ✅ |
-| **Cross-Container Comms** | 0% | Blocked by design (expected) ⚠️ |
+| Component                 | Coverage | Status                              |
+| ------------------------- | -------- | ----------------------------------- |
+| **Webcam Service**        | 100%     | All endpoints tested ✅             |
+| **Management API**        | 95%      | All except cross-client comms ⚠️    |
+| **Node Registry**         | 100%     | CRUD operations tested ✅           |
+| **Docker Integration**    | 90%      | Parallel execution, healthchecks ✅ |
+| **Cross-Container Comms** | 0%       | Blocked by design (expected) ⚠️     |
 
 ### By Feature
 
-| Feature | Tested | Result |
-|---------|--------|--------|
-| Mock camera | Yes | ✅ 10 FPS frame generation |
-| Frame metrics | Yes | ✅ 1,655+ frames captured |
-| Health endpoints | Yes | ✅ All report healthy |
-| Node registration | Yes | ✅ Persistent to disk |
-| API responses | Yes | ✅ Valid JSON formats |
-| SSRF protection | Yes | ✅ Blocking private IPs |
-| Parallel execution | Yes | ✅ No conflicts |
-| Dependency ordering | Yes | ✅ Management waits for webcam |
+| Feature             | Tested | Result                         |
+| ------------------- | ------ | ------------------------------ |
+| Mock camera         | Yes    | ✅ 10 FPS frame generation     |
+| Frame metrics       | Yes    | ✅ 1,655+ frames captured      |
+| Health endpoints    | Yes    | ✅ All report healthy          |
+| Node registration   | Yes    | ✅ Persistent to disk          |
+| API responses       | Yes    | ✅ Valid JSON formats          |
+| SSRF protection     | Yes    | ✅ Blocking private IPs        |
+| Parallel execution  | Yes    | ✅ No conflicts                |
+| Dependency ordering | Yes    | ✅ Management waits for webcam |
 
 ---
 
@@ -338,14 +341,14 @@ A: Not recommended. It's a security feature. See [CROSS_CONTAINER_TESTING_GUIDE.
 
 ## ✅ Test Sign-Off
 
-| Phase | Completed | Verified By | Date |
-|-------|-----------|------------|------|
-| Environment Setup | ✅ | Automated | 2026-02-11 |
-| Container Build | ✅ | Docker | 2026-02-11 |
-| Parallel Execution | ✅ | Docker Compose | 2026-02-11 |
-| Functional Testing | ✅ | Python test script | 2026-02-11 |
-| Security Validation | ✅ | API responses | 2026-02-11 |
-| Documentation | ✅ | Manual review | 2026-02-11 |
+| Phase               | Completed | Verified By        | Date       |
+| ------------------- | --------- | ------------------ | ---------- |
+| Environment Setup   | ✅        | Automated          | 2026-02-11 |
+| Container Build     | ✅        | Docker             | 2026-02-11 |
+| Parallel Execution  | ✅        | Docker Compose     | 2026-02-11 |
+| Functional Testing  | ✅        | Python test script | 2026-02-11 |
+| Security Validation | ✅        | API responses      | 2026-02-11 |
+| Documentation       | ✅        | Manual review      | 2026-02-11 |
 
 ---
 

@@ -526,12 +526,9 @@ def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspa
     try:
         import main
     finally:
-    original_path = sys.path.copy()
-    sys.path.insert(0, str(workspace_root / "pi_camera_in_docker"))
-    try:
-        import main
+        sys.path = original_path
 
-        existing_paths = {
+    existing_paths = {
             "/dev/vchiq",
             "/dev/video0",
             "/dev/media0",

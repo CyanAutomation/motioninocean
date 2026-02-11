@@ -30,9 +30,7 @@ function getManagementBearerToken() {
   return tokenInput.value.trim();
 }
 
-function mergeHeaders(baseHeaders = {}, requestHeaders = {}) {
-  return { ...baseHeaders, ...requestHeaders };
-}
+
 
 async function managementFetch(path, options = {}) {
   const token = getManagementBearerToken();
@@ -42,7 +40,6 @@ async function managementFetch(path, options = {}) {
     ...options,
     headers: { ...options.headers, ...authHeaders },
   });
-
 
   if (response.status === 401) {
     const unauthorizedError = new Error(API_AUTH_HINT);
@@ -208,7 +205,9 @@ async function refreshStatuses({ fromInterval = false } = {}) {
       await Promise.all(
         nodes.map(async (node) => {
           try {
-            const response = await managementFetch(`/api/nodes/${encodeURIComponent(node.id)}/status`);
+            const response = await managementFetch(
+              `/api/nodes/${encodeURIComponent(node.id)}/status`,
+            );
             if (!response.ok) {
               nextStatusMap.set(node.id, { status: "error", stream_available: false });
               return;
@@ -314,7 +313,9 @@ async function removeNode(nodeId) {
   }
 
   try {
-    const response = await managementFetch(`/api/nodes/${encodeURIComponent(nodeId)}`, { method: "DELETE" });
+    const response = await managementFetch(`/api/nodes/${encodeURIComponent(nodeId)}`, {
+      method: "DELETE",
+    });
     if (!response.ok) {
       const errorPayload = await response.json().catch(() => ({}));
       showFeedback(errorPayload?.error?.message || "Delete failed", true);

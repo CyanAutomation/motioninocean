@@ -8,14 +8,14 @@ Successfully tested running both webcam and management containers in parallel. T
 
 ## Test Summary
 
-| Aspect | Result | Status |
-|--------|--------|--------|
-| **Parallel Execution** | Both containers started successfully and remain healthy | ✅ PASS |
-| **Webcam Container** | All endpoints operational (/health, /ready, /metrics) | ✅ PASS |
-| **Management Container** | API and registry functional | ✅ PASS |
-| **Node Registration** | Can register webcam node in management registry | ✅ PASS |
-| **Management Status Query** | Blocked due to SSRF protection (expected) | ⚠️ EXPECTED |
-| **Security** | SSRF protections are active and working | ✅ PASS |
+| Aspect                      | Result                                                  | Status      |
+| --------------------------- | ------------------------------------------------------- | ----------- |
+| **Parallel Execution**      | Both containers started successfully and remain healthy | ✅ PASS     |
+| **Webcam Container**        | All endpoints operational (/health, /ready, /metrics)   | ✅ PASS     |
+| **Management Container**    | API and registry functional                             | ✅ PASS     |
+| **Node Registration**       | Can register webcam node in management registry         | ✅ PASS     |
+| **Management Status Query** | Blocked due to SSRF protection (expected)               | ⚠️ EXPECTED |
+| **Security**                | SSRF protections are active and working                 | ✅ PASS     |
 
 ---
 
@@ -43,11 +43,13 @@ Successfully tested running both webcam and management containers in parallel. T
 ### ⚠️ Important Finding: Docker Network SSRF Protection
 
 **What Happened:**
+
 - Management container tried to query webcam node at `http://motion-in-ocean-webcam:8000`
 - This hostname resolved to private IP `172.18.0.2` (Docker internal network)
 - SSRF protection blocked the connection with `NODE_UNREACHABLE: target is blocked`
 
 **Why This is Correct:**
+
 - SSRF protection prevents accessing internal services
 - Blocks all private IP addresses (RFC1918, loopback, link-local, etc.)
 - This is a **security feature**, not a bug
@@ -55,6 +57,7 @@ Successfully tested running both webcam and management containers in parallel. T
 
 **Real-World Context:**
 The product is designed for **multi-host deployments** on home networks:
+
 - Management host: 192.168.1.100 (public LAN IP)
 - Webcam host 1: 192.168.1.101 (public LAN IP)
 - Webcam host 2: 192.168.1.102 (public LAN IP)
@@ -68,6 +71,7 @@ In this scenario, all nodes have non-private IPs and SSRF protection doesn't int
 ### Metrics Collected
 
 **Webcam Service Performance:**
+
 - Frames generated: 1,655 over ~166 seconds
 - FPS: 9.99 (configured as 10 FPS, running on mock camera)
 - Resolution: 640x480
@@ -76,6 +80,7 @@ In this scenario, all nodes have non-private IPs and SSRF protection doesn't int
 - Uptime: 165.92 seconds
 
 **Management Service:**
+
 - Node registry entries: 1
 - Available nodes: 0 (due to SSRF blocking)
 - Total nodes: 1
@@ -84,6 +89,7 @@ In this scenario, all nodes have non-private IPs and SSRF protection doesn't int
 ### Container Logs
 
 Webcam container logs show:
+
 - Regular health checks from host (127.0.0.1)
 - Requests from management container (172.18.0.1) including:
   - `GET /health` - Health probes from Docker healthcheck
@@ -101,11 +107,12 @@ Webcam container logs show:
 **Options:**
 
 1. **Multi-Host Raspberry Pi Setup** (Recommended)
+
    ```
    Pi 1: Management mode at 192.168.1.100:8001
    Pi 2: Webcam mode at 192.168.1.101:8000
    Pi 3: Webcam mode at 192.168.1.102:8000
-   
+
    ✅ SSRF protection won't interfere
    ✅ Matches intended architecture
    ✅ Real-world deployment configuration
@@ -184,17 +191,20 @@ docker-compose -f docker-compose.test.yaml down
 ## Conclusion
 
 ✅ **Test Objective Achieved:**
+
 - Both containers run successfully in parallel
 - Each container functions correctly in isolation
 - Management API can register nodes
 - Security protections are working as designed
 
 ⚠️ **Limitation Identified:**
+
 - Cross-container communication blocked by SSRF protection (expected for Docker)
 - This is not a failure, but a design consequence
 - Intended architecture uses multi-host deployment without this limitation
 
 🎯 **Recommendation:**
+
 - For comprehensive integration testing, deploy on multiple Raspberry Pis
 - Current setup adequately validates individual service functionality
 - Docker-based testing validates containerization, not distributed deployment scenario
@@ -248,13 +258,13 @@ docker-compose -f docker-compose.test.yaml down
 
 ## Status
 
-| Phase | Status | Notes |
-|-------|--------|-------|
-| Environment Setup | ✅ Complete | Docker image built, containers deployed |
-| Functional Testing | ✅ Complete | All endpoints tested, 7 of 8 tests pass (1 expected failure) |
-| Documentation | ✅ Complete | Comprehensive test report and analysis |
-| Security Validation | ✅ Complete | SSRF protections confirmed working |
-| Cleanup | ✅ Complete | Containers and networks removed |
+| Phase               | Status      | Notes                                                        |
+| ------------------- | ----------- | ------------------------------------------------------------ |
+| Environment Setup   | ✅ Complete | Docker image built, containers deployed                      |
+| Functional Testing  | ✅ Complete | All endpoints tested, 7 of 8 tests pass (1 expected failure) |
+| Documentation       | ✅ Complete | Comprehensive test report and analysis                       |
+| Security Validation | ✅ Complete | SSRF protections confirmed working                           |
+| Cleanup             | ✅ Complete | Containers and networks removed                              |
 
 **Overall Test Result:** ✅ **SUCCESS**
 

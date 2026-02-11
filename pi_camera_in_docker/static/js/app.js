@@ -711,7 +711,6 @@ async function updateConfig() {
   }
 }
 
-
 /**
  * Show error alert in config panel
  */
@@ -905,34 +904,34 @@ function updateSetupUI(data) {
 
   // Populate form fields with current config
   if (data.current_config) {
-    const config = data.current_config;
+    const _config = data.current_config;
     const resolution = document.getElementById("setup-resolution");
-    if (resolution && config.resolution) resolution.value = config.resolution;
+    if (resolution && _config.resolution) resolution.value = _config.resolution;
 
     const fps = document.getElementById("setup-fps");
-    if (fps && config.fps !== undefined) fps.value = config.fps;
+    if (fps && _config.fps !== undefined) fps.value = _config.fps;
 
     const jpegQuality = document.getElementById("setup-jpeg-quality");
-    if (jpegQuality && config.jpeg_quality !== undefined) jpegQuality.value = config.jpeg_quality;
+    if (jpegQuality && _config.jpeg_quality !== undefined) jpegQuality.value = _config.jpeg_quality;
 
     const maxConnections = document.getElementById("setup-max-connections");
-    if (maxConnections && config.max_connections !== undefined)
-      maxConnections.value = config.max_connections;
+    if (maxConnections && _config.max_connections !== undefined)
+      maxConnections.value = _config.max_connections;
 
     const targetFps = document.getElementById("setup-target-fps");
-    if (targetFps && config.target_fps !== undefined) targetFps.value = config.target_fps || "";
+    if (targetFps && _config.target_fps !== undefined) targetFps.value = _config.target_fps || "";
 
     const pi3Profile = document.getElementById("setup-pi3-profile");
-    if (pi3Profile && config.pi3_profile !== undefined)
-      pi3Profile.value = config.pi3_profile ? "true" : "false";
+    if (pi3Profile && _config.pi3_profile !== undefined)
+      pi3Profile.value = _config.pi3_profile ? "true" : "false";
 
     const corsOrigins = document.getElementById("setup-cors-origins");
-    if (corsOrigins && config.cors_origins !== undefined)
-      corsOrigins.value = config.cors_origins || "";
+    if (corsOrigins && _config.cors_origins !== undefined)
+      corsOrigins.value = _config.cors_origins || "";
 
     const mockCamera = document.getElementById("setup-mock-camera");
-    if (mockCamera && config.mock_camera !== undefined)
-      mockCamera.value = config.mock_camera ? "true" : "false";
+    if (mockCamera && _config.mock_camera !== undefined)
+      mockCamera.value = _config.mock_camera ? "true" : "false";
   }
 }
 
@@ -979,7 +978,7 @@ function attachSetupEventListeners() {
  */
 function onPresetChange(event) {
   const preset = event.target.value;
-  const config = state.setupFormState;
+  const _config = state.setupFormState;
 
   if (preset === "pi3_low_power") {
     document.getElementById("setup-resolution").value = "640x480";

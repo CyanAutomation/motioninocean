@@ -15,16 +15,18 @@ Motion In Ocean now uses **directory-based deployments** instead of custom-named
 ### What Changed
 
 **Old Pattern (Deprecated):**
+
 ```
 project root:
 ├── docker-compose.webcam.yaml       # Use with -f flag
-├── docker-compose.management.yaml   # Use with -f flag  
+├── docker-compose.management.yaml   # Use with -f flag
 ├── docker-compose.hardened.yaml     # Use with -f flag
 ├── docker-compose.mock.yaml         # Use with -f flag
 └── .env                             # Single .env
 ```
 
 **New Pattern (Recommended):**
+
 ```
 project root/containers/:
 ├── motioniocean-webcam/
@@ -45,12 +47,14 @@ project root/containers/:
 Choose the mode you need and copy it to your machine:
 
 **For Webcam Mode (Camera Streaming):**
+
 ```bash
 cp -r containers/motioniocean-webcam ~/containers/motioniocean-webcam
 cd ~/containers/motioniocean-webcam
 ```
 
 **For Management Mode (Node Hub):**
+
 ```bash
 cp -r containers/motioniocean-management ~/containers/motioniocean-management
 cd ~/containers/motioniocean-management
@@ -65,6 +69,7 @@ cp ~/.env ~/containers/motioniocean-{mode}/.env
 ```
 
 Or create a new one from the template:
+
 ```bash
 cp .env.example .env
 nano .env  # Review and customize if needed
@@ -73,11 +78,13 @@ nano .env  # Review and customize if needed
 #### 3. Start Using the New Pattern
 
 **Old way (Deprecated):**
+
 ```bash
 docker compose -f docker-compose.webcam.yaml up -d
 ```
 
 **New way (Recommended):**
+
 ```bash
 cd ~/containers/motioniocean-webcam
 docker compose up -d
@@ -90,12 +97,14 @@ docker compose up -d
 If you have custom scripts or CI/CD pipelines using the old pattern:
 
 **Old Pattern:**
+
 ```bash
 docker compose -f docker-compose.webcam.yaml up -d
 docker compose -f docker-compose.management.yaml up -d
 ```
 
 **New Pattern:**
+
 ```bash
 cd containers/motioniocean-webcam && docker compose up -d
 cd containers/motioniocean-management && docker compose up -d
@@ -110,6 +119,7 @@ The repository scripts have been updated to support both patterns:
 - **validate-deployment.sh [directory]** – Now validates a specific deployment
 
 Usage:
+
 ```bash
 cd ~/containers/motioniocean-webcam
 /path/to/repo/setup.sh
@@ -125,6 +135,7 @@ cd ~/containers/motioniocean-webcam
 - **Future Release:** Legacy root-level files removed; directory-based is only option
 
 **During the transition period:**
+
 - ✅ Old files (`docker-compose.webcam.yaml`, etc.) still work with `-f` flags
 - ✅ New directories (`containers/motioniocean-{mode}/`) are the recommended approach
 - ⚠️ Old files print deprecation notices to encourage migration
@@ -143,13 +154,13 @@ The Motion In Ocean Docker configuration has been simplified to reduce complexit
 
 ### Key Changes at a Glance
 
-| Aspect | Old | New |
-|--------|-----|-----|
-| **Compose Files** | Single `docker-compose.yaml` with device mappings | Separate `docker-compose.webcam.yaml`, `docker-compose.management.yaml` |
-| **Device Access** | Explicit mappings + cgroup rules | `privileged: true` by default |
-| **Environment Variables** | 20+ variables | 5 required variables |
-| **Authentication** | `MANAGEMENT_AUTH_REQUIRED` boolean + token | Auth required only if token is non-empty |
-| **Healthcheck** | Python script (`healthcheck.py`) | Simple curl HTTP check |
+| Aspect                    | Old                                               | New                                                                     |
+| ------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------- |
+| **Compose Files**         | Single `docker-compose.yaml` with device mappings | Separate `docker-compose.webcam.yaml`, `docker-compose.management.yaml` |
+| **Device Access**         | Explicit mappings + cgroup rules                  | `privileged: true` by default                                           |
+| **Environment Variables** | 20+ variables                                     | 5 required variables                                                    |
+| **Authentication**        | `MANAGEMENT_AUTH_REQUIRED` boolean + token        | Auth required only if token is non-empty                                |
+| **Healthcheck**           | Python script (`healthcheck.py`)                  | Simple curl HTTP check                                                  |
 
 ---
 
@@ -159,20 +170,20 @@ The Motion In Ocean Docker configuration has been simplified to reduce complexit
 
 These variables are **no longer supported**. Remove them from your `.env` file:
 
-| Old Variable | Replacement | Notes |
-|--------------|-------------|-------|
-| `MANAGEMENT_AUTH_REQUIRED` | Token-driven (see below) | Authentication is now implicit: if `MANAGEMENT_AUTH_TOKEN` is set, auth is required |
-| `MOTION_IN_OCEAN_HEALTHCHECK_READY` | Removed | Healthcheck behavior is now consistent (`/health` for liveness) |
-| `MOTION_IN_OCEAN_RESOLUTION` | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users |
-| `MOTION_IN_OCEAN_FPS` | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users |
-| `MOTION_IN_OCEAN_TARGET_FPS` | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users |
-| `MOTION_IN_OCEAN_JPEG_QUALITY` | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users |
-| `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS` | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users |
-| `MOTION_IN_OCEAN_PI3_PROFILE` | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users |
-| `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users |
-| `MOTION_IN_OCEAN_CORS_ORIGINS` | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users |
-| `DOCKER_PROXY_PORT` | Removed | Use `MOTION_IN_OCEAN_PORT` for main service; docker-proxy is optional |
-| `MOTION_IN_OCEAN_BIND_HOST` | Removed | Hardcoded to `127.0.0.1` by default; customize in compose file if needed |
+| Old Variable                              | Replacement                  | Notes                                                                               |
+| ----------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
+| `MANAGEMENT_AUTH_REQUIRED`                | Token-driven (see below)     | Authentication is now implicit: if `MANAGEMENT_AUTH_TOKEN` is set, auth is required |
+| `MOTION_IN_OCEAN_HEALTHCHECK_READY`       | Removed                      | Healthcheck behavior is now consistent (`/health` for liveness)                     |
+| `MOTION_IN_OCEAN_RESOLUTION`              | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users              |
+| `MOTION_IN_OCEAN_FPS`                     | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users              |
+| `MOTION_IN_OCEAN_TARGET_FPS`              | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users              |
+| `MOTION_IN_OCEAN_JPEG_QUALITY`            | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users              |
+| `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS`  | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users              |
+| `MOTION_IN_OCEAN_PI3_PROFILE`             | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users              |
+| `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users              |
+| `MOTION_IN_OCEAN_CORS_ORIGINS`            | Optional (advanced use only) | Not in minimal `.env.example`; still supported in code for power users              |
+| `DOCKER_PROXY_PORT`                       | Removed                      | Use `MOTION_IN_OCEAN_PORT` for main service; docker-proxy is optional               |
+| `MOTION_IN_OCEAN_BIND_HOST`               | Removed                      | Hardcoded to `127.0.0.1` by default; customize in compose file if needed            |
 
 ### Required Variables (New Minimal Set)
 
@@ -223,6 +234,7 @@ MANAGEMENT_AUTH_TOKEN=<token-or-empty>
 ```
 
 **Behavior:**
+
 - If `MANAGEMENT_AUTH_REQUIRED=true` AND `MANAGEMENT_AUTH_TOKEN` is set → auth required
 - If `MANAGEMENT_AUTH_REQUIRED=false` → auth disabled (regardless of token)
 
@@ -233,17 +245,18 @@ MANAGEMENT_AUTH_TOKEN=<token-or-empty>
 ```
 
 **Behavior:**
+
 - If `MANAGEMENT_AUTH_TOKEN` is **empty** → authentication **disabled**
 - If `MANAGEMENT_AUTH_TOKEN` is **non-empty** → authentication **required**
 
 ### Migration Path
 
-| Old Config | New Config | Behavior |
-|-----------|-----------|----------|
-| `MANAGEMENT_AUTH_REQUIRED=false` + `MANAGEMENT_AUTH_TOKEN=` | `MANAGEMENT_AUTH_TOKEN=` | ✅ No change: auth disabled |
-| `MANAGEMENT_AUTH_REQUIRED=false` + `MANAGEMENT_AUTH_TOKEN=secret123` | `MANAGEMENT_AUTH_TOKEN=secret123` | ✅ Auth enabled (secure) |
-| `MANAGEMENT_AUTH_REQUIRED=true` + `MANAGEMENT_AUTH_TOKEN=secret123` | `MANAGEMENT_AUTH_TOKEN=secret123` | ✅ No change: auth enabled |
-| `MANAGEMENT_AUTH_REQUIRED=true` + `MANAGEMENT_AUTH_TOKEN=` | `MANAGEMENT_AUTH_TOKEN=` | ✅ No change: auth disabled (fallback) |
+| Old Config                                                           | New Config                        | Behavior                               |
+| -------------------------------------------------------------------- | --------------------------------- | -------------------------------------- |
+| `MANAGEMENT_AUTH_REQUIRED=false` + `MANAGEMENT_AUTH_TOKEN=`          | `MANAGEMENT_AUTH_TOKEN=`          | ✅ No change: auth disabled            |
+| `MANAGEMENT_AUTH_REQUIRED=false` + `MANAGEMENT_AUTH_TOKEN=secret123` | `MANAGEMENT_AUTH_TOKEN=secret123` | ✅ Auth enabled (secure)               |
+| `MANAGEMENT_AUTH_REQUIRED=true` + `MANAGEMENT_AUTH_TOKEN=secret123`  | `MANAGEMENT_AUTH_TOKEN=secret123` | ✅ No change: auth enabled             |
+| `MANAGEMENT_AUTH_REQUIRED=true` + `MANAGEMENT_AUTH_TOKEN=`           | `MANAGEMENT_AUTH_TOKEN=`          | ✅ No change: auth disabled (fallback) |
 
 ---
 
@@ -259,24 +272,28 @@ docker compose up
 ### New Deployment
 
 #### Webcam Mode (Default)
+
 ```bash
 # Simplified, homelab-friendly
 docker compose -f docker-compose.webcam.yaml up
 ```
 
 #### Management Mode
+
 ```bash
 # Control plane for remote cameras
 docker compose -f docker-compose.management.yaml up
 ```
 
 #### Production with Explicit Device Mappings
+
 ```bash
 # Uses hardened security posture
 docker compose -f docker-compose.webcam.yaml -f docker-compose.hardened.yaml up
 ```
 
 #### With Docker Socket Proxy
+
 ```bash
 # Optional fine-grained Docker socket access control
 docker compose -f docker-compose.webcam.yaml -f docker-compose.docker-proxy.yaml up
@@ -289,6 +306,7 @@ docker compose -f docker-compose.webcam.yaml -f docker-compose.docker-proxy.yaml
 ### Old Model
 
 Explicit device mappings in compose:
+
 ```yaml
 devices:
   - /dev/dma_heap/system:/dev/dma_heap/system
@@ -299,15 +317,16 @@ devices:
   - /dev/media1:/dev/media1
   - /dev/dri:/dev/dri
 device_cgroup_rules:
-  - "c 253:* rmw"   # DMA heap
-  - "c 511:* rmw"   # VCHIQ
-  - "c 81:* rmw"    # Video devices
-  - "c 250:* rmw"   # Media devices
+  - "c 253:* rmw" # DMA heap
+  - "c 511:* rmw" # VCHIQ
+  - "c 81:* rmw" # Video devices
+  - "c 250:* rmw" # Media devices
 ```
 
 ### New Model (Default)
 
 Simple `privileged: true` for homelab deployments:
+
 ```yaml
 privileged: true
 ```
@@ -345,6 +364,7 @@ healthcheck:
 ```
 
 **Benefits:**
+
 - No Python dependency in healthcheck
 - More responsive (30s intervals vs 2m)
 - Standard curl HTTP check (industry-standard)
@@ -391,16 +411,19 @@ MOTION_IN_OCEAN_JPEG_QUALITY=80
 ### 3. Choose Your Deployment
 
 **Webcam Mode (default):**
+
 ```bash
 docker compose -f docker-compose.webcam.yaml up -d
 ```
 
 **Management Mode:**
+
 ```bash
 docker compose -f docker-compose.management.yaml up -d
 ```
 
 **Production with Hardened Security:**
+
 ```bash
 docker compose -f docker-compose.webcam.yaml -f docker-compose.hardened.yaml up -d
 ```
@@ -453,6 +476,7 @@ healthcheck:
 
 **Cause:** Old `MANAGEMENT_AUTH_REQUIRED=false` ignored token
 **Solution:** Token now acts as both gate and key:
+
 - If empty → no auth
 - If set → auth required
 
@@ -478,6 +502,7 @@ docker compose -f docker-compose.management.yaml up
 
 **Cause:** Container not responding on port 8000
 **Solution:**
+
 1. Verify port mapping: `docker ps | grep motion-in-ocean`
 2. Check logs: `docker logs motion-in-ocean`
 3. Verify `/health` endpoint exists: `curl -v http://localhost:8000/health`
@@ -486,13 +511,13 @@ docker compose -f docker-compose.management.yaml up
 
 ## Summary
 
-| Phase | Status | Impact |
-|-------|--------|--------|
-| **Environment Variables** | ✅ Simplified to 5 required + optional | Reduced config complexity by 80% |
-| **Compose Files** | ✅ Split into mode-specific variants | Clearer intent; easier to reason about |
-| **Device Access** | ✅ Privileged by default; hardened optional | Homelab-friendly; security still available |
-| **Authentication** | ✅ Simplified token-driven model | Fewer decision points; more intuitive |
-| **Healthcheck** | ✅ HTTP curl instead of Python | Standard practice; more responsive |
+| Phase                     | Status                                      | Impact                                     |
+| ------------------------- | ------------------------------------------- | ------------------------------------------ |
+| **Environment Variables** | ✅ Simplified to 5 required + optional      | Reduced config complexity by 80%           |
+| **Compose Files**         | ✅ Split into mode-specific variants        | Clearer intent; easier to reason about     |
+| **Device Access**         | ✅ Privileged by default; hardened optional | Homelab-friendly; security still available |
+| **Authentication**        | ✅ Simplified token-driven model            | Fewer decision points; more intuitive      |
+| **Healthcheck**           | ✅ HTTP curl instead of Python              | Standard practice; more responsive         |
 
 All functionality is preserved. The refactor is purely structural simplification for better maintainability and clarity.
 
