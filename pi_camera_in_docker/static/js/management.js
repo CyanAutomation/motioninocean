@@ -13,12 +13,45 @@ let statusRefreshPending = false;
 let statusRefreshPendingManual = false;
 let statusRefreshToken = 0;
 let statusRefreshIntervalId;
-const NODE_TOKEN_HINT =
-  "Node authentication failed. Check the remote node MANAGEMENT_AUTH_TOKEN and this node bearer token match.";
+const API_AUTH_HINT =
+  "Management API request unauthorized. Provide a valid Management API Bearer Token, then click Refresh to retry.";
 
 function showFeedback(message, isError = false) {
   feedback.textContent = message;
   feedback.style.color = isError ? "#b91c1c" : "#166534";
+}
+
+function getManagementBearerToken() {
+  const tokenInput = document.getElementById("management-api-token");
+  if (!(tokenInput instanceof HTMLInputElement)) {
+    return "";
+  }
+
+  return tokenInput.value.trim();
+}
+
+function mergeHeaders(baseHeaders = {}, requestHeaders = {}) {
+  return { ...baseHeaders, ...requestHeaders };
+}
+
+async function managementFetch(path, options = {}) {
+  const token = getManagementBearerToken();
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+  const response = await fetch(path, {
+    ...options,
+    headers: { ...options.headers, ...authHeaders },
+  });
+
+
+  if (response.status === 401) {
+    const unauthorizedError = new Error(API_AUTH_HINT);
+    unauthorizedError.isUnauthorized = true;
+    unauthorizedError.response = response;
+    throw unauthorizedError;
+  }
+
+  return response;
 }
 
 function getAuthPayload() {
@@ -118,7 +151,7 @@ function renderRows() {
 
 async function fetchNodes() {
   try {
-    const response = await fetch("/api/nodes");
+    const response = await managementFetch("/api/nodes");
     if (!response.ok) {
       throw new Error("Failed to load nodes");
     }
@@ -126,7 +159,11 @@ async function fetchNodes() {
     nodes = payload.nodes || [];
     renderRows();
   } catch (error) {
-    showFeedback(error.message || "Failed to load nodes", true);
+    if (error?.isUnauthorized) {
+      showFeedback(API_AUTH_HINT, true);
+    } else {
+      showFeedback(error.message || "Failed to load nodes", true);
+    }
     throw error;
   }
 }
@@ -171,21 +208,18 @@ async function refreshStatuses({ fromInterval = false } = {}) {
       await Promise.all(
         nodes.map(async (node) => {
           try {
-            const response = await fetch(`/api/nodes/${encodeURIComponent(node.id)}/status`);
+            const response = await managementFetch(`/api/nodes/${encodeURIComponent(node.id)}/status`);
             if (!response.ok) {
-              if (allowManualFeedback && response.status === 401 && !showedUnauthorizedFeedback) {
-                const errorPayload = await response.json().catch(() => ({}));
-                if (errorPayload?.error?.code === "NODE_UNAUTHORIZED") {
-                  showFeedback(NODE_TOKEN_HINT, true);
-                  showedUnauthorizedFeedback = true;
-                }
-              }
               nextStatusMap.set(node.id, { status: "error", stream_available: false });
               return;
             }
             const payload = await response.json();
             nextStatusMap.set(node.id, payload);
-          } catch {
+          } catch (error) {
+            if (allowManualFeedback && error?.isUnauthorized && !showedUnauthorizedFeedback) {
+              showFeedback(API_AUTH_HINT, true);
+              showedUnauthorizedFeedback = true;
+            }
             nextStatusMap.set(node.id, { status: "error", stream_available: false });
           }
         }),
@@ -228,7 +262,7 @@ async function submitNodeForm(event) {
   const method = isEdit ? "PUT" : "POST";
 
   try {
-    const response = await fetch(endpoint, {
+    const response = await managementFetch(endpoint, {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -246,6 +280,10 @@ async function submitNodeForm(event) {
     await fetchNodes();
     await refreshStatuses();
   } catch (error) {
+    if (error?.isUnauthorized) {
+      showFeedback(API_AUTH_HINT, true);
+      return;
+    }
     showFeedback(error.message || "Network error occurred.", true);
   }
 }
@@ -276,7 +314,7 @@ async function removeNode(nodeId) {
   }
 
   try {
-    const response = await fetch(`/api/nodes/${encodeURIComponent(nodeId)}`, { method: "DELETE" });
+    const response = await managementFetch(`/api/nodes/${encodeURIComponent(nodeId)}`, { method: "DELETE" });
     if (!response.ok) {
       const errorPayload = await response.json().catch(() => ({}));
       showFeedback(errorPayload?.error?.message || "Delete failed", true);
@@ -290,6 +328,10 @@ async function removeNode(nodeId) {
     await fetchNodes();
     await refreshStatuses();
   } catch (error) {
+    if (error?.isUnauthorized) {
+      showFeedback(API_AUTH_HINT, true);
+      return;
+    }
     showFeedback(error.message || "Network error occurred.", true);
   }
 }
