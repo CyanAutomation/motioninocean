@@ -10,6 +10,7 @@ let nodes = [];
 let nodeStatusMap = new Map();
 let statusRefreshInFlight = false;
 let statusRefreshPending = false;
+let statusRefreshPendingManual = false;
 let statusRefreshToken = 0;
 let statusRefreshIntervalId;
 const NODE_TOKEN_HINT =
@@ -147,17 +148,22 @@ function stopStatusRefreshInterval() {
 
 async function refreshStatuses({ fromInterval = false } = {}) {
   if (statusRefreshInFlight) {
-    if (fromInterval) {
-      statusRefreshPending = true;
-      return;
+    statusRefreshPending = true;
+    if (!fromInterval) {
+      statusRefreshPendingManual = true;
     }
     return;
   }
 
   statusRefreshInFlight = true;
+  let allowManualFeedback = !fromInterval;
+  let showedUnauthorizedFeedback = false;
   try {
     do {
       statusRefreshPending = false;
+      allowManualFeedback = allowManualFeedback || statusRefreshPendingManual;
+      statusRefreshPendingManual = false;
+
       const currentToken = ++statusRefreshToken;
       const nextStatusMap = new Map();
 
@@ -166,10 +172,11 @@ async function refreshStatuses({ fromInterval = false } = {}) {
           try {
             const response = await fetch(`/api/nodes/${encodeURIComponent(node.id)}/status`);
             if (!response.ok) {
-              if (!fromInterval && response.status === 401) {
+              if (allowManualFeedback && response.status === 401 && !showedUnauthorizedFeedback) {
                 const errorPayload = await response.json().catch(() => ({}));
                 if (errorPayload?.error?.code === "NODE_UNAUTHORIZED") {
                   showFeedback(NODE_TOKEN_HINT, true);
+                  showedUnauthorizedFeedback = true;
                 }
               }
               nextStatusMap.set(node.id, { status: "error", stream_available: false });
