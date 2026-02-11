@@ -94,6 +94,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.5] - 2026-02-11
+
+- Refactor Docker configuration and simplify environment variables
+
 ## [1.13.4] - 2026-02-11
 
 - Add comprehensive documentation and test suite for parallel container communication
