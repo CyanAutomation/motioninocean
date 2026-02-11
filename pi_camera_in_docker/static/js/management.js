@@ -161,7 +161,7 @@ async function refreshStatuses({ fromInterval = false } = {}) {
   try {
     do {
       statusRefreshPending = false;
-      allowManualFeedback = allowManualFeedback || statusRefreshPendingManual;
+      allowManualFeedback = statusRefreshPendingManual;
       statusRefreshPendingManual = false;
 
       const currentToken = ++statusRefreshToken;
