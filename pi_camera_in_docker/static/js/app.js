@@ -900,7 +900,7 @@ function formatBoolean(value) {
  * Clear all config display values
  */
 function clearConfigDisplay() {
-  const configValues = document.querySelectorAll("[data-config-value=\"true\"]");
+  const configValues = document.querySelectorAll('[data-config-value="true"]');
   configValues.forEach((el) => {
     el.textContent = "--";
     el.className = "config-value";
@@ -964,9 +964,12 @@ function updateSetupUI(data) {
     const devices = data.detected_devices;
     if (Object.keys(devices).length > 0) {
       let deviceInfo = "<strong>Detected Camera Devices:</strong><br>";
-      if (devices.video_devices?.length) deviceInfo += `📹 Video: ${devices.video_devices.join(", ")}<br>`;
-      if (devices.media_devices?.length) deviceInfo += `📡 Media: ${devices.media_devices.join(", ")}<br>`;
-      if (devices.dma_heap_devices?.length) deviceInfo += `💾 DMA: ${devices.dma_heap_devices.join(", ")}<br>`;
+      if (devices.video_devices?.length)
+        deviceInfo += `📹 Video: ${devices.video_devices.join(", ")}<br>`;
+      if (devices.media_devices?.length)
+        deviceInfo += `📡 Media: ${devices.media_devices.join(", ")}<br>`;
+      if (devices.dma_heap_devices?.length)
+        deviceInfo += `💾 DMA: ${devices.dma_heap_devices.join(", ")}<br>`;
       if (devices.vchiq_device) deviceInfo += `🔧 VCHIQ: Detected<br>`;
       deviceStatus.innerHTML = deviceInfo;
       deviceStatus.className = "device-status detected";
@@ -989,19 +992,23 @@ function updateSetupUI(data) {
     if (jpegQuality && config.jpeg_quality !== undefined) jpegQuality.value = config.jpeg_quality;
 
     const maxConnections = document.getElementById("setup-max-connections");
-    if (maxConnections && config.max_connections !== undefined) maxConnections.value = config.max_connections;
+    if (maxConnections && config.max_connections !== undefined)
+      maxConnections.value = config.max_connections;
 
     const targetFps = document.getElementById("setup-target-fps");
     if (targetFps && config.target_fps !== undefined) targetFps.value = config.target_fps || "";
 
     const pi3Profile = document.getElementById("setup-pi3-profile");
-    if (pi3Profile && config.pi3_profile !== undefined) pi3Profile.value = config.pi3_profile ? "true" : "false";
+    if (pi3Profile && config.pi3_profile !== undefined)
+      pi3Profile.value = config.pi3_profile ? "true" : "false";
 
     const corsOrigins = document.getElementById("setup-cors-origins");
-    if (corsOrigins && config.cors_origins !== undefined) corsOrigins.value = config.cors_origins || "";
+    if (corsOrigins && config.cors_origins !== undefined)
+      corsOrigins.value = config.cors_origins || "";
 
     const mockCamera = document.getElementById("setup-mock-camera");
-    if (mockCamera && config.mock_camera !== undefined) mockCamera.value = config.mock_camera ? "true" : "false";
+    if (mockCamera && config.mock_camera !== undefined)
+      mockCamera.value = config.mock_camera ? "true" : "false";
   }
 }
 
@@ -1126,8 +1133,11 @@ async function onGenerateClick() {
       resolution: document.getElementById("setup-resolution")?.value || "",
       fps: parseInt(document.getElementById("setup-fps")?.value || "0") || 0,
       jpeg_quality: parseInt(document.getElementById("setup-jpeg-quality")?.value || "90") || 90,
-      max_connections: parseInt(document.getElementById("setup-max-connections")?.value || "10") || 10,
-      target_fps: document.getElementById("setup-target-fps")?.value ? parseInt(document.getElementById("setup-target-fps")?.value) : null,
+      max_connections:
+        parseInt(document.getElementById("setup-max-connections")?.value || "10") || 10,
+      target_fps: document.getElementById("setup-target-fps")?.value
+        ? parseInt(document.getElementById("setup-target-fps")?.value)
+        : null,
       pi3_profile: document.getElementById("setup-pi3-profile")?.value === "true",
       cors_origins: document.getElementById("setup-cors-origins")?.value || "",
       mock_camera: document.getElementById("setup-mock-camera")?.value === "true",

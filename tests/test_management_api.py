@@ -39,7 +39,9 @@ def test_node_crud_and_overview(monkeypatch, tmp_path):
     assert listed.status_code == 200
     assert len(listed.json["nodes"]) == 1
 
-    updated = client.put("/api/nodes/node-1", json={"name": "Front Door Cam"}, headers=_auth_headers())
+    updated = client.put(
+        "/api/nodes/node-1", json={"name": "Front Door Cam"}, headers=_auth_headers()
+    )
     assert updated.status_code == 200
     assert updated.json["name"] == "Front Door Cam"
 
@@ -91,8 +93,6 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
     assert action.json["error"]["code"] == "TRANSPORT_UNSUPPORTED"
 
 
-
-
 def test_create_node_rejects_unmigratable_legacy_basic_auth(monkeypatch, tmp_path):
     client = _new_management_client(monkeypatch, tmp_path)
 
@@ -110,7 +110,10 @@ def test_create_node_rejects_unmigratable_legacy_basic_auth(monkeypatch, tmp_pat
     response = client.post("/api/nodes", json=payload, headers=_auth_headers())
     assert response.status_code == 400
     assert response.json["error"]["code"] == "VALIDATION_ERROR"
-    assert "auth.type='basic' cannot be auto-migrated without an API token" in response.json["error"]["message"]
+    assert (
+        "auth.type='basic' cannot be auto-migrated without an API token"
+        in response.json["error"]["message"]
+    )
 
 
 def test_ssrf_protection_blocks_local_targets(monkeypatch, tmp_path):
@@ -254,7 +257,6 @@ def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
     assert authorized.json["id"] == "node-docker-shared"
 
 
-
 def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch, tmp_path):
     import management_api
 
@@ -282,7 +284,9 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
     created = client.post("/api/nodes", json=payload, headers=_auth_headers())
     assert created.status_code == 201
 
-    response = client.put("/api/nodes/node-race", json={"name": "Updated Name"}, headers=_auth_headers())
+    response = client.put(
+        "/api/nodes/node-race", json={"name": "Updated Name"}, headers=_auth_headers()
+    )
     assert response.status_code == 404
     assert response.json["error"]["code"] == "NODE_NOT_FOUND"
 
@@ -557,6 +561,7 @@ def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch
     assert unsupported.json["status_code"] == 400
     assert unsupported.json["response"]["error"]["code"] == "ACTION_UNSUPPORTED"
 
+
 def test_node_action_maps_invalid_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
     import management_api
 
@@ -590,6 +595,7 @@ def test_node_action_maps_invalid_upstream_payload_to_controlled_error(monkeypat
     assert response.json["error"]["code"] == "NODE_INVALID_RESPONSE"
     assert response.json["error"]["details"]["reason"] == "malformed json"
     assert response.json["error"]["details"]["action"] == "restart"
+
 
 def test_create_node_migrates_legacy_auth_with_token(monkeypatch, tmp_path):
     client = _new_management_client(monkeypatch, tmp_path)
@@ -722,6 +728,7 @@ def test_request_json_maps_name_resolution_failure_to_node_request_error(monkeyp
         raise AssertionError("expected NodeRequestError")
     except management_api.NodeRequestError as exc:
         assert str(exc) == "node target is invalid"
+
 
 def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
     import management_api
