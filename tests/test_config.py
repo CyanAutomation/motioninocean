@@ -521,7 +521,12 @@ def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspa
 
 def test_setup_ui_generated_compose_includes_v4l_subdev_mapping(workspace_root):
     """Verify setup UI compose generation emits /dev/v4l-subdev* mappings."""
+    original_path = sys.path.copy()
     sys.path.insert(0, str(workspace_root / "pi_camera_in_docker"))
+    try:
+        import main
+    finally:
+        sys.path[:] = original_path
     import main
 
     detected_devices = {
