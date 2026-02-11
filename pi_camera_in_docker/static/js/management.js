@@ -163,6 +163,7 @@ async function refreshStatuses({ fromInterval = false } = {}) {
       statusRefreshPending = false;
       allowManualFeedback = statusRefreshPendingManual;
       statusRefreshPendingManual = false;
+      showedUnauthorizedFeedback = false;
 
       const currentToken = ++statusRefreshToken;
       const nextStatusMap = new Map();
