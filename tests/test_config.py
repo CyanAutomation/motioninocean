@@ -492,7 +492,12 @@ def test_detect_devices_script_includes_v4l_subdev(workspace_root):
 
 def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspace_root):
     """Verify setup UI device detection captures /dev/v4l-subdev* nodes."""
+    original_path = sys.path.copy()
     sys.path.insert(0, str(workspace_root / "pi_camera_in_docker"))
+    try:
+        import main
+    finally:
+        sys.path[:] = original_path
     import main
 
     existing_paths = {
