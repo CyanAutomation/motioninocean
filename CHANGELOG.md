@@ -94,6 +94,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.4] - 2026-02-11
+
+- Add comprehensive documentation and test suite for parallel container communication
+- Refactor: Remove config status bar and related functionality from app and CSS
+- Merge pull request #214 from CyanAutomation/codex/update-api-requests-to-include-bearer-token
+- Update pi_camera_in_docker/static/js/management.js
+- Merge pull request #213 from CyanAutomation/codex/update-base-url-field-constraints
+- Update pi_camera_in_docker/templates/management.html
+- Add bearer-token support for management API requests
+- Allow HTTPS base URLs in management form validation
+- Merge pull request #212 from CyanAutomation/codex/fix-env-key-mismatch-in-setup-and-runtime
+- Merge pull request #211 from CyanAutomation/codex/adjust-refresh-coordination-in-management.js
+- Update management.js
+- Update management.js
+- Fix Pi3 profile env key mismatch across setup and runtime
+- Fix overlapping management status refresh coordination
+- Merge pull request #210 from CyanAutomation/codex/update-pi_camera_in_docker-for-device-discovery
+- Merge pull request #209 from CyanAutomation/codex/update-device-detection-and-configuration-scripts
+- Update test_config.py
+- Update test_config.py
+- Update test_config.py
+- Merge pull request #208 from CyanAutomation/codex/enhance-failure-diagnostics-in-pi_camera_in_docker
+- Improve camera preflight node discovery and warnings
+- Document subdev override workflow and test setup UI subdev mappings
+- Improve no-camera diagnostics with device inventory logging
+- Merge pull request #207 from CyanAutomation/codex/update-device-detection-and-docker-compose-configuration
+- Merge branch 'main' into codex/update-device-detection-and-docker-compose-configuration
+- Add v4l-subdev device detection and compose mappings
+- chore: automated code quality fixes [nightly] (#206)
+- Merge pull request #205 from CyanAutomation/codex/github-mention-codex-generated-pull-request
+- Adjust camera preflight warning for partial node setups
+- Merge pull request #204 from CyanAutomation/codex/update-device-availability-checks-in-pi_camera
+- Improve camera device preflight discovery and warnings
+- Created config tab report
+- Add Config Tab Usability Test Script with Playwright
+
 ## [1.13.3] - 2026-02-10
 
 - refactor: enhance GPG key download process with improved error handling and retry logic
