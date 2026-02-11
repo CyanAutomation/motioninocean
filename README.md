@@ -217,7 +217,7 @@ MOCK_CAMERA=false
 
 ### Pi 3 recommended preset
 
-For Raspberry Pi 3, enable PI3_PROFILE to apply conservative defaults when explicit runtime env vars are absent:
+For Raspberry Pi 3, enable MOTION_IN_OCEAN_PI3_PROFILE to apply conservative defaults when explicit runtime env vars are absent:
 
 ```env
 MOTION_IN_OCEAN_PI3_PROFILE=true

@@ -92,6 +92,12 @@ def _load_config() -> Dict[str, Any]:
     if not 1 <= max_stream_connections <= 100:
         max_stream_connections = 10
 
+    # Canonical Pi 3 profile env var is MOTION_IN_OCEAN_PI3_PROFILE.
+    # Keep PI3_PROFILE as a legacy fallback for backward compatibility.
+    pi3_profile_raw = os.environ.get(
+        "MOTION_IN_OCEAN_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false")
+    )
+
     return {
         "app_mode": app_mode,
         "resolution": resolution,
@@ -100,8 +106,7 @@ def _load_config() -> Dict[str, Any]:
         "jpeg_quality": jpeg_quality,
         "max_frame_age_seconds": max_frame_age,
         "max_stream_connections": max_stream_connections,
-        "pi3_profile_enabled": os.environ.get("PI3_PROFILE", "false").lower()
-        in ("1", "true", "yes"),
+        "pi3_profile_enabled": pi3_profile_raw.lower() in ("1", "true", "yes"),
         "mock_camera": is_flag_enabled("MOCK_CAMERA"),
         "cors_enabled": is_flag_enabled("CORS_SUPPORT"),
         "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
@@ -213,7 +218,9 @@ def _collect_current_config() -> Dict[str, Any]:
     except ValueError:
         max_stream_connections = 10
 
-    pi3_profile = os.environ.get("MOTION_IN_OCEAN_PI3_PROFILE", "false").lower() in (
+    pi3_profile = os.environ.get(
+        "MOTION_IN_OCEAN_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false")
+    ).lower() in (
         "1",
         "true",
         "yes",
@@ -379,6 +386,7 @@ services:
       TARGET_FPS: ${MOTION_IN_OCEAN_TARGET_FPS:-}
       JPEG_QUALITY: ${MOTION_IN_OCEAN_JPEG_QUALITY}
       MAX_STREAM_CONNECTIONS: ${MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS:-2}
+      # Canonical Pi 3 profile toggle consumed by runtime config loading.
       MOTION_IN_OCEAN_PI3_PROFILE: ${MOTION_IN_OCEAN_PI3_PROFILE:-false}
       MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
       CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
@@ -422,6 +430,7 @@ def _generate_env_content(config: Dict[str, Any]) -> str:
         f"MOTION_IN_OCEAN_TARGET_FPS={config.get('target_fps', '') or ''}",
         f"MOTION_IN_OCEAN_JPEG_QUALITY={config.get('jpeg_quality', 90)}",
         f"MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS={config.get('max_connections', 10)}",
+        # Canonical Pi 3 profile env variable consumed by runtime config loading.
         f"MOTION_IN_OCEAN_PI3_PROFILE={'true' if config.get('pi3_profile') else 'false'}",
         "",
         "# Features and Integration",
