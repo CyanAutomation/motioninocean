@@ -1,11 +1,15 @@
 # Motion In Ocean - Management Mode Deployment
-# ⚠️  DEPRECATED: Use containers/motioniocean-management/docker-compose.yml instead
-# This file is kept for backward compatibility but will be removed in a future release.
-# See MIGRATION.md for upgrade guidance.
-#
 # Node registry hub service for coordinating multiple remote cameras
 # No hardware access required; safe to run on any host
-# Legacy Usage: docker compose -f docker-compose.management.yaml up
+#
+# Standard Usage:
+#   docker compose up -d
+#
+# Requirements:
+#   - Copy .env.example to .env and customize
+#   - Optionally mount shared node registry volume (see "volumes" section)
+
+version: '3.8'
 
 services:
   motion-in-ocean:
@@ -32,7 +36,7 @@ services:
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
 
     ports:
-      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT:-8000}:8000"
+      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT:-8001}:8000"
 
     volumes:
       # Persistent storage for node registry
@@ -48,3 +52,15 @@ services:
 volumes:
   motion-in-ocean-data:
     driver: local
+
+# To use a shared node registry volume across multiple hosts:
+# 1. Create a named volume on your Docker host:
+#    docker volume create motion-in-ocean-registry
+# 2. Uncomment the alternative volumes section below
+# 3. Ensure the volume is accessible from all remote webcam nodes
+
+# Alternative (shared registry - requires pre-created named volume):
+# volumes:
+#   motion-in-ocean-data:
+#     external: true
+#     name: motion-in-ocean-registry

@@ -1,10 +1,20 @@
 # Motion In Ocean - Webcam Mode Deployment
-# ⚠️  DEPRECATED: Use containers/motioniocean-webcam/docker-compose.yml instead
-# This file is kept for backward compatibility but will be removed in a future release.
-# See MIGRATION.md for upgrade guidance.
+# Streaming-only deployment with simplified device access
 #
-# Simplified configuration for streaming-only deployment
-# Legacy Usage: docker compose -f docker-compose.webcam.yaml up
+# Standard Usage:
+#   docker compose up -d
+#
+# With Hardened Security (explicit device mappings):
+#   docker compose -f docker-compose.yml -f docker-compose.hardened.yml up -d
+#
+# With Mock Camera (for testing without hardware):
+#   docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
+#
+# Requirements:
+#   - Copy .env.example to .env and customize
+#   - (Optional) Run ../detect-devices.sh to generate docker-compose.override.yml
+
+version: '3.8'
 
 services:
   motion-in-ocean:
@@ -26,7 +36,7 @@ services:
     environment:
       TZ: ${TZ:-Europe/London}
       APP_MODE: webcam
-      
+
       # Camera configuration
       RESOLUTION: ${MOTION_IN_OCEAN_RESOLUTION}
       FPS: ${MOTION_IN_OCEAN_FPS}
@@ -34,7 +44,7 @@ services:
       JPEG_QUALITY: ${MOTION_IN_OCEAN_JPEG_QUALITY}
       MAX_STREAM_CONNECTIONS: ${MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS:-2}
       MOTION_IN_OCEAN_PI3_PROFILE: ${MOTION_IN_OCEAN_PI3_PROFILE:-false}
-      
+
       # Shared settings
       MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
       CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
@@ -49,6 +59,7 @@ services:
 
     # Privileged mode allows access to all host devices
     # Suitable for homelab deployments on trusted networks
+    # For production, use: docker compose -f docker-compose.yml -f docker-compose.hardened.yml
     privileged: true
 
     healthcheck:

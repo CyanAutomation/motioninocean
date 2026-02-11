@@ -1,0 +1,2 @@
+# Shared resources directory for Motion In Ocean deployments
+# This directory can store shared persistent volumes, certificates, or shared configuration
