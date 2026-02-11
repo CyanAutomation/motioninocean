@@ -37,12 +37,12 @@ function mergeHeaders(baseHeaders = {}, requestHeaders = {}) {
 async function managementFetch(path, options = {}) {
   const token = getManagementBearerToken();
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-  const requestHeaders = mergeHeaders(authHeaders, options.headers || {});
 
   const response = await fetch(path, {
     ...options,
-    headers: requestHeaders,
+    headers: { ...options.headers, ...authHeaders },
   });
+
 
   if (response.status === 401) {
     const unauthorizedError = new Error(API_AUTH_HINT);
