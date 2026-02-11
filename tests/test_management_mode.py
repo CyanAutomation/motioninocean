@@ -127,9 +127,15 @@ def test_request_logging_levels(monkeypatch):
         assert metrics.status_code == 200
 
         health_record = next((message for _, message in records if "path=/health" in message), None)
-        metrics_record = next((message for _, message in records if "path=/metrics" in message), None)
-        health_level = next((level for level, message in records if "path=/health" in message), None)
-        metrics_level = next((level for level, message in records if "path=/metrics" in message), None)
+        metrics_record = next(
+            (message for _, message in records if "path=/metrics" in message), None
+        )
+        health_level = next(
+            (level for level, message in records if "path=/health" in message), None
+        )
+        metrics_level = next(
+            (level for level, message in records if "path=/metrics" in message), None
+        )
 
         assert health_record is not None, "No health endpoint log found"
         assert metrics_record is not None, "No metrics endpoint log found"

@@ -46,9 +46,7 @@ def test_create_node_rejects_basic_auth_without_convertible_token(tmp_path):
         registry.create_node(node)
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
-        assert (
-            "auth.type='basic' cannot be auto-migrated without an API token" in str(exc)
-        )
+        assert "auth.type='basic' cannot be auto-migrated without an API token" in str(exc)
 
 
 def test_create_node_migrates_legacy_auth_with_token(tmp_path):

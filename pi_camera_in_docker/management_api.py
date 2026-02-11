@@ -38,9 +38,6 @@ class NodeInvalidResponseError(NodeRequestError):
 #
 
 
-
-
-
 def _extract_bearer_token() -> Optional[str]:
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.lower().startswith("bearer "):
@@ -116,8 +113,6 @@ def _error_response(
     return jsonify(payload), status_code
 
 
-
-
 def _is_registry_corruption_error(exc: NodeValidationError) -> bool:
     return "node registry file is corrupted and cannot be parsed" in str(exc)
 
@@ -129,6 +124,7 @@ def _registry_corruption_response(exc: NodeValidationError):
         500,
         details={"reason": "invalid registry json"},
     )
+
 
 def _build_headers(node: Dict[str, Any]) -> Dict[str, str]:
     auth = node.get("auth", {})
@@ -295,7 +291,11 @@ def register_management_routes(
 
     @app.before_request
     def _management_auth_guard() -> Optional[Tuple[Any, int]]:
-        if request.path == "/api/management/overview" or request.path.startswith("/api/nodes/") or request.path == "/api/nodes":
+        if (
+            request.path == "/api/management/overview"
+            or request.path.startswith("/api/nodes/")
+            or request.path == "/api/nodes"
+        ):
             return _enforce_management_auth()
         return None
 
@@ -344,7 +344,10 @@ def register_management_routes(
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
             raise
-        effective_transport = payload.get("transport", existing.get("transport") if (existing and isinstance(existing, dict)) else None)
+        effective_transport = payload.get(
+            "transport",
+            existing.get("transport") if (existing and isinstance(existing, dict)) else None,
+        )
         try:
             updated = registry.update_node(node_id, payload)
         except KeyError:

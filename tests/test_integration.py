@@ -137,9 +137,7 @@ def test_camera_detection_error_handling(workspace_root):
     assert "camera_info, detection_path = _get_camera_info" in code, (
         "Camera detection retrieval missing from startup path"
     )
-    assert "Camera inventory detection path" in code, (
-        "Missing camera detection path logging"
-    )
+    assert "Camera inventory detection path" in code, "Missing camera detection path logging"
 
     # Verify empty camera list handling
     assert "if not camera_info:" in code, "Empty camera list check missing"

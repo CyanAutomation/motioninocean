@@ -25,7 +25,9 @@ def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch
     monkeypatch.setattr(main.os.path, "exists", lambda path: True)
 
     logged_info = []
-    monkeypatch.setattr(main.logger, "info", lambda msg, *args: logged_info.append(msg % args if args else msg))
+    monkeypatch.setattr(
+        main.logger, "info", lambda msg, *args: logged_info.append(msg % args if args else msg)
+    )
 
     main._check_device_availability({"mock_camera": False})
 
@@ -461,16 +463,20 @@ def test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes
             )
 
         if mode == "module_level":
+
             def get_camera_info_module(_cls):
                 return ([{"id": "cam0"}], "picamera2.global_camera_info")
+
             monkeypatch.setattr(
                 main,
                 "_get_camera_info",
                 get_camera_info_module,
             )
         else:
+
             def get_camera_info_class(_cls):
                 return ([{"id": "cam0"}], "Picamera2.global_camera_info")
+
             monkeypatch.setattr(
                 main,
                 "_get_camera_info",

@@ -26,7 +26,7 @@ class StreamStats:
 
     def snapshot(self) -> Tuple[int, Optional[float], float]:
         """Atomically snapshot frame metrics for consistent reporting.
-        
+
         Returns a tuple of (frame_count, last_frame_monotonic_time, current_fps).
         FPS is calculated from the most recent frame time window (up to 30 frames).
         If insufficient frame history exists, returns 0.0 fps.
@@ -35,11 +35,11 @@ class StreamStats:
             frame_count = self._frame_count
             last_frame_time = self._last_frame_monotonic
             frame_times = list(self._frame_times_monotonic)
-        
+
         # Need at least 2 frames to calculate meaningful FPS
         if len(frame_times) < 2:
             return frame_count, last_frame_time, 0.0
-        
+
         # Calculate FPS from time span of recorded frames
         time_span = frame_times[-1] - frame_times[0]
         fps = 0.0 if time_span == 0 else (len(frame_times) - 1) / time_span
@@ -146,9 +146,7 @@ def get_stream_status(stats: StreamStats, resolution: Tuple[int, int]) -> Dict[s
     }
 
 
-def register_webcam_routes(
-    app: Flask, state: dict, is_flag_enabled: Callable[[str], bool]
-) -> None:
+def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[str], bool]) -> None:
     output = state["output"]
     tracker = state["connection_tracker"]
 
