@@ -2,6 +2,33 @@
 
 This guide covers deploying Motion in Ocean across multiple hosts on a local network, with management mode on one host coordinating webcam mode instances on remote hosts.
 
+> **Note:** As of February 2026, Motion in Ocean uses simplified, mode-specific compose files. See **Compose Files** section below.
+
+## Quick Reference: Compose Files
+
+Motion in Ocean provides three main compose files for different deployment patterns:
+
+| File | Mode | Use Case | Command |
+|------|------|----------|---------|
+| `docker-compose.webcam.yaml` | Webcam | Single camera streaming | `docker compose -f docker-compose.webcam.yaml up` |
+| `docker-compose.management.yaml` | Management | Multi-camera hub | `docker compose -f docker-compose.management.yaml up` |
+| `docker-compose.hardened.yaml` | Webcam (hardened) | Production with explicit devices | `docker compose -f docker-compose.webcam.yaml -f docker-compose.hardened.yaml up` |
+| `docker-compose.docker-proxy.yaml` | Optional overlay | Fine-grained Docker socket access | Add to any compose stack |
+
+### Minimal .env
+
+All deployments use the same minimal `.env`:
+
+```bash
+MOTION_IN_OCEAN_IMAGE_TAG=latest
+MOTION_IN_OCEAN_PORT=8000
+TZ=Europe/London
+MOTION_IN_OCEAN_MODE=webcam        # or 'management'
+MANAGEMENT_AUTH_TOKEN=              # Leave empty for LAN-only
+```
+
+---
+
 ## Table of Contents
 
 - [Architecture](#architecture)
@@ -64,37 +91,29 @@ HTTP-based access is the recommended approach for most deployments:
 - No firewall rules blocking port 8000 (or custom port) between hosts
 - Network connectivity confirmed (`ping` between hosts)
 
-### Step 1: Configure Webcam Host
+### Step 1: Deploy Webcam Mode on Camera Hosts
 
-On **each webcam host**, expose the service to the network:
-
-```bash
-# Set environment variables to expose service beyond localhost
-export MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
-export MOTION_IN_OCEAN_MODE=webcam
-export MOTION_IN_OCEAN_PORT=8000
-
-# Start service (will use webcam mode from .env or export above)
-docker-compose up -d
-```
-
-Or using `.env` file:
+On **each webcam host**, create `.env` with your configuration and run the webcam compose file:
 
 ```bash
-# .env on webcam host
+# On webcam host:
+# Copy .env.example to .env and customize:
+cp .env.example .env
+
+# In .env, set:
 MOTION_IN_OCEAN_MODE=webcam
-MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
 MOTION_IN_OCEAN_PORT=8000
-MOTION_IN_OCEAN_RESOLUTION=640x480
-MOTION_IN_OCEAN_FPS=30
-MOTION_IN_OCEAN_JPEG_QUALITY=90
+# Optional camera settings:
+# MOTION_IN_OCEAN_RESOLUTION=1280x720
+# MOTION_IN_OCEAN_FPS=30
+# MOTION_IN_OCEAN_JPEG_QUALITY=80
+
+# Start in webcam mode
+docker compose -f docker-compose.webcam.yaml up -d
+docker logs -f --timestamps motion-in-ocean
 ```
 
-Then:
-
-```bash
-docker-compose up -d
-```
+> **Note:** By default, webcam mode binds to `127.0.0.1` (localhost only). For multi-host access, edit the compose file to expose the port to your network. See [Networking](#networking-and-port-binding) section below.
 
 ### Step 2: Verify Webcam Host Connectivity
 
@@ -115,47 +134,28 @@ curl -X GET http://192.168.1.101:8000/ready
 # Expected response: {"status": "ready"} (or "waiting" if camera not yet streaming)
 ```
 
-### Step 3: Configure Management Host
+### Step 3: Deploy Management Mode on Hub Host
 
-**Important: Persistent Storage Setup**
-
-The management mode relies on a **node registry file** to store node configurations. Without persistent storage, node configurations are lost when the container restarts. Docker Compose automatically creates a named volume (`motion-in-ocean-data`) for this purpose.
-
-For production deployments, you should also configure the registry path and authentication:
+On the **management host**, run the management compose file:
 
 ```bash
-# .env on management host
+# On management host:
+cp .env.example .env
+
+# In .env, set:
 MOTION_IN_OCEAN_MODE=management
-MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
 MOTION_IN_OCEAN_PORT=8000
 
-# Persistent storage for node registry (optional: override default /data/node-registry.json)
-# NODE_REGISTRY_PATH=/data/custom-registry.json
+# Optionally enable authentication for production (after you've added nodes):
+# MANAGEMENT_AUTH_TOKEN=openssl_rand_hex_32_output_here
 
-# Authentication (highly recommended for production)
-# Generate a strong token: openssl rand -hex 32
-# MANAGEMENT_AUTH_REQUIRED=true
-# MANAGEMENT_AUTH_TOKEN=YOUR_GENERATED_TOKEN
-
-# Note: MANAGEMENT_AUTH_REQUIRED defaults to true. For localhost-only deployments, 
-# you may set it to false, but always enable authentication for network-accessible deployments.
+# Start in management mode
+docker compose -f docker-compose.management.yaml up -d
 ```
 
-Then:
+**Persistent Storage:**
 
-```bash
-docker-compose up -d
-```
-
-**Verify persistent storage is working:**
-
-```bash
-# Check that the data volume was created
-docker volume ls | grep motion-in-ocean
-
-# Inspect the volume to see where data is stored
-docker volume inspect motion-in-ocean-data
-```
+The management compose file automatically creates a named volume (`motion-in-ocean-data`) at `/data/node-registry.json` for persistent node registry storage. No additional setup is needed.
 
 ### Step 4: Add Nodes via Management UI
 

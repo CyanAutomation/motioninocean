@@ -1,0 +1,46 @@
+# Motion In Ocean - Hardened Security Overlay
+# Define explicit device mappings and cgroup rules for production deployments
+# Usage: docker compose -f docker-compose.webcam.yaml -f docker-compose.hardened.yaml up
+#
+# This file overrides the privileged: true setting from docker-compose.webcam.yaml
+# and replaces it with explicit device mappings and cgroup rules for fine-grained access control.
+# Use this in production environments where defense-in-depth is required.
+
+services:
+  motion-in-ocean:
+    # Remove privileged mode; use explicit device access instead
+    privileged: false
+
+    # Explicit device mappings required for libcamera on Raspberry Pi
+    # These are representative defaults; run ./detect-devices.sh to generate
+    # docker-compose.override.yaml with your host's exact device nodes.
+    devices:
+      # DMA heap devices - required for libcamera memory management
+      - /dev/dma_heap/system:/dev/dma_heap/system
+      - /dev/dma_heap/linux,cma:/dev/dma_heap/linux,cma
+      # Camera and video control devices
+      - /dev/vchiq:/dev/vchiq
+      - /dev/video0:/dev/video0
+      - /dev/v4l-subdev0:/dev/v4l-subdev0
+      - /dev/media0:/dev/media0
+      - /dev/media1:/dev/media1
+      # Graphics device (optional, for pykms support)
+      - /dev/dri:/dev/dri
+
+    # Device group membership for access permissions
+    group_add:
+      - video
+
+    # Device cgroup rules as fallback for unmapped devices
+    # These allow character devices in specific ranges to be accessed
+    device_cgroup_rules:
+      - "c 253:* rmw"   # /dev/dma_heap/* (char device 253)
+      - "c 511:* rmw"   # /dev/vchiq
+      - "c 81:* rmw"    # /dev/video* and /dev/v4l-subdev* devices (all indices automatically)
+      - "c 250:* rmw"   # /dev/media* devices (media controllers for libcamera)
+
+    # Optional: Enable AppArmor with strict profile for additional hardening
+    # Uncomment the line below if your host has AppArmor configured
+    # security_opt:
+    #   - no-new-privileges:true
+    #   - apparmor=docker-default

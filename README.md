@@ -11,7 +11,7 @@
 [![Status](https://img.shields.io/badge/status-alpha-orange)](#project-status)
 
 motion-in-ocean is a **Docker-first** project for running a **Raspberry Pi CSI camera** inside a container and streaming video across the network. It’s intended for **Raspberry Pi homelabs** and remote Docker hosts, where you want a reliable camera stream without installing a full stack directly on the host OS.
-
+> **🔄 Recent Change:** Configuration has been simplified. If you have an existing deployment, please see [MIGRATION.md](MIGRATION.md) for upgrade instructions.
 ---
 
 ## Product Requirements
@@ -23,104 +23,90 @@ For product requirements, see the split PRDs:
 
 ---
 
-## Quick Start (Recommended)
+## Quick Start
 
 > ✅ **Target:** Raspberry Pi OS (64-bit) / Debian Bookworm on ARM64  
 > ✅ **Assumption:** CSI camera enabled and working on the host  
 > ✅ **Usage:** Homelab LAN / VLAN only (do not expose directly to the internet)
 
-### 1) Create folder + config
+### 1) Prepare Configuration
 
-Copy `.env.example` to `.env` and edit it for your environment.
+Copy `.env.example` to `.env`:
 
 ```bash
 mkdir -p ~/containers/motion-in-ocean
 cd ~/containers/motion-in-ocean
 
-curl -fsSL https://raw.githubusercontent.com/<your-org-or-user>/motion-in-ocean/main/.env.example -o .env.example
-cp .env.example .env
+# Copy example config
+curl -fsSL https://raw.githubusercontent.com/CyanAutomation/motioninocean/main/.env.example -o .env
+
+# Edit if needed (optional; defaults work for most homelabs)
 nano .env
 ```
 
-> Tip: If you cloned this repo, you can run `./setup.sh` for a guided setup that copies `.env`, optionally runs `./detect-devices.sh`, and prompts you to select `webcam` or `management` mode (sets `MOTION_IN_OCEAN_MODE` in .env).
-
-### 2) Create `docker-compose.yaml`
-
-```yaml
-services:
-  motion-in-ocean:
-    image: ghcr.io/cyanautomation/motioninocean:latest
-    container_name: motion-in-ocean
-    restart: unless-stopped
-
-    ports:
-      - "127.0.0.1:8000:8000" # localhost only (recommended)
-
-    # Device mappings for webcam mode; safely ignored by management mode
-    devices:
-      - /dev/dma_heap:/dev/dma_heap
-      - /dev/vchiq:/dev/vchiq
-      # Add your /dev/video* and /dev/media* mappings based on your Pi hardware
-      # Tip: use ./detect-devices.sh to identify devices reliably
-
-    env_file:
-      - .env
-
-    # Persistent volume for management mode (safely ignored by webcam mode)
-    volumes:
-      - /run/udev:/run/udev:ro
-      - motion-in-ocean-data:/data
-
-    healthcheck:
-      test: ["CMD", "python3", "/app/healthcheck.py"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-
-volumes:
-  motion-in-ocean-data:
-    driver: local
-```
-
-### 3) Run it
-
-For webcam streaming mode (camera capture and stream):
+The minimal `.env` requires only 5 variables (all have defaults):
 
 ```bash
-# In .env, set: MOTION_IN_OCEAN_MODE=webcam
-docker compose up -d
+MOTION_IN_OCEAN_IMAGE_TAG=latest
+MOTION_IN_OCEAN_PORT=8000
+TZ=Europe/London
+MOTION_IN_OCEAN_MODE=webcam
+MANAGEMENT_AUTH_TOKEN=                  # Leave empty for localhost
+```
+
+### 2) Run in Webcam Mode (Default)
+
+For camera streaming and MJPEG output:
+
+```bash
+docker compose -f docker-compose.webcam.yaml up -d
 docker logs -f --timestamps motion-in-ocean
 ```
 
-For management/control-plane mode (node registry hub):
-
-```bash
-# In .env, set: MOTION_IN_OCEAN_MODE=management
-docker compose up -d
-docker logs -f --timestamps motion-in-ocean
-```
-
-If you browse to your host IP and get no response, set `MOTION_IN_OCEAN_BIND_HOST=0.0.0.0` in `.env` and recreate containers:
-
-```bash
-docker compose up -d --force-recreate
-```
-
-⚠️ `0.0.0.0` should only be used on trusted networks.
-
-Request logging is enabled in both app modes. Each request emits a compact line with method, path, status, and latency in milliseconds (for example: `request method=GET path=/metrics status=200 latency_ms=1.2`). To reduce noise in `docker logs`, `/health` and `/ready` are logged at `DEBUG`, while all other endpoints remain at `INFO`.
-
-### 4) Check health
+Then test:
 
 ```bash
 curl http://localhost:8000/health
-curl http://localhost:8000/ready
-# management profile (default port)
-curl http://localhost:8001/health
+curl http://localhost:8000/stream.mjpg     # Open in browser or VLC
+```
+
+### 3) Run in Management Mode (Optional)
+
+For multi-camera hub / node registry (no camera hardware required):
+
+```bash
+# First, edit .env:
+# MOTION_IN_OCEAN_MODE=management
+
+docker compose -f docker-compose.management.yaml up -d
+docker logs -f --timestamps motion-in-ocean
+```
+
+Then test:
+
+```bash
+curl http://localhost:8000/api/nodes
+```
+
+### 4) (Optional) Use Hardened Security Mode
+
+For production deployments with explicit device mappings instead of `privileged: true`:
+
+```bash
+docker compose -f docker-compose.webcam.yaml -f docker-compose.hardened.yaml up -d
 ```
 
 ---
+## Deployment Modes Explained
 
+| Mode | Use Case | Requires Camera | Compose File |
+|------|----------|-----------------|--------------|
+| **Webcam** | Stream camera to network | Yes | `docker-compose.webcam.yaml` |
+| **Management** | Control plane for remote cameras | No | `docker-compose.management.yaml` |
+| **Hardened** | Production security posture | Yes | `docker-compose.webcam.yaml` + `docker-compose.hardened.yaml` |
+| **With Docker Proxy** | Fine-grained socket access | Optional | Add `docker-compose.docker-proxy.yaml` |
+
+---
 ## What this project is (and isn’t)
 
 ### ✅ What it is
@@ -171,63 +157,37 @@ This project is small and intentionally focused:
 
 ## Configuration
 
-Create/edit `.env`:
+All configuration is in `.env`. The **minimal required variables** are:
 
-```env
-MOTION_IN_OCEAN_MODE=webcam
-MOTION_IN_OCEAN_PORT=8000
-MOTION_IN_OCEAN_RESOLUTION=640x480
+```bash
+MOTION_IN_OCEAN_IMAGE_TAG=latest       # Docker image version
+MOTION_IN_OCEAN_PORT=8000              # HTTP port
+TZ=Europe/London                        # Timezone for logging
+MOTION_IN_OCEAN_MODE=webcam            # webcam or management
+MANAGEMENT_AUTH_TOKEN=                  # Leave empty for localhost/LAN
+```
+
+### Optional Variables (Advanced Users)
+
+If you need to customize camera behavior, add these to `.env`:
+
+```bash
+MOTION_IN_OCEAN_RESOLUTION=1280x720
 MOTION_IN_OCEAN_FPS=30
-MOTION_IN_OCEAN_TARGET_FPS=30
-MOTION_IN_OCEAN_JPEG_QUALITY=100
-MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS=10
-MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY=false
+MOTION_IN_OCEAN_TARGET_FPS=            # Leave empty to disable throttling
+MOTION_IN_OCEAN_JPEG_QUALITY=80
+MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS=4
 MOTION_IN_OCEAN_PI3_PROFILE=false
+MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY=false
 MOTION_IN_OCEAN_CORS_ORIGINS=*
-MOTION_IN_OCEAN_HEALTHCHECK_READY=true
-MOTION_IN_OCEAN_BIND_HOST=127.0.0.1
-TZ=Europe/London
 MOCK_CAMERA=false
-
-# Multi-host deployment (advanced)
-# ENABLE_DOCKER_SOCKET_PROXY=false
-# DOCKER_PROXY_PORT=2375
 ```
 
-### Options
+**Note:** These "advanced" variables are still fully supported in the application code; they're just not documented in the standard `.env.example` to reduce cognitive load for new users.
 
-- `MOTION_IN_OCEAN_MODE` - Runtime application mode (`webcam` or `management`). Default: `webcam`.
-  - `webcam`: Camera streaming service with `/stream.mjpg` and `/snapshot.jpg` endpoints
-  - `management`: Node registry hub service with `/api/nodes/*` endpoints
-- `MOTION_IN_OCEAN_PORT` - Host port for the service. Default: `8000`. Used by both modes.
-- `MOTION_IN_OCEAN_FPS` - Frame rate limit. `0` uses camera default. Maximum recommended: `120`.
-- `MOTION_IN_OCEAN_JPEG_QUALITY` - JPEG quality (1-100) for stream images.
-- `MOTION_IN_OCEAN_TARGET_FPS` - Output throttle FPS. If unset, it defaults to `FPS`.
-- `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS` - Maximum simultaneous `/stream.mjpg` clients.
-- `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` - Enables OctoPrint-compatible webcam routes (`/webcam/?action=stream` and `/webcam/?action=snapshot`). Default: `false`.
-  - Legacy `OCTOPRINT_COMPATIBILITY` is still accepted at runtime for backward compatibility, but `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` is the canonical documented variable.
-- `MOTION_IN_OCEAN_PI3_PROFILE` - Pi 3 recommended defaults profile. When enabled, it only fills missing values with: `RESOLUTION=640x480`, `FPS=12`, `TARGET_FPS=12`, `JPEG_QUALITY=75`, `MAX_STREAM_CONNECTIONS=3`.
-- `MOTION_IN_OCEAN_CORS_ORIGINS` - Comma-separated list of allowed origins for CORS. If unset, defaults to `*` (all origins).
-- `MOTION_IN_OCEAN_HEALTHCHECK_READY` - Healthcheck endpoint selector. Default: `true` (uses `/ready`). In webcam mode waits for stream; in management mode returns immediate success.
-- `MOTION_IN_OCEAN_BIND_HOST` - Network interface to bind to (default: `127.0.0.1` for localhost only). Set to `0.0.0.0` to expose to network. **Multi-host deployments only**.
-- `DOCKER_PROXY_PORT` - Port for docker-socket-proxy service when `ENABLE_DOCKER_SOCKET_PROXY=true`. Default: `2375`. **Advanced / Docker-native deployments only**.
-- `ENABLE_DOCKER_SOCKET_PROXY` - Enable optional docker-socket-proxy service in docker-compose (default: `false`). When `true`, adds a `docker-socket-proxy` container for Docker API access (management mode only). **Advanced / Docker-native deployments only**.
-- `TZ` - Logging timezone.
-- `MOCK_CAMERA` - `true` disables Picamera2 initialisation and streams dummy frames (dev/testing).
+### Migration from Older Versions
 
-### Pi 3 recommended preset
-
-For Raspberry Pi 3, enable MOTION_IN_OCEAN_PI3_PROFILE to apply conservative defaults when explicit runtime env vars are absent:
-
-```env
-MOTION_IN_OCEAN_PI3_PROFILE=true
-# Optional explicit overrides (these win over profile defaults)
-MOTION_IN_OCEAN_RESOLUTION=640x480
-MOTION_IN_OCEAN_FPS=12
-MOTION_IN_OCEAN_TARGET_FPS=12
-MOTION_IN_OCEAN_JPEG_QUALITY=75
-MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS=3
-```
+If you have an existing deployment, see [MIGRATION.md](MIGRATION.md) for a complete guide on updating your configuration.
 
 ---
 

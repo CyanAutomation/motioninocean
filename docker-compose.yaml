@@ -1,68 +1,27 @@
 # Motion In Ocean Docker Compose Configuration
-
-# Base anchor: shared across all profiles
-# Contains image, platform, restart policy, logging, and configuration file loading
-x-motion-in-ocean-common: &motion-in-ocean-common
-  image: ghcr.io/cyanautomation/motioninocean:${MOTION_IN_OCEAN_IMAGE_TAG}
-  platform: linux/arm64
-  restart: unless-stopped
-  env_file: ./.env
-  security_opt:
-    - no-new-privileges:true
-  stop_grace_period: 30s
-  logging:
-    driver: json-file
-    options:
-      max-size: "10m"
-      max-file: "3"
-
-# Camera-specific anchor: ONLY for webcam mode
-# Contains device mappings, volumes, and cgroup rules required for libcamera access
-# Management mode does NOT use this anchor—it has no hardware/device access needs
-x-motion-in-ocean-camera: &motion-in-ocean-camera
-  volumes:
-    - /run/udev:/run/udev:ro
-  # Device access for Raspberry Pi camera
-  # - /dev/dma_heap/*: Required for libcamera memory management on modern Pi OS
-  # - /dev/vchiq: Required for camera ISP on Raspberry Pi
-  # - /dev/video*: Camera device nodes (indices vary by Pi model)
-  # - /dev/v4l-subdev*: V4L2 sub-devices (required for camera sensor control on unicam driver)
-  # - /dev/media*: Media controller devices (required for libcamera camera enumeration)
-  #
-  # IMPORTANT: These are representative defaults only.
-  # Run ./detect-devices.sh and generate docker-compose.override.yaml for exact host mappings.
-  devices:
-    # DMA heap devices - required for libcamera memory management
-    - /dev/dma_heap/system:/dev/dma_heap/system
-    - /dev/dma_heap/linux,cma:/dev/dma_heap/linux,cma
-    # Camera and video control
-    - /dev/vchiq:/dev/vchiq
-    - /dev/video0:/dev/video0
-    - /dev/v4l-subdev0:/dev/v4l-subdev0
-    - /dev/media0:/dev/media0
-    - /dev/media1:/dev/media1
-    # DRM/KMS device (optional, for pykms support)
-    - /dev/dri:/dev/dri
-  # User/group mapping for device access
-  group_add:
-    - video
-  # Device cgroup rules as fallback for any unmapped devices
-  device_cgroup_rules:
-    - "c 253:* rmw" # /dev/dma_heap/* (char device 253)
-    - "c 511:* rmw" # /dev/vchiq
-    - "c 81:* rmw" # /dev/video* and /dev/v4l-subdev* devices (all indices automatically)
-    - "c 250:* rmw" # /dev/media* devices (media controllers for libcamera)
+# Simplified: No YAML anchors, direct service definitions.
 
 services:
-  # Single unified Motion In Ocean service
+  # Motion In Ocean Service
   # Controlled by MOTION_IN_OCEAN_MODE environment variable (webcam or management)
   # APP_MODE determines which endpoints and functionality are available at runtime:
   #   - webcam: Camera streaming endpoints (/stream.mjpg, /snapshot.jpg), readiness probe waits for stream
   #   - management: Node registry management API endpoints (/api/nodes/*), immediate readiness
-  # All device mappings and volumes are included; management mode safely ignores unused camera devices.
   motion-in-ocean:
-    <<: [*motion-in-ocean-common, *motion-in-ocean-camera]
     container_name: motion-in-ocean
+    image: ghcr.io/cyanautomation/motioninocean:${MOTION_IN_OCEAN_IMAGE_TAG}
+    platform: linux/arm64
+    restart: unless-stopped
+    env_file: ./.env
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
     environment:
       # Deployment settings from .env file
       TZ: ${TZ}
@@ -89,20 +48,52 @@ services:
       # true = /ready endpoint (readiness probe; webcam waits for stream, management returns immediate success)
       # false = /health endpoint (liveness probe; always returns 200)
       HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY:-true}
-      
+    
     ports:
       - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT:-8000}:8000"
     
     volumes:
+      - /run/udev:/run/udev:ro
+      # Device access for Raspberry Pi camera
+      # - /dev/dma_heap/*: Required for libcamera memory management on modern Pi OS
+      # - /dev/vchiq: Required for camera ISP on Raspberry Pi
+      # - /dev/video*: Camera device nodes (indices vary by Pi model)
+      # - /dev/v4l-subdev*: V4L2 sub-devices (required for camera sensor control on unicam driver)
+      # - /dev/media*: Media controller devices (required for libcamera camera enumeration)
+      #
+      # IMPORTANT: These are representative defaults only.
+      # Run ./detect-devices.sh and generate docker-compose.override.yaml for exact host mappings.
       # Persistent storage for management mode node registry (safely ignored by webcam mode)
       - motion-in-ocean-data:/data
 
+    devices:
+      # DMA heap devices - required for libcamera memory management
+      - /dev/dma_heap/system:/dev/dma_heap/system
+      - /dev/dma_heap/linux,cma:/dev/dma_heap/linux,cma
+      # Camera and video control
+      - /dev/vchiq:/dev/vchiq
+      - /dev/video0:/dev/video0
+      - /dev/v4l-subdev0:/dev/v4l-subdev0
+      - /dev/media0:/dev/media0
+      - /dev/media1:/dev/media1
+      # DRM/KMS device (optional, for pykms support)
+      - /dev/dri:/dev/dri
+
+    group_add:
+      - video
+
+    device_cgroup_rules:
+      - "c 253:* rmw" # /dev/dma_heap/* (char device 253)
+      - "c 511:* rmw" # /dev/vchiq
+      - "c 81:* rmw" # /dev/video* and /dev/v4l-subdev* devices (all indices automatically)
+      - "c 250:* rmw" # /dev/media* devices (media controllers for libcamera)
+
     healthcheck:
-      test: ["CMD", "python3", "/app/healthcheck.py"]
-      interval: 2m
-      timeout: 10s
+      test: ["CMD-SHELL", "curl -fs http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
       retries: 3
-      start_period: 2m
+      start_period: 30s
 
   # Optional: Docker Socket Proxy for remote Docker host access
   # Enable with: docker compose --profile docker-socket-proxy up

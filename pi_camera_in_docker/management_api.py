@@ -277,12 +277,13 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
 
 
 def register_management_routes(
-    app: Flask, registry_path: str, auth_required: bool = False, auth_token: str = ""
+    app: Flask, registry_path: str, auth_token: str = ""
 ) -> None:
     registry = FileNodeRegistry(registry_path)
 
     def _enforce_management_auth() -> Optional[Tuple[Any, int]]:
-        if not auth_required or not auth_token:
+        # Auth is required if and only if token is non-empty
+        if not auth_token:
             return None
         token = _extract_bearer_token()
         if token is None or token != auth_token:

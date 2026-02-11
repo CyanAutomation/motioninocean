@@ -112,8 +112,7 @@ def _load_config() -> Dict[str, Any]:
         "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
         in ("1", "true", "yes"),
         "node_registry_path": os.environ.get("NODE_REGISTRY_PATH", "/data/node-registry.json"),
-        "management_auth_required": os.environ.get("MANAGEMENT_AUTH_REQUIRED", "true").lower()
-        in ("1", "true", "yes"),
+        # Auth is required if and only if token is non-empty
         "management_auth_token": os.environ.get("MANAGEMENT_AUTH_TOKEN", ""),
     }
 
@@ -446,7 +445,6 @@ def _generate_env_content(config: Dict[str, Any]) -> str:
         "",
         "# Management/Security",
         f"MANAGEMENT_AUTH_TOKEN={config.get('auth_token', '')}",
-        "MANAGEMENT_AUTH_REQUIRED=true",
         "",
     ]
 
@@ -604,13 +602,12 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     register_management_routes(
         app,
         cfg["node_registry_path"],
-        auth_required=cfg["management_auth_required"],
         auth_token=cfg["management_auth_token"],
     )
     # Log management mode startup configuration
     logger.info(
         "management_mode_initialized: auth_required=%s, registry_path=%s",
-        cfg["management_auth_required"],
+        bool(cfg["management_auth_token"]),
         cfg["node_registry_path"],
     )
     return app
