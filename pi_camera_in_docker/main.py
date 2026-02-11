@@ -649,11 +649,14 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
         return
 
     required_devices = ["/dev/vchiq"]
+    node_patterns = {
+        "video": "/dev/video*",
+        "media": "/dev/media*",
+        "v4l_subdev": "/dev/v4l-subdev*",
+        "dma_heap": "/dev/dma_heap/*",
+    }
     discovered_nodes = {
-        "video": sorted(glob.glob("/dev/video*")),
-        "media": sorted(glob.glob("/dev/media*")),
-        "v4l_subdev": sorted(glob.glob("/dev/v4l-subdev*")),
-        "dma_heap": sorted(glob.glob("/dev/dma_heap/*")),
+        node_group: sorted(glob.glob(pattern)) for node_group, pattern in node_patterns.items()
     }
 
     preflight_summary = {
@@ -676,21 +679,24 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
     ):
         logger.warning(
             "No /dev/video*, /dev/media*, or /dev/v4l-subdev* nodes were detected during preflight. "
-            "Camera enumeration is likely to fail. Verify host camera drivers and container device mappings."
+            "Camera enumeration is likely to fail in this container. "
+            "Verify host camera drivers and container device mappings."
         )
     elif not discovered_nodes["video"]:
         missing_node_groups = [
-            pattern
-            for group_name, pattern in (
-                ("video", "/dev/video*"),
-                ("media", "/dev/media*"),
-                ("v4l_subdev", "/dev/v4l-subdev*"),
-            )
+            node_patterns[group_name]
+            for group_name in ("video", "media", "v4l_subdev")
             if not discovered_nodes[group_name]
         ]
+        present_node_groups = [
+            node_patterns[group_name]
+            for group_name in ("video", "media", "v4l_subdev")
+            if discovered_nodes[group_name]
+        ]
         logger.warning(
-            "Camera device preflight found no /dev/video* nodes. Missing groups: %s. "
-            "Streaming is likely unavailable; verify device mappings and driver state.",
+            "Camera device preflight found partial node availability. Present groups: %s. "
+            "Missing groups: %s. Streaming is likely unavailable; verify device mappings and driver state.",
+            ", ".join(present_node_groups),
             ", ".join(missing_node_groups),
         )
 

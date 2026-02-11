@@ -92,8 +92,9 @@ def test_check_device_availability_warns_when_video_nodes_missing(monkeypatch):
     main._check_device_availability({"mock_camera": False})
 
     joined_warning = "\n".join(logged_warning)
-    assert "Camera device preflight found no /dev/video* nodes" in joined_warning
-    assert "/dev/video*" in joined_warning
+    assert "Camera device preflight found partial node availability" in joined_warning
+    assert "Present groups: /dev/media*, /dev/v4l-subdev*" in joined_warning
+    assert "Missing groups: /dev/video*" in joined_warning
     assert "Streaming is likely unavailable" in joined_warning
 
 
@@ -115,7 +116,7 @@ def test_check_device_availability_warns_when_no_camera_nodes_detected(monkeypat
 
     joined_warning = "\n".join(logged_warning)
     assert "Critical camera devices not found" in joined_warning
-    assert "Camera enumeration is likely to fail" in joined_warning
+    assert "Camera enumeration is likely to fail in this container" in joined_warning
     assert "Verify host camera drivers and container device mappings" in joined_warning
 
 
