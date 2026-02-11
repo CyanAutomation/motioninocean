@@ -274,7 +274,7 @@ def test_pi3_profile_applies_defaults_when_explicit_env_absent(workspace_root):
         workspace_root,
         {
             "MOCK_CAMERA": "true",
-            "PI3_PROFILE": "true",
+            "MOTION_IN_OCEAN_PI3_PROFILE": "true",
             "MOTION_IN_OCEAN_PI3_OPTIMIZATION": "false",
         },
         unset_keys=["RESOLUTION", "FPS", "TARGET_FPS", "JPEG_QUALITY", "MAX_STREAM_CONNECTIONS"],
@@ -294,7 +294,7 @@ def test_manual_env_values_override_pi3_profile_defaults(workspace_root):
         workspace_root,
         {
             "MOCK_CAMERA": "true",
-            "PI3_PROFILE": "true",
+            "MOTION_IN_OCEAN_PI3_PROFILE": "true",
             "MOTION_IN_OCEAN_PI3_OPTIMIZATION": "false",
             "RESOLUTION": "1024x768",
             "FPS": "20",
@@ -310,6 +310,35 @@ def test_manual_env_values_override_pi3_profile_defaults(workspace_root):
     assert data["target_fps"] == 8
     assert data["jpeg_quality"] == 88
     assert data["max_stream_connections"] == 9
+
+
+def test_legacy_pi3_profile_env_var_is_still_supported(workspace_root):
+    """Legacy PI3_PROFILE env var should still enable Pi 3 defaults."""
+    data = _load_main_config_with_env(
+        workspace_root,
+        {
+            "MOCK_CAMERA": "true",
+            "PI3_PROFILE": "true",
+            "MOTION_IN_OCEAN_PI3_PROFILE": "false",
+            "MOTION_IN_OCEAN_PI3_OPTIMIZATION": "false",
+        },
+        unset_keys=["RESOLUTION", "FPS", "TARGET_FPS", "JPEG_QUALITY", "MAX_STREAM_CONNECTIONS"],
+    )
+
+    assert data["pi3_profile_enabled"] is False
+
+    data = _load_main_config_with_env(
+        workspace_root,
+        {
+            "MOCK_CAMERA": "true",
+            "PI3_PROFILE": "true",
+            "MOTION_IN_OCEAN_PI3_OPTIMIZATION": "false",
+        },
+        unset_keys=["RESOLUTION", "FPS", "TARGET_FPS", "JPEG_QUALITY", "MAX_STREAM_CONNECTIONS"],
+    )
+
+    assert data["pi3_profile_enabled"] is True
+    assert data["resolution"] == [640, 480]
 
 
 def test_metrics_remain_stable_under_pi3_target_fps_throttle(workspace_root):
@@ -341,7 +370,7 @@ print(json.dumps(metrics))
     env.update(
         {
             "MOCK_CAMERA": "true",
-            "PI3_PROFILE": "true",
+            "MOTION_IN_OCEAN_PI3_PROFILE": "true",
             "MOTION_IN_OCEAN_PI3_OPTIMIZATION": "false",
             "TARGET_FPS": "12",
         }
