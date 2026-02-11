@@ -17,7 +17,6 @@ const state = {
   currentTab: "main",
   lastConfigUpdate: null,
   configPollingInterval: null,
-  configTimestampInterval: null,
   configInitialLoadPending: false,
   configLoadingDelayTimer: null,
   configLoadingVisible: false,
@@ -82,9 +81,6 @@ function cacheElements() {
 
   // Config panel elements
   state.elements.configLoading = document.getElementById("config-loading");
-  state.elements.configStatusIndicator = document.getElementById("config-status-indicator");
-  state.elements.configStatusText = document.getElementById("config-status-text");
-  state.elements.configLastUpdateTime = document.getElementById("config-last-update-time");
   state.elements.configErrorAlert = document.getElementById("config-error-alert");
   state.elements.configErrorMessage = document.getElementById("config-error-message");
 }
@@ -135,14 +131,12 @@ function attachHandlers() {
     if (document.hidden) {
       stopStatsUpdate();
       stopConfigPolling();
-      stopConfigTimestampUpdate();
     } else {
       if (!state.statsCollapsed && state.currentTab === "main") {
         startStatsUpdate();
         updateStats().catch((error) => console.error("Stats update failed:", error));
       } else if (state.currentTab === "config") {
         startConfigPolling();
-        startConfigTimestampUpdate();
         updateConfig().catch((error) => console.error("Config update failed:", error));
       }
 
@@ -156,8 +150,7 @@ function attachHandlers() {
  */
 function assertSinglePollingMode() {
   const statsPollingActive = state.updateInterval !== null;
-  const configPollingActive =
-    state.configPollingInterval !== null || state.configTimestampInterval !== null;
+  const configPollingActive = state.configPollingInterval !== null;
 
   console.assert(
     !(statsPollingActive && configPollingActive),
@@ -561,9 +554,8 @@ function switchTab(tabName) {
     if (configPanel) configPanel.classList.add("hidden");
     if (setupPanel) setupPanel.classList.add("hidden");
 
-    // Resume stats updates and stop config refresh/timestamp updates
+    // Resume stats updates and stop config refresh updates
     stopConfigPolling();
-    stopConfigTimestampUpdate();
 
     if (!state.statsCollapsed) {
       startStatsUpdate();
@@ -581,7 +573,6 @@ function switchTab(tabName) {
       state.configInitialLoadPending = true;
       updateConfig().catch((error) => console.error("Config update failed:", error));
       startConfigPolling();
-      startConfigTimestampUpdate();
     }
   } else if (tabName === "setup") {
     if (mainSection) mainSection.classList.add("hidden");
@@ -592,7 +583,6 @@ function switchTab(tabName) {
     // Stop all polling
     stopStatsUpdate();
     stopConfigPolling();
-    stopConfigTimestampUpdate();
 
     // Load setup tab if not already loaded
     if (!wasSetupTab) {
@@ -679,9 +669,6 @@ async function updateConfig() {
         state.configLoadingVisible = true;
         state.elements.configLoading.classList.remove("hidden");
       }, 400);
-      updateConfigStatus("fetching", "Loading configuration...");
-    } else {
-      updateConfigStatus("fetching", "Refreshing configuration...");
     }
 
     try {
@@ -690,8 +677,6 @@ async function updateConfig() {
 
       // Update success state
       state.lastConfigUpdate = new Date();
-      updateConfigStatus("ready", "Updated just now");
-      updateConfigTimestampDisplay();
 
       // Hide error alert on success
       if (state.elements.configErrorAlert) {
@@ -700,14 +685,12 @@ async function updateConfig() {
     } catch (error) {
       if (error && error.name === "AbortError") {
         console.warn("Config request timed out, will retry.");
-        updateConfigStatus("error", "Request timed out");
         showConfigError("Configuration request timed out. Will retry automatically.");
         return;
       }
 
       console.error("Failed to fetch config:", error);
       clearConfigDisplay();
-      updateConfigStatus("error", "Failed to load configuration");
       showConfigError(`Failed to load configuration: ${error.message || "Unknown error"}`);
       return;
     }
@@ -728,65 +711,6 @@ async function updateConfig() {
   }
 }
 
-/**
- * Update config status indicator and message
- */
-function updateConfigStatus(status, message) {
-  if (state.elements.configStatusIndicator) {
-    state.elements.configStatusIndicator.className = `config-status-dot ${status}`;
-  }
-  if (state.elements.configStatusText) {
-    state.elements.configStatusText.textContent = message;
-  }
-}
-
-/**
- * Update the "last updated" timestamp display
- */
-function updateConfigTimestampDisplay() {
-  if (!state.elements.configLastUpdateTime) return;
-
-  const now = new Date();
-
-  if (!state.lastConfigUpdate) {
-    state.elements.configLastUpdateTime.textContent = "Now";
-    return;
-  }
-
-  const diffSeconds = Math.floor((now - state.lastConfigUpdate) / 1000);
-
-  if (diffSeconds < 5) {
-    state.elements.configLastUpdateTime.textContent = "Just now";
-  } else if (diffSeconds < 60) {
-    state.elements.configLastUpdateTime.textContent = `${diffSeconds}s ago`;
-  } else {
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    state.elements.configLastUpdateTime.textContent = `${diffMinutes}m ago`;
-  }
-}
-
-/**
- * Start periodic config timestamp updates
- */
-function startConfigTimestampUpdate() {
-  if (state.configTimestampInterval) return;
-
-  // Update immediately and then every second
-  updateConfigTimestampDisplay();
-  state.configTimestampInterval = setInterval(() => {
-    updateConfigTimestampDisplay();
-  }, 1000);
-}
-
-/**
- * Stop periodic config timestamp updates
- */
-function stopConfigTimestampUpdate() {
-  if (state.configTimestampInterval) {
-    clearInterval(state.configTimestampInterval);
-    state.configTimestampInterval = null;
-  }
-}
 
 /**
  * Show error alert in config panel

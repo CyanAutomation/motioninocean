@@ -60,68 +60,6 @@
 }
 
 /* ==========================================
-   Config Status Bar
-   ========================================== */
-
-.config-status-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: linear-gradient(135deg, var(--color-bg-surface), var(--color-bg-subtle));
-  border-bottom: 1px solid var(--color-border-default);
-  border-left: 3px solid var(--accent-primary-30);
-  margin-bottom: var(--spacing-lg);
-  border-radius: var(--radius-md);
-  font-size: 0.85rem;
-}
-
-.status-left {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.config-status-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.config-status-dot.fetching {
-  background: var(--color-warning);
-  box-shadow: 0 0 6px var(--color-warning);
-}
-
-.config-status-dot.ready {
-  background: var(--color-success);
-  box-shadow: 0 0 6px var(--color-success);
-  animation: none;
-}
-
-.config-status-dot.error {
-  background: var(--color-error);
-  animation: none;
-}
-
-.config-status-text {
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-.status-right {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.config-timestamp-display {
-  color: var(--color-text-muted);
-  font-size: 0.8rem;
-  font-style: italic;
-}
-
-/* ==========================================
    Config Loading State
    ========================================== */
 
