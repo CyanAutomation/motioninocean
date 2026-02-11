@@ -497,25 +497,29 @@ def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspa
     try:
         import main
     finally:
+    original_path = sys.path.copy()
+    sys.path.insert(0, str(workspace_root / "pi_camera_in_docker"))
+    try:
+        import main
+
+        existing_paths = {
+            "/dev/vchiq",
+            "/dev/video0",
+            "/dev/media0",
+            "/dev/v4l-subdev0",
+            "/dev/dri",
+        }
+
+        monkeypatch.setattr(main.os.path, "isdir", lambda p: p == "/dev/dma_heap")
+        monkeypatch.setattr(main.os, "listdir", lambda p: ["system"] if p == "/dev/dma_heap" else [])
+        monkeypatch.setattr(main.os.path, "exists", lambda p: p in existing_paths)
+
+        detected = main._detect_camera_devices()
+
+        assert "/dev/v4l-subdev0" in detected["v4l_subdev_devices"]
+        assert detected["has_camera"] is True
+    finally:
         sys.path[:] = original_path
-    import main
-
-    existing_paths = {
-        "/dev/vchiq",
-        "/dev/video0",
-        "/dev/media0",
-        "/dev/v4l-subdev0",
-        "/dev/dri",
-    }
-
-    monkeypatch.setattr(main.os.path, "isdir", lambda p: p == "/dev/dma_heap")
-    monkeypatch.setattr(main.os, "listdir", lambda p: ["system"] if p == "/dev/dma_heap" else [])
-    monkeypatch.setattr(main.os.path, "exists", lambda p: p in existing_paths)
-
-    detected = main._detect_camera_devices()
-
-    assert "/dev/v4l-subdev0" in detected["v4l_subdev_devices"]
-    assert detected["has_camera"] is True
 
 
 
