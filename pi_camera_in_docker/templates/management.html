@@ -12,6 +12,17 @@
     <header class="management-header">
       <h1>Node Management</h1>
       <p class="subtitle">Manage webcam nodes and monitor node health.</p>
+      <label for="management-api-token">Management API Bearer Token (optional)</label>
+      <input
+        id="management-api-token"
+        name="management_api_token"
+        type="password"
+        autocomplete="off"
+        placeholder="Paste token for protected /api requests"
+      />
+      <small>
+        If management API auth is enabled, provide a token and click Refresh to retry failed requests.
+      </small>
     </header>
 
     <main class="management-layout">
