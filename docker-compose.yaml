@@ -29,7 +29,8 @@ x-motion-in-ocean-camera: &motion-in-ocean-camera
   # - /dev/v4l-subdev*: V4L2 sub-devices (required for camera sensor control on unicam driver)
   # - /dev/media*: Media controller devices (required for libcamera camera enumeration)
   #
-  # IMPORTANT: Run ./detect-devices.sh to identify which devices exist on your system
+  # IMPORTANT: These are representative defaults only.
+  # Run ./detect-devices.sh and generate docker-compose.override.yaml for exact host mappings.
   devices:
     # DMA heap devices - required for libcamera memory management
     - /dev/dma_heap/system:/dev/dma_heap/system

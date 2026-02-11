@@ -487,3 +487,47 @@ def test_detect_devices_script_includes_v4l_subdev(workspace_root):
     assert "V4L_SUBDEV_DEVICES" in content, "Missing dedicated v4l-subdev device array"
     assert "/dev/v4l-subdev*" in content, "Missing /dev/v4l-subdev* discovery glob"
     assert "V4L2 sub-device nodes" in content, "Missing v4l-subdev output section"
+
+
+
+def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspace_root):
+    """Verify setup UI device detection captures /dev/v4l-subdev* nodes."""
+    sys.path.insert(0, str(workspace_root / "pi_camera_in_docker"))
+    import main
+
+    existing_paths = {
+        "/dev/vchiq",
+        "/dev/video0",
+        "/dev/media0",
+        "/dev/v4l-subdev0",
+        "/dev/dri",
+    }
+
+    monkeypatch.setattr(main.os.path, "isdir", lambda p: p == "/dev/dma_heap")
+    monkeypatch.setattr(main.os, "listdir", lambda p: ["system"] if p == "/dev/dma_heap" else [])
+    monkeypatch.setattr(main.os.path, "exists", lambda p: p in existing_paths)
+
+    detected = main._detect_camera_devices()
+
+    assert "/dev/v4l-subdev0" in detected["v4l_subdev_devices"]
+    assert detected["has_camera"] is True
+
+
+
+def test_setup_ui_generated_compose_includes_v4l_subdev_mapping(workspace_root):
+    """Verify setup UI compose generation emits /dev/v4l-subdev* mappings."""
+    sys.path.insert(0, str(workspace_root / "pi_camera_in_docker"))
+    import main
+
+    detected_devices = {
+        "dma_heap_devices": ["/dev/dma_heap/system"],
+        "vchiq_device": True,
+        "video_devices": ["/dev/video0"],
+        "media_devices": ["/dev/media0"],
+        "v4l_subdev_devices": ["/dev/v4l-subdev0"],
+        "dri_device": False,
+    }
+
+    compose = main._generate_docker_compose_content({}, detected_devices)
+
+    assert "- /dev/v4l-subdev0:/dev/v4l-subdev0" in compose
