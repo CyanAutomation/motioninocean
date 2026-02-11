@@ -37,6 +37,7 @@ x-motion-in-ocean-camera: &motion-in-ocean-camera
     # Camera and video control
     - /dev/vchiq:/dev/vchiq
     - /dev/video0:/dev/video0
+    - /dev/v4l-subdev0:/dev/v4l-subdev0
     - /dev/media0:/dev/media0
     - /dev/media1:/dev/media1
     # DRM/KMS device (optional, for pykms support)

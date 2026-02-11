@@ -122,6 +122,7 @@ def _detect_camera_devices() -> Dict[str, Any]:
         "has_camera": False,
         "video_devices": [],
         "media_devices": [],
+        "v4l_subdev_devices": [],
         "dma_heap_devices": [],
         "vchiq_device": False,
         "dri_device": False,
@@ -149,6 +150,12 @@ def _detect_camera_devices() -> Dict[str, Any]:
             if os.path.exists(media_device):
                 result["media_devices"].append(media_device)
 
+        # Check v4l sub-device nodes
+        for i in range(64):
+            subdev_device = f"/dev/v4l-subdev{i}"
+            if os.path.exists(subdev_device):
+                result["v4l_subdev_devices"].append(subdev_device)
+
         # Check VCHIQ
         if os.path.exists("/dev/vchiq"):
             result["vchiq_device"] = True
@@ -161,6 +168,7 @@ def _detect_camera_devices() -> Dict[str, Any]:
         result["has_camera"] = bool(
             result["video_devices"]
             or result["media_devices"]
+            or result["v4l_subdev_devices"]
             or result["vchiq_device"]
         )
     except Exception as e:
@@ -339,6 +347,10 @@ x-motion-in-ocean-camera: &motion-in-ocean-camera
 
     if detected_devices.get("media_devices"):
         for device in detected_devices["media_devices"]:
+            compose += f"    - {device}:{device}\n"
+
+    if detected_devices.get("v4l_subdev_devices"):
+        for device in detected_devices["v4l_subdev_devices"]:
             compose += f"    - {device}:{device}\n"
 
     if detected_devices.get("dri_device"):
