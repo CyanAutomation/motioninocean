@@ -150,3 +150,13 @@ def test_camera_detection_error_handling(workspace_root):
     assert "No cameras detected" in code, "Missing camera detection error message"
     assert "device mappings" in code, "Missing device mapping guidance"
     assert "detect-devices.sh" in code, "Missing detect-devices.sh reference"
+
+
+def test_setup_generator_handles_v4l_subdev_devices(workspace_root):
+    """Verify setup generator includes /dev/v4l-subdev* detection and compose mappings."""
+    main_py = workspace_root / "pi_camera_in_docker" / "main.py"
+    code = main_py.read_text()
+
+    assert "v4l_subdev_devices" in code, "Missing v4l_subdev_devices detection key"
+    assert 'subdev_device = f"/dev/v4l-subdev{i}"' in code, "Missing /dev/v4l-subdev* discovery in setup generator"
+    assert 'detected_devices.get("v4l_subdev_devices")' in code, "Missing compose generation for subdev mappings"

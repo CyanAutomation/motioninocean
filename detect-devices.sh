@@ -8,6 +8,7 @@ set -e
 CORE_DEVICES=()
 MEDIA_DEVICES=()
 VIDEO_DEVICES=()
+V4L_SUBDEV_DEVICES=()
 
 echo "[INFO] motion-in-ocean - Camera Device Detection"
 echo "=========================================="
@@ -97,6 +98,23 @@ if [ ${#VIDEO_DEVICES[@]} -eq 0 ]; then
 fi
 
 echo ""
+echo "[INFO] V4L2 sub-device nodes (sensor/control interfaces):"
+echo ""
+
+# Use a glob to find v4l sub-device nodes
+for device in /dev/v4l-subdev*; do
+    if [ -e "$device" ]; then
+        echo "  [INFO] $device"
+        stat -c "    Permissions: %A Owner: %U:%G" "$device"
+        V4L_SUBDEV_DEVICES+=("$device")
+    fi
+done
+
+if [ ${#V4L_SUBDEV_DEVICES[@]} -eq 0 ]; then
+    echo "  [WARN] No /dev/v4l-subdev* devices found"
+fi
+
+echo ""
 echo "[INFO] Recommended docker-compose.yaml configuration:"
 echo ""
 echo "devices:"
@@ -109,6 +127,9 @@ done
 for device in "${VIDEO_DEVICES[@]}"; do
     echo "  - $device:$device"
 done
+for device in "${V4L_SUBDEV_DEVICES[@]}"; do
+    echo "  - $device:$device"
+done
 
 echo ""
 echo "[INFO] Alternative: use device_cgroup_rules (automatically allows all matching devices):"
@@ -116,7 +137,7 @@ echo ""
 echo "device_cgroup_rules:"
 echo "  - 'c 253:* rmw'  # /dev/dma_heap/* (char device 253)"
 echo "  - 'c 511:* rmw'  # /dev/vchiq"
-echo "  - 'c 81:* rmw'   # /dev/video*"
+echo "  - 'c 81:* rmw'   # /dev/video* and /dev/v4l-subdev*"
 echo "  - 'c 250:* rmw'  # /dev/media* (media controllers)"
 echo ""
 
@@ -152,6 +173,9 @@ EOF
         echo "      - $device:$device" >> docker-compose.override.yaml
     done
     for device in "${VIDEO_DEVICES[@]}"; do
+        echo "      - $device:$device" >> docker-compose.override.yaml
+    done
+    for device in "${V4L_SUBDEV_DEVICES[@]}"; do
         echo "      - $device:$device" >> docker-compose.override.yaml
     done
     cat << EOF >> docker-compose.override.yaml

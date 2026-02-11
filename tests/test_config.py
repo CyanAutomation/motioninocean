@@ -108,6 +108,14 @@ def test_docker_compose_device_mappings(workspace_root):
         "Missing /dev/video* device configuration (neither explicit mapping nor cgroup rule)"
     )
 
+    # /dev/v4l-subdev* devices should also be mapped explicitly or covered by cgroup rules.
+    has_v4l_subdev_mapping = any("/dev/v4l-subdev" in str(d) for d in devices)
+    has_v4l_subdev_cgroup_rule = any("81:*" in str(rule) for rule in device_cgroup_rules)
+
+    assert has_v4l_subdev_mapping or has_v4l_subdev_cgroup_rule, (
+        "Missing /dev/v4l-subdev* configuration (neither explicit mapping nor cgroup rule)"
+    )
+
 
 def test_docker_compose_security(workspace_root):
     """Verify security settings."""
@@ -469,3 +477,13 @@ print(json.dumps(results))
     assert results["snapshot"]["status"] == 503
     assert results["stream_cache_buster"]["status"] == results["stream"]["status"]
     assert results["invalid"]["status"] == 400
+
+
+def test_detect_devices_script_includes_v4l_subdev(workspace_root):
+    """Verify detect-devices.sh detects and emits /dev/v4l-subdev* mappings."""
+    script_file = workspace_root / "detect-devices.sh"
+    content = script_file.read_text()
+
+    assert "V4L_SUBDEV_DEVICES" in content, "Missing dedicated v4l-subdev device array"
+    assert "/dev/v4l-subdev*" in content, "Missing /dev/v4l-subdev* discovery glob"
+    assert "V4L2 sub-device nodes" in content, "Missing v4l-subdev output section"
