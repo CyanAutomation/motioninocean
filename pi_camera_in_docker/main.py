@@ -776,15 +776,27 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
         try:
             # Detect available cameras before initialization
             try:
+                detected_devices = _detect_camera_devices()
+                camera_inventory = {
+                    "video_devices": detected_devices.get("video_devices", []),
+                    "media_devices": detected_devices.get("media_devices", []),
+                    "v4l_subdev_devices": detected_devices.get("v4l_subdev_devices", []),
+                    "dma_heap_devices": detected_devices.get("dma_heap_devices", []),
+                    "vchiq_exists": detected_devices.get("vchiq_device", False),
+                }
                 camera_info, detection_path = _get_camera_info(
                     picamera2_cls
                 )  # global_camera_info() marker
                 logger.info("Camera inventory detection path: %s", detection_path)
                 if not camera_info:
-                    message = (
-                        "No cameras detected. Check device mappings in docker-compose.yaml. "
-                        "Run ./detect-devices.sh on the host for configuration help."
+                    logger.error(
+                        "No cameras detected by picamera2 enumeration",
+                        extra={
+                            "camera_info_detection_path": detection_path,
+                            "camera_device_inventory": camera_inventory,
+                        },
                     )
+                    message = "No cameras detected. Check device mappings and camera hardware."
                     raise RuntimeError(message)
                 logger.info(f"Detected {len(camera_info)} camera(s) available")
             except IndexError as e:  # except IndexError marker for camera detection

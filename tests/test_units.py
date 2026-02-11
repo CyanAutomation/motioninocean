@@ -384,6 +384,88 @@ def test_get_camera_info_falls_back_to_class_method(monkeypatch):
         sys.modules.pop("picamera2", None)
 
 
+
+def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypatch):
+    """No-camera RuntimeError path should log detailed detected device inventory."""
+    from threading import Event, RLock
+
+    pytest.importorskip("flask")
+    import main
+    from modes.webcam import ConnectionTracker, FrameBuffer, StreamStats
+
+    cfg = {
+        "mock_camera": False,
+        "allow_pykms_mock": False,
+        "resolution": (640, 480),
+        "fps": 0,
+        "jpeg_quality": 90,
+        "target_fps": 0,
+        "max_frame_age_seconds": 10.0,
+        "max_stream_connections": 10,
+    }
+
+    stream_stats = StreamStats()
+    output = FrameBuffer(stream_stats, target_fps=cfg["target_fps"])
+    state = {
+        "recording_started": Event(),
+        "shutdown_requested": Event(),
+        "camera_lock": RLock(),
+        "output": output,
+        "stream_stats": stream_stats,
+        "connection_tracker": ConnectionTracker(),
+        "max_stream_connections": cfg["max_stream_connections"],
+        "picam2_instance": None,
+    }
+
+    class FakePicamera2:
+        pass
+
+    class FakeJpegEncoder:
+        def __init__(self, q):
+            self.quality = q
+
+    class FakeFileOutput:
+        def __init__(self, out):
+            self.output = out
+
+    inventory = {
+        "video_devices": ["/dev/video0"],
+        "media_devices": ["/dev/media0"],
+        "v4l_subdev_devices": ["/dev/v4l-subdev0"],
+        "dma_heap_devices": ["/dev/dma_heap/system"],
+        "vchiq_device": True,
+    }
+
+    error_calls = []
+
+    def fake_error(msg, *args, **kwargs):
+        error_calls.append((msg, kwargs))
+
+    monkeypatch.setattr(main, "_check_device_availability", lambda _cfg: None)
+    monkeypatch.setattr(
+        main,
+        "import_camera_components",
+        lambda _allow: (FakePicamera2, FakeJpegEncoder, FakeFileOutput),
+    )
+    monkeypatch.setattr(main, "_detect_camera_devices", lambda: inventory)
+    monkeypatch.setattr(main, "_get_camera_info", lambda _cls: ([], "test.path"))
+    monkeypatch.setattr(main.logger, "error", fake_error)
+
+    with pytest.raises(RuntimeError, match=r"No cameras detected\. Check device mappings and camera hardware\."):
+        main._run_webcam_mode(state, cfg)
+
+    assert error_calls
+    assert error_calls[0][0] == "No cameras detected by picamera2 enumeration"
+    logged_extra = error_calls[0][1].get("extra", {})
+    assert logged_extra["camera_info_detection_path"] == "test.path"
+    assert logged_extra["camera_device_inventory"] == {
+        "video_devices": ["/dev/video0"],
+        "media_devices": ["/dev/media0"],
+        "v4l_subdev_devices": ["/dev/v4l-subdev0"],
+        "dma_heap_devices": ["/dev/dma_heap/system"],
+        "vchiq_exists": True,
+    }
+
 def test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes(monkeypatch):
     """Both camera-info discovery modes should reach camera setup without ImportError."""
     import importlib
