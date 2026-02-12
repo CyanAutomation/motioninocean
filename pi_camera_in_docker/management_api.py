@@ -1,5 +1,6 @@
 import ipaddress
 import json
+import ssl
 import socket
 import urllib.error
 import urllib.request
@@ -17,6 +18,16 @@ class NodeRequestError(RuntimeError):
 
 class NodeInvalidResponseError(NodeRequestError):
     """Raised when a proxied node responds with malformed JSON payload."""
+
+
+class NodeConnectivityError(ConnectionError):
+    """Raised when a proxied node request fails due to network-level connectivity issues."""
+
+    def __init__(self, message: str, reason: str, category: str, raw_error: str = ""):
+        super().__init__(message)
+        self.reason = reason
+        self.category = category
+        self.raw_error = raw_error
 
 
 #
@@ -133,6 +144,31 @@ def _build_headers(node: Dict[str, Any]) -> Dict[str, str]:
     return {}
 
 
+def _sanitize_error_text(raw_error: str, limit: int = 240) -> str:
+    collapsed = " ".join(raw_error.split())
+    if len(collapsed) <= limit:
+        return collapsed
+    return f"{collapsed[: limit - 3]}..."
+
+
+def _classify_url_error(reason: Any) -> Tuple[str, str]:
+    if isinstance(reason, (socket.timeout, TimeoutError)):
+        return "request timed out", "timeout"
+    if isinstance(reason, (ssl.SSLError, ssl.CertificateError)):
+        return "tls handshake failed", "tls"
+    if isinstance(reason, (ConnectionRefusedError, ConnectionResetError)):
+        return "connection refused or reset", "connection_refused_or_reset"
+
+    reason_text = str(reason).lower()
+    if "timed out" in reason_text:
+        return "request timed out", "timeout"
+    if any(token in reason_text for token in ("certificate", "ssl", "tls", "wrong version number")):
+        return "tls handshake failed", "tls"
+    if any(token in reason_text for token in ("connection refused", "connection reset", "broken pipe")):
+        return "connection refused or reset", "connection_refused_or_reset"
+    return "connection failed", "network"
+
+
 def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[dict] = None):
     base_url = node["base_url"].rstrip("/")
     _validate_node_base_url(base_url)
@@ -154,8 +190,12 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
         try:
             records = socket.getaddrinfo(hostname, port or None, proto=socket.IPPROTO_TCP)
         except socket.gaierror as exc:
-            message = "node target is invalid"
-            raise NodeRequestError(message) from exc
+            raise NodeConnectivityError(
+                "dns resolution failed",
+                reason="dns resolution failed",
+                category="dns",
+                raw_error=str(exc),
+            ) from exc
         resolved_addresses = tuple(record[4][0] for record in records)
 
     vetted_addresses = _vet_resolved_addresses(resolved_addresses)
@@ -200,10 +240,27 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
                 raise NodeInvalidResponseError(message) from decode_exc
             return exc.code, body_json
         except urllib.error.URLError as exc:
-            connection_errors.append(str(exc.reason))
+            reason, category = _classify_url_error(exc.reason)
+            connection_errors.append(
+                NodeConnectivityError(
+                    reason,
+                    reason=reason,
+                    category=category,
+                    raw_error=str(exc.reason),
+                )
+            )
 
     if connection_errors:
-        raise ConnectionError("; ".join(connection_errors))
+        if len(connection_errors) == 1:
+            raise connection_errors[0]
+        reason = "multiple connection failures"
+        raw_error = "; ".join(err.raw_error for err in connection_errors if err.raw_error)
+        raise NodeConnectivityError(
+            reason,
+            reason=reason,
+            category="network",
+            raw_error=raw_error,
+        )
 
     raise ConnectionError("all connection attempts failed")
 
@@ -240,15 +297,35 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
             f"node {node_id} is unreachable",
             503,
             node_id,
-            {"reason": "target is blocked"},
+            {
+                "reason": "target is blocked",
+                "category": "blocked_target",
+                "raw_error": "",
+            },
         )
-    except ConnectionError:
+    except NodeConnectivityError as exc:
         return {}, (
             "NODE_UNREACHABLE",
             f"node {node_id} is unreachable",
             503,
             node_id,
-            {"reason": "connection failed"},
+            {
+                "reason": exc.reason,
+                "category": exc.category,
+                "raw_error": _sanitize_error_text(exc.raw_error),
+            },
+        )
+    except ConnectionError as exc:
+        return {}, (
+            "NODE_UNREACHABLE",
+            f"node {node_id} is unreachable",
+            503,
+            node_id,
+            {
+                "reason": "connection failed",
+                "category": "network",
+                "raw_error": _sanitize_error_text(str(exc)),
+            },
         )
 
     if any(code in {401, 403} for code in (health_code, ready_code, metrics_code)):
