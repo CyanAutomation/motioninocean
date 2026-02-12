@@ -927,7 +927,7 @@ def test_node_status_reports_connectivity_details(monkeypatch, tmp_path):
 
     status = client.get("/api/nodes/node-timeout/status", headers=_auth_headers())
     assert status.status_code == 503
-    assert status.json["error"]["code"] == "NODE_UNREACHABLE"
+    assert status.json["error"]["code"] == "NETWORK_UNREACHABLE"
     assert status.json["error"]["details"]["reason"] == "request timed out"
     assert status.json["error"]["details"]["category"] == "timeout"
     assert "\n" not in status.json["error"]["details"]["raw_error"]
