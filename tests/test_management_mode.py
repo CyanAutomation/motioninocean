@@ -190,6 +190,14 @@ def test_webcam_control_plane_endpoints_do_not_require_auth_when_token_unset(mon
 def test_webcam_control_plane_endpoints_require_valid_bearer_when_token_set(monkeypatch):
     client = _new_webcam_client(monkeypatch, "node-shared-token")
 
+    unauthorized_status = client.get("/api/status")
+    assert unauthorized_status.status_code == 401
+    assert unauthorized_status.json["error"]["code"] == "UNAUTHORIZED"
+
+    invalid_status = client.get("/api/status", headers={"Authorization": "Bearer wrong"})
+    assert invalid_status.status_code == 401
+    assert invalid_status.json["error"]["code"] == "UNAUTHORIZED"
+
     unauthorized_health = client.get("/health")
     assert unauthorized_health.status_code == 401
     assert unauthorized_health.json["error"]["code"] == "UNAUTHORIZED"
