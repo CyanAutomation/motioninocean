@@ -214,6 +214,30 @@ function formatAggregationDetails(status = {}) {
 function getStatusReason(status = {}) {
   const code = status.error_code;
   const knownReasons = {
+    SSRF_BLOCKED: {
+      title: "Node target is blocked by SSRF protection.",
+      hint: "Use docker network hostname (e.g., 'motion-in-ocean-webcam:8000') or enable MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS. Click Diagnose for details.",
+    },
+    NETWORK_UNREACHABLE: {
+      title: "Node is unreachable on the network.",
+      hint: "Check node is running, network connectivity, and firewall rules. Click Diagnose for details.",
+    },
+    DOCKER_PROXY_UNREACHABLE: {
+      title: "Docker proxy is unreachable.",
+      hint: "Verify docker-socket-proxy is running and accessible on configured host and port. Click Diagnose for details.",
+    },
+    DOCKER_CONTAINER_NOT_FOUND: {
+      title: "Container not found on docker proxy.",
+      hint: "Verify the container ID/name is correct and running on the docker host.",
+    },
+    DOCKER_API_ERROR: {
+      title: "Docker API returned an error.",
+      hint: "Check docker proxy configuration and container status.",
+    },
+    INVALID_DOCKER_URL: {
+      title: "Docker URL is invalid.",
+      hint: "Use format: docker://proxy-hostname:port/container-id",
+    },
     NODE_UNREACHABLE: {
       title: "Node is unreachable.",
       hint: "Check the node base URL, networking, and that the node service is running.",
@@ -333,6 +357,7 @@ function renderRows() {
           <td>
             <div class="row-actions">
               <button class="ui-btn ui-btn--secondary" data-action="edit" data-id="${escapeHtml(node.id)}">Edit</button>
+              <button class="ui-btn ui-btn--secondary" data-action="diagnose" data-id="${escapeHtml(node.id)}">Diagnose</button>
               <button class="ui-btn ui-btn--danger" data-action="delete" data-id="${escapeHtml(node.id)}">Remove</button>
             </div>
           </td>
@@ -526,6 +551,115 @@ function beginEditNode(nodeId) {
   cancelEditBtn.classList.remove("hidden");
 }
 
+async function diagnoseNode(nodeId) {
+  try {
+    const response = await managementFetch(`/api/nodes/${encodeURIComponent(nodeId)}/diagnose`);
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(() => ({}));
+      showFeedback(errorPayload?.error?.message || "Diagnostic request failed", true);
+      return;
+    }
+
+    const diagnosticResult = await response.json();
+    showDiagnosticResults(diagnosticResult);
+  } catch (error) {
+    if (error?.isUnauthorized) {
+      showFeedback(API_AUTH_HINT, true);
+      return;
+    }
+    showFeedback(error.message || "Network error occurred.", true);
+  }
+}
+
+function showDiagnosticResults(diagnosticResult) {
+  const nodeId = diagnosticResult.node_id;
+  const diagnostics = diagnosticResult.diagnostics || {};
+  const guidance = diagnosticResult.guidance || [];
+  
+  let message = `Diagnostic Report for ${nodeId}\n\n`;
+  
+  // Registration check
+  if (!diagnostics.registration?.valid) {
+    message += "❌ Registration: Invalid\n";
+    if (diagnostics.registration?.error) {
+      message += `   Error: ${diagnostics.registration.error}\n`;
+    }
+  } else {
+    message += "✓ Registration: Valid\n";
+  }
+  
+  // URL validation check
+  if (diagnostics.url_validation?.blocked) {
+    message += `❌ URL Validation: Blocked\n`;
+    if (diagnostics.url_validation?.blocked_reason) {
+      message += `   Reason: ${diagnostics.url_validation.blocked_reason}\n`;
+    }
+  } else {
+    message += "✓ URL Validation: Passed\n";
+  }
+  
+  // DNS resolution
+  if (!diagnostics.dns_resolution?.resolves) {
+    message += `❌ DNS Resolution: Failed\n`;
+    if (diagnostics.dns_resolution?.error) {
+      message += `   Error: ${diagnostics.dns_resolution.error}\n`;
+    }
+  } else {
+    message += "✓ DNS Resolution: Success\n";
+    if (diagnostics.dns_resolution?.resolved_ips?.length > 0) {
+      message += `   IPs: ${diagnostics.dns_resolution.resolved_ips.join(", ")}\n`;
+    }
+  }
+  
+  // Network connectivity
+  if (!diagnostics.network_connectivity?.reachable) {
+    message += `❌ Network Connectivity: Unreachable\n`;
+    if (diagnostics.network_connectivity?.error) {
+      message += `   Error: ${diagnostics.network_connectivity.error}\n`;
+    }
+    if (diagnostics.network_connectivity?.category) {
+      message += `   Category: ${diagnostics.network_connectivity.category}\n`;
+    }
+  } else {
+    message += "✓ Network Connectivity: Reachable\n";
+  }
+  
+  // API endpoint
+  if (diagnostics.api_endpoint?.status_code) {
+    message += `✓ API Endpoint (/api/status): HTTP ${diagnostics.api_endpoint.status_code}\n`;
+    if (diagnostics.api_endpoint?.healthy === false && diagnostics.api_endpoint?.status_code === 503) {
+      message += "   Node is reachable but returning 503 (may be initializing)\n";
+    }
+  } else if (!diagnostics.api_endpoint?.accessible) {
+    message += `❌ API Endpoint (/api/status): Not Accessible\n`;
+    if (diagnostics.api_endpoint?.error) {
+      message += `   Error: ${diagnostics.api_endpoint.error}\n`;
+    }
+  }
+  
+  // Guidance
+  if (guidance.length > 0) {
+    message += `\nRecommendations:\n`;
+    guidance.forEach((rec) => {
+      if (rec.includes("✓")) {
+        message += `  ${rec}\n`;
+      } else if (rec.includes("WARNING:")) {
+        message += `  ⚠️  ${rec}\n`;
+      } else {
+        message += `  → ${rec}\n`;
+      }
+    });
+  }
+  
+  // Show in alert (and copy to clipboard)
+  alert(message);
+  
+  // Also try to copy to clipboard
+  navigator.clipboard.writeText(message).catch(() => {
+    // Silently fail if clipboard API not available
+  });
+}
+
 async function removeNode(nodeId) {
   if (!window.confirm(`Delete node ${nodeId}?`)) {
     return;
@@ -572,6 +706,8 @@ function onTableClick(event) {
     beginEditNode(nodeId);
   } else if (action === "delete") {
     removeNode(nodeId);
+  } else if (action === "diagnose") {
+    diagnoseNode(nodeId);
   }
 }
 

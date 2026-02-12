@@ -1,5 +1,6 @@
 import ipaddress
 import json
+import os
 import ssl
 import socket
 import urllib.error
@@ -10,6 +11,11 @@ from urllib.parse import urlparse, urlunparse
 
 from flask import Flask, jsonify, request
 from node_registry import FileNodeRegistry, NodeValidationError
+
+
+# SSRF Protection Configuration
+# Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true to disable private IP blocking (use only in internal networks)
+ALLOW_PRIVATE_IPS = os.environ.get("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "").lower() in {"true", "1", "yes"}
 
 
 class NodeRequestError(RuntimeError):
@@ -74,16 +80,23 @@ def _is_blocked_address(raw: str) -> bool:
     ip = ipaddress.ip_address(raw)
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
         ip = ip.ipv4_mapped
-    return any(
-        (
-            ip.is_private,
-            ip.is_loopback,
-            ip.is_link_local,
-            ip.is_multicast,
-            ip.is_reserved,
-            ip.is_unspecified,
-        )
+    
+    # Check always-blocked categories (not configurable)
+    always_blocked = (
+        ip.is_loopback,
+        ip.is_link_local,
+        ip.is_multicast,
+        ip.is_reserved,
+        ip.is_unspecified,
     )
+    if any(always_blocked):
+        return True
+    
+    # Private IPs can be allowed if explicitly configured for internal networks
+    if ALLOW_PRIVATE_IPS:
+        return False
+    
+    return ip.is_private
 
 
 def _vet_resolved_addresses(addresses: Tuple[str, ...]) -> Tuple[str, ...]:
@@ -265,17 +278,360 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
     raise ConnectionError("all connection attempts failed")
 
 
+def _parse_docker_url(base_url: str) -> Tuple[str, int, str]:
+    """
+    Parse docker:// URLs to extract proxy host, port, and container ID.
+    
+    Format: docker://proxy-hostname:port/container-id
+    Example: docker://docker-proxy.example.com:2375/motion-in-ocean-webcam
+    
+    Returns: (hostname, port, container_id)
+    Raises: ValueError if URL format is invalid
+    """
+    parsed = urlparse(base_url)
+    if parsed.scheme != "docker":
+        raise ValueError(f"Invalid docker URL scheme: {parsed.scheme}. Expected 'docker'.")
+    
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("docker URL must include hostname")
+    
+    port = parsed.port
+    if not port:
+        raise ValueError("docker URL must include port (e.g., docker://proxy:2375/container-id)")
+    
+    container_id = parsed.path.lstrip("/")
+    if not container_id:
+        raise ValueError("docker URL must include container ID (e.g., docker://proxy:2375/container-id)")
+    
+    return hostname, port, container_id
+
+
+def _get_docker_container_status(proxy_host: str, proxy_port: int, container_id: str, auth_headers: Dict[str, str]) -> Tuple[int, Dict[str, Any]]:
+    """
+    Query docker-socket-proxy to get container status.
+    
+    This connects to a docker-socket-proxy instance and queries the container's state.
+    The container must be running to be considered healthy.
+    
+    Returns: (status_code, status_dict)
+    """
+    # Use the proxy to get container info
+    api_url = f"http://{proxy_host}:{proxy_port}/containers/{container_id}/json"
+    
+    headers = {"Content-Type": "application/json", **auth_headers}
+    
+    try:
+        req = urllib.request.Request(url=api_url, method="GET", headers=headers)
+        with urllib.request.urlopen(req, timeout=2.5) as response:
+            payload = response.read().decode("utf-8")
+            container_info = json.loads(payload) if payload else {}
+            
+            # Extract status from container info
+            state = container_info.get("State", {})
+            running = state.get("Running", False)
+            
+            # Build status response in motion-in-ocean format
+            status_response = {
+                "status": "ok" if running else "degraded",
+                "app_mode": "webcam",  # Assume webcam for docker containers
+                "stream_available": running,
+                "camera_active": running,
+                "uptime_seconds": 0,  # Not easily available from container info
+                "fps": 0,
+                "connections": {"current": 0, "max": 0},
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "docker_state": state,  # Include raw docker state for debugging
+            }
+            
+            return 200, status_response
+            
+    except urllib.error.HTTPError as exc:
+        body_text = exc.read().decode("utf-8") if exc.fp else ""
+        try:
+            body_json = json.loads(body_text) if body_text else {}
+        except json.JSONDecodeError:
+            body_json = {"error": body_text}
+        return exc.code, body_json
+    except urllib.error.URLError as exc:
+        reason_msg = str(exc.reason)
+        if "104" in reason_msg or "connection refused" in reason_msg.lower():
+            raise NodeConnectivityError(
+                "docker proxy connection refused",
+                reason="connection refused",
+                category="connection_refused_or_reset",
+                raw_error=reason_msg,
+            )
+        if "timed out" in reason_msg.lower():
+            raise NodeConnectivityError(
+                "docker proxy request timed out",
+                reason="request timed out",
+                category="timeout",
+                raw_error=reason_msg,
+            )
+        raise NodeConnectivityError(
+            "docker proxy connection failed",
+            reason="connection failed",
+            category="network",
+            raw_error=reason_msg,
+        )
+
+
+def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Perform detailed diagnostics on a node registration and connectivity.
+    Returns detailed information for troubleshooting node connectivity issues.
+    """
+    node_id = node["id"]
+    base_url = node.get("base_url", "")
+    transport = node.get("transport", "http")
+    results = {
+        "node_id": node_id,
+        "diagnostics": {
+            "registration": {"valid": False},
+            "url_validation": {"blocked": False},
+            "dns_resolution": {"resolves": False},
+            "network_connectivity": {"reachable": False},
+            "api_endpoint": {"accessible": False, "status_code": None},
+        },
+        "guidance": [],
+    }
+
+    # Handle docker transport separately
+    if transport == "docker":
+        try:
+            proxy_host, proxy_port, container_id = _parse_docker_url(base_url)
+            results["diagnostics"]["registration"]["valid"] = True
+            results["diagnostics"]["url_validation"]["blocked"] = False
+        except ValueError as exc:
+            results["diagnostics"]["registration"]["valid"] = False
+            results["diagnostics"]["registration"]["error"] = str(exc)
+            results["guidance"].append(f"Fix: Invalid docker URL format. Expected: docker://proxy-host:port/container-id. Error: {str(exc)}")
+            return results
+        
+        # Try DNS resolution of proxy host
+        try:
+            records = socket.getaddrinfo(proxy_host, proxy_port, proto=socket.IPPROTO_TCP)
+            resolved_ips = list(set(record[4][0] for record in records))
+            results["diagnostics"]["dns_resolution"]["resolves"] = True
+            results["diagnostics"]["dns_resolution"]["resolved_ips"] = resolved_ips
+        except socket.gaierror as exc:
+            results["diagnostics"]["dns_resolution"]["resolves"] = False
+            results["diagnostics"]["dns_resolution"]["error"] = str(exc)
+            results["guidance"].append(f"Network Issue: DNS failed for docker proxy '{proxy_host}'. Check hostname and network DNS.")
+            return results
+        
+        # Try to connect to docker proxy
+        auth_headers = _build_headers(node)
+        try:
+            status_code, status_payload = _get_docker_container_status(proxy_host, proxy_port, container_id, auth_headers)
+            results["diagnostics"]["network_connectivity"]["reachable"] = True
+            results["diagnostics"]["api_endpoint"]["accessible"] = status_code in {200, 404}
+            results["diagnostics"]["api_endpoint"]["status_code"] = status_code
+            results["diagnostics"]["api_endpoint"]["healthy"] = status_code == 200
+            
+            if status_code == 200:
+                results["guidance"].append("✓ Docker proxy reachable and container found with status: " + status_payload.get("status", "ok"))
+            elif status_code == 404:
+                results["guidance"].append(f"Container '{container_id}' not found on docker proxy {proxy_host}:{proxy_port}. Check container name.")
+            else:
+                results["guidance"].append(f"Docker proxy returned unexpected status {status_code}.")
+        except NodeConnectivityError as exc:
+            results["diagnostics"]["network_connectivity"]["reachable"] = False
+            results["diagnostics"]["network_connectivity"]["error"] = exc.reason
+            results["diagnostics"]["network_connectivity"]["category"] = exc.category
+            if exc.raw_error:
+                results["diagnostics"]["network_connectivity"]["raw_error"] = _sanitize_error_text(exc.raw_error)
+            
+            guidance_map = {
+                "timeout": "Network Timeout: Docker proxy is responding too slowly. Check docker proxy service.",
+                "connection_refused_or_reset": "Connection Error: Docker proxy refused connection. Ensure docker-socket-proxy is running on correct port.",
+                "network": "Network Error: Unable to reach docker proxy. Check network connectivity and firewall rules.",
+            }
+            results["guidance"].append(guidance_map.get(exc.category, f"Docker proxy error: {exc.reason}"))
+        
+        return results
+    
+    # Handle HTTP transport (original logic)
+    # Check registration validity
+    try:
+        _validate_node_base_url(base_url)
+        results["diagnostics"]["registration"]["valid"] = True
+    except NodeRequestError as exc:
+        results["diagnostics"]["registration"]["valid"] = False
+        results["diagnostics"]["registration"]["error"] = str(exc)
+        results["guidance"].append("Fix: Ensure base_url is valid (http:// or https://)")
+        return results
+
+    # Check URL vetting (SSRF protection)
+    parsed = urlparse(base_url)
+    hostname = parsed.hostname
+    try:
+        if _is_blocked_address(hostname):
+            results["diagnostics"]["url_validation"]["blocked"] = True
+            results["diagnostics"]["url_validation"]["blocked_reason"] = "private IP or reserved address"
+            if ALLOW_PRIVATE_IPS:
+                results["guidance"].append(
+                    "WARNING: Code detected SSRF block despite ALLOW_PRIVATE_IPS=true. This is unexpected."
+                )
+            else:
+                results["guidance"].append(
+                    "WARNING: Private IP (192.168.x.x, 10.x.x.x, 172.16.x.x) blocked by SSRF protection. "
+                    "Option 1: Use docker network hostname (e.g., 'motion-in-ocean-webcam:8000'). "
+                    "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management node environment."
+                )
+            return results
+    except ValueError:
+        pass
+
+    # Try DNS resolution
+    try:
+        records = socket.getaddrinfo(hostname, parsed.port or None, proto=socket.IPPROTO_TCP)
+        resolved_ips = list(set(record[4][0] for record in records))
+        results["diagnostics"]["dns_resolution"]["resolves"] = True
+        results["diagnostics"]["dns_resolution"]["resolved_ips"] = resolved_ips
+        
+        # Check if resolved IPs are blocked
+        for ip in resolved_ips:
+            if _is_blocked_address(ip):
+                results["diagnostics"]["url_validation"]["blocked"] = True
+                results["diagnostics"]["url_validation"]["blocked_reason"] = f"resolved to private IP {ip}"
+                if ALLOW_PRIVATE_IPS:
+                    results["guidance"].append(
+                        f"WARNING: Hostname '{hostname}' resolves to a non-private address type that is blocked ({ip})."
+                    )
+                else:
+                    results["guidance"].append(
+                        f"WARNING: Hostname '{hostname}' resolves to private IP {ip}, blocked by SSRF protection. "
+                        "Option 1: Use a public IP or docker network hostname. "
+                        "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management node environment."
+                    )
+                return results
+    except socket.gaierror as exc:
+        results["diagnostics"]["dns_resolution"]["resolves"] = False
+        results["diagnostics"]["dns_resolution"]["error"] = str(exc)
+        results["guidance"].append(f"Network Issue: DNS failed for '{hostname}'. Check hostname spelling and network connectivity.")
+        return results
+
+    # Try actual connectivity
+    try:
+        status_code, status_payload = _request_json(node, "GET", "/api/status")
+        results["diagnostics"]["network_connectivity"]["reachable"] = True
+        results["diagnostics"]["api_endpoint"]["accessible"] = status_code in {200, 503}
+        results["diagnostics"]["api_endpoint"]["status_code"] = status_code
+        results["diagnostics"]["api_endpoint"]["healthy"] = status_code == 200
+        
+        if status_code == 200:
+            results["guidance"].append("✓ Node is reachable and responsive. Status check successful.")
+        elif status_code == 503:
+            results["guidance"].append("Node is reachable but reported 503 Service Unavailable. Camera may still be initializing.")
+        else:
+            results["guidance"].append(f"Node returned unexpected status {status_code}.")
+    except NodeInvalidResponseError:
+        results["diagnostics"]["network_connectivity"]["reachable"] = True
+        results["diagnostics"]["api_endpoint"]["accessible"] = False
+        results["diagnostics"]["api_endpoint"]["error"] = "malformed json response"
+        results["guidance"].append("API Error: Node responded but with invalid JSON. Node may be misconfigured or wrong version.")
+    except NodeRequestError as exc:
+        results["diagnostics"]["url_validation"]["blocked"] = True
+        results["diagnostics"]["url_validation"]["blocked_reason"] = str(exc)
+        results["guidance"].append("URL Validation: Node target is blocked by SSRF protection policy.")
+    except NodeConnectivityError as exc:
+        results["diagnostics"]["network_connectivity"]["reachable"] = False
+        results["diagnostics"]["network_connectivity"]["error"] = exc.reason
+        results["diagnostics"]["network_connectivity"]["category"] = exc.category
+        if exc.raw_error:
+            results["diagnostics"]["network_connectivity"]["raw_error"] = _sanitize_error_text(exc.raw_error)
+        
+        guidance_map = {
+            "dns": "DNS Resolution: Unable to resolve hostname. Check spellingand network DNS.",
+            "timeout": "Network Timeout: Node is responding too slowly or is offline. Check network and node status.",
+            "tls": "TLS Error: SSL/TLS handshake failed. Check node certificate or use http://.",
+            "connection_refused_or_reset": "Connection Error: Node refused connection. Ensure node is running on correct port.",
+            "network": "Network Error: Unable to reach node. Check network connectivity and firewall rules.",
+        }
+        results["guidance"].append(guidance_map.get(exc.category, f"Network error: {exc.reason}"))
+    except ConnectionError as exc:
+        results["diagnostics"]["network_connectivity"]["reachable"] = False
+        results["diagnostics"]["network_connectivity"]["error"] = str(exc)
+        results["guidance"].append("Connection: Unable to connect to node. Check node is running and network is accessible.")
+
+    return results
+
+
 def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tuple]]:
     node_id = node["id"]
-    if node.get("transport") != "http":
+    transport = node.get("transport", "http")
+    base_url = node.get("base_url", "")
+    
+    # Handle docker transport
+    if transport == "docker":
+        try:
+            proxy_host, proxy_port, container_id = _parse_docker_url(base_url)
+        except ValueError as exc:
+            return {}, (
+                "INVALID_DOCKER_URL",
+                f"node {node_id} has an invalid docker URL",
+                400,
+                node_id,
+                {
+                    "reason": str(exc),
+                    "expected_format": "docker://proxy-hostname:port/container-id",
+                    "example": "docker://docker-proxy:2375/motion-in-ocean-webcam",
+                },
+            )
+        
+        auth_headers = _build_headers(node)
+        try:
+            status_code, status_payload = _get_docker_container_status(proxy_host, proxy_port, container_id, auth_headers)
+            
+            if status_code == 200:
+                return {
+                    "node_id": node_id,
+                    "status": status_payload.get("status", "ok"),
+                    "stream_available": bool(status_payload.get("stream_available", False)),
+                    "status_probe": {"status_code": status_code, "payload": status_payload},
+                }, None
+            elif status_code == 404:
+                return {}, (
+                    "DOCKER_CONTAINER_NOT_FOUND",
+                    f"container {container_id} not found on docker proxy {proxy_host}:{proxy_port}",
+                    502,
+                    node_id,
+                    {"container_id": container_id, "proxy": f"{proxy_host}:{proxy_port}"},
+                )
+            else:
+                return {}, (
+                    "DOCKER_API_ERROR",
+                    f"docker proxy returned unexpected status {status_code}",
+                    502,
+                    node_id,
+                    {"status_code": status_code, "proxy": f"{proxy_host}:{proxy_port}"},
+                )
+        except NodeConnectivityError as exc:
+            return {}, (
+                "DOCKER_PROXY_UNREACHABLE",
+                f"cannot reach docker proxy at {proxy_host}:{proxy_port}",
+                503,
+                node_id,
+                {
+                    "reason": exc.reason,
+                    "category": exc.category,
+                    "raw_error": _sanitize_error_text(exc.raw_error),
+                    "proxy": f"{proxy_host}:{proxy_port}",
+                },
+            )
+    
+    # Handle HTTP transport (original logic)
+    if transport != "http":
         return {
             "node_id": node_id,
-            "transport": node.get("transport"),
+            "transport": transport,
             "status": "unknown",
             "stream_available": False,
             "error": {
                 "code": "TRANSPORT_UNSUPPORTED",
-                "message": "status aggregation currently supports http transport only",
+                "message": f"transport '{transport}' is not supported",
             },
         }, None
 
@@ -289,21 +645,39 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
             node_id,
             {"reason": "malformed json"},
         )
-    except NodeRequestError:
+    except NodeRequestError as exc:
+        # Distinguish SSRF blocking from other errors
+        error_msg = str(exc).lower()
+        if "not allowed" in error_msg or "blocked" in error_msg:
+            guidance = (
+                "Use docker network hostname (e.g., 'motion-in-ocean-webcam:8000') "
+                "or set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management node (internal networks only)"
+            )
+            return {}, (
+                "SSRF_BLOCKED",
+                f"node {node_id} target is blocked by SSRF protection",
+                503,
+                node_id,
+                {
+                    "reason": "SSRF protection blocks private IPs",
+                    "category": "ssrf_blocked",
+                    "guidance": guidance,
+                },
+            )
         return {}, (
             "NODE_UNREACHABLE",
             f"node {node_id} is unreachable",
             503,
             node_id,
             {
-                "reason": "target is blocked",
-                "category": "blocked_target",
-                "raw_error": "",
+                "reason": "target validation failed",
+                "category": "invalid_target",
+                "raw_error": str(exc),
             },
         )
     except NodeConnectivityError as exc:
         return {}, (
-            "NODE_UNREACHABLE",
+            "NETWORK_UNREACHABLE",
             f"node {node_id} is unreachable",
             503,
             node_id,
@@ -315,7 +689,7 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
         )
     except ConnectionError as exc:
         return {}, (
-            "NODE_UNREACHABLE",
+            "NETWORK_UNREACHABLE",
             f"node {node_id} is unreachable",
             503,
             node_id,
@@ -488,6 +862,39 @@ def register_management_routes(
         if error:
             return _error_response(*error)
         return jsonify(result), 200
+
+    @app.route("/api/nodes/<node_id>/diagnose", methods=["GET"])
+    def diagnose_node(node_id: str):
+        """
+        Perform detailed diagnostics on node connectivity and configuration.
+        Returns structured diagnostic information and actionable guidance.
+        
+        Endpoints:
+        - /api/nodes/{node_id}/diagnose - comprehensive connectivity diagnostics
+        
+        Response:
+        - node_id: ID of the node
+        - diagnostics: nested object with test results
+          - registration: URL validation
+          - url_validation: SSRF protection screening
+          - dns_resolution: hostname resolution
+          - network_connectivity: TCP connectivity to node
+          - api_endpoint: /api/status endpoint accessibility
+        - guidance: list of human-readable recommendations
+        """
+        try:
+            node = registry.get_node(node_id)
+        except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
+            raise
+        if node is None:
+            return _error_response(
+                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+            )
+
+        results = _diagnose_node(node)
+        return jsonify(results), 200
 
     @app.route("/api/nodes/<node_id>/actions/<action>", methods=["POST"])
     def node_action(node_id: str, action: str):
