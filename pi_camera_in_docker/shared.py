@@ -52,7 +52,7 @@ def register_shared_routes(
     def _build_management_status_payload() -> dict:
         return {
             "status": "ok",
-            "app_mode": state["app_mode"],
+            "app_mode": state.get("app_mode", "unknown"),
             "stream_available": False,
             "camera_active": False,
             "uptime_seconds": round(time.monotonic() - getattr(app, 'start_time_monotonic', time.monotonic()), 2),
