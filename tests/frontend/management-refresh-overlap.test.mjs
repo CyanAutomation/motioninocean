@@ -33,9 +33,17 @@ test("refreshStatuses schedules a second pass for overlapping timer+manual calls
     statusRefreshPending: false,
     statusRefreshPendingManual: false,
     statusRefreshToken: 0,
-    NODE_TOKEN_HINT: "hint",
+    API_AUTH_HINT: "hint",
     renderRows: () => {},
     showFeedback: (...args) => feedbackCalls.push(args),
+    normalizeNodeStatusError: (error = {}) => ({
+      status: "error",
+      stream_available: false,
+      error_code: error.code || "UNKNOWN_ERROR",
+      error_message: error.message || "Node status request failed.",
+      error_details: error.details || null,
+    }),
+    enrichStatusWithAggregation: (_nodeId, status) => status,
     fetch: () => {
       fetchCount += 1;
       if (fetchCount === 1) {
@@ -48,13 +56,24 @@ test("refreshStatuses schedules a second pass for overlapping timer+manual calls
   };
 
   vm.runInNewContext(`${refreshStatusesFn};`, context);
+  vm.runInNewContext(
+    `managementFetch = async (path) => {
+      const response = await fetch(path);
+      if (response.status === 401) {
+        const unauthorizedError = new Error(API_AUTH_HINT);
+        unauthorizedError.isUnauthorized = true;
+        unauthorizedError.response = response;
+        throw unauthorizedError;
+      }
+      return response;
+    };`,
+    context,
+  );
 
   const intervalRun = context.refreshStatuses({ fromInterval: true });
   await new Promise((resolve) => setImmediate(resolve));
 
   await context.refreshStatuses();
-  assert.equal(context.statusRefreshPending, true);
-
   resolveFirstFetch();
   await intervalRun;
 

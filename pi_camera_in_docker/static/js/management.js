@@ -8,6 +8,7 @@ const editingNodeIdInput = document.getElementById("editing-node-id");
 
 let nodes = [];
 let nodeStatusMap = new Map();
+let nodeStatusAggregationMap = new Map();
 let statusRefreshInFlight = false;
 let statusRefreshPending = false;
 let statusRefreshPendingManual = false;
@@ -153,6 +154,63 @@ function normalizeNodeStatusError(error = {}) {
   };
 }
 
+function isFailureStatus(status = {}) {
+  if (status.error_code) {
+    return true;
+  }
+
+  const normalized = String(status.status || "unknown").toLowerCase();
+  return ["error", "failed", "down", "unhealthy", "unauthorized"].includes(normalized);
+}
+
+function enrichStatusWithAggregation(nodeId, status = {}) {
+  const existing = nodeStatusAggregationMap.get(nodeId) || {
+    last_success_at: null,
+    first_failure_at: null,
+    consecutive_failures: 0,
+  };
+
+  const next = {
+    last_success_at: status.last_success_at || existing.last_success_at,
+    first_failure_at: status.first_failure_at || existing.first_failure_at,
+    consecutive_failures: Number.isFinite(status.consecutive_failures)
+      ? status.consecutive_failures
+      : existing.consecutive_failures,
+  };
+
+  const nowIso = new Date().toISOString();
+
+  if (isFailureStatus(status)) {
+    next.first_failure_at = next.first_failure_at || nowIso;
+    next.consecutive_failures += 1;
+  } else {
+    next.last_success_at = nowIso;
+    next.first_failure_at = null;
+    next.consecutive_failures = 0;
+  }
+
+  nodeStatusAggregationMap.set(nodeId, next);
+  return { ...status, ...next };
+}
+
+function formatAggregationDetails(status = {}) {
+  const fragments = [];
+
+  if (status.last_success_at) {
+    fragments.push(`Last success: ${new Date(status.last_success_at).toLocaleString()}`);
+  }
+
+  if (status.first_failure_at) {
+    fragments.push(`First failure: ${new Date(status.first_failure_at).toLocaleString()}`);
+  }
+
+  if (status.consecutive_failures > 0) {
+    fragments.push(`Consecutive failures: ${status.consecutive_failures}`);
+  }
+
+  return fragments.join(" • ");
+}
+
 function getStatusReason(status = {}) {
   const code = status.error_code;
   const knownReasons = {
@@ -249,6 +307,7 @@ function renderRows() {
       const normalizedStatus = normalizeNodeStatusForUi(status);
       const streamText = status.stream_available ? "Available" : "Unavailable";
       const detailsText = normalizedStatus.reasonText;
+      const aggregateDetails = formatAggregationDetails(status);
       const detailsTooltip = [normalizedStatus.helpText, status.error_details]
         .filter(Boolean)
         .join(" ");
@@ -262,6 +321,7 @@ function renderRows() {
           </td>
           <td>
             <small title="${escapeHtml(detailsTooltip)}">${escapeHtml(detailsText)}</small>
+            ${aggregateDetails ? `<br><small>${escapeHtml(aggregateDetails)}</small>` : ""}
           </td>
           <td>${streamText}</td>
           <td>
@@ -284,6 +344,13 @@ async function fetchNodes() {
     }
     const payload = await response.json();
     nodes = payload.nodes || [];
+    const activeNodeIds = new Set(nodes.map((node) => node.id));
+    for (const nodeId of nodeStatusMap.keys()) {
+      if (!activeNodeIds.has(nodeId)) {
+        nodeStatusMap.delete(nodeId);
+        nodeStatusAggregationMap.delete(nodeId);
+      }
+    }
     renderRows();
   } catch (error) {
     if (error?.isUnauthorized) {
@@ -346,11 +413,14 @@ async function refreshStatuses({ fromInterval = false } = {}) {
               } catch {
                 errorPayload = {};
               }
-              nextStatusMap.set(node.id, normalizeNodeStatusError(errorPayload));
+              nextStatusMap.set(
+                node.id,
+                enrichStatusWithAggregation(node.id, normalizeNodeStatusError(errorPayload)),
+              );
               return;
             }
             const payload = await response.json();
-            nextStatusMap.set(node.id, payload);
+            nextStatusMap.set(node.id, enrichStatusWithAggregation(node.id, payload));
           } catch (error) {
             if (allowManualFeedback && error?.isUnauthorized && !showedUnauthorizedFeedback) {
               showFeedback(API_AUTH_HINT, true);
@@ -358,7 +428,10 @@ async function refreshStatuses({ fromInterval = false } = {}) {
             }
             nextStatusMap.set(
               node.id,
-              normalizeNodeStatusError({ message: error?.message || "Failed to refresh node status." }),
+              enrichStatusWithAggregation(
+                node.id,
+                normalizeNodeStatusError({ message: error?.message || "Failed to refresh node status." }),
+              ),
             );
           }
         }),
