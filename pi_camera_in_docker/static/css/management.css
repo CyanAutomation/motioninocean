@@ -1,10 +1,3 @@
-body {
-  margin: 0;
-  background: var(--color-bg-canvas);
-  color: var(--color-text-primary);
-  font-family: var(--font-family-sans);
-}
-
 .management-header {
   padding: var(--space-4) var(--space-5);
   background: var(--color-bg-strong);
