@@ -87,28 +87,9 @@
   vertical-align: middle;
 }
 
-.status-pill {
-  display: inline-block;
-  border-radius: var(--radius-pill);
-  padding: 0.15rem var(--space-2);
-  font-size: 0.8rem;
-  font-weight: var(--font-weight-bold);
-}
 
-.status-ready {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-}
 
-.status-error {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-}
 
-.status-unknown {
-  background: var(--color-border-subtle);
-  color: var(--color-border-strong);
-}
 
 .row-actions {
   display: flex;

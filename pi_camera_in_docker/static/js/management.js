@@ -102,12 +102,12 @@ function buildNodePayload({ preserveLastSeen = false } = {}) {
 function statusClass(statusText) {
   const normalized = (statusText || "unknown").toLowerCase();
   if (["ok", "healthy", "ready"].includes(normalized)) {
-    return "status-ready";
+    return "ui-status-pill--success";
   }
   if (["error", "down", "failed", "unhealthy"].includes(normalized)) {
-    return "status-error";
+    return "ui-status-pill--error";
   }
-  return "status-unknown";
+  return "ui-status-pill--neutral";
 }
 
 function normalizeNodeStatusError(error = {}) {
@@ -178,7 +178,7 @@ function renderRows() {
           <td>${escapeHtml(node.base_url)}</td>
           <td>${escapeHtml(node.transport)}</td>
           <td>
-            <span class="status-pill ${statusClass(statusText)}">${escapeHtml(statusText)}</span>
+            <span class="ui-status-pill ${statusClass(statusText)}">${escapeHtml(statusText)}</span>
             ${showReason ? `<br><small>${escapeHtml(reasonText)}</small>` : ""}
           </td>
           <td>${streamText}</td>
