@@ -55,7 +55,7 @@ def register_shared_routes(
             "app_mode": state["app_mode"],
             "stream_available": False,
             "camera_active": False,
-            "uptime_seconds": round(time.monotonic() - app.start_time_monotonic, 2),
+            "uptime_seconds": round(time.monotonic() - getattr(app, 'start_time_monotonic', time.monotonic()), 2),
             "fps": 0.0,
             "connections": {"current": 0, "max": 0},
             "timestamp": datetime.now(timezone.utc).isoformat(),
