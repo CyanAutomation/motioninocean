@@ -4,15 +4,15 @@
 
 .tab-navigation {
   display: flex;
-  gap: var(--spacing-md);
+  gap: var(--space-4);
   align-items: center;
 }
 
 .tab-btn {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
   background: var(--color-bg-surface);
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border-subtle);
@@ -36,7 +36,7 @@
   color: var(--color-accent-hover);
   border-color: var(--accent-primary-30);
   font-weight: 600;
-  box-shadow: inset 0 0 0 1px var(--accent-primary-30);
+  box-shadow: var(--shadow-inset-accent);
 }
 
 .tab-icon {
@@ -74,7 +74,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-md);
+  gap: var(--space-4);
   z-index: 20;
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-subtle);
@@ -105,9 +105,9 @@
 .config-alert {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  margin: var(--spacing-md) 0;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  margin: var(--space-4) 0;
   border-radius: var(--radius-md);
   font-size: 0.9rem;
   border-left: 4px solid;
@@ -147,7 +147,7 @@
   cursor: pointer;
   font-size: 1.2rem;
   padding: 0;
-  margin-left: var(--spacing-sm);
+  margin-left: var(--space-2);
   opacity: 0.7;
   transition: opacity var(--transition-fast);
 }
@@ -165,7 +165,7 @@
    ========================================== */
 
 .config-panel {
-  padding: var(--spacing-xl);
+  padding: var(--space-6);
   background: var(--color-bg-canvas);
 }
 
@@ -175,11 +175,11 @@
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: var(--spacing-lg);
+  gap: var(--space-5);
 }
 
 .config-group {
-  flex: 1 1 calc(25% - var(--spacing-lg));
+  flex: 1 1 calc(25% - var(--space-5));
   min-width: 300px;
   overflow: hidden;
   background: var(--color-bg-surface);
@@ -190,11 +190,11 @@
 .config-group:hover {
   border-color: var(--accent-primary-30);
   transform: translateY(-2px);
-  box-shadow: 0 2px 8px var(--shadow-md);
+  box-shadow: var(--shadow-md);
 }
 
 .config-group-header {
-  padding: var(--spacing-lg);
+  padding: var(--space-5);
   background: var(--color-bg-canvas);
   cursor: pointer;
   user-select: none;
@@ -212,7 +212,7 @@
   margin: 0;
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--space-4);
 }
 
 .config-group-toggle {
@@ -235,10 +235,10 @@
 }
 
 .config-group-content {
-  padding: var(--spacing-lg);
+  padding: var(--space-5);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: var(--spacing-lg);
+  gap: var(--space-5);
   transition: all var(--transition-normal);
 }
 
@@ -322,9 +322,9 @@
 
 .config-footer {
   text-align: center;
-  padding: var(--spacing-lg);
+  padding: var(--space-5);
   border-top: 1px solid var(--color-border-default);
-  margin-top: var(--spacing-lg);
+  margin-top: var(--space-5);
 }
 
 .config-info {
@@ -339,7 +339,7 @@
 
 @media (max-width: 1024px) {
   .config-group {
-    flex: 1 1 calc(50% - var(--spacing-lg));
+    flex: 1 1 calc(50% - var(--space-5));
   }
 
   .config-group-content {
@@ -347,11 +347,11 @@
   }
 
   .config-panel {
-    padding: var(--spacing-lg);
+    padding: var(--space-5);
   }
 
   .tab-navigation {
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: var(--space-4) var(--space-5);
   }
 }
 
@@ -365,16 +365,16 @@
   }
 
   .config-group-header {
-    padding: var(--spacing-md);
+    padding: var(--space-4);
   }
 
   .config-group-content {
-    padding: var(--spacing-md);
-    gap: var(--spacing-md);
+    padding: var(--space-4);
+    gap: var(--space-4);
   }
 
   .tab-btn {
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--space-2) var(--space-4);
     font-size: 0.85rem;
   }
 
@@ -383,35 +383,35 @@
   }
 
   .tab-navigation {
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
   }
 }
 
 @media (max-width: 480px) {
   .config-panel {
-    padding: var(--spacing-md);
+    padding: var(--space-4);
   }
 
   .config-group-title {
     font-size: 1rem;
-    gap: var(--spacing-sm);
+    gap: var(--space-2);
   }
 
   .tab-navigation {
-    gap: var(--spacing-xs);
-    padding: var(--spacing-sm);
+    gap: var(--space-1);
+    padding: var(--space-2);
     overflow-x: auto;
   }
 
   .tab-btn {
-    padding: var(--spacing-xs) var(--spacing-sm);
+    padding: var(--space-1) var(--space-2);
     font-size: 0.75rem;
     white-space: nowrap;
   }
 
   .config-item {
-    padding: var(--spacing-sm);
+    padding: var(--space-2);
   }
 
   .config-value {
@@ -424,7 +424,7 @@
    ========================================== */
 
 .setup-panel {
-  padding: var(--spacing-xl);
+  padding: var(--space-6);
   background: var(--color-bg-canvas);
 }
 
@@ -433,7 +433,7 @@
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: var(--space-5);
 }
 
 /* Setup Status Bar */
@@ -441,11 +441,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: var(--space-4) var(--space-5);
   background: linear-gradient(135deg, var(--color-bg-surface), var(--color-bg-subtle));
   border-bottom: 1px solid var(--color-border-default);
   border-left: 3px solid var(--color-accent-primary);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--space-5);
   border-radius: var(--radius-md);
   font-size: 0.85rem;
 }
@@ -459,12 +459,12 @@
 
 .setup-status-dot.fetching {
   background: var(--color-warning);
-  box-shadow: 0 0 6px var(--color-warning);
+  box-shadow: var(--shadow-glow-warning-sm);
 }
 
 .setup-status-dot.ready {
   background: var(--color-success);
-  box-shadow: 0 0 6px var(--color-success);
+  box-shadow: var(--shadow-glow-success-sm);
   animation: none;
 }
 
@@ -485,7 +485,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-md);
+  gap: var(--space-4);
   z-index: 20;
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-subtle);
@@ -520,11 +520,11 @@
 
 .setup-section:hover {
   border-color: var(--accent-primary-30);
-  box-shadow: 0 2px 8px var(--shadow-md);
+  box-shadow: var(--shadow-md);
 }
 
 .setup-section-header {
-  padding: var(--spacing-lg);
+  padding: var(--space-5);
   background: var(--color-bg-canvas);
   cursor: pointer;
   user-select: none;
@@ -546,11 +546,11 @@
   font-size: 0.9rem;
   color: var(--color-text-muted);
   font-weight: 400;
-  margin-left: var(--spacing-sm);
+  margin-left: var(--space-2);
 }
 
 .setup-section-content {
-  padding: var(--spacing-lg);
+  padding: var(--space-5);
   background: var(--color-bg-surface);
 }
 
@@ -558,7 +558,7 @@
 .preset-selector {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--space-2);
 }
 
 .preset-label {
@@ -568,7 +568,7 @@
 }
 
 .preset-dropdown {
-  padding: var(--spacing-md);
+  padding: var(--space-4);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md);
   background: var(--color-bg-canvas);
@@ -585,21 +585,21 @@
 .preset-dropdown:focus {
   outline: none;
   border-color: var(--color-accent-primary);
-  box-shadow: 0 0 0 3px var(--accent-primary-10);
+  box-shadow: var(--shadow-focus-ring);
 }
 
 /* Settings Group */
 .settings-group {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--space-4);
 }
 
 /* Setup Field */
 .setup-field {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--space-2);
 }
 
 .field-label {
@@ -609,7 +609,7 @@
 }
 
 .field-input {
-  padding: var(--spacing-md);
+  padding: var(--space-4);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md);
   background: var(--color-bg-canvas);
@@ -626,7 +626,7 @@
 .field-input:focus {
   outline: none;
   border-color: var(--color-accent-primary);
-  box-shadow: 0 0 0 3px var(--accent-primary-10);
+  box-shadow: var(--shadow-focus-ring);
 }
 
 .field-input::placeholder {
@@ -643,7 +643,7 @@
 .advanced-toggle {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--space-4);
   background: none;
   border: none;
   cursor: pointer;
@@ -686,7 +686,7 @@
 
 /* Device Status */
 .device-status {
-  padding: var(--spacing-md);
+  padding: var(--space-4);
   background: var(--color-bg-canvas);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-subtle);
@@ -711,20 +711,20 @@
 .output-group {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
-  margin: var(--spacing-lg) 0;
+  gap: var(--space-2);
+  margin: var(--space-5) 0;
 }
 
 .output-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-md);
+  padding: var(--space-4);
   background: var(--color-bg-canvas);
   border: 1px solid var(--color-border-default);
   border-bottom: none;
   border-radius: var(--radius-md) var(--radius-md) 0 0;
-  gap: var(--spacing-md);
+  gap: var(--space-4);
 }
 
 .output-filename {
@@ -737,8 +737,8 @@
 .output-copy-btn {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md);
@@ -770,7 +770,7 @@
   width: 100%;
   min-height: 200px;
   max-height: 400px;
-  padding: var(--spacing-md);
+  padding: var(--space-4);
   border: 1px solid var(--color-border-default);
   border-radius: 0 0 var(--radius-md) var(--radius-md);
   background: var(--color-bg-canvas);
@@ -790,37 +790,37 @@
 /* Generate Button */
 .generate-btn {
   width: 100%;
-  padding: var(--spacing-md) var(--spacing-lg);
-  margin-bottom: var(--spacing-md);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-4);
   font-size: 0.95rem;
   font-weight: 600;
 }
 
 /* Setup Instructions */
 .setup-instructions {
-  padding: var(--spacing-lg);
+  padding: var(--space-5);
   background: var(--color-bg-canvas);
   border: 1px solid var(--color-border-subtle);
   border-left: 3px solid var(--color-accent-primary);
   border-radius: var(--radius-md);
-  margin-top: var(--spacing-lg);
+  margin-top: var(--space-5);
 }
 
 .instructions-header {
   font-weight: 600;
   color: var(--color-text-primary);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--space-2);
 }
 
 .instructions-list {
-  margin: var(--spacing-md) 0 0 var(--spacing-lg);
+  margin: var(--space-4) 0 0 var(--space-5);
   color: var(--color-text-secondary);
   font-size: 0.9rem;
   line-height: 1.8;
 }
 
 .instructions-list li {
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--space-2);
 }
 
 .instructions-list strong {
@@ -829,7 +829,7 @@
 
 .instructions-list code {
   background: var(--color-bg-surface);
-  padding: 0.2rem 0.4rem;
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   font-family: "Monaco", "Courier New", monospace;
   font-size: 0.85rem;
@@ -840,9 +840,9 @@
 .setup-alert {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  margin: var(--spacing-md) 0;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  margin: var(--space-4) 0;
   border-radius: var(--radius-md);
   font-size: 0.9rem;
   border-left: 4px solid;
@@ -867,15 +867,15 @@
 /* Setup Panel Responsive */
 @media (max-width: 768px) {
   .setup-panel {
-    padding: var(--spacing-lg);
+    padding: var(--space-5);
   }
 
   .setup-section-header {
-    padding: var(--spacing-md);
+    padding: var(--space-4);
   }
 
   .setup-section-content {
-    padding: var(--spacing-md);
+    padding: var(--space-4);
   }
 
   .output-textarea {
@@ -889,13 +889,13 @@
 
   .output-copy-btn {
     font-size: 0.8rem;
-    padding: var(--spacing-xs) var(--spacing-sm);
+    padding: var(--space-1) var(--space-2);
   }
 }
 
 @media (max-width: 480px) {
   .setup-panel {
-    padding: var(--spacing-md);
+    padding: var(--space-4);
   }
 
   .setup-section-title {
@@ -903,11 +903,11 @@
   }
 
   .setup-section-header {
-    padding: var(--spacing-sm);
+    padding: var(--space-2);
   }
 
   .setup-section-content {
-    padding: var(--spacing-sm);
+    padding: var(--space-2);
   }
 
   .field-input {
@@ -921,6 +921,6 @@
   }
 
   .instructions-list {
-    margin-left: var(--spacing-md);
+    margin-left: var(--space-4);
   }
 }
