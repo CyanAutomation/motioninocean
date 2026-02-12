@@ -280,9 +280,7 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
         }, None
 
     try:
-        health_code, health_payload = _request_json(node, "GET", "/health")
-        ready_code, ready_payload = _request_json(node, "GET", "/ready")
-        metrics_code, metrics_payload = _request_json(node, "GET", "/metrics")
+        status_code, status_payload = _request_json(node, "GET", "/api/status")
     except NodeInvalidResponseError:
         return {}, (
             "NODE_INVALID_RESPONSE",
@@ -328,29 +326,47 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
             },
         )
 
-    if any(code in {401, 403} for code in (health_code, ready_code, metrics_code)):
+    if status_code in {401, 403}:
         return {}, (
             "NODE_UNAUTHORIZED",
             f"node {node_id} rejected credentials",
             401,
             node_id,
-            {
-                "health_code": health_code,
-                "ready_code": ready_code,
-                "metrics_code": metrics_code,
-            },
+            {"status_code": status_code},
         )
 
-    status = {
-        "node_id": node_id,
-        "status": health_payload.get("status", "unknown"),
-        "ready": ready_payload.get("status", "unknown"),
-        "stream_available": ready_code == 200 and ready_payload.get("status") == "ready",
-        "health": {"status_code": health_code, "payload": health_payload},
-        "ready_probe": {"status_code": ready_code, "payload": ready_payload},
-        "metrics": {"status_code": metrics_code, "payload": metrics_payload},
-    }
-    return status, None
+    if status_code == 404:
+        return {}, (
+            "NODE_API_MISMATCH",
+            f"node {node_id} does not expose expected management api",
+            502,
+            node_id,
+            {"status_code": status_code, "path": "/api/status"},
+        )
+
+    if status_code == 200:
+        return {
+            "node_id": node_id,
+            "status": status_payload.get("status", "healthy"),
+            "stream_available": bool(status_payload.get("stream_available", False)),
+            "status_probe": {"status_code": status_code, "payload": status_payload},
+        }, None
+
+    if status_code == 503:
+        return {
+            "node_id": node_id,
+            "status": status_payload.get("status", "unhealthy"),
+            "stream_available": bool(status_payload.get("stream_available", False)),
+            "status_probe": {"status_code": status_code, "payload": status_payload},
+        }, None
+
+    return {}, (
+        "NODE_STATUS_ERROR",
+        f"node {node_id} returned unexpected status response",
+        502,
+        node_id,
+        {"status_code": status_code, "path": "/api/status"},
+    )
 
 
 def register_management_routes(
@@ -560,9 +576,15 @@ def register_management_routes(
             statuses.append(result)
 
         stream_available_count = sum(1 for status in statuses if status.get("stream_available"))
+        healthy_nodes = sum(
+            1
+            for status in statuses
+            if "error" not in status and str(status.get("status", "")).lower() in {"ok", "healthy", "ready"}
+        )
         summary = {
             "total_nodes": len(nodes),
             "unavailable_nodes": unavailable_nodes,
+            "healthy_nodes": healthy_nodes,
             "stream_available_nodes": stream_available_count,
         }
         return jsonify({"summary": summary, "nodes": statuses}), 200
