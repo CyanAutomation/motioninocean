@@ -1,5 +1,6 @@
 import importlib
 import socket
+import ssl
 import sys
 from datetime import datetime, timezone
 
@@ -142,6 +143,7 @@ def test_ssrf_protection_blocks_local_targets(monkeypatch, tmp_path):
     assert status.status_code == 503
     assert status.json["error"]["code"] == "NODE_UNREACHABLE"
     assert status.json["error"]["details"]["reason"] == "target is blocked"
+    assert status.json["error"]["details"]["category"] == "blocked_target"
 
 
 def test_corrupted_registry_file_returns_500_error_payload(monkeypatch, tmp_path):
@@ -191,6 +193,7 @@ def test_ssrf_protection_blocks_ipv6_mapped_loopback(monkeypatch, tmp_path):
     assert status.status_code == 503
     assert status.json["error"]["code"] == "NODE_UNREACHABLE"
     assert status.json["error"]["details"]["reason"] == "target is blocked"
+    assert status.json["error"]["details"]["category"] == "blocked_target"
 
 
 def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
@@ -219,6 +222,7 @@ def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
     assert status.status_code == 503
     assert status.json["error"]["code"] == "NODE_UNREACHABLE"
     assert status.json["error"]["details"]["reason"] == "target is blocked"
+    assert status.json["error"]["details"]["category"] == "blocked_target"
 
 
 def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
@@ -714,7 +718,7 @@ def test_request_json_retries_next_vetted_address_when_first_connection_fails(mo
     ]
 
 
-def test_request_json_maps_name_resolution_failure_to_node_request_error(monkeypatch):
+def test_request_json_maps_name_resolution_failure_to_dns_category(monkeypatch):
     import management_api
 
     def fake_getaddrinfo(host, port, proto):
@@ -725,9 +729,10 @@ def test_request_json_maps_name_resolution_failure_to_node_request_error(monkeyp
     node = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
         management_api._request_json(node, "GET", "/health")
-        raise AssertionError("expected NodeRequestError")
-    except management_api.NodeRequestError as exc:
-        assert str(exc) == "node target is invalid"
+        raise AssertionError("expected NodeConnectivityError")
+    except management_api.NodeConnectivityError as exc:
+        assert exc.reason == "dns resolution failed"
+        assert exc.category == "dns"
 
 
 def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
@@ -747,3 +752,102 @@ def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
         raise AssertionError("expected NodeRequestError")
     except management_api.NodeRequestError as exc:
         assert str(exc) == "node target is not allowed"
+
+
+def test_request_json_maps_timeout_failure(monkeypatch):
+    import management_api
+
+    def fake_getaddrinfo(host, port, proto):
+        return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))]
+
+    def fake_urlopen(req, timeout):
+        raise management_api.urllib.error.URLError(socket.timeout("timed out"))
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+    monkeypatch.setattr(management_api.urllib.request, "urlopen", fake_urlopen)
+
+    node = {"base_url": "http://example.com", "auth": {"type": "none"}}
+    try:
+        management_api._request_json(node, "GET", "/health")
+        raise AssertionError("expected NodeConnectivityError")
+    except management_api.NodeConnectivityError as exc:
+        assert exc.reason == "request timed out"
+        assert exc.category == "timeout"
+
+
+def test_request_json_maps_connection_refused_or_reset(monkeypatch):
+    import management_api
+
+    def fake_getaddrinfo(host, port, proto):
+        return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))]
+
+    def fake_urlopen(req, timeout):
+        raise management_api.urllib.error.URLError(ConnectionRefusedError("connection refused"))
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+    monkeypatch.setattr(management_api.urllib.request, "urlopen", fake_urlopen)
+
+    node = {"base_url": "http://example.com", "auth": {"type": "none"}}
+    try:
+        management_api._request_json(node, "GET", "/health")
+        raise AssertionError("expected NodeConnectivityError")
+    except management_api.NodeConnectivityError as exc:
+        assert exc.reason == "connection refused or reset"
+        assert exc.category == "connection_refused_or_reset"
+
+
+def test_request_json_maps_tls_failure(monkeypatch):
+    import management_api
+
+    def fake_getaddrinfo(host, port, proto):
+        return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 443))]
+
+    def fake_urlopen(req, timeout):
+        raise management_api.urllib.error.URLError(ssl.SSLError("certificate verify failed"))
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+    monkeypatch.setattr(management_api.urllib.request, "urlopen", fake_urlopen)
+
+    node = {"base_url": "https://example.com", "auth": {"type": "none"}}
+    try:
+        management_api._request_json(node, "GET", "/health")
+        raise AssertionError("expected NodeConnectivityError")
+    except management_api.NodeConnectivityError as exc:
+        assert exc.reason == "tls handshake failed"
+        assert exc.category == "tls"
+
+
+def test_node_status_reports_connectivity_details(monkeypatch, tmp_path):
+    import management_api
+
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-timeout",
+        "name": "Timeout Node",
+        "base_url": "http://example.com",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+
+    def raise_timeout(node, method, path, body=None):
+        raise management_api.NodeConnectivityError(
+            "request timed out",
+            reason="request timed out",
+            category="timeout",
+            raw_error="timed out while connecting to example.com:80\nwith extra spacing",
+        )
+
+    monkeypatch.setattr(management_api, "_request_json", raise_timeout)
+
+    status = client.get("/api/nodes/node-timeout/status", headers=_auth_headers())
+    assert status.status_code == 503
+    assert status.json["error"]["code"] == "NODE_UNREACHABLE"
+    assert status.json["error"]["details"]["reason"] == "request timed out"
+    assert status.json["error"]["details"]["category"] == "timeout"
+    assert "\n" not in status.json["error"]["details"]["raw_error"]
