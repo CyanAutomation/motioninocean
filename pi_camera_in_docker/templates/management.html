@@ -14,7 +14,7 @@
     <header class="management-header">
       <h1>Node Management</h1>
       <p class="subtitle">Manage webcam nodes and monitor node health.</p>
-      <div class="ui-form-control">
+      <div class="management-token-control">
         <label for="management-api-token">Management API Bearer Token (optional)</label>
         <input
           id="management-api-token"
@@ -130,23 +130,25 @@
           <button id="refresh-nodes-btn" class="ui-btn ui-btn--secondary">Refresh</button>
         </div>
 
-        <table class="node-table" aria-label="Registered node list">
-          <thead>
-            <tr>
-              <th>Node</th>
-              <th>Base URL</th>
-              <th>Transport</th>
-              <th>Status</th>
-              <th>Stream</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="nodes-table-body">
-            <tr>
-              <td colspan="6" class="empty">No nodes registered.</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="node-table-wrap">
+          <table class="node-table" aria-label="Registered node list">
+            <thead>
+              <tr>
+                <th>Node</th>
+                <th>Base URL</th>
+                <th>Transport</th>
+                <th>Status</th>
+                <th>Stream</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="nodes-table-body">
+              <tr>
+                <td colspan="6" class="empty">No nodes registered.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
 
