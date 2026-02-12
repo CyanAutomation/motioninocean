@@ -579,7 +579,7 @@ def register_management_routes(
         healthy_nodes = sum(
             1
             for status in statuses
-            if str(status.get("status", "")).lower() in {"ok", "healthy", "ready"}
+            if "error" not in status and str(status.get("status", "")).lower() in {"ok", "healthy", "ready"}
         )
         summary = {
             "total_nodes": len(nodes),
