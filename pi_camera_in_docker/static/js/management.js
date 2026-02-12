@@ -110,6 +110,39 @@ function statusClass(statusText) {
   return "ui-status-pill--neutral";
 }
 
+const STATUS_SUBTYPE_CONFIG = {
+  unsupported_transport: {
+    label: "Unsupported transport",
+    helpText: "Configured transport is not supported by the target node.",
+    statusClass: "ui-status-pill--error",
+  },
+  unauthorized: {
+    label: "Unauthorized",
+    helpText: "Credentials were rejected by the node API.",
+    statusClass: "ui-status-pill--error",
+  },
+  no_response: {
+    label: "No response",
+    helpText: "Node did not return a valid status response.",
+    statusClass: "ui-status-pill--error",
+  },
+  partial_probe: {
+    label: "Partial probe",
+    helpText: "Node responded, but readiness or probe checks are incomplete.",
+    statusClass: "ui-status-pill--neutral",
+  },
+  degraded: {
+    label: "Degraded",
+    helpText: "Node is reachable but reports a degraded state.",
+    statusClass: "ui-status-pill--neutral",
+  },
+  healthy: {
+    label: "Healthy",
+    helpText: "Node is ready and healthy.",
+    statusClass: "ui-status-pill--success",
+  },
+};
+
 function normalizeNodeStatusError(error = {}) {
   return {
     status: "error",
@@ -153,9 +186,54 @@ function getStatusReason(status = {}) {
   return "No additional details available.";
 }
 
+function normalizeNodeStatusForUi(status = {}) {
+  const statusText = String(status.status || "unknown").toLowerCase();
+  const errorCode = String(status.error_code || "").toUpperCase();
+  const isReady = status.ready === true;
+
+  let subtype = "no_response";
+
+  if (errorCode === "TRANSPORT_UNSUPPORTED") {
+    subtype = "unsupported_transport";
+  } else if (errorCode === "NODE_UNAUTHORIZED" || statusText === "unauthorized") {
+    subtype = "unauthorized";
+  } else if (statusText === "ok" || statusText === "healthy" || statusText === "ready") {
+    subtype = isReady ? "healthy" : "partial_probe";
+  } else if (statusText === "degraded" || statusText === "warning") {
+    subtype = "degraded";
+  } else if (statusText === "partial" || statusText === "probing") {
+    subtype = "partial_probe";
+  } else if (statusText === "error" || statusText === "failed" || statusText === "down") {
+    subtype = "no_response";
+  }
+
+  const config = STATUS_SUBTYPE_CONFIG[subtype] || {
+    label: "Unknown",
+    helpText: "Node state is unknown.",
+    statusClass: statusClass(statusText),
+  };
+
+  let reasonText = getStatusReason(status);
+  if (subtype === "healthy") {
+    reasonText = "Ready and responding.";
+  } else if (subtype === "partial_probe") {
+    reasonText = status.error_message || "Node responded, but readiness is incomplete.";
+  } else if (subtype === "degraded") {
+    reasonText = status.error_message || "Node is reachable, but operating in a degraded mode.";
+  }
+
+  return {
+    subtype,
+    label: config.label,
+    helpText: config.helpText,
+    statusClass: config.statusClass,
+    reasonText,
+  };
+}
+
 function renderRows() {
   if (!nodes.length) {
-    tableBody.innerHTML = '<tr><td colspan="6" class="empty">No nodes registered.</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="7" class="empty">No nodes registered.</td></tr>';
     return;
   }
 
@@ -168,18 +246,22 @@ function renderRows() {
   tableBody.innerHTML = nodes
     .map((node) => {
       const status = nodeStatusMap.get(node.id) || { status: "unknown", stream_available: false };
+      const normalizedStatus = normalizeNodeStatusForUi(status);
       const streamText = status.stream_available ? "Available" : "Unavailable";
-      const statusText = status.status || "unknown";
-      const showReason = statusText.toLowerCase() === "error";
-      const reasonText = showReason ? getStatusReason(status) : "";
+      const detailsText = normalizedStatus.reasonText;
+      const detailsTooltip = [normalizedStatus.helpText, status.error_details]
+        .filter(Boolean)
+        .join(" ");
       return `
         <tr>
           <td><strong>${escapeHtml(node.name)}</strong><br><small>${escapeHtml(node.id)}</small></td>
           <td>${escapeHtml(node.base_url)}</td>
           <td>${escapeHtml(node.transport)}</td>
           <td>
-            <span class="ui-status-pill ${statusClass(statusText)}">${escapeHtml(statusText)}</span>
-            ${showReason ? `<br><small>${escapeHtml(reasonText)}</small>` : ""}
+            <span class="ui-status-pill ${normalizedStatus.statusClass}" title="${escapeHtml(normalizedStatus.helpText)}">${escapeHtml(normalizedStatus.label)}</span>
+          </td>
+          <td>
+            <small title="${escapeHtml(detailsTooltip)}">${escapeHtml(detailsText)}</small>
           </td>
           <td>${streamText}</td>
           <td>
