@@ -7,102 +7,127 @@
     <title>motion-in-ocean - Node Management</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/management.css') }}" />
   </head>
   <body>
     <header class="management-header">
       <h1>Node Management</h1>
       <p class="subtitle">Manage webcam nodes and monitor node health.</p>
-      <label for="management-api-token">Management API Bearer Token (optional)</label>
-      <input
-        id="management-api-token"
-        name="management_api_token"
-        type="password"
-        autocomplete="off"
-        placeholder="Paste token for protected /api requests"
-      />
-      <small>
-        If management API auth is enabled, provide a token and click Refresh to retry failed
-        requests.
-      </small>
+      <div class="ui-form-control">
+        <label for="management-api-token">Management API Bearer Token (optional)</label>
+        <input
+          id="management-api-token"
+          name="management_api_token"
+          type="password"
+          autocomplete="off"
+          placeholder="Paste token for protected /api requests"
+        />
+        <small>
+          If management API auth is enabled, provide a token and click Refresh to retry failed
+          requests.
+        </small>
+      </div>
     </header>
 
     <main class="management-layout">
-      <section class="node-form-panel">
+      <section class="node-form-panel ui-card">
         <h2 id="form-title">Add node</h2>
         <form id="node-form">
           <input type="hidden" id="editing-node-id" value="" />
 
-          <label for="node-id">Node ID</label>
-          <input
-            id="node-id"
-            name="id"
-            pattern="[a-zA-Z0-9_-]+"
-            maxlength="64"
-            title="Only alphanumeric characters, hyphens, and underscores allowed"
-            required
-          />
+          <div class="ui-form-control">
+            <label for="node-id">Node ID</label>
+            <input
+              id="node-id"
+              name="id"
+              pattern="[a-zA-Z0-9_-]+"
+              maxlength="64"
+              title="Only alphanumeric characters, hyphens, and underscores allowed"
+              required
+            />
+          </div>
 
-          <label for="node-name">Name</label>
-          <input id="node-name" name="name" maxlength="128" required />
+          <div class="ui-form-control">
+            <label for="node-name">Name</label>
+            <input id="node-name" name="name" maxlength="128" required />
+          </div>
 
-          <label for="node-base-url">Base URL</label>
-          <input
-            id="node-base-url"
-            name="base_url"
-            type="url"
-            placeholder=""
-            pattern="https?://[^\s]+"
-            title="Must be a valid HTTP or HTTPS URL"
-            required
-          />
+          <div class="ui-form-control">
+            <label for="node-base-url">Base URL</label>
+            <input
+              id="node-base-url"
+              name="base_url"
+              type="url"
+              placeholder=""
+              pattern="https?://[^\s]+"
+              title="Must be a valid HTTP or HTTPS URL"
+              required
+            />
+          </div>
 
-          <label for="node-transport">Transport</label>
-          <select id="node-transport" name="transport">
-            <option value="http" selected>http</option>
-            <option value="docker">docker</option>
-          </select>
+          <div class="ui-form-control">
+            <label for="node-transport">Transport</label>
+            <select id="node-transport" name="transport">
+              <option value="http" selected>http</option>
+              <option value="docker">docker</option>
+            </select>
+          </div>
 
-          <label for="node-auth-type">Auth Type</label>
-          <select id="node-auth-type" name="auth_type">
-            <option value="none" selected>none</option>
-            <option value="bearer">bearer</option>
-          </select>
+          <div class="ui-form-control">
+            <label for="node-auth-type">Auth Type</label>
+            <select id="node-auth-type" name="auth_type">
+              <option value="none" selected>none</option>
+              <option value="bearer">bearer</option>
+            </select>
+          </div>
 
-          <label for="node-auth-token">Remote Node Token (optional)</label>
-          <input
-            id="node-auth-token"
-            name="auth_token"
-            placeholder="Set to the remote node MANAGEMENT_AUTH_TOKEN"
-          />
-          <small>
-            For webcam nodes, use the same token configured in that node's `.env`
-            (`MANAGEMENT_AUTH_TOKEN`).
-          </small>
+          <div class="ui-form-control">
+            <label for="node-auth-token">Remote Node Token (optional)</label>
+            <input
+              id="node-auth-token"
+              name="auth_token"
+              placeholder="Set to the remote node MANAGEMENT_AUTH_TOKEN"
+            />
+            <small>
+              For webcam nodes, use the same token configured in that node's `.env`
+              (`MANAGEMENT_AUTH_TOKEN`).
+            </small>
+          </div>
 
-          <label for="node-capabilities">Capabilities (comma-separated)</label>
-          <input id="node-capabilities" name="capabilities" placeholder="stream, snapshot" />
+          <div class="ui-form-control">
+            <label for="node-capabilities">Capabilities (comma-separated)</label>
+            <input id="node-capabilities" name="capabilities" placeholder="stream, snapshot" />
+          </div>
 
-          <label for="node-labels">Labels JSON (optional)</label>
-          <textarea
-            id="node-labels"
-            name="labels"
-            rows="4"
-            placeholder='{"location":"lab"}'
-          ></textarea>
+          <div class="ui-form-control">
+            <label for="node-labels">Labels JSON (optional)</label>
+            <textarea
+              id="node-labels"
+              name="labels"
+              rows="4"
+              placeholder='{"location":"lab"}'
+            ></textarea>
+          </div>
 
           <div class="actions">
-            <button type="submit" id="save-node-btn">Save node</button>
-            <button type="button" id="cancel-edit-btn" class="secondary hidden">Cancel edit</button>
+            <button type="submit" id="save-node-btn" class="ui-btn ui-btn--primary">Save node</button>
+            <button
+              type="button"
+              id="cancel-edit-btn"
+              class="ui-btn ui-btn--secondary hidden"
+            >
+              Cancel edit
+            </button>
           </div>
         </form>
         <p id="form-feedback" class="feedback" aria-live="polite"></p>
       </section>
 
-      <section class="node-list-panel">
-        <div class="table-header">
+      <section class="node-list-panel ui-card">
+        <div class="table-header ui-panel-header">
           <h2>Registered nodes</h2>
-          <button id="refresh-nodes-btn" class="secondary">Refresh</button>
+          <button id="refresh-nodes-btn" class="ui-btn ui-btn--secondary">Refresh</button>
         </div>
 
         <table class="node-table" aria-label="Registered node list">

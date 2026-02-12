@@ -42,6 +42,41 @@
   transform: translateY(-2px);
 }
 
+
+.ui-btn--primary {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  color: var(--color-text-inverse);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.ui-btn--primary:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.ui-btn--secondary {
+  background: var(--color-text-secondary);
+  border-color: var(--color-text-secondary);
+  color: var(--color-text-inverse);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.ui-btn--secondary:hover {
+  filter: brightness(0.95);
+}
+
+.ui-btn--danger {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: var(--color-text-inverse);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.ui-btn--danger:hover {
+  filter: brightness(0.95);
+}
+
 .ui-status-pill {
   display: inline-flex;
   align-items: center;
@@ -84,6 +119,23 @@
 .ui-form-control:hover {
   border-color: var(--color-accent-secondary);
   background: var(--color-bg-surface);
+}
+
+
+.ui-form-control label {
+  font-weight: var(--font-weight-medium);
+}
+
+.ui-form-control input,
+.ui-form-control select,
+.ui-form-control textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.45rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
 }
 
 @media (max-width: 768px) {

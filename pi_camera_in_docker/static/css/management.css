@@ -22,9 +22,6 @@
 
 .node-form-panel,
 .node-list-panel {
-  background: var(--color-bg-surface);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
   padding: var(--space-4);
 }
 
@@ -33,44 +30,18 @@
   gap: var(--space-2);
 }
 
-#node-form input,
-#node-form select,
-#node-form textarea {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0.45rem;
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-sm);
-}
-
 .actions {
   display: flex;
   gap: var(--space-2);
   margin-top: var(--space-2);
 }
 
-button {
-  border: 0;
-  border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-3);
-  cursor: pointer;
-  background: var(--color-accent-primary);
-  color: var(--color-text-inverse);
-}
-
-button.secondary {
-  background: var(--color-text-secondary);
-}
-
-button.danger {
-  background: var(--color-error);
-}
-
 .table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-3);
+  margin: calc(var(--space-4) * -1) calc(var(--space-4) * -1) var(--space-3);
+}
+
+.table-header h2 {
+  margin: 0;
 }
 
 .node-table {

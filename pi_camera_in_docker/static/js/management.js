@@ -136,8 +136,8 @@ function renderRows() {
           <td>${streamText}</td>
           <td>
             <div class="row-actions">
-              <button class="secondary" data-action="edit" data-id="${escapeHtml(node.id)}">Edit</button>
-              <button class="danger" data-action="delete" data-id="${escapeHtml(node.id)}">Remove</button>
+              <button class="ui-btn ui-btn--secondary" data-action="edit" data-id="${escapeHtml(node.id)}">Edit</button>
+              <button class="ui-btn ui-btn--danger" data-action="delete" data-id="${escapeHtml(node.id)}">Remove</button>
             </div>
           </td>
         </tr>
