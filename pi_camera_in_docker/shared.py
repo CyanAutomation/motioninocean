@@ -72,7 +72,7 @@ def register_shared_routes(
         )
         is_recording = state.get("recording_started") and state["recording_started"].is_set()
         last_frame_age_seconds = stream_status.get("last_frame_age_seconds")
-        max_age = state["max_frame_age_seconds"]
+        max_age = state.get("max_frame_age_seconds", 10.0)
         is_frame_fresh = (
             last_frame_age_seconds is not None and last_frame_age_seconds <= max_age
         )
