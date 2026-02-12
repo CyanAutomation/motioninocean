@@ -94,6 +94,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.6] - 2026-02-12
+
+- Merge pull request #223 from CyanAutomation/codex/extend-node-status-aggregation-fields
+- Update management.js
+- Add node status failure aggregation details in management UI
+- Merge pull request #222 from CyanAutomation/codex/add-normalization-layer-in-management.js
+- Normalize node status subtypes in management table
+- Merge pull request #221 from CyanAutomation/codex/add-exception-mapping-for-request-failures
+- Merge pull request #220 from CyanAutomation/codex/refactor-spacing-tokens-in-styles
+- Enhance node unreachable details with connectivity categories
+- Standardize spacing tokens and shared shadow primitives
+- Merge pull request #219 from CyanAutomation/codex/define-shared-variant-scheme-for-buttons-and-status-pills
+- Unify management UI button and status variants
+- Merge pull request #218 from CyanAutomation/codex/github-mention-refactor-management-page-to-shared-ui-compon
+- Fix management header token styling and decouple table header spacing
+- Merge pull request #217 from CyanAutomation/codex/update-management.html-to-use-component-classes
+- Merge pull request #216 from CyanAutomation/codex/update-refreshstatuses-for-error-handling
+- Refactor management UI to shared component classes
+- Improve management node status error details
+- Merge pull request #215 from CyanAutomation/codex/create-base-stylesheet-and-update-templates
+- Extract global base styles into base.css
+- Refactor UI and Management Code
+- Refactor: Remove deprecated Docker Compose files for improved clarity and maintainability
+- Refactor: Update migration guide and README for directory-based deployment structure
+- Refactor: Update deployment documentation and scripts for directory-based approach
+- Refactor: Update Docker Compose files for new directory structure and deprecate legacy configurations
+
 ## [1.13.5] - 2026-02-11
 
 - Refactor Docker configuration and simplify environment variables
