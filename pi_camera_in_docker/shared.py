@@ -88,7 +88,7 @@ def register_shared_routes(
             "app_mode": state["app_mode"],
             "stream_available": stream_available,
             "camera_active": is_recording,
-            "uptime_seconds": round(time.monotonic() - app.start_time_monotonic, 2),
+            "uptime_seconds": round(time.monotonic() - getattr(app, 'start_time_monotonic', time.monotonic()), 2),
             "fps": stream_status.get("current_fps", 0.0),
             "connections": {
                 "current": current_connections,
