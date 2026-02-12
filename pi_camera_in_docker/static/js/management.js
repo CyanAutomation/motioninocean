@@ -230,6 +230,10 @@ function getStatusReason(status = {}) {
       title: "Configured transport is unsupported.",
       hint: "Switch to a supported transport for this node.",
     },
+    NODE_API_MISMATCH: {
+      title: "Node API does not match expected management endpoints.",
+      hint: "Confirm the node is running the compatible management service and exposes /api/status.",
+    },
   };
 
   if (code && knownReasons[code]) {
@@ -253,6 +257,8 @@ function normalizeNodeStatusForUi(status = {}) {
 
   if (errorCode === "TRANSPORT_UNSUPPORTED") {
     subtype = "unsupported_transport";
+  } else if (errorCode === "NODE_API_MISMATCH") {
+    subtype = "no_response";
   } else if (errorCode === "NODE_UNAUTHORIZED" || statusText === "unauthorized") {
     subtype = "unauthorized";
   } else if (statusText === "ok" || statusText === "healthy" || statusText === "ready") {
