@@ -110,6 +110,49 @@ function statusClass(statusText) {
   return "status-unknown";
 }
 
+function normalizeNodeStatusError(error = {}) {
+  return {
+    status: "error",
+    stream_available: false,
+    error_code: error.code || "UNKNOWN_ERROR",
+    error_message: error.message || "Node status request failed.",
+    error_details: error.details || null,
+  };
+}
+
+function getStatusReason(status = {}) {
+  const code = status.error_code;
+  const knownReasons = {
+    NODE_UNREACHABLE: {
+      title: "Node is unreachable.",
+      hint: "Check the node base URL, networking, and that the node service is running.",
+    },
+    NODE_UNAUTHORIZED: {
+      title: "Node rejected credentials.",
+      hint: "Update node auth settings or bearer token and refresh.",
+    },
+    NODE_INVALID_RESPONSE: {
+      title: "Node returned an invalid response.",
+      hint: "Verify the node API version and status endpoint compatibility.",
+    },
+    TRANSPORT_UNSUPPORTED: {
+      title: "Configured transport is unsupported.",
+      hint: "Switch to a supported transport for this node.",
+    },
+  };
+
+  if (code && knownReasons[code]) {
+    const reason = knownReasons[code];
+    return `${reason.title} ${reason.hint}`;
+  }
+
+  if (status.error_message) {
+    return status.error_message;
+  }
+
+  return "No additional details available.";
+}
+
 function renderRows() {
   if (!nodes.length) {
     tableBody.innerHTML = '<tr><td colspan="6" class="empty">No nodes registered.</td></tr>';
@@ -127,12 +170,17 @@ function renderRows() {
       const status = nodeStatusMap.get(node.id) || { status: "unknown", stream_available: false };
       const streamText = status.stream_available ? "Available" : "Unavailable";
       const statusText = status.status || "unknown";
+      const showReason = statusText.toLowerCase() === "error";
+      const reasonText = showReason ? getStatusReason(status) : "";
       return `
         <tr>
           <td><strong>${escapeHtml(node.name)}</strong><br><small>${escapeHtml(node.id)}</small></td>
           <td>${escapeHtml(node.base_url)}</td>
           <td>${escapeHtml(node.transport)}</td>
-          <td><span class="status-pill ${statusClass(statusText)}">${escapeHtml(statusText)}</span></td>
+          <td>
+            <span class="status-pill ${statusClass(statusText)}">${escapeHtml(statusText)}</span>
+            ${showReason ? `<br><small>${escapeHtml(reasonText)}</small>` : ""}
+          </td>
           <td>${streamText}</td>
           <td>
             <div class="row-actions">
@@ -209,7 +257,14 @@ async function refreshStatuses({ fromInterval = false } = {}) {
               `/api/nodes/${encodeURIComponent(node.id)}/status`,
             );
             if (!response.ok) {
-              nextStatusMap.set(node.id, { status: "error", stream_available: false });
+              let errorPayload = {};
+              try {
+                const parsed = await response.json();
+                errorPayload = parsed?.error || parsed || {};
+              } catch {
+                errorPayload = {};
+              }
+              nextStatusMap.set(node.id, normalizeNodeStatusError(errorPayload));
               return;
             }
             const payload = await response.json();
@@ -219,7 +274,10 @@ async function refreshStatuses({ fromInterval = false } = {}) {
               showFeedback(API_AUTH_HINT, true);
               showedUnauthorizedFeedback = true;
             }
-            nextStatusMap.set(node.id, { status: "error", stream_available: false });
+            nextStatusMap.set(
+              node.id,
+              normalizeNodeStatusError({ message: error?.message || "Failed to refresh node status." }),
+            );
           }
         }),
       );
