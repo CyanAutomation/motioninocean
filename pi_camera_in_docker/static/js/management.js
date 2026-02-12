@@ -184,7 +184,7 @@ function enrichStatusWithAggregation(nodeId, status = {}) {
     next.first_failure_at = next.first_failure_at || nowIso;
     next.consecutive_failures += 1;
   } else {
-    next.last_success_at = nowIso;
+    next.last_success_at = next.last_success_at || nowIso;
     next.first_failure_at = null;
     next.consecutive_failures = 0;
   }
