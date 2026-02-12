@@ -94,6 +94,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.7] - 2026-02-12
+
+- Merge pull request #228 from CyanAutomation/codex/update-webcam-control-plane-auth-paths
+- Merge pull request #227 from CyanAutomation/codex/update-deployment-documentation-and-tests
+- Add /api/status auth coverage for webcam control plane
+- Align management node health contract to /api/status
+- Merge pull request #226 from CyanAutomation/codex/add-404-handling-for-api-status
+- Handle status endpoint mismatches with actionable UI guidance
+- Merge pull request #225 from CyanAutomation/codex/update-node-status-handling-in-management-api
+- Update management_api.py
+- Use single /api/status probe for management node health
+- Merge pull request #224 from CyanAutomation/codex/add-status-route-handler-with-json-response
+- Update pi_camera_in_docker/shared.py
+- Update pi_camera_in_docker/shared.py
+- Update pi_camera_in_docker/shared.py
+- Update pi_camera_in_docker/shared.py
+- Update pi_camera_in_docker/shared.py
+- Add /api/status management contract endpoint
+
 ## [1.13.6] - 2026-02-12
 
 - Merge pull request #223 from CyanAutomation/codex/extend-node-status-aggregation-fields
