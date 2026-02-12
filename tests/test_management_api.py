@@ -445,6 +445,10 @@ def test_node_status_returns_node_api_mismatch_when_status_endpoint_missing(monk
     status = client.get("/api/nodes/node-api-mismatch/status", headers=_auth_headers())
     assert status.status_code == 502
     assert status.json["error"]["code"] == "NODE_API_MISMATCH"
+    assert status.json["error"]["details"] == {
+        "expected_endpoint": "/api/status",
+        "received_status_code": 404,
+    }
 
 
 def test_node_status_maps_503_payload_without_error_envelope(monkeypatch, tmp_path):

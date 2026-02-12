@@ -338,10 +338,13 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
     if status_code == 404:
         return {}, (
             "NODE_API_MISMATCH",
-            f"node {node_id} does not expose expected management api",
+            f"node {node_id} status probe endpoint was not found",
             502,
             node_id,
-            {"status_code": status_code, "path": "/api/status"},
+            {
+                "expected_endpoint": "/api/status",
+                "received_status_code": status_code,
+            },
         )
 
     if status_code == 200:
