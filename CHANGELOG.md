@@ -94,6 +94,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.8] - 2026-02-12
+
+- Add configuration files for management mode and implement SSRF protection diagnostics
+
 ## [1.13.7] - 2026-02-12
 
 - Merge pull request #228 from CyanAutomation/codex/update-webcam-control-plane-auth-paths
