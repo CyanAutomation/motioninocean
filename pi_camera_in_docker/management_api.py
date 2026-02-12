@@ -17,6 +17,11 @@ from node_registry import FileNodeRegistry, NodeValidationError
 # Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true to disable private IP blocking (use only in internal networks)
 ALLOW_PRIVATE_IPS = os.environ.get("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "").lower() in {"true", "1", "yes"}
 
+# Request Timeout Configuration
+# Controls how long the management node waits for responses from webcam nodes
+# Increase this if webcam nodes have high latency or slow camera processing
+REQUEST_TIMEOUT_SECONDS = float(os.environ.get("MOTION_IN_OCEAN_REQUEST_TIMEOUT", "5.0"))
+
 
 class NodeRequestError(RuntimeError):
     """Raised when a proxied node request cannot be completed safely."""
@@ -235,7 +240,7 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
 
         try:
             req = urllib.request.Request(url=connect_url, method=method, headers=headers, data=data)
-            with urllib.request.urlopen(req, timeout=2.5) as response:
+            with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as response:
                 payload = response.read().decode("utf-8")
                 if not payload:
                     return response.status, {}
@@ -437,14 +442,14 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
             else:
                 results["guidance"].append(f"Docker proxy returned unexpected status {status_code}.")
         except NodeConnectivityError as exc:
-            results["diagnostics"]["network_connectivity"]["reachable"] = False
+            results["diagnostics"]["network_connectivity"]["reachable"] = exc.category != "timeout"
             results["diagnostics"]["network_connectivity"]["error"] = exc.reason
             results["diagnostics"]["network_connectivity"]["category"] = exc.category
             if exc.raw_error:
                 results["diagnostics"]["network_connectivity"]["raw_error"] = _sanitize_error_text(exc.raw_error)
             
             guidance_map = {
-                "timeout": "Network Timeout: Docker proxy is responding too slowly. Check docker proxy service.",
+                "timeout": f"Network Timeout: Docker proxy took longer than {REQUEST_TIMEOUT_SECONDS}s to respond. Check docker proxy service and network latency.",
                 "connection_refused_or_reset": "Connection Error: Docker proxy refused connection. Ensure docker-socket-proxy is running on correct port.",
                 "network": "Network Error: Unable to reach docker proxy. Check network connectivity and firewall rules.",
             }
@@ -537,15 +542,15 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
         results["diagnostics"]["url_validation"]["blocked_reason"] = str(exc)
         results["guidance"].append("URL Validation: Node target is blocked by SSRF protection policy.")
     except NodeConnectivityError as exc:
-        results["diagnostics"]["network_connectivity"]["reachable"] = False
+        results["diagnostics"]["network_connectivity"]["reachable"] = exc.category != "timeout"
         results["diagnostics"]["network_connectivity"]["error"] = exc.reason
         results["diagnostics"]["network_connectivity"]["category"] = exc.category
         if exc.raw_error:
             results["diagnostics"]["network_connectivity"]["raw_error"] = _sanitize_error_text(exc.raw_error)
         
         guidance_map = {
-            "dns": "DNS Resolution: Unable to resolve hostname. Check spellingand network DNS.",
-            "timeout": "Network Timeout: Node is responding too slowly or is offline. Check network and node status.",
+            "dns": "DNS Resolution: Unable to resolve hostname. Check spelling and network DNS.",
+            "timeout": f"Network Timeout: Node took longer than {REQUEST_TIMEOUT_SECONDS}s to respond. Check node is running, network latency, and camera processing load. Increase MOTION_IN_OCEAN_REQUEST_TIMEOUT if needed.",
             "tls": "TLS Error: SSL/TLS handshake failed. Check node certificate or use http://.",
             "connection_refused_or_reset": "Connection Error: Node refused connection. Ensure node is running on correct port.",
             "network": "Network Error: Unable to reach node. Check network connectivity and firewall rules.",
