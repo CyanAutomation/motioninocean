@@ -67,7 +67,7 @@ def test_node_crud_and_overview(monkeypatch, tmp_path):
 
     status = client.get("/api/nodes/node-1/status", headers=_auth_headers())
     assert status.status_code == 503
-    assert status.json["error"]["code"] == "NODE_UNREACHABLE"
+    assert status.json["error"]["code"] == "SSRF_BLOCKED"
 
     overview = client.get("/api/management/overview", headers=_auth_headers())
     assert overview.status_code == 200
@@ -106,8 +106,8 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
     )
 
     status = client.get("/api/nodes/node-2/status", headers=_auth_headers())
-    assert status.status_code == 200
-    assert status.json["error"]["code"] == "TRANSPORT_UNSUPPORTED"
+    assert status.status_code == 400
+    assert status.json["error"]["code"] == "INVALID_DOCKER_URL"
 
     action = client.post("/api/nodes/node-2/actions/restart", json={}, headers=_auth_headers())
     assert action.status_code == 400
@@ -161,9 +161,9 @@ def test_ssrf_protection_blocks_local_targets(monkeypatch, tmp_path):
 
     status = client.get("/api/nodes/node-3/status", headers=_auth_headers())
     assert status.status_code == 503
-    assert status.json["error"]["code"] == "NODE_UNREACHABLE"
-    assert status.json["error"]["details"]["reason"] == "target is blocked"
-    assert status.json["error"]["details"]["category"] == "blocked_target"
+    assert status.json["error"]["code"] == "SSRF_BLOCKED"
+    assert "SSRF protection" in status.json["error"]["details"]["reason"]
+    assert status.json["error"]["details"]["category"] == "ssrf_blocked"
 
 
 def test_corrupted_registry_file_returns_500_error_payload(monkeypatch, tmp_path):
@@ -211,9 +211,9 @@ def test_ssrf_protection_blocks_ipv6_mapped_loopback(monkeypatch, tmp_path):
 
     status = client.get("/api/nodes/node-4/status", headers=_auth_headers())
     assert status.status_code == 503
-    assert status.json["error"]["code"] == "NODE_UNREACHABLE"
-    assert status.json["error"]["details"]["reason"] == "target is blocked"
-    assert status.json["error"]["details"]["category"] == "blocked_target"
+    assert status.json["error"]["code"] == "SSRF_BLOCKED"
+    assert "SSRF protection" in status.json["error"]["details"]["reason"]
+    assert status.json["error"]["details"]["category"] == "ssrf_blocked"
 
 
 def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
@@ -240,9 +240,9 @@ def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
 
     status = client.get("/api/nodes/node-5/status", headers=_auth_headers())
     assert status.status_code == 503
-    assert status.json["error"]["code"] == "NODE_UNREACHABLE"
-    assert status.json["error"]["details"]["reason"] == "target is blocked"
-    assert status.json["error"]["details"]["category"] == "blocked_target"
+    assert status.json["error"]["code"] == "SSRF_BLOCKED"
+    assert "SSRF protection" in status.json["error"]["details"]["reason"]
+    assert status.json["error"]["details"]["category"] == "ssrf_blocked"
 
 
 def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
@@ -749,7 +749,7 @@ def test_request_json_uses_vetted_resolved_ip_and_preserves_host_header(monkeypa
     assert captured["getaddrinfo"] == ("example.com", None, socket.IPPROTO_TCP)
     assert captured["url"] == "http://93.184.216.34/api/status"
     assert captured["host"] == "example.com"
-    assert captured["timeout"] == 2.5
+    assert captured["timeout"] == 5.0
 
 
 def test_request_json_retries_next_vetted_address_when_first_connection_fails(monkeypatch):
