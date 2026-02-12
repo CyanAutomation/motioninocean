@@ -28,6 +28,15 @@ def test_management_mode_boots_without_camera(monkeypatch):
         assert metrics.status_code == 200
         assert metrics.json["camera_mode_enabled"] is False
 
+        status = client.get("/api/status")
+        assert status.status_code == 200
+        assert status.json["status"] == "ok"
+        assert status.json["app_mode"] == "management"
+        assert status.json["stream_available"] is False
+        assert status.json["camera_active"] is False
+        assert status.json["fps"] == 0.0
+        assert status.json["connections"] == {"current": 0, "max": 0}
+
         stream = client.get("/stream.mjpg")
         assert stream.status_code == 404
 
@@ -170,10 +179,12 @@ def test_webcam_control_plane_endpoints_do_not_require_auth_when_token_unset(mon
     health = client.get("/health")
     ready = client.get("/ready")
     metrics = client.get("/metrics")
+    status = client.get("/api/status")
 
     assert health.status_code == 200
     assert ready.status_code in (200, 503)
     assert metrics.status_code == 200
+    assert status.status_code == 200
 
 
 def test_webcam_control_plane_endpoints_require_valid_bearer_when_token_set(monkeypatch):
@@ -195,10 +206,28 @@ def test_webcam_control_plane_endpoints_require_valid_bearer_when_token_set(monk
     authorized_health = client.get("/health", headers=valid_headers)
     authorized_ready = client.get("/ready", headers=valid_headers)
     authorized_metrics = client.get("/metrics", headers=valid_headers)
+    authorized_status = client.get("/api/status", headers=valid_headers)
 
     assert authorized_health.status_code == 200
     assert authorized_ready.status_code in (200, 503)
     assert authorized_metrics.status_code == 200
+    assert authorized_status.status_code == 200
+
+
+def test_webcam_status_contract_reports_degraded_until_stream_is_fresh(monkeypatch):
+    client = _new_webcam_client(monkeypatch, "")
+
+    status = client.get("/api/status")
+    assert status.status_code == 200
+    payload = status.json
+
+    assert payload["app_mode"] == "webcam"
+    assert payload["status"] == "degraded"
+    assert payload["stream_available"] is False
+    assert isinstance(payload["camera_active"], bool)
+    assert payload["fps"] == 0.0
+    assert payload["connections"]["current"] >= 0
+    assert payload["connections"]["max"] > 0
 
 
 def test_webcam_stream_and_snapshot_routes_are_not_protected_by_control_plane_auth(monkeypatch):
