@@ -5,9 +5,19 @@
 # Standard Usage:
 #   docker compose up -d
 #
+# With docker-socket-proxy (for docker transport support):
+#   docker compose --profile docker-socket-proxy up -d
+#
 # Requirements:
 #   - Copy .env.example to .env and customize
 #   - Optionally mount shared node registry volume (see "volumes" section)
+#
+# Node Connectivity:
+#   - HTTP Transport (recommended): Register nodes with http://hostname:port
+#   - Docker Transport: Register nodes with docker://proxy-host:port/container-id
+#     Requires docker-socket-proxy to be running on remote docker hosts
+#   - Private IPs: Blocked by default (SSRF protection)
+#     Use docker network hostnames instead, or enable MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS
 
 services:
   motion-in-ocean:
@@ -32,6 +42,10 @@ services:
 
       # Management mode ignores camera configuration
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
+      
+      # SSRF Protection: Allow private IP ranges for node discovery
+      # Only enable for internal networks. See .env for security notes
+      MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS: ${MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS:-false}
 
     ports:
       - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT:-8001}:8000"
@@ -46,6 +60,62 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+
+  # Optional: Docker Socket Proxy for secure remote Docker API access
+  # Profile: docker-socket-proxy (enable with --profile docker-socket-proxy)
+  # Used for docker transport node connections (advanced feature)
+  # Provides a read-only proxy to Docker API on this machine
+  #
+  # To enable:
+  #   docker compose --profile docker-socket-proxy up -d
+  #
+  # Then register remote nodes with:
+  #   docker://your-management-host:2375/container-name
+  docker-socket-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:${MOTION_IN_OCEAN_IMAGE_TAG:-latest}
+    container_name: docker-socket-proxy
+    profiles: ["docker-socket-proxy"]
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${DOCKER_PROXY_PORT:-2375}:2375"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      # Minimal read-only permissions for security
+      CONTAINERS: 1
+      IMAGES: 1
+      INFO: 1
+      NETWORKS: 1
+      PING: 1
+      SERVICES: 1
+      STATS: 1
+      TASKS: 1
+      VERSION: 1
+      # Deny dangerous operations
+      AUTH: 0
+      BUILD: 0
+      COMMIT: 0
+      CONFIGS: 0
+      DISTRIBUTION: 0
+      EXEC: 0
+      GRPC: 0
+      POST: 0
+      SECRETS: 0
+      SYSTEM: 0
+      VOLUMES: 0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:2375/version || exit 1"]
+      interval: 2m
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   motion-in-ocean-data:
