@@ -2,7 +2,10 @@ import importlib
 import socket
 import ssl
 import sys
+import threading
 from datetime import datetime, timezone
+
+from flask import Flask
 
 
 def _new_management_client(monkeypatch, tmp_path):
@@ -12,6 +15,22 @@ def _new_management_client(monkeypatch, tmp_path):
     sys.modules.pop("main", None)
     main = importlib.import_module("main")
     return main.create_management_app(main._load_config()).test_client()
+
+
+def _new_webcam_contract_client(auth_token=""):
+    import shared
+
+    app = Flask(__name__)
+    state = {
+        "app_mode": "webcam",
+        "recording_started": threading.Event(),
+        "max_frame_age_seconds": 10.0,
+        "max_stream_connections": 8,
+        "connection_tracker": None,
+    }
+    shared.register_webcam_control_plane_auth(app, auth_token, lambda: "webcam")
+    shared.register_shared_routes(app, state, get_stream_status=lambda: {"current_fps": 0.0, "last_frame_age_seconds": None})
+    return app.test_client()
 
 
 def _auth_headers(token="test-token"):
@@ -722,13 +741,13 @@ def test_request_json_uses_vetted_resolved_ip_and_preserves_host_header(monkeypa
     status_code, payload = management_api._request_json(
         {"base_url": "http://example.com", "auth": {"type": "none"}},
         "GET",
-        "/health",
+        "/api/status",
     )
 
     assert status_code == 200
     assert payload == {"ok": True}
     assert captured["getaddrinfo"] == ("example.com", None, socket.IPPROTO_TCP)
-    assert captured["url"] == "http://93.184.216.34/health"
+    assert captured["url"] == "http://93.184.216.34/api/status"
     assert captured["host"] == "example.com"
     assert captured["timeout"] == 2.5
 
@@ -758,7 +777,7 @@ def test_request_json_retries_next_vetted_address_when_first_connection_fails(mo
 
     def fake_urlopen(req, timeout):
         attempted_urls.append(req.full_url)
-        if req.full_url == "http://93.184.216.34/health":
+        if req.full_url == "http://93.184.216.34/api/status":
             raise management_api.urllib.error.URLError("timed out")
         return FakeResponse()
 
@@ -768,14 +787,14 @@ def test_request_json_retries_next_vetted_address_when_first_connection_fails(mo
     status_code, payload = management_api._request_json(
         {"base_url": "http://example.com", "auth": {"type": "none"}},
         "GET",
-        "/health",
+        "/api/status",
     )
 
     assert status_code == 200
     assert payload == {"ok": True}
     assert attempted_urls == [
-        "http://93.184.216.34/health",
-        "http://93.184.216.35/health",
+        "http://93.184.216.34/api/status",
+        "http://93.184.216.35/api/status",
     ]
 
 
@@ -789,7 +808,7 @@ def test_request_json_maps_name_resolution_failure_to_dns_category(monkeypatch):
 
     node = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
-        management_api._request_json(node, "GET", "/health")
+        management_api._request_json(node, "GET", "/api/status")
         raise AssertionError("expected NodeConnectivityError")
     except management_api.NodeConnectivityError as exc:
         assert exc.reason == "dns resolution failed"
@@ -809,7 +828,7 @@ def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
 
     node = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
-        management_api._request_json(node, "GET", "/health")
+        management_api._request_json(node, "GET", "/api/status")
         raise AssertionError("expected NodeRequestError")
     except management_api.NodeRequestError as exc:
         assert str(exc) == "node target is not allowed"
@@ -829,7 +848,7 @@ def test_request_json_maps_timeout_failure(monkeypatch):
 
     node = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
-        management_api._request_json(node, "GET", "/health")
+        management_api._request_json(node, "GET", "/api/status")
         raise AssertionError("expected NodeConnectivityError")
     except management_api.NodeConnectivityError as exc:
         assert exc.reason == "request timed out"
@@ -850,7 +869,7 @@ def test_request_json_maps_connection_refused_or_reset(monkeypatch):
 
     node = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
-        management_api._request_json(node, "GET", "/health")
+        management_api._request_json(node, "GET", "/api/status")
         raise AssertionError("expected NodeConnectivityError")
     except management_api.NodeConnectivityError as exc:
         assert exc.reason == "connection refused or reset"
@@ -871,7 +890,7 @@ def test_request_json_maps_tls_failure(monkeypatch):
 
     node = {"base_url": "https://example.com", "auth": {"type": "none"}}
     try:
-        management_api._request_json(node, "GET", "/health")
+        management_api._request_json(node, "GET", "/api/status")
         raise AssertionError("expected NodeConnectivityError")
     except management_api.NodeConnectivityError as exc:
         assert exc.reason == "tls handshake failed"
@@ -912,3 +931,35 @@ def test_node_status_reports_connectivity_details(monkeypatch, tmp_path):
     assert status.json["error"]["details"]["reason"] == "request timed out"
     assert status.json["error"]["details"]["category"] == "timeout"
     assert "\n" not in status.json["error"]["details"]["raw_error"]
+
+
+def test_webcam_api_status_contract_shape_reports_required_fields(monkeypatch):
+    client = _new_webcam_contract_client()
+
+    response = client.get("/api/status")
+
+    assert response.status_code == 200
+    payload = response.json
+    assert payload["status"] in {"ok", "degraded"}
+    assert payload["app_mode"] == "webcam"
+    assert isinstance(payload["stream_available"], bool)
+    assert isinstance(payload["camera_active"], bool)
+    assert isinstance(payload["uptime_seconds"], float)
+    assert isinstance(payload["fps"], (int, float))
+    assert isinstance(payload["connections"], dict)
+    assert sorted(payload["connections"].keys()) == ["current", "max"]
+    assert isinstance(payload["connections"]["current"], int)
+    assert isinstance(payload["connections"]["max"], int)
+    assert isinstance(payload["timestamp"], str)
+
+
+def test_webcam_api_status_contract_shape_with_auth(monkeypatch):
+    client = _new_webcam_contract_client(auth_token="node-token")
+
+    unauthorized = client.get("/api/status")
+    assert unauthorized.status_code == 401
+    assert unauthorized.json["error"]["code"] == "UNAUTHORIZED"
+
+    authorized = client.get("/api/status", headers={"Authorization": "Bearer node-token"})
+    assert authorized.status_code == 200
+    assert authorized.json["app_mode"] == "webcam"
