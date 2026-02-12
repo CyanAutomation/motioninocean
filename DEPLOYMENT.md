@@ -160,8 +160,8 @@ graph TD
     FileRegistry["FileNodeRegistry<br/>(Persistent JSON)"]
 
     Browser -->|Web UI & API| Management
-    Management -->|GET /health<br/>GET /ready<br/>GET /metrics| WebcamOne
-    Management -->|GET /health<br/>GET /ready<br/>GET /metrics| WebcamTwo
+    Management -->|GET /api/status (required)<br/>GET /health (liveness)<br/>GET /ready (optional)<br/>GET /metrics (optional)| WebcamOne
+    Management -->|GET /api/status (required)<br/>GET /health (liveness)<br/>GET /ready (optional)<br/>GET /metrics (optional)| WebcamTwo
     Management -->|CRUD /api/nodes| FileRegistry
     WebcamOne -.->|Stream /stream.mjpg| Browser
     WebcamTwo -.->|Stream /stream.mjpg| Browser
@@ -211,21 +211,27 @@ docker logs -f --timestamps motion-in-ocean
 
 ### Step 2: Verify Webcam Host Connectivity
 
-From the management host, test connectivity to the webcam host:
+From the management host, test the node API contract endpoint (management uses this endpoint for health/status decisions):
 
 ```bash
-# Test basic connectivity (replace 192.168.1.101 with actual IP)
-curl -X GET http://192.168.1.101:8000/health
+# Required management probe endpoint (replace 192.168.1.101 with actual IP)
+curl -X GET http://192.168.1.101:8000/api/status
 
-# Expected response: {"status": "ok"}
+# Expected response includes at least:
+# {"status": "ok"|"degraded", "stream_available": <bool>, ...}
 ```
 
-Test the ready endpoint:
+Optional supplemental endpoints:
 
 ```bash
+# Liveness-only endpoint
+curl -X GET http://192.168.1.101:8000/health
+
+# Optional readiness endpoint
 curl -X GET http://192.168.1.101:8000/ready
 
-# Expected response: {"status": "ready"} (or "waiting" if camera not yet streaming)
+# Optional metrics endpoint
+curl -X GET http://192.168.1.101:8000/metrics
 ```
 
 ### Step 3: Deploy Management Mode on Hub Host
@@ -305,17 +311,20 @@ MANAGEMENT_AUTH_TOKEN=replace-with-strong-random-token
 
 When `MANAGEMENT_AUTH_TOKEN` is set in webcam mode, these endpoints require bearer auth:
 
-- `/health`
-- `/ready`
-- `/metrics`
+- `/api/status` (required for management-mode node health contract)
+- `/health` (liveness-only)
+- `/ready` (optional readiness)
+- `/metrics` (optional metrics)
 - `/api/actions/*`
 
 Verify with authenticated requests:
 
 ```bash
+curl -H "Authorization: Bearer <webcam_node_token>" http://192.168.1.101:8000/api/status
 curl -H "Authorization: Bearer <webcam_node_token>" http://192.168.1.101:8000/health
-curl -H "Authorization: Bearer <webcam_node_token>" http://192.168.1.101:8000/metrics
 ```
+
+Management-mode node health uses the `/api/status` contract exclusively. `GET /health`, `GET /ready`, and `GET /metrics` are not used for management health classification.
 
 If management shows `NODE_UNAUTHORIZED`, check that the node auth token in management exactly matches the remote webcam host token.
 
@@ -466,7 +475,7 @@ curl -X POST http://192.168.1.100:8001/api/nodes \
    # Test port 8000 on webcam host from management host
    nc -zv 192.168.1.101 8000
    # or with curl
-   curl -v http://192.168.1.101:8000/health
+   curl -v http://192.168.1.101:8000/api/status
    ```
 
 3. Check firewall rules:
