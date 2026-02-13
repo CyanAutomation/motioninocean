@@ -2,6 +2,7 @@
 
 import glob
 import io
+from datetime import datetime, timezone
 import logging
 import os
 import signal
@@ -688,8 +689,94 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
         }
     )
 
+    default_api_test_scenarios = [
+        {
+            "status": "ok",
+            "stream_available": True,
+            "camera_active": True,
+            "fps": 24.0,
+            "connections": {"current": 1, "max": 10},
+        },
+        {
+            "status": "degraded",
+            "stream_available": False,
+            "camera_active": True,
+            "fps": 0.0,
+            "connections": {"current": 0, "max": 10},
+        },
+        {
+            "status": "degraded",
+            "stream_available": False,
+            "camera_active": False,
+            "fps": 0.0,
+            "connections": {"current": 0, "max": 10},
+        },
+    ]
+
+    def _get_api_test_status_override(
+        uptime_seconds: float, max_connections: int
+    ) -> Optional[Dict[str, Any]]:
+        api_test_state = state.get("api_test")
+        if not api_test_state or not api_test_state.get("enabled"):
+            return None
+
+        lock = api_test_state.get("lock")
+        if not lock:
+            return None
+
+        with lock:
+            scenario_list = api_test_state.get("scenario_list") or default_api_test_scenarios
+            if not api_test_state.get("scenario_list"):
+                api_test_state["scenario_list"] = scenario_list
+
+            interval = api_test_state.get("cycle_interval_seconds", 5.0)
+            now = time.monotonic()
+
+            if (
+                api_test_state.get("active")
+                and interval > 0
+                and now - api_test_state.get("last_transition_monotonic", now) >= interval
+            ):
+                api_test_state["current_state_index"] = (
+                    api_test_state.get("current_state_index", 0) + 1
+                ) % len(scenario_list)
+                api_test_state["last_transition_monotonic"] = now
+
+            current_state_index = api_test_state.get("current_state_index", 0) % len(scenario_list)
+            scenario = scenario_list[current_state_index]
+            state_name = scenario.get("status", f"state-{current_state_index}")
+
+            next_transition_seconds = None
+            if api_test_state.get("active") and interval > 0:
+                elapsed = max(0.0, now - api_test_state.get("last_transition_monotonic", now))
+                next_transition_seconds = round(max(0.0, interval - elapsed), 3)
+
+        return {
+            "status": scenario["status"],
+            "app_mode": state["app_mode"],
+            "stream_available": scenario["stream_available"],
+            "camera_active": scenario["camera_active"],
+            "uptime_seconds": uptime_seconds,
+            "fps": scenario["fps"],
+            "connections": {
+                "current": scenario["connections"]["current"],
+                "max": max_connections,
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "api_test": {
+                "enabled": api_test_state.get("enabled", False),
+                "active": api_test_state.get("active", False),
+                "state_index": current_state_index,
+                "state_name": state_name,
+                "next_transition_seconds": next_transition_seconds,
+            },
+        }
+
     register_shared_routes(
-        app, state, get_stream_status=lambda: get_stream_status(stream_stats, cfg["resolution"])
+        app,
+        state,
+        get_stream_status=lambda: get_stream_status(stream_stats, cfg["resolution"]),
+        get_api_test_status_override=_get_api_test_status_override,
     )
     register_webcam_control_plane_auth(
         app,

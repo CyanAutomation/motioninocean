@@ -47,7 +47,10 @@ def register_webcam_control_plane_auth(
 
 
 def register_shared_routes(
-    app: Flask, state: dict, get_stream_status: Optional[Callable[[], dict]] = None
+    app: Flask,
+    state: dict,
+    get_stream_status: Optional[Callable[[], dict]] = None,
+    get_api_test_status_override: Optional[Callable[[float, int], Optional[dict]]] = None,
 ) -> None:
     api_test_scenarios = [
         {
@@ -150,10 +153,6 @@ def register_shared_routes(
         )
         max_connections = state.get("max_stream_connections", 0)
 
-        api_test_payload = _get_api_test_payload(uptime_seconds, max_connections)
-        if api_test_payload is not None:
-            return api_test_payload
-
         stream_status = (
             get_stream_status()
             if get_stream_status
@@ -246,4 +245,19 @@ def register_shared_routes(
     def api_status():
         if state["app_mode"] != "webcam":
             return jsonify(_build_management_status_payload()), 200
+
+        uptime_seconds = round(
+            time.monotonic() - getattr(app, "start_time_monotonic", time.monotonic()), 2
+        )
+        max_connections = state.get("max_stream_connections", 0)
+
+        api_test_payload = None
+        if get_api_test_status_override is not None:
+            api_test_payload = get_api_test_status_override(uptime_seconds, max_connections)
+        else:
+            api_test_payload = _get_api_test_payload(uptime_seconds, max_connections)
+
+        if api_test_payload is not None:
+            return jsonify(api_test_payload), 200
+
         return jsonify(_build_webcam_status_payload()), 200
