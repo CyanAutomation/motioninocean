@@ -33,6 +33,87 @@ def _new_webcam_contract_client(auth_token=""):
     return app.test_client()
 
 
+def test_api_status_ignores_api_test_mode_when_lock_is_missing():
+    import shared
+
+    app = Flask(__name__)
+    state = {
+        "app_mode": "webcam",
+        "recording_started": threading.Event(),
+        "max_frame_age_seconds": 10.0,
+        "max_stream_connections": 8,
+        "connection_tracker": None,
+        "api_test": {
+            "enabled": True,
+            "active": True,
+            # lock intentionally omitted to ensure endpoint remains resilient
+        },
+    }
+
+    shared.register_shared_routes(
+        app,
+        state,
+        get_stream_status=lambda: {"current_fps": 0.0, "last_frame_age_seconds": None},
+    )
+    response = app.test_client().get("/api/status")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["status"] == "degraded"
+    assert payload["camera_active"] is False
+    assert "api_test" not in payload
+
+
+def test_api_status_returns_current_api_test_scenario_when_inactive():
+    import shared
+
+    app = Flask(__name__)
+    state = {
+        "app_mode": "webcam",
+        "recording_started": threading.Event(),
+        "max_frame_age_seconds": 10.0,
+        "max_stream_connections": 8,
+        "connection_tracker": None,
+        "api_test": {
+            "enabled": True,
+            "active": False,
+            "lock": threading.RLock(),
+            "scenario_list": [
+                {
+                    "status": "ok",
+                    "stream_available": True,
+                    "camera_active": True,
+                    "fps": 30.0,
+                    "connections": {"current": 2, "max": 8},
+                },
+                {
+                    "status": "degraded",
+                    "stream_available": False,
+                    "camera_active": False,
+                    "fps": 0.0,
+                    "connections": {"current": 0, "max": 8},
+                },
+            ],
+            "current_state_index": 1,
+            "cycle_interval_seconds": 0.01,
+            "last_transition_monotonic": 0.0,
+        },
+    }
+
+    shared.register_shared_routes(
+        app,
+        state,
+        get_stream_status=lambda: {"current_fps": 0.0, "last_frame_age_seconds": None},
+    )
+    response = app.test_client().get("/api/status")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["status"] == "degraded"
+    assert payload["api_test"] == {"enabled": True, "active": False, "state_index": 1}
+    assert state["api_test"]["current_state_index"] == 1
+
+
 def _auth_headers(token="test-token"):
     return {"Authorization": f"Bearer {token}"}
 
