@@ -24,6 +24,7 @@ const state = {
   setupLoadingDelayTimer: null,
   setupLoadingVisible: false,
   setupFormState: {},
+  setupDetectedDevices: {},
   elements: {
     videoStream: null,
     statsPanel: null,
@@ -1001,7 +1002,10 @@ function validateStep(step) {
   if (setupWizard.expertMode) return true;
 
   if (step === "environment") {
-    return Boolean(document.getElementById("env-pi-version")?.value) && Boolean(document.getElementById("env-intent")?.value);
+    return (
+      Boolean(document.getElementById("env-pi-version")?.value) &&
+      Boolean(document.getElementById("env-intent")?.value)
+    );
   }
 
   if (step === "preset") {
@@ -1052,6 +1056,15 @@ function updateWizardNavigation() {
       nextBtn.textContent = "Next";
     }
   }
+}
+
+function escapeHtml(unsafe) {
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function updatePresetRecommendation() {
@@ -1132,6 +1145,7 @@ async function loadSetupTab() {
 
     const data = await response.json();
     state.setupFormState = data.current_config || {};
+    state.setupDetectedDevices = data.detected_devices || {};
 
     updateSetupUI(data);
     applyStoredWizardState();
@@ -1160,8 +1174,157 @@ async function loadSetupTab() {
   }
 }
 
-function updateSetupUI(data) {
+function getDeviceDetectionSummary(devices = {}, currentConfig = {}) {
+  const videoCount = devices.video_devices?.length || 0;
+  const mediaCount = devices.media_devices?.length || 0;
+  const dmaCount = devices.dma_heap_devices?.length || 0;
+  const hasVchiq = Boolean(devices.vchiq_device);
+  const cameraSignals = [videoCount > 0, mediaCount > 0, hasVchiq].filter(Boolean).length;
+  const modeIntent = document.getElementById("env-intent")?.value || currentConfig.intent || "";
+  const isManagementMode = modeIntent === "management";
+
+  if (cameraSignals >= 2) {
+    return {
+      status: "Camera likely ready",
+      tone: "detected",
+      guidance: "Camera interfaces look available. You can proceed with real camera streaming.",
+      recommendations: [
+        "Enable the camera interface in raspi-config and reboot if the stream still fails.",
+        "Keep /dev/vchiq and /dev/video* mounted into the container for hardware access.",
+      ],
+      isManagementMode,
+      videoCount,
+      mediaCount,
+      dmaCount,
+      hasVchiq,
+    };
+  }
+
+  if (cameraSignals === 0) {
+    return {
+      status: "No camera detected",
+      tone: isManagementMode ? "warning" : "error",
+      guidance: isManagementMode
+        ? "Management mode can run without a physical camera, but streaming features will remain unavailable until hardware is attached."
+        : "No camera interfaces were found. Check host device mounts and camera interface settings.",
+      recommendations: [
+        "Verify /dev/vchiq exists on the host and is mounted into the container.",
+        "For local development without hardware, set MOCK_CAMERA=true.",
+        "If using Raspberry Pi, enable Camera in raspi-config and reboot.",
+      ],
+      isManagementMode,
+      videoCount,
+      mediaCount,
+      dmaCount,
+      hasVchiq,
+    };
+  }
+
+  return {
+    status: "Partial detection",
+    tone: "warning",
+    guidance: "Some camera signals were detected, but not all expected interfaces are present.",
+    recommendations: [
+      "Confirm /dev/vchiq and /dev/video* are both available to the container.",
+      "Check camera ribbon seating and reboot if interfaces are intermittent.",
+      "Use MOCK_CAMERA=true during development to continue testing setup flows.",
+    ],
+    isManagementMode,
+    videoCount,
+    mediaCount,
+    dmaCount,
+    hasVchiq,
+  };
+}
+
+function renderDeviceStatus(devices = {}, currentConfig = {}) {
   const deviceStatus = document.getElementById("device-status");
+  if (!deviceStatus) return;
+
+  const summary = getDeviceDetectionSummary(devices, currentConfig);
+
+  const checklistItems = [
+    {
+      label: "Video devices (/dev/video*)",
+      passed: summary.videoCount > 0,
+      detail: summary.videoCount > 0 ? devices.video_devices.join(", ") : "None",
+    },
+    {
+      label: "Media devices (/dev/media*)",
+      passed: summary.mediaCount > 0,
+      detail: summary.mediaCount > 0 ? devices.media_devices.join(", ") : "None",
+    },
+    {
+      label: "DMA heap",
+      passed: summary.dmaCount > 0,
+      detail: summary.dmaCount > 0 ? devices.dma_heap_devices.join(", ") : "None",
+    },
+    {
+      label: "/dev/vchiq",
+      passed: summary.hasVchiq,
+      detail: summary.hasVchiq ? "Detected" : "Not detected",
+    },
+  ];
+
+  const checklistHtml = checklistItems
+    .map(
+      (item) => `
+        <li class="device-check-item ${item.passed ? "passed" : "missing"}">
+          <span class="check-icon">${item.passed ? "✅" : "⚪"}</span>
+          <span class="check-label">${escapeHtml(item.label)}</span>
+          <span class="check-detail">${escapeHtml(item.detail)}</span>
+        </li>`,
+    )
+    .join("");
+
+  const recommendationsHtml = summary.recommendations
+    .map((recommendation) => `<li>${escapeHtml(recommendation)}</li>`)
+    .join("");
+
+  const modeNote = summary.isManagementMode
+    ? '<p class="device-mode-note">ℹ️ Management mode selected: camera-less operation can be expected.</p>'
+    : "";
+
+  deviceStatus.innerHTML = `
+    <div class="device-status-summary">
+      <strong>${escapeHtml(summary.status)}</strong>
+      <p>${escapeHtml(summary.guidance)}</p>
+      ${modeNote}
+    </div>
+    <ul class="device-checklist">
+      ${checklistHtml}
+    </ul>
+    <div class="device-recommendations device-recommendations-${summary.tone}">
+      <p class="device-recommendations-title">Recommended next steps</p>
+      <ul>${recommendationsHtml}</ul>
+    </div>
+  `;
+
+  deviceStatus.className = `device-status ${summary.tone}`;
+}
+
+async function rescanSetupDevices() {
+  const rescanBtn = document.getElementById("rescan-devices-btn");
+  if (rescanBtn) {
+    rescanBtn.disabled = true;
+    rescanBtn.textContent = "Scanning...";
+  }
+
+  try {
+    const response = await fetch("/api/setup/templates");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const data = await response.json();
+    state.setupDetectedDevices = data.detected_devices || {};
+    state.setupFormState = data.current_config || state.setupFormState;
+    renderDeviceStatus(state.setupDetectedDevices, state.setupFormState);
+  } catch (error) {
+    console.error("Failed to rescan devices:", error);
+    showSetupError(`Failed to re-scan devices: ${error.message}`);
+  } finally {
+    if (rescanBtn) {
+      rescanBtn.disabled = false;
+      rescanBtn.textContent = "Re-scan devices";
   if (deviceStatus && data.detected_devices) {
     const devices = data.detected_devices;
     if (Object.keys(devices).length > 0) {
@@ -1177,11 +1340,18 @@ function updateSetupUI(data) {
       deviceStatus.className = "device-status";
     }
   }
+}
+
+function updateSetupUI(data) {
+  state.setupDetectedDevices = data.detected_devices || state.setupDetectedDevices || {};
+  renderDeviceStatus(state.setupDetectedDevices, data.current_config || {});
 
   applyConfigToForm(data.current_config || {});
 
   if (data.current_config?.mock_camera !== undefined) {
-    document.getElementById("env-mock-camera").value = data.current_config.mock_camera ? "true" : "false";
+    document.getElementById("env-mock-camera").value = data.current_config.mock_camera
+      ? "true"
+      : "false";
   }
 }
 
@@ -1218,6 +1388,9 @@ function attachSetupEventListeners() {
   const prevBtn = document.getElementById("setup-prev-btn");
   if (prevBtn) prevBtn.addEventListener("click", onSetupPrevious);
 
+  const rescanBtn = document.getElementById("rescan-devices-btn");
+  if (rescanBtn) rescanBtn.addEventListener("click", rescanSetupDevices);
+
   document.querySelectorAll(".wizard-step").forEach((btn) => {
     btn.addEventListener("click", () => {
       const requestedStep = btn.getAttribute("data-step");
@@ -1243,6 +1416,9 @@ function attachSetupEventListeners() {
       if (id === "env-mock-camera") {
         const mockCameraField = document.getElementById("setup-mock-camera");
         if (mockCameraField) mockCameraField.value = field.value;
+      }
+      if (id === "env-intent") {
+        renderDeviceStatus(state.setupDetectedDevices || {}, state.setupFormState || {});
       }
       updatePresetRecommendation();
       validateSetupForm();
