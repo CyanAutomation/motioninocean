@@ -92,6 +92,20 @@ def _load_config() -> Dict[str, Any]:
     if not 1 <= max_stream_connections <= 100:
         max_stream_connections = 10
 
+    api_test_mode_enabled = os.environ.get("API_TEST_MODE_ENABLED", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    try:
+        api_test_cycle_interval_seconds = float(
+            os.environ.get("API_TEST_CYCLE_INTERVAL_SECONDS", "5")
+        )
+    except ValueError:
+        api_test_cycle_interval_seconds = 5.0
+    if api_test_cycle_interval_seconds <= 0:
+        api_test_cycle_interval_seconds = 5.0
+
     # Canonical Pi 3 profile env var is MOTION_IN_OCEAN_PI3_PROFILE.
     # Keep PI3_PROFILE as a legacy fallback for backward compatibility.
     pi3_profile_raw = os.environ.get(
@@ -106,6 +120,8 @@ def _load_config() -> Dict[str, Any]:
         "jpeg_quality": jpeg_quality,
         "max_frame_age_seconds": max_frame_age,
         "max_stream_connections": max_stream_connections,
+        "api_test_mode_enabled": api_test_mode_enabled,
+        "api_test_cycle_interval_seconds": api_test_cycle_interval_seconds,
         "pi3_profile_enabled": pi3_profile_raw.lower() in ("1", "true", "yes"),
         "mock_camera": is_flag_enabled("MOCK_CAMERA"),
         "cors_enabled": is_flag_enabled("CORS_SUPPORT"),
@@ -626,6 +642,15 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
             "stream_stats": stream_stats,
             "connection_tracker": ConnectionTracker(),
             "max_stream_connections": cfg["max_stream_connections"],
+            "api_test": {
+                "enabled": cfg["api_test_mode_enabled"],
+                "active": cfg["api_test_mode_enabled"],
+                "current_state_index": 0,
+                "scenario_list": [],
+                "last_transition_monotonic": time.monotonic(),
+                "cycle_interval_seconds": cfg["api_test_cycle_interval_seconds"],
+                "lock": RLock(),
+            },
         }
     )
 
