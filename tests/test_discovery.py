@@ -1,3 +1,4 @@
+import pytest
 import threading
 
 
@@ -74,3 +75,26 @@ def test_discovery_announcer_stop_sets_shutdown_event():
     announcer.stop()
 
     assert shutdown_event.is_set()
+
+
+def test_build_discovery_payload_requires_base_url():
+    from discovery import build_discovery_payload
+
+    with pytest.raises(ValueError, match="discovery_base_url is required"):
+        build_discovery_payload({"discovery_node_id": "node-explicit"})
+
+
+def test_discovery_announcer_log_url_redacts_query_and_credentials():
+    from discovery import DiscoveryAnnouncer
+
+    shutdown_event = threading.Event()
+    announcer = DiscoveryAnnouncer(
+        management_url="http://user:pass@example.local:8001?token=secret",
+        token="token",
+        interval_seconds=30,
+        node_id="node-1",
+        payload={"node_id": "node-1"},
+        shutdown_event=shutdown_event,
+    )
+
+    assert announcer.management_url_log == "http://example.local:8001/api/discovery/announce"

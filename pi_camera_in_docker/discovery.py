@@ -9,6 +9,7 @@ import urllib.request
 import uuid
 from threading import Event, Thread
 from typing import Any, Dict, Optional
+from urllib.parse import urlsplit, urlunsplit
 
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,20 @@ def _stable_node_id(hostname: str) -> str:
 
 
 def _safe_management_url(management_url: str) -> str:
-    return management_url.rstrip("/") + "/api/discovery/announce"
+    parts = urlsplit(management_url)
+    host = parts.hostname or ""
+    if parts.port is not None:
+        host = f"{host}:{parts.port}"
+    base_path = parts.path.rstrip("/")
+    return urlunsplit((parts.scheme, host, f"{base_path}/api/discovery/announce", "", ""))
+
+
+def _redacted_url_for_logs(url: str) -> str:
+    parts = urlsplit(url)
+    host = parts.hostname or ""
+    if parts.port is not None:
+        host = f"{host}:{parts.port}"
+    return urlunsplit((parts.scheme, host, parts.path, "", ""))
 
 
 class DiscoveryAnnouncer:
@@ -36,6 +50,7 @@ class DiscoveryAnnouncer:
         shutdown_event: Event,
     ):
         self.management_url = _safe_management_url(management_url)
+        self.management_url_log = _redacted_url_for_logs(self.management_url)
         self.token = token
         self.interval_seconds = max(1.0, float(interval_seconds))
         self.node_id = node_id
@@ -75,14 +90,14 @@ class DiscoveryAnnouncer:
                         "discovery_announce_ok: node_id=%s status=%s endpoint=%s",
                         self.node_id,
                         status_code,
-                        self.management_url,
+                        self.management_url_log,
                     )
                     return True
                 logger.warning(
                     "discovery_announce_failed: node_id=%s status=%s endpoint=%s",
                     self.node_id,
                     status_code,
-                    self.management_url,
+                    self.management_url_log,
                 )
                 return False
         except urllib.error.HTTPError as exc:
@@ -90,7 +105,7 @@ class DiscoveryAnnouncer:
                 "discovery_announce_http_error: node_id=%s status=%s endpoint=%s",
                 self.node_id,
                 exc.code,
-                self.management_url,
+                self.management_url_log,
             )
             return False
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
@@ -98,7 +113,7 @@ class DiscoveryAnnouncer:
                 "discovery_announce_network_error: node_id=%s reason=%s endpoint=%s",
                 self.node_id,
                 str(exc),
-                self.management_url,
+                self.management_url_log,
             )
             return False
 
