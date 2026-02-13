@@ -1042,7 +1042,7 @@ def test_request_json_uses_vetted_resolved_ip_and_preserves_host_header(monkeypa
     assert captured["getaddrinfo"] == ("example.com", None, socket.IPPROTO_TCP)
     assert captured["url"] == "http://93.184.216.34/api/status"
     assert captured["host"] == "example.com"
-    assert captured["timeout"] == 5.0
+    assert captured["timeout"] == management_api.REQUEST_TIMEOUT_SECONDS
 
 
 def test_request_json_retries_next_vetted_address_when_first_connection_fails(monkeypatch):
@@ -1130,10 +1130,13 @@ def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
 def test_request_json_maps_timeout_failure(monkeypatch):
     import management_api
 
+    captured = {}
+
     def fake_getaddrinfo(host, port, proto):
         return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))]
 
     def fake_urlopen(req, timeout):
+        captured["timeout"] = timeout
         raise management_api.urllib.error.URLError(socket.timeout("timed out"))
 
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
@@ -1144,6 +1147,7 @@ def test_request_json_maps_timeout_failure(monkeypatch):
         management_api._request_json(node, "GET", "/api/status")
         raise AssertionError("expected NodeConnectivityError")
     except management_api.NodeConnectivityError as exc:
+        assert captured["timeout"] == management_api.REQUEST_TIMEOUT_SECONDS
         assert exc.reason == "request timed out"
         assert exc.category == "timeout"
 
