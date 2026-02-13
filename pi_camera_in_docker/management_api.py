@@ -195,6 +195,37 @@ def _registry_corruption_response(exc: NodeValidationError):
     )
 
 
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _manual_discovery_defaults(existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    now_iso = _utc_now_iso()
+    existing_discovery = existing.get("discovery", {}) if isinstance(existing, dict) else {}
+    first_seen = existing_discovery.get("first_seen") or existing.get("last_seen") if isinstance(existing, dict) else now_iso
+    return {
+        "source": "manual",
+        "first_seen": first_seen or now_iso,
+        "last_announce_at": existing_discovery.get("last_announce_at") if isinstance(existing_discovery, dict) else None,
+        "approved": True,
+    }
+
+
+def _discovery_metadata(existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    now_iso = _utc_now_iso()
+    existing_discovery = existing.get("discovery", {}) if isinstance(existing, dict) else {}
+    first_seen = existing_discovery.get("first_seen") or existing.get("last_seen") if isinstance(existing, dict) else now_iso
+    approved = existing_discovery.get("approved")
+    if not isinstance(approved, bool):
+        approved = False
+    return {
+        "source": "discovered",
+        "first_seen": first_seen or now_iso,
+        "last_announce_at": now_iso,
+        "approved": approved,
+    }
+
+
 def _build_headers(node: Dict[str, Any]) -> Dict[str, str]:
     auth = node.get("auth", {})
     if auth.get("type") == "bearer" and auth.get("token"):
@@ -853,9 +884,10 @@ def register_management_routes(
             "base_url": payload.get("base_url"),
             "transport": payload.get("transport"),
             "capabilities": payload.get("capabilities"),
-            "last_seen": datetime.now(timezone.utc).isoformat(),
+            "last_seen": _utc_now_iso(),
             "labels": payload.get("labels", {}),
             "auth": payload.get("auth", {"type": "none"}),
+            "discovery": _discovery_metadata(),
         }
         try:
             validated = validate_node(candidate)
@@ -890,6 +922,7 @@ def register_management_routes(
             "last_seen": validated["last_seen"],
             "labels": validated["labels"],
             "auth": validated["auth"],
+            "discovery": _discovery_metadata(existing),
         }
         try:
             updated = registry.update_node(validated["id"], patch)
@@ -910,6 +943,8 @@ def register_management_routes(
     @app.route("/api/nodes", methods=["POST"])
     def create_node():
         payload = request.get_json(silent=True) or {}
+        if "discovery" not in payload:
+            payload["discovery"] = _manual_discovery_defaults()
         try:
             created = registry.create_node(payload)
         except NodeValidationError as exc:
@@ -942,6 +977,8 @@ def register_management_routes(
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
             raise
+        if existing and "discovery" not in payload:
+            payload["discovery"] = _manual_discovery_defaults(existing)
         effective_transport = payload.get(
             "transport",
             existing.get("transport") if (existing and isinstance(existing, dict)) else None,
@@ -957,6 +994,33 @@ def register_management_routes(
                 return _registry_corruption_response(exc)
             return _error_response("VALIDATION_ERROR", str(exc), 400, node_id=node_id)
         return jsonify(updated), 200
+
+    @app.route("/api/nodes/<node_id>/discovery/<decision>", methods=["POST"])
+    def set_node_discovery_approval(node_id: str, decision: str):
+        if decision not in {"approve", "reject"}:
+            return _error_response("VALIDATION_ERROR", "decision must be approve or reject", 400, node_id=node_id)
+
+        try:
+            node = registry.get_node(node_id)
+        except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
+            raise
+
+        if node is None:
+            return _error_response("NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id)
+
+        discovery = node.get("discovery", _manual_discovery_defaults(node))
+        discovery["approved"] = decision == "approve"
+
+        try:
+            updated = registry.update_node(node_id, {"discovery": discovery})
+        except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
+            return _error_response("VALIDATION_ERROR", str(exc), 400, node_id=node_id)
+
+        return jsonify({"node": updated, "decision": decision}), 200
 
     @app.route("/api/nodes/<node_id>", methods=["DELETE"])
     def delete_node(node_id: str):

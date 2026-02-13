@@ -120,3 +120,12 @@
     padding-inline: var(--space-3);
   }
 }
+
+
+.node-table td small {
+  line-height: 1.35;
+}
+
+.row-actions {
+  flex-wrap: wrap;
+}
