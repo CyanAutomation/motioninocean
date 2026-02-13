@@ -128,3 +128,129 @@
 .row-actions {
   flex-wrap: wrap;
 }
+
+.diagnostic-panel {
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.diagnostic-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.diagnostic-panel__header h3,
+.diagnostic-recommendations h4 {
+  margin: 0;
+}
+
+.diagnostic-meta-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.diagnostic-checks-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.diagnostic-check-card {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  padding: var(--space-3);
+}
+
+.diagnostic-check-card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.diagnostic-check-card__head h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.diagnostic-check-card p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.diagnostic-check-card small {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+}
+
+.diagnostic-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.diagnostic-pill--pass {
+  background: rgba(22, 101, 52, 0.12);
+  color: #166534;
+}
+
+.diagnostic-pill--warn {
+  background: rgba(180, 83, 9, 0.14);
+  color: #92400e;
+}
+
+.diagnostic-pill--fail {
+  background: rgba(185, 28, 28, 0.13);
+  color: #b91c1c;
+}
+
+.diagnostic-pill--neutral {
+  background: rgba(71, 85, 105, 0.15);
+  color: #334155;
+}
+
+.diagnostic-empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.diagnostic-recommendations ul {
+  margin: var(--space-2) 0 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: var(--space-1);
+}
+
+@media (max-width: 900px) {
+  .diagnostic-meta-row,
+  .diagnostic-checks-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .diagnostic-panel__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .diagnostic-panel__header .ui-btn {
+    width: 100%;
+  }
+}

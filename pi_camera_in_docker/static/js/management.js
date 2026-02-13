@@ -5,6 +5,12 @@ const formTitle = document.getElementById("form-title");
 const cancelEditBtn = document.getElementById("cancel-edit-btn");
 const refreshBtn = document.getElementById("refresh-nodes-btn");
 const editingNodeIdInput = document.getElementById("editing-node-id");
+const diagnosticNodeId = document.getElementById("diagnostic-node-id");
+const diagnosticContext = document.getElementById("diagnostic-context");
+const diagnosticSummaryBadge = document.getElementById("diagnostic-summary-badge");
+const diagnosticChecksGrid = document.getElementById("diagnostic-checks-grid");
+const diagnosticRecommendations = document.getElementById("diagnostic-recommendations");
+const copyDiagnosticReportBtn = document.getElementById("copy-diagnostic-report-btn");
 
 let nodes = [];
 let nodeStatusMap = new Map();
@@ -14,6 +20,7 @@ let statusRefreshPending = false;
 let statusRefreshPendingManual = false;
 let statusRefreshToken = 0;
 let statusRefreshIntervalId;
+let latestDiagnosticResult = null;
 const API_AUTH_HINT =
   "Management API request unauthorized. Provide a valid Management API Bearer Token, then click Refresh to retry.";
 
@@ -381,17 +388,18 @@ function normalizeNodeStatusForUi(status = {}) {
   };
 }
 
+function escapeHtml(value) {
+  const div = document.createElement("div");
+  div.textContent = value == null ? "" : String(value);
+  return div.innerHTML;
+}
+
 function renderRows() {
   if (!nodes.length) {
     tableBody.innerHTML = '<tr><td colspan="8" class="empty">No nodes registered.</td></tr>';
     return;
   }
 
-  const escapeHtml = (str) => {
-    const div = document.createElement("div");
-    div.textContent = str;
-    return div.innerHTML;
-  };
 
   tableBody.innerHTML = nodes
     .map((node) => {
@@ -650,98 +658,141 @@ async function diagnoseNode(nodeId) {
   }
 }
 
-function showDiagnosticResults(diagnosticResult) {
-  const nodeId = diagnosticResult.node_id;
+function getDiagnosticCheckRows(diagnostics = {}) {
+  return [
+    {
+      key: "Registration",
+      state: diagnostics.registration?.valid ? "pass" : "fail",
+      detail: diagnostics.registration?.valid
+        ? "Node registration is valid."
+        : diagnostics.registration?.error || "Registration data is invalid.",
+      meta: "",
+    },
+    {
+      key: "URL validation",
+      state: diagnostics.url_validation?.blocked ? "fail" : "pass",
+      detail: diagnostics.url_validation?.blocked
+        ? diagnostics.url_validation?.blocked_reason || "URL blocked by policy."
+        : "Base URL passed validation.",
+      meta: "",
+    },
+    {
+      key: "DNS resolution",
+      state: diagnostics.dns_resolution?.resolves ? "pass" : "fail",
+      detail: diagnostics.dns_resolution?.resolves
+        ? "DNS lookup succeeded."
+        : diagnostics.dns_resolution?.error || "DNS lookup failed.",
+      meta:
+        diagnostics.dns_resolution?.resolved_ips?.length > 0
+          ? `IPs: ${diagnostics.dns_resolution.resolved_ips.join(", ")}`
+          : "",
+    },
+    {
+      key: "Network connectivity",
+      state: diagnostics.network_connectivity?.reachable ? "pass" : "fail",
+      detail: diagnostics.network_connectivity?.reachable
+        ? "Node is reachable over the network."
+        : diagnostics.network_connectivity?.error || "Could not reach node.",
+      meta: diagnostics.network_connectivity?.category
+        ? `Category: ${diagnostics.network_connectivity.category}`
+        : "",
+    },
+    {
+      key: "API endpoint",
+      state: diagnostics.api_endpoint?.accessible === false ? "fail" : diagnostics.api_endpoint?.healthy === false ? "warn" : "pass",
+      detail: diagnostics.api_endpoint?.status_code
+        ? `HTTP ${diagnostics.api_endpoint.status_code}`
+        : diagnostics.api_endpoint?.error || "Endpoint check incomplete.",
+      meta:
+        diagnostics.api_endpoint?.healthy === false && diagnostics.api_endpoint?.status_code === 503
+          ? "Node reachable but may still be initializing."
+          : "",
+    },
+  ];
+}
+
+function getDiagnosticSummaryState(checkRows = []) {
+  if (checkRows.some((row) => row.state === "fail")) {
+    return { label: "Needs attention", className: "diagnostic-pill--fail" };
+  }
+
+  if (checkRows.some((row) => row.state === "warn")) {
+    return { label: "Warning", className: "diagnostic-pill--warn" };
+  }
+
+  return { label: "Healthy", className: "diagnostic-pill--pass" };
+}
+
+function renderDiagnosticRecommendations(guidance = []) {
+  const recommendationsList = guidance.length
+    ? guidance
+        .map((item) => `<li>${escapeHtml(item)}</li>`)
+        .join("")
+    : "<li>No recommendations provided.</li>";
+
+  diagnosticRecommendations.innerHTML = `
+    <h4>Recommendations</h4>
+    <ul>${recommendationsList}</ul>
+  `;
+}
+
+function buildDiagnosticTextReport(diagnosticResult) {
+  const nodeId = diagnosticResult.node_id || "unknown";
   const diagnostics = diagnosticResult.diagnostics || {};
   const guidance = diagnosticResult.guidance || [];
+  const checkRows = getDiagnosticCheckRows(diagnostics);
+  const summary = getDiagnosticSummaryState(checkRows);
 
-  let message = `Diagnostic Report for ${nodeId}\n\n`;
+  let output = `Diagnostic Report\nNode: ${nodeId}\nSummary: ${summary.label}\n\nChecks:\n`;
 
-  // Registration check
-  if (!diagnostics.registration?.valid) {
-    message += "❌ Registration: Invalid\n";
-    if (diagnostics.registration?.error) {
-      message += `   Error: ${diagnostics.registration.error}\n`;
-    }
+  checkRows.forEach((row) => {
+    const icon = row.state === "pass" ? "[PASS]" : row.state === "warn" ? "[WARN]" : "[FAIL]";
+    output += `${icon} ${row.key}: ${row.detail}${row.meta ? ` (${row.meta})` : ""}\n`;
+  });
+
+  output += "\nRecommendations:\n";
+  if (guidance.length === 0) {
+    output += "- No recommendations provided.\n";
   } else {
-    message += "✓ Registration: Valid\n";
-  }
-
-  // URL validation check
-  if (diagnostics.url_validation?.blocked) {
-    message += `❌ URL Validation: Blocked\n`;
-    if (diagnostics.url_validation?.blocked_reason) {
-      message += `   Reason: ${diagnostics.url_validation.blocked_reason}\n`;
-    }
-  } else {
-    message += "✓ URL Validation: Passed\n";
-  }
-
-  // DNS resolution
-  if (!diagnostics.dns_resolution?.resolves) {
-    message += `❌ DNS Resolution: Failed\n`;
-    if (diagnostics.dns_resolution?.error) {
-      message += `   Error: ${diagnostics.dns_resolution.error}\n`;
-    }
-  } else {
-    message += "✓ DNS Resolution: Success\n";
-    if (diagnostics.dns_resolution?.resolved_ips?.length > 0) {
-      message += `   IPs: ${diagnostics.dns_resolution.resolved_ips.join(", ")}\n`;
-    }
-  }
-
-  // Network connectivity
-  if (!diagnostics.network_connectivity?.reachable) {
-    message += `❌ Network Connectivity: Unreachable\n`;
-    if (diagnostics.network_connectivity?.error) {
-      message += `   Error: ${diagnostics.network_connectivity.error}\n`;
-    }
-    if (diagnostics.network_connectivity?.category) {
-      message += `   Category: ${diagnostics.network_connectivity.category}\n`;
-    }
-  } else {
-    message += "✓ Network Connectivity: Reachable\n";
-  }
-
-  // API endpoint
-  if (diagnostics.api_endpoint?.status_code) {
-    message += `✓ API Endpoint (/api/status): HTTP ${diagnostics.api_endpoint.status_code}\n`;
-    if (
-      diagnostics.api_endpoint?.healthy === false &&
-      diagnostics.api_endpoint?.status_code === 503
-    ) {
-      message += "   Node is reachable but returning 503 (may be initializing)\n";
-    }
-  } else if (!diagnostics.api_endpoint?.accessible) {
-    message += `❌ API Endpoint (/api/status): Not Accessible\n`;
-    if (diagnostics.api_endpoint?.error) {
-      message += `   Error: ${diagnostics.api_endpoint.error}\n`;
-    }
-  }
-
-  // Guidance
-  if (guidance.length > 0) {
-    message += `\nRecommendations:\n`;
-    guidance.forEach((rec) => {
-      if (rec.includes("✓")) {
-        message += `  ${rec}\n`;
-      } else if (rec.includes("WARNING:")) {
-        message += `  ⚠️  ${rec}\n`;
-      } else {
-        message += `  → ${rec}\n`;
-      }
+    guidance.forEach((item) => {
+      output += `- ${item}\n`;
     });
   }
 
-  // Show in alert (and copy to clipboard)
-  alert(message);
+  return output;
+}
 
-  // Also try to copy to clipboard when supported
-  if (typeof globalThis.navigator?.clipboard?.writeText === "function") {
-    globalThis.navigator.clipboard.writeText(message).catch(() => {
-      // Silently fail on async clipboard write errors
-    });
-  }
+function showDiagnosticResults(diagnosticResult) {
+  latestDiagnosticResult = diagnosticResult;
+  const nodeId = diagnosticResult.node_id || "unknown";
+  const diagnostics = diagnosticResult.diagnostics || {};
+  const checkRows = getDiagnosticCheckRows(diagnostics);
+  const summary = getDiagnosticSummaryState(checkRows);
+
+  diagnosticNodeId.textContent = nodeId;
+  diagnosticContext.textContent = `Generated at ${new Date().toLocaleString()}`;
+  diagnosticSummaryBadge.className = `diagnostic-pill ${summary.className}`;
+  diagnosticSummaryBadge.textContent = summary.label;
+
+  diagnosticChecksGrid.innerHTML = checkRows
+    .map(
+      (row) => `
+        <article class="diagnostic-check-card">
+          <div class="diagnostic-check-card__head">
+            <h4>${escapeHtml(row.key)}</h4>
+            <span class="diagnostic-pill diagnostic-pill--${escapeHtml(row.state)}">${escapeHtml(
+              row.state.toUpperCase(),
+            )}</span>
+          </div>
+          <p>${escapeHtml(row.detail)}</p>
+          ${row.meta ? `<small>${escapeHtml(row.meta)}</small>` : ""}
+        </article>
+      `,
+    )
+    .join("");
+
+  renderDiagnosticRecommendations(diagnosticResult.guidance || []);
+  copyDiagnosticReportBtn.disabled = false;
 }
 
 async function setDiscoveryApproval(nodeId, decision) {
@@ -852,6 +903,26 @@ async function init() {
     updateBaseUrlValidation(target.value);
   });
   updateBaseUrlValidation(document.getElementById("node-transport").value);
+  copyDiagnosticReportBtn.addEventListener("click", async () => {
+    if (!latestDiagnosticResult) {
+      showFeedback("Run Diagnose first to generate a report.", true);
+      return;
+    }
+
+    const report = buildDiagnosticTextReport(latestDiagnosticResult);
+
+    if (typeof globalThis.navigator?.clipboard?.writeText !== "function") {
+      showFeedback("Clipboard not available in this browser.", true);
+      return;
+    }
+
+    try {
+      await globalThis.navigator.clipboard.writeText(report);
+      showFeedback("Diagnostic report copied to clipboard.");
+    } catch {
+      showFeedback("Could not copy report to clipboard.", true);
+    }
+  });
 
   await fetchNodes();
   await refreshStatuses();
