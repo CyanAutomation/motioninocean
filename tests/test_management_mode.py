@@ -114,6 +114,60 @@ def test_root_serves_stream_template_in_webcam_mode(monkeypatch):
         assert "/static/js/app.js" in html
 
 
+def test_api_config_returns_render_config_shape_in_management_mode(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APP_MODE", "management")
+        monkeypatch.setenv("MOTION_IN_OCEAN_CORS_ORIGINS", "https://example.test")
+        monkeypatch.setenv("MOCK_CAMERA", "false")
+        monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "false")
+
+        sys.modules.pop("main", None)
+        main = importlib.import_module("main")
+        app = main.create_management_app(main._load_config())
+        client = app.test_client()
+
+        response = client.get("/api/config")
+        assert response.status_code == 200
+        body = response.get_json()
+
+        assert body["camera_settings"] == {
+            "resolution": [640, 480],
+            "fps": 0,
+            "target_fps": 0,
+            "jpeg_quality": 90,
+        }
+        assert body["stream_control"]["max_stream_connections"] == 10
+        assert body["stream_control"]["current_stream_connections"] == 0
+        assert body["stream_control"]["max_frame_age_seconds"] == 10.0
+        assert body["stream_control"]["cors_origins"] == "https://example.test"
+
+        assert body["runtime"]["camera_active"] is False
+        assert isinstance(body["runtime"]["mock_camera"], bool)
+        assert isinstance(body["runtime"]["uptime_seconds"], float)
+        assert body["runtime"]["uptime_seconds"] >= 0.0
+
+        assert body["limits"] == {
+            "max_resolution": [4096, 4096],
+            "max_fps": 120,
+            "min_jpeg_quality": 1,
+            "max_jpeg_quality": 100,
+        }
+        assert isinstance(body["timestamp"], str)
+        assert body["app_mode"] == "management"
+
+
+def test_api_config_returns_webcam_connection_counts(monkeypatch):
+    client = _new_webcam_client(monkeypatch, "")
+    response = client.get("/api/config")
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["app_mode"] == "webcam"
+    assert body["stream_control"]["max_stream_connections"] == 10
+    assert body["stream_control"]["current_stream_connections"] == 0
+
+
 def test_request_logging_levels(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
         monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
