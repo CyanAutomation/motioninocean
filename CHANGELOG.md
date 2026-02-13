@@ -10,6 +10,66 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.13.9] - 2026-02-13
+
+- Merge pull request #251 from CyanAutomation/codex/update-refresh-click-handler-with-try/finally
+- Merge pull request #250 from CyanAutomation/codex/replace-env-based-timeout-with-constant
+- Ensure management refresh always restores polling interval
+- Use fixed management API request timeout constant
+- Merge pull request #249 from CyanAutomation/codex/refactor-announce-flow-and-implement-atomic-upsert
+- Merge pull request #248 from CyanAutomation/codex/check-navigator.clipboard-before-writing
+- Make discovery announce upsert atomic under registry lock
+- Guard diagnostic clipboard writes when API is unavailable
+- Merge pull request #247 from CyanAutomation/codex/extend-frontend-for-node-discovery-ux
+- Merge pull request #246 from CyanAutomation/codex/add-unit-tests-and-update-documentation
+- Add discovery metadata and approval UX for managed nodes
+- Add management API test-mode coverage and operator docs
+- Merge pull request #245 from CyanAutomation/codex/implement-ssrf-protections-for-proxying
+- Merge pull request #244 from CyanAutomation/codex/modify-api-test-status-handling-in-webcam-app
+- Merge pull request #243 from CyanAutomation/codex/github-mention-add-webcam-discovery-announcer-with-periodic
+- Harden discovery private-IP registration policy
+- Add injectable API status override for webcam test mode
+- Fix discovery config validation and sanitize logged URLs
+- Merge pull request #242 from CyanAutomation/codex/add-discovery-announcer-component-for-webcam-mode
+- Update discovery.py
+- Merge pull request #241 from CyanAutomation/codex/extend-webcam_action-for-new-api-commands
+- Update webcam.py
+- Add webcam discovery announcer with periodic announce loop
+- Add api-test action controls to webcam endpoint
+- Merge pull request #240 from CyanAutomation/codex/github-mention-codex-generated-pull-request
+- Add regression tests for API test status edge cases
+- Merge pull request #239 from CyanAutomation/codex/add-management-api-route-for-node-announcement
+- Update pi_camera_in_docker/management_api.py
+- Merge pull request #238 from CyanAutomation/codex/enhance-updatesetupui-for-device-statuses
+- Merge branch 'main' into codex/enhance-updatesetupui-for-device-statuses
+- Merge pull request #237 from CyanAutomation/codex/add-api-test-mode-support-to-webcam-app
+- Update pi_camera_in_docker/shared.py
+- Merge pull request #236 from CyanAutomation/codex/github-mention-codex-generated-pull-request
+- Add authenticated discovery announce upsert endpoint
+- Improve setup device detection UX and rescan flow
+- Add API status test-mode scenario cycling
+- Fix XSS risks in setup wizard HTML rendering
+- Merge pull request #235 from CyanAutomation/codex/implement-stepper-setup-flow
+- Update app.js
+- Merge pull request #234 from CyanAutomation/codex/enforce-role-separation-in-documentation
+- Merge pull request #233 from CyanAutomation/codex/create-prd-core.md-and-trim-prd-docs
+- Add guided setup wizard with persisted stepper flow
+- docs: enforce changelog/release/testing scope separation
+- docs: split shared PRD context into core document
+- Merge pull request #232 from CyanAutomation/codex/organize-documentation-structure-and-files
+- docs: reorganize repository docs into guides reports and product
+- Merge pull request #231 from CyanAutomation/codex/update-shutdown-behavior-for-camera-state
+- Merge pull request #230 from CyanAutomation/codex/create-canonical-testing-documentation
+- Merge pull request #229 from CyanAutomation/codex/refactor-documentation-to-centralize-deployment-guide
+- Clear recording state immediately during shutdown
+- docs: consolidate testing docs into canonical README
+- docs: clarify doc ownership and centralize deployment guidance
+- Update error codes in node status tests to reflect SSRF protection changes
+- Fix error code in node status connectivity test from NODE_UNREACHABLE to NETWORK_UNREACHABLE
+- Enhance request timeout configuration and diagnostics for network connectivity
+- Add newline for improved readability in .env.example
+- Remove deprecated environment and Docker Compose files for cleanup
+
 ## [1.13.8] - 2026-02-12
 
 ### Added
