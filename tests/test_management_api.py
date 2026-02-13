@@ -30,7 +30,9 @@ def _new_webcam_contract_client(auth_token=""):
         "connection_tracker": None,
     }
     shared.register_webcam_control_plane_auth(app, auth_token, lambda: "webcam")
-    shared.register_shared_routes(app, state, get_stream_status=lambda: {"current_fps": 0.0, "last_frame_age_seconds": None})
+    shared.register_shared_routes(
+        app, state, get_stream_status=lambda: {"current_fps": 0.0, "last_frame_age_seconds": None}
+    )
     return app.test_client()
 
 
@@ -470,8 +472,6 @@ def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
     assert updated.json["node"]["discovery"]["last_announce_at"] != first_announce
 
 
-
-
 def test_discovery_announce_parallel_requests_do_not_duplicate_error(monkeypatch, tmp_path):
     monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client = _new_management_client(monkeypatch, tmp_path)
@@ -505,7 +505,10 @@ def test_discovery_announce_parallel_requests_do_not_duplicate_error(monkeypatch
 
     statuses = sorted(response.status_code for response in responses)
     assert statuses == [200, 201]
-    assert all(response.json.get("error", {}).get("code") != "VALIDATION_ERROR" for response in responses)
+    assert all(
+        response.json.get("error", {}).get("code") != "VALIDATION_ERROR" for response in responses
+    )
+
 
 def test_discovery_announce_requires_bearer_token(monkeypatch, tmp_path):
     monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
@@ -553,7 +556,10 @@ def test_discovery_announce_blocks_private_ip_without_opt_in(monkeypatch, tmp_pa
 
     assert blocked.status_code == 403
     assert blocked.json["error"]["code"] == "DISCOVERY_PRIVATE_IP_BLOCKED"
-    assert blocked.json["error"]["details"]["required_setting"] == "MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true"
+    assert (
+        blocked.json["error"]["details"]["required_setting"]
+        == "MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true"
+    )
 
 
 def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path):
@@ -590,7 +596,6 @@ def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
     )
     assert invalid.status_code == 400
     assert invalid.json["error"]["code"] == "VALIDATION_ERROR"
-
 
 
 def test_discovery_approval_endpoint(monkeypatch, tmp_path):
@@ -816,6 +821,7 @@ def test_node_status_maps_503_payload_without_error_envelope(monkeypatch, tmp_pa
     assert overview.status_code == 200
     assert overview.json["summary"]["unavailable_nodes"] == 0
     assert overview.json["summary"]["healthy_nodes"] == 0
+
 
 def test_management_routes_require_authentication(monkeypatch, tmp_path):
     client = _new_management_client(monkeypatch, tmp_path)
@@ -1197,7 +1203,9 @@ def test_request_json_maps_tls_failure(monkeypatch):
     import management_api
 
     def fake_getaddrinfo(host, port, proto):
-        return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 443))]
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 443))
+        ]
 
     def fake_urlopen(req, timeout):
         raise management_api.urllib.error.URLError(ssl.SSLError("certificate verify failed"))
@@ -1280,6 +1288,7 @@ def test_webcam_api_status_contract_shape_with_auth(monkeypatch):
     authorized = client.get("/api/status", headers={"Authorization": "Bearer node-token"})
     assert authorized.status_code == 200
     assert authorized.json["app_mode"] == "webcam"
+
 
 def test_node_action_passthrough_for_api_test_management_actions(monkeypatch, tmp_path):
     import management_api
@@ -1402,7 +1411,9 @@ def test_node_action_passthrough_for_api_test_management_actions(monkeypatch, tm
         assert response.json["response"]["ok"] is True
         assert response.json["response"]["api_test"]["enabled"] == expected_api_test["enabled"]
         assert response.json["response"]["api_test"]["active"] == expected_api_test["active"]
-        assert response.json["response"]["api_test"]["state_index"] == expected_api_test["state_index"]
+        assert (
+            response.json["response"]["api_test"]["state_index"] == expected_api_test["state_index"]
+        )
 
     assert captured_calls == [
         (

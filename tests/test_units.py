@@ -385,7 +385,6 @@ def test_get_camera_info_falls_back_to_class_method(monkeypatch):
         sys.modules.pop("picamera2", None)
 
 
-
 def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypatch):
     """No-camera RuntimeError path should log detailed detected device inventory."""
     from threading import Event, RLock
@@ -452,7 +451,9 @@ def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypa
     monkeypatch.setattr(main, "_get_camera_info", lambda _cls: ([], "test.path"))
     monkeypatch.setattr(main.logger, "error", fake_error)
 
-    with pytest.raises(RuntimeError, match=r"No cameras detected\. Check device mappings and camera hardware\."):
+    with pytest.raises(
+        RuntimeError, match=r"No cameras detected\. Check device mappings and camera hardware\."
+    ):
         main._run_webcam_mode(state, cfg)
 
     assert error_calls
@@ -552,6 +553,7 @@ def test_shutdown_updates_ready_metrics_and_api_status_immediately():
     assert metrics.get_json()["camera_active"] is False
     assert api_status.get_json()["camera_active"] is False
     assert api_status.get_json()["stream_available"] is False
+
 
 def test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes(monkeypatch):
     """Both camera-info discovery modes should reach camera setup without ImportError."""

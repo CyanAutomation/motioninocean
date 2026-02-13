@@ -18,7 +18,9 @@ def parse_docker_url(base_url: str) -> Tuple[str, int, str]:
 
     container_id = parsed.path.lstrip("/")
     if not container_id:
-        raise ValueError("docker URL must include container ID (e.g., docker://proxy:2375/container-id)")
+        raise ValueError(
+            "docker URL must include container ID (e.g., docker://proxy:2375/container-id)"
+        )
 
     return hostname, port, container_id
 
@@ -33,4 +35,3 @@ def validate_base_url_for_transport(base_url: str, transport: str) -> None:
         if not base_url.startswith("docker://"):
             raise ValueError("base_url must start with docker://")
         parse_docker_url(base_url)
-

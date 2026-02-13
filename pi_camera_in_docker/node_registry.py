@@ -234,7 +234,9 @@ def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]
                 if value is not None and (not isinstance(value, str) or not value.strip()):
                     message = f"discovery.{timestamp_field} must be a non-empty string or null"
                     raise NodeValidationError(message)
-                validated_discovery[timestamp_field] = value.strip() if isinstance(value, str) else None
+                validated_discovery[timestamp_field] = (
+                    value.strip() if isinstance(value, str) else None
+                )
 
         if "approved" in discovery:
             approved = discovery["approved"]
@@ -358,7 +360,9 @@ class FileNodeRegistry(NodeRegistry):
                 if existing.get("id") != node_id:
                     continue
                 merged = {**existing, **validated_patch}
-                if isinstance(existing.get("discovery"), dict) and isinstance(validated_patch.get("discovery"), dict):
+                if isinstance(existing.get("discovery"), dict) and isinstance(
+                    validated_patch.get("discovery"), dict
+                ):
                     merged["discovery"] = {**existing["discovery"], **validated_patch["discovery"]}
                 merged = validate_node(merged)
                 if any(
@@ -388,7 +392,9 @@ class FileNodeRegistry(NodeRegistry):
                     continue
 
                 merged = {**existing, **validated_patch}
-                if isinstance(existing.get("discovery"), dict) and isinstance(validated_patch.get("discovery"), dict):
+                if isinstance(existing.get("discovery"), dict) and isinstance(
+                    validated_patch.get("discovery"), dict
+                ):
                     merged["discovery"] = {**existing["discovery"], **validated_patch["discovery"]}
                 merged = validate_node(merged)
                 if any(

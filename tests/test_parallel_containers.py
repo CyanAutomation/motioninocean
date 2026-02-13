@@ -54,9 +54,7 @@ def http_get(url: str, timeout: int = 5) -> Tuple[int, Dict[str, Any]]:
         return 503, {"error": str(exc)}
 
 
-def http_post(
-    url: str, data: Dict[str, Any], timeout: int = 5
-) -> Tuple[int, Dict[str, Any]]:
+def http_post(url: str, data: Dict[str, Any], timeout: int = 5) -> Tuple[int, Dict[str, Any]]:
     """Make HTTP POST request with JSON body."""
     try:
         json_data = json.dumps(data).encode("utf-8")

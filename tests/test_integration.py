@@ -158,5 +158,9 @@ def test_setup_generator_handles_v4l_subdev_devices(workspace_root):
     code = main_py.read_text()
 
     assert "v4l_subdev_devices" in code, "Missing v4l_subdev_devices detection key"
-    assert 'subdev_device = f"/dev/v4l-subdev{i}"' in code, "Missing /dev/v4l-subdev* discovery in setup generator"
-    assert 'detected_devices.get("v4l_subdev_devices")' in code, "Missing compose generation for subdev mappings"
+    assert 'subdev_device = f"/dev/v4l-subdev{i}"' in code, (
+        "Missing /dev/v4l-subdev* discovery in setup generator"
+    )
+    assert 'detected_devices.get("v4l_subdev_devices")' in code, (
+        "Missing compose generation for subdev mappings"
+    )

@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 feature_flags: FeatureFlags = get_feature_flags()
 feature_flags.load()
 
+
 def _redacted_url_for_logs(url: str) -> str:
     parts = urlsplit(url)
     host = parts.hostname or ""
@@ -549,8 +550,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
             uptime_seconds = round(
                 max(
                     0.0,
-                    time.monotonic()
-                    - getattr(app, "start_time_monotonic", 0.0),
+                    time.monotonic() - getattr(app, "start_time_monotonic", 0.0),
                 ),
                 2,
             )

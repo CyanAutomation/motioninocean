@@ -53,13 +53,17 @@ def migrate_registry(path: Path, dry_run: bool = False) -> bool:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Migrate NODE_REGISTRY_PATH auth fields to bearer tokens")
+    parser = argparse.ArgumentParser(
+        description="Migrate NODE_REGISTRY_PATH auth fields to bearer tokens"
+    )
     parser.add_argument(
         "--path",
         default=os.environ.get("NODE_REGISTRY_PATH", "/data/node-registry.json"),
         help="Path to registry JSON (default: NODE_REGISTRY_PATH or /data/node-registry.json)",
     )
-    parser.add_argument("--dry-run", action="store_true", help="Validate and report changes without writing")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Validate and report changes without writing"
+    )
     args = parser.parse_args()
 
     registry_path = Path(args.path)

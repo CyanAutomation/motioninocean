@@ -368,7 +368,9 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
 
             interval_seconds = body.get("interval_seconds") if body else None
             if interval_seconds is not None:
-                if not isinstance(interval_seconds, (int, float)) or isinstance(interval_seconds, bool):
+                if not isinstance(interval_seconds, (int, float)) or isinstance(
+                    interval_seconds, bool
+                ):
                     return _json_error(
                         "ACTION_INVALID_BODY",
                         "interval_seconds must be a positive number",

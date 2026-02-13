@@ -84,7 +84,7 @@ def register_shared_routes(
         lock = api_test_state.get("lock")
         if not lock:
             return None
-        
+
         with lock:
             scenario_list = api_test_state.get("scenario_list") or api_test_scenarios
             if not api_test_state.get("scenario_list"):
@@ -108,9 +108,7 @@ def register_shared_routes(
 
             next_transition_seconds = None
             if api_test_state.get("active") and interval > 0:
-                elapsed = max(
-                    0.0, now - api_test_state.get("last_transition_monotonic", now)
-                )
+                elapsed = max(0.0, now - api_test_state.get("last_transition_monotonic", now))
                 next_transition_seconds = round(max(0.0, interval - elapsed), 3)
 
         connections = {
@@ -141,7 +139,9 @@ def register_shared_routes(
             "app_mode": state.get("app_mode", "unknown"),
             "stream_available": False,
             "camera_active": False,
-            "uptime_seconds": round(time.monotonic() - getattr(app, 'start_time_monotonic', time.monotonic()), 2),
+            "uptime_seconds": round(
+                time.monotonic() - getattr(app, "start_time_monotonic", time.monotonic()), 2
+            ),
             "fps": 0.0,
             "connections": {"current": 0, "max": 0},
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -164,9 +164,7 @@ def register_shared_routes(
         is_recording = state.get("recording_started") and state["recording_started"].is_set()
         last_frame_age_seconds = stream_status.get("last_frame_age_seconds")
         max_age = state.get("max_frame_age_seconds", 10.0)
-        is_frame_fresh = (
-            last_frame_age_seconds is not None and last_frame_age_seconds <= max_age
-        )
+        is_frame_fresh = last_frame_age_seconds is not None and last_frame_age_seconds <= max_age
         stream_available = is_recording and is_frame_fresh
 
         tracker = state.get("connection_tracker")
