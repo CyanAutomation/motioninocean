@@ -78,7 +78,11 @@ def register_shared_routes(
         if not api_test_state or not api_test_state.get("enabled"):
             return None
 
-        with api_test_state["lock"]:
+        lock = api_test_state.get("lock")
+        if not lock:
+            return None
+        
+        with lock:
             scenario_list = api_test_state.get("scenario_list") or api_test_scenarios
             if not api_test_state.get("scenario_list"):
                 api_test_state["scenario_list"] = scenario_list
