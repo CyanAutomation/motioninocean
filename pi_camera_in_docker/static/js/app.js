@@ -757,7 +757,12 @@ function renderConfig(data) {
       "config-max-frame-age",
       sc.max_frame_age_seconds !== undefined ? `${sc.max_frame_age_seconds}s` : "--",
     );
-    setConfigValue("config-cors", typeof sc.cors_origins === "string" ? sc.cors_origins : "*");
+    setConfigValue(
+      "config-cors",
+      typeof sc.cors_origins === "string" && sc.cors_origins.length > 0
+        ? sc.cors_origins
+        : "disabled",
+    );
   }
 
   // Runtime
