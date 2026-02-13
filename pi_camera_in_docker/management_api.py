@@ -860,11 +860,20 @@ def register_management_routes(
     registry_path: str,
     auth_token: str = "",
     node_discovery_shared_secret: Optional[str] = None,
+    limiter=None,
 ) -> None:
     registry = FileNodeRegistry(registry_path)
     discovery_secret = node_discovery_shared_secret
     if discovery_secret is None:
         discovery_secret = os.environ.get("NODE_DISCOVERY_SHARED_SECRET", "")
+    
+    # Helper: Apply rate limit decorator if limiter is available
+    def _maybe_limit(limit_str: str):
+        def decorator(f):
+            if limiter is not None:
+                return limiter.limit(limit_str)(f)
+            return f
+        return decorator
 
     def _enforce_management_auth() -> Optional[Tuple[Any, int]]:
         # Auth is required if and only if token is non-empty
@@ -892,6 +901,7 @@ def register_management_routes(
         return None
 
     @app.route("/api/nodes", methods=["GET"])
+    @_maybe_limit("1000/minute")
     def list_nodes():
         try:
             nodes = registry.list_nodes()
@@ -902,6 +912,7 @@ def register_management_routes(
         return jsonify({"nodes": nodes}), 200
 
     @app.route("/api/discovery/announce", methods=["POST"])
+    @_maybe_limit("10/minute")
     def announce_node():
         unauthorized = _enforce_discovery_auth()
         if unauthorized:
@@ -955,6 +966,7 @@ def register_management_routes(
         return jsonify(upserted), status_code
 
     @app.route("/api/nodes", methods=["POST"])
+    @_maybe_limit("100/minute")
     def create_node():
         payload = request.get_json(silent=True) or {}
         if "discovery" not in payload:
@@ -968,6 +980,7 @@ def register_management_routes(
         return jsonify(created), 201
 
     @app.route("/api/nodes/<node_id>", methods=["GET"])
+    @_maybe_limit("1000/minute")
     def get_node(node_id: str):
         try:
             node = registry.get_node(node_id)
@@ -982,6 +995,7 @@ def register_management_routes(
         return jsonify(node), 200
 
     @app.route("/api/nodes/<node_id>", methods=["PUT"])
+    @_maybe_limit("100/minute")
     def update_node(node_id: str):
         payload = request.get_json(silent=True) or {}
 
@@ -1010,6 +1024,7 @@ def register_management_routes(
         return jsonify(updated), 200
 
     @app.route("/api/nodes/<node_id>/discovery/<decision>", methods=["POST"])
+    @_maybe_limit("100/minute")
     def set_node_discovery_approval(node_id: str, decision: str):
         if decision not in {"approve", "reject"}:
             return _error_response(
@@ -1041,6 +1056,7 @@ def register_management_routes(
         return jsonify({"node": updated, "decision": decision}), 200
 
     @app.route("/api/nodes/<node_id>", methods=["DELETE"])
+    @_maybe_limit("100/minute")
     def delete_node(node_id: str):
         try:
             deleted = registry.delete_node(node_id)
@@ -1055,6 +1071,7 @@ def register_management_routes(
         return "", 204
 
     @app.route("/api/nodes/<node_id>/status", methods=["GET"])
+    @_maybe_limit("1000/minute")
     def node_status(node_id: str):
         try:
             node = registry.get_node(node_id)
@@ -1073,6 +1090,7 @@ def register_management_routes(
         return jsonify(result), 200
 
     @app.route("/api/nodes/<node_id>/diagnose", methods=["GET"])
+    @_maybe_limit("100/minute")
     def diagnose_node(node_id: str):
         """
         Perform detailed diagnostics on node connectivity and configuration.
@@ -1106,6 +1124,7 @@ def register_management_routes(
         return jsonify(results), 200
 
     @app.route("/api/nodes/<node_id>/actions/<action>", methods=["POST"])
+    @_maybe_limit("100/minute")
     def node_action(node_id: str, action: str):
         try:
             node = registry.get_node(node_id)
@@ -1166,6 +1185,7 @@ def register_management_routes(
         ), status_code
 
     @app.route("/api/management/overview", methods=["GET"])
+    @_maybe_limit("100/minute")
     def management_overview():
         try:
             nodes = registry.list_nodes()

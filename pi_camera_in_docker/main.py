@@ -13,12 +13,16 @@ from threading import Event, RLock, Thread
 from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
+from config_validator import ConfigValidationError, validate_all_config
 from discovery import DiscoveryAnnouncer, build_discovery_payload
 from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 from flask import Flask, g, jsonify, render_template, request
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from logging_config import configure_logging
 from management_api import register_management_routes
+from structured_logging import get_correlation_id, log_event
 from modes.webcam import (
     ConnectionTracker,
     FrameBuffer,
@@ -41,6 +45,9 @@ logger = logging.getLogger(__name__)
 
 feature_flags: FeatureFlags = get_feature_flags()
 feature_flags.load()
+
+# Initialize rate limiter (will be bound to app in _create_base_app)
+limiter: Optional[Limiter] = None
 
 
 def _redacted_url_for_logs(url: str) -> str:
@@ -301,6 +308,18 @@ def _collect_current_config() -> Dict[str, Any]:
         "auth_token": auth_token,
     }
 
+    # Validate configuration at startup
+    try:
+        validate_all_config(config)
+    except ConfigValidationError as e:
+        error_msg = str(e)
+        if e.hint:
+            error_msg += f" ({e.hint})"
+        logger.error("Configuration validation failed: %s", error_msg)
+        raise ValueError(error_msg) from e
+
+    return config
+
 
 def _get_setup_presets() -> Dict[str, Dict[str, Any]]:
     """
@@ -515,6 +534,31 @@ def _generate_env_content(config: Dict[str, Any]) -> str:
 def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
     app = Flask(__name__, static_folder="static", static_url_path="/static")
     app.start_time_monotonic = time.monotonic()
+    
+    # Initialize rate limiter (global default: 100 requests/minute)
+    global limiter
+    if limiter is None:
+        limiter = Limiter(
+            app=app,
+            key_func=get_remote_address,
+            default_limits=["100/minute"],
+            storage_uri=os.environ.get("LIMITER_STORAGE_URI", "memory://"),
+        )
+    
+    # Add correlation ID middleware
+    @app.before_request
+    def _add_correlation_id() -> None:
+        g.correlation_id = request.headers.get(
+            "X-Correlation-ID", request.headers.get("x-correlation-id", "")
+        ) or None
+    
+    # Ensure correlation ID is returned in response
+    @app.after_request
+    def _inject_correlation_id(response):
+        if hasattr(g, "correlation_id") and g.correlation_id:
+            response.headers["X-Correlation-ID"] = g.correlation_id
+        return response
+    
     _register_request_logging(app)
 
     if config["cors_enabled"]:
@@ -689,10 +733,12 @@ def _register_request_logging(app: Flask) -> None:
         if request_started is not None:
             latency_ms = (time.monotonic() - request_started) * 1000
 
+        correlation_id = getattr(g, "correlation_id", None) or "none"
         level = logging.DEBUG if request.path in health_endpoints else logging.INFO
         logger.log(
             level,
-            "request method=%s path=%s status=%s latency_ms=%.1f",
+            "request correlation_id=%s method=%s path=%s status=%s latency_ms=%.1f",
+            correlation_id,
             request.method,
             request.path,
             response.status_code,
@@ -711,6 +757,7 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
         app,
         cfg["node_registry_path"],
         auth_token=cfg["management_auth_token"],
+        limiter=limiter,
     )
     # Log management mode startup configuration
     logger.info(
