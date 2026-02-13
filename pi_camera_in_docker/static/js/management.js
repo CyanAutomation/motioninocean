@@ -17,6 +17,29 @@ let statusRefreshIntervalId;
 const API_AUTH_HINT =
   "Management API request unauthorized. Provide a valid Management API Bearer Token, then click Refresh to retry.";
 
+const DOCKER_BASE_URL_PATTERN = String.raw`docker://[^\s/:]+:\d+/[^\s/]+`;
+const DOCKER_BASE_URL_HINT = "Use format: docker://proxy-hostname:port/container-id";
+
+function updateBaseUrlValidation(transport = "http") {
+  const baseUrlInput = document.getElementById("node-base-url");
+  if (!(baseUrlInput instanceof HTMLInputElement)) {
+    return;
+  }
+
+  baseUrlInput.setCustomValidity("");
+
+  if (transport === "docker") {
+    baseUrlInput.removeAttribute("type");
+    baseUrlInput.setAttribute("pattern", DOCKER_BASE_URL_PATTERN);
+    baseUrlInput.title = DOCKER_BASE_URL_HINT;
+    return;
+  }
+
+  baseUrlInput.type = "url";
+  baseUrlInput.setAttribute("pattern", String.raw`https?://[^\s]+`);
+  baseUrlInput.title = "Must be a valid HTTP or HTTPS URL";
+}
+
 function formatDateTime(isoString) {
   if (!isoString) {
     return "—";
@@ -535,6 +558,7 @@ async function refreshStatuses({ fromInterval = false } = {}) {
 
 function resetForm() {
   nodeForm.reset();
+  updateBaseUrlValidation(document.getElementById("node-transport").value);
   editingNodeIdInput.value = "";
   formTitle.textContent = "Add node";
   document.getElementById("node-id").disabled = false;
@@ -598,6 +622,7 @@ function beginEditNode(nodeId) {
   document.getElementById("node-name").value = node.name || "";
   document.getElementById("node-base-url").value = node.base_url || "";
   document.getElementById("node-transport").value = node.transport || "http";
+  updateBaseUrlValidation(document.getElementById("node-transport").value);
   document.getElementById("node-auth-type").value = node.auth?.type || "none";
   document.getElementById("node-auth-token").value = node.auth?.token || "";
   document.getElementById("node-capabilities").value = (node.capabilities || []).join(", ");
@@ -812,6 +837,15 @@ async function init() {
     }
   });
   tableBody.addEventListener("click", onTableClick);
+  document.getElementById("node-transport").addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    updateBaseUrlValidation(target.value);
+  });
+  updateBaseUrlValidation(document.getElementById("node-transport").value);
 
   await fetchNodes();
   await refreshStatuses();
