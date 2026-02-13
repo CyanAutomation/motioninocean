@@ -10,6 +10,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-02-13
+
+- Merge pull request #256 from CyanAutomation/codex/extend-cors-config-handling
+- Normalize CORS origins config in API and UI
+- Merge pull request #255 from CyanAutomation/codex/update-url-validation-in-node_registry
+- Merge pull request #254 from CyanAutomation/codex/remove-http-constraints-and-update-validation
+- Merge pull request #253 from CyanAutomation/codex/derive-runtime-config-response-values
+- Update main.py
+- Update main.py
+- Validate base_url schemes by transport and share docker URL parser
+- Update node base URL validation by transport
+- Derive /api/config runtime values from app state
+- Merge pull request #252 from CyanAutomation/codex/update-api-config-route-to-return-fields
+- Expand /api/config response for config UI
+
 ## [1.13.9] - 2026-02-13
 
 - Merge pull request #251 from CyanAutomation/codex/update-refresh-click-handler-with-try/finally
