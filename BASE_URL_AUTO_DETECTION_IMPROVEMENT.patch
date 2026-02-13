@@ -1,0 +1,122 @@
+=== BASE_URL Auto-Detection Enhancement ===
+
+This patch improves the intelligent detection of the BASE_URL for discovery announcements,
+reducing the need for manual configuration in multi-host setups.
+
+PROBLEM:
+--------
+When websocket nodes use DISCOVERY_ENABLED=true to auto-announce to a management node,
+the default BASE_URL uses socket.gethostname(), which returns the container ID (e.g.,
+8e13a643c056:8000). This container ID won't resolve from the management node on another
+host, causing 401 errors initially until manual configuration is applied.
+
+SOLUTION:
+---------
+Add intelligent auto-detection that tries:
+1. Environment hints: HOSTNAME or SERVICE_NAME env vars (if set in docker-compose)
+2. Socket resolution: Try to resolve container ID to actual IP address
+3. Fallback: Use container ID and log a warning
+
+IMPLEMENTATION:
+---------------
+
+File: /workspaces/MotionInOcean/pi_camera_in_docker/main.py
+
+Step 1: Add this function after line 71 (after _parse_resolution ends):
+
+---BEGIN INSERT---
+
+def _detect_default_base_url() -> str:
+    """
+    Intelligently detect the default BASE_URL for discovery announcements.
+    
+    Tries multiple approaches:
+    1. Check environment variables for explicit hostname hints (HOSTNAME, SERVICE_NAME)
+    2. Try to resolve container ID to actual IP address via socket
+    3. Fall back to socket.gethostname()
+    
+    Returns: URL string like "http://hostname:8000"
+    """
+    # Get port from env or use default
+    port = os.environ.get("MOTION_IN_OCEAN_PORT", "8000")
+    
+    # Try common hostname hints in Docker
+    hostname = os.environ.get("HOSTNAME", "")
+    if hostname:
+        logger.debug("base_url_detected_from_hostname_env: hostname=%s", hostname)
+        return f"http://{hostname}:{port}"
+    
+    # Try SERVICE_NAME if set (custom Docker compose service name)
+    service_name = os.environ.get("SERVICE_NAME", "")
+    if service_name:
+        logger.debug("base_url_detected_from_service_name: service_name=%s", service_name)
+        return f"http://{service_name}:{port}"
+    
+    # Get container ID
+    hostname = socket.gethostname()
+    
+    # If running in Docker, try to resolve to actual IP
+    if os.path.exists("/.dockerenv"):
+        try:
+            # Try to resolve container ID to IP
+            ip_addr = socket.gethostbyname(hostname)
+            if ip_addr and ip_addr != "127.0.0.1":
+                logger.info(
+                    "base_url_detected_from_socket: hostname=%s ip=%s",
+                    hostname,
+                    ip_addr,
+                )
+                return f"http://{ip_addr}:{port}"
+        except (socket.gaierror, socket.error) as e:
+            # Can't resolve, will use hostname
+            logger.debug("socket_resolution_failed: hostname=%s error=%s", hostname, str(e))
+    
+    logger.warning(
+        "base_url_using_container_id: hostname=%s (may not resolve from remote hosts)",
+        hostname,
+    )
+    return f"http://{hostname}:{port}"
+
+---END INSERT---
+
+Step 2: On line 143, change this:
+    OLD: default_base_url = f"http://{socket.gethostname()}:8000"
+    NEW: default_base_url = _detect_default_base_url()
+
+Result: Lines 143-145 should then read:
+    discovery_node_id = os.environ.get("DISCOVERY_NODE_ID", "").strip()
+    default_base_url = _detect_default_base_url()
+    base_url = os.environ.get("BASE_URL", default_base_url).strip() or default_base_url
+
+BENEFITS:
+---------
+✓ Automatically detects container IP instead of container ID
+✓ Supports explicit hostname hints via environment variables
+✓ Users can still override with BASE_URL env var
+✓ Graceful fallback for non-Docker environments
+✓ Logging helps diagnose auto-detection failures
+
+TESTING:
+--------
+Webcam logs should show one of:
+- "base_url_detected_from_hostname_env: hostname=prusa-cam"
+- "base_url_detected_from_socket: hostname=8e13a643c056 ip=192.168.88.105"
+- "base_url_using_container_id: hostname=8e13a643c056" (fallback, may not resolve)
+
+If you see no logs, BASE_URL was explicitly set (good), or it wasn't needed (management
+node not configured).
+
+DOCUMENTATION:
+---------------
+Both .env.example files have been updated to document BASE_URL:
+
+containers/motion-in-ocean-webcam/.env.example:
+  - BASE_URL variable added with full explanation
+  - Notes that default auto-detects using socket.gethostname() + port 8000
+  - Examples provided for IP address, mDNS, and FQDN formats
+  - Warning that container ID won't resolve from remote hosts
+
+containers/motion-in-ocean-management/.env.example:
+  - APP_MODE explicitly documented (was implicit)
+  - All logging, performance, and feature flag variables added
+  - Same structure as webcam for consistency
