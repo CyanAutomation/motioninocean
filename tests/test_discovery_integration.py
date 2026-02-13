@@ -1,0 +1,503 @@
+"""
+Integration tests for the announce and discovery mode.
+Tests the full workflow of webcam nodes announcing themselves to management.
+"""
+
+import json
+import tempfile
+import threading
+import time
+from unittest.mock import patch, MagicMock
+
+import pytest
+
+
+class TestDiscoveryAnnounceIntegration:
+    """Integration tests for webcam discovery announcer in context of management node."""
+
+    def test_announcer_makes_successful_announcement(self):
+        """Verify announcer successfully posts discovery announcement to management endpoint."""
+        from discovery import DiscoveryAnnouncer
+        from urllib.request import Request
+        from unittest.mock import patch, MagicMock
+        import io
+
+        shutdown_event = threading.Event()
+        payload = {
+            "node_id": "node-test-1",
+            "name": "test-camera",
+            "base_url": "http://192.168.1.100:8000",
+            "transport": "http",
+            "capabilities": ["stream", "snapshot"],
+        }
+
+        # Mock successful HTTP response
+        mock_response = MagicMock()
+        mock_response.status = 201
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.__exit__ = MagicMock(return_value=False)
+
+        with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
+            announcer = DiscoveryAnnouncer(
+                management_url="http://management.local:8001",
+                token="test-token",
+                interval_seconds=30,
+                node_id=payload["node_id"],
+                payload=payload,
+                shutdown_event=shutdown_event,
+            )
+
+            result = announcer._announce_once()
+
+            assert result is True
+            mock_urlopen.assert_called_once()
+            call_args = mock_urlopen.call_args[0]
+            request = call_args[0]
+            assert isinstance(request, Request)
+            assert "Bearer test-token" in request.headers.get("Authorization", "")
+            assert request.data == json.dumps(payload).encode("utf-8")
+
+    def test_announcer_handles_http_error(self):
+        """Verify announcer handles HTTP errors gracefully."""
+        from discovery import DiscoveryAnnouncer
+        import urllib.error
+
+        shutdown_event = threading.Event()
+        payload = {"node_id": "node-test-2"}
+
+        mock_response = MagicMock()
+        mock_response.code = 401
+
+        with patch("urllib.request.urlopen") as mock_urlopen:
+            mock_urlopen.side_effect = urllib.error.HTTPError(
+                "http://test.local", 401, "Unauthorized", {}, None
+            )
+
+            announcer = DiscoveryAnnouncer(
+                management_url="http://management.local:8001",
+                token="invalid-token",
+                interval_seconds=30,
+                node_id=payload["node_id"],
+                payload=payload,
+                shutdown_event=shutdown_event,
+            )
+
+            result = announcer._announce_once()
+
+            assert result is False
+
+    def test_announcer_handles_network_timeout(self):
+        """Verify announcer handles network timeouts."""
+        from discovery import DiscoveryAnnouncer
+        import urllib.error
+
+        shutdown_event = threading.Event()
+        payload = {"node_id": "node-test-3"}
+
+        with patch("urllib.request.urlopen") as mock_urlopen:
+            mock_urlopen.side_effect = TimeoutError("Connection timeout")
+
+            announcer = DiscoveryAnnouncer(
+                management_url="http://management.local:8001",
+                token="test-token",
+                interval_seconds=30,
+                node_id=payload["node_id"],
+                payload=payload,
+                shutdown_event=shutdown_event,
+            )
+
+            result = announcer._announce_once()
+
+            assert result is False
+
+    def test_announcer_retries_with_exponential_backoff(self):
+        """Verify announcer retries with exponential backoff on failures."""
+        from discovery import DiscoveryAnnouncer
+        import urllib.error
+
+        shutdown_event = threading.Event()
+        payload = {"node_id": "node-test-4"}
+
+        with patch("urllib.request.urlopen") as mock_urlopen:
+            # Fail first two times, then succeed
+            mock_response = MagicMock()
+            mock_response.status = 201
+            mock_response.__enter__ = MagicMock(return_value=mock_response)
+            mock_response.__exit__ = MagicMock(return_value=False)
+
+            mock_urlopen.side_effect = [
+                urllib.error.URLError("Connection refused"),
+                urllib.error.URLError("Connection refused"),
+                mock_response,  # Success on third attempt
+            ]
+
+            announcer = DiscoveryAnnouncer(
+                management_url="http://management.local:8001",
+                token="test-token",
+                interval_seconds=0.01,  # Very short interval for testing
+                node_id=payload["node_id"],
+                payload=payload,
+                shutdown_event=shutdown_event,
+            )
+
+            # Run the announce loop for a short time - let it retry multiple times
+            announcer.start()
+            time.sleep(2.0)  # Allow retries to happen with longer sleep
+            announcer.stop()
+
+            # Should have attempted at least 3 times due to retries and success
+            assert mock_urlopen.call_count >= 3
+
+    def test_announcer_thread_lifecycle(self):
+        """Verify announcer thread starts and stops correctly."""
+        from discovery import DiscoveryAnnouncer
+
+        shutdown_event = threading.Event()
+        payload = {"node_id": "node-test-5"}
+
+        with patch("urllib.request.urlopen") as mock_urlopen:
+            mock_response = MagicMock()
+            mock_response.status = 201
+            mock_response.__enter__ = MagicMock(return_value=mock_response)
+            mock_response.__exit__ = MagicMock(return_value=False)
+            mock_urlopen.return_value = mock_response
+
+            announcer = DiscoveryAnnouncer(
+                management_url="http://management.local:8001",
+                token="test-token",
+                interval_seconds=0.05,  # Very short interval
+                node_id=payload["node_id"],
+                payload=payload,
+                shutdown_event=shutdown_event,
+            )
+
+            # Verify thread not started yet
+            assert announcer._thread is None or not announcer._thread.is_alive()
+
+            # Start and verify thread is running
+            announcer.start()
+            assert announcer._thread is not None
+            assert announcer._thread.is_alive()
+
+            # Stop and verify thread is dead
+            announcer.stop()
+            time.sleep(0.2)  # Give thread time to exit
+            assert not announcer._thread.is_alive()
+
+
+class TestDiscoveryEndToEnd:
+    """End-to-end tests simulating full announce/management discovery workflow."""
+
+    def test_webcam_announces_to_management_and_gets_approved(self, monkeypatch):
+        """Full flow: webcam announces -> management receives -> admin approves node."""
+        from management_api import register_management_routes
+        from flask import Flask
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as registry_dir:
+            registry_path = f"{registry_dir}/registry.json"
+
+            # Create management app
+            app = Flask(__name__)
+            
+            # Patch ALLOW_PRIVATE_IPS to allow private IP announcements for this test
+            with patch("management_api.ALLOW_PRIVATE_IPS", True):
+                register_management_routes(
+                    app,
+                    registry_path,
+                    node_discovery_shared_secret="discovery-secret",
+                )
+                client = app.test_client()
+
+                # Step 1: Webcam announces itself
+                announce_payload = {
+                    "node_id": "node-webcam-1",
+                    "name": "kitchen-camera",
+                    "base_url": "http://192.168.1.100:8000",
+                    "transport": "http",
+                    "capabilities": ["stream", "snapshot"],
+                    "labels": {"location": "kitchen", "device_class": "webcam"},
+                }
+
+                response = client.post(
+                    "/api/discovery/announce",
+                    json=announce_payload,
+                    headers={"Authorization": "Bearer discovery-secret"},
+                )
+
+                assert response.status_code == 201, response.json
+                node_data = response.json["node"]
+                assert node_data["id"] == "node-webcam-1"
+                assert node_data["discovery"]["source"] == "discovered"
+                assert node_data["discovery"]["approved"] is False, "New discovery should start unapproved"
+
+                # Step 2: Admin approves the discovered node
+                approval_response = client.post(
+                    f"/api/nodes/{node_data['id']}/discovery/approve",
+                    headers={"Authorization": "Bearer "},  # No auth needed if no token set
+                )
+
+                assert approval_response.status_code == 200
+                approved_node = approval_response.json["node"]
+                assert approved_node["discovery"]["approved"] is True
+
+                # Step 3: Verify node is now in approved state in list
+                list_response = client.get("/api/nodes")
+                assert list_response.status_code == 200
+                nodes = list_response.json["nodes"]
+                approved_nodes = [n for n in nodes if n["id"] == "node-webcam-1"]
+                assert len(approved_nodes) == 1
+                assert approved_nodes[0]["discovery"]["approved"] is True
+
+    def test_webcam_announces_with_private_ip_blocked_without_opt_in(self, monkeypatch):
+        """Verify private IP announcements are blocked unless explicitly allowed."""
+        from management_api import register_management_routes
+        from flask import Flask
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as registry_dir:
+            registry_path = f"{registry_dir}/registry.json"
+            monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+            # Do NOT set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS
+
+            app = Flask(__name__)
+            register_management_routes(
+                app,
+                registry_path,
+                node_discovery_shared_secret="discovery-secret",
+            )
+            client = app.test_client()
+
+            # Try to announce with private IP
+            payload = {
+                "node_id": "node-private-1",
+                "name": "private-camera",
+                "base_url": "http://192.168.1.100:8000",  # Private IP
+                "transport": "http",
+                "capabilities": ["stream"],
+            }
+
+            response = client.post(
+                "/api/discovery/announce",
+                json=payload,
+                headers={"Authorization": "Bearer discovery-secret"},
+            )
+
+            assert response.status_code == 403, "Private IP should be blocked"
+            assert "private" in response.json.get("error", {}).get("code", "").lower()
+
+    def test_webcam_announces_with_private_ip_allowed_with_opt_in(self, monkeypatch):
+        """Verify private IP announcements are allowed when explicitly configured."""
+        from management_api import register_management_routes
+        from flask import Flask
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as registry_dir:
+            registry_path = f"{registry_dir}/registry.json"
+
+            app = Flask(__name__)
+            
+            # Patch ALLOW_PRIVATE_IPS to allow private IP announcements
+            with patch("management_api.ALLOW_PRIVATE_IPS", True):
+                register_management_routes(
+                    app,
+                    registry_path,
+                    node_discovery_shared_secret="discovery-secret",
+                )
+                client = app.test_client()
+
+                # Announce with private IP - should succeed
+                payload = {
+                    "node_id": "node-private-allowed",
+                    "name": "private-camera",
+                    "base_url": "http://192.168.1.100:8000",  # Private IP
+                    "transport": "http",
+                    "capabilities": ["stream"],
+                }
+
+                response = client.post(
+                    "/api/discovery/announce",
+                    json=payload,
+                    headers={"Authorization": "Bearer discovery-secret"},
+                )
+
+                assert response.status_code == 201, response.json
+                assert response.json["node"]["base_url"] == "http://192.168.1.100:8000"
+
+    def test_webcam_discovery_payload_structure(self):
+        """Verify discovery payload has all required fields for proper management integration."""
+        from discovery import build_discovery_payload
+
+        payload = build_discovery_payload(
+            {
+                "discovery_node_id": "node-kitchen",
+                "discovery_base_url": "http://192.168.1.50:8000",
+            }
+        )
+
+        # Verify all required fields
+        required_fields = ["node_id", "name", "base_url", "transport", "capabilities", "labels"]
+        for field in required_fields:
+            assert field in payload, f"Missing required field: {field}"
+
+        # Verify label contents identify the node type
+        assert payload["labels"]["device_class"] == "webcam"
+        assert payload["labels"]["app_mode"] == "webcam"
+        assert "hostname" in payload["labels"]
+
+        # Verify capabilities
+        assert "stream" in payload["capabilities"]
+        assert "snapshot" in payload["capabilities"]
+
+    def test_multiple_webcams_announce_independently(self, monkeypatch):
+        """Verify multiple webcams can announce independently without conflicts."""
+        from management_api import register_management_routes
+        from flask import Flask
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as registry_dir:
+            registry_path = f"{registry_dir}/registry.json"
+
+            app = Flask(__name__)
+            
+            # Patch ALLOW_PRIVATE_IPS to allow private IP announcements
+            with patch("management_api.ALLOW_PRIVATE_IPS", True):
+                register_management_routes(
+                    app,
+                    registry_path,
+                    node_discovery_shared_secret="discovery-secret",
+                )
+                client = app.test_client()
+
+                # Announce three different webcams
+                cameras = [
+                    {
+                        "node_id": "node-kitchen",
+                        "name": "kitchen-cam",
+                        "base_url": "http://192.168.1.50:8000",
+                    },
+                    {
+                        "node_id": "node-bedroom",
+                        "name": "bedroom-cam",
+                        "base_url": "http://192.168.1.51:8000",
+                    },
+                    {
+                        "node_id": "node-porch",
+                        "name": "porch-cam",
+                        "base_url": "http://192.168.1.52:8000",
+                    },
+                ]
+
+                for camera in cameras:
+                    payload = {
+                        **camera,
+                        "transport": "http",
+                        "capabilities": ["stream", "snapshot"],
+                    }
+                    response = client.post(
+                        "/api/discovery/announce",
+                        json=payload,
+                        headers={"Authorization": "Bearer discovery-secret"},
+                    )
+                    assert response.status_code == 201, response.json
+
+                # Verify all three cameras registered
+                list_response = client.get("/api/nodes")
+                assert list_response.status_code == 200
+                nodes = list_response.json["nodes"]
+                node_ids = {n["id"] for n in nodes}
+                assert "node-kitchen" in node_ids
+                assert "node-bedroom" in node_ids
+                assert "node-porch" in node_ids
+                assert len(node_ids) == 3
+
+    def test_discovery_announce_without_shared_secret_fails(self, monkeypatch):
+        """Verify announcement fails if NODE_DISCOVERY_SHARED_SECRET not configured."""
+        from management_api import register_management_routes
+        from flask import Flask
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as registry_dir:
+            registry_path = f"{registry_dir}/registry.json"
+            # Do NOT set NODE_DISCOVERY_SHARED_SECRET
+
+            app = Flask(__name__)
+            register_management_routes(
+                app,
+                registry_path,
+                node_discovery_shared_secret="",  # Empty secret
+            )
+            client = app.test_client()
+
+            payload = {
+                "node_id": "node-test",
+                "name": "test-cam",
+                "base_url": "http://192.168.1.100:8000",
+                "transport": "http",
+                "capabilities": ["stream"],
+            }
+
+            response = client.post(
+                "/api/discovery/announce",
+                json=payload,
+                headers={"Authorization": f"Bearer anything"},
+            )
+
+            assert response.status_code == 401, "Should fail without valid secret"
+
+    def test_discovery_node_updates_last_announce_timestamp(self, monkeypatch):
+        """Verify repeated announcements update last_announce_at timestamp."""
+        from management_api import register_management_routes
+        from flask import Flask
+        import tempfile
+        import time
+
+        with tempfile.TemporaryDirectory() as registry_dir:
+            registry_path = f"{registry_dir}/registry.json"
+
+            app = Flask(__name__)
+            
+            # Patch ALLOW_PRIVATE_IPS to allow private IP announcements
+            with patch("management_api.ALLOW_PRIVATE_IPS", True):
+                register_management_routes(
+                    app,
+                    registry_path,
+                    node_discovery_shared_secret="discovery-secret",
+                )
+                client = app.test_client()
+
+                payload = {
+                    "node_id": "node-update-test",
+                    "name": "update-cam",
+                    "base_url": "http://192.168.1.100:8000",
+                    "transport": "http",
+                    "capabilities": ["stream"],
+                }
+
+                # First announcement
+                response1 = client.post(
+                    "/api/discovery/announce",
+                    json=payload,
+                    headers={"Authorization": "Bearer discovery-secret"},
+                )
+                assert response1.status_code == 201, response1.json
+                first_announce = response1.json["node"]["discovery"]["last_announce_at"]
+
+                time.sleep(0.1)  # Small delay
+
+                # Second announcement
+                response2 = client.post(
+                    "/api/discovery/announce",
+                    json=payload,
+                    headers={"Authorization": "Bearer discovery-secret"},
+                )
+                assert response2.status_code == 200, response2.json
+                second_announce = response2.json["node"]["discovery"]["last_announce_at"]
+
+                # Timestamps should be different
+                assert second_announce != first_announce
+                # First seen should remain unchanged
+                assert (
+                    response2.json["node"]["discovery"]["first_seen"]
+                    == response1.json["node"]["discovery"]["first_seen"]
+                )
