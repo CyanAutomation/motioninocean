@@ -659,26 +659,31 @@ async function diagnoseNode(nodeId) {
 }
 
 function getDiagnosticCheckRows(diagnostics = {}) {
+  const resolveState = (structuredStatus, fallbackState) => {
+    const normalized = String(structuredStatus || "").toLowerCase();
+    return ["pass", "warn", "fail"].includes(normalized) ? normalized : fallbackState;
+  };
+
   return [
     {
       key: "Registration",
-      state: diagnostics.registration?.valid ? "pass" : "fail",
+      state: resolveState(diagnostics.registration?.status, diagnostics.registration?.valid ? "pass" : "fail"),
       detail: diagnostics.registration?.valid
         ? "Node registration is valid."
         : diagnostics.registration?.error || "Registration data is invalid.",
-      meta: "",
+      meta: diagnostics.registration?.code ? `Code: ${diagnostics.registration.code}` : "",
     },
     {
       key: "URL validation",
-      state: diagnostics.url_validation?.blocked ? "fail" : "pass",
+      state: resolveState(diagnostics.url_validation?.status, diagnostics.url_validation?.blocked ? "fail" : "pass"),
       detail: diagnostics.url_validation?.blocked
         ? diagnostics.url_validation?.blocked_reason || "URL blocked by policy."
         : "Base URL passed validation.",
-      meta: "",
+      meta: diagnostics.url_validation?.code ? `Code: ${diagnostics.url_validation.code}` : "",
     },
     {
       key: "DNS resolution",
-      state: diagnostics.dns_resolution?.resolves ? "pass" : "fail",
+      state: resolveState(diagnostics.dns_resolution?.status, diagnostics.dns_resolution?.resolves ? "pass" : "fail"),
       detail: diagnostics.dns_resolution?.resolves
         ? "DNS lookup succeeded."
         : diagnostics.dns_resolution?.error || "DNS lookup failed.",
@@ -689,24 +694,39 @@ function getDiagnosticCheckRows(diagnostics = {}) {
     },
     {
       key: "Network connectivity",
-      state: diagnostics.network_connectivity?.reachable ? "pass" : "fail",
+      state: resolveState(
+        diagnostics.network_connectivity?.status,
+        diagnostics.network_connectivity?.reachable ? "pass" : "fail",
+      ),
       detail: diagnostics.network_connectivity?.reachable
         ? "Node is reachable over the network."
         : diagnostics.network_connectivity?.error || "Could not reach node.",
-      meta: diagnostics.network_connectivity?.category
-        ? `Category: ${diagnostics.network_connectivity.category}`
-        : "",
+      meta: [
+        diagnostics.network_connectivity?.category
+          ? `Category: ${diagnostics.network_connectivity.category}`
+          : "",
+        diagnostics.network_connectivity?.code ? `Code: ${diagnostics.network_connectivity.code}` : "",
+      ]
+        .filter(Boolean)
+        .join(" · "),
     },
     {
       key: "API endpoint",
-      state: diagnostics.api_endpoint?.accessible === false ? "fail" : diagnostics.api_endpoint?.healthy === false ? "warn" : "pass",
+      state: resolveState(
+        diagnostics.api_endpoint?.status,
+        diagnostics.api_endpoint?.accessible === false ? "fail" : diagnostics.api_endpoint?.healthy === false ? "warn" : "pass",
+      ),
       detail: diagnostics.api_endpoint?.status_code
         ? `HTTP ${diagnostics.api_endpoint.status_code}`
         : diagnostics.api_endpoint?.error || "Endpoint check incomplete.",
-      meta:
+      meta: [
         diagnostics.api_endpoint?.healthy === false && diagnostics.api_endpoint?.status_code === 503
           ? "Node reachable but may still be initializing."
           : "",
+        diagnostics.api_endpoint?.code ? `Code: ${diagnostics.api_endpoint.code}` : "",
+      ]
+        .filter(Boolean)
+        .join(" · "),
     },
   ];
 }
@@ -723,10 +743,19 @@ function getDiagnosticSummaryState(checkRows = []) {
   return { label: "Healthy", className: "diagnostic-pill--pass" };
 }
 
-function renderDiagnosticRecommendations(guidance = []) {
-  const recommendationsList = guidance.length
-    ? guidance
-        .map((item) => `<li>${escapeHtml(item)}</li>`)
+function renderDiagnosticRecommendations(guidance = [], recommendations = []) {
+  const structured = recommendations.length
+    ? recommendations
+    : guidance.map((item) => ({ message: item, status: "warn" }));
+
+  const recommendationsList = structured.length
+    ? structured
+        .map((item) => {
+          const state = ["pass", "warn", "fail"].includes(item.status) ? item.status : "warn";
+          const icon = state === "pass" ? "[PASS]" : state === "warn" ? "[WARN]" : "[FAIL]";
+          const codeSuffix = item.code ? ` <small>(Code: ${escapeHtml(item.code)})</small>` : "";
+          return `<li><span class="diagnostic-pill diagnostic-pill--${state}">${icon}</span> ${escapeHtml(item.message || "")}${codeSuffix}</li>`;
+        })
         .join("")
     : "<li>No recommendations provided.</li>";
 
@@ -740,6 +769,7 @@ function buildDiagnosticTextReport(diagnosticResult) {
   const nodeId = diagnosticResult.node_id || "unknown";
   const diagnostics = diagnosticResult.diagnostics || {};
   const guidance = diagnosticResult.guidance || [];
+  const recommendations = diagnosticResult.recommendations || [];
   const checkRows = getDiagnosticCheckRows(diagnostics);
   const summary = getDiagnosticSummaryState(checkRows);
 
@@ -751,11 +781,16 @@ function buildDiagnosticTextReport(diagnosticResult) {
   });
 
   output += "\nRecommendations:\n";
-  if (guidance.length === 0) {
+  const reportRecommendations = recommendations.length
+    ? recommendations
+    : guidance.map((item) => ({ message: item, status: "warn" }));
+
+  if (reportRecommendations.length === 0) {
     output += "- No recommendations provided.\n";
   } else {
-    guidance.forEach((item) => {
-      output += `- ${item}\n`;
+    reportRecommendations.forEach((item) => {
+      const icon = item.status === "pass" ? "[PASS]" : item.status === "fail" ? "[FAIL]" : "[WARN]";
+      output += `- ${icon} ${item.message}${item.code ? ` (Code: ${item.code})` : ""}\n`;
     });
   }
 
@@ -791,7 +826,7 @@ function showDiagnosticResults(diagnosticResult) {
     )
     .join("");
 
-  renderDiagnosticRecommendations(diagnosticResult.guidance || []);
+  renderDiagnosticRecommendations(diagnosticResult.guidance || [], diagnosticResult.recommendations || []);
   copyDiagnosticReportBtn.disabled = false;
 }
 

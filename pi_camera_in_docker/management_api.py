@@ -461,71 +461,107 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
     results = {
         "node_id": node_id,
         "diagnostics": {
-            "registration": {"valid": False},
-            "url_validation": {"blocked": False},
-            "dns_resolution": {"resolves": False},
-            "network_connectivity": {"reachable": False},
-            "api_endpoint": {"accessible": False, "status_code": None},
+            "registration": {"valid": False, "status": "fail"},
+            "url_validation": {"blocked": False, "status": "pass"},
+            "dns_resolution": {"resolves": False, "status": "fail"},
+            "network_connectivity": {"reachable": False, "status": "fail"},
+            "api_endpoint": {"accessible": False, "status_code": None, "status": "fail"},
         },
         "guidance": [],
+        "recommendations": [],
     }
+
+    def _add_recommendation(message: str, status: str, code: Optional[str] = None) -> None:
+        results["guidance"].append(message)
+        recommendation = {"message": message, "status": status}
+        if code:
+            recommendation["code"] = code
+        results["recommendations"].append(recommendation)
 
     # Handle docker transport separately
     if transport == "docker":
         try:
             proxy_host, proxy_port, container_id = _parse_docker_url(base_url)
-            results["diagnostics"]["registration"]["valid"] = True
-            results["diagnostics"]["url_validation"]["blocked"] = False
+            results["diagnostics"]["registration"].update({"valid": True, "status": "pass"})
+            results["diagnostics"]["url_validation"].update({"blocked": False, "status": "pass"})
         except ValueError as exc:
-            results["diagnostics"]["registration"]["valid"] = False
-            results["diagnostics"]["registration"]["error"] = str(exc)
-            results["guidance"].append(
-                f"Fix: Invalid docker URL format. Expected: docker://proxy-host:port/container-id. Error: {exc!s}"
+            results["diagnostics"]["registration"].update(
+                {"valid": False, "status": "fail", "error": str(exc), "code": "INVALID_DOCKER_URL"}
+            )
+            _add_recommendation(
+                f"Fix: Invalid docker URL format. Expected: docker://proxy-host:port/container-id. Error: {exc!s}",
+                "fail",
+                "INVALID_DOCKER_URL",
             )
             return results
 
-        # Try DNS resolution of proxy host
         try:
             records = socket.getaddrinfo(proxy_host, proxy_port, proto=socket.IPPROTO_TCP)
             resolved_ips = list(set(record[4][0] for record in records))
-            results["diagnostics"]["dns_resolution"]["resolves"] = True
-            results["diagnostics"]["dns_resolution"]["resolved_ips"] = resolved_ips
+            results["diagnostics"]["dns_resolution"].update(
+                {"resolves": True, "status": "pass", "resolved_ips": resolved_ips}
+            )
         except socket.gaierror as exc:
-            results["diagnostics"]["dns_resolution"]["resolves"] = False
-            results["diagnostics"]["dns_resolution"]["error"] = str(exc)
-            results["guidance"].append(
-                f"Network Issue: DNS failed for docker proxy '{proxy_host}'. Check hostname and network DNS."
+            results["diagnostics"]["dns_resolution"].update(
+                {
+                    "resolves": False,
+                    "status": "fail",
+                    "error": str(exc),
+                    "code": "DNS_RESOLUTION_FAILED",
+                }
+            )
+            _add_recommendation(
+                f"Network Issue: DNS failed for docker proxy '{proxy_host}'. Check hostname and network DNS.",
+                "fail",
+                "DNS_RESOLUTION_FAILED",
             )
             return results
 
-        # Try to connect to docker proxy
         auth_headers = _build_headers(node)
         try:
             status_code, status_payload = _get_docker_container_status(
                 proxy_host, proxy_port, container_id, auth_headers
             )
-            results["diagnostics"]["network_connectivity"]["reachable"] = True
-            results["diagnostics"]["api_endpoint"]["accessible"] = status_code in {200, 404}
-            results["diagnostics"]["api_endpoint"]["status_code"] = status_code
-            results["diagnostics"]["api_endpoint"]["healthy"] = status_code == 200
+            results["diagnostics"]["network_connectivity"].update({"reachable": True, "status": "pass"})
+            results["diagnostics"]["api_endpoint"].update(
+                {
+                    "accessible": status_code in {200, 404},
+                    "status_code": status_code,
+                    "healthy": status_code == 200,
+                    "status": "pass" if status_code == 200 else "fail",
+                }
+            )
 
             if status_code == 200:
-                results["guidance"].append(
-                    "✓ Docker proxy reachable and container found with status: "
-                    + status_payload.get("status", "ok")
+                _add_recommendation(
+                    "Docker proxy reachable and container found with status: "
+                    + status_payload.get("status", "ok"),
+                    "pass",
                 )
             elif status_code == 404:
-                results["guidance"].append(
-                    f"Container '{container_id}' not found on docker proxy {proxy_host}:{proxy_port}. Check container name."
+                results["diagnostics"]["api_endpoint"]["code"] = "DOCKER_CONTAINER_NOT_FOUND"
+                _add_recommendation(
+                    f"Container '{container_id}' not found on docker proxy {proxy_host}:{proxy_port}. Check container name.",
+                    "fail",
+                    "DOCKER_CONTAINER_NOT_FOUND",
                 )
             else:
-                results["guidance"].append(
-                    f"Docker proxy returned unexpected status {status_code}."
+                results["diagnostics"]["api_endpoint"]["code"] = "UNEXPECTED_STATUS"
+                _add_recommendation(
+                    f"Docker proxy returned unexpected status {status_code}.",
+                    "warn",
+                    "UNEXPECTED_STATUS",
                 )
         except NodeConnectivityError as exc:
-            results["diagnostics"]["network_connectivity"]["reachable"] = exc.category != "timeout"
-            results["diagnostics"]["network_connectivity"]["error"] = exc.reason
-            results["diagnostics"]["network_connectivity"]["category"] = exc.category
+            results["diagnostics"]["network_connectivity"].update(
+                {
+                    "reachable": exc.category != "timeout",
+                    "status": "warn" if exc.category != "timeout" else "fail",
+                    "error": exc.reason,
+                    "category": exc.category,
+                    "code": "NETWORK_CONNECTIVITY_ERROR",
+                }
+            )
             if exc.raw_error:
                 results["diagnostics"]["network_connectivity"]["raw_error"] = _sanitize_error_text(
                     exc.raw_error
@@ -536,114 +572,164 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
                 "connection_refused_or_reset": "Connection Error: Docker proxy refused connection. Ensure docker-socket-proxy is running on correct port.",
                 "network": "Network Error: Unable to reach docker proxy. Check network connectivity and firewall rules.",
             }
-            results["guidance"].append(
-                guidance_map.get(exc.category, f"Docker proxy error: {exc.reason}")
+            _add_recommendation(
+                guidance_map.get(exc.category, f"Docker proxy error: {exc.reason}"),
+                "fail",
+                "NETWORK_CONNECTIVITY_ERROR",
             )
 
         return results
 
-    # Handle HTTP transport (original logic)
-    # Check registration validity
     try:
         _validate_node_base_url(base_url)
-        results["diagnostics"]["registration"]["valid"] = True
+        results["diagnostics"]["registration"].update({"valid": True, "status": "pass"})
     except NodeRequestError as exc:
-        results["diagnostics"]["registration"]["valid"] = False
-        results["diagnostics"]["registration"]["error"] = str(exc)
-        results["guidance"].append("Fix: Ensure base_url is valid (http:// or https://)")
+        results["diagnostics"]["registration"].update(
+            {"valid": False, "status": "fail", "error": str(exc), "code": "INVALID_BASE_URL"}
+        )
+        _add_recommendation("Fix: Ensure base_url is valid (http:// or https://)", "fail", "INVALID_BASE_URL")
         return results
 
-    # Check URL vetting (SSRF protection)
     parsed = urlparse(base_url)
     hostname = parsed.hostname
     try:
         if _is_blocked_address(hostname):
-            results["diagnostics"]["url_validation"]["blocked"] = True
-            results["diagnostics"]["url_validation"]["blocked_reason"] = (
-                "private IP or reserved address"
+            results["diagnostics"]["url_validation"].update(
+                {
+                    "blocked": True,
+                    "status": "fail",
+                    "blocked_reason": "private IP or reserved address",
+                    "code": "SSRF_BLOCKED",
+                }
             )
             if ALLOW_PRIVATE_IPS:
-                results["guidance"].append(
-                    "WARNING: Code detected SSRF block despite ALLOW_PRIVATE_IPS=true. This is unexpected."
+                _add_recommendation(
+                    "Code detected SSRF block despite ALLOW_PRIVATE_IPS=true. This is unexpected.",
+                    "warn",
+                    "SSRF_BLOCKED_UNEXPECTED",
                 )
             else:
-                results["guidance"].append(
-                    "WARNING: Private IP (192.168.x.x, 10.x.x.x, 172.16.x.x) blocked by SSRF protection. "
+                _add_recommendation(
+                    "Private IP (192.168.x.x, 10.x.x.x, 172.16.x.x) blocked by SSRF protection. "
                     "Option 1: Use docker network hostname (e.g., 'motion-in-ocean-webcam:8000'). "
-                    "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management node environment."
+                    "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management node environment.",
+                    "fail",
+                    "SSRF_BLOCKED",
                 )
             return results
     except ValueError:
         pass
 
-    # Try DNS resolution
     try:
         records = socket.getaddrinfo(hostname, parsed.port or None, proto=socket.IPPROTO_TCP)
         resolved_ips = list(set(record[4][0] for record in records))
-        results["diagnostics"]["dns_resolution"]["resolves"] = True
-        results["diagnostics"]["dns_resolution"]["resolved_ips"] = resolved_ips
+        results["diagnostics"]["dns_resolution"].update(
+            {"resolves": True, "status": "pass", "resolved_ips": resolved_ips}
+        )
 
-        # Check if resolved IPs are blocked
         for ip in resolved_ips:
             if _is_blocked_address(ip):
-                results["diagnostics"]["url_validation"]["blocked"] = True
-                results["diagnostics"]["url_validation"]["blocked_reason"] = (
-                    f"resolved to private IP {ip}"
+                results["diagnostics"]["url_validation"].update(
+                    {
+                        "blocked": True,
+                        "status": "fail",
+                        "blocked_reason": f"resolved to private IP {ip}",
+                        "code": "SSRF_BLOCKED",
+                    }
                 )
                 if ALLOW_PRIVATE_IPS:
-                    results["guidance"].append(
-                        f"WARNING: Hostname '{hostname}' resolves to a non-private address type that is blocked ({ip})."
+                    _add_recommendation(
+                        f"Hostname '{hostname}' resolves to a non-private address type that is blocked ({ip}).",
+                        "warn",
+                        "SSRF_BLOCKED_UNEXPECTED",
                     )
                 else:
-                    results["guidance"].append(
-                        f"WARNING: Hostname '{hostname}' resolves to private IP {ip}, blocked by SSRF protection. "
+                    _add_recommendation(
+                        f"Hostname '{hostname}' resolves to private IP {ip}, blocked by SSRF protection. "
                         "Option 1: Use a public IP or docker network hostname. "
-                        "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management node environment."
+                        "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management node environment.",
+                        "fail",
+                        "SSRF_BLOCKED",
                     )
                 return results
     except socket.gaierror as exc:
-        results["diagnostics"]["dns_resolution"]["resolves"] = False
-        results["diagnostics"]["dns_resolution"]["error"] = str(exc)
-        results["guidance"].append(
-            f"Network Issue: DNS failed for '{hostname}'. Check hostname spelling and network connectivity."
+        results["diagnostics"]["dns_resolution"].update(
+            {
+                "resolves": False,
+                "status": "fail",
+                "error": str(exc),
+                "code": "DNS_RESOLUTION_FAILED",
+            }
+        )
+        _add_recommendation(
+            f"Network Issue: DNS failed for '{hostname}'. Check hostname spelling and network connectivity.",
+            "fail",
+            "DNS_RESOLUTION_FAILED",
         )
         return results
 
-    # Try actual connectivity
     try:
-        status_code, status_payload = _request_json(node, "GET", "/api/status")
-        results["diagnostics"]["network_connectivity"]["reachable"] = True
-        results["diagnostics"]["api_endpoint"]["accessible"] = status_code in {200, 503}
-        results["diagnostics"]["api_endpoint"]["status_code"] = status_code
-        results["diagnostics"]["api_endpoint"]["healthy"] = status_code == 200
+        status_code, _status_payload = _request_json(node, "GET", "/api/status")
+        results["diagnostics"]["network_connectivity"].update({"reachable": True, "status": "pass"})
+        results["diagnostics"]["api_endpoint"].update(
+            {
+                "accessible": status_code in {200, 503},
+                "status_code": status_code,
+                "healthy": status_code == 200,
+                "status": "pass" if status_code == 200 else "warn" if status_code == 503 else "fail",
+            }
+        )
 
         if status_code == 200:
-            results["guidance"].append(
-                "✓ Node is reachable and responsive. Status check successful."
-            )
+            _add_recommendation("Node is reachable and responsive. Status check successful.", "pass")
         elif status_code == 503:
-            results["guidance"].append(
-                "Node is reachable but reported 503 Service Unavailable. Camera may still be initializing."
+            results["diagnostics"]["api_endpoint"]["code"] = "API_STATUS_503"
+            _add_recommendation(
+                "Node is reachable but reported 503 Service Unavailable. Camera may still be initializing.",
+                "warn",
+                "API_STATUS_503",
             )
         else:
-            results["guidance"].append(f"Node returned unexpected status {status_code}.")
+            results["diagnostics"]["api_endpoint"]["code"] = "UNEXPECTED_STATUS"
+            _add_recommendation(
+                f"Node returned unexpected status {status_code}.",
+                "warn",
+                "UNEXPECTED_STATUS",
+            )
     except NodeInvalidResponseError:
-        results["diagnostics"]["network_connectivity"]["reachable"] = True
-        results["diagnostics"]["api_endpoint"]["accessible"] = False
-        results["diagnostics"]["api_endpoint"]["error"] = "malformed json response"
-        results["guidance"].append(
-            "API Error: Node responded but with invalid JSON. Node may be misconfigured or wrong version."
+        results["diagnostics"]["network_connectivity"].update({"reachable": True, "status": "pass"})
+        results["diagnostics"]["api_endpoint"].update(
+            {
+                "accessible": False,
+                "status": "fail",
+                "error": "malformed json response",
+                "code": "INVALID_JSON_RESPONSE",
+            }
+        )
+        _add_recommendation(
+            "API Error: Node responded but with invalid JSON. Node may be misconfigured or wrong version.",
+            "fail",
+            "INVALID_JSON_RESPONSE",
         )
     except NodeRequestError as exc:
-        results["diagnostics"]["url_validation"]["blocked"] = True
-        results["diagnostics"]["url_validation"]["blocked_reason"] = str(exc)
-        results["guidance"].append(
-            "URL Validation: Node target is blocked by SSRF protection policy."
+        results["diagnostics"]["url_validation"].update(
+            {"blocked": True, "status": "fail", "blocked_reason": str(exc), "code": "SSRF_BLOCKED"}
+        )
+        _add_recommendation(
+            "URL Validation: Node target is blocked by SSRF protection policy.",
+            "fail",
+            "SSRF_BLOCKED",
         )
     except NodeConnectivityError as exc:
-        results["diagnostics"]["network_connectivity"]["reachable"] = exc.category != "timeout"
-        results["diagnostics"]["network_connectivity"]["error"] = exc.reason
-        results["diagnostics"]["network_connectivity"]["category"] = exc.category
+        results["diagnostics"]["network_connectivity"].update(
+            {
+                "reachable": exc.category != "timeout",
+                "status": "warn" if exc.category != "timeout" else "fail",
+                "error": exc.reason,
+                "category": exc.category,
+                "code": "NETWORK_CONNECTIVITY_ERROR",
+            }
+        )
         if exc.raw_error:
             results["diagnostics"]["network_connectivity"]["raw_error"] = _sanitize_error_text(
                 exc.raw_error
@@ -656,12 +742,24 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
             "connection_refused_or_reset": "Connection Error: Node refused connection. Ensure node is running on correct port.",
             "network": "Network Error: Unable to reach node. Check network connectivity and firewall rules.",
         }
-        results["guidance"].append(guidance_map.get(exc.category, f"Network error: {exc.reason}"))
+        _add_recommendation(
+            guidance_map.get(exc.category, f"Network error: {exc.reason}"),
+            "fail",
+            "NETWORK_CONNECTIVITY_ERROR",
+        )
     except ConnectionError as exc:
-        results["diagnostics"]["network_connectivity"]["reachable"] = False
-        results["diagnostics"]["network_connectivity"]["error"] = str(exc)
-        results["guidance"].append(
-            "Connection: Unable to connect to node. Check node is running and network is accessible."
+        results["diagnostics"]["network_connectivity"].update(
+            {
+                "reachable": False,
+                "status": "fail",
+                "error": str(exc),
+                "code": "NETWORK_CONNECTIVITY_ERROR",
+            }
+        )
+        _add_recommendation(
+            "Connection: Unable to connect to node. Check node is running and network is accessible.",
+            "fail",
+            "NETWORK_CONNECTIVITY_ERROR",
         )
 
     return results
