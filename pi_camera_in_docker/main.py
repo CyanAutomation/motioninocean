@@ -140,6 +140,13 @@ def _load_config() -> Dict[str, Any]:
         "MOTION_IN_OCEAN_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false")
     )
 
+    cors_enabled = is_flag_enabled("CORS_SUPPORT")
+    cors_origins_raw = os.environ.get("MOTION_IN_OCEAN_CORS_ORIGINS", "").strip()
+    if cors_enabled:
+        cors_origins = cors_origins_raw or "*"
+    else:
+        cors_origins = "disabled"
+
     return {
         "app_mode": app_mode,
         "resolution": resolution,
@@ -152,7 +159,8 @@ def _load_config() -> Dict[str, Any]:
         "api_test_cycle_interval_seconds": api_test_cycle_interval_seconds,
         "pi3_profile_enabled": pi3_profile_raw.lower() in ("1", "true", "yes"),
         "mock_camera": is_flag_enabled("MOCK_CAMERA"),
-        "cors_enabled": is_flag_enabled("CORS_SUPPORT"),
+        "cors_enabled": cors_enabled,
+        "cors_origins": cors_origins,
         "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
         in ("1", "true", "yes"),
         "node_registry_path": os.environ.get("NODE_REGISTRY_PATH", "/data/node-registry.json"),
@@ -567,7 +575,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
                     "max_frame_age_seconds": state.get(
                         "max_frame_age_seconds", config["max_frame_age_seconds"]
                     ),
-                    "cors_origins": os.environ.get("MOTION_IN_OCEAN_CORS_ORIGINS", ""),
+                    "cors_origins": config["cors_origins"],
                 },
                 "runtime": {
                     "camera_active": camera_active,
