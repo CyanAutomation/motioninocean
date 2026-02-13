@@ -142,6 +142,8 @@ def test_node_crud_and_overview(monkeypatch, tmp_path):
     created = client.post("/api/nodes", json=payload, headers=_auth_headers())
     assert created.status_code == 201
     assert created.json["id"] == "node-1"
+    assert created.json["discovery"]["source"] == "manual"
+    assert created.json["discovery"]["approved"] is True
 
     listed = client.get("/api/nodes", headers=_auth_headers())
     assert listed.status_code == 200
@@ -424,7 +426,10 @@ def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
     assert created.status_code == 201
     assert created.json["upserted"] == "created"
     assert created.json["node"]["id"] == "node-discovery-1"
-    first_seen = created.json["node"]["last_seen"]
+    assert created.json["node"]["discovery"]["source"] == "discovered"
+    assert created.json["node"]["discovery"]["approved"] is False
+    first_seen = created.json["node"]["discovery"]["first_seen"]
+    first_announce = created.json["node"]["discovery"]["last_announce_at"]
 
     updated = client.post(
         "/api/discovery/announce",
@@ -441,7 +446,8 @@ def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
     assert updated.json["node"]["name"] == "Discovery Node Updated"
     assert updated.json["node"]["labels"] == {"site": "lab"}
     assert updated.json["node"]["auth"]["type"] == "bearer"
-    assert updated.json["node"]["last_seen"] != first_seen
+    assert updated.json["node"]["discovery"]["first_seen"] == first_seen
+    assert updated.json["node"]["discovery"]["last_announce_at"] != first_announce
 
 
 def test_discovery_announce_requires_bearer_token(monkeypatch, tmp_path):
@@ -527,6 +533,42 @@ def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
     )
     assert invalid.status_code == 400
     assert invalid.json["error"]["code"] == "VALIDATION_ERROR"
+
+
+
+def test_discovery_approval_endpoint(monkeypatch, tmp_path):
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    announce_payload = {
+        "node_id": "node-discovery-approval",
+        "name": "Discovery Pending",
+        "base_url": "http://example.com",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    created = client.post(
+        "/api/discovery/announce",
+        json=announce_payload,
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+    assert created.status_code == 201
+    assert created.json["node"]["discovery"]["approved"] is False
+
+    approved = client.post(
+        "/api/nodes/node-discovery-approval/discovery/approve",
+        headers=_auth_headers(),
+    )
+    assert approved.status_code == 200
+    assert approved.json["node"]["discovery"]["approved"] is True
+
+    rejected = client.post(
+        "/api/nodes/node-discovery-approval/discovery/reject",
+        headers=_auth_headers(),
+    )
+    assert rejected.status_code == 200
+    assert rejected.json["node"]["discovery"]["approved"] is False
 
 
 def test_build_headers_for_bearer_auth_with_token():

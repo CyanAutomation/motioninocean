@@ -33,6 +33,8 @@ REQUIRED_NODE_FIELDS = {
     "capabilities",
     "transport",
 }
+DISCOVERY_FIELDS = {"source", "first_seen", "last_announce_at", "approved"}
+ALLOWED_DISCOVERY_SOURCES = {"manual", "discovered"}
 ALLOWED_TRANSPORTS = {"http", "docker"}
 
 
@@ -189,6 +191,42 @@ def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]
 
     if not partial and "last_seen" not in validated:
         validated["last_seen"] = datetime.now(timezone.utc).isoformat()
+
+    if "discovery" in node:
+        discovery = node["discovery"]
+        if not isinstance(discovery, dict):
+            message = "discovery must be an object"
+            raise NodeValidationError(message)
+
+        unknown = set(discovery.keys()).difference(DISCOVERY_FIELDS)
+        if unknown:
+            message = f"discovery contains unsupported fields: {', '.join(sorted(unknown))}"
+            raise NodeValidationError(message)
+
+        validated_discovery: Dict[str, Any] = {}
+        if "source" in discovery:
+            source = discovery["source"]
+            if not isinstance(source, str) or source not in ALLOWED_DISCOVERY_SOURCES:
+                message = "discovery.source must be one of: manual, discovered"
+                raise NodeValidationError(message)
+            validated_discovery["source"] = source
+
+        for timestamp_field in {"first_seen", "last_announce_at"}:
+            if timestamp_field in discovery:
+                value = discovery[timestamp_field]
+                if value is not None and (not isinstance(value, str) or not value.strip()):
+                    message = f"discovery.{timestamp_field} must be a non-empty string or null"
+                    raise NodeValidationError(message)
+                validated_discovery[timestamp_field] = value.strip() if isinstance(value, str) else None
+
+        if "approved" in discovery:
+            approved = discovery["approved"]
+            if not isinstance(approved, bool):
+                message = "discovery.approved must be a boolean"
+                raise NodeValidationError(message)
+            validated_discovery["approved"] = approved
+
+        validated["discovery"] = validated_discovery
 
     return validated
 

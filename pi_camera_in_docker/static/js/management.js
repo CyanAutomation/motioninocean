@@ -17,6 +17,47 @@ let statusRefreshIntervalId;
 const API_AUTH_HINT =
   "Management API request unauthorized. Provide a valid Management API Bearer Token, then click Refresh to retry.";
 
+function formatDateTime(isoString) {
+  if (!isoString) {
+    return "—";
+  }
+
+  const parsed = new Date(isoString);
+  if (Number.isNaN(parsed.getTime())) {
+    return isoString;
+  }
+
+  return parsed.toLocaleString();
+}
+
+function getDiscoveryInfo(node = {}) {
+  const discovery = node.discovery || {};
+  const source = discovery.source || "manual";
+  const firstSeen = discovery.first_seen || node.last_seen || null;
+  const lastAnnounceAt = discovery.last_announce_at || null;
+  const approved = source === "discovered" ? discovery.approved === true : true;
+  return { source, firstSeen, lastAnnounceAt, approved };
+}
+
+function describeApiError(errorPayload = {}) {
+  const code = errorPayload?.error?.code || errorPayload?.code;
+  const details = errorPayload?.error?.details || errorPayload?.details || {};
+
+  if (code === "DISCOVERY_PRIVATE_IP_BLOCKED") {
+    return `Discovery registration blocked by private-IP policy. ${details.remediation || "Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true only for trusted internal networks."}`;
+  }
+
+  if (code === "NODE_UNAUTHORIZED") {
+    return "Token/auth mismatch: the remote node rejected credentials. Update this node's bearer token to match MANAGEMENT_AUTH_TOKEN on the webcam node.";
+  }
+
+  if (code === "SSRF_BLOCKED") {
+    return "Private-IP policy blocked this target. Use a docker network hostname, or explicitly enable MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true on management for trusted internal networks.";
+  }
+
+  return errorPayload?.error?.message || errorPayload?.message || "Request failed.";
+}
+
 function showFeedback(message, isError = false) {
   feedback.textContent = message;
   feedback.style.color = isError ? "#b91c1c" : "#166534";
@@ -215,8 +256,8 @@ function getStatusReason(status = {}) {
   const code = status.error_code;
   const knownReasons = {
     SSRF_BLOCKED: {
-      title: "Node target is blocked by SSRF protection.",
-      hint: "Use docker network hostname (e.g., 'motion-in-ocean-webcam:8000') or enable MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS. Click Diagnose for details.",
+      title: "Private-IP policy blocked this node target.",
+      hint: "Use a docker network hostname (e.g., 'motion-in-ocean-webcam:8000') or explicitly set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true on management for trusted internal networks. Click Diagnose for details.",
     },
     NETWORK_UNREACHABLE: {
       title: "Node is unreachable on the network.",
@@ -243,8 +284,8 @@ function getStatusReason(status = {}) {
       hint: "Check the node base URL, networking, and that the node service is running.",
     },
     NODE_UNAUTHORIZED: {
-      title: "Node rejected credentials.",
-      hint: "Update node auth settings or bearer token and refresh.",
+      title: "Token/auth mismatch with remote node.",
+      hint: "Set this node bearer token to match the webcam node MANAGEMENT_AUTH_TOKEN, then refresh.",
     },
     NODE_INVALID_RESPONSE: {
       title: "Node returned an invalid response.",
@@ -321,7 +362,7 @@ function normalizeNodeStatusForUi(status = {}) {
 
 function renderRows() {
   if (!nodes.length) {
-    tableBody.innerHTML = '<tr><td colspan="7" class="empty">No nodes registered.</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="8" class="empty">No nodes registered.</td></tr>';
     return;
   }
 
@@ -336,16 +377,29 @@ function renderRows() {
       const status = nodeStatusMap.get(node.id) || { status: "unknown", stream_available: false };
       const normalizedStatus = normalizeNodeStatusForUi(status);
       const streamText = status.stream_available ? "Available" : "Unavailable";
-      const detailsText = normalizedStatus.reasonText;
+      const discovery = getDiscoveryInfo(node);
       const aggregateDetails = formatAggregationDetails(status);
       const detailsTooltip = [normalizedStatus.helpText, status.error_details]
         .filter(Boolean)
         .join(" ");
+      const approvalHint =
+        discovery.source === "discovered" && !discovery.approved
+          ? "Pending approval before full activation."
+          : "";
+      const detailsText = [approvalHint, normalizedStatus.reasonText].filter(Boolean).join(" ");
       return `
         <tr>
           <td><strong>${escapeHtml(node.name)}</strong><br><small>${escapeHtml(node.id)}</small></td>
           <td>${escapeHtml(node.base_url)}</td>
           <td>${escapeHtml(node.transport)}</td>
+          <td>
+            <small>
+              Source: <strong>${escapeHtml(discovery.source)}</strong><br>
+              First seen: ${escapeHtml(formatDateTime(discovery.firstSeen))}<br>
+              Last announce: ${escapeHtml(formatDateTime(discovery.lastAnnounceAt))}<br>
+              Approval: ${escapeHtml(discovery.approved ? "approved" : "pending")}
+            </small>
+          </td>
           <td>
             <span class="ui-status-pill ${normalizedStatus.statusClass}" title="${escapeHtml(normalizedStatus.helpText)}">${escapeHtml(normalizedStatus.label)}</span>
           </td>
@@ -358,6 +412,7 @@ function renderRows() {
             <div class="row-actions">
               <button class="ui-btn ui-btn--secondary" data-action="edit" data-id="${escapeHtml(node.id)}">Edit</button>
               <button class="ui-btn ui-btn--secondary" data-action="diagnose" data-id="${escapeHtml(node.id)}">Diagnose</button>
+              ${discovery.source === "discovered" ? `<button class="ui-btn ui-btn--secondary" data-action="approve" data-id="${escapeHtml(node.id)}">Approve</button><button class="ui-btn ui-btn--secondary" data-action="reject" data-id="${escapeHtml(node.id)}">Reject</button>` : ""}
               <button class="ui-btn ui-btn--danger" data-action="delete" data-id="${escapeHtml(node.id)}">Remove</button>
             </div>
           </td>
@@ -513,8 +568,7 @@ async function submitNodeForm(event) {
 
     if (!response.ok) {
       const errorPayload = await response.json().catch(() => ({}));
-      const message = errorPayload?.error?.message || "Request failed.";
-      showFeedback(message, true);
+      showFeedback(describeApiError(errorPayload), true);
       return;
     }
 
@@ -660,6 +714,30 @@ function showDiagnosticResults(diagnosticResult) {
   });
 }
 
+async function setDiscoveryApproval(nodeId, decision) {
+  try {
+    const response = await managementFetch(`/api/nodes/${encodeURIComponent(nodeId)}/discovery/${decision}`, {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(() => ({}));
+      showFeedback(describeApiError(errorPayload), true);
+      return;
+    }
+
+    showFeedback(`Node ${nodeId} ${decision}d.`);
+    await fetchNodes();
+    await refreshStatuses();
+  } catch (error) {
+    if (error?.isUnauthorized) {
+      showFeedback(API_AUTH_HINT, true);
+      return;
+    }
+    showFeedback(error.message || "Network error occurred.", true);
+  }
+}
+
 async function removeNode(nodeId) {
   if (!window.confirm(`Delete node ${nodeId}?`)) {
     return;
@@ -708,6 +786,10 @@ function onTableClick(event) {
     removeNode(nodeId);
   } else if (action === "diagnose") {
     diagnoseNode(nodeId);
+  } else if (action === "approve") {
+    setDiscoveryApproval(nodeId, "approve");
+  } else if (action === "reject") {
+    setDiscoveryApproval(nodeId, "reject");
   }
 }
 
