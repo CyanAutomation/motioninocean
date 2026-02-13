@@ -12,7 +12,6 @@ Run with: python3 tests/test_parallel_containers.py
 """
 
 import json
-import subprocess
 import sys
 import time
 import urllib.error
@@ -195,21 +194,16 @@ def run_all_tests() -> Tuple[list, int, int]:
         test_management_overview,
     ]
 
-    print("=" * 70)
-    print("PARALLEL CONTAINER COMMUNICATION TEST SUITE")
-    print("=" * 70)
-    print()
+
 
     results = []
     for test_func in tests:
         result = test_func()
         results.append(result)
-        print(f"  {result}")
+
         if result.details:
             for key, value in result.details.items():
-                if key not in ["timestamp", "last_frame_age_seconds"]:
-                    print(f"    • {key}: {value}")
-        print()
+
 
     passed = sum(1 for r in results if r.passed)
     failed = len(results) - passed
@@ -218,22 +212,15 @@ def run_all_tests() -> Tuple[list, int, int]:
 
 
 def main() -> int:
-    print("Waiting for containers to be ready...")
+
     time.sleep(2)
 
     results, passed, failed = run_all_tests()
 
-    print("=" * 70)
-    print(f"RESULTS: {passed} passed, {failed} failed")
-    print("=" * 70)
-    print()
+
 
     if failed > 0:
-        print("Failed tests:")
-        for result in results:
-            if not result.passed:
-                print(f"  • {result.name}")
-        print()
+
 
     print("KEY FINDINGS:")
     print("✅ Both containers run in parallel successfully")

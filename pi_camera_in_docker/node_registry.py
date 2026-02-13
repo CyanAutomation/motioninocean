@@ -228,7 +228,7 @@ def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]
                 raise NodeValidationError(message)
             validated_discovery["source"] = source
 
-        for timestamp_field in {"first_seen", "last_announce_at"}:
+        for timestamp_field in ("first_seen", "last_announce_at"):
             if timestamp_field in discovery:
                 value = discovery[timestamp_field]
                 if value is not None and (not isinstance(value, str) or not value.strip()):

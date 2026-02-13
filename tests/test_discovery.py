@@ -1,5 +1,6 @@
-import pytest
 import threading
+
+import pytest
 
 
 def test_load_config_discovery_defaults(monkeypatch):

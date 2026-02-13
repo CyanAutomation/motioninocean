@@ -2,12 +2,12 @@
 
 import glob
 import io
-from datetime import datetime, timezone
 import logging
 import os
 import signal
 import socket
 import time
+from datetime import datetime, timezone
 from threading import Event, RLock, Thread
 from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
@@ -193,11 +193,11 @@ def _detect_camera_devices() -> Dict[str, Any]:
     }
 
     try:
-        # Check DMA heap devices
-        dma_heap_dir = "/dev/dma_heap"
-        if os.path.isdir(dma_heap_dir):
-            try:
-                dma_devices = os.listdir(dma_heap_dir)
+            from pathlib import Path
+            # Check DMA heap devices
+            dma_heap_dir = "/dev/dma_heap"
+            if Path(dma_heap_dir).is_dir():            try:
+                dma_devices = [f.name for f in Path(dma_heap_dir).iterdir()]
                 result["dma_heap_devices"] = [f"/dev/dma_heap/{d}" for d in dma_devices]
             except OSError:
                 logger.debug("Could not list /dev/dma_heap directory")
@@ -205,27 +205,27 @@ def _detect_camera_devices() -> Dict[str, Any]:
         # Check video devices
         for i in range(10):
             video_device = f"/dev/video{i}"
-            if os.path.exists(video_device):
+            if Path(video_device).exists():
                 result["video_devices"].append(video_device)
 
         # Check media devices
         for i in range(10):
             media_device = f"/dev/media{i}"
-            if os.path.exists(media_device):
+            if Path(media_device).exists():
                 result["media_devices"].append(media_device)
 
         # Check v4l sub-device nodes
         for i in range(64):
             subdev_device = f"/dev/v4l-subdev{i}"
-            if os.path.exists(subdev_device):
+            if Path(subdev_device).exists():
                 result["v4l_subdev_devices"].append(subdev_device)
 
         # Check VCHIQ
-        if os.path.exists("/dev/vchiq"):
+        if Path("/dev/vchiq").exists():
             result["vchiq_device"] = True
 
         # Check DRI (graphics)
-        if os.path.exists("/dev/dri"):
+        if Path("/dev/dri").exists():
             result["dri_device"] = True
 
         # Set has_camera flag
@@ -372,7 +372,7 @@ def _validate_setup_config(config: Dict[str, Any]) -> Tuple[bool, list]:
 
 
 def _generate_docker_compose_content(
-    config: Dict[str, Any], detected_devices: Dict[str, Any]
+    _config: Dict[str, Any], detected_devices: Dict[str, Any]
 ) -> str:
     """
     Generate docker-compose.yaml content based on configuration and detected devices.
@@ -893,7 +893,7 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
         "dma_heap": "/dev/dma_heap/*",
     }
     discovered_nodes = {
-        node_group: sorted(glob.glob(pattern)) for node_group, pattern in node_patterns.items()
+        node_group: sorted(list(Path('.').glob(pattern))) for node_group, pattern in node_patterns.items()
     }
 
     preflight_summary = {
@@ -902,7 +902,7 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
     }
     logger.info("Camera preflight device summary: %s", preflight_summary)
 
-    missing_critical = [device for device in required_devices if not os.path.exists(device)]
+    missing_critical = [device for device in required_devices if not Path(device).exists()]
 
     if missing_critical:
         logger.warning(

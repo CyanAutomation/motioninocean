@@ -3,7 +3,6 @@ import json
 import logging
 import random
 import socket
-import time
 import urllib.error
 import urllib.request
 import uuid
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def _stable_node_id(hostname: str) -> str:
     mac = f"{uuid.getnode():012x}"
-    digest = hashlib.sha256(f"{hostname}-{mac}".encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(f"{hostname}-{mac}".encode()).hexdigest()
     return f"node-{digest[:16]}"
 
 
@@ -144,7 +143,8 @@ def build_discovery_payload(config: Dict[str, Any]) -> Dict[str, Any]:
     node_id = config.get("discovery_node_id") or _stable_node_id(hostname)
     base_url = config.get("discovery_base_url", "").rstrip("/")
     if not base_url:
-        raise ValueError("discovery_base_url is required in config")
+        error_message = "discovery_base_url is required in config"
+        raise ValueError(error_message)
     return {
         "node_id": node_id,
         "name": hostname,

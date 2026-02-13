@@ -518,17 +518,14 @@ def test_detect_devices_script_includes_v4l_subdev(workspace_root):
     assert "V4L2 sub-device nodes" in content, "Missing v4l-subdev output section"
 
 
-
 def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspace_root):
     """Verify setup UI device detection captures /dev/v4l-subdev* nodes."""
     original_path = sys.path.copy()
     sys.path.insert(0, str(workspace_root / "pi_camera_in_docker"))
     try:
         import main
-    finally:
-        sys.path = original_path
 
-    existing_paths = {
+        existing_paths = {
             "/dev/vchiq",
             "/dev/video0",
             "/dev/media0",
@@ -537,7 +534,9 @@ def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspa
         }
 
         monkeypatch.setattr(main.os.path, "isdir", lambda p: p == "/dev/dma_heap")
-        monkeypatch.setattr(main.os, "listdir", lambda p: ["system"] if p == "/dev/dma_heap" else [])
+        monkeypatch.setattr(
+            main.os, "listdir", lambda p: ["system"] if p == "/dev/dma_heap" else []
+        )
         monkeypatch.setattr(main.os.path, "exists", lambda p: p in existing_paths)
 
         detected = main._detect_camera_devices()
@@ -545,8 +544,7 @@ def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspa
         assert "/dev/v4l-subdev0" in detected["v4l_subdev_devices"]
         assert detected["has_camera"] is True
     finally:
-        sys.path[:] = original_path
-
+        sys.path = original_path
 
 
 def test_setup_ui_generated_compose_includes_v4l_subdev_mapping(workspace_root):

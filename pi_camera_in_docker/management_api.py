@@ -1,8 +1,8 @@
 import ipaddress
 import json
 import os
-import ssl
 import socket
+import ssl
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -294,8 +294,9 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
         try:
             records = socket.getaddrinfo(hostname, port or None, proto=socket.IPPROTO_TCP)
         except socket.gaierror as exc:
+            error_message = "dns resolution failed"
             raise NodeConnectivityError(
-                "dns resolution failed",
+                error_message,
                 reason="dns resolution failed",
                 category="dns",
                 raw_error=str(exc),
@@ -366,7 +367,8 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
             raw_error=raw_error,
         )
 
-    raise ConnectionError("all connection attempts failed")
+    error_message = "all connection attempts failed"
+    raise ConnectionError(error_message)
 
 
 def _parse_docker_url(base_url: str) -> Tuple[str, int, str]:
@@ -425,21 +427,23 @@ def _get_docker_container_status(
     except urllib.error.URLError as exc:
         reason_msg = str(exc.reason)
         if "104" in reason_msg or "connection refused" in reason_msg.lower():
+            error_message = "docker proxy connection refused"
             raise NodeConnectivityError(
-                "docker proxy connection refused",
+                error_message,
                 reason="connection refused",
                 category="connection_refused_or_reset",
                 raw_error=reason_msg,
             )
         if "timed out" in reason_msg.lower():
-            raise NodeConnectivityError(
-                "docker proxy request timed out",
-                reason="request timed out",
+                            error_message = "docker proxy request timed out"
+                            raise NodeConnectivityError(
+                                error_message,                reason="request timed out",
                 category="timeout",
                 raw_error=reason_msg,
             )
+        error_message = "docker proxy connection failed"
         raise NodeConnectivityError(
-            "docker proxy connection failed",
+            error_message,
             reason="connection failed",
             category="network",
             raw_error=reason_msg,
@@ -476,7 +480,7 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
             results["diagnostics"]["registration"]["valid"] = False
             results["diagnostics"]["registration"]["error"] = str(exc)
             results["guidance"].append(
-                f"Fix: Invalid docker URL format. Expected: docker://proxy-host:port/container-id. Error: {str(exc)}"
+                f"Fix: Invalid docker URL format. Expected: docker://proxy-host:port/container-id. Error: {exc!s}"
             )
             return results
 
@@ -698,7 +702,7 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
                     "stream_available": bool(status_payload.get("stream_available", False)),
                     "status_probe": {"status_code": status_code, "payload": status_payload},
                 }, None
-            elif status_code == 404:
+            if status_code == 404:
                 return {}, (
                     "DOCKER_CONTAINER_NOT_FOUND",
                     f"container {container_id} not found on docker proxy {proxy_host}:{proxy_port}",
@@ -706,14 +710,13 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
                     node_id,
                     {"container_id": container_id, "proxy": f"{proxy_host}:{proxy_port}"},
                 )
-            else:
-                return {}, (
-                    "DOCKER_API_ERROR",
-                    f"docker proxy returned unexpected status {status_code}",
-                    502,
-                    node_id,
-                    {"status_code": status_code, "proxy": f"{proxy_host}:{proxy_port}"},
-                )
+            return {}, (
+                "DOCKER_API_ERROR",
+                f"docker proxy returned unexpected status {status_code}",
+                502,
+                node_id,
+                {"status_code": status_code, "proxy": f"{proxy_host}:{proxy_port}"},
+            )
         except NodeConnectivityError as exc:
             return {}, (
                 "DOCKER_PROXY_UNREACHABLE",
