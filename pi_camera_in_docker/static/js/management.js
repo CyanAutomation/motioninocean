@@ -803,10 +803,13 @@ async function init() {
   });
   refreshBtn.addEventListener("click", async () => {
     stopStatusRefreshInterval();
-    await fetchNodes();
-    await refreshStatuses();
-    startStatusRefreshInterval();
-    showFeedback("Node list refreshed.");
+    try {
+      await fetchNodes();
+      await refreshStatuses();
+      showFeedback("Node list refreshed.");
+    } finally {
+      startStatusRefreshInterval();
+    }
   });
   tableBody.addEventListener("click", onTableClick);
 
