@@ -1086,8 +1086,6 @@ function updatePresetRecommendation() {
   }
 }
 
-
-
 function updateReviewSummary() {
   const summary = document.getElementById("review-summary");
   if (!summary) return;
@@ -1325,6 +1323,7 @@ async function rescanSetupDevices() {
       rescanBtn.textContent = "Re-scan devices";
     }
   }
+}
 
 function updateSetupUI(data) {
   state.setupDetectedDevices = data.detected_devices || state.setupDetectedDevices || {};

@@ -15,9 +15,21 @@ function slice(source, startToken, endToken) {
 test("management status UI maps NODE_API_MISMATCH to failure subtype with actionable reason", () => {
   const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
   const statusClassFn = slice(managementJs, "function statusClass", "const STATUS_SUBTYPE_CONFIG");
-  const subtypeConfig = slice(managementJs, "const STATUS_SUBTYPE_CONFIG", "function normalizeNodeStatusError");
-  const reasonFn = slice(managementJs, "function getStatusReason", "function normalizeNodeStatusForUi");
-  const normalizeFn = slice(managementJs, "function normalizeNodeStatusForUi", "function renderRows");
+  const subtypeConfig = slice(
+    managementJs,
+    "const STATUS_SUBTYPE_CONFIG",
+    "function normalizeNodeStatusError",
+  );
+  const reasonFn = slice(
+    managementJs,
+    "function getStatusReason",
+    "function normalizeNodeStatusForUi",
+  );
+  const normalizeFn = slice(
+    managementJs,
+    "function normalizeNodeStatusForUi",
+    "function renderRows",
+  );
 
   const context = {};
   vm.runInNewContext(`${statusClassFn}\n${subtypeConfig}\n${reasonFn}\n${normalizeFn}`, context);

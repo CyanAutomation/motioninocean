@@ -108,7 +108,6 @@ with the community.
 This Code of Conduct is adapted from the Contributor Covenant, version 2.1:
 https://www.contributor-covenant.org/version/2/1/code_of_conduct.html
 
-
 ## Related project docs
 
 For project documentation and contribution workflow, start at [README.md](README.md), [CONTRIBUTING.md](CONTRIBUTING.md), and [docs/README.md](docs/README.md).

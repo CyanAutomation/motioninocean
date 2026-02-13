@@ -1,12 +1,14 @@
 # Release Process
 
 ## Scope of this document
+
 This file describes **how to cut and publish releases** (procedure + automation only).
 
 - User-visible release notes belong in [`CHANGELOG.md`](../../CHANGELOG.md).
 - Test validation evidence belongs in [`docs/testing/README.md`](../testing/README.md).
 
 ## Overview
+
 Releases are tag-driven and automated:
 
 ```text
@@ -14,12 +16,14 @@ create-release.sh -> git tag (vX.Y.Z) -> GitHub Actions -> GHCR image + GitHub R
 ```
 
 ## Prerequisites
+
 - Clean working tree.
 - Push access to the repository.
 - GitHub Actions enabled.
 - `gh` CLI installed/authenticated if you want automated workflow verification.
 
 ## Standard release flow
+
 1. Verify clean repository state.
 2. Run `./create-release.sh`.
 3. Provide the next semantic version when prompted.
@@ -33,13 +37,16 @@ create-release.sh -> git tag (vX.Y.Z) -> GitHub Actions -> GHCR image + GitHub R
    - confirm GHCR publish.
 
 ## Automation behavior
+
 The release automation is expected to:
+
 - Trigger on tags matching `v*.*.*`.
 - Build/publish the Docker image.
 - Publish GitHub release notes from changelog content.
 - Roll back release tag/commit if the publish workflow fails.
 
 ## Rollback
+
 If automated rollback does not complete, perform manually:
 
 ```bash
@@ -56,6 +63,7 @@ gh release delete vX.Y.Z --yes
 ```
 
 ## Verification commands
+
 ```bash
 # Recent workflow runs
 gh run list --limit 5

@@ -101,8 +101,6 @@ Persistence uses registry abstraction (initially file-backed via `NODE_REGISTRY_
 }
 ```
 
-
-
 ### API Test Mode (Deterministic Status Validation)
 
 Webcam mode supports deterministic status simulation for management validation.

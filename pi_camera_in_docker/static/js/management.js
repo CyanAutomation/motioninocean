@@ -95,8 +95,6 @@ function getManagementBearerToken() {
   return tokenInput.value.trim();
 }
 
-
-
 async function managementFetch(path, options = {}) {
   const token = getManagementBearerToken();
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
@@ -539,7 +537,9 @@ async function refreshStatuses({ fromInterval = false } = {}) {
               node.id,
               enrichStatusWithAggregation(
                 node.id,
-                normalizeNodeStatusError({ message: error?.message || "Failed to refresh node status." }),
+                normalizeNodeStatusError({
+                  message: error?.message || "Failed to refresh node status.",
+                }),
               ),
             );
           }
@@ -654,9 +654,9 @@ function showDiagnosticResults(diagnosticResult) {
   const nodeId = diagnosticResult.node_id;
   const diagnostics = diagnosticResult.diagnostics || {};
   const guidance = diagnosticResult.guidance || [];
-  
+
   let message = `Diagnostic Report for ${nodeId}\n\n`;
-  
+
   // Registration check
   if (!diagnostics.registration?.valid) {
     message += "❌ Registration: Invalid\n";
@@ -666,7 +666,7 @@ function showDiagnosticResults(diagnosticResult) {
   } else {
     message += "✓ Registration: Valid\n";
   }
-  
+
   // URL validation check
   if (diagnostics.url_validation?.blocked) {
     message += `❌ URL Validation: Blocked\n`;
@@ -676,7 +676,7 @@ function showDiagnosticResults(diagnosticResult) {
   } else {
     message += "✓ URL Validation: Passed\n";
   }
-  
+
   // DNS resolution
   if (!diagnostics.dns_resolution?.resolves) {
     message += `❌ DNS Resolution: Failed\n`;
@@ -689,7 +689,7 @@ function showDiagnosticResults(diagnosticResult) {
       message += `   IPs: ${diagnostics.dns_resolution.resolved_ips.join(", ")}\n`;
     }
   }
-  
+
   // Network connectivity
   if (!diagnostics.network_connectivity?.reachable) {
     message += `❌ Network Connectivity: Unreachable\n`;
@@ -702,11 +702,14 @@ function showDiagnosticResults(diagnosticResult) {
   } else {
     message += "✓ Network Connectivity: Reachable\n";
   }
-  
+
   // API endpoint
   if (diagnostics.api_endpoint?.status_code) {
     message += `✓ API Endpoint (/api/status): HTTP ${diagnostics.api_endpoint.status_code}\n`;
-    if (diagnostics.api_endpoint?.healthy === false && diagnostics.api_endpoint?.status_code === 503) {
+    if (
+      diagnostics.api_endpoint?.healthy === false &&
+      diagnostics.api_endpoint?.status_code === 503
+    ) {
       message += "   Node is reachable but returning 503 (may be initializing)\n";
     }
   } else if (!diagnostics.api_endpoint?.accessible) {
@@ -715,7 +718,7 @@ function showDiagnosticResults(diagnosticResult) {
       message += `   Error: ${diagnostics.api_endpoint.error}\n`;
     }
   }
-  
+
   // Guidance
   if (guidance.length > 0) {
     message += `\nRecommendations:\n`;
@@ -729,10 +732,10 @@ function showDiagnosticResults(diagnosticResult) {
       }
     });
   }
-  
+
   // Show in alert (and copy to clipboard)
   alert(message);
-  
+
   // Also try to copy to clipboard when supported
   if (typeof globalThis.navigator?.clipboard?.writeText === "function") {
     globalThis.navigator.clipboard.writeText(message).catch(() => {
@@ -743,9 +746,12 @@ function showDiagnosticResults(diagnosticResult) {
 
 async function setDiscoveryApproval(nodeId, decision) {
   try {
-    const response = await managementFetch(`/api/nodes/${encodeURIComponent(nodeId)}/discovery/${decision}`, {
-      method: "POST",
-    });
+    const response = await managementFetch(
+      `/api/nodes/${encodeURIComponent(nodeId)}/discovery/${decision}`,
+      {
+        method: "POST",
+      },
+    );
 
     if (!response.ok) {
       const errorPayload = await response.json().catch(() => ({}));

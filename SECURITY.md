@@ -32,9 +32,9 @@ Please include:
 ## Threat model & security notes
 
 Additional security and operational references:
+
 - [Documentation index](docs/README.md)
 - [Deployment guide](docs/guides/DEPLOYMENT.md)
-
 
 motion-in-ocean is a homelab-oriented container and requires access to Raspberry Pi camera devices.
 

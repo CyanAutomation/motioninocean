@@ -1,6 +1,7 @@
 # Deprecated: Testing documentation index replaced
 
 ## Scope of this document
+
 This file is a legacy redirect only.
 
 - Canonical testing evidence and outputs: [`docs/testing/README.md`](../testing/README.md)

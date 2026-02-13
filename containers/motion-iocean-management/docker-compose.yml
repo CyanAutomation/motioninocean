@@ -42,7 +42,7 @@ services:
 
       # Management mode ignores camera configuration
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
-      
+
       # SSRF Protection: Allow private IP ranges for node discovery
       # Only enable for internal networks. See .env for security notes
       MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS: ${MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS:-false}

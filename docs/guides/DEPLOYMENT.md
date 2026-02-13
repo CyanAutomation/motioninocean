@@ -110,7 +110,6 @@ For a distributed setup with management hub + remote webcams:
    - Add webcam nodes via the management interface
    - Use the same `MANAGEMENT_AUTH_TOKEN` for secure communication
 
-
 ### LAN Self-Registration (Discovery Announcements)
 
 Use discovery when webcam nodes should automatically register themselves with the management node.

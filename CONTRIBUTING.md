@@ -7,7 +7,6 @@ Even small contributions (docs fixes, examples, typos) are genuinely appreciated
 
 ---
 
-
 ## Documentation map
 
 Project documentation is organized under `docs/`:

@@ -65,5 +65,8 @@ test("refresh button always restarts status interval even when refresh fails", a
   assert.equal(stopIntervalCalls, 1);
   assert.equal(startIntervalCalls, 2);
   assert.equal(refreshStatusesCalls, 1);
-  assert.equal(feedbackCalls.some(([message]) => message === "Node list refreshed."), false);
+  assert.equal(
+    feedbackCalls.some(([message]) => message === "Node list refreshed."),
+    false,
+  );
 });

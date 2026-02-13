@@ -19,11 +19,11 @@
 
 ### Old → New Pattern
 
-| Area | Old (Deprecated) | New (Recommended) |
-| --- | --- | --- |
-| Compose location | Project root (`docker-compose.webcam.yaml`, etc.) | `containers/motioniocean-{mode}/docker-compose.yml` |
-| Compose invocation | `docker compose -f <file> ...` | `cd containers/motioniocean-{mode}` then `docker compose ...` |
-| Configuration scope | Single root-oriented workflow | Per-deployment isolated `.env` + overlays |
+| Area                | Old (Deprecated)                                  | New (Recommended)                                             |
+| ------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
+| Compose location    | Project root (`docker-compose.webcam.yaml`, etc.) | `containers/motioniocean-{mode}/docker-compose.yml`           |
+| Compose invocation  | `docker compose -f <file> ...`                    | `cd containers/motioniocean-{mode}` then `docker compose ...` |
+| Configuration scope | Single root-oriented workflow                     | Per-deployment isolated `.env` + overlays                     |
 
 ### What You Need To Change
 
@@ -51,22 +51,22 @@ For step-by-step migration execution, use the canonical sections in `DEPLOYMENT.
 
 ### Compose & Runtime Behavior Delta
 
-| Aspect | Old | New |
-| --- | --- | --- |
-| Compose strategy | Larger config surface with legacy patterns | Simplified defaults aligned to deployment modes |
-| Device access posture | Explicit mappings/cgroup rules emphasis | Simpler default posture (with hardened overlay path) |
-| Healthcheck | Python-script based checks | HTTP endpoint checks |
+| Aspect                | Old                                        | New                                                  |
+| --------------------- | ------------------------------------------ | ---------------------------------------------------- |
+| Compose strategy      | Larger config surface with legacy patterns | Simplified defaults aligned to deployment modes      |
+| Device access posture | Explicit mappings/cgroup rules emphasis    | Simpler default posture (with hardened overlay path) |
+| Healthcheck           | Python-script based checks                 | HTTP endpoint checks                                 |
 
 ### Environment Variable Delta
 
 #### Removed / Reworked Variables
 
-| Old Variable | New Status |
-| --- | --- |
-| `MANAGEMENT_AUTH_REQUIRED` | Removed (token-only auth model) |
-| `MOTION_IN_OCEAN_HEALTHCHECK_READY` | Removed |
-| `DOCKER_PROXY_PORT` | Removed |
-| `MOTION_IN_OCEAN_BIND_HOST` | Removed from standard env surface |
+| Old Variable                        | New Status                        |
+| ----------------------------------- | --------------------------------- |
+| `MANAGEMENT_AUTH_REQUIRED`          | Removed (token-only auth model)   |
+| `MOTION_IN_OCEAN_HEALTHCHECK_READY` | Removed                           |
+| `DOCKER_PROXY_PORT`                 | Removed                           |
+| `MOTION_IN_OCEAN_BIND_HOST`         | Removed from standard env surface |
 
 #### Still Supported (Advanced / Undocumented)
 
@@ -82,9 +82,9 @@ For step-by-step migration execution, use the canonical sections in `DEPLOYMENT.
 
 ### Authentication Delta
 
-| Old Model | New Model |
-| --- | --- |
-| `MANAGEMENT_AUTH_REQUIRED=true|false` + `MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN` only |
+| Old Model                          | New Model                                               |
+| ---------------------------------- | ------------------------------------------------------- | ---------------------------- |
+| `MANAGEMENT_AUTH_REQUIRED=true     | false`+`MANAGEMENT_AUTH_TOKEN`                          | `MANAGEMENT_AUTH_TOKEN` only |
 | Boolean gate controlled auth state | Empty token disables auth; non-empty token enables auth |
 
 For canonical runtime/security setup details, use:
