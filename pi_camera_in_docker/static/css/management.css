@@ -157,6 +157,25 @@
   color: var(--color-text-secondary);
 }
 
+.diagnostic-summary-banner {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: var(--color-bg-surface);
+}
+
+.diagnostic-summary-banner__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.diagnostic-summary-banner p {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-secondary);
+}
+
 .diagnostic-checks-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -241,6 +260,11 @@
   .diagnostic-meta-row,
   .diagnostic-checks-grid {
     grid-template-columns: 1fr;
+  }
+
+  .diagnostic-summary-banner__top {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

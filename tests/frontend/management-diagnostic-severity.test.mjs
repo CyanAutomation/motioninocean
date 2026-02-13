@@ -39,3 +39,42 @@ test("diagnostic rows prefer structured status over derived booleans", () => {
   assert.match(rows[4].meta, /API_FAIL/);
 });
 
+test("diagnostic summary/banner map connectivity categories to concise remediation", () => {
+  const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
+  const summaryFns = slice(
+    managementJs,
+    "function getDiagnosticSummaryState",
+    "function renderDiagnosticRecommendations",
+  );
+
+  const context = {};
+  vm.runInNewContext(`${summaryFns}`, context);
+
+  const summary = context.getDiagnosticSummaryState([
+    { key: "Registration", state: "pass" },
+    { key: "URL validation", state: "pass" },
+    { key: "DNS resolution", state: "pass" },
+    { key: "Network connectivity", state: "fail" },
+    { key: "API endpoint", state: "pass" },
+  ]);
+  assert.equal(summary.label, "Action required");
+
+  const banner = context.getDiagnosticSummaryBanner(
+    summary,
+    [
+      { key: "Registration", state: "pass" },
+      { key: "URL validation", state: "pass" },
+      { key: "DNS resolution", state: "pass" },
+      { key: "Network connectivity", state: "fail" },
+      { key: "API endpoint", state: "pass" },
+    ],
+    {
+      network_connectivity: { category: "timeout", code: "NETWORK_CONNECTIVITY_ERROR" },
+      url_validation: {},
+      registration: {},
+    },
+  );
+
+  assert.match(banner.interpretation, /timed out/i);
+  assert.equal(banner.cta, "Retry in 30s");
+});
