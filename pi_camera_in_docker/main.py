@@ -537,7 +537,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
             current_connections = (
                 tracker.get_count() if isinstance(tracker, ConnectionTracker) else 0
             )
-            camera_active = bool(recording_started and recording_started.is_set())
+            camera_active = isinstance(recording_started, Event) and recording_started.is_set()
             uptime_seconds = round(
                 max(
                     0.0,
