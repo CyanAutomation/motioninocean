@@ -15,9 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - fix: update comments and assertions in test_announcer_retries_with_exponential_backoff for clarity
 - test: add integration tests for webcam announce and discovery workflow
-- fix: correct indentation in _api_test_runtime_info function for proper error handling
+- fix: correct indentation in \_api_test_runtime_info function for proper error handling
 - fix: correct indentation in parse_docker_url function for container ID validation
-- fix: correct indentation in _detect_camera_devices function for proper error handling
+- fix: correct indentation in \_detect_camera_devices function for proper error handling
 - refactor: simplify variable naming in test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes
 - refactor: improve error handling and code readability across multiple files
 - chore: clean up whitespace and formatting across multiple files
