@@ -5,10 +5,12 @@ import io
 import logging
 import os
 import signal
+import socket
 import time
 from threading import Event, RLock, Thread
 from typing import Any, Dict, Optional, Tuple
 
+from discovery import DiscoveryAnnouncer, build_discovery_payload
 from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 from flask import Flask, g, jsonify, render_template, request
 from flask_cors import CORS
@@ -106,6 +108,23 @@ def _load_config() -> Dict[str, Any]:
     if api_test_cycle_interval_seconds <= 0:
         api_test_cycle_interval_seconds = 5.0
 
+    discovery_enabled = os.environ.get("DISCOVERY_ENABLED", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    discovery_management_url = os.environ.get("DISCOVERY_MANAGEMENT_URL", "http://127.0.0.1:8001")
+    discovery_token = os.environ.get("DISCOVERY_TOKEN", "")
+    try:
+        discovery_interval_seconds = float(os.environ.get("DISCOVERY_INTERVAL_SECONDS", "30"))
+    except ValueError:
+        discovery_interval_seconds = 30.0
+    if discovery_interval_seconds <= 0:
+        discovery_interval_seconds = 30.0
+    discovery_node_id = os.environ.get("DISCOVERY_NODE_ID", "").strip()
+    default_base_url = f"http://{socket.gethostname()}:8000"
+    base_url = os.environ.get("BASE_URL", default_base_url).strip() or default_base_url
+
     # Canonical Pi 3 profile env var is MOTION_IN_OCEAN_PI3_PROFILE.
     # Keep PI3_PROFILE as a legacy fallback for backward compatibility.
     pi3_profile_raw = os.environ.get(
@@ -130,6 +149,12 @@ def _load_config() -> Dict[str, Any]:
         "node_registry_path": os.environ.get("NODE_REGISTRY_PATH", "/data/node-registry.json"),
         # Auth is required if and only if token is non-empty
         "management_auth_token": os.environ.get("MANAGEMENT_AUTH_TOKEN", ""),
+        "discovery_enabled": discovery_enabled,
+        "discovery_management_url": discovery_management_url,
+        "discovery_token": discovery_token,
+        "discovery_interval_seconds": discovery_interval_seconds,
+        "discovery_node_id": discovery_node_id,
+        "base_url": base_url,
     }
 
 
@@ -651,6 +676,7 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
                 "cycle_interval_seconds": cfg["api_test_cycle_interval_seconds"],
                 "lock": RLock(),
             },
+            "discovery_announcer": None,
         }
     )
 
@@ -664,6 +690,35 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     )
     register_webcam_routes(app, state, is_flag_enabled=is_flag_enabled)
     _run_webcam_mode(state, cfg)
+
+    if cfg["discovery_enabled"]:
+        if not cfg["discovery_token"]:
+            logger.warning("Discovery enabled but DISCOVERY_TOKEN is empty; announcer disabled")
+        else:
+            try:
+                discovery_cfg = {
+                    "discovery_node_id": cfg["discovery_node_id"],
+                    "discovery_base_url": cfg["base_url"],
+                }
+                payload = build_discovery_payload(discovery_cfg)
+                announcer = DiscoveryAnnouncer(
+                    management_url=cfg["discovery_management_url"],
+                    token=cfg["discovery_token"],
+                    interval_seconds=cfg["discovery_interval_seconds"],
+                    node_id=payload["node_id"],
+                    payload=payload,
+                    shutdown_event=state["shutdown_requested"],
+                )
+                announcer.start()
+                state["discovery_announcer"] = announcer
+                logger.info(
+                    "discovery_announcer_started: node_id=%s management_url=%s interval_seconds=%.1f",
+                    payload["node_id"],
+                    cfg["discovery_management_url"],
+                    cfg["discovery_interval_seconds"],
+                )
+            except Exception:
+                logger.exception("Failed to initialize discovery announcer")
     return app
 
 
@@ -892,6 +947,9 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
 def handle_shutdown(app: Flask, signum: int, _frame: Optional[object]) -> None:
     app_state = getattr(app, "motion_state", None)
     if isinstance(app_state, dict):
+        announcer = app_state.get("discovery_announcer")
+        if announcer is not None:
+            announcer.stop()
         _shutdown_camera(app_state)
     raise SystemExit(signum)
 
