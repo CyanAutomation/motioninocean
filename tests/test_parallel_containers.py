@@ -222,20 +222,7 @@ def main() -> int:
     if failed > 0:
 
 
-    print("KEY FINDINGS:")
-    print("✅ Both containers run in parallel successfully")
-    print("✅ Webcam container generates frames and reports metrics")
-    print("✅ Management container can register nodes in its registry")
-    print("⚠️  Management cannot query registered nodes due to SSRF protection")
-    print("   (This is expected behavior for Docker containers on same host)")
-    print()
-    print("EXPECTED BEHAVIOR IN MULTI-HOST DEPLOYMENT:")
-    print("When deployed on separate hosts with public LAN IPs:")
-    print("• Management host: 192.168.1.100:8001")
-    print("• Webcam host:     192.168.1.101:8000")
-    print("• HTTP requests would NOT be blocked by SSRF")
-    print("• Management could successfully query webcam node status")
-    print()
+
 
     return 0 if failed == 0 or failed == 1 else 1  # Allow SSRF protection test to "fail"
 

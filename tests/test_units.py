@@ -612,7 +612,7 @@ def test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes
             "max_stream_connections": 10,
         }
 
-        for mode in ("module_level", "class_fallback"):
+        for _mode in ("module_level", "class_fallback"):
             stream_stats = StreamStats()
             output = FrameBuffer(stream_stats, target_fps=cfg["target_fps"])
             state = {
