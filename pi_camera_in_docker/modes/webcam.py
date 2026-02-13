@@ -223,6 +223,8 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
         return body, None
 
     def _api_test_runtime_info(api_test_state: dict, scenario_list: list[dict]) -> dict:
+        if not scenario_list:
+            raise ValueError("scenario_list cannot be empty")
         state_index = api_test_state.get("current_state_index", 0) % len(scenario_list)
         state_name = scenario_list[state_index].get("status", f"state-{state_index}")
         interval = api_test_state.get("cycle_interval_seconds", 5.0)
