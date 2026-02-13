@@ -1,6 +1,7 @@
 import importlib
 import sys
 import tempfile
+import time
 
 
 def test_management_mode_boots_without_camera(monkeypatch):
@@ -210,6 +211,10 @@ def test_webcam_control_plane_endpoints_require_valid_bearer_when_token_set(monk
     assert unauthorized_action.status_code == 401
     assert unauthorized_action.json["error"]["code"] == "UNAUTHORIZED"
 
+    unauthorized_api_test_action = client.post("/api/actions/api-test-start", json={})
+    assert unauthorized_api_test_action.status_code == 401
+    assert unauthorized_api_test_action.json["error"]["code"] == "UNAUTHORIZED"
+
     valid_headers = {"Authorization": "Bearer node-shared-token"}
     authorized_health = client.get("/health", headers=valid_headers)
     authorized_ready = client.get("/ready", headers=valid_headers)
@@ -220,6 +225,76 @@ def test_webcam_control_plane_endpoints_require_valid_bearer_when_token_set(monk
     assert authorized_ready.status_code in (200, 503)
     assert authorized_metrics.status_code == 200
     assert authorized_status.status_code == 200
+
+
+def test_webcam_api_test_mode_transitions_and_status_contract(monkeypatch):
+    client = _new_webcam_client(monkeypatch, "")
+
+    started = client.post(
+        "/api/actions/api-test-start",
+        json={"interval_seconds": 0.01, "scenario_order": [0, 1, 2]},
+    )
+    assert started.status_code == 200
+    assert started.json["api_test"] == {
+        "enabled": True,
+        "active": True,
+        "state_index": 0,
+        "state_name": "ok",
+        "next_transition_seconds": started.json["api_test"]["next_transition_seconds"],
+    }
+    assert started.json["api_test"]["next_transition_seconds"] is not None
+
+    first_status = client.get("/api/status")
+    assert first_status.status_code == 200
+    assert first_status.json["status"] == "ok"
+    assert first_status.json["stream_available"] is True
+    assert first_status.json["camera_active"] is True
+    assert first_status.json["fps"] == 24.0
+    assert first_status.json["api_test"]["active"] is True
+    assert first_status.json["api_test"]["state_index"] == 0
+
+    time.sleep(0.02)
+    interval_transitioned_status = client.get("/api/status")
+    assert interval_transitioned_status.status_code == 200
+    assert interval_transitioned_status.json["api_test"]["state_index"] == 1
+    assert interval_transitioned_status.json["status"] == "degraded"
+    assert interval_transitioned_status.json["stream_available"] is False
+    assert interval_transitioned_status.json["camera_active"] is True
+
+    stepped = client.post("/api/actions/api-test-step", json={})
+    assert stepped.status_code == 200
+    assert stepped.json["api_test"]["active"] is False
+    assert stepped.json["api_test"]["state_index"] == 2
+    assert stepped.json["api_test"]["state_name"] == "degraded"
+    assert stepped.json["api_test"]["next_transition_seconds"] is None
+
+    stepped_status = client.get("/api/status")
+    assert stepped_status.status_code == 200
+    assert stepped_status.json["api_test"]["state_index"] == 2
+    assert stepped_status.json["stream_available"] is False
+    assert stepped_status.json["camera_active"] is False
+
+    stopped = client.post("/api/actions/api-test-stop", json={})
+    assert stopped.status_code == 200
+    assert stopped.json["api_test"]["enabled"] is True
+    assert stopped.json["api_test"]["active"] is False
+    assert stopped.json["api_test"]["next_transition_seconds"] is None
+
+    time.sleep(0.02)
+    stopped_status = client.get("/api/status")
+    assert stopped_status.status_code == 200
+    assert stopped_status.json["api_test"]["state_index"] == 2
+
+    reset = client.post("/api/actions/api-test-reset", json={})
+    assert reset.status_code == 200
+    assert reset.json["api_test"]["state_index"] == 0
+    assert reset.json["api_test"]["active"] is False
+
+    reset_status = client.get("/api/status")
+    assert reset_status.status_code == 200
+    assert reset_status.json["status"] == "ok"
+    assert reset_status.json["stream_available"] is True
+    assert reset_status.json["camera_active"] is True
 
 
 def test_webcam_status_contract_reports_degraded_until_stream_is_fresh(monkeypatch):

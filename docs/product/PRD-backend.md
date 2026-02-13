@@ -101,6 +101,54 @@ Persistence uses registry abstraction (initially file-backed via `NODE_REGISTRY_
 }
 ```
 
+
+
+### API Test Mode (Deterministic Status Validation)
+
+Webcam mode supports deterministic status simulation for management validation.
+
+#### Environment Variables
+
+- `API_TEST_MODE_ENABLED` (`true|false`, default `false`)
+- `API_TEST_CYCLE_INTERVAL_SECONDS` (positive float, default `5`)
+- `MANAGEMENT_AUTH_TOKEN` (required when protecting `/api/status` and `/api/actions/*`)
+
+#### Webcam Action Endpoints
+
+- `POST /api/actions/api-test-start`
+  - Optional body: `{ "interval_seconds": <positive number>, "scenario_order": [0,1,2] }`
+  - Starts deterministic transitions.
+- `POST /api/actions/api-test-stop`
+  - Body: `{}`
+  - Stops automatic transitions (state remains fixed).
+- `POST /api/actions/api-test-step`
+  - Body: `{}`
+  - Advances exactly one deterministic state; stays paused.
+- `POST /api/actions/api-test-reset`
+  - Body: `{}`
+  - Resets to state index `0`; stays paused.
+
+#### Management Passthrough Endpoint
+
+- `POST /api/nodes/{id}/actions/{action}`
+  - Forwards to node `POST /api/actions/{action}` with same JSON body.
+  - Returns `{ node_id, action, status_code, response }`.
+
+#### Expected Default Scenario Sequence
+
+1. `ok`: `stream_available=true`, `camera_active=true`, `fps=24.0`
+2. `degraded`: `stream_available=false`, `camera_active=true`, `fps=0.0`
+3. `degraded`: `stream_available=false`, `camera_active=false`, `fps=0.0`
+
+#### Operator Checklist
+
+- [ ] Confirm all three deterministic states appear in management UI/API.
+- [ ] Confirm interval-driven transition advances state index.
+- [ ] Confirm `api-test-step` changes state immediately and pauses.
+- [ ] Confirm `api-test-stop` keeps current state fixed.
+- [ ] Confirm `api-test-reset` restores state index `0`.
+- [ ] Confirm protected action routes still require valid bearer auth.
+
 ## Backend Acceptance Criteria
 
 - [ ] `/health` returns `200` with healthy liveness payload whenever process is running.
