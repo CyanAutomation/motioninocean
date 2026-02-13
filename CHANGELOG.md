@@ -11,6 +11,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.14.2] - 2026-02-13
+
+- feat: enhance BASE_URL auto-detection for discovery announcements and update environment variable documentation
+- fix: correct step numbering in deployment guide for webcam and management modes
+- feat: add management and webcam mode configuration files with example settings
+- refactor: improve test assertions and error messages in configuration validation tests
+- feat: implement configuration validation and structured logging with rate limiting
+- chore: remove .eslintignore and update package-lock.json for consistency
+
 ## [1.14.1] - 2026-02-13
 
 - fix: update comments and assertions in test_announcer_retries_with_exponential_backoff for clarity
