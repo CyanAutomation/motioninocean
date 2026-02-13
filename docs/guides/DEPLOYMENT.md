@@ -338,8 +338,8 @@ For each remote webcam node:
 MANAGEMENT_AUTH_TOKEN=replace-with-strong-random-token
 ```
 
-2. Restart webcam profile to apply the token.
-3. In management UI, set node `auth.type` to `bearer` and set `auth.token` to the same value.
+1. Restart webcam profile to apply the token.
+2. In management UI, set node `auth.type` to `bearer` and set `auth.token` to the same value.
 
 When `MANAGEMENT_AUTH_TOKEN` is set in webcam mode, these endpoints require bearer auth:
 
@@ -413,14 +413,14 @@ curl -X POST http://<management-host>:8001/api/nodes/<node_id>/actions/api-test-
   -d '{"interval_seconds": 3, "scenario_order": [0,1,2]}'
 ```
 
-2. Poll the node status through management and verify `api_test.state_index` advances over time:
+1. Poll the node status through management and verify `api_test.state_index` advances over time:
 
 ```bash
 curl -H "Authorization: Bearer <management_token>" \
   http://<management-host>:8001/api/nodes/<node_id>/status
 ```
 
-3. Force a manual state advance:
+1. Force a manual state advance:
 
 ```bash
 curl -X POST http://<management-host>:8001/api/nodes/<node_id>/actions/api-test-step \
@@ -429,7 +429,7 @@ curl -X POST http://<management-host>:8001/api/nodes/<node_id>/actions/api-test-
   -d '{}'
 ```
 
-4. Pause and reset after validation:
+1. Pause and reset after validation:
 
 ```bash
 curl -X POST http://<management-host>:8001/api/nodes/<node_id>/actions/api-test-stop \
