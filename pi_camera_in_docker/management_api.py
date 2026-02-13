@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from flask import Flask, jsonify, request
-from node_registry import FileNodeRegistry, NodeValidationError
+from node_registry import FileNodeRegistry, NodeValidationError, validate_node
 
 
 # SSRF Protection Configuration
@@ -752,9 +752,15 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
 
 
 def register_management_routes(
-    app: Flask, registry_path: str, auth_token: str = ""
+    app: Flask,
+    registry_path: str,
+    auth_token: str = "",
+    node_discovery_shared_secret: Optional[str] = None,
 ) -> None:
     registry = FileNodeRegistry(registry_path)
+    discovery_secret = node_discovery_shared_secret
+    if discovery_secret is None:
+        discovery_secret = os.environ.get("NODE_DISCOVERY_SHARED_SECRET", "")
 
     def _enforce_management_auth() -> Optional[Tuple[Any, int]]:
         # Auth is required if and only if token is non-empty
@@ -762,6 +768,12 @@ def register_management_routes(
             return None
         token = _extract_bearer_token()
         if token is None or token != auth_token:
+            return _error_response("UNAUTHORIZED", "authentication required", 401)
+        return None
+
+    def _enforce_discovery_auth() -> Optional[Tuple[Any, int]]:
+        token = _extract_bearer_token()
+        if not discovery_secret or token is None or token != discovery_secret:
             return _error_response("UNAUTHORIZED", "authentication required", 401)
         return None
 
@@ -784,6 +796,72 @@ def register_management_routes(
                 return _registry_corruption_response(exc)
             raise
         return jsonify({"nodes": nodes}), 200
+
+    @app.route("/api/discovery/announce", methods=["POST"])
+    def announce_node():
+        unauthorized = _enforce_discovery_auth()
+        if unauthorized:
+            return unauthorized
+
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return _error_response("VALIDATION_ERROR", "node payload must be an object", 400)
+
+        candidate = {
+            "id": payload.get("node_id"),
+            "name": payload.get("name"),
+            "base_url": payload.get("base_url"),
+            "transport": payload.get("transport"),
+            "capabilities": payload.get("capabilities"),
+            "last_seen": datetime.now(timezone.utc).isoformat(),
+            "labels": payload.get("labels", {}),
+            "auth": payload.get("auth", {"type": "none"}),
+        }
+        try:
+            validated = validate_node(candidate)
+        except NodeValidationError as exc:
+            return _error_response("VALIDATION_ERROR", str(exc), 400)
+
+        try:
+            existing = registry.get_node(validated["id"])
+        except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
+            raise
+
+        if existing is None:
+            try:
+                created = registry.create_node(validated)
+            except NodeValidationError as exc:
+                if _is_registry_corruption_error(exc):
+                    return _registry_corruption_response(exc)
+                return _error_response("VALIDATION_ERROR", str(exc), 400)
+            return jsonify({"node": created, "upserted": "created"}), 201
+
+        patch = {
+            "name": validated["name"],
+            "base_url": validated["base_url"],
+            "transport": validated["transport"],
+            "capabilities": validated["capabilities"],
+            "last_seen": validated["last_seen"],
+            "labels": validated["labels"],
+            "auth": validated["auth"],
+        }
+        try:
+            updated = registry.update_node(validated["id"], patch)
+        except KeyError:
+            try:
+                created = registry.create_node(validated)
+            except NodeValidationError as exc:
+                if _is_registry_corruption_error(exc):
+                    return _registry_corruption_response(exc)
+                return _error_response("VALIDATION_ERROR", str(exc), 400)
+            return jsonify({"node": created, "upserted": "created"}), 201
+        except NodeValidationError as exc:
+            if _is_registry_corruption_error(exc):
+                return _registry_corruption_response(exc)
+            return _error_response("VALIDATION_ERROR", str(exc), 400, node_id=validated["id"])
+        return jsonify({"node": updated, "upserted": "updated"}), 200
 
     @app.route("/api/nodes", methods=["POST"])
     def create_node():

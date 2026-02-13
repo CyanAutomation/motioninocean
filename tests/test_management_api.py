@@ -315,6 +315,84 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
     assert response.json["error"]["code"] == "NODE_NOT_FOUND"
 
 
+def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    create_payload = {
+        "node_id": "node-discovery-1",
+        "name": "Discovery Node",
+        "base_url": "http://example.com",
+        "transport": "http",
+        "capabilities": ["stream", "metrics"],
+    }
+
+    created = client.post(
+        "/api/discovery/announce",
+        json=create_payload,
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+    assert created.status_code == 201
+    assert created.json["upserted"] == "created"
+    assert created.json["node"]["id"] == "node-discovery-1"
+    first_seen = created.json["node"]["last_seen"]
+
+    updated = client.post(
+        "/api/discovery/announce",
+        json={
+            **create_payload,
+            "name": "Discovery Node Updated",
+            "labels": {"site": "lab"},
+            "auth": {"type": "bearer", "token": "node-api-token"},
+        },
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+    assert updated.status_code == 200
+    assert updated.json["upserted"] == "updated"
+    assert updated.json["node"]["name"] == "Discovery Node Updated"
+    assert updated.json["node"]["labels"] == {"site": "lab"}
+    assert updated.json["node"]["auth"]["type"] == "bearer"
+    assert updated.json["node"]["last_seen"] != first_seen
+
+
+def test_discovery_announce_requires_bearer_token(monkeypatch, tmp_path):
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "node_id": "node-discovery-2",
+        "name": "Discovery Node",
+        "base_url": "http://example.com",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    missing = client.post("/api/discovery/announce", json=payload)
+    assert missing.status_code == 401
+    assert missing.json["error"]["code"] == "UNAUTHORIZED"
+
+    invalid = client.post(
+        "/api/discovery/announce",
+        json=payload,
+        headers={"Authorization": "Bearer wrong-secret"},
+    )
+    assert invalid.status_code == 401
+    assert invalid.json["error"]["code"] == "UNAUTHORIZED"
+
+
+def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    invalid = client.post(
+        "/api/discovery/announce",
+        json={"node_id": "node-discovery-3"},
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+    assert invalid.status_code == 400
+    assert invalid.json["error"]["code"] == "VALIDATION_ERROR"
+
+
 def test_build_headers_for_bearer_auth_with_token():
     import management_api
 
