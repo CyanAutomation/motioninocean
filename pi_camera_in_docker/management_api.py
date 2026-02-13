@@ -17,10 +17,8 @@ from node_registry import FileNodeRegistry, NodeValidationError, validate_node
 # Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true to disable private IP blocking (use only in internal networks)
 ALLOW_PRIVATE_IPS = os.environ.get("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "").lower() in {"true", "1", "yes"}
 
-# Request Timeout Configuration
-# Controls how long the management node waits for responses from webcam nodes
-# Increase this if webcam nodes have high latency or slow camera processing
-REQUEST_TIMEOUT_SECONDS = float(os.environ.get("MOTION_IN_OCEAN_REQUEST_TIMEOUT", "5.0"))
+# Request timeout used for proxied node HTTP calls.
+REQUEST_TIMEOUT_SECONDS = 5.0
 
 
 class NodeRequestError(RuntimeError):
@@ -621,7 +619,7 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
         
         guidance_map = {
             "dns": "DNS Resolution: Unable to resolve hostname. Check spelling and network DNS.",
-            "timeout": f"Network Timeout: Node took longer than {REQUEST_TIMEOUT_SECONDS}s to respond. Check node is running, network latency, and camera processing load. Increase MOTION_IN_OCEAN_REQUEST_TIMEOUT if needed.",
+            "timeout": f"Network Timeout: Node took longer than {REQUEST_TIMEOUT_SECONDS}s to respond. Check node health, network latency, and camera processing load.",
             "tls": "TLS Error: SSL/TLS handshake failed. Check node certificate or use http://.",
             "connection_refused_or_reset": "Connection Error: Node refused connection. Ensure node is running on correct port.",
             "network": "Network Error: Unable to reach node. Check network connectivity and firewall rules.",
