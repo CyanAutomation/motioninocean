@@ -127,7 +127,9 @@ class DiscoveryAnnouncer:
 def build_discovery_payload(config: Dict[str, Any]) -> Dict[str, Any]:
     hostname = socket.gethostname() or "unknown-host"
     node_id = config.get("discovery_node_id") or _stable_node_id(hostname)
-    base_url = config["discovery_base_url"].rstrip("/")
+    base_url = config.get("discovery_base_url", "").rstrip("/")
+    if not base_url:
+        raise ValueError("discovery_base_url is required in config")
     return {
         "node_id": node_id,
         "name": hostname,
