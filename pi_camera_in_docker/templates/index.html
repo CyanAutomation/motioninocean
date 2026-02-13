@@ -298,256 +298,192 @@
         </div>
 
         <div class="setup-content">
-          <!-- Preset Selection -->
-          <div class="setup-section ui-card setup-preset-section">
+          <div class="setup-section ui-card">
             <div class="setup-section-header ui-panel-header">
-              <h3 class="setup-section-title">📋 Configuration Preset</h3>
+              <h3 class="setup-section-title">🧭 Guided Setup</h3>
+              <label class="field-label" for="expert-mode-toggle">
+                <input type="checkbox" id="expert-mode-toggle" /> Expert mode
+              </label>
+            </div>
+            <div class="setup-section-content">
+              <div id="wizard-stepper" class="wizard-stepper" aria-label="Setup steps">
+                <button type="button" class="wizard-step is-active" data-step="environment">
+                  Environment <span class="wizard-step-status" data-step-status="environment">○</span>
+                </button>
+                <button type="button" class="wizard-step" data-step="preset">
+                  Preset <span class="wizard-step-status" data-step-status="preset">○</span>
+                </button>
+                <button type="button" class="wizard-step" data-step="review">
+                  Review <span class="wizard-step-status" data-step-status="review">○</span>
+                </button>
+                <button type="button" class="wizard-step" data-step="generate">
+                  Generate <span class="wizard-step-status" data-step-status="generate">○</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <section class="setup-section ui-card wizard-step-panel" data-step-panel="environment">
+            <div class="setup-section-header ui-panel-header">
+              <h3 class="setup-section-title">1) Environment</h3>
+            </div>
+            <div class="setup-section-content">
+              <div class="setup-field ui-form-control">
+                <label for="env-pi-version" class="field-label">Which hardware are you running?</label>
+                <select id="env-pi-version" class="field-input">
+                  <option value="">Select hardware</option>
+                  <option value="pi3">Raspberry Pi 3</option>
+                  <option value="pi4">Raspberry Pi 4</option>
+                  <option value="pi5">Raspberry Pi 5</option>
+                  <option value="other">Not a Raspberry Pi / Unsure</option>
+                </select>
+              </div>
+              <div class="setup-field ui-form-control">
+                <label for="env-intent" class="field-label">What do you care most about?</label>
+                <select id="env-intent" class="field-input">
+                  <option value="">Select primary intent</option>
+                  <option value="webcam">Simple webcam streaming</option>
+                  <option value="management">Management/API control and integrations</option>
+                </select>
+              </div>
+              <div class="setup-field ui-form-control">
+                <label for="env-mock-camera" class="field-label">Use mock camera for local development?</label>
+                <select id="env-mock-camera" class="field-input">
+                  <option value="false">No, use real camera</option>
+                  <option value="true">Yes, use mock feed</option>
+                </select>
+              </div>
+              <div class="setup-section ui-card setup-device-section">
+                <div class="setup-section-header ui-panel-header">
+                  <h3 class="setup-section-title">📱 Detected Devices</h3>
+                </div>
+                <div class="setup-section-content">
+                  <div id="device-status" class="device-status">Detecting devices...</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="setup-section ui-card wizard-step-panel hidden" data-step-panel="preset">
+            <div class="setup-section-header ui-panel-header">
+              <h3 class="setup-section-title">2) Preset</h3>
             </div>
             <div class="setup-section-content">
               <div class="preset-selector ui-form-control">
-                <label for="preset-select" class="preset-label">Select a Preset:</label>
+                <label for="preset-select" class="preset-label">Recommended preset:</label>
                 <select id="preset-select" class="preset-dropdown">
                   <option value="custom">Custom Configuration</option>
                   <option value="pi3_low_power">Pi3 Low Power (640x480, 12 FPS)</option>
                   <option value="pi5_high_quality">Pi5 High Quality (1280x720, 24 FPS)</option>
                 </select>
               </div>
+              <p id="preset-recommendation" class="field-hint">Answer environment questions to get a recommendation.</p>
             </div>
-          </div>
+          </section>
 
-          <!-- Basic Settings -->
-          <div class="setup-section ui-card setup-settings-section">
+          <section class="setup-section ui-card wizard-step-panel hidden" data-step-panel="review">
             <div class="setup-section-header ui-panel-header">
-              <h3 class="setup-section-title">📷 Camera Settings</h3>
-              <span class="section-subtitle">(Basic)</span>
+              <h3 class="setup-section-title">3) Review</h3>
             </div>
             <div class="setup-section-content">
+              <div id="review-summary" class="setup-instructions ui-list-block"></div>
               <div class="settings-group">
                 <div class="setup-field ui-form-control">
                   <label for="setup-resolution" class="field-label">Resolution</label>
-                  <input
-                    type="text"
-                    id="setup-resolution"
-                    class="field-input"
-                    placeholder="e.g., 640x480"
-                    data-field="resolution"
-                  />
-                  <span class="field-hint"
-                    >Format: WIDTHxHEIGHT (e.g., 640x480, 1280x720, 1920x1080)</span
-                  >
+                  <input type="text" id="setup-resolution" class="field-input" placeholder="e.g., 640x480" data-field="resolution" />
                 </div>
-
                 <div class="setup-field ui-form-control">
                   <label for="setup-fps" class="field-label">Frame Rate (FPS)</label>
-                  <input
-                    type="number"
-                    id="setup-fps"
-                    class="field-input"
-                    placeholder="e.g., 12"
-                    min="0"
-                    max="120"
-                    data-field="fps"
-                  />
-                  <span class="field-hint">0 = auto-detect, range: 0-120 FPS</span>
+                  <input type="number" id="setup-fps" class="field-input" min="0" max="120" data-field="fps" />
                 </div>
-
                 <div class="setup-field ui-form-control">
                   <label for="setup-jpeg-quality" class="field-label">JPEG Quality</label>
-                  <input
-                    type="number"
-                    id="setup-jpeg-quality"
-                    class="field-input"
-                    placeholder="e.g., 90"
-                    min="1"
-                    max="100"
-                    data-field="jpeg_quality"
-                  />
-                  <span class="field-hint"
-                    >Range: 1-100 (higher = better quality, larger file size)</span
-                  >
+                  <input type="number" id="setup-jpeg-quality" class="field-input" min="1" max="100" data-field="jpeg_quality" />
                 </div>
-
                 <div class="setup-field ui-form-control">
-                  <label for="setup-max-connections" class="field-label"
-                    >Max Stream Connections</label
-                  >
-                  <input
-                    type="number"
-                    id="setup-max-connections"
-                    class="field-input"
-                    placeholder="e.g., 10"
-                    min="1"
-                    max="100"
-                    data-field="max_connections"
-                  />
-                  <span class="field-hint">Maximum simultaneous stream viewers</span>
+                  <label for="setup-max-connections" class="field-label">Max Stream Connections</label>
+                  <input type="number" id="setup-max-connections" class="field-input" min="1" max="100" data-field="max_connections" />
                 </div>
               </div>
-            </div>
-          </div>
 
-          <!-- Advanced Settings Toggle -->
-          <div class="setup-section ui-card setup-advanced-section">
+              <details id="advanced-review-panel" class="setup-section ui-card setup-advanced-section">
+                <summary class="setup-section-header ui-panel-header">
+                  <h3 class="setup-section-title">⚙️ Advanced tuning</h3>
+                </summary>
+                <div class="setup-section-content">
+                  <div class="settings-group">
+                    <div class="setup-field ui-form-control">
+                      <label for="setup-target-fps" class="field-label">Target FPS (Throttle)</label>
+                      <input type="number" id="setup-target-fps" class="field-input" min="0" max="120" data-field="target_fps" />
+                    </div>
+                    <div class="setup-field ui-form-control">
+                      <label for="setup-pi3-profile" class="field-label">Enable Pi3 compatibility profile</label>
+                      <select id="setup-pi3-profile" class="field-input" data-field="pi3_profile">
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    </div>
+                    <div class="setup-field ui-form-control">
+                      <label for="setup-cors-origins" class="field-label">CORS Origins</label>
+                      <input type="text" id="setup-cors-origins" class="field-input" data-field="cors_origins" />
+                    </div>
+                    <div class="setup-field ui-form-control">
+                      <label for="setup-mock-camera" class="field-label">Use Mock Camera</label>
+                      <select id="setup-mock-camera" class="field-input" data-field="mock_camera">
+                        <option value="false">No (use real camera)</option>
+                        <option value="true">Yes (for testing)</option>
+                      </select>
+                    </div>
+                    <div class="setup-field ui-form-control">
+                      <label for="setup-auth-token" class="field-label">Management Auth Token</label>
+                      <input type="password" id="setup-auth-token" class="field-input" placeholder="Leave empty for no authentication" data-field="auth_token" />
+                    </div>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </section>
+
+          <section class="setup-section ui-card wizard-step-panel hidden" data-step-panel="generate">
             <div class="setup-section-header ui-panel-header">
-              <button id="advanced-toggle-btn" class="advanced-toggle">
-                <span class="toggle-chevron">▶</span>
-                <h3 class="setup-section-title">⚙️ Advanced Settings</h3>
-              </button>
-            </div>
-            <div id="advanced-content" class="setup-section-content advanced-content hidden">
-              <div class="settings-group">
-                <div class="setup-field ui-form-control">
-                  <label for="setup-target-fps" class="field-label">Target FPS (Throttle)</label>
-                  <input
-                    type="number"
-                    id="setup-target-fps"
-                    class="field-input"
-                    placeholder="Leave empty to disable"
-                    min="1"
-                    max="120"
-                    data-field="target_fps"
-                  />
-                  <span class="field-hint"
-                    >Optional: Limit captured FPS below camera max. Leave empty to disable
-                    throttling</span
-                  >
-                </div>
-
-                <div class="setup-field ui-form-control">
-                  <label for="setup-pi3-profile" class="field-label"
-                    >Enable Pi3 Optimization Profile</label
-                  >
-                  <select id="setup-pi3-profile" class="field-input" data-field="pi3_profile">
-                    <option value="false">No (default)</option>
-                    <option value="true">Yes (applies Pi3 presets)</option>
-                  </select>
-                  <span class="field-hint">Enables optimized settings for Raspberry Pi 3</span>
-                </div>
-
-                <div class="setup-field ui-form-control">
-                  <label for="setup-cors-origins" class="field-label">CORS Origins</label>
-                  <input
-                    type="text"
-                    id="setup-cors-origins"
-                    class="field-input"
-                    placeholder="e.g., http://localhost:3000"
-                    data-field="cors_origins"
-                  />
-                  <span class="field-hint"
-                    >Comma-separated list of allowed CORS origins (leave empty for no CORS)</span
-                  >
-                </div>
-
-                <div class="setup-field ui-form-control">
-                  <label for="setup-mock-camera" class="field-label">Use Mock Camera</label>
-                  <select id="setup-mock-camera" class="field-input" data-field="mock_camera">
-                    <option value="false">No (use real camera)</option>
-                    <option value="true">Yes (for testing)</option>
-                  </select>
-                  <span class="field-hint"
-                    >Generate test stream pattern instead of camera feed</span
-                  >
-                </div>
-
-                <div class="setup-field ui-form-control">
-                  <label for="setup-auth-token" class="field-label">Management Auth Token</label>
-                  <input
-                    type="password"
-                    id="setup-auth-token"
-                    class="field-input"
-                    placeholder="Leave empty for no authentication"
-                    data-field="auth_token"
-                  />
-                  <span class="field-hint"
-                    >Bearer token for protecting management API endpoints. Leave empty to disable
-                    auth.</span
-                  >
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Device Status Info -->
-          <div class="setup-section ui-card setup-device-section">
-            <div class="setup-section-header ui-panel-header">
-              <h3 class="setup-section-title">📱 Detected Devices</h3>
+              <h3 class="setup-section-title">4) Generate</h3>
             </div>
             <div class="setup-section-content">
-              <div id="device-status" class="device-status">Detecting devices...</div>
-            </div>
-          </div>
+              <button id="generate-btn" class="generate-btn ui-btn ui-btn--primary">Generate Files</button>
 
-          <!-- Generated Output -->
-          <div class="setup-section ui-card setup-output-section">
-            <div class="setup-section-header ui-panel-header">
-              <h3 class="setup-section-title">📄 Generated Configuration</h3>
-            </div>
-            <div class="setup-section-content">
-              <button id="generate-btn" class="generate-btn ui-btn ui-btn--primary">
-                Generate Files
-              </button>
-
-              <!-- docker-compose.yaml Output -->
               <div class="output-group">
                 <div class="output-header">
                   <span class="output-filename">docker-compose.yaml</span>
-                  <button
-                    class="output-copy-btn"
-                    data-target="docker-compose-output"
-                    title="Copy to clipboard"
-                  >
-                    <span class="copy-icon">📋</span>
-                    Copy
-                  </button>
+                  <button class="output-copy-btn" data-target="docker-compose-output" title="Copy to clipboard"><span class="copy-icon">📋</span>Copy</button>
                 </div>
-                <textarea
-                  id="docker-compose-output"
-                  class="output-textarea"
-                  readonly
-                  placeholder="docker-compose.yaml will appear here after generation"
-                ></textarea>
+                <textarea id="docker-compose-output" class="output-textarea" readonly placeholder="docker-compose.yaml will appear here after generation"></textarea>
               </div>
 
-              <!-- .env Output -->
               <div class="output-group">
                 <div class="output-header">
                   <span class="output-filename">.env</span>
-                  <button
-                    class="output-copy-btn"
-                    data-target="env-output"
-                    title="Copy to clipboard"
-                  >
-                    <span class="copy-icon">📋</span>
-                    Copy
-                  </button>
+                  <button class="output-copy-btn" data-target="env-output" title="Copy to clipboard"><span class="copy-icon">📋</span>Copy</button>
                 </div>
-                <textarea
-                  id="env-output"
-                  class="output-textarea"
-                  readonly
-                  placeholder=".env will appear here after generation"
-                ></textarea>
+                <textarea id="env-output" class="output-textarea" readonly placeholder=".env will appear here after generation"></textarea>
               </div>
 
-              <!-- Instructions -->
               <div class="setup-instructions ui-list-block">
                 <div class="instructions-header">📝 Next Steps:</div>
                 <ol class="instructions-list">
-                  <li>Click the <strong>Copy</strong> button next to each output box</li>
-                  <li>
-                    Paste the content into your actual <code>docker-compose.yaml</code> and
-                    <code>.env</code> files on your system
-                  </li>
-                  <li>
-                    Restart the Motion In Ocean service:
-                    <code>docker compose restart motion-in-ocean</code>
-                  </li>
-                  <li>Refresh this page to see the new configuration take effect</li>
+                  <li>Copy each generated output.</li>
+                  <li>Paste into your docker-compose.yaml and .env files.</li>
+                  <li>Restart: <code>docker compose restart motion-in-ocean</code>.</li>
                 </ol>
               </div>
             </div>
-          </div>
+          </section>
 
+          <div class="setup-section-content">
+            <div class="setup-navigation">
+              <button id="setup-prev-btn" type="button" class="ui-btn">Previous</button>
+              <button id="setup-next-btn" type="button" class="ui-btn ui-btn--primary">Next</button>
+            </div>
+          </div>
           <!-- Error Alert -->
           <div id="setup-error-alert" class="setup-alert error hidden">
             <span class="alert-icon">⚠️</span>

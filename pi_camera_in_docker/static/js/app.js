@@ -834,6 +834,288 @@ function clearConfigDisplay() {
    Setup Tab Functions
    ========================================== */
 
+const setupWizard = {
+  storageKey: "motioninocean.setupWizard.v1",
+  steps: ["environment", "preset", "review", "generate"],
+  currentStep: "environment",
+  expertMode: false,
+  initialized: false,
+};
+
+function getWizardStateFromStorage() {
+  try {
+    const raw = localStorage.getItem(setupWizard.storageKey);
+    return raw ? JSON.parse(raw) : {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function saveWizardState() {
+  const payload = {
+    currentStep: setupWizard.currentStep,
+    expertMode: setupWizard.expertMode,
+    environment: {
+      piVersion: document.getElementById("env-pi-version")?.value || "",
+      intent: document.getElementById("env-intent")?.value || "",
+      mockCamera: document.getElementById("env-mock-camera")?.value || "false",
+    },
+    preset: document.getElementById("preset-select")?.value || "custom",
+    fields: collectSetupConfig(),
+  };
+
+  localStorage.setItem(setupWizard.storageKey, JSON.stringify(payload));
+}
+
+function applyStoredWizardState() {
+  const stored = getWizardStateFromStorage();
+  if (!stored || typeof stored !== "object") return;
+
+  const env = stored.environment || {};
+  if (document.getElementById("env-pi-version")) {
+    document.getElementById("env-pi-version").value = env.piVersion || "";
+  }
+  if (document.getElementById("env-intent")) {
+    document.getElementById("env-intent").value = env.intent || "";
+  }
+  if (document.getElementById("env-mock-camera")) {
+    document.getElementById("env-mock-camera").value = env.mockCamera || "false";
+  }
+
+  if (stored.preset && document.getElementById("preset-select")) {
+    document.getElementById("preset-select").value = stored.preset;
+  }
+
+  applyConfigToForm(stored.fields || {});
+
+  setupWizard.expertMode = Boolean(stored.expertMode);
+  const expertToggle = document.getElementById("expert-mode-toggle");
+  if (expertToggle) expertToggle.checked = setupWizard.expertMode;
+
+  if (stored.currentStep && setupWizard.steps.includes(stored.currentStep)) {
+    setupWizard.currentStep = stored.currentStep;
+  }
+}
+
+function collectSetupConfig() {
+  return {
+    resolution: document.getElementById("setup-resolution")?.value || "",
+    fps: parseInt(document.getElementById("setup-fps")?.value || "0", 10) || 0,
+    jpeg_quality: parseInt(document.getElementById("setup-jpeg-quality")?.value || "90", 10) || 90,
+    max_connections:
+      parseInt(document.getElementById("setup-max-connections")?.value || "10", 10) || 10,
+    target_fps: document.getElementById("setup-target-fps")?.value
+      ? parseInt(document.getElementById("setup-target-fps")?.value, 10)
+      : null,
+    pi3_profile: document.getElementById("setup-pi3-profile")?.value === "true",
+    cors_origins: document.getElementById("setup-cors-origins")?.value || "",
+    mock_camera: document.getElementById("setup-mock-camera")?.value === "true",
+    auth_token: document.getElementById("setup-auth-token")?.value || "",
+  };
+}
+
+function applyConfigToForm(config) {
+  if (!config || typeof config !== "object") return;
+
+  const setValue = (id, value) => {
+    const el = document.getElementById(id);
+    if (el !== null && el !== undefined && value !== undefined && value !== null) {
+      el.value = value;
+    }
+  };
+
+  setValue("setup-resolution", config.resolution);
+  setValue("setup-fps", config.fps);
+  setValue("setup-jpeg-quality", config.jpeg_quality);
+  setValue("setup-max-connections", config.max_connections);
+  setValue("setup-target-fps", config.target_fps ?? "");
+  setValue("setup-pi3-profile", config.pi3_profile ? "true" : "false");
+  setValue("setup-cors-origins", config.cors_origins || "");
+  setValue("setup-mock-camera", config.mock_camera ? "true" : "false");
+  setValue("setup-auth-token", config.auth_token || "");
+}
+
+function inferPresetFromEnvironment() {
+  const piVersion = document.getElementById("env-pi-version")?.value;
+  const intent = document.getElementById("env-intent")?.value;
+
+  if (piVersion === "pi3") return "pi3_low_power";
+  if (piVersion === "pi5" || intent === "management") return "pi5_high_quality";
+  return "custom";
+}
+
+function applyPresetToForm(preset) {
+  const envMockCamera = document.getElementById("env-mock-camera")?.value || "false";
+
+  if (preset === "pi3_low_power") {
+    applyConfigToForm({
+      resolution: "640x480",
+      fps: 12,
+      jpeg_quality: 75,
+      max_connections: 3,
+      target_fps: 12,
+      pi3_profile: true,
+      mock_camera: envMockCamera === "true",
+    });
+  } else if (preset === "pi5_high_quality") {
+    applyConfigToForm({
+      resolution: "1280x720",
+      fps: 24,
+      jpeg_quality: 90,
+      max_connections: 10,
+      target_fps: 24,
+      pi3_profile: false,
+      mock_camera: envMockCamera === "true",
+    });
+  } else {
+    applyConfigToForm({
+      mock_camera: envMockCamera === "true",
+    });
+  }
+}
+
+function getStepIndex(step) {
+  return setupWizard.steps.indexOf(step);
+}
+
+function setWizardStep(step) {
+  if (!setupWizard.steps.includes(step)) return;
+  setupWizard.currentStep = step;
+
+  document.querySelectorAll(".wizard-step-panel").forEach((panel) => {
+    panel.classList.toggle("hidden", panel.getAttribute("data-step-panel") !== step);
+  });
+
+  document.querySelectorAll(".wizard-step").forEach((stepButton) => {
+    const isActive = stepButton.getAttribute("data-step") === step;
+    stepButton.classList.toggle("is-active", isActive);
+  });
+
+  updateWizardCompletion();
+  updateWizardNavigation();
+  updateReviewSummary();
+  saveWizardState();
+}
+
+function validateStep(step) {
+  if (setupWizard.expertMode) return true;
+
+  if (step === "environment") {
+    return Boolean(document.getElementById("env-pi-version")?.value) && Boolean(document.getElementById("env-intent")?.value);
+  }
+
+  if (step === "preset") {
+    return Boolean(document.getElementById("preset-select")?.value);
+  }
+
+  if (step === "review") {
+    const resolution = document.getElementById("setup-resolution")?.value || "";
+    const fps = Number.parseInt(document.getElementById("setup-fps")?.value || "", 10);
+    return /^\d+x\d+$/i.test(resolution) && Number.isInteger(fps) && fps >= 0 && fps <= 120;
+  }
+
+  return true;
+}
+
+function updateWizardCompletion() {
+  setupWizard.steps.forEach((step) => {
+    const statusEl = document.querySelector(`[data-step-status="${step}"]`);
+    if (!statusEl) return;
+
+    const stepValid = validateStep(step);
+    const stepIndex = getStepIndex(step);
+    const currentIndex = getStepIndex(setupWizard.currentStep);
+
+    if (stepValid) {
+      statusEl.textContent = "✓";
+    } else if (stepIndex <= currentIndex) {
+      statusEl.textContent = "!";
+    } else {
+      statusEl.textContent = "○";
+    }
+  });
+}
+
+function updateWizardNavigation() {
+  const currentIndex = getStepIndex(setupWizard.currentStep);
+  const prevBtn = document.getElementById("setup-prev-btn");
+  const nextBtn = document.getElementById("setup-next-btn");
+
+  if (prevBtn) prevBtn.disabled = currentIndex <= 0;
+
+  if (nextBtn) {
+    if (currentIndex >= setupWizard.steps.length - 1) {
+      nextBtn.disabled = true;
+      nextBtn.textContent = "Done";
+    } else {
+      nextBtn.disabled = !validateStep(setupWizard.currentStep);
+      nextBtn.textContent = "Next";
+    }
+  }
+}
+
+function updatePresetRecommendation() {
+  const recommendedPreset = inferPresetFromEnvironment();
+  const recommendation = document.getElementById("preset-recommendation");
+  if (recommendation) {
+    recommendation.textContent = `Recommended from environment answers: ${recommendedPreset}`;
+  }
+
+  const presetSelect = document.getElementById("preset-select");
+  if (presetSelect && (!presetSelect.value || presetSelect.value === "custom")) {
+    presetSelect.value = recommendedPreset;
+    applyPresetToForm(recommendedPreset);
+  }
+}
+
+function updateReviewSummary() {
+  const summary = document.getElementById("review-summary");
+  if (!summary) return;
+
+  const piVersion = document.getElementById("env-pi-version")?.value || "not selected";
+  const intent = document.getElementById("env-intent")?.value || "not selected";
+  const preset = document.getElementById("preset-select")?.value || "custom";
+  const config = collectSetupConfig();
+
+  const escapeHtml = (unsafe) => {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
+
+  summary.innerHTML = `<div class="instructions-header">🧾 Configuration summary</div>
+    <ul class="instructions-list">
+      <li><strong>Hardware:</strong> ${escapeHtml(piVersion)}</li>
+      <li><strong>Intent:</strong> ${escapeHtml(intent)}</li>
+      <li><strong>Preset:</strong> ${escapeHtml(preset)}</li>
+      <li><strong>Resolution / FPS:</strong> ${escapeHtml(config.resolution || "--")} @ ${config.fps}</li>
+      <li><strong>Mock camera:</strong> ${config.mock_camera ? "Yes" : "No"}</li>
+    </ul>`;
+}
+
+function onSetupNext() {
+  if (!validateStep(setupWizard.currentStep)) return;
+
+  if (setupWizard.currentStep === "environment") {
+    updatePresetRecommendation();
+  }
+
+  const nextIndex = getStepIndex(setupWizard.currentStep) + 1;
+  if (nextIndex < setupWizard.steps.length) {
+    setWizardStep(setupWizard.steps[nextIndex]);
+  }
+}
+
+function onSetupPrevious() {
+  const prevIndex = getStepIndex(setupWizard.currentStep) - 1;
+  if (prevIndex >= 0) {
+    setWizardStep(setupWizard.steps[prevIndex]);
+  }
+}
+
 /**
  * Load setup tab data and initialize event listeners
  */
@@ -842,27 +1124,28 @@ async function loadSetupTab() {
     const setupPanel = state.elements.setupPanel;
     if (!setupPanel) return;
 
-    // Show loading state
     const setupLoading = document.getElementById("setup-loading");
     if (setupLoading) setupLoading.classList.remove("hidden");
 
-    // Fetch setup templates
     const response = await fetch("/api/setup/templates");
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const data = await response.json();
     state.setupFormState = data.current_config || {};
 
-    // Update UI with fetched data
     updateSetupUI(data);
+    applyStoredWizardState();
+    updatePresetRecommendation();
 
-    // Hide loading state
     if (setupLoading) setupLoading.classList.add("hidden");
 
-    // Attach event listeners
-    attachSetupEventListeners();
+    if (!setupWizard.initialized) {
+      attachSetupEventListeners();
+      setupWizard.initialized = true;
+    }
 
-    // Update status
+    setWizardStep(setupWizard.currentStep);
+
     const statusDot = document.getElementById("setup-status-indicator");
     const statusText = document.getElementById("setup-status-text");
     if (statusDot) statusDot.className = "setup-status-dot ready";
@@ -877,23 +1160,16 @@ async function loadSetupTab() {
   }
 }
 
-/**
- * Update setup UI with templates and current config
- */
 function updateSetupUI(data) {
-  // Populate device status
   const deviceStatus = document.getElementById("device-status");
   if (deviceStatus && data.detected_devices) {
     const devices = data.detected_devices;
     if (Object.keys(devices).length > 0) {
       let deviceInfo = "<strong>Detected Camera Devices:</strong><br>";
-      if (devices.video_devices?.length)
-        deviceInfo += `📹 Video: ${devices.video_devices.join(", ")}<br>`;
-      if (devices.media_devices?.length)
-        deviceInfo += `📡 Media: ${devices.media_devices.join(", ")}<br>`;
-      if (devices.dma_heap_devices?.length)
-        deviceInfo += `💾 DMA: ${devices.dma_heap_devices.join(", ")}<br>`;
-      if (devices.vchiq_device) deviceInfo += `🔧 VCHIQ: Detected<br>`;
+      if (devices.video_devices?.length) deviceInfo += `📹 Video: ${devices.video_devices.join(", ")}<br>`;
+      if (devices.media_devices?.length) deviceInfo += `📡 Media: ${devices.media_devices.join(", ")}<br>`;
+      if (devices.dma_heap_devices?.length) deviceInfo += `💾 DMA: ${devices.dma_heap_devices.join(", ")}<br>`;
+      if (devices.vchiq_device) deviceInfo += "🔧 VCHIQ: Detected<br>";
       deviceStatus.innerHTML = deviceInfo;
       deviceStatus.className = "device-status detected";
     } else {
@@ -902,62 +1178,57 @@ function updateSetupUI(data) {
     }
   }
 
-  // Populate form fields with current config
-  if (data.current_config) {
-    const _config = data.current_config;
-    const resolution = document.getElementById("setup-resolution");
-    if (resolution && _config.resolution) resolution.value = _config.resolution;
+  applyConfigToForm(data.current_config || {});
 
-    const fps = document.getElementById("setup-fps");
-    if (fps && _config.fps !== undefined) fps.value = _config.fps;
-
-    const jpegQuality = document.getElementById("setup-jpeg-quality");
-    if (jpegQuality && _config.jpeg_quality !== undefined) jpegQuality.value = _config.jpeg_quality;
-
-    const maxConnections = document.getElementById("setup-max-connections");
-    if (maxConnections && _config.max_connections !== undefined)
-      maxConnections.value = _config.max_connections;
-
-    const targetFps = document.getElementById("setup-target-fps");
-    if (targetFps && _config.target_fps !== undefined) targetFps.value = _config.target_fps || "";
-
-    const pi3Profile = document.getElementById("setup-pi3-profile");
-    if (pi3Profile && _config.pi3_profile !== undefined)
-      pi3Profile.value = _config.pi3_profile ? "true" : "false";
-
-    const corsOrigins = document.getElementById("setup-cors-origins");
-    if (corsOrigins && _config.cors_origins !== undefined)
-      corsOrigins.value = _config.cors_origins || "";
-
-    const mockCamera = document.getElementById("setup-mock-camera");
-    if (mockCamera && _config.mock_camera !== undefined)
-      mockCamera.value = _config.mock_camera ? "true" : "false";
+  if (data.current_config?.mock_camera !== undefined) {
+    document.getElementById("env-mock-camera").value = data.current_config.mock_camera ? "true" : "false";
   }
 }
 
-/**
- * Attach event listeners to setup form elements
- */
 function attachSetupEventListeners() {
-  // Preset selector
   const presetSelect = document.getElementById("preset-select");
   if (presetSelect) {
-    presetSelect.addEventListener("change", onPresetChange);
+    presetSelect.addEventListener("change", (event) => {
+      onPresetChange(event);
+      updateReviewSummary();
+      saveWizardState();
+    });
   }
 
-  // Advanced toggle
-  const advancedToggleBtn = document.getElementById("advanced-toggle-btn");
-  if (advancedToggleBtn) {
-    advancedToggleBtn.addEventListener("click", toggleAdvanced);
-  }
-
-  // Generate button
   const generateBtn = document.getElementById("generate-btn");
   if (generateBtn) {
     generateBtn.addEventListener("click", onGenerateClick);
   }
 
-  // Copy buttons
+  const expertToggle = document.getElementById("expert-mode-toggle");
+  if (expertToggle) {
+    expertToggle.addEventListener("change", (event) => {
+      setupWizard.expertMode = event.target.checked;
+      const advancedPanel = document.getElementById("advanced-review-panel");
+      if (advancedPanel) advancedPanel.open = setupWizard.expertMode;
+      updateWizardNavigation();
+      updateWizardCompletion();
+      saveWizardState();
+    });
+  }
+
+  const nextBtn = document.getElementById("setup-next-btn");
+  if (nextBtn) nextBtn.addEventListener("click", onSetupNext);
+
+  const prevBtn = document.getElementById("setup-prev-btn");
+  if (prevBtn) prevBtn.addEventListener("click", onSetupPrevious);
+
+  document.querySelectorAll(".wizard-step").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const requestedStep = btn.getAttribute("data-step");
+      const requestedIndex = getStepIndex(requestedStep);
+      const currentIndex = getStepIndex(setupWizard.currentStep);
+      if (requestedIndex <= currentIndex || validateStep(setupWizard.currentStep)) {
+        setWizardStep(requestedStep);
+      }
+    });
+  });
+
   document.querySelectorAll(".output-copy-btn").forEach((btn) => {
     btn.addEventListener("click", function () {
       const targetId = this.getAttribute("data-target");
@@ -965,109 +1236,61 @@ function attachSetupEventListeners() {
     });
   });
 
-  // Form field changes for real-time validation
-  const formFields = document.querySelectorAll("[data-field]");
-  formFields.forEach((field) => {
-    field.addEventListener("change", validateSetupForm);
-    field.addEventListener("blur", validateSetupForm);
+  ["env-pi-version", "env-intent", "env-mock-camera"].forEach((id) => {
+    const field = document.getElementById(id);
+    if (!field) return;
+    field.addEventListener("change", () => {
+      if (id === "env-mock-camera") {
+        const mockCameraField = document.getElementById("setup-mock-camera");
+        if (mockCameraField) mockCameraField.value = field.value;
+      }
+      updatePresetRecommendation();
+      validateSetupForm();
+      saveWizardState();
+    });
+  });
+
+  document.querySelectorAll("[data-field]").forEach((field) => {
+    field.addEventListener("input", () => {
+      validateSetupForm();
+      updateReviewSummary();
+      saveWizardState();
+    });
+    field.addEventListener("change", () => {
+      validateSetupForm();
+      updateReviewSummary();
+      saveWizardState();
+    });
   });
 }
 
-/**
- * Handle preset selection change
- */
 function onPresetChange(event) {
   const preset = event.target.value;
-  const _config = state.setupFormState;
-
-  if (preset === "pi3_low_power") {
-    document.getElementById("setup-resolution").value = "640x480";
-    document.getElementById("setup-fps").value = 12;
-    document.getElementById("setup-jpeg-quality").value = 75;
-    document.getElementById("setup-max-connections").value = 3;
-    document.getElementById("setup-pi3-profile").value = "true";
-    document.getElementById("setup-target-fps").value = 12;
-  } else if (preset === "pi5_high_quality") {
-    document.getElementById("setup-resolution").value = "1280x720";
-    document.getElementById("setup-fps").value = 24;
-    document.getElementById("setup-jpeg-quality").value = 90;
-    document.getElementById("setup-max-connections").value = 10;
-    document.getElementById("setup-pi3-profile").value = "false";
-    document.getElementById("setup-target-fps").value = 24;
-  } else if (preset === "custom") {
-    // Already set from current config in updateSetupUI
-  }
-
+  applyPresetToForm(preset);
   validateSetupForm();
 }
 
-/**
- * Toggle advanced settings visibility
- */
-function toggleAdvanced(event) {
-  if (event) event.preventDefault();
-
-  const btn = document.getElementById("advanced-toggle-btn");
-  const advancedContent = document.getElementById("advanced-content");
-
-  if (btn && advancedContent) {
-    const isExpanded = btn.classList.contains("expanded");
-
-    if (isExpanded) {
-      btn.classList.remove("expanded");
-      advancedContent.classList.remove("visible");
-      advancedContent.classList.add("hidden");
-    } else {
-      btn.classList.add("expanded");
-      advancedContent.classList.add("visible");
-      advancedContent.classList.remove("hidden");
-    }
-  }
-}
-
-/**
- * Validate setup form fields
- */
 function validateSetupForm() {
   const resolution = document.getElementById("setup-resolution")?.value || "";
   const fps = document.getElementById("setup-fps")?.value || "";
 
-  // Basic validation: resolution format
   if (resolution && !/^\d+x\d+$/i.test(resolution)) {
     console.warn("Invalid resolution format. Use WIDTHxHEIGHT (e.g., 640x480)");
   }
 
-  // FPS validation
-  if (fps && (isNaN(fps) || parseInt(fps) < 0 || parseInt(fps) > 120)) {
+  if (fps && (isNaN(fps) || parseInt(fps, 10) < 0 || parseInt(fps, 10) > 120)) {
     console.warn("FPS must be between 0 and 120");
   }
+
+  updateWizardNavigation();
+  updateWizardCompletion();
 }
 
-/**
- * Handle Generate button click
- */
 async function onGenerateClick() {
   try {
-    // Validate form
     validateSetupForm();
+    const config = collectSetupConfig();
 
-    // Collect form values
-    const config = {
-      resolution: document.getElementById("setup-resolution")?.value || "",
-      fps: parseInt(document.getElementById("setup-fps")?.value || "0") || 0,
-      jpeg_quality: parseInt(document.getElementById("setup-jpeg-quality")?.value || "90") || 90,
-      max_connections:
-        parseInt(document.getElementById("setup-max-connections")?.value || "10") || 10,
-      target_fps: document.getElementById("setup-target-fps")?.value
-        ? parseInt(document.getElementById("setup-target-fps")?.value)
-        : null,
-      pi3_profile: document.getElementById("setup-pi3-profile")?.value === "true",
-      cors_origins: document.getElementById("setup-cors-origins")?.value || "",
-      mock_camera: document.getElementById("setup-mock-camera")?.value === "true",
-      auth_token: document.getElementById("setup-auth-token")?.value || "",
-    };
-
-    // Validate via API
     const validateResponse = await fetch("/api/setup/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1085,7 +1308,6 @@ async function onGenerateClick() {
       return;
     }
 
-    // Generate files
     const generateResponse = await fetch("/api/setup/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1099,7 +1321,6 @@ async function onGenerateClick() {
 
     const result = await generateResponse.json();
 
-    // Populate output textareas
     const dockerComposeOutput = document.getElementById("docker-compose-output");
     if (dockerComposeOutput) dockerComposeOutput.value = result.docker_compose_yaml || "";
 
@@ -1107,6 +1328,7 @@ async function onGenerateClick() {
     if (envOutput) envOutput.value = result.env_content || "";
 
     showSetupSuccess("Configuration generated successfully!");
+    saveWizardState();
   } catch (error) {
     console.error("Generation failed:", error);
     showSetupError(`Generation failed: ${error.message}`);
