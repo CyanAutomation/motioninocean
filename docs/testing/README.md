@@ -1,65 +1,22 @@
 # Testing Documentation (Canonical)
 
-This is the **authoritative testing document** for this repository.
+## Scope of this document
+This file records **validation evidence and run outputs only**.
 
-- Primary source of truth: `docs/testing/README.md`
-- Historical reports: `docs/testing/archive/`
-- Legacy entry points kept temporarily at repository root now contain deprecation notices.
+- Test/release procedures belong in [`docs/guides/RELEASE.md`](../guides/RELEASE.md) and developer workflow docs.
+- User-facing release notes belong in [`CHANGELOG.md`](../../CHANGELOG.md).
 
-## How to run tests
+## Latest validation summary
+Consolidated from archived and legacy testing reports:
+- Historical automated runs report passing unit, integration, and configuration suites.
+- Parallel-container validation reports successful startup/health for webcam and management containers.
+- A known/expected limitation remains: management-to-webcam status checks fail with `NODE_UNREACHABLE` when target addresses resolve to loopback/private ranges blocked by SSRF safeguards.
 
-### Core local test suites
+## Evidence sources
+- Archive index: [`docs/testing/archive/`](archive/)
+- Historical index snapshot: [`docs/testing/archive/TEST_DOCUMENTATION_INDEX-2026-02-11.md`](archive/TEST_DOCUMENTATION_INDEX-2026-02-11.md)
+- Legacy reports retained for traceability under [`docs/reports/`](../reports/)
 
-```bash
-# Run all Python tests
-python -m pytest
-
-# Optional: run lint/format checks if configured in your environment
-npm run lint
-npm run format -- --check
-```
-
-### Parallel container / cross-service validation
-
-```bash
-# Start dedicated test stack
-docker-compose -f docker-compose.test.yaml up -d
-
-# Run automated cross-container test script
-python3 tests/test_parallel_containers.py
-
-# Inspect running services and logs
-docker-compose -f docker-compose.test.yaml ps
-docker-compose -f docker-compose.test.yaml logs
-
-# Tear down
-docker-compose -f docker-compose.test.yaml down
-```
-
-## Where test results live
-
-- Most current status and guidance: this document.
-- Point-in-time or legacy reports: `docs/testing/archive/`.
-- Runtime execution output: terminal/CI logs from commands above.
-
-## Latest status (merged summary)
-
-Based on the previously duplicated summaries (`TEST_REPORT.md`, `TESTING_COMPLETE.md`, `TEST_RESULTS_EXECUTIVE_SUMMARY.md`):
-
-- Core automated suites previously reported full pass rates for configuration, integration, and unit tests in their recorded runs.
-- Parallel container validation previously reported successful startup/health for webcam and management containers, with one expected limitation: management-to-webcam status checks are blocked when targets resolve to private/loopback ranges due to SSRF protections.
-- Overall conclusion from historical reports: **test posture is healthy**, and the cross-container limitation in single-host Docker networking is an intentional security behavior, not an application defect.
-
-## Cross-container tests
-
-### Current expectation
-
-When running both services on one Docker host, node status checks can fail with `NODE_UNREACHABLE` if the webcam node URL resolves to blocked address ranges (e.g., Docker bridge/private IPs, localhost). This is expected with SSRF safeguards enabled.
-
-### Scenario details (consolidated)
-
-1. **Multi-host deployment (recommended):** management and webcam run on separate machines with routable LAN addresses.
-2. **Single-host Docker host-network experiments:** useful for local validation, but localhost/private addressing can still trigger SSRF protection.
-3. **Advanced mock/external endpoint strategies:** can emulate remote-node behavior for specialized testing.
-
-For the original detailed writeups, see the archived reports in `docs/testing/archive/`.
+## Recorded outputs location
+- CI logs and local terminal output generated during validation runs.
+- Point-in-time markdown reports stored in [`docs/testing/archive/`](archive/).
