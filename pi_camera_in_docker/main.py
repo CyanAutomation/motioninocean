@@ -530,17 +530,26 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
 
     @app.route("/api/config")
     def api_config():
-        tracker = state.get("connection_tracker")
-        recording_started = state.get("recording_started")
-        uptime_seconds = max(0.0, time.monotonic() - app.start_time_monotonic)
+        if state.get("app_mode") == "webcam":
+            tracker = state.get("connection_tracker")
+            recording_started = state.get("recording_started")
 
-        camera_active = False
-        if isinstance(recording_started, Event):
-            camera_active = recording_started.is_set()
-        elif state.get("picam2_instance") is not None:
-            camera_active = True
-
-        current_connections = tracker.get_count() if isinstance(tracker, ConnectionTracker) else 0
+            current_connections = (
+                tracker.get_count() if isinstance(tracker, ConnectionTracker) else 0
+            )
+            camera_active = isinstance(recording_started, Event) and recording_started.is_set()
+            uptime_seconds = round(
+                max(
+                    0.0,
+                    time.monotonic()
+                    - getattr(app, "start_time_monotonic", 0.0),
+                ),
+                2,
+            )
+        else:
+            current_connections = 0
+            camera_active = False
+            uptime_seconds = None
 
         return jsonify(
             {
@@ -563,7 +572,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
                 "runtime": {
                     "camera_active": camera_active,
                     "mock_camera": config["mock_camera"],
-                    "uptime_seconds": round(uptime_seconds, 2),
+                    "uptime_seconds": uptime_seconds,
                 },
                 "limits": {
                     "max_resolution": [4096, 4096],
