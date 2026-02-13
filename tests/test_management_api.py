@@ -450,6 +450,43 @@ def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
     assert updated.json["node"]["discovery"]["last_announce_at"] != first_announce
 
 
+
+
+def test_discovery_announce_parallel_requests_do_not_duplicate_error(monkeypatch, tmp_path):
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "node_id": "node-discovery-parallel",
+        "name": "Discovery Parallel",
+        "base_url": "http://example.com",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    barrier = threading.Barrier(2)
+    responses = []
+
+    def announce_once():
+        barrier.wait()
+        response = client.post(
+            "/api/discovery/announce",
+            json=payload,
+            headers={"Authorization": "Bearer discovery-secret"},
+        )
+        responses.append(response)
+
+    t1 = threading.Thread(target=announce_once)
+    t2 = threading.Thread(target=announce_once)
+    t1.start()
+    t2.start()
+    t1.join()
+    t2.join()
+
+    statuses = sorted(response.status_code for response in responses)
+    assert statuses == [200, 201]
+    assert all(response.json.get("error", {}).get("code") != "VALIDATION_ERROR" for response in responses)
+
 def test_discovery_announce_requires_bearer_token(monkeypatch, tmp_path):
     monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client = _new_management_client(monkeypatch, tmp_path)

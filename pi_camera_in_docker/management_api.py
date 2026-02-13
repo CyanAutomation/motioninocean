@@ -898,22 +898,6 @@ def register_management_routes(
         if blocked_target:
             return _discovery_private_ip_block_response(validated["base_url"], blocked_target)
 
-        try:
-            existing = registry.get_node(validated["id"])
-        except NodeValidationError as exc:
-            if _is_registry_corruption_error(exc):
-                return _registry_corruption_response(exc)
-            raise
-
-        if existing is None:
-            try:
-                created = registry.create_node(validated)
-            except NodeValidationError as exc:
-                if _is_registry_corruption_error(exc):
-                    return _registry_corruption_response(exc)
-                return _error_response("VALIDATION_ERROR", str(exc), 400)
-            return jsonify({"node": created, "upserted": "created"}), 201
-
         patch = {
             "name": validated["name"],
             "base_url": validated["base_url"],
@@ -922,23 +906,20 @@ def register_management_routes(
             "last_seen": validated["last_seen"],
             "labels": validated["labels"],
             "auth": validated["auth"],
-            "discovery": _discovery_metadata(existing),
+            "discovery": {
+                "source": "discovered",
+                "last_announce_at": _utc_now_iso(),
+            },
         }
         try:
-            updated = registry.update_node(validated["id"], patch)
-        except KeyError:
-            try:
-                created = registry.create_node(validated)
-            except NodeValidationError as exc:
-                if _is_registry_corruption_error(exc):
-                    return _registry_corruption_response(exc)
-                return _error_response("VALIDATION_ERROR", str(exc), 400)
-            return jsonify({"node": created, "upserted": "created"}), 201
+            upserted = registry.upsert_node(validated["id"], validated, patch)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
             return _error_response("VALIDATION_ERROR", str(exc), 400, node_id=validated["id"])
-        return jsonify({"node": updated, "upserted": "updated"}), 200
+
+        status_code = 201 if upserted["upserted"] == "created" else 200
+        return jsonify(upserted), status_code
 
     @app.route("/api/nodes", methods=["POST"])
     def create_node():
