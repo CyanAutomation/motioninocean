@@ -7,6 +7,20 @@ Even small contributions (docs fixes, examples, typos) are genuinely appreciated
 
 ---
 
+
+## Documentation map
+
+Project documentation is organized under `docs/`:
+
+- Operational guides: [`docs/guides/`](docs/guides/)
+- Product requirements: [`docs/product/`](docs/product/)
+- Dated reports and analysis: [`docs/reports/`](docs/reports/)
+- Testing docs: [`docs/testing/`](docs/testing/)
+
+When changing behavior or configuration, update the relevant document under `docs/` and keep root-level entry docs minimal.
+
+---
+
 ## Ways to contribute
 
 You can help by:
@@ -241,7 +255,7 @@ Please use clear commit messages:
    - why it changed
    - how it was tested
 
-If your PR changes behaviour or config, please update the README accordingly.
+If your PR changes behaviour or config, please update README and the relevant docs in `docs/` accordingly.
 
 **Note:** Pre-commit hooks will automatically run basic checks when you commit. The CI pipeline will run comprehensive checks on all PRs.
 

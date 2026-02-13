@@ -31,6 +31,11 @@ Please include:
 
 ## Threat model & security notes
 
+Additional security and operational references:
+- [Documentation index](docs/README.md)
+- [Deployment guide](docs/guides/DEPLOYMENT.md)
+
+
 motion-in-ocean is a homelab-oriented container and requires access to Raspberry Pi camera devices.
 
 Important security considerations:
@@ -47,7 +52,7 @@ Important security considerations:
     - "127.0.0.1:8000:8000"
   ```
 
-* If remote access is needed, use bearer token authentication (see DEPLOYMENT.md)
+* If remote access is needed, use bearer token authentication (see docs/guides/DEPLOYMENT.md)
 * Do not expose the service to the public internet without access controls
 
 ---

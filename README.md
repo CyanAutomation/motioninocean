@@ -25,6 +25,8 @@ Open `http://localhost:8000`.
 
 ## Full Documentation
 
-- Canonical deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md)
-- Migration deltas only: [MIGRATION.md](MIGRATION.md)
+- Documentation hub: [docs/README.md](docs/README.md)
+- Canonical deployment guide: [docs/guides/DEPLOYMENT.md](docs/guides/DEPLOYMENT.md)
+- Migration deltas only: [docs/guides/MIGRATION.md](docs/guides/MIGRATION.md)
+- Feature flags reference: [docs/guides/FEATURE_FLAGS.md](docs/guides/FEATURE_FLAGS.md)
 - Container directory pattern specifics: [containers/README.md](containers/README.md)
