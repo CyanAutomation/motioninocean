@@ -11,6 +11,7 @@ from urllib.parse import urlparse, urlunparse
 
 from flask import Flask, jsonify, request
 from node_registry import FileNodeRegistry, NodeValidationError, validate_node
+from transport_url_validation import parse_docker_url
 
 
 # SSRF Protection Configuration
@@ -353,32 +354,8 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
 
 
 def _parse_docker_url(base_url: str) -> Tuple[str, int, str]:
-    """
-    Parse docker:// URLs to extract proxy host, port, and container ID.
-    
-    Format: docker://proxy-hostname:port/container-id
-    Example: docker://docker-proxy.example.com:2375/motion-in-ocean-webcam
-    
-    Returns: (hostname, port, container_id)
-    Raises: ValueError if URL format is invalid
-    """
-    parsed = urlparse(base_url)
-    if parsed.scheme != "docker":
-        raise ValueError(f"Invalid docker URL scheme: {parsed.scheme}. Expected 'docker'.")
-    
-    hostname = parsed.hostname
-    if not hostname:
-        raise ValueError("docker URL must include hostname")
-    
-    port = parsed.port
-    if not port:
-        raise ValueError("docker URL must include port (e.g., docker://proxy:2375/container-id)")
-    
-    container_id = parsed.path.lstrip("/")
-    if not container_id:
-        raise ValueError("docker URL must include container ID (e.g., docker://proxy:2375/container-id)")
-    
-    return hostname, port, container_id
+    """Backward-compatible wrapper for the shared docker URL parser."""
+    return parse_docker_url(base_url)
 
 
 def _get_docker_container_status(proxy_host: str, proxy_port: int, container_id: str, auth_headers: Dict[str, str]) -> Tuple[int, Dict[str, Any]]:

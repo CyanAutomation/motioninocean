@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from transport_url_validation import validate_base_url_for_transport
+
 
 try:
     import fcntl
@@ -194,9 +196,15 @@ def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]
         message = "transport must be one of: http, docker"
         raise NodeValidationError(message)
 
-    if "base_url" in validated and not validated["base_url"].startswith(("http://", "https://")):
-        message = "base_url must start with http:// or https://"
-        raise NodeValidationError(message)
+    if "base_url" in validated:
+        transport = validated.get("transport")
+        if partial and transport is None:
+            transport = node.get("transport")
+        if transport in ALLOWED_TRANSPORTS:
+            try:
+                validate_base_url_for_transport(validated["base_url"], transport)
+            except ValueError as exc:
+                raise NodeValidationError(str(exc)) from exc
 
     if not partial and "last_seen" not in validated:
         validated["last_seen"] = datetime.now(timezone.utc).isoformat()

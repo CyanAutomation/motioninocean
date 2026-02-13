@@ -179,7 +179,7 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
     payload = {
         "id": "node-2",
         "name": "Docker Node",
-        "base_url": "http://docker.local",
+        "base_url": "docker://proxy:2375/container-id",
         "auth": {"type": "none"},
         "labels": {},
         "last_seen": datetime.now(timezone.utc).isoformat(),
@@ -195,9 +195,29 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
         == 201
     )
 
-    status = client.get("/api/nodes/node-2/status", headers=_auth_headers())
-    assert status.status_code == 400
-    assert status.json["error"]["code"] == "INVALID_DOCKER_URL"
+    invalid_docker_create = {
+        "id": "node-2-invalid",
+        "name": "Docker Node Invalid",
+        "base_url": "docker://proxy/container-id",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "docker",
+    }
+    invalid_create = client.post("/api/nodes", json=invalid_docker_create, headers=_auth_headers())
+    assert invalid_create.status_code == 400
+    assert invalid_create.json["error"]["code"] == "VALIDATION_ERROR"
+    assert "docker URL must include port" in invalid_create.json["error"]["message"]
+
+    invalid_update = client.put(
+        "/api/nodes/node-2",
+        json={"base_url": "docker://proxy:2375"},
+        headers=_auth_headers(),
+    )
+    assert invalid_update.status_code == 400
+    assert invalid_update.json["error"]["code"] == "VALIDATION_ERROR"
+    assert "docker URL must include container ID" in invalid_update.json["error"]["message"]
 
     action = client.post("/api/nodes/node-2/actions/restart", json={}, headers=_auth_headers())
     assert action.status_code == 400
@@ -343,7 +363,7 @@ def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
     payload = {
         "id": "node-docker-shared",
         "name": "Docker Shared Access",
-        "base_url": "http://docker.local",
+        "base_url": "docker://proxy:2375/container-id",
         "auth": {"type": "none"},
         "labels": {},
         "last_seen": datetime.now(timezone.utc).isoformat(),
