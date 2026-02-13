@@ -14,6 +14,7 @@ const diagnosticSummaryCta = document.getElementById("diagnostic-summary-cta");
 const diagnosticChecksGrid = document.getElementById("diagnostic-checks-grid");
 const diagnosticRecommendations = document.getElementById("diagnostic-recommendations");
 const copyDiagnosticReportBtn = document.getElementById("copy-diagnostic-report-btn");
+const diagnosticPanel = document.getElementById("diagnostic-panel");
 
 let nodes = [];
 let nodeStatusMap = new Map();
@@ -921,6 +922,9 @@ function showDiagnosticResults(diagnosticResult) {
 
   renderDiagnosticRecommendations(diagnosticResult.guidance || [], diagnosticResult.recommendations || []);
   copyDiagnosticReportBtn.disabled = false;
+  if (diagnosticPanel && typeof diagnosticPanel.focus === "function") {
+    diagnosticPanel.focus();
+  }
 }
 
 async function setDiscoveryApproval(nodeId, decision) {
