@@ -101,6 +101,14 @@ def register_shared_routes(
 
             current_state_index = api_test_state.get("current_state_index", 0) % len(scenario_list)
             scenario = scenario_list[current_state_index]
+            state_name = scenario.get("status", f"state-{current_state_index}")
+
+            next_transition_seconds = None
+            if api_test_state.get("active") and interval > 0:
+                elapsed = max(
+                    0.0, now - api_test_state.get("last_transition_monotonic", now)
+                )
+                next_transition_seconds = round(max(0.0, interval - elapsed), 3)
 
         connections = {
             "current": scenario["connections"]["current"],
@@ -119,6 +127,8 @@ def register_shared_routes(
                 "enabled": api_test_state.get("enabled", False),
                 "active": api_test_state.get("active", False),
                 "state_index": current_state_index,
+                "state_name": state_name,
+                "next_transition_seconds": next_transition_seconds,
             },
         }
 

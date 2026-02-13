@@ -252,13 +252,48 @@ def test_webcam_action_route_requires_auth_and_returns_contract(monkeypatch):
     client = _new_webcam_client(monkeypatch, "node-shared-token")
 
     valid_headers = {"Authorization": "Bearer node-shared-token"}
+    supported_actions = [
+        "restart",
+        "api-test-start",
+        "api-test-stop",
+        "api-test-reset",
+        "api-test-step",
+    ]
 
     restart = client.post("/api/actions/restart", json={}, headers=valid_headers)
     assert restart.status_code == 501
     assert restart.json["error"]["code"] == "ACTION_NOT_IMPLEMENTED"
-    assert restart.json["error"]["details"]["supported_actions"] == ["restart"]
+    assert restart.json["error"]["details"]["supported_actions"] == supported_actions
+
+    started = client.post(
+        "/api/actions/api-test-start",
+        json={"interval_seconds": 2, "scenario_order": [2, 0, 1]},
+        headers=valid_headers,
+    )
+    assert started.status_code == 200
+    assert started.json["ok"] is True
+    assert started.json["api_test"]["enabled"] is True
+    assert started.json["api_test"]["active"] is True
+    assert started.json["api_test"]["state_name"] in {"ok", "degraded"}
+    assert started.json["api_test"]["next_transition_seconds"] is not None
+
+    stepped = client.post("/api/actions/api-test-step", json={}, headers=valid_headers)
+    assert stepped.status_code == 200
+    assert stepped.json["api_test"]["active"] is False
+
+    reset = client.post("/api/actions/api-test-reset", json={}, headers=valid_headers)
+    assert reset.status_code == 200
+    assert reset.json["api_test"]["state_index"] == 0
+
+    invalid = client.post(
+        "/api/actions/api-test-start",
+        json={"interval_seconds": 0},
+        headers=valid_headers,
+    )
+    assert invalid.status_code == 400
+    assert invalid.json["error"]["code"] == "ACTION_INVALID_BODY"
 
     unsupported = client.post("/api/actions/refresh", json={}, headers=valid_headers)
     assert unsupported.status_code == 400
     assert unsupported.json["error"]["code"] == "ACTION_UNSUPPORTED"
-    assert unsupported.json["error"]["details"]["supported_actions"] == ["restart"]
+    assert unsupported.json["error"]["details"]["supported_actions"] == supported_actions

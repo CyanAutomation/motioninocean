@@ -6,6 +6,7 @@ from threading import Condition, Lock
 from typing import Any, Callable, Dict, Optional, Tuple
 
 from flask import Flask, Response, jsonify, request
+from werkzeug.exceptions import BadRequest
 
 
 logger = logging.getLogger(__name__)
@@ -150,6 +151,129 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
     output = state["output"]
     tracker = state["connection_tracker"]
 
+    supported_actions = [
+        "restart",
+        "api-test-start",
+        "api-test-stop",
+        "api-test-reset",
+        "api-test-step",
+    ]
+
+    default_api_test_scenarios = [
+        {
+            "status": "ok",
+            "stream_available": True,
+            "camera_active": True,
+            "fps": 24.0,
+            "connections": {"current": 1, "max": 10},
+        },
+        {
+            "status": "degraded",
+            "stream_available": False,
+            "camera_active": True,
+            "fps": 0.0,
+            "connections": {"current": 0, "max": 10},
+        },
+        {
+            "status": "degraded",
+            "stream_available": False,
+            "camera_active": False,
+            "fps": 0.0,
+            "connections": {"current": 0, "max": 10},
+        },
+    ]
+
+    def _json_error(code: str, message: str, status_code: int) -> tuple[Response, int]:
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": code,
+                        "message": message,
+                        "details": {"supported_actions": supported_actions},
+                    }
+                }
+            ),
+            status_code,
+        )
+
+    def _parse_optional_action_body() -> tuple[Optional[dict], Optional[tuple[Response, int]]]:
+        if not request.data:
+            return None, None
+
+        try:
+            body = request.get_json(silent=False)
+        except BadRequest:
+            return None, _json_error("ACTION_INVALID_BODY", "request body must be valid JSON", 400)
+
+        if not isinstance(body, dict):
+            return None, _json_error(
+                "ACTION_INVALID_BODY", "request body must be a JSON object", 400
+            )
+
+        allowed_keys = {"interval_seconds", "scenario_order"}
+        unknown_keys = sorted(set(body.keys()) - allowed_keys)
+        if unknown_keys:
+            return None, _json_error(
+                "ACTION_INVALID_BODY",
+                f"request body contains unsupported keys: {', '.join(unknown_keys)}",
+                400,
+            )
+
+        return body, None
+
+    def _api_test_runtime_info(api_test_state: dict, scenario_list: list[dict]) -> dict:
+        if not scenario_list:
+            raise ValueError("scenario_list cannot be empty")
+        state_index = api_test_state.get("current_state_index", 0) % len(scenario_list)
+        state_name = scenario_list[state_index].get("status", f"state-{state_index}")
+        interval = api_test_state.get("cycle_interval_seconds", 5.0)
+        next_transition_seconds = None
+
+        if api_test_state.get("active") and isinstance(interval, (int, float)) and interval > 0:
+            last_transition = api_test_state.get("last_transition_monotonic", time.monotonic())
+            elapsed = max(0.0, time.monotonic() - last_transition)
+            next_transition_seconds = round(max(0.0, interval - elapsed), 3)
+
+        return {
+            "enabled": bool(api_test_state.get("enabled", False)),
+            "active": bool(api_test_state.get("active", False)),
+            "state_index": state_index,
+            "state_name": state_name,
+            "next_transition_seconds": next_transition_seconds,
+        }
+
+    def _resolve_api_test_scenarios(
+        api_test_state: dict, body: Optional[dict]
+    ) -> tuple[Optional[list[dict]], Optional[tuple[Response, int]]]:
+        body = body or {}
+        existing_scenarios = api_test_state.get("scenario_list") or default_api_test_scenarios
+        if not isinstance(existing_scenarios, list) or not existing_scenarios:
+            existing_scenarios = default_api_test_scenarios
+
+        scenario_order = body.get("scenario_order")
+        if scenario_order is None:
+            return existing_scenarios, None
+        if not isinstance(scenario_order, list) or not scenario_order:
+            return None, _json_error(
+                "ACTION_INVALID_BODY", "scenario_order must be a non-empty array", 400
+            )
+        if not all(isinstance(index, int) for index in scenario_order):
+            return None, _json_error(
+                "ACTION_INVALID_BODY", "scenario_order must contain only integer indexes", 400
+            )
+
+        unique_indexes = set(scenario_order)
+        max_index = len(existing_scenarios) - 1
+        if unique_indexes != set(range(len(existing_scenarios))):
+            return None, _json_error(
+                "ACTION_INVALID_BODY",
+                f"scenario_order must contain each scenario index exactly once from 0 to {max_index}",
+                400,
+            )
+
+        return [existing_scenarios[index] for index in scenario_order], None
+
     def _build_stream_response() -> Response:
         if not state["recording_started"].is_set():
             return Response("Camera stream not ready.", status=503)
@@ -217,30 +341,86 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
     @app.route("/api/actions/<action>", methods=["POST"])
     def webcam_action(action: str):
         normalized_action = action.strip().lower()
+        body, body_error = _parse_optional_action_body()
+        if body_error is not None:
+            return body_error
+
         if normalized_action == "restart":
-            return (
-                jsonify(
-                    {
-                        "error": {
-                            "code": "ACTION_NOT_IMPLEMENTED",
-                            "message": "action 'restart' is recognized but not implemented",
-                            "details": {"supported_actions": ["restart"]},
-                        }
-                    }
-                ),
+            return _json_error(
+                "ACTION_NOT_IMPLEMENTED",
+                "action 'restart' is recognized but not implemented",
                 501,
             )
 
-        return (
-            jsonify(
-                {
-                    "error": {
-                        "code": "ACTION_UNSUPPORTED",
-                        "message": f"action '{normalized_action or action}' is not supported",
-                        "details": {"supported_actions": ["restart"]},
+        if normalized_action in {
+            "api-test-start",
+            "api-test-stop",
+            "api-test-reset",
+            "api-test-step",
+        }:
+            api_test_state = state.get("api_test")
+            if not api_test_state or not api_test_state.get("lock"):
+                return _json_error(
+                    "ACTION_UNSUPPORTED",
+                    f"action '{normalized_action}' is not supported",
+                    400,
+                )
+
+            interval_seconds = body.get("interval_seconds") if body else None
+            if interval_seconds is not None:
+                if not isinstance(interval_seconds, (int, float)) or isinstance(interval_seconds, bool):
+                    return _json_error(
+                        "ACTION_INVALID_BODY",
+                        "interval_seconds must be a positive number",
+                        400,
+                    )
+                if interval_seconds <= 0:
+                    return _json_error(
+                        "ACTION_INVALID_BODY",
+                        "interval_seconds must be greater than 0",
+                        400,
+                    )
+
+            with api_test_state["lock"]:
+                scenario_list, scenario_error = _resolve_api_test_scenarios(api_test_state, body)
+                if scenario_error is not None:
+                    return scenario_error
+
+                api_test_state["scenario_list"] = scenario_list
+                if interval_seconds is not None:
+                    api_test_state["cycle_interval_seconds"] = float(interval_seconds)
+
+                if normalized_action == "api-test-start":
+                    api_test_state["enabled"] = True
+                    api_test_state["active"] = True
+                    api_test_state["last_transition_monotonic"] = time.monotonic()
+                elif normalized_action == "api-test-stop":
+                    api_test_state["enabled"] = True
+                    api_test_state["active"] = False
+                elif normalized_action == "api-test-reset":
+                    api_test_state["enabled"] = True
+                    api_test_state["active"] = False
+                    api_test_state["current_state_index"] = 0
+                    api_test_state["last_transition_monotonic"] = time.monotonic()
+                elif normalized_action == "api-test-step":
+                    api_test_state["enabled"] = True
+                    api_test_state["active"] = False
+                    api_test_state["current_state_index"] = (
+                        api_test_state.get("current_state_index", 0) + 1
+                    ) % len(scenario_list)
+                    api_test_state["last_transition_monotonic"] = time.monotonic()
+
+                return jsonify(
+                    {
+                        "ok": True,
+                        "action": normalized_action,
+                        "api_test": _api_test_runtime_info(api_test_state, scenario_list),
                     }
-                }
-            ),
+                )
+
+        return _json_error(
+            "ACTION_UNSUPPORTED",
+            f"action '{normalized_action or action}' is not supported",
             400,
         )
 
