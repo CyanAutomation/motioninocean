@@ -5,6 +5,8 @@ All notable changes to motion-in-ocean will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+Documentation index: [docs/README.md](docs/README.md).
+
 ## [1.0.2] - 2026-01-21
 
 ### Fixed
@@ -75,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pre-deployment validation commands
 - Camera compatibility documentation (IMX219, Camera Module v2/v3)
 - Performance recommendations for different Pi models
-- Testing documentation (TEST_REPORT.md, TESTING_COMPLETE.md)
+- Testing documentation (docs/reports/TEST_REPORT.md, docs/reports/TESTING_COMPLETE.md)
 
 ### Configuration
 
