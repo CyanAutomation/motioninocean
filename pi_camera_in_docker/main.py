@@ -542,7 +542,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
                 max(
                     0.0,
                     time.monotonic()
-                    - getattr(app, "start_time_monotonic", time.monotonic()),
+                    - getattr(app, "start_time_monotonic", 0.0),
                 ),
                 2,
             )
