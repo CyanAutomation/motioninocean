@@ -1077,12 +1077,21 @@ function updateReviewSummary() {
   const preset = document.getElementById("preset-select")?.value || "custom";
   const config = collectSetupConfig();
 
+  const escapeHtml = (unsafe) => {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
+
   summary.innerHTML = `<div class="instructions-header">🧾 Configuration summary</div>
     <ul class="instructions-list">
-      <li><strong>Hardware:</strong> ${piVersion}</li>
-      <li><strong>Intent:</strong> ${intent}</li>
-      <li><strong>Preset:</strong> ${preset}</li>
-      <li><strong>Resolution / FPS:</strong> ${config.resolution || "--"} @ ${config.fps}</li>
+      <li><strong>Hardware:</strong> ${escapeHtml(piVersion)}</li>
+      <li><strong>Intent:</strong> ${escapeHtml(intent)}</li>
+      <li><strong>Preset:</strong> ${escapeHtml(preset)}</li>
+      <li><strong>Resolution / FPS:</strong> ${escapeHtml(config.resolution || "--")} @ ${config.fps}</li>
       <li><strong>Mock camera:</strong> ${config.mock_camera ? "Yes" : "No"}</li>
     </ul>`;
 }
