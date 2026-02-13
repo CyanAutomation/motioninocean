@@ -9,6 +9,7 @@ import socket
 import time
 from threading import Event, RLock, Thread
 from typing import Any, Dict, Optional, Tuple
+from urllib.parse import urlsplit, urlunsplit
 
 from discovery import DiscoveryAnnouncer, build_discovery_payload
 from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
@@ -38,6 +39,13 @@ logger = logging.getLogger(__name__)
 
 feature_flags: FeatureFlags = get_feature_flags()
 feature_flags.load()
+
+def _redacted_url_for_logs(url: str) -> str:
+    parts = urlsplit(url)
+    host = parts.hostname or ""
+    if parts.port is not None:
+        host = f"{host}:{parts.port}"
+    return urlunsplit((parts.scheme, host, parts.path, "", ""))
 
 
 def _parse_resolution(resolution_str: str) -> Tuple[int, int]:
@@ -714,7 +722,7 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
                 logger.info(
                     "discovery_announcer_started: node_id=%s management_url=%s interval_seconds=%.1f",
                     payload["node_id"],
-                    cfg["discovery_management_url"],
+                    _redacted_url_for_logs(cfg["discovery_management_url"]),
                     cfg["discovery_interval_seconds"],
                 )
             except Exception:
