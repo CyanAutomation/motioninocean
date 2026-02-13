@@ -773,7 +773,7 @@ def register_management_routes(
 
     def _enforce_discovery_auth() -> Optional[Tuple[Any, int]]:
         token = _extract_bearer_token()
-        if not discovery_secret or token is None or token != discovery_secret:
+        if token is None or not discovery_secret or token != discovery_secret:
             return _error_response("UNAUTHORIZED", "authentication required", 401)
         return None
 
