@@ -110,7 +110,13 @@ def test_api_status_returns_current_api_test_scenario_when_inactive():
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["status"] == "degraded"
-    assert payload["api_test"] == {"enabled": True, "active": False, "state_index": 1}
+    assert payload["api_test"] == {
+        "enabled": True,
+        "active": False,
+        "state_index": 1,
+        "state_name": "degraded",
+        "next_transition_seconds": None,
+    }
     assert state["api_test"]["current_state_index"] == 1
 
 
