@@ -8,6 +8,9 @@ const editingNodeIdInput = document.getElementById("editing-node-id");
 const diagnosticNodeId = document.getElementById("diagnostic-node-id");
 const diagnosticContext = document.getElementById("diagnostic-context");
 const diagnosticSummaryBadge = document.getElementById("diagnostic-summary-badge");
+const diagnosticOverallStatePill = document.getElementById("diagnostic-overall-state-pill");
+const diagnosticSummaryInterpretation = document.getElementById("diagnostic-summary-interpretation");
+const diagnosticSummaryCta = document.getElementById("diagnostic-summary-cta");
 const diagnosticChecksGrid = document.getElementById("diagnostic-checks-grid");
 const diagnosticRecommendations = document.getElementById("diagnostic-recommendations");
 const copyDiagnosticReportBtn = document.getElementById("copy-diagnostic-report-btn");
@@ -732,15 +735,94 @@ function getDiagnosticCheckRows(diagnostics = {}) {
 }
 
 function getDiagnosticSummaryState(checkRows = []) {
-  if (checkRows.some((row) => row.state === "fail")) {
-    return { label: "Needs attention", className: "diagnostic-pill--fail" };
+  const hasFail = checkRows.some((row) => row.state === "fail");
+  if (hasFail) {
+    return { label: "Action required", className: "diagnostic-pill--fail", state: "fail" };
   }
 
-  if (checkRows.some((row) => row.state === "warn")) {
-    return { label: "Warning", className: "diagnostic-pill--warn" };
+  const warningRows = checkRows.filter((row) => row.state === "warn");
+  if (warningRows.length > 0) {
+    const transientWarningKeys = new Set(["API endpoint"]);
+    const onlyTransientWarnings = warningRows.every((row) => transientWarningKeys.has(row.key));
+    if (onlyTransientWarnings) {
+      return { label: "Warning", className: "diagnostic-pill--warn", state: "warn" };
+    }
+    return { label: "Action recommended", className: "diagnostic-pill--warn", state: "warn" };
   }
 
-  return { label: "Healthy", className: "diagnostic-pill--pass" };
+  return { label: "Healthy", className: "diagnostic-pill--pass", state: "pass" };
+}
+
+function getConnectivityRemediation(category, diagnostics = {}) {
+  const code = diagnostics.network_connectivity?.code || diagnostics.url_validation?.code || "";
+  const codeText = code ? ` (${code})` : "";
+  const categoryMap = {
+    timeout: `Node connection timed out${codeText}. Retry in 30s while the service finishes startup.`,
+    tls: `TLS handshake failed${codeText}. Verify certificates or switch the node base URL to http:// if TLS is not configured.`,
+    dns: `Hostname could not be resolved${codeText}. Check the node base URL hostname and DNS configuration.`,
+    connection_refused_or_reset: `Connection was refused${codeText}. Confirm the node process is running and listening on the configured port.`,
+    network: `Network path is blocked${codeText}. Check firewall, routing, and container network settings.`,
+    ssrf_blocked: `SSRF protection blocked this target${codeText}. Use an allowed hostname or update private-IP policy for trusted networks.`,
+  };
+
+  if (categoryMap[category]) {
+    return categoryMap[category];
+  }
+
+  if (code === "SSRF_BLOCKED") {
+    return `SSRF protection blocked this target${codeText}. Update node base URL to an allowed address or relax policy for trusted private networks.`;
+  }
+
+  return "Review check details below to resolve connectivity issues.";
+}
+
+function getDiagnosticSummaryBanner(summary, checkRows = [], diagnostics = {}) {
+  if (summary.state === "pass") {
+    return {
+      interpretation: "All diagnostic checks passed; this node appears healthy and reachable.",
+      cta: "No action needed",
+    };
+  }
+
+  const apiWarning = checkRows.find((row) => row.key === "API endpoint" && row.state === "warn");
+  if (summary.state === "warn" && apiWarning) {
+    return {
+      interpretation: "Connectivity looks good, but the node API is still warming up.",
+      cta: "Retry in 30s",
+    };
+  }
+
+  if (diagnostics.url_validation?.code === "SSRF_BLOCKED") {
+    return {
+      interpretation: getConnectivityRemediation("ssrf_blocked", diagnostics),
+      cta: "Update node base URL",
+    };
+  }
+
+  if (
+    diagnostics.network_connectivity?.category === "tls" ||
+    diagnostics.network_connectivity?.category === "dns" ||
+    diagnostics.network_connectivity?.category === "timeout" ||
+    diagnostics.network_connectivity?.category === "connection_refused_or_reset" ||
+    diagnostics.network_connectivity?.category === "network"
+  ) {
+    return {
+      interpretation: getConnectivityRemediation(diagnostics.network_connectivity.category, diagnostics),
+      cta: diagnostics.network_connectivity.category === "timeout" ? "Retry in 30s" : "Update node base URL",
+    };
+  }
+
+  if (diagnostics.registration?.code === "NODE_UNAUTHORIZED") {
+    return {
+      interpretation: "Node authentication failed. The configured token does not match the node's expected credentials.",
+      cta: "Set auth token",
+    };
+  }
+
+  return {
+    interpretation: "One or more checks need remediation before this node can be considered healthy.",
+    cta: "Review recommendations",
+  };
 }
 
 function renderDiagnosticRecommendations(guidance = [], recommendations = []) {
@@ -803,11 +885,22 @@ function showDiagnosticResults(diagnosticResult) {
   const diagnostics = diagnosticResult.diagnostics || {};
   const checkRows = getDiagnosticCheckRows(diagnostics);
   const summary = getDiagnosticSummaryState(checkRows);
+  const banner = getDiagnosticSummaryBanner(summary, checkRows, diagnostics);
 
   diagnosticNodeId.textContent = nodeId;
   diagnosticContext.textContent = `Generated at ${new Date().toLocaleString()}`;
   diagnosticSummaryBadge.className = `diagnostic-pill ${summary.className}`;
   diagnosticSummaryBadge.textContent = summary.label;
+  if (diagnosticOverallStatePill) {
+    diagnosticOverallStatePill.className = `diagnostic-pill ${summary.className}`;
+    diagnosticOverallStatePill.textContent = summary.label;
+  }
+  if (diagnosticSummaryInterpretation) {
+    diagnosticSummaryInterpretation.textContent = banner.interpretation;
+  }
+  if (diagnosticSummaryCta) {
+    diagnosticSummaryCta.textContent = banner.cta;
+  }
 
   diagnosticChecksGrid.innerHTML = checkRows
     .map(
