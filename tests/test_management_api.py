@@ -1426,3 +1426,61 @@ def test_node_action_passthrough_for_api_test_management_actions(monkeypatch, tm
         ("node-api-test-actions", "POST", "/api/actions/api-test-stop", {}),
         ("node-api-test-actions", "POST", "/api/actions/api-test-reset", {}),
     ]
+
+
+def test_diagnose_includes_structured_status_and_codes(monkeypatch):
+    management_api = importlib.import_module("management_api")
+
+    node = {"id": "node-diag", "base_url": "http://example.invalid:8000", "transport": "http"}
+
+    def _fake_getaddrinfo(*_args, **_kwargs):
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("8.8.8.8", 8000))]
+
+    def _fake_request_json(*_args, **_kwargs):
+        return 503, {"status": "degraded"}
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", _fake_getaddrinfo)
+    monkeypatch.setattr(management_api, "_request_json", _fake_request_json)
+
+    payload = management_api._diagnose_node(node)
+
+    assert isinstance(payload["guidance"], list)
+    assert isinstance(payload["recommendations"], list)
+    assert payload["guidance"]
+    assert payload["recommendations"]
+
+    diagnostics = payload["diagnostics"]
+    assert diagnostics["registration"]["status"] == "pass"
+    assert diagnostics["url_validation"]["status"] == "pass"
+    assert diagnostics["dns_resolution"]["status"] == "pass"
+    assert diagnostics["network_connectivity"]["status"] == "pass"
+    assert diagnostics["api_endpoint"]["status"] == "warn"
+    assert diagnostics["api_endpoint"]["code"] == "API_STATUS_503"
+
+    recommendation = payload["recommendations"][0]
+    assert recommendation["status"] == "warn"
+    assert recommendation["code"] == "API_STATUS_503"
+    assert recommendation["message"] == payload["guidance"][0]
+
+
+def test_diagnose_recommendations_keep_backward_compatible_guidance(monkeypatch):
+    management_api = importlib.import_module("management_api")
+
+    node = {"id": "node-diag", "base_url": "http://example.invalid:8000", "transport": "http"}
+
+    def _raise_timeout(*_args, **_kwargs):
+        raise management_api.NodeConnectivityError(
+            "timeout",
+            reason="request timed out",
+            category="timeout",
+        )
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", lambda *_a, **_kw: [(2, 1, 6, "", ("8.8.8.8", 8000))])
+    monkeypatch.setattr(management_api, "_request_json", _raise_timeout)
+
+    payload = management_api._diagnose_node(node)
+
+    assert payload["guidance"] == [entry["message"] for entry in payload["recommendations"]]
+    assert payload["recommendations"][0]["status"] == "fail"
+    assert payload["recommendations"][0]["code"] == "NETWORK_CONNECTIVITY_ERROR"
+    assert payload["diagnostics"]["network_connectivity"]["status"] == "fail"
