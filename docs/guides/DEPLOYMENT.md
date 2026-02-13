@@ -361,6 +361,99 @@ Management-mode node health uses the `/api/status` contract exclusively. `GET /h
 
 If management shows `NODE_UNAUTHORIZED`, check that the node auth token in management exactly matches the remote webcam host token.
 
+### API Test Mode for Deterministic Management Validation
+
+Use API test mode on webcam nodes to force deterministic `/api/status` scenarios for management UI/API validation.
+
+#### Required/Optional Environment Variables
+
+```bash
+# webcam node
+API_TEST_MODE_ENABLED=true                  # enable deterministic status mode at startup
+API_TEST_CYCLE_INTERVAL_SECONDS=5           # seconds per automatic transition (must be > 0)
+MANAGEMENT_AUTH_TOKEN=<shared_webcam_token> # required when management probes are protected
+```
+
+#### Scenario Sequence and Action Endpoints
+
+Default scenario sequence used by `/api/status` while API test mode is enabled:
+
+1. `ok` (`stream_available=true`, `camera_active=true`, `fps=24.0`)
+2. `degraded` (`stream_available=false`, `camera_active=true`, `fps=0.0`)
+3. `degraded` (`stream_available=false`, `camera_active=false`, `fps=0.0`)
+
+Node action endpoint (called directly or via management passthrough):
+
+- `POST /api/actions/api-test-start`
+  - body: `{ "interval_seconds": <positive number>, "scenario_order": [0,1,2] }` (both optional)
+  - effect: enables mode and starts automatic interval transitions.
+- `POST /api/actions/api-test-stop`
+  - body: `{}`
+  - effect: keeps mode enabled, pauses automatic transitions.
+- `POST /api/actions/api-test-step`
+  - body: `{}`
+  - effect: advances one state and pauses automatic transitions.
+- `POST /api/actions/api-test-reset`
+  - body: `{}`
+  - effect: resets to scenario index `0` and pauses automatic transitions.
+
+Management passthrough endpoint for any node action:
+
+- `POST /api/nodes/{id}/actions/{action}`
+  - forwards request body to webcam node `POST /api/actions/{action}`
+  - returns `{ node_id, action, status_code, response }`.
+
+#### Sample Management-Node Validation Procedure
+
+1. Start deterministic mode on a webcam node from management host:
+
+```bash
+curl -X POST http://<management-host>:8001/api/nodes/<node_id>/actions/api-test-start \
+  -H "Authorization: Bearer <management_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"interval_seconds": 3, "scenario_order": [0,1,2]}'
+```
+
+2. Poll the node status through management and verify `api_test.state_index` advances over time:
+
+```bash
+curl -H "Authorization: Bearer <management_token>" \
+  http://<management-host>:8001/api/nodes/<node_id>/status
+```
+
+3. Force a manual state advance:
+
+```bash
+curl -X POST http://<management-host>:8001/api/nodes/<node_id>/actions/api-test-step \
+  -H "Authorization: Bearer <management_token>" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+4. Pause and reset after validation:
+
+```bash
+curl -X POST http://<management-host>:8001/api/nodes/<node_id>/actions/api-test-stop \
+  -H "Authorization: Bearer <management_token>" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+curl -X POST http://<management-host>:8001/api/nodes/<node_id>/actions/api-test-reset \
+  -H "Authorization: Bearer <management_token>" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+#### Operator Checklist (UI/API)
+
+- [ ] Management UI/API shows `ok` state (`stream available`, camera active).
+- [ ] Management UI/API shows degraded state with camera still active.
+- [ ] Management UI/API shows degraded state with camera inactive.
+- [ ] Manual `api-test-step` updates state immediately.
+- [ ] `api-test-stop` freezes current state (`next_transition_seconds = null`).
+- [ ] `api-test-reset` returns state index to `0`.
+- [ ] Protected action routes reject missing/invalid bearer tokens.
+
 ### Node Auth Migration (Breaking Change)
 
 Management mode now supports only:

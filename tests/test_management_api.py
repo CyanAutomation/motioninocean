@@ -1177,3 +1177,138 @@ def test_webcam_api_status_contract_shape_with_auth(monkeypatch):
     authorized = client.get("/api/status", headers={"Authorization": "Bearer node-token"})
     assert authorized.status_code == 200
     assert authorized.json["app_mode"] == "webcam"
+
+def test_node_action_passthrough_for_api_test_management_actions(monkeypatch, tmp_path):
+    import management_api
+
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-api-test-actions",
+        "name": "API Test Actions Node",
+        "base_url": "http://example.com",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+
+    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+
+    captured_calls = []
+
+    def fake_request_json(node, method, path, body=None):
+        captured_calls.append((node["id"], method, path, body))
+        if path == "/api/actions/api-test-start":
+            return 200, {
+                "ok": True,
+                "action": "api-test-start",
+                "api_test": {
+                    "enabled": True,
+                    "active": True,
+                    "state_index": 0,
+                    "state_name": "ok",
+                    "next_transition_seconds": 1.0,
+                },
+            }
+        if path == "/api/actions/api-test-step":
+            return 200, {
+                "ok": True,
+                "action": "api-test-step",
+                "api_test": {
+                    "enabled": True,
+                    "active": False,
+                    "state_index": 1,
+                    "state_name": "degraded",
+                    "next_transition_seconds": None,
+                },
+            }
+        if path == "/api/actions/api-test-stop":
+            return 200, {
+                "ok": True,
+                "action": "api-test-stop",
+                "api_test": {
+                    "enabled": True,
+                    "active": False,
+                    "state_index": 1,
+                    "state_name": "degraded",
+                    "next_transition_seconds": None,
+                },
+            }
+        if path == "/api/actions/api-test-reset":
+            return 200, {
+                "ok": True,
+                "action": "api-test-reset",
+                "api_test": {
+                    "enabled": True,
+                    "active": False,
+                    "state_index": 0,
+                    "state_name": "ok",
+                    "next_transition_seconds": None,
+                },
+            }
+        raise AssertionError(f"unexpected path: {path}")
+
+    monkeypatch.setattr(management_api, "_request_json", fake_request_json)
+    try:
+        import main as main_module
+
+        monkeypatch.setitem(
+            main_module.register_management_routes.__globals__,
+            "_request_json",
+            fake_request_json,
+        )
+    except Exception:
+        pass
+
+    action_requests = [
+        (
+            "api-test-start",
+            {"interval_seconds": 1, "scenario_order": [0, 1, 2]},
+            {"enabled": True, "active": True, "state_index": 0},
+        ),
+        (
+            "api-test-step",
+            {},
+            {"enabled": True, "active": False, "state_index": 1},
+        ),
+        (
+            "api-test-stop",
+            {},
+            {"enabled": True, "active": False, "state_index": 1},
+        ),
+        (
+            "api-test-reset",
+            {},
+            {"enabled": True, "active": False, "state_index": 0},
+        ),
+    ]
+
+    for action_name, body, expected_api_test in action_requests:
+        response = client.post(
+            f"/api/nodes/node-api-test-actions/actions/{action_name}",
+            json=body,
+            headers=_auth_headers(),
+        )
+        assert response.status_code == 200
+        assert response.json["node_id"] == "node-api-test-actions"
+        assert response.json["action"] == action_name
+        assert response.json["status_code"] == 200
+        assert response.json["response"]["ok"] is True
+        assert response.json["response"]["api_test"]["enabled"] == expected_api_test["enabled"]
+        assert response.json["response"]["api_test"]["active"] == expected_api_test["active"]
+        assert response.json["response"]["api_test"]["state_index"] == expected_api_test["state_index"]
+
+    assert captured_calls == [
+        (
+            "node-api-test-actions",
+            "POST",
+            "/api/actions/api-test-start",
+            {"interval_seconds": 1, "scenario_order": [0, 1, 2]},
+        ),
+        ("node-api-test-actions", "POST", "/api/actions/api-test-step", {}),
+        ("node-api-test-actions", "POST", "/api/actions/api-test-stop", {}),
+        ("node-api-test-actions", "POST", "/api/actions/api-test-reset", {}),
+    ]
