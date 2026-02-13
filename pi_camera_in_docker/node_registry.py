@@ -119,6 +119,15 @@ class NodeRegistry(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def upsert_node(
+        self,
+        node_id: str,
+        create_value: Dict[str, Any],
+        patch_value: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
     def delete_node(self, node_id: str) -> bool:
         raise NotImplementedError
 
@@ -341,6 +350,8 @@ class FileNodeRegistry(NodeRegistry):
                 if existing.get("id") != node_id:
                     continue
                 merged = {**existing, **validated_patch}
+                if isinstance(existing.get("discovery"), dict) and isinstance(validated_patch.get("discovery"), dict):
+                    merged["discovery"] = {**existing["discovery"], **validated_patch["discovery"]}
                 merged = validate_node(merged)
                 if any(
                     other_index != index and other.get("id") == merged["id"]
@@ -352,6 +363,42 @@ class FileNodeRegistry(NodeRegistry):
                 self._save(data)
                 return merged
             raise KeyError(node_id)
+
+    def upsert_node(
+        self,
+        node_id: str,
+        create_value: Dict[str, Any],
+        patch_value: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        candidate = validate_node(create_value)
+        validated_patch = validate_node(patch_value, partial=True)
+
+        with self._exclusive_lock():
+            data = self._load()
+            for index, existing in enumerate(data["nodes"]):
+                if existing.get("id") != node_id:
+                    continue
+
+                merged = {**existing, **validated_patch}
+                if isinstance(existing.get("discovery"), dict) and isinstance(validated_patch.get("discovery"), dict):
+                    merged["discovery"] = {**existing["discovery"], **validated_patch["discovery"]}
+                merged = validate_node(merged)
+                if any(
+                    other_index != index and other.get("id") == merged["id"]
+                    for other_index, other in enumerate(data["nodes"])
+                ):
+                    message = f"node {merged['id']} already exists"
+                    raise NodeValidationError(message)
+                data["nodes"][index] = merged
+                self._save(data)
+                return {"node": merged, "upserted": "updated"}
+
+            if any(existing.get("id") == candidate["id"] for existing in data["nodes"]):
+                message = f"node {candidate['id']} already exists"
+                raise NodeValidationError(message)
+            data["nodes"].append(candidate)
+            self._save(data)
+            return {"node": candidate, "upserted": "created"}
 
     def delete_node(self, node_id: str) -> bool:
         with self._exclusive_lock():

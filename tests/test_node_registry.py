@@ -1,3 +1,5 @@
+import threading
+
 from pi_camera_in_docker.node_registry import FileNodeRegistry, NodeValidationError
 
 
@@ -150,3 +152,40 @@ def test_load_raises_validation_error_for_corrupted_registry_json(tmp_path):
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
         assert "node registry file is corrupted and cannot be parsed" in str(exc)
+
+
+def test_upsert_node_is_atomic_for_concurrent_creates(tmp_path):
+    registry = FileNodeRegistry(str(tmp_path / "registry.json"))
+    barrier = threading.Barrier(2)
+    results = []
+
+    def announce(name: str):
+        create_value = _node("node-atomic", name)
+        patch_value = {
+            "name": name,
+            "base_url": "http://example.com",
+            "transport": "http",
+            "capabilities": ["stream"],
+            "last_seen": "2024-01-01T00:00:00",
+            "labels": {},
+            "auth": {"type": "none"},
+            "discovery": {
+                "source": "discovered",
+                "last_announce_at": "2024-01-01T00:00:00",
+                "approved": False,
+            },
+        }
+        barrier.wait()
+        results.append(registry.upsert_node("node-atomic", create_value, patch_value)["upserted"])
+
+    t1 = threading.Thread(target=announce, args=("Node A",))
+    t2 = threading.Thread(target=announce, args=("Node B",))
+    t1.start()
+    t2.start()
+    t1.join()
+    t2.join()
+
+    assert sorted(results) == ["created", "updated"]
+    nodes = registry.list_nodes()
+    assert len(nodes) == 1
+    assert nodes[0]["id"] == "node-atomic"
