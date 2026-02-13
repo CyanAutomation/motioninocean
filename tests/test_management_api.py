@@ -13,6 +13,7 @@ def _new_management_client(monkeypatch, tmp_path):
     monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
     sys.modules.pop("main", None)
+    sys.modules.pop("management_api", None)
     main = importlib.import_module("main")
     return main.create_management_app(main._load_config()).test_client()
 
@@ -261,6 +262,7 @@ def test_corrupted_registry_file_returns_500_error_payload(monkeypatch, tmp_path
     monkeypatch.setenv("NODE_REGISTRY_PATH", str(registry_path))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
     sys.modules.pop("main", None)
+    sys.modules.pop("management_api", None)
     main = importlib.import_module("main")
     client = main.create_management_app(main._load_config()).test_client()
 
@@ -465,6 +467,53 @@ def test_discovery_announce_requires_bearer_token(monkeypatch, tmp_path):
     )
     assert invalid.status_code == 401
     assert invalid.json["error"]["code"] == "UNAUTHORIZED"
+
+
+def test_discovery_announce_blocks_private_ip_without_opt_in(monkeypatch, tmp_path):
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.delenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", raising=False)
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "node_id": "node-discovery-private-blocked",
+        "name": "Discovery Node Private",
+        "base_url": "http://192.168.1.50:8000",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    blocked = client.post(
+        "/api/discovery/announce",
+        json=payload,
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+
+    assert blocked.status_code == 403
+    assert blocked.json["error"]["code"] == "DISCOVERY_PRIVATE_IP_BLOCKED"
+    assert blocked.json["error"]["details"]["required_setting"] == "MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true"
+
+
+def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path):
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "true")
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "node_id": "node-discovery-private-allowed",
+        "name": "Discovery Node Private Allowed",
+        "base_url": "http://192.168.1.51:8000",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    created = client.post(
+        "/api/discovery/announce",
+        json=payload,
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+
+    assert created.status_code == 201
+    assert created.json["node"]["id"] == "node-discovery-private-allowed"
 
 
 def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
