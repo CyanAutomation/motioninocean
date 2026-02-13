@@ -3,6 +3,9 @@
  * Real-time stats, fullscreen, refresh, and connection monitoring
  */
 
+const REQUEST_TIMEOUT_MS = 5000;
+const CONFIG_POLL_INTERVAL_MS = 5000;
+
 const state = {
   updateInterval: null,
   baseUpdateFrequency: 2000,
@@ -406,11 +409,10 @@ function resetBackoff() {
  * Fetch stats from /metrics endpoint
  */
 async function fetchMetrics() {
-  const timeoutMs = 5000;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     controller.abort();
-  }, timeoutMs);
+  }, REQUEST_TIMEOUT_MS);
 
   try {
     const response = await fetch("/metrics", { signal: controller.signal });
@@ -603,7 +605,7 @@ function startConfigPolling() {
 
   state.configPollingInterval = setInterval(() => {
     updateConfig().catch((error) => console.error("Config update failed:", error));
-  }, 2000);
+  }, CONFIG_POLL_INTERVAL_MS);
 }
 
 /**
@@ -634,11 +636,10 @@ function toggleConfigGroup(groupName) {
  * Fetch configuration from /api/config endpoint
  */
 async function fetchConfig() {
-  const timeoutMs = 5000;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     controller.abort();
-  }, timeoutMs);
+  }, REQUEST_TIMEOUT_MS);
 
   try {
     const response = await fetch("/api/config", { signal: controller.signal });
