@@ -144,8 +144,7 @@ def test_api_config_returns_render_config_shape_in_management_mode(monkeypatch):
 
         assert body["runtime"]["camera_active"] is False
         assert isinstance(body["runtime"]["mock_camera"], bool)
-        assert isinstance(body["runtime"]["uptime_seconds"], float)
-        assert body["runtime"]["uptime_seconds"] >= 0.0
+        assert body["runtime"]["uptime_seconds"] is None
 
         assert body["limits"] == {
             "max_resolution": [4096, 4096],
@@ -166,6 +165,80 @@ def test_api_config_returns_webcam_connection_counts(monkeypatch):
     assert body["app_mode"] == "webcam"
     assert body["stream_control"]["max_stream_connections"] == 10
     assert body["stream_control"]["current_stream_connections"] == 0
+
+
+def test_api_config_webcam_includes_render_config_keys_and_defaulted_values(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APP_MODE", "management")
+        monkeypatch.setenv("MOCK_CAMERA", "true")
+        monkeypatch.setenv("RESOLUTION", "invalid")
+        monkeypatch.setenv("FPS", "invalid")
+        monkeypatch.setenv("TARGET_FPS", "invalid")
+        monkeypatch.setenv("JPEG_QUALITY", "1000")
+        monkeypatch.setenv("MAX_STREAM_CONNECTIONS", "invalid")
+        monkeypatch.setenv("MAX_FRAME_AGE_SECONDS", "invalid")
+        monkeypatch.setenv("MOTION_IN_OCEAN_CORS_ORIGINS", "")
+
+        sys.modules.pop("main", None)
+        main = importlib.import_module("main")
+        cfg = main._load_config()
+        cfg["app_mode"] = "webcam"
+        cfg["mock_camera"] = True
+        client = main.create_webcam_app(cfg).test_client()
+
+        response = client.get("/api/config")
+        assert response.status_code == 200
+        body = response.get_json()
+
+        _assert_render_config_contract(body)
+        assert body["camera_settings"] == {
+            "resolution": [640, 480],
+            "fps": 0,
+            "target_fps": 0,
+            "jpeg_quality": 90,
+        }
+        assert body["stream_control"]["max_stream_connections"] == 10
+        assert body["stream_control"]["max_frame_age_seconds"] == 10.0
+        assert body["stream_control"]["cors_origins"] == "*"
+        assert isinstance(body["runtime"]["uptime_seconds"], float)
+        assert body["runtime"]["uptime_seconds"] >= 0.0
+
+
+def test_api_config_management_includes_render_config_keys_and_defaulted_values(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APP_MODE", "management")
+        monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "false")
+        monkeypatch.setenv("RESOLUTION", "invalid")
+        monkeypatch.setenv("FPS", "invalid")
+        monkeypatch.setenv("TARGET_FPS", "invalid")
+        monkeypatch.setenv("JPEG_QUALITY", "1000")
+        monkeypatch.setenv("MAX_STREAM_CONNECTIONS", "invalid")
+        monkeypatch.setenv("MAX_FRAME_AGE_SECONDS", "invalid")
+        monkeypatch.setenv("MOTION_IN_OCEAN_CORS_ORIGINS", "")
+
+        sys.modules.pop("main", None)
+        main = importlib.import_module("main")
+        client = main.create_management_app(main._load_config()).test_client()
+
+        response = client.get("/api/config")
+        assert response.status_code == 200
+        body = response.get_json()
+
+        _assert_render_config_contract(body)
+        assert body["camera_settings"] == {
+            "resolution": [640, 480],
+            "fps": 0,
+            "target_fps": 0,
+            "jpeg_quality": 90,
+        }
+        assert body["stream_control"]["max_stream_connections"] == 10
+        assert body["stream_control"]["current_stream_connections"] == 0
+        assert body["stream_control"]["max_frame_age_seconds"] == 10.0
+        assert body["stream_control"]["cors_origins"] == "*"
+        assert body["runtime"]["camera_active"] is False
+        assert body["runtime"]["uptime_seconds"] is None
 
 
 def test_request_logging_levels(monkeypatch):
@@ -279,6 +352,27 @@ def test_webcam_control_plane_endpoints_require_valid_bearer_when_token_set(monk
     assert authorized_ready.status_code in (200, 503)
     assert authorized_metrics.status_code == 200
     assert authorized_status.status_code == 200
+
+
+def _assert_render_config_contract(payload: dict):
+    for key in ("camera_settings", "stream_control", "runtime", "limits", "timestamp"):
+        assert key in payload
+
+    assert set(payload["camera_settings"]) >= {"resolution", "fps", "target_fps", "jpeg_quality"}
+    assert set(payload["stream_control"]) >= {
+        "max_stream_connections",
+        "current_stream_connections",
+        "max_frame_age_seconds",
+        "cors_origins",
+    }
+    assert set(payload["runtime"]) >= {"camera_active", "mock_camera", "uptime_seconds"}
+    assert set(payload["limits"]) >= {
+        "max_resolution",
+        "max_fps",
+        "min_jpeg_quality",
+        "max_jpeg_quality",
+    }
+    assert isinstance(payload["timestamp"], str)
 
 
 def test_webcam_api_test_mode_transitions_and_status_contract(monkeypatch):
