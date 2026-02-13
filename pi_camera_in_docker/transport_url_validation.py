@@ -20,9 +20,9 @@ def parse_docker_url(base_url: str) -> Tuple[str, int, str]:
         raise ValueError(error_message)
 
     container_id = parsed.path.lstrip("/")
-        error_message = "docker URL must include container ID (e.g., docker://proxy:2375/container-id)"
-        if not container_id:
-            raise ValueError(error_message)
+    error_message = "docker URL must include container ID (e.g., docker://proxy:2375/container-id)"
+    if not container_id:
+        raise ValueError(error_message)
 
     return hostname, port, container_id
 
