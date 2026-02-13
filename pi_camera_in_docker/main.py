@@ -530,9 +530,48 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
 
     @app.route("/api/config")
     def api_config():
+        tracker = state.get("connection_tracker")
+        recording_started = state.get("recording_started")
+        uptime_seconds = max(0.0, time.monotonic() - app.start_time_monotonic)
+
+        camera_active = False
+        if isinstance(recording_started, Event):
+            camera_active = recording_started.is_set()
+        elif state.get("picam2_instance") is not None:
+            camera_active = True
+
+        current_connections = tracker.get_count() if isinstance(tracker, ConnectionTracker) else 0
+
         return jsonify(
             {
-                "camera_settings": {"resolution": list(config["resolution"]), "fps": config["fps"]},
+                "camera_settings": {
+                    "resolution": list(config["resolution"]),
+                    "fps": config["fps"],
+                    "target_fps": config["target_fps"],
+                    "jpeg_quality": config["jpeg_quality"],
+                },
+                "stream_control": {
+                    "max_stream_connections": state.get(
+                        "max_stream_connections", config["max_stream_connections"]
+                    ),
+                    "current_stream_connections": current_connections,
+                    "max_frame_age_seconds": state.get(
+                        "max_frame_age_seconds", config["max_frame_age_seconds"]
+                    ),
+                    "cors_origins": os.environ.get("MOTION_IN_OCEAN_CORS_ORIGINS", ""),
+                },
+                "runtime": {
+                    "camera_active": camera_active,
+                    "mock_camera": config["mock_camera"],
+                    "uptime_seconds": round(uptime_seconds, 2),
+                },
+                "limits": {
+                    "max_resolution": [4096, 4096],
+                    "max_fps": 120,
+                    "min_jpeg_quality": 1,
+                    "max_jpeg_quality": 100,
+                },
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "app_mode": config["app_mode"],
             }
         ), 200
