@@ -8,6 +8,7 @@ import signal
 import socket
 import time
 from datetime import datetime, timezone
+from pathlib import Path # Moved here
 from threading import Event, RLock, Thread
 from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
@@ -193,10 +194,11 @@ def _detect_camera_devices() -> Dict[str, Any]:
     }
 
     try:
-            from pathlib import Path
-            # Check DMA heap devices
-            dma_heap_dir = "/dev/dma_heap"
-            if Path(dma_heap_dir).is_dir():            try:
+        from pathlib import Path
+        # Check DMA heap devices
+        dma_heap_dir = "/dev/dma_heap"
+        if Path(dma_heap_dir).is_dir():
+            try:
                 dma_devices = [f.name for f in Path(dma_heap_dir).iterdir()]
                 result["dma_heap_devices"] = [f"/dev/dma_heap/{d}" for d in dma_devices]
             except OSError:
