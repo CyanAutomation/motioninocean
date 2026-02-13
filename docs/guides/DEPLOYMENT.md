@@ -110,6 +110,39 @@ For a distributed setup with management hub + remote webcams:
    - Add webcam nodes via the management interface
    - Use the same `MANAGEMENT_AUTH_TOKEN` for secure communication
 
+
+### LAN Self-Registration (Discovery Announcements)
+
+Use discovery when webcam nodes should automatically register themselves with the management node.
+
+**Management host `.env` (required settings):**
+
+```bash
+MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
+NODE_DISCOVERY_SHARED_SECRET=<strong-random-token>
+# Required only when webcam nodes announce private/LAN IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true
+```
+
+**Webcam host `.env` (required settings):**
+
+```bash
+MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
+DISCOVERY_ENABLED=true
+DISCOVERY_MANAGEMENT_URL=http://<management-host>:8001
+DISCOVERY_TOKEN=<same-token-as-NODE_DISCOVERY_SHARED_SECRET>
+DISCOVERY_INTERVAL_SECONDS=30
+# Optional explicit id:
+# DISCOVERY_NODE_ID=node-kitchen-cam
+```
+
+**Security implications:**
+
+- Keep `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=false` unless you explicitly need private-IP announcements.
+- Enabling `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true` relaxes SSRF safeguards for private ranges; use it only on trusted internal networks.
+- Always set a strong `NODE_DISCOVERY_SHARED_SECRET`/`DISCOVERY_TOKEN`; unauthenticated discovery announcements are rejected.
+- This private-IP allowance applies to discovery registration policy only; do not use it as a substitute for perimeter firewall controls.
+
 ---
 
 ## Legacy: Root-Level Compose Files

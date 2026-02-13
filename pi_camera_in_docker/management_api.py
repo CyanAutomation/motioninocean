@@ -115,6 +115,46 @@ def _vet_resolved_addresses(addresses: Tuple[str, ...]) -> Tuple[str, ...]:
     return tuple(vetted)
 
 
+def _discovery_private_ip_block_response(base_url: str, blocked_target: str):
+    return _error_response(
+        "DISCOVERY_PRIVATE_IP_BLOCKED",
+        "discovery announcement blocked: private IP targets are disabled",
+        403,
+        details={
+            "base_url": base_url,
+            "blocked_target": blocked_target,
+            "reason": "private IP announcements require an explicit opt-in",
+            "remediation": (
+                "Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true on the management node "
+                "to allow LAN/private-IP discovery registrations. Enable only on trusted internal networks."
+            ),
+            "required_setting": "MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true",
+        },
+    )
+
+
+def _private_announcement_blocked(base_url: str) -> Optional[str]:
+    parsed = urlparse(base_url)
+    hostname = parsed.hostname
+    if not hostname or ALLOW_PRIVATE_IPS:
+        return None
+
+    try:
+        if _is_blocked_address(hostname):
+            return hostname
+    except ValueError:
+        try:
+            records = socket.getaddrinfo(hostname, parsed.port or None, proto=socket.IPPROTO_TCP)
+        except socket.gaierror:
+            # Keep existing registration behavior for unresolved hosts.
+            return None
+        for record in records:
+            resolved_ip = record[4][0]
+            if _is_blocked_address(resolved_ip):
+                return resolved_ip
+    return None
+
+
 def _format_connect_netloc(address: str, port: Optional[int]) -> str:
     host = f"[{address}]" if ":" in address else address
     if port is None:
@@ -821,6 +861,10 @@ def register_management_routes(
             validated = validate_node(candidate)
         except NodeValidationError as exc:
             return _error_response("VALIDATION_ERROR", str(exc), 400)
+
+        blocked_target = _private_announcement_blocked(validated["base_url"])
+        if blocked_target:
+            return _discovery_private_ip_block_response(validated["base_url"], blocked_target)
 
         try:
             existing = registry.get_node(validated["id"])
