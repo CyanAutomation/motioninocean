@@ -11,6 +11,14 @@ function extractAssertSinglePollingMode(source) {
   return match[0];
 }
 
+function extractStartConfigPolling(source) {
+  const match = source.match(/function startConfigPolling\(\) \{[\s\S]*?\n^}/m);
+  if (!match) {
+    throw new Error("startConfigPolling() definition not found");
+  }
+  return match[0];
+}
+
 test("assertSinglePollingMode only allows one polling mode at a time", () => {
   const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
   const assertSinglePollingModeFn = extractAssertSinglePollingMode(appJs);
@@ -51,4 +59,32 @@ test("assertSinglePollingMode only allows one polling mode at a time", () => {
     lastCall.message,
     "Invalid polling state: stats and config polling are both active.",
   );
+});
+
+test("startConfigPolling schedules a single 5s config polling interval", () => {
+  const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
+  const startConfigPollingFn = extractStartConfigPolling(appJs);
+
+  const setIntervalCalls = [];
+  const createdInterval = { id: "config-poll-interval" };
+  const context = {
+    state: { configPollingInterval: null },
+    CONFIG_POLL_INTERVAL_MS: 5000,
+    updateConfig: () => Promise.resolve(),
+    console: { error: () => {} },
+    setInterval: (callback, delayMs) => {
+      setIntervalCalls.push({ callback, delayMs });
+      return createdInterval;
+    },
+  };
+
+  vm.runInNewContext(`${startConfigPollingFn};`, context);
+
+  context.startConfigPolling();
+  context.startConfigPolling();
+  context.startConfigPolling();
+
+  assert.equal(setIntervalCalls.length, 1);
+  assert.equal(setIntervalCalls[0].delayMs, 5000);
+  assert.equal(context.state.configPollingInterval, createdInterval);
 });
