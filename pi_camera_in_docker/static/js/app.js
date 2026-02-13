@@ -1086,14 +1086,7 @@ function updatePresetRecommendation() {
   }
 }
 
-const escapeHtml = (unsafe) => {
-  return String(unsafe)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-};
+
 
 function updateReviewSummary() {
   const summary = document.getElementById("review-summary");
@@ -1330,22 +1323,8 @@ async function rescanSetupDevices() {
     if (rescanBtn) {
       rescanBtn.disabled = false;
       rescanBtn.textContent = "Re-scan devices";
-  if (deviceStatus && data.detected_devices) {
-    const devices = data.detected_devices;
-    if (Object.keys(devices).length > 0) {
-      let deviceInfo = "<strong>Detected Camera Devices:</strong><br>";
-      if (devices.video_devices?.length) deviceInfo += `📹 Video: ${escapeHtml(devices.video_devices.join(", "))}<br>`;
-      if (devices.media_devices?.length) deviceInfo += `📡 Media: ${escapeHtml(devices.media_devices.join(", "))}<br>`;
-      if (devices.dma_heap_devices?.length) deviceInfo += `💾 DMA: ${escapeHtml(devices.dma_heap_devices.join(", "))}<br>`;
-      if (devices.vchiq_device) deviceInfo += "🔧 VCHIQ: Detected<br>";
-      deviceStatus.innerHTML = deviceInfo;
-      deviceStatus.className = "device-status detected";
-    } else {
-      deviceStatus.textContent = "No camera devices detected (may be normal on non-Pi systems)";
-      deviceStatus.className = "device-status";
     }
   }
-}
 
 function updateSetupUI(data) {
   state.setupDetectedDevices = data.detected_devices || state.setupDetectedDevices || {};
