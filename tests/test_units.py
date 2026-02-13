@@ -467,6 +467,92 @@ def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypa
         "vchiq_exists": True,
     }
 
+
+def test_shutdown_camera_clears_recording_started_for_real_camera_path():
+    """Shutdown should clear recording_started and stop an active real camera instance."""
+    from threading import Event, RLock
+
+    import main
+
+    class FakePicam:
+        def __init__(self):
+            self.started = True
+            self.stop_calls = 0
+
+        def stop_recording(self):
+            self.stop_calls += 1
+
+    picam = FakePicam()
+    recording_started = Event()
+    recording_started.set()
+
+    state = {
+        "shutdown_requested": Event(),
+        "recording_started": recording_started,
+        "camera_lock": RLock(),
+        "picam2_instance": picam,
+    }
+
+    main._shutdown_camera(state)
+
+    assert state["shutdown_requested"].is_set()
+    assert not state["recording_started"].is_set()
+    assert picam.stop_calls == 1
+    assert state["picam2_instance"] is None
+
+
+def test_shutdown_updates_ready_metrics_and_api_status_immediately():
+    """Control-plane status routes should reflect shutdown without waiting for frame thread teardown."""
+    import main
+    from shared import register_shared_routes
+
+    app, state = main._create_base_app(
+        {
+            "app_mode": "webcam",
+            "resolution": (640, 480),
+            "fps": 0,
+            "target_fps": 0,
+            "jpeg_quality": 90,
+            "max_frame_age_seconds": 10.0,
+            "max_stream_connections": 10,
+            "pi3_profile_enabled": False,
+            "mock_camera": True,
+            "cors_enabled": False,
+            "allow_pykms_mock": False,
+            "node_registry_path": "/tmp/node-registry.json",
+            "management_auth_token": "",
+        }
+    )
+
+    register_shared_routes(
+        app,
+        state,
+        get_stream_status=lambda: {
+            "frames_captured": 7,
+            "current_fps": 12.5,
+            "last_frame_age_seconds": 0.1,
+        },
+    )
+
+    state["recording_started"].set()
+    client = app.test_client()
+
+    assert client.get("/ready").status_code == 200
+    assert client.get("/metrics").get_json()["camera_active"] is True
+    assert client.get("/api/status").get_json()["camera_active"] is True
+
+    main._shutdown_camera(state)
+
+    ready = client.get("/ready")
+    metrics = client.get("/metrics")
+    api_status = client.get("/api/status")
+
+    assert ready.status_code == 503
+    assert ready.get_json()["status"] == "not_ready"
+    assert metrics.get_json()["camera_active"] is False
+    assert api_status.get_json()["camera_active"] is False
+    assert api_status.get_json()["stream_available"] is False
+
 def test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes(monkeypatch):
     """Both camera-info discovery modes should reach camera setup without ImportError."""
     import importlib

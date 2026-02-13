@@ -712,6 +712,10 @@ def _shutdown_camera(state: Dict[str, Any]) -> None:
     if shutdown_requested is not None:
         shutdown_requested.set()
 
+    recording_started: Optional[Event] = state.get("recording_started")
+    if recording_started is not None:
+        recording_started.clear()
+
     camera_lock: Optional[RLock] = state.get("camera_lock")
     if camera_lock is None:
         logger.warning("Camera lock not found in shutdown state")
