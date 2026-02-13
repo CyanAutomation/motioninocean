@@ -708,10 +708,12 @@ function showDiagnosticResults(diagnosticResult) {
   // Show in alert (and copy to clipboard)
   alert(message);
   
-  // Also try to copy to clipboard
-  navigator.clipboard.writeText(message).catch(() => {
-    // Silently fail if clipboard API not available
-  });
+  // Also try to copy to clipboard when supported
+  if (typeof globalThis.navigator?.clipboard?.writeText === "function") {
+    globalThis.navigator.clipboard.writeText(message).catch(() => {
+      // Silently fail on async clipboard write errors
+    });
+  }
 }
 
 async function setDiscoveryApproval(nodeId, decision) {
