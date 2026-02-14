@@ -6,6 +6,39 @@ This document contains backend-specific requirements only. For shared problem st
 
 ## Backend Requirements
 
+### Multi-Host Architecture Overview
+
+```mermaid
+graph LR
+    subgraph "Cameras"
+        WC1["Webcam Host 1<br/>(APP_MODE=webcam)"]
+        WC2["Webcam Host 2<br/>(APP_MODE=webcam)"]
+    end
+    subgraph "Management"
+        MGMT["Management Host<br/>(APP_MODE=management)"]
+    end
+    subgraph "Persistence"
+        REG["Node Registry<br/>(JSON file)"]
+    end
+    subgraph "User"
+        BR["Browser"]
+    end
+
+    WC1 -->|POST /api/discovery/announce| MGMT
+    WC2 -->|POST /api/discovery/announce| MGMT
+    MGMT -->|Upserts| REG
+    BR -->|GET /nodes<br/>POST /nodes/{id}| MGMT
+    MGMT -->|GET /api/status<br/>/health, /ready, /metrics| WC1
+    MGMT -->|GET /api/status<br/>/health, /ready, /metrics| WC2
+```
+
+**Key flows:**
+- Webcams announce themselves to management (discovery)
+- Management proxies queries to webcams (status aggregation)
+- Registry persists node metadata with atomic file locking
+
+---
+
 ### 1. MJPEG Streaming Endpoint (P1)
 
 **Endpoint:** `GET /stream.mjpg`
@@ -15,6 +48,34 @@ This document contains backend-specific requirements only. For shared problem st
 - Streams multipart MJPEG frames with `boundary=frame`.
 - Returns HTTP `503` if backend is not ready to serve frames.
 - Sends cache-control headers to avoid stale stream caching.
+
+#### Streaming Pipeline
+
+```mermaid
+sequenceDiagram
+    participant Encoder as libcamera<br/>encoder
+    participant Buffer as FrameBuffer
+    participant Stats as StreamStats
+    participant Client as HTTP client(s)
+
+    loop frame capture
+        Encoder->>Buffer: write(frame)
+        Buffer->>Buffer: notify Condition<br/>for readers
+    end
+
+    Client->>Stats: snapshot()
+    Stats->>Stats: acquire Lock
+    Stats-->>Client: {frame_count, fps, age}
+    note over Stats: Monotonic clock prevents<br/>system clock skew
+```
+
+**Concurrency details:**
+- Frame writes use `Condition` to efficiently notify waiting readers
+- Stats snapshot holds `Lock` only long enough to read counters
+- FPS calculated from rolling 30-frame window (monotonic timestamps)
+- Optional frame throttling via `_target_frame_interval`
+- Connection limit enforced via `ConnectionTracker`
+- Oversized frames dropped if `> MAX_FRAME_SIZE`
 
 ### 2. Health & Readiness Probes (P1)
 
@@ -61,6 +122,30 @@ When `MOCK_CAMERA=true`, backend skips CSI initialization and emits synthetic JP
 
 When `APP_MODE=management`, backend exposes control-plane APIs.
 
+### Security: SSRF Protection
+
+```mermaid
+flowchart LR
+    A["HTTP Request to<br/>/api/nodes/{id}/status"] --> B["Parse IP from<br/>node.base_url"]
+    B --> C{{"IP in private set?<br/>RFC1918, loopback,<br/>link-local, reserved"}}
+    C -->|Yes| D{{"MOTION_IN_OCEAN<br/>_ALLOW_PRIVATE_IPS<br/>=true?"}}
+    C -->|No| E["Proxy request"]
+    D -->|Yes| E
+    D -->|No| F["403 Forbidden<br/>SSRF_BLOCKED"]
+    E --> G["HTTP GET with<br/>bearer token"]
+    G --> H["Response or<br/>error classification"]
+    F --> I["Return error"]
+    H --> I
+```
+
+**Configuration:**
+- Default: `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=false` (production-safe)
+- For LANs: Set to `true`
+- Bearer token in `Authorization: Bearer <token>` header
+- Error codes: `SSRF_BLOCKED`, `NODE_UNAUTHORIZED`, `NODE_UNREACHABLE`
+
+---
+
 ### Node Registry Model
 
 Node schema fields:
@@ -76,6 +161,65 @@ Node schema fields:
 
 Persistence uses registry abstraction (initially file-backed via `NODE_REGISTRY_PATH`).
 
+#### Node Discovery Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Announced: Webcam announces
+    
+    Announced: source="discovered"
+    Announced: approved=false
+    
+    Announced --> Approved: Admin approves<br/>POST /api/nodes/{id}/discovery/approve
+    
+    Approved: source="discovered"
+    Approved: approved=true
+    
+    Announced --> Deleted: Admin deletes
+    Approved --> Deleted: Admin deletes
+    
+    Deleted: [*]
+    
+    note right of Announced
+        Registration pending;
+        hidden from /api/management/overview
+    end note
+    
+    note right of Approved
+        Ready for aggregation;
+        /api/nodes/{id}/status queryable
+    end note
+```
+
+**Atomicity:** Registry lock ensures concurrent announcements from multiple webcams are serialized.
+
+#### Discovery Sequence Flow
+
+```mermaid
+sequenceDiagram
+    participant Webcam as Webcam<br/>Announcer
+    participant Mgmt as Management<br/>Backend
+    participant Reg as Registry
+
+    loop every DISCOVERY_ANNOUNCE_INTERVAL_SECONDS
+        Webcam->>Webcam: Generate stable node_id<br/>(hostname + MAC hash)
+        Webcam->>Mgmt: POST /api/discovery/announce
+        Mgmt->>Mgmt: Validate bearer token
+        Mgmt->>Mgmt: Parse IP address
+        Mgmt->>Mgmt: SSRF check (unless<br/>ALLOW_PRIVATE_IPS=true)
+        alt SSRF blocked
+            Mgmt-->>Webcam: 403 Forbidden
+        else SSRF allowed
+            Mgmt->>Reg: Acquire lock, upsert
+            note over Reg: Creates new node or<br/>updates last_seen
+            Reg-->>Mgmt: Locked and written
+            Mgmt-->>Webcam: 200 OK
+        end
+    end
+```
+
+**Resilience:** Announcements repeat (not one-shot); failures are retried on next cycle.
+
 ### Endpoints
 
 - `GET /api/nodes`
@@ -86,6 +230,63 @@ Persistence uses registry abstraction (initially file-backed via `NODE_REGISTRY_
 - `GET /api/nodes/{id}/status`
 - `POST /api/nodes/{id}/actions/{action}`
 - `GET /api/management/overview`
+
+#### Management Status Aggregation
+
+```mermaid
+sequenceDiagram
+    participant UI as Client / UI
+    participant Mgmt as Management<br/>Backend
+    participant Nodes as Webcam<br/>Nodes
+
+    UI->>Mgmt: GET /api/management/overview
+    Mgmt->>Mgmt: Read approved nodes from registry
+    note over Mgmt: Acquire lock, filter approved=true
+    
+    par Parallel status queries
+        Mgmt->>Nodes: GET /api/nodes/{id1}/status
+        Nodes-->>Mgmt: 200 {stream_available,<br/>camera_active, fps}
+    and
+        Mgmt->>Nodes: GET /api/nodes/{id2}/status
+        Nodes-->>Mgmt: Connection timeout
+    and
+        Mgmt->>Nodes: GET /api/nodes/{id3}/status
+        Nodes-->>Mgmt: 401 Unauthorized
+    end
+    
+    Mgmt->>Mgmt: Classify errors:<br/>UNREACHABLE, UNAUTHORIZED,<br/>INVALID_RESPONSE
+    Mgmt->>Mgmt: Aggregate into summary
+    Mgmt-->>UI: 200 {nodes: [...],<br/>summary, errors}
+```
+
+**Status Aggregation Flowchart:**
+
+```mermaid
+flowchart TD
+    A["GET /api/management/overview"] --> B["Read registry lock,<br/>collect approved nodes"]
+    B --> C["For each node"]
+    C --> D{{"Node<br/>transport?"}}
+    D -->|http| E["Parse base_url IP"]
+    D -->|docker| F["Build container path"]
+    E --> G{{"SSRF<br/>check"}}
+    G -->|Blocked| H["Error:<br/>SSRF_BLOCKED"]
+    G -->|Allowed| I["HTTP GET /api/status"]
+    F --> J["Docker exec"]
+    I --> K{{"Response<br/>ok?"}}
+    K -->|timeout| L["Error:<br/>UNREACHABLE"]
+    K -->|401/403| M["Error:<br/>UNAUTHORIZED"]
+    K -->|200| N["Parse response"]
+    K -->|invalid JSON| O["Error:<br/>INVALID_RESPONSE"]
+    J --> N
+    H --> P["Aggregate all results"]
+    L --> P
+    M --> P
+    N --> P
+    O --> P
+    P --> Q["Return overview<br/>with summary stats"]
+```
+
+**Performance note:** Queries execute in parallel with per-node timeout to prevent slow aggregation.
 
 ### Error Schema
 
