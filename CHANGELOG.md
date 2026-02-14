@@ -11,6 +11,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.14.3] - 2026-02-14
+
+- Merge pull request #264 from CyanAutomation/codex/add-frontend-tests-for-showdiagnosticresults
+- Merge pull request #263 from CyanAutomation/codex/add-frontend-test-for-startconfigpolling
+- Expand diagnostic panel frontend coverage and accessibility
+- Add frontend test coverage for config polling interval
+- Merge pull request #262 from CyanAutomation/codex/update-config-panel-footer-text
+- Update config panel auto-update interval text to 5 seconds
+- Merge pull request #261 from CyanAutomation/codex/implement-diagnostic-results-summary-banner
+- Add diagnostic summary banner with remediation CTAs
+- Merge pull request #260 from CyanAutomation/codex/update-polling-interval-to-5000-ms
+- Increase config polling interval to 5s
+- Merge pull request #259 from CyanAutomation/codex/extend-diagnose-payload-in-management_api
+- Add structured diagnose statuses and severity-driven UI rendering
+- Merge pull request #258 from CyanAutomation/codex/add-diagnostics-section-to-management-page
+- Add structured diagnostics panel for node management
+
 ## [1.14.2] - 2026-02-13
 
 - feat: enhance BASE_URL auto-detection for discovery announcements and update environment variable documentation
