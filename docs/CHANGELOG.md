@@ -11,6 +11,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.14.8] - 2026-02-15
+
+- Harden settings load path against concurrent file changes (#294)
+- Use configured CORS origins in middleware (#293)
+- Handle invalid feature flag maps in settings loading/diff (#292)
+- Make frame selection resilient to frame list size changes (#291)
+- Use relative settings schema import in config validator (#290)
+- Refactor frame generation to fetch outside generator lock (#289)
+- Codex-generated pull request (#288)
+- Handle malformed numeric env values in settings changes (#287)
+- Unify runtime settings merge contract for settings API (#286)
+- Reload persisted settings after patch save (#285)
+- Fix settings changes resolution parsing and add endpoint tests (#284)
+- Make application settings mutations atomic under lock (#283)
+- Preserve HTTPS hostname for TLS while pinning vetted node IPs (#282)
+
 ## [1.14.7] - 2026-02-15
 
 - chore: Update VERSION to 1.14.6 and correct CHANGELOG path in release script
