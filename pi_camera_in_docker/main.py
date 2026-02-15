@@ -1,4 +1,9 @@
 #!/usr/bin/python3
+"""Motion In Ocean Flask application initialization and mode selection.
+
+Handles creation of Flask apps for webcam and management modes, configuration loading,
+device detection, and camera initialization (both mock and real hardware).
+"""
 
 import io
 import logging
@@ -65,6 +70,14 @@ feature_flags.load()
 
 
 def _redacted_url_for_logs(url: str) -> str:
+    """Redact query parameters and fragments from URL for safe logging.
+
+    Args:
+        url: Full URL to redact.
+
+    Returns:
+        URL with only scheme, host, port, and path visible (credentials/query removed).
+    """
     parts = urlsplit(url)
     host = parts.hostname or ""
     if parts.port is not None:
@@ -73,6 +86,17 @@ def _redacted_url_for_logs(url: str) -> str:
 
 
 def _parse_resolution(resolution_str: str) -> Tuple[int, int]:
+    """Parse resolution string to (width, height) tuple.
+
+    Args:
+        resolution_str: Resolution in format 'WIDTHxHEIGHT' (e.g., '640x480').
+
+    Returns:
+        Tuple of (width, height) as integers.
+
+    Raises:
+        ValueError: If format is invalid or dimensions are out of range (1-4096).
+    """
     parts = resolution_str.split("x")
     if len(parts) != 2:
         message = f"Invalid resolution format: {resolution_str}"
@@ -101,11 +125,25 @@ def _load_advanced_config() -> Dict[str, Any]:
 
 
 def _load_config() -> Dict[str, Any]:
-    """Load all configuration from environment variables using helper functions."""
+    """Load all configuration from environment variables.
+
+    Returns:
+        Complete configuration dict with all environment variables and defaults.
+    """
     return load_env_config()
 
 
 def _merge_config_with_settings(env_config: Dict[str, Any]) -> Dict[str, Any]:
+    """Merge environment configuration with persisted application settings.
+
+    Applies runtime overrides from JSON settings file to environment-based config.
+
+    Args:
+        env_config: Configuration dict loaded from environment variables.
+
+    Returns:
+        Merged configuration with persisted settings applied as overrides.
+    """
     return merge_config_with_settings(env_config)
 
 
@@ -519,6 +557,17 @@ def _init_app_state(config: Dict[str, Any]) -> dict:
 
 
 def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
+    """Create base Flask application with middleware, state, and shared routes.
+
+    Initializes Flask app, rate limiter, and application state dict. Registers
+    universal endpoints (/api/config, /api/feature-flags, /api/setup/*).
+
+    Args:
+        config: Application configuration dict with resolution, fps, auth tokens, etc.
+
+    Returns:
+        Tuple of (Flask app, Limiter instance, state dict).
+    """
     # Initialize Flask app and limiter
     app, limiter = _init_flask_app(config)
 
@@ -533,6 +582,11 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
 
     @app.route("/")
     def index() -> str:
+        """Serve the main HTML page based on app mode.
+
+        Returns:
+            HTML page: 'management.html' for management mode, 'index.html' for webcam mode.
+        """
         if config["app_mode"] == "management":
             return render_template("management.html")
         return render_template(
@@ -541,6 +595,11 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
 
     @app.route("/api/config")
     def api_config():
+        """Get comprehensive application configuration and health status.
+
+        Returns:
+            JSON object with camera settings, stream control info, runtime status, and health checks.
+        """
         def _indicator(state_value: str, label: str, details: str) -> Dict[str, str]:
             return {
                 "state": state_value,
@@ -718,6 +777,11 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
 
     @app.route("/api/feature-flags")
     def api_flags():
+        """Get all enabled feature flags.
+
+        Returns:
+            JSON object with flag names and their enabled/disabled status.
+        """
         return jsonify(feature_flags.get_all_flags()), 200
 
     @app.route("/api/setup/templates", methods=["GET"])
@@ -803,6 +867,14 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
 
 
 def _register_request_logging(app: Flask) -> None:
+    """Register request/response logging middleware.
+
+    Logs all HTTP requests with correlation IDs, latency, and status code.
+    Health checks are logged at DEBUG level to reduce noise.
+
+    Args:
+        app: Flask application instance.
+    """
     health_endpoints = {"/health", "/ready"}
 
     @app.before_request
@@ -831,6 +903,17 @@ def _register_request_logging(app: Flask) -> None:
 
 
 def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
+    """Create Flask app for management mode (node hub).
+
+    Loads configuration, registers management routes, settings routes, and
+    discovery endpoints. Initializes node registry and request logging.
+
+    Args:
+        config: Optional configuration dict. If None, loads from environment.
+
+    Returns:
+        Flask application instance configured for management mode.
+    """
     cfg = _load_config() if config is None else config
     cfg = _merge_config_with_settings(cfg)  # Apply persisted settings
     cfg["app_mode"] = "management"
@@ -858,6 +941,18 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
 
 
 def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
+    """Create Flask app for webcam mode (streaming camera node).
+
+    Loads configuration, initializes camera (real or mock), sets up frame buffer,
+    connection tracking, and stream statistics. Registers webcam and settings routes.
+    Optionally starts discovery announcer for self-registration with management hub.
+
+    Args:
+        config: Optional configuration dict. If None, loads from environment.
+
+    Returns:
+        Flask application instance configured for webcam mode.
+    """
     cfg = _load_config() if config is None else config
     cfg = _merge_config_with_settings(cfg)  # Apply persisted settings
     cfg["app_mode"] = "webcam"
@@ -1018,6 +1113,17 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
 
 
 def create_app_from_env() -> Flask:
+    """Create Flask app by loading and validating environment configuration.
+
+    Performs preflight configuration validation before app creation. Routes to
+    create_management_app or create_webcam_app based on APP_MODE env var.
+
+    Returns:
+        Flask application instance configured for the detected app mode.
+
+    Raises:
+        ValueError: If configuration validation fails.
+    """
     cfg = _load_config()
     try:
         validate_all_config(cfg)
@@ -1119,6 +1225,14 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
 
 
 def _shutdown_camera(state: Dict[str, Any]) -> None:
+    """Gracefully shut down the camera recording and frame buffer.
+
+    Sets shutdown request flag, clears recording flag, stops picamera2 if active,
+    and cleans up resources. Errors during shutdown are logged but don't raise.
+
+    Args:
+        state: Application state dict with camera_lock, picam2_instance, etc.
+    """
     shutdown_requested: Optional[Event] = state.get("shutdown_requested")
     if shutdown_requested is not None:
         shutdown_requested.set()
@@ -1147,6 +1261,18 @@ def _shutdown_camera(state: Dict[str, Any]) -> None:
 
 
 def _get_camera_info(picamera2_cls: Any) -> Tuple[list, str]:
+    """Get list of available cameras from picamera2 library.
+
+    Attempts multiple detection methods (module function -> class method)
+    to enumerate available cameras. Logs warnings if detection fails.
+
+    Args:
+        picamera2_cls: Picamera2 class reference for introspection.
+
+    Returns:
+        Tuple of (camera_info_list, detection_method_used_string).
+        Empty list if all detection methods fail.
+    """
     try:
         return _picamera2_global_camera_info(), "picamera2.global_camera_info"
     except (ImportError, AttributeError, NameError):
@@ -1301,6 +1427,16 @@ def _init_real_camera(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
 
 
 def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
+    """Initialize and start camera frame capture for webcam mode.
+
+    Performs device availability preflight check, then initializes either
+    mock camera (from MOCK_CAMERA flag) or real camera hardware and starts
+    frame capture threads.
+
+    Args:
+        state: Application state dict to populate with camera instances.
+        cfg: Configuration dict with camera settings and feature flags.
+    """
     # Picamera2() / create_video_configuration / start_recording markers are intentionally preserved.
 
     # Validate device availability early
@@ -1313,6 +1449,18 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
 
 
 def handle_shutdown(app: Flask, signum: int, _frame: Optional[object]) -> None:
+    """Handle SIGTERM/SIGINT by gracefully shutting down camera and discovery.
+
+    Stops discovery announcer if active, shuts down camera, and exits with signal number.
+
+    Args:
+        app: Flask application instance.
+        signum: Signal number (SIGTERM=15, SIGINT=2).
+        _frame: Stack frame (unused).
+
+    Raises:
+        SystemExit: With exit code equal to signum.
+    """
     app_state = getattr(app, "motion_state", None)
     if isinstance(app_state, dict):
         announcer = app_state.get("discovery_announcer")

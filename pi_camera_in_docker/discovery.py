@@ -1,3 +1,10 @@
+"""Discovery and self-registration protocol for Motion In Ocean webcam nodes.
+
+Implements automatic node discovery where webcam nodes periodically announce
+their availability to a management hub. Includes exponential backoff retry logic,
+secure HTTP request handling, and graceful shutdown.
+"""
+
 import hashlib
 import json
 import logging
@@ -15,12 +22,28 @@ logger = logging.getLogger(__name__)
 
 
 def _stable_node_id(hostname: str) -> str:
+    """Generate stable node ID based on hostname and MAC address.
+
+    Args:
+        hostname: System hostname.
+
+    Returns:
+        Stable node ID string (consistent across restarts).
+    """
     mac = f"{uuid.getnode():012x}"
     digest = hashlib.sha256(f"{hostname}-{mac}".encode()).hexdigest()
     return f"node-{digest[:16]}"
 
 
 def _safe_management_url(management_url: str) -> str:
+    """Build safe management hub discovery endpoint URL.
+
+    Args:
+        management_url: Management hub base URL.
+
+    Returns:
+        Full URL to /api/discovery/announce endpoint.
+    """
     parts = urlsplit(management_url)
     host = parts.hostname or ""
     if parts.port is not None:
@@ -30,6 +53,14 @@ def _safe_management_url(management_url: str) -> str:
 
 
 def _redacted_url_for_logs(url: str) -> str:
+    """Redact query parameters and fragments from URL for safe logging.
+
+    Args:
+        url: Full URL to redact.
+
+    Returns:
+        URL with only scheme, host, port, and path visible.
+    """
     parts = urlsplit(url)
     host = parts.hostname or ""
     if parts.port is not None:
@@ -38,6 +69,12 @@ def _redacted_url_for_logs(url: str) -> str:
 
 
 class DiscoveryAnnouncer:
+    """Daemon thread for periodic self-registration with management hub.
+
+    Announces node availability at regular intervals with exponential backoff retry.
+    Runs in background thread and stops gracefully on shutdown.
+    """
+
     def __init__(
         self,
         *,
@@ -48,6 +85,16 @@ class DiscoveryAnnouncer:
         payload: Dict[str, Any],
         shutdown_event: Event,
     ):
+        """Initialize discovery announcer.
+
+        Args:
+            management_url: Management hub base URL.
+            token: Bearer token for discovery announcement authentication.
+            interval_seconds: Seconds between announcements (minimum 1.0).
+            node_id: Node identifier.
+            payload: Node registration payload dict.
+            shutdown_event: Threading event to signal shutdown.
+        """
         self.management_url = _safe_management_url(management_url)
         self.management_url_log = _redacted_url_for_logs(self.management_url)
         self.token = token
@@ -58,17 +105,31 @@ class DiscoveryAnnouncer:
         self._thread: Optional[Thread] = None
 
     def start(self) -> None:
+        """Start the discovery announcement daemon thread.
+
+        Safe to call multiple times (idempotent).
+        """
         if self._thread and self._thread.is_alive():
             return
         self._thread = Thread(target=self._run_loop, name="discovery-announcer", daemon=True)
         self._thread.start()
 
     def stop(self, timeout_seconds: float = 3.0) -> None:
+        """Stop the discovery announcement daemon thread gracefully.
+
+        Args:
+            timeout_seconds: Maximum time to wait for thread termination.
+        """
         self.shutdown_event.set()
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=timeout_seconds)
 
     def _announce_once(self) -> bool:
+        """Attempt a single announcement to management hub.
+
+        Returns:
+            True on success (HTTP 200/201), False on any error.
+        """
         body = json.dumps(self.payload).encode("utf-8")
         headers = {
             "Content-Type": "application/json",
@@ -117,6 +178,12 @@ class DiscoveryAnnouncer:
             return False
 
     def _run_loop(self) -> None:
+        """Main daemon loop with exponential backoff retry logic.
+
+        Continuously attempts announcements at configured interval.
+        On failure, uses exponential backoff up to 300 seconds.
+        Exits when shutdown_event is set.
+        """
         failures = 0
         wait_seconds = 0.0
         while not self.shutdown_event.wait(wait_seconds):
@@ -139,6 +206,17 @@ class DiscoveryAnnouncer:
 
 
 def build_discovery_payload(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Build node registration payload for discovery announcement.
+
+    Args:
+        config: Config dict with discovery_node_id and discovery_base_url.
+
+    Returns:
+        Node payload dict ready for announcement to management hub.
+
+    Raises:
+        ValueError: If discovery_base_url is not set in config.
+    """
     hostname = socket.gethostname() or "unknown-host"
     node_id = config.get("discovery_node_id") or _stable_node_id(hostname)
     base_url = config.get("discovery_base_url", "").rstrip("/")

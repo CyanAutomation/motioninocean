@@ -1,3 +1,10 @@
+"""Management API for Motion In Ocean: node registry, discovery, and status aggregation.
+
+Provides REST endpoints for registering remote camera nodes, approving/rejecting
+discovered nodes, querying node status, and executing actions on remote nodes.
+Includes comprehensive SSRF protection, DNS pinning, and secure HTTP request handling.
+"""
+
 import http.client
 import ipaddress
 import json
@@ -66,6 +73,11 @@ class NodeConnectivityError(ConnectionError):
 
 
 def _extract_bearer_token() -> Optional[str]:
+    """Extract bearer token from Authorization header.
+
+    Returns:
+        Bearer token string if present and valid, None otherwise.
+    """
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.lower().startswith("bearer "):
         return None
@@ -74,6 +86,14 @@ def _extract_bearer_token() -> Optional[str]:
 
 
 def _validate_node_base_url(base_url: str) -> None:
+    """Validate node base URL for basic format and blocked hosts.
+
+    Args:
+        base_url: Node base URL to validate.
+
+    Raises:
+        NodeRequestError: If URL is malformed or points to a blocked host.
+    """
     parsed = urlparse(base_url)
     hostname = parsed.hostname
     if parsed.scheme not in {"http", "https"} or not hostname:
@@ -87,6 +107,17 @@ def _validate_node_base_url(base_url: str) -> None:
 
 
 def _is_blocked_address(raw: Any) -> bool:
+    """Check if an IP address is blocked for SSRF protection.
+
+    Blocks: loopback, link-local, multicast, reserved, unspecified.
+    Private IPs are blocked unless MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true.
+
+    Args:
+        raw: IP address string or ipaddress object.
+
+    Returns:
+        True if address should be blocked, False otherwise.
+    """
     ip = ipaddress.ip_address(str(raw))
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
         ip = ip.ipv4_mapped
@@ -110,6 +141,17 @@ def _is_blocked_address(raw: Any) -> bool:
 
 
 def _vet_resolved_addresses(addresses: Tuple[str, ...]) -> Tuple[str, ...]:
+    """Filter resolved IP addresses for SSRF blocks.
+
+    Args:
+        addresses: Tuple of resolved IP addresses.
+
+    Returns:
+        Tuple of vetted addresses (blocked addresses removed).
+
+    Raises:
+        NodeRequestError: If all addresses are blocked.
+    """
     vetted: list[str] = []
     for address in addresses:
         if _is_blocked_address(address):
@@ -200,6 +242,18 @@ def _error_response(
     node_id: Optional[str] = None,
     details: Optional[Dict[str, Any]] = None,
 ):
+    """Build standardized error response JSON.
+
+    Args:
+        code: Error code (e.g., 'DISCOVERY_PRIVATE_IP_BLOCKED').
+        message: Error message.
+        status_code: HTTP status code.
+        node_id: Optional node ID for context.
+        details: Optional error details dict.
+
+    Returns:
+        Tuple of (jsonify response, status_code).
+    """
     payload: Dict[str, Any] = {
         "error": {
             "code": code,
@@ -282,6 +336,14 @@ def _sanitize_error_text(raw_error: str, limit: int = 240) -> str:
 
 
 def _classify_url_error(reason: Any) -> Tuple[str, str]:
+    """Classify URL/network errors into human-readable categories.
+
+    Args:
+        reason: Exception or error reason to classify.
+
+    Returns:
+        Tuple of (human_readable_reason, category_code).
+    """
     if isinstance(reason, (socket.timeout, TimeoutError)):
         return "request timed out", "timeout"
     if isinstance(reason, (ssl.SSLError, ssl.CertificateError)):
@@ -302,6 +364,25 @@ def _classify_url_error(reason: Any) -> Tuple[str, str]:
 
 
 def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[dict] = None):  # type: ignore
+    """Proxy HTTP request to remote node with DNS pinning and SSRF protection.
+
+    Performs DNS resolution, validates resolved IPs against SSRF rules, then
+    establishes HTTPS/HTTP connection with DNS pinning to prevent response spoofing.
+
+    Args:
+        node: Node dict with 'base_url' and optional 'auth' fields.
+        method: HTTP method (GET, POST, etc.).
+        path: URL path relative to node base_url.
+        body: Optional request body dict (will be JSON-encoded).
+
+    Returns:
+        Tuple of (http_status_code, response_json_dict).
+
+    Raises:
+        NodeRequestError: On URL validation or SSRF blocking.
+        NodeConnectivityError: On network errors (DNS, connection, TLS).
+        NodeInvalidResponseError: If node returns invalid JSON.
+    """
     base_url = node["base_url"].rstrip("/")
     _validate_node_base_url(base_url)
 
@@ -492,9 +573,16 @@ def _get_docker_container_status(
 
 
 def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Perform detailed diagnostics on a node registration and connectivity.
-    Returns detailed information for troubleshooting node connectivity issues.
+    """Perform comprehensive diagnostic checks on a registered node.
+
+    Validates node registration, URL formatting, DNS resolution, network connectivity,
+    and API endpoint accessibility. Returns detailed results and remediation guidance.
+
+    Args:
+        node: Node dict with id, base_url, transport, etc.
+
+    Returns:
+        Dict with diagnostics results, status checks, and troubleshooting guidance.
     """
     node_id = node["id"]
     base_url = node.get("base_url", "")
@@ -817,6 +905,18 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tuple]]:
+    """Fetch current status from a remote node via HTTP or Docker API.
+
+    Handles both HTTP and Docker transports. Returns node status dict or error tuple.
+
+    Args:
+        node: Node dict with id, base_url, transport, auth, etc.
+
+    Returns:
+        Tuple of (status_dict, error_tuple_or_none).
+        If successful: (status_dict, None).
+        If failed: ({}, (error_code, message, status_code, node_id, details)).
+    """
     node_id = node["id"]
     transport = node.get("transport", "http")
     base_url = node.get("base_url", "")
@@ -1011,6 +1111,19 @@ def register_management_routes(
     node_discovery_shared_secret: Optional[str] = None,
     limiter=None,
 ) -> None:
+    """Register all management API endpoints to Flask app.
+
+    Registers routes for node CRUD, discovery announcements, node status queries,
+    diagnostics, and action proxying. Includes bearer token authentication,
+    rate limiting, and SSRF protection.
+
+    Args:
+        app: Flask application instance.
+        registry_path: Path to persistent node registry JSON file.
+        auth_token: Optional bearer token for API authentication. If None, auth disabled.
+        node_discovery_shared_secret: Optional token for discovery announcements.
+        limiter: Optional Flask-Limiter instance for rate limiting.
+    """
     registry = FileNodeRegistry(registry_path)
     discovery_secret = node_discovery_shared_secret
     if discovery_secret is None:
@@ -1053,6 +1166,11 @@ def register_management_routes(
     @app.route("/api/nodes", methods=["GET"])
     @_maybe_limit("1000/minute")
     def list_nodes():
+        """List all registered nodes.
+
+        Returns:
+            JSON list of all node dicts from registry.
+        """
         try:
             nodes = registry.list_nodes()
         except NodeValidationError as exc:
@@ -1064,6 +1182,14 @@ def register_management_routes(
     @app.route("/api/discovery/announce", methods=["POST"])
     @_maybe_limit("10/minute")
     def announce_node():
+        """Receive node self-registration announcement (discovery protocol).
+
+        Creates or updates a node registration from a remote node's self-advertisement.
+        Validates node, checks SSRF rules, and marks as discovered (not approved by default).
+
+        Returns:
+            JSON response with node data and approval status.
+        """
         unauthorized = _enforce_discovery_auth()
         if unauthorized:
             return unauthorized
@@ -1219,6 +1345,16 @@ def register_management_routes(
     @app.route("/api/nodes/<node_id>/status", methods=["GET"])
     @_maybe_limit("1000/minute")
     def node_status(node_id: str):
+        """Get current status of a registered node.
+
+        Queries the node for its stream status, camera state, and connectivity.
+
+        Args:
+            node_id: Unique node identifier.
+
+        Returns:
+            JSON status dict with stream_available, camera_active, fps, connections, etc.
+        """
         try:
             node = registry.get_node(node_id)
         except NodeValidationError as exc:

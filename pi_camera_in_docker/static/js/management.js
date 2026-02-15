@@ -1,3 +1,11 @@
+/**
+ * Motion In Ocean Management Dashboard
+ *
+ * BUI for managing remote camera nodes, including registration, discovery, status monitoring,
+ * diagnostics, and remote action execution. Implements node CRUD operations, bearer token
+ * authentication, and real-time status polling.
+ */
+
 const tableBody = document.getElementById("nodes-table-body");
 const nodeForm = document.getElementById("node-form");
 const feedback = document.getElementById("form-feedback");
@@ -154,6 +162,15 @@ function getManagementBearerToken() {
   return tokenInput.value.trim();
 }
 
+/**
+ * Fetch from management API with bearer token authentication.
+ *
+ * @async
+ * @param {string} path - API endpoint path (e.g., "/api/nodes").
+ * @param {Object} [options={}] - Fetch options (method, body, headers, etc.).
+ * @returns {Promise<Response>} Fetch response.
+ * @throws {Error} If response is 401, shows authentication error hint.
+ */
 async function managementFetch(path, options = {}) {
   const token = getManagementBearerToken();
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
