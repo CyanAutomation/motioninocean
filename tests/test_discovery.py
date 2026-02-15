@@ -3,44 +3,54 @@ import threading
 import pytest
 
 
-def test_load_config_discovery_defaults(monkeypatch):
-    import main
+def test_load_config_discovery_defaults(monkeypatch, workspace_root):
+    original_path = sys.path.copy()
+    sys.path.insert(0, str(workspace_root)) # Add parent dir to sys.path
+    try:
+        import pi_camera_in_docker.main as main
 
-    monkeypatch.delenv("DISCOVERY_ENABLED", raising=False)
-    monkeypatch.delenv("DISCOVERY_MANAGEMENT_URL", raising=False)
-    monkeypatch.delenv("DISCOVERY_TOKEN", raising=False)
-    monkeypatch.delenv("DISCOVERY_INTERVAL_SECONDS", raising=False)
-    monkeypatch.delenv("DISCOVERY_NODE_ID", raising=False)
-    monkeypatch.delenv("BASE_URL", raising=False)
+        monkeypatch.delenv("DISCOVERY_ENABLED", raising=False)
+        monkeypatch.delenv("DISCOVERY_MANAGEMENT_URL", raising=False)
+        monkeypatch.delenv("DISCOVERY_TOKEN", raising=False)
+        monkeypatch.delenv("DISCOVERY_INTERVAL_SECONDS", raising=False)
+        monkeypatch.delenv("DISCOVERY_NODE_ID", raising=False)
+        monkeypatch.delenv("BASE_URL", raising=False)
 
-    cfg = main._load_config()
+        cfg = main._load_config()
 
-    assert cfg["discovery_enabled"] is False
-    assert cfg["discovery_management_url"] == "http://127.0.0.1:8001"
-    assert cfg["discovery_token"] == ""
-    assert cfg["discovery_interval_seconds"] == 30.0
-    assert cfg["discovery_node_id"] == ""
-    assert cfg["base_url"].startswith("http://")
+        assert cfg["discovery_enabled"] is False
+        assert cfg["discovery_management_url"] == "http://127.0.0.1:8001"
+        assert cfg["discovery_token"] == ""
+        assert cfg["discovery_interval_seconds"] == 30.0
+        assert cfg["discovery_node_id"] == ""
+        assert cfg["base_url"].startswith("http://")
+    finally:
+        sys.path = original_path
 
 
-def test_load_config_discovery_overrides(monkeypatch):
-    import main
+def test_load_config_discovery_overrides(monkeypatch, workspace_root):
+    original_path = sys.path.copy()
+    sys.path.insert(0, str(workspace_root)) # Add parent dir to sys.path
+    try:
+        import pi_camera_in_docker.main as main
 
-    monkeypatch.setenv("DISCOVERY_ENABLED", "true")
-    monkeypatch.setenv("DISCOVERY_MANAGEMENT_URL", "http://192.168.1.100:8001")
-    monkeypatch.setenv("DISCOVERY_TOKEN", "top-secret")
-    monkeypatch.setenv("DISCOVERY_INTERVAL_SECONDS", "12")
-    monkeypatch.setenv("DISCOVERY_NODE_ID", "node-override")
-    monkeypatch.setenv("BASE_URL", "http://camera.local:8000")
+        monkeypatch.setenv("DISCOVERY_ENABLED", "true")
+        monkeypatch.setenv("DISCOVERY_MANAGEMENT_URL", "http://192.168.1.100:8001")
+        monkeypatch.setenv("DISCOVERY_TOKEN", "top-secret")
+        monkeypatch.setenv("DISCOVERY_INTERVAL_SECONDS", "12")
+        monkeypatch.setenv("DISCOVERY_NODE_ID", "node-override")
+        monkeypatch.setenv("BASE_URL", "http://camera.local:8000")
 
-    cfg = main._load_config()
+        cfg = main._load_config()
 
-    assert cfg["discovery_enabled"] is True
-    assert cfg["discovery_management_url"] == "http://192.168.1.100:8001"
-    assert cfg["discovery_token"] == "top-secret"
-    assert cfg["discovery_interval_seconds"] == 12.0
-    assert cfg["discovery_node_id"] == "node-override"
-    assert cfg["base_url"] == "http://camera.local:8000"
+        assert cfg["discovery_enabled"] is True
+        assert cfg["discovery_management_url"] == "http://192.168.1.100:8001"
+        assert cfg["discovery_token"] == "top-secret"
+        assert cfg["discovery_interval_seconds"] == 12.0
+        assert cfg["discovery_node_id"] == "node-override"
+        assert cfg["base_url"] == "http://camera.local:8000"
+    finally:
+        sys.path = original_path
 
 
 def test_build_discovery_payload_uses_override_node_id():

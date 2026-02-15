@@ -544,9 +544,9 @@ def test_detect_devices_script_includes_v4l_subdev(workspace_root):
 def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspace_root):
     """Verify setup UI device detection captures /dev/v4l-subdev* nodes."""
     original_path = sys.path.copy()
-    sys.path.insert(0, str(workspace_root / "pi_camera_in_docker"))
+    sys.path.insert(0, str(workspace_root)) # Add parent dir to sys.path
     try:
-        import main
+        import pi_camera_in_docker.main as main
 
         existing_paths = {
             "/dev/vchiq",
@@ -573,12 +573,11 @@ def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspa
 def test_setup_ui_generated_compose_includes_v4l_subdev_mapping(workspace_root):
     """Verify setup UI compose generation emits /dev/v4l-subdev* mappings."""
     original_path = sys.path.copy()
-    sys.path.insert(0, str(workspace_root / "pi_camera_in_docker"))
+    sys.path.insert(0, str(workspace_root)) # Add parent dir to sys.path
     try:
-        import main
+        import pi_camera_in_docker.main as main
     finally:
-        sys.path[:] = original_path
-    import main
+        sys.path = original_path # Restore sys.path
 
     detected_devices = {
         "dma_heap_devices": ["/dev/dma_heap/system"],

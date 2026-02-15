@@ -16,19 +16,23 @@ sys.path.insert(0, str(workspace_root))
 
 def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch):
     """Preflight should summarize discovered node counts and samples."""
+    from pathlib import Path
     from pi_camera_in_docker import main
 
-    def fake_glob(pattern):
+    def fake_glob(self, pattern):
         matches = {
-            "/dev/video*": ["/dev/video0", "/dev/video1"],
-            "/dev/media*": ["/dev/media0"],
-            "/dev/v4l-subdev*": ["/dev/v4l-subdev0"],
-            "/dev/dma_heap/*": ["/dev/dma_heap/linux,cma", "/dev/dma_heap/system"],
+            "/dev/video*": [Path("/dev/video0"), Path("/dev/video1")],
+            "/dev/media*": [Path("/dev/media0")],
+            "/dev/v4l-subdev*": [Path("/dev/v4l-subdev0")],
+            "/dev/dma_heap/*": [Path("/dev/dma_heap/linux,cma"), Path("/dev/dma_heap/system")],
         }
         return matches.get(pattern, [])
 
-    monkeypatch.setattr(main.glob, "glob", fake_glob)
-    monkeypatch.setattr(main.os.path, "exists", lambda path: True)
+    def fake_exists(self):
+        return True
+
+    monkeypatch.setattr(Path, "glob", fake_glob)
+    monkeypatch.setattr(Path, "exists", fake_exists)
 
     logged_info = []
     monkeypatch.setattr(
@@ -46,19 +50,23 @@ def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch
 
 def test_check_device_availability_does_not_warn_when_video_nodes_exist(monkeypatch):
     """Preflight should not warn for missing non-video node groups when video nodes exist."""
+    from pathlib import Path
     from pi_camera_in_docker import main
 
-    def fake_glob(pattern):
+    def fake_glob(self, pattern):
         matches = {
-            "/dev/video*": ["/dev/video0"],
+            "/dev/video*": [Path("/dev/video0")],
             "/dev/media*": [],
             "/dev/v4l-subdev*": [],
-            "/dev/dma_heap/*": ["/dev/dma_heap/system"],
+            "/dev/dma_heap/*": [Path("/dev/dma_heap/system")],
         }
         return matches.get(pattern, [])
 
-    monkeypatch.setattr(main.glob, "glob", fake_glob)
-    monkeypatch.setattr(main.os.path, "exists", lambda path: True)
+    def fake_exists(self):
+        return True
+
+    monkeypatch.setattr(Path, "glob", fake_glob)
+    monkeypatch.setattr(Path, "exists", fake_exists)
 
     logged_warning = []
     monkeypatch.setattr(
@@ -74,19 +82,23 @@ def test_check_device_availability_does_not_warn_when_video_nodes_exist(monkeypa
 
 def test_check_device_availability_warns_when_video_nodes_missing(monkeypatch):
     """Preflight should warn when no video node is present, even if others exist."""
+    from pathlib import Path
     from pi_camera_in_docker import main
 
-    def fake_glob(pattern):
+    def fake_glob(self, pattern):
         matches = {
             "/dev/video*": [],
-            "/dev/media*": ["/dev/media0"],
-            "/dev/v4l-subdev*": ["/dev/v4l-subdev0"],
-            "/dev/dma_heap/*": ["/dev/dma_heap/system"],
+            "/dev/media*": [Path("/dev/media0")],
+            "/dev/v4l-subdev*": [Path("/dev/v4l-subdev0")],
+            "/dev/dma_heap/*": [Path("/dev/dma_heap/system")],
         }
         return matches.get(pattern, [])
 
-    monkeypatch.setattr(main.glob, "glob", fake_glob)
-    monkeypatch.setattr(main.os.path, "exists", lambda path: True)
+    def fake_exists(self):
+        return True
+
+    monkeypatch.setattr(Path, "glob", fake_glob)
+    monkeypatch.setattr(Path, "exists", fake_exists)
 
     logged_warning = []
     monkeypatch.setattr(
@@ -106,10 +118,11 @@ def test_check_device_availability_warns_when_video_nodes_missing(monkeypatch):
 
 def test_check_device_availability_warns_when_no_camera_nodes_detected(monkeypatch):
     """No video/media/subdev nodes should trigger stronger enumeration warning."""
+    from pathlib import Path
     from pi_camera_in_docker import main
 
-    monkeypatch.setattr(main.glob, "glob", lambda pattern: [])
-    monkeypatch.setattr(main.os.path, "exists", lambda path: path != "/dev/vchiq")
+    monkeypatch.setattr(Path, "glob", lambda self, pattern: [])
+    monkeypatch.setattr(Path, "exists", lambda self: False)
 
     logged_warning = []
     monkeypatch.setattr(
