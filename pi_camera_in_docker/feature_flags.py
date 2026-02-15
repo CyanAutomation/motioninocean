@@ -127,6 +127,16 @@ class FeatureFlags:
             )
         )
 
+        self.register(
+            FeatureFlag(
+                name="CAT_GIF",
+                default=False,
+                category=FeatureFlagCategory.EXPERIMENTAL,
+                description="Enable animated cat GIFs as a mock camera stream.",
+                backward_compat_vars=["CAT_GIF"],
+            )
+        )
+
         # HARDWARE OPTIMIZATION FLAGS
         self.register(
             FeatureFlag(

@@ -84,7 +84,14 @@ class ApplicationSettings:
             path: Path to JSON settings file. Defaults to /data/application-settings.json
         """
         self.path = Path(path)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+        except (PermissionError, OSError) as e:
+            # In test environments or restricted permissions, directory creation may fail
+            # This is non-fatal - we'll just log and continue
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Could not create settings directory {self.path.parent}: {e}")
 
     def load(self) -> Dict[str, Any]:
         """
