@@ -8,6 +8,8 @@ Tests for:
 """
 
 import contextlib
+import json
+import logging
 import sys
 import uuid
 from pathlib import Path
@@ -73,23 +75,57 @@ class TestStructuredLogging:
             id2 = get_correlation_id()
             assert id1 == id2
 
-    def test_log_event_structures_data(self, capsys):
-        """Test that log_event structures data correctly"""
+    def test_log_event_structures_data(self, caplog):
+        """log_event should emit a structured payload with request correlation context."""
         app = Flask(__name__)
 
-        with app.app_context(), app.test_request_context():
-            log_event("node_approved", severity="INFO", node_id="node-1", approver="admin")
-            # log_event uses Python logging which outputs to logging system
-            # Just verify it doesn't raise an exception
+        with caplog.at_level(logging.INFO, logger="pi_camera_in_docker.structured_logging"):
+            with app.app_context(), app.test_request_context(headers={"X-Correlation-ID": "req-123"}):
+                caplog.clear()
+                log_event("node_approved", severity="INFO", node_id="node-1", approver="admin")
+                records = [
+                    record
+                    for record in caplog.records
+                    if record.name == "pi_camera_in_docker.structured_logging"
+                ]
+                assert records
+                message = records[-1].getMessage()
+                assert message.startswith("event=node_approved ")
+                payload = json.loads(message.split(" ", 1)[1])
+                assert payload["event_type"] == "node_approved"
+                assert payload["correlation_id"] == "req-123"
+                assert payload["node_id"] == "node-1"
+                assert payload["approver"] == "admin"
 
-    def test_log_error_structures_error_data(self, capsys):
-        """Test that log_error structures error data correctly"""
+    def test_log_error_structures_error_data(self, caplog):
+        """log_error should emit operation/type fields with structured JSON payload."""
         app = Flask(__name__)
 
-        with app.app_context(), app.test_request_context():
-            log_error("node_registration", "ValidationError", "node-1", "Invalid base URL")
-            # log_error uses Python logging which outputs to logging system
-            # Just verify it doesn't raise an exception
+        with caplog.at_level(logging.ERROR, logger="pi_camera_in_docker.structured_logging"):
+            with app.app_context(), app.test_request_context(headers={"X-Correlation-ID": "req-err-1"}):
+                caplog.clear()
+                log_error(
+                    operation="node_registration",
+                    error_type="ValidationError",
+                    message="Invalid base URL",
+                    resource_id="node-1",
+                    endpoint="/api/discovery/announce",
+                )
+                records = [
+                    record
+                    for record in caplog.records
+                    if record.name == "pi_camera_in_docker.structured_logging"
+                ]
+                assert records
+                message = records[-1].getMessage()
+                assert message.startswith("error operation=node_registration type=ValidationError ")
+                payload = json.loads(message[message.index("{") :])
+                assert payload["operation"] == "node_registration"
+                assert payload["error_type"] == "ValidationError"
+                assert payload["correlation_id"] == "req-err-1"
+                assert payload["resource_id"] == "node-1"
+                assert payload["message"] == "Invalid base URL"
+                assert payload["endpoint"] == "/api/discovery/announce"
 
 
 class TestConfigValidator:
@@ -284,24 +320,36 @@ class TestRateLimiting:
 class TestCorrelationIdIntegration:
     """Integration tests for correlation ID tracking"""
 
-    def test_correlation_id_middleware_installed(self):
-        """Test that correlation ID middleware is available in the app"""
-        # We can't easily test the full middleware without the complete app config
-        # But we verify the structured_logging module supports it
-        from pi_camera_in_docker.structured_logging import get_correlation_id
+    def test_request_correlation_id_is_propagated_to_structured_logs(self, caplog):
+        """Request header correlation IDs should flow into structured logs in the same request."""
+        app = Flask(__name__)
 
-        # Verify the function exists and is callable
-        assert callable(get_correlation_id)
+        with caplog.at_level(logging.INFO, logger="pi_camera_in_docker.structured_logging"):
+            with app.app_context(), app.test_request_context(headers={"X-Correlation-ID": "corr-fixed"}):
+                caplog.clear()
+                log_event("request_start")
+                log_event("request_end")
+                records = [
+                    record
+                    for record in caplog.records
+                    if record.name == "pi_camera_in_docker.structured_logging"
+                ]
+                assert len(records) >= 2
+                payloads = [json.loads(record.getMessage().split(" ", 1)[1]) for record in records[-2:]]
+                assert payloads[0]["correlation_id"] == "corr-fixed"
+                assert payloads[1]["correlation_id"] == "corr-fixed"
 
-    def test_correlation_id_in_logs_structure(self):
-        """Test that structured logging includes correlation ID in structured data"""
-
-        from pi_camera_in_docker.structured_logging import log_event
-
-        # Set up a simple logger handler to capture output
-
-        # Verify log_event is callable
-        assert callable(log_event)
+            with app.app_context(), app.test_request_context():
+                caplog.clear()
+                log_event("request_without_header")
+                records = [
+                    record
+                    for record in caplog.records
+                    if record.name == "pi_camera_in_docker.structured_logging"
+                ]
+                assert records
+                payload = json.loads(records[-1].getMessage().split(" ", 1)[1])
+                assert len(payload["correlation_id"]) == 32
 
 
 class TestConfigValidationHints:

@@ -519,6 +519,12 @@ function renderRows() {
     .join("");
 }
 
+/**
+ * Fetch all registered nodes from API and update UI.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function fetchNodes() {
   try {
     const response = await managementFetch("/api/nodes");
@@ -696,6 +702,13 @@ function getStoredNodeFormCollapsedPreference() {
   }
 }
 
+/**
+ * Submit node form (create or update).
+ *
+ * @async
+ * @param {Event} event - Form submission event.
+ * @returns {Promise<void>}
+ */
 async function submitNodeForm(event) {
   event.preventDefault();
   showFeedback("");
@@ -740,6 +753,12 @@ async function submitNodeForm(event) {
   }
 }
 
+/**
+ * Begin editing a node by loading it into the form.
+ *
+ * @param {string} nodeId - Node to edit.
+ * @returns {void}
+ */
 function beginEditNode(nodeId) {
   const node = nodes.find((entry) => entry.id === nodeId);
   if (!node) {
@@ -761,6 +780,13 @@ function beginEditNode(nodeId) {
   cancelEditBtn.classList.remove("hidden");
 }
 
+/**
+ * Fetch and display diagnostic results for a node.
+ *
+ * @async
+ * @param {string} nodeId - Node ID to diagnose.
+ * @returns {Promise<void>}
+ */
 async function diagnoseNode(nodeId) {
   try {
     const response = await managementFetch(`/api/nodes/${encodeURIComponent(nodeId)}/diagnose`);
@@ -1077,6 +1103,14 @@ function showDiagnosticResults(diagnosticResult) {
   }
 }
 
+/**
+ * Approve or reject a discovered node.
+ *
+ * @async
+ * @param {string} nodeId - Node to approve or reject.
+ * @param {string} decision - "approve" or "reject".
+ * @returns {Promise<void>}
+ */
 async function setDiscoveryApproval(nodeId, decision) {
   try {
     const response = await managementFetch(

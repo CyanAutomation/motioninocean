@@ -8,18 +8,35 @@ from typing import Any, Callable, Dict, Optional, Tuple
 from flask import Flask, Response, jsonify, request
 from werkzeug.exceptions import BadRequest
 
+"""Webcam mode implementation: camera frame capture, buffering, and MJPEG streaming.
+
+Provides frame capture from Picamera2 hardware into a thread-safe buffer with
+FPS statistics, connection tracking, and MJPEG stream endpoints.
+"""
 
 logger = logging.getLogger(__name__)
 
 
 class StreamStats:
+    """Thread-safe frame capture statistics.
+
+    Tracks cumulative frame count, last frame timestamp, and calculates
+    real-time FPS from a sliding window of frame timestamps.
+    """
+
     def __init__(self) -> None:
+        """Initialize statistics tracker."""
         self._lock = Lock()
         self._frame_count = 0
         self._last_frame_monotonic: Optional[float] = None
         self._frame_times_monotonic: deque[float] = deque(maxlen=30)
 
     def record_frame(self, monotonic_timestamp: float) -> None:
+        """Record a captured frame.
+
+        Args:
+            monotonic_timestamp: Frame timestamp from time.monotonic().
+        """
         with self._lock:
             self._frame_count += 1
             self._last_frame_monotonic = monotonic_timestamp
@@ -48,9 +65,23 @@ class StreamStats:
 
 
 class FrameBuffer(io.BufferedIOBase):
+    """Thread-safe circular buffer for camera frame storage.
+
+    Implements the output interface for Picamera2 JPEG encoder. Stores latest
+    frame in memory and notifies waiting consumers via condition variable.
+    Supports frame rate throttling to limit storage of rapidly arriving frames.
+    """
+
     def __init__(
         self, stats: StreamStats, max_frame_size: Optional[int] = None, target_fps: int = 0
     ) -> None:
+        """Initialize frame buffer.
+
+        Args:
+            stats: StreamStats instance for recording frame metrics.
+            max_frame_size: Maximum allowed frame size in bytes (oversized frames skipped).
+            target_fps: Target frames per second (0 = no throttling).
+        """
         self.frame: Optional[bytes] = None
         self.condition = Condition()
         self._stats = stats
@@ -59,6 +90,17 @@ class FrameBuffer(io.BufferedIOBase):
         self._last_frame_monotonic: Optional[float] = None
 
     def write(self, buf: bytes) -> int: # type: ignore
+        """Write frame data from encoder (Picamera2 interface).
+
+        Stores frame, records statistics, and notifies waiting consumers.
+        Frame rate is throttled if target_fps > 0. Oversized frames are skipped.
+
+        Args:
+            buf: JPEG-encoded frame bytes from Picamera2 encoder.
+
+        Returns:
+            Number of bytes written (always len(buf), even if frame was skipped).
+        """
         size = len(buf)
         if self._max_frame_size is not None and size > self._max_frame_size:
             return size
@@ -78,16 +120,36 @@ class FrameBuffer(io.BufferedIOBase):
 
 
 class ConnectionTracker:
+    """Thread-safe counter for active stream connections.
+
+    Tracks number of currently connected clients and enforces
+    connection limits when streaming to multiple clients.
+    """
+
     def __init__(self) -> None:
+        """Initialize connection tracker."""
         self._count = 0
         self._lock = Lock()
 
     def increment(self) -> int:
+        """Increment connection count.
+
+        Returns:
+            New total connection count.
+        """
         with self._lock:
             self._count += 1
             return self._count
 
     def try_increment(self, max_connections: int) -> bool:
+        """Attempt to increment within limit.
+
+        Args:
+            max_connections: Maximum allowed connections.
+
+        Returns:
+            True if successfully incremented, False if at limit.
+        """
         with self._lock:
             if self._count >= max_connections:
                 return False
@@ -95,16 +157,40 @@ class ConnectionTracker:
             return True
 
     def decrement(self) -> int:
+        """Decrement connection count.
+
+        Returns:
+            New total connection count.
+        """
         with self._lock:
             self._count -= 1
             return self._count
 
     def get_count(self) -> int:
+        """Get current connection count.
+
+        Returns:
+            Current number of connected clients.
+        """
         with self._lock:
             return self._count
 
 
 def import_camera_components(allow_pykms_mock: bool):
+    """Import Picamera2 and related encoder classes.
+
+    Handles missing pykms dependencies by creating mock modules if allowed.
+    This is necessary for development environments without full GPU support.
+
+    Args:
+        allow_pykms_mock: If True, create mock pykms module for unsupported environments.
+
+    Returns:
+        Tuple of (Picamera2 class, JpegEncoder class, FileOutput class).
+
+    Raises:
+        ModuleNotFoundError: If imports fail and mock is not allowed.
+    """
     try:
         from picamera2 import Picamera2
     except (ModuleNotFoundError, AttributeError) as e:
@@ -136,6 +222,15 @@ def import_camera_components(allow_pykms_mock: bool):
 
 
 def get_stream_status(stats: StreamStats, resolution: Tuple[int, int]) -> Dict[str, Any]:
+    """Get current stream statistics snapshot.
+
+    Args:
+        stats: StreamStats instance to query.
+        resolution: Current camera resolution (width, height) tuple.
+
+    Returns:
+        Dict with frames_captured, current_fps, resolution, last_frame_age_seconds.
+    """
     now = time.monotonic()
     frame_count, last_frame_time, current_fps = stats.snapshot()
     age = None if last_frame_time is None else round(now - last_frame_time, 2)
@@ -148,6 +243,16 @@ def get_stream_status(stats: StreamStats, resolution: Tuple[int, int]) -> Dict[s
 
 
 def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[str], bool]) -> None:
+    """Register webcam mode Flask routes for MJPEG streaming.
+
+    Registers /stream.mjpg and /webcam endpoints that serve MJPEG video stream
+    from the frame buffer with connection tracking and max connection limits.
+
+    Args:
+        app: Flask application instance.
+        state: Application state dict with frame buffer, tracker, stream stats, etc.
+        is_flag_enabled: Feature flag check function.
+    """
     output = state["output"]
     tracker = state["connection_tracker"]
 

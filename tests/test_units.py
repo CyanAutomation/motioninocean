@@ -224,38 +224,6 @@ def test_dockerfile_has_flask(workspace_root):
     )
 
 
-@pytest.mark.parametrize(
-    "resolution_str,expected",
-    [
-        ("1920x1080", (1920, 1080)),
-        ("640x480", (640, 480)),
-        ("1280x720", (1280, 720)),
-    ],
-)
-def test_resolution_parsing(resolution_str, expected):
-    """Test resolution string parsing."""
-    resolution = tuple(map(int, resolution_str.split("x")))
-    assert resolution == expected
-    assert len(resolution) == 2
-    assert all(isinstance(x, int) for x in resolution)
-
-
-@pytest.mark.parametrize(
-    "fps_str,expected",
-    [
-        ("30", 30),
-        ("60", 60),
-        ("0", 0),
-        ("120", 120),
-    ],
-)
-def test_fps_parsing(fps_str, expected):
-    """Test FPS integer parsing."""
-    fps = int(fps_str)
-    assert fps == expected
-    assert isinstance(fps, int)
-
-
 def test_streaming_output_class():
     """Test the StreamingOutput class functionality."""
     import io
@@ -316,25 +284,6 @@ def test_streaming_output_class():
     assert "frames_captured" in status
     assert "current_fps" in status
     assert status["frames_captured"] == 5
-
-
-def test_logging_configuration():
-    """Test logging setup."""
-    import logging
-
-    # Test basic logging setup
-    logger = logging.getLogger(__name__)
-    assert logger is not None
-
-    # Verify logging levels exist
-    assert hasattr(logging, "INFO")
-    assert hasattr(logging, "ERROR")
-    assert hasattr(logging, "WARNING")
-
-    # Test logging methods don't raise exceptions
-    logger.info("Test info message")
-    logger.warning("Test warning message")
-    logger.error("Test error message")
 
 
 def test_healthcheck_url_validation_allows_valid_hostname(monkeypatch):
