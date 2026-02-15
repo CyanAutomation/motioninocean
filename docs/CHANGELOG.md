@@ -11,6 +11,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.14.9] - 2026-02-15
+
+- Refactor debug logging in test_config.py; adjust stderr output and frame timing logic
+- General fixes
+- Enhance FrameBuffer logging for dropped frames and normalize action values in webcam routes; update FPS assertion in tests
+- Improve frame dropping logic in FrameBuffer to include next valid capture time in debug logging
+- docs: align management status polling diagram with per-node status endpoint (#299)
+- Improve frame dropping logic in FrameBuffer to include debug logging
+- Adjust sleep duration in tests and fix formatting in route iteration
+- docs: align management probe diagrams with /api/status contract (#298)
+- docs: add auth boundary sequence diagram for deployment (#297)
+- Refactor management client initialization to return client and additional context
+- Enhance resolution parsing and update networking config loading
+
 ## [1.14.8] - 2026-02-15
 
 - Harden settings load path against concurrent file changes (#294)
