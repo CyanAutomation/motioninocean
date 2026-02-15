@@ -355,6 +355,47 @@ def test_settings_endpoint_returns_effective_runtime_values(monkeypatch, tmp_pat
         "discovery_interval_seconds": 45.0,
     }
 
+
+
+def test_settings_patch_concurrent_overlapping_updates_are_merged(monkeypatch, tmp_path):
+    client_a = _new_management_client(monkeypatch, tmp_path)
+    client_b = _new_management_client(monkeypatch, tmp_path)
+
+    start = threading.Barrier(2)
+    statuses = []
+
+    def patch_fps():
+        start.wait()
+        response = client_a.patch(
+            "/api/settings",
+            json={"camera": {"fps": 55}},
+        )
+        statuses.append(response.status_code)
+
+    def patch_quality():
+        start.wait()
+        response = client_b.patch(
+            "/api/settings",
+            json={"camera": {"jpeg_quality": 72}},
+        )
+        statuses.append(response.status_code)
+
+    thread_a = threading.Thread(target=patch_fps)
+    thread_b = threading.Thread(target=patch_quality)
+    thread_a.start()
+    thread_b.start()
+    thread_a.join()
+    thread_b.join()
+
+    assert len(statuses) == 2
+    assert all(status in (200, 422) for status in statuses)
+
+    final_response = _new_management_client(monkeypatch, tmp_path).get("/api/settings")
+    assert final_response.status_code == 200
+    final_settings = final_response.get_json()["settings"]["camera"]
+    assert final_settings["fps"] == 55
+    assert final_settings["jpeg_quality"] == 72
+
 def _auth_headers(token="test-token"):
     return {"Authorization": f"Bearer {token}"}
 

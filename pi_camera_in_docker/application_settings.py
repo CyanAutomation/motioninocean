@@ -287,6 +287,45 @@ class ApplicationSettings:
             data["modified_by"] = modified_by
             self._save_atomic(data)
 
+    def apply_patch_atomic(
+        self, patch: Dict[str, Any], modified_by: str = "system"
+    ) -> Dict[str, Any]:
+        """Apply a validated settings patch and persist as one locked operation."""
+    def apply_patch_atomic(
+        self, patch: Dict[str, Any], modified_by: str = "system"
+    ) -> Dict[str, Any]:
+        """Apply a validated settings patch and persist as one locked operation."""
+        with self._exclusive_lock():
+            data = self._load_unlocked()
+            current_settings = data.setdefault("settings", {})
+
+            # Validate structure before applying any updates
+            temp_data = {
+                "version": data.get("version", 1),
+                "settings": {**current_settings},
+                "last_modified": datetime.now(timezone.utc).isoformat(),
+                "modified_by": modified_by,
+            }
+            
+            for category, properties in patch.items():
+                if category not in temp_data["settings"]:
+                    temp_data["settings"][category] = {}
+                temp_data["settings"][category].update(properties)
+            
+            self._validate_settings_structure(temp_data)
+            
+            # Apply validated updates to actual data
+            for category, properties in patch.items():
+                if category not in current_settings:
+                    current_settings[category] = {}
+                current_settings[category].update(properties)
+
+            data["last_modified"] = temp_data["last_modified"]
+            data["modified_by"] = modified_by
+
+            self._save_atomic(data)
+            return data
+
     def reset(self, modified_by: str = "system") -> None:
         """
         Clear all persisted settings; revert to defaults.
