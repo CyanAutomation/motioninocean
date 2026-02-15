@@ -209,8 +209,8 @@ def test_settings_patch_response_reflects_persisted_state(monkeypatch, tmp_path)
     assert after.status_code == 200
     after_payload = after.get_json()
 
-    assert payload["settings"] == after_payload["settings"]
     assert payload["modified_by"] == after_payload["modified_by"] == "api_patch"
+    assert after_payload["settings"]["camera"]["jpeg_quality"] == 70
     assert payload["last_modified"] == after_payload["last_modified"]
     assert payload["last_modified"] != before_payload["last_modified"]
 
@@ -235,11 +235,65 @@ def test_settings_patch_requires_restart_response_reflects_persisted_state(monke
 
     assert payload["requires_restart"] is True
     assert "camera.resolution" in payload["modified_on_restart"]
-    assert payload["settings"] == after_payload["settings"]
     assert payload["modified_by"] == after_payload["modified_by"] == "api_patch"
+    assert after_payload["settings"]["camera"]["resolution"] == "800x600"
     assert payload["last_modified"] == after_payload["last_modified"]
     assert payload["last_modified"] != before_payload["last_modified"]
 
+
+
+
+def test_settings_endpoint_returns_effective_runtime_values(monkeypatch, tmp_path):
+    monkeypatch.setenv("RESOLUTION", "1280x720")
+    monkeypatch.setenv("FPS", "24")
+    monkeypatch.setenv("JPEG_QUALITY", "88")
+    monkeypatch.setenv("MAX_STREAM_CONNECTIONS", "6")
+    monkeypatch.setenv("MAX_FRAME_AGE_SECONDS", "12")
+    monkeypatch.setenv("LOG_LEVEL", "WARNING")
+    monkeypatch.setenv("LOG_FORMAT", "json")
+    monkeypatch.setenv("LOG_INCLUDE_IDENTIFIERS", "false")
+    monkeypatch.setenv("DISCOVERY_ENABLED", "false")
+    monkeypatch.setenv("DISCOVERY_MANAGEMENT_URL", "http://env.example:8001")
+    monkeypatch.setenv("DISCOVERY_TOKEN", "env-token")
+    monkeypatch.setenv("DISCOVERY_INTERVAL_SECONDS", "45")
+
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    patch_response = client.patch(
+        "/api/settings",
+        json={
+            "camera": {"fps": 30},
+            "logging": {"log_level": "DEBUG"},
+            "discovery": {"discovery_enabled": True},
+        },
+    )
+    assert patch_response.status_code in (200, 422)
+
+    response = client.get("/api/settings")
+    assert response.status_code == 200
+
+    payload = response.get_json()
+    assert payload["source"] == "merged"
+
+    settings = payload["settings"]
+    assert settings["camera"] == {
+        "resolution": "1280x720",
+        "fps": 30,
+        "jpeg_quality": 88,
+        "max_stream_connections": 6,
+        "max_frame_age_seconds": 12.0,
+    }
+    assert settings["logging"] == {
+        "log_level": "DEBUG",
+        "log_format": "json",
+        "log_include_identifiers": False,
+    }
+    assert settings["discovery"] == {
+        "discovery_enabled": True,
+        "discovery_management_url": "http://env.example:8001",
+        "discovery_token": "env-token",
+        "discovery_interval_seconds": 45.0,
+    }
 
 def _auth_headers(token="test-token"):
     return {"Authorization": f"Bearer {token}"}

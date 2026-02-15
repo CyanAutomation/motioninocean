@@ -9,6 +9,7 @@ from typing import Any, Dict, Tuple
 from flask import Flask, current_app, jsonify, request
 
 from .config_validator import validate_settings_patch
+from .runtime_config import get_effective_settings_payload, parse_resolution
 from .settings_schema import SettingsSchema
 
 
@@ -33,13 +34,7 @@ def register_settings_routes(app: Flask) -> None:
             JSON with current settings merged from env and persisted storage
         """
         try:
-            settings = current_app.application_settings.load()
-            merged = {
-                "source": "merged",  # env + persisted
-                "settings": settings.get("settings", {}),
-                "last_modified": settings.get("last_modified"),
-                "modified_by": settings.get("modified_by"),
-            }
+            merged = get_effective_settings_payload(current_app.application_settings)
             return jsonify(merged), 200
         except Exception as exc:
             return (
@@ -194,10 +189,8 @@ def register_settings_routes(app: Flask) -> None:
             # Collect environment defaults
             import os
 
-            from .main import _parse_resolution
-
             try:
-                width, height = _parse_resolution(os.environ.get("RESOLUTION", "640x480"))
+                width, height = parse_resolution(os.environ.get("RESOLUTION", "640x480"))
                 resolution = f"{width}x{height}"
             except ValueError:
                 resolution = "640x480"
