@@ -689,7 +689,7 @@ def _generate_env_content(config: Dict[str, Any]) -> str:
     return "\n".join(env_lines)
 
 
-def _init_flask_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter]:
+def _init_flask_app(_config: Dict[str, Any]) -> Tuple[Flask, Limiter]:
     """Initialize Flask app and rate limiter."""
     app = Flask(__name__, static_folder="static", static_url_path="/static")
     app.start_time_monotonic = time.monotonic()
