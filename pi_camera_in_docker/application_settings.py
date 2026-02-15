@@ -11,7 +11,7 @@ import tempfile
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, ClassVar, Dict
 
 
 try:
@@ -27,10 +27,13 @@ except ImportError:  # pragma: no cover - unavailable on non-Windows
 
 logger = logging.getLogger(__name__)
 
+# Error messages for settings validation
+_ERROR_ROOT_NOT_DICT = "Root must be a dict"
+_ERROR_SETTINGS_NOT_DICT = "'settings' must be a dict"
+
 
 class SettingsValidationError(ValueError):
     """Raised when settings validation fails."""
-
 
 
 class ApplicationSettings:
@@ -46,7 +49,7 @@ class ApplicationSettings:
     Thread-safe with file-based locking for multi-process consistency.
     """
 
-    DEFAULT_SCHEMA = {
+    DEFAULT_SCHEMA: ClassVar = {
         "version": 1,
         "settings": {
             "camera": {
@@ -102,11 +105,13 @@ class ApplicationSettings:
                 return self._clone_schema()
 
             raw = json.loads(content)
-            
+
             # Validate version
             if raw.get("version") != 1:
-                raise SettingsValidationError(f"Unsupported schema version: {raw.get('version')}")
-            
+                version = raw.get("version")
+                message = f"Unsupported schema version: {version}"
+                raise SettingsValidationError(message)
+
             schema = self._clone_schema()
 
             settings = raw.get("settings", {})
@@ -147,10 +152,12 @@ class ApplicationSettings:
 
         except json.JSONDecodeError as exc:
             logger.error(f"Corrupted settings file {self.path}: {exc}")
-            raise SettingsValidationError(f"Corrupted settings file: {exc}") from exc
+            message = f"Corrupted settings file: {exc}"
+            raise SettingsValidationError(message) from exc
         except Exception as exc:
             logger.error(f"Failed to load settings: {exc}")
-            raise SettingsValidationError(f"Failed to load settings: {exc}") from exc
+            message = f"Failed to load settings: {exc}"
+            raise SettingsValidationError(message) from exc
 
     def save(self, settings: Dict[str, Any], modified_by: str = "system") -> None:
         """
@@ -174,7 +181,8 @@ class ApplicationSettings:
             self._validate_settings_structure(data)
         except Exception as exc:
             logger.error(f"Settings validation failed: {exc}")
-            raise SettingsValidationError(f"Invalid settings structure: {exc}") from exc
+            message = f"Invalid settings structure: {exc}"
+            raise SettingsValidationError(message) from exc
 
         with self._exclusive_lock():
             self._save_atomic(data)
@@ -215,7 +223,8 @@ class ApplicationSettings:
         """
         data = self.load()
         if category not in data["settings"]:
-            raise SettingsValidationError(f"Unknown settings category: {category}")
+            message = f"Unknown settings category: {category}"
+            raise SettingsValidationError(message)
 
         if category == "feature_flags":
             # Feature flags are dynamic; create entry if needed
@@ -223,9 +232,8 @@ class ApplicationSettings:
         else:
             # Other categories have fixed schema
             if key not in data["settings"][category]:
-                raise SettingsValidationError(
-                    f"Unknown settings key '{key}' in category '{category}'"
-                )
+                message = f"Unknown settings key '{key}' in category '{category}'"
+                raise SettingsValidationError(message)
             data["settings"][category][key] = value
 
         self.save(data["settings"], modified_by=modified_by)
@@ -246,7 +254,8 @@ class ApplicationSettings:
         """
         data = self.load()
         if category not in data["settings"]:
-            raise SettingsValidationError(f"Unknown settings category: {category}")
+            message = f"Unknown settings category: {category}"
+            raise SettingsValidationError(message)
 
         if category == "feature_flags":
             data["settings"][category].update(updates)
@@ -254,9 +263,8 @@ class ApplicationSettings:
             # Validate all keys exist
             for key in updates:
                 if key not in data["settings"][category]:
-                    raise SettingsValidationError(
-                        f"Unknown settings key '{key}' in category '{category}'"
-                    )
+                    message = f"Unknown settings key '{key}' in category '{category}'"
+                    raise SettingsValidationError(message)
             data["settings"][category].update(updates)
 
         self.save(data["settings"], modified_by=modified_by)
@@ -326,19 +334,22 @@ class ApplicationSettings:
     def _validate_settings_structure(data: Dict[str, Any]) -> None:
         """Validate settings structure before save."""
         if not isinstance(data, dict):
-            raise SettingsValidationError("Root must be a dict")
+            raise SettingsValidationError(_ERROR_ROOT_NOT_DICT)
 
         if data.get("version") != 1:
-            raise SettingsValidationError(f"Unsupported schema version: {data.get('version')}")
+            version = data.get("version")
+            message = f"Unsupported schema version: {version}"
+            raise SettingsValidationError(message)
 
         settings = data.get("settings", {})
         if not isinstance(settings, dict):
-            raise SettingsValidationError("'settings' must be a dict")
+            raise SettingsValidationError(_ERROR_SETTINGS_NOT_DICT)
 
         # Check known categories exist
         for category in ["camera", "feature_flags", "logging", "discovery"]:
             if category not in settings:
-                raise SettingsValidationError(f"Missing required category: {category}")
+                message = f"Missing required category: {category}"
+                raise SettingsValidationError(message)
 
     def _save_atomic(self, data: Dict[str, Any]) -> None:
         """Save data to file atomically using temp file + rename."""

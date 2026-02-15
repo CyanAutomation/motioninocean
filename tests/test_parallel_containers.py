@@ -217,7 +217,7 @@ def main() -> int:
     if failed > 0:
         pass
 
-    return 0 if failed == 0 or failed == 1 else 1  # Allow SSRF protection test to "fail"
+    return 0 if failed <= 1 else 1  # Allow SSRF protection test to "fail"
 
 
 if __name__ == "__main__":

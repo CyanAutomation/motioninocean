@@ -48,9 +48,6 @@ logger = logging.getLogger(__name__)
 feature_flags: FeatureFlags = get_feature_flags()
 feature_flags.load()
 
-# Initialize rate limiter (will be bound to app in _create_base_app)
-limiter: Optional[Limiter] = None
-
 
 def _redacted_url_for_logs(url: str) -> str:
     parts = urlsplit(url)
@@ -208,19 +205,19 @@ def _load_config() -> Dict[str, Any]:
 def _merge_config_with_settings(env_config: Dict[str, Any]) -> Dict[str, Any]:
     """
     Merge environment config with persisted application settings.
-    
+
     Priority: Env vars act as system defaults, but persisted settings (UI-driven)
     override them for runtime-tunable values. Some settings can only come from env vars.
-    
+
     Runtime-tunable settings (can be overridden by persisted settings):
     - camera: resolution, fps, jpeg_quality, max_stream_connections, max_frame_age_seconds
     - feature_flags: most toggles (except hardware-dependent ones)
     - logging: log_level, log_format, log_include_identifiers
     - discovery: discovery_enabled, discovery_management_url, discovery_token, discovery_interval_seconds
-    
+
     Args:
         env_config: Configuration loaded from environment variables
-        
+
     Returns:
         Merged configuration with persisted settings applied
     """
@@ -269,7 +266,7 @@ def _merge_config_with_settings(env_config: Dict[str, Any]) -> Dict[str, Any]:
         # Merge feature flags
         persisted_flags = settings.get("feature_flags", {})
         if persisted_flags:
-            for flag_name, flag_value in persisted_flags.items():
+            for flag_name, _flag_value in persisted_flags.items():
                 # Only override feature flags that are runtime-safe
                 # Skip hardware-dependent flags (MOCK_CAMERA, PI3_OPTIMIZATION, etc.)
                 hardware_flags = {"MOCK_CAMERA", "PI3_OPTIMIZATION", "PI5_OPTIMIZATION"}
@@ -277,10 +274,6 @@ def _merge_config_with_settings(env_config: Dict[str, Any]) -> Dict[str, Any]:
                     # Update feature flags dynamically
                     # This will be integrated with feature_flags module in next step
                     pass
-
-        # Merge logging settings (will be handled by logging config refactor)
-        logging_settings = settings.get("logging", {})
-        # Note: Logging level changes will require app context integration
 
         # Merge discovery settings
         discovery_settings = settings.get("discovery", {})
@@ -307,7 +300,9 @@ def _merge_config_with_settings(env_config: Dict[str, Any]) -> Dict[str, Any]:
     except SettingsValidationError as exc:
         logger.warning(f"Could not load persisted settings: {exc}. Using env config only.")
     except Exception as exc:
-        logger.warning(f"Unexpected error loading persisted settings: {exc}. Using env config only.")
+        logger.warning(
+            f"Unexpected error loading persisted settings: {exc}. Using env config only."
+        )
 
     return merged
 
@@ -646,19 +641,17 @@ def _generate_env_content(config: Dict[str, Any]) -> str:
     return "\n".join(env_lines)
 
 
-def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
+def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
     app = Flask(__name__, static_folder="static", static_url_path="/static")
     app.start_time_monotonic = time.monotonic()
 
     # Initialize rate limiter (global default: 100 requests/minute)
-    global limiter
-    if limiter is None:
-        limiter = Limiter(
-            app=app,
-            key_func=get_remote_address,
-            default_limits=["100/minute"],
-            storage_uri=os.environ.get("LIMITER_STORAGE_URI", "memory://"),
-        )
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["100/minute"],
+        storage_uri=os.environ.get("LIMITER_STORAGE_URI", "memory://"),
+    )
 
     # Add correlation ID middleware
     @app.before_request
@@ -955,7 +948,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
             logger.exception("Setup generation endpoint failed")
             return jsonify({"error": f"Failed to generate configuration: {e!s}"}), 500
 
-    return app, state
+    return app, limiter, state
 
 
 def _register_request_logging(app: Flask) -> None:
@@ -990,7 +983,7 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     cfg = _load_config() if config is None else config
     cfg = _merge_config_with_settings(cfg)  # Apply persisted settings
     cfg["app_mode"] = "management"
-    app, state = _create_base_app(cfg)
+    app, limiter, state = _create_base_app(cfg)
     register_shared_routes(app, state)
     register_settings_routes(app)  # Add settings management API
     register_management_camera_error_routes(app)
@@ -1013,7 +1006,7 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     cfg = _load_config() if config is None else config
     cfg = _merge_config_with_settings(cfg)  # Apply persisted settings
     cfg["app_mode"] = "webcam"
-    app, state = _create_base_app(cfg)
+    app, _limiter, state = _create_base_app(cfg)
 
     stream_stats = StreamStats()
     output = FrameBuffer(stream_stats, target_fps=cfg["target_fps"])
