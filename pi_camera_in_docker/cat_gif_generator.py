@@ -16,15 +16,14 @@ from typing import Iterator, Optional, Tuple
 
 from PIL import Image
 
+
 logger = logging.getLogger(__name__)
 
 # Default timeout for HTTP requests
 REQUEST_TIMEOUT_SECONDS = 5.0
 
 
-def fetch_cat_gif(
-    api_url: str, timeout: float = REQUEST_TIMEOUT_SECONDS
-) -> Optional[bytes]:
+def fetch_cat_gif(api_url: str, timeout: float = REQUEST_TIMEOUT_SECONDS) -> Optional[bytes]:
     """
     Fetch a cat GIF from the cataas.com API.
 
@@ -68,11 +67,7 @@ def extract_gif_frames(
         gif_image.load()
 
         # Check if this is actually an animated GIF
-        if not hasattr(gif_image, "n_frames"):
-            # Single frame image; treat as 1-frame GIF
-            frame_count = 1
-        else:
-            frame_count = gif_image.n_frames
+        frame_count = 1 if not hasattr(gif_image, "n_frames") else gif_image.n_frames
 
         for frame_idx in range(frame_count):
             try:

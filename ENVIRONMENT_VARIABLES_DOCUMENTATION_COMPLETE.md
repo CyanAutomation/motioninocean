@@ -2,7 +2,7 @@
 
 **Date**: February 13, 2026  
 **Repository**: CyanAutomation/motioninocean  
-**Branch**: main  
+**Branch**: main
 
 ### Overview
 
@@ -13,17 +13,17 @@ referenced in the codebase. Previously, only **23 variables were documented**, l
 
 #### 1. Updated Configuration Examples ✅
 
-**File 1**: [containers/motion-in-ocean-webcam/.env.example](containers/motion-in-ocean-webcam/.env.example)  
+**File 1**: [containers/motion-in-ocean-webcam/.env.example](containers/motion-in-ocean-webcam/.env.example)
 
-- **Lines**: 333  
-- **Variables documented**: 31  
-- **Categories**: Logging, Discovery, Networking, Performance, Application Config, Feature Flags (19)  
+- **Lines**: 333
+- **Variables documented**: 31
+- **Categories**: Logging, Discovery, Networking, Performance, Application Config, Feature Flags (19)
 
-**File 2**: [containers/motion-in-ocean-management/.env.example](containers/motion-in-ocean-management/.env.example)  
+**File 2**: [containers/motion-in-ocean-management/.env.example](containers/motion-in-ocean-management/.env.example)
 
-- **Lines**: 210  
-- **Variables documented**: 20  
-- **Categories**: Logging, Discovery, Networking, Performance, Application Config, Feature Flags (7 relevant)  
+- **Lines**: 210
+- **Variables documented**: 20
+- **Categories**: Logging, Discovery, Networking, Performance, Application Config, Feature Flags (7 relevant)
 
 #### 2. Configuration Variables by Category
 
@@ -129,6 +129,7 @@ referenced in the codebase. Previously, only **23 variables were documented**, l
 ### Key Improvements
 
 #### 1. Feature Flags Documentation
+
 Each feature flag now includes:
 
 - ✓ Full multi-line description explaining purpose
@@ -149,6 +150,7 @@ MOTION_IN_OCEAN_FPS_THROTTLE_ADAPTIVE=false
 ```
 
 #### 2. BASE_URL Documentation (Critical Fix)
+
 The `BASE_URL` variable is now explicitly documented with:
 
 - ✓ Use cases (multi-host discovery, custom hostnames)
@@ -169,6 +171,7 @@ The `BASE_URL` variable is now explicitly documented with:
 ```
 
 #### 3. Logging Configuration
+
 New logging variables now documented:
 
 - `LOG_LEVEL`: DEBUG, INFO, WARNING, ERROR, CRITICAL

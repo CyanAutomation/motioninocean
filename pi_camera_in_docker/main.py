@@ -31,6 +31,7 @@ from modes.webcam import (
     register_management_camera_error_routes,
     register_webcam_routes,
 )
+from picamera2 import global_camera_info
 from PIL import Image
 from shared import register_shared_routes, register_webcam_control_plane_auth
 from werkzeug.serving import make_server
@@ -219,8 +220,6 @@ def _detect_camera_devices() -> Dict[str, Any]:
     }
 
     try:
-        from pathlib import Path
-
         # Check DMA heap devices
         dma_heap_dir = "/dev/dma_heap"
         if Path(dma_heap_dir).is_dir():
@@ -579,6 +578,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
         "camera_lock": RLock(),
         "max_frame_age_seconds": config["max_frame_age_seconds"],
         "picam2_instance": None,
+        "cat_gif_generator": None,
     }
     app.motion_state = state
     app.motion_config = dict(config)
@@ -1155,7 +1155,6 @@ def _shutdown_camera(state: Dict[str, Any]) -> None:
 
 def _get_camera_info(picamera2_cls: Any) -> Tuple[list, str]:
     try:
-        from picamera2 import global_camera_info
 
         return global_camera_info(), "picamera2.global_camera_info"
     except (ImportError, AttributeError):
@@ -1190,16 +1189,19 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     if cfg["mock_camera"]:
         if cfg["cat_gif_enabled"]:
             # Use cat GIF streaming mode
+            # Create generator outside the thread so we can store it in state
+            cat_generator = CatGifGenerator(
+                api_url=cfg["cataas_api_url"],
+                resolution=cfg["resolution"],
+                jpeg_quality=cfg["jpeg_quality"],
+                target_fps=cfg["fps"] if cfg["fps"] > 0 else 10,
+                cache_ttl_seconds=cfg["cat_gif_cache_ttl_seconds"],
+            )
+            state["cat_gif_generator"] = cat_generator
+
             def generate_cat_gif_frames() -> None:
                 recording_started.set()
                 try:
-                    cat_generator = CatGifGenerator(
-                        api_url=cfg["cataas_api_url"],
-                        resolution=cfg["resolution"],
-                        jpeg_quality=cfg["jpeg_quality"],
-                        target_fps=cfg["fps"] if cfg["fps"] > 0 else 10,
-                        cache_ttl_seconds=cfg["cat_gif_cache_ttl_seconds"],
-                    )
                     for frame in cat_generator.generate_frames():
                         if shutdown_requested.is_set():
                             break

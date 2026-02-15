@@ -819,14 +819,13 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
                     node_id,
                     {"container_id": container_id, "proxy": f"{proxy_host}:{proxy_port}"},
                 )
-            else:
-                return {}, (
-                    "DOCKER_API_ERROR",
-                    f"docker proxy returned unexpected status {status_code}",
-                    502,
-                    node_id,
-                    {"status_code": status_code, "proxy": f"{proxy_host}:{proxy_port}"},
-                )
+            return {}, (
+                "DOCKER_API_ERROR",
+                f"docker proxy returned unexpected status {status_code}",
+                502,
+                node_id,
+                {"status_code": status_code, "proxy": f"{proxy_host}:{proxy_port}"},
+            )
         except NodeConnectivityError as exc:
             return {}, (
                 "DOCKER_PROXY_UNREACHABLE",

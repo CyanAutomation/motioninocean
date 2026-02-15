@@ -27,8 +27,19 @@ test("diagnostic rows prefer structured status over derived booleans", () => {
     registration: { valid: true, status: "warn", code: "REG_WARN" },
     url_validation: { blocked: false, status: "pass" },
     dns_resolution: { resolves: true, status: "pass", resolved_ips: ["203.0.113.1"] },
-    network_connectivity: { reachable: true, status: "warn", category: "timeout", code: "NETWORK_WARN" },
-    api_endpoint: { accessible: true, healthy: true, status_code: 200, status: "fail", code: "API_FAIL" },
+    network_connectivity: {
+      reachable: true,
+      status: "warn",
+      category: "timeout",
+      code: "NETWORK_WARN",
+    },
+    api_endpoint: {
+      accessible: true,
+      healthy: true,
+      status_code: 200,
+      status: "fail",
+      code: "API_FAIL",
+    },
   });
 
   assert.equal(rows[0].state, "warn");

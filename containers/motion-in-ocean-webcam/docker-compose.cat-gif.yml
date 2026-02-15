@@ -1,0 +1,55 @@
+# Motion In Ocean - Cat GIF Mock Camera Overlay
+# Display animated cat GIFs from cataas.com instead of black frames
+# Perfect for testing, demos, and just having fun!
+#
+# Prerequisites:
+#   - MOCK_CAMERA must be enabled
+#   - Network access to https://cataas.com/cat.gif
+#
+# Usage (Option 1 - Environment Variables):
+#   MOCK_CAMERA=true CAT_GIF=true docker compose \
+#     -f docker-compose.yml \
+#     -f docker-compose.mock.yml \
+#     -f docker-compose.cat-gif.yml \
+#     up -d
+#
+# Usage (Option 2 - Edit .env file):
+#   1. Copy .env.example to .env
+#   2. Set: MOCK_CAMERA=true
+#   3. Set: CAT_GIF=true
+#   4. Run: docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
+#
+# Features:
+#   - Streams real animated GIFs from https://cataas.com (free API!)
+#   - Each refresh fetches a new cat
+#   - Full animation loop playback
+#   - Graceful fallback to black frame if API is unavailable
+#   - Configurable cache TTL (default 60 seconds)
+#
+# To test the API refresh endpoint:
+#   curl -X POST http://localhost:8000/api/cat-gif/refresh
+#
+# Notes:
+#   - cataas.com API is free and public
+#   - No authentication required
+#   - Rate limits are generous for personal use
+#   - See: https://cataas.com/doc.html for API details
+
+services:
+  motion-in-ocean:
+    # Remove device dependencies for testing without hardware
+    devices: []
+    group_add: []
+    device_cgroup_rules: []
+
+    environment:
+      # Enable mock camera with cat GIFs
+      MOCK_CAMERA: 'true'
+      CAT_GIF: 'true'
+      CATAAS_API_URL: 'https://cataas.com/cat.gif'
+      
+      # How long to cache each cat GIF before fetching a new one (seconds)
+      # 60 = fetch new cat every minute
+      # 120 = fetch new cat every 2 minutes
+      # 30 = fetch new cat every 30 seconds (more API calls)
+      CAT_GIF_CACHE_TTL_SECONDS: '60'

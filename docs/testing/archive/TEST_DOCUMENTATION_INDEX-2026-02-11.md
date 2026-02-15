@@ -207,22 +207,22 @@ curl -X POST http://localhost:8001/api/nodes \
 
 **Webcam Container (8000):**
 
-| Endpoint | Method | Purpose | Status |
-|----------|--------|---------|--------|
-| /health | GET | Liveness probe | ✅ |
-| /ready | GET | Readiness probe | ✅ |
-| /metrics | GET | Performance metrics | ✅ |
+| Endpoint | Method | Purpose             | Status |
+| -------- | ------ | ------------------- | ------ |
+| /health  | GET    | Liveness probe      | ✅     |
+| /ready   | GET    | Readiness probe     | ✅     |
+| /metrics | GET    | Performance metrics | ✅     |
 
 **Management Container (8001):**
 
-| Endpoint | Method | Purpose | Status |
-|----------|--------|---------|--------|
-| /health | GET | Health check | ✅ |
-| /api/nodes | GET | List nodes | ✅ |
-| /api/nodes | POST | Register node | ✅ |
-| /api/nodes/{id} | GET | Get node details | ✅ |
-| /api/nodes/{id}/status | GET | Query node status | ⚠️ BLOCKED (SSRF) |
-| /api/management/overview | GET | Management summary | ✅ |
+| Endpoint                 | Method | Purpose            | Status            |
+| ------------------------ | ------ | ------------------ | ----------------- |
+| /health                  | GET    | Health check       | ✅                |
+| /api/nodes               | GET    | List nodes         | ✅                |
+| /api/nodes               | POST   | Register node      | ✅                |
+| /api/nodes/{id}          | GET    | Get node details   | ✅                |
+| /api/nodes/{id}/status   | GET    | Query node status  | ⚠️ BLOCKED (SSRF) |
+| /api/management/overview | GET    | Management summary | ✅                |
 
 ---
 

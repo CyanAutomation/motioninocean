@@ -173,6 +173,7 @@ stateDiagram-v2
 - Internet-hardened production platform (e.g., full zero-trust posture,
 
   enterprise IAM).
+
 - Multi-protocol media platform beyond current scoped transports (e.g., full HLS/RTSP suite by default).
 - Heavy orchestration dependencies for baseline single-node use.
 - Rich media management workflows (recording library, editing, archival pipeline).

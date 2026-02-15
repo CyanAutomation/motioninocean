@@ -150,9 +150,9 @@ def test_flask_routes():
     expected_routes = {"/", "/health", "/ready", "/stream.mjpg"}
     registered_routes = {rule.rule for rule in app.url_map.iter_rules()}
 
-    assert expected_routes.issubset(
-        registered_routes
-    ), f"Missing routes: {expected_routes - registered_routes}"
+    assert expected_routes.issubset(registered_routes), (
+        f"Missing routes: {expected_routes - registered_routes}"
+    )
 
 
 def test_dockerfile_has_flask(workspace_root):
@@ -171,9 +171,9 @@ def test_dockerfile_has_flask(workspace_root):
     )
     has_requirements = "flask" in requirements_content
 
-    assert (
-        has_pip_install or has_requirements
-    ), "Flask not found in requirements.txt or Dockerfile pip install"
+    assert has_pip_install or has_requirements, (
+        "Flask not found in requirements.txt or Dockerfile pip install"
+    )
 
 
 @pytest.mark.parametrize(

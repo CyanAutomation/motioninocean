@@ -158,7 +158,11 @@ test("showDiagnosticResults populates panel, rows, recommendations, and focuses 
       registration: { valid: true, status: "pass" },
       url_validation: { blocked: false, status: "pass" },
       dns_resolution: { resolves: true, status: "warn", resolved_ips: ["203.0.113.10"] },
-      network_connectivity: { reachable: false, status: "fail", code: "NETWORK_CONNECTIVITY_ERROR" },
+      network_connectivity: {
+        reachable: false,
+        status: "fail",
+        code: "NETWORK_CONNECTIVITY_ERROR",
+      },
       api_endpoint: { accessible: true, healthy: true, status: "pass", status_code: 200 },
     },
     recommendations: [
@@ -177,7 +181,10 @@ test("showDiagnosticResults populates panel, rows, recommendations, and focuses 
   assert.match(context.diagnosticChecksGrid.innerHTML, /diagnostic-pill--fail/);
   assert.match(context.diagnosticRecommendations.innerHTML, /<h4>Recommendations<\/h4>/);
   assert.match(context.diagnosticRecommendations.innerHTML, /<ul>/);
-  assert.match(context.diagnosticRecommendations.innerHTML, /<li><span class="diagnostic-pill diagnostic-pill--warn">\[WARN\]<\/span>/);
+  assert.match(
+    context.diagnosticRecommendations.innerHTML,
+    /<li><span class="diagnostic-pill diagnostic-pill--warn">\[WARN\]<\/span>/,
+  );
   assert.match(context.diagnosticRecommendations.innerHTML, /diagnostic-pill--fail">\[FAIL\]/);
   assert.match(context.diagnosticRecommendations.innerHTML, /diagnostic-pill--pass">\[PASS\]/);
   assert.equal(context.copyDiagnosticReportBtn.disabled, false);
@@ -271,7 +278,13 @@ test("edge state: reachable + HTTP 503 uses warning summary and initialization m
       url_validation: { blocked: false, status: "pass" },
       dns_resolution: { resolves: true, status: "pass" },
       network_connectivity: { reachable: true, status: "pass" },
-      api_endpoint: { accessible: true, healthy: false, status: "warn", status_code: 503, code: "API_STATUS_503" },
+      api_endpoint: {
+        accessible: true,
+        healthy: false,
+        status: "warn",
+        status_code: 503,
+        code: "API_STATUS_503",
+      },
     },
     guidance: [],
   });
@@ -288,7 +301,12 @@ test("edge state: blocked URL validation renders fail and SSRF detail", () => {
     node_id: "blocked-node",
     diagnostics: {
       registration: { valid: true, status: "pass" },
-      url_validation: { blocked: true, status: "fail", blocked_reason: "Blocked by SSRF policy", code: "SSRF_BLOCKED" },
+      url_validation: {
+        blocked: true,
+        status: "fail",
+        blocked_reason: "Blocked by SSRF policy",
+        code: "SSRF_BLOCKED",
+      },
       dns_resolution: { resolves: false, status: "fail" },
       network_connectivity: { reachable: false, status: "fail" },
       api_endpoint: { accessible: false, status: "fail" },
@@ -307,15 +325,23 @@ test("accessibility markup keeps heading/list semantics and aria-live panel", ()
 
   assert.match(template, /<section[\s\S]*id="diagnostic-panel"[\s\S]*aria-live="polite"/);
   assert.match(template, /<h3>Diagnostic report<\/h3>/);
-  assert.match(template, /<div class="diagnostic-recommendations" id="diagnostic-recommendations">[\s\S]*<h4>Recommendations<\/h4>[\s\S]*<ul>/);
+  assert.match(
+    template,
+    /<div class="diagnostic-recommendations" id="diagnostic-recommendations">[\s\S]*<h4>Recommendations<\/h4>[\s\S]*<ul>/,
+  );
 });
-
 
 test("diagnostics template exposes Advanced toggle with expected label and controls", () => {
   const template = fs.readFileSync("pi_camera_in_docker/templates/management.html", "utf8");
 
-  assert.match(template, /<input[\s\S]*id="advanced-diagnostics-toggle"[\s\S]*aria-controls="diagnostic-panel-content"/);
-  assert.match(template, /<label for="advanced-diagnostics-toggle">Advanced \(show diagnostic report\)<\/label>/);
+  assert.match(
+    template,
+    /<input[\s\S]*id="advanced-diagnostics-toggle"[\s\S]*aria-controls="diagnostic-panel-content"/,
+  );
+  assert.match(
+    template,
+    /<label for="advanced-diagnostics-toggle">Advanced \(show diagnostic report\)<\/label>/,
+  );
 });
 
 test("clipboard resilience: explicit Copy action reports unavailable clipboard", async () => {

@@ -14,7 +14,9 @@ const diagnosticNodeId = document.getElementById("diagnostic-node-id");
 const diagnosticContext = document.getElementById("diagnostic-context");
 const diagnosticSummaryBadge = document.getElementById("diagnostic-summary-badge");
 const diagnosticOverallStatePill = document.getElementById("diagnostic-overall-state-pill");
-const diagnosticSummaryInterpretation = document.getElementById("diagnostic-summary-interpretation");
+const diagnosticSummaryInterpretation = document.getElementById(
+  "diagnostic-summary-interpretation",
+);
 const diagnosticSummaryCta = document.getElementById("diagnostic-summary-cta");
 const diagnosticChecksGrid = document.getElementById("diagnostic-checks-grid");
 const diagnosticRecommendations = document.getElementById("diagnostic-recommendations");
@@ -63,7 +65,10 @@ function isDiagnosticPanelContentVisible() {
     return false;
   }
 
-  return !diagnosticsCollapsibleContainer.hidden && !diagnosticsCollapsibleContainer.classList.contains("hidden");
+  return (
+    !diagnosticsCollapsibleContainer.hidden &&
+    !diagnosticsCollapsibleContainer.classList.contains("hidden")
+  );
 }
 
 function toggleDiagnosticPanelContent() {
@@ -447,7 +452,6 @@ function renderRows() {
     return;
   }
 
-
   tableBody.innerHTML = nodes
     .map((node) => {
       const status = nodeStatusMap.get(node.id) || { status: "unknown", stream_available: false };
@@ -623,7 +627,10 @@ function resetForm() {
 function setNodeFormPanelCollapsed(isCollapsed) {
   const isExpanded = !isCollapsed;
 
-  if (!(toggleNodeFormPanelBtn instanceof HTMLButtonElement) || !(nodeFormContent instanceof HTMLElement)) {
+  if (
+    !(toggleNodeFormPanelBtn instanceof HTMLButtonElement) ||
+    !(nodeFormContent instanceof HTMLElement)
+  ) {
     return;
   }
 
@@ -766,7 +773,10 @@ function getDiagnosticCheckRows(diagnostics = {}) {
   return [
     {
       key: "Registration",
-      state: resolveState(diagnostics.registration?.status, diagnostics.registration?.valid ? "pass" : "fail"),
+      state: resolveState(
+        diagnostics.registration?.status,
+        diagnostics.registration?.valid ? "pass" : "fail",
+      ),
       detail: diagnostics.registration?.valid
         ? "Node registration is valid."
         : diagnostics.registration?.error || "Registration data is invalid.",
@@ -774,7 +784,10 @@ function getDiagnosticCheckRows(diagnostics = {}) {
     },
     {
       key: "URL validation",
-      state: resolveState(diagnostics.url_validation?.status, diagnostics.url_validation?.blocked ? "fail" : "pass"),
+      state: resolveState(
+        diagnostics.url_validation?.status,
+        diagnostics.url_validation?.blocked ? "fail" : "pass",
+      ),
       detail: diagnostics.url_validation?.blocked
         ? diagnostics.url_validation?.blocked_reason || "URL blocked by policy."
         : "Base URL passed validation.",
@@ -782,7 +795,10 @@ function getDiagnosticCheckRows(diagnostics = {}) {
     },
     {
       key: "DNS resolution",
-      state: resolveState(diagnostics.dns_resolution?.status, diagnostics.dns_resolution?.resolves ? "pass" : "fail"),
+      state: resolveState(
+        diagnostics.dns_resolution?.status,
+        diagnostics.dns_resolution?.resolves ? "pass" : "fail",
+      ),
       detail: diagnostics.dns_resolution?.resolves
         ? "DNS lookup succeeded."
         : diagnostics.dns_resolution?.error || "DNS lookup failed.",
@@ -804,7 +820,9 @@ function getDiagnosticCheckRows(diagnostics = {}) {
         diagnostics.network_connectivity?.category
           ? `Category: ${diagnostics.network_connectivity.category}`
           : "",
-        diagnostics.network_connectivity?.code ? `Code: ${diagnostics.network_connectivity.code}` : "",
+        diagnostics.network_connectivity?.code
+          ? `Code: ${diagnostics.network_connectivity.code}`
+          : "",
       ]
         .filter(Boolean)
         .join(" · "),
@@ -813,7 +831,11 @@ function getDiagnosticCheckRows(diagnostics = {}) {
       key: "API endpoint",
       state: resolveState(
         diagnostics.api_endpoint?.status,
-        diagnostics.api_endpoint?.accessible === false ? "fail" : diagnostics.api_endpoint?.healthy === false ? "warn" : "pass",
+        diagnostics.api_endpoint?.accessible === false
+          ? "fail"
+          : diagnostics.api_endpoint?.healthy === false
+            ? "warn"
+            : "pass",
       ),
       detail: diagnostics.api_endpoint?.status_code
         ? `HTTP ${diagnostics.api_endpoint.status_code}`
@@ -903,20 +925,28 @@ function getDiagnosticSummaryBanner(summary, checkRows = [], diagnostics = {}) {
     diagnostics.network_connectivity?.category === "network"
   ) {
     return {
-      interpretation: getConnectivityRemediation(diagnostics.network_connectivity.category, diagnostics),
-      cta: diagnostics.network_connectivity.category === "timeout" ? "Retry in 30s" : "Update node base URL",
+      interpretation: getConnectivityRemediation(
+        diagnostics.network_connectivity.category,
+        diagnostics,
+      ),
+      cta:
+        diagnostics.network_connectivity.category === "timeout"
+          ? "Retry in 30s"
+          : "Update node base URL",
     };
   }
 
   if (diagnostics.registration?.code === "NODE_UNAUTHORIZED") {
     return {
-      interpretation: "Node authentication failed. The configured token does not match the node's expected credentials.",
+      interpretation:
+        "Node authentication failed. The configured token does not match the node's expected credentials.",
       cta: "Set auth token",
     };
   }
 
   return {
-    interpretation: "One or more checks need remediation before this node can be considered healthy.",
+    interpretation:
+      "One or more checks need remediation before this node can be considered healthy.",
     cta: "Review recommendations",
   };
 }
@@ -1015,10 +1045,17 @@ function showDiagnosticResults(diagnosticResult) {
     )
     .join("");
 
-  renderDiagnosticRecommendations(diagnosticResult.guidance || [], diagnosticResult.recommendations || []);
+  renderDiagnosticRecommendations(
+    diagnosticResult.guidance || [],
+    diagnosticResult.recommendations || [],
+  );
   copyDiagnosticReportBtn.disabled = false;
   setDiagnosticPanelExpanded(true);
-  if (isDiagnosticPanelContentVisible() && diagnosticPanel && typeof diagnosticPanel.focus === "function") {
+  if (
+    isDiagnosticPanelContentVisible() &&
+    diagnosticPanel &&
+    typeof diagnosticPanel.focus === "function"
+  ) {
     diagnosticPanel.focus();
   }
 }
@@ -1121,7 +1158,10 @@ async function init() {
       startStatusRefreshInterval();
     }
   });
-  if (toggleNodeFormPanelBtn instanceof HTMLButtonElement && nodeFormContent instanceof HTMLElement) {
+  if (
+    toggleNodeFormPanelBtn instanceof HTMLButtonElement &&
+    nodeFormContent instanceof HTMLElement
+  ) {
     setNodeFormPanelCollapsed(getStoredNodeFormCollapsedPreference());
     toggleNodeFormPanelBtn.addEventListener("click", toggleNodeFormPanel);
   }
@@ -1135,7 +1175,10 @@ async function init() {
     updateBaseUrlValidation(target.value);
   });
   updateBaseUrlValidation(document.getElementById("node-transport").value);
-  if (diagnosticsAdvancedCheckbox instanceof HTMLInputElement && diagnosticsCollapsibleContainer instanceof HTMLElement) {
+  if (
+    diagnosticsAdvancedCheckbox instanceof HTMLInputElement &&
+    diagnosticsCollapsibleContainer instanceof HTMLElement
+  ) {
     setDiagnosticPanelExpanded(false);
     diagnosticsAdvancedCheckbox.addEventListener("change", toggleDiagnosticPanelContent);
   }

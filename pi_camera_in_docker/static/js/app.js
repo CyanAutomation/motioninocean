@@ -251,6 +251,14 @@ function refreshStream() {
   const streamUrl = state.elements.videoStream.src.split("?")[0];
   state.elements.videoStream.src = `${streamUrl}?t=${Date.now()}`;
 
+  // Notify cat gif generator to fetch a new cat (if cat gif mode is enabled)
+  // Silently ignore errors if cat gif mode is not enabled
+  fetch("/api/cat-gif/refresh", {
+    method: "POST",
+  }).catch(() => {
+    // Silently ignore errors - cat gif mode may not be enabled
+  });
+
   if (state.elements.refreshBtn) {
     state.elements.refreshBtn.style.transform = "rotate(360deg)";
     setTimeout(() => {

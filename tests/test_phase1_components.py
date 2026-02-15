@@ -11,7 +11,6 @@ import contextlib
 import sys
 import uuid
 from pathlib import Path
-from pathlib import Path
 
 import pytest
 from flask import Flask

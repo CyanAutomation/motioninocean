@@ -10,6 +10,10 @@
 # With Mock Camera (for testing without hardware):
 #   docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
 #
+# With Mock Camera + Animated Cat GIFs (for demos/fun!):
+#   MOCK_CAMERA=true CAT_GIF=true \
+#   docker compose -f docker-compose.yml -f docker-compose.mock.yml -f docker-compose.cat-gif.yml up -d
+#
 # Requirements:
 #   - Copy .env.example to .env and customize
 #   - (Optional) Run ../detect-devices.sh to generate docker-compose.override.yml
@@ -47,6 +51,9 @@ services:
       MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
       CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
+      CAT_GIF: ${CAT_GIF:-false}
+      CATAAS_API_URL: ${CATAAS_API_URL:-https://cataas.com/cat.gif}
+      CAT_GIF_CACHE_TTL_SECONDS: ${CAT_GIF_CACHE_TTL_SECONDS:-60}
 
     ports:
       - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT:-8000}:8000"

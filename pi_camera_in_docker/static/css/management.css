@@ -63,7 +63,9 @@
 .node-form-panel {
   min-width: 0;
   overflow: hidden;
-  transition: width 220ms ease, padding 220ms ease;
+  transition:
+    width 220ms ease,
+    padding 220ms ease;
 }
 
 .node-form-panel .panel-header {
@@ -98,7 +100,9 @@
   opacity: 1;
   width: 100%;
   overflow: hidden;
-  transition: width 220ms ease, opacity 180ms ease;
+  transition:
+    width 220ms ease,
+    opacity 180ms ease;
 }
 
 .management-layout.is-form-collapsed .node-form-panel,
@@ -114,7 +118,8 @@
 }
 
 .management-layout.is-form-collapsed #toggle-node-form-panel-btn,
-.management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) #toggle-node-form-panel-btn {
+.management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"])
+  #toggle-node-form-panel-btn {
   width: 2rem;
   min-width: 2rem;
   height: 2rem;
@@ -196,7 +201,8 @@
   }
 
   .management-layout.is-form-collapsed #toggle-node-form-panel-btn,
-  .management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) #toggle-node-form-panel-btn {
+  .management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"])
+    #toggle-node-form-panel-btn {
     width: auto;
     min-width: 0;
     padding: 0.25rem 0.6rem;
@@ -221,7 +227,6 @@
 .row-actions {
   flex-wrap: wrap;
 }
-
 
 .diagnostic-advanced-toggle {
   display: flex;

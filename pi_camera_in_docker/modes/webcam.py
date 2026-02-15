@@ -327,6 +327,24 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
     def snapshot() -> Response:
         return _build_snapshot_response()
 
+    @app.route("/api/cat-gif/refresh", methods=["POST"])
+    def refresh_cat_gif() -> Response:
+        cat_generator = state.get("cat_gif_generator")
+        if cat_generator is None:
+            return jsonify(
+                {
+                    "status": "unavailable",
+                    "message": "Cat GIF mode is not enabled",
+                }
+            ), 400
+        cat_generator.request_refresh()
+        return jsonify(
+            {
+                "status": "requested",
+                "message": "Cat GIF refresh requested; new cat will load on next frame",
+            }
+        ), 200
+
     @app.route("/webcam")
     @app.route("/webcam/")
     def octoprint_compat_webcam() -> Response:

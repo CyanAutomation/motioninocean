@@ -194,16 +194,14 @@ def run_all_tests() -> Tuple[list, int, int]:
         test_management_overview,
     ]
 
-
-
     results = []
     for test_func in tests:
         result = test_func()
         results.append(result)
 
         if result.details:
-            for key, value in result.details.items():
-
+            for _key, _value in result.details.items():
+                pass
 
     passed = sum(1 for r in results if r.passed)
     failed = len(results) - passed
@@ -212,17 +210,12 @@ def run_all_tests() -> Tuple[list, int, int]:
 
 
 def main() -> int:
-
     time.sleep(2)
 
-    results, passed, failed = run_all_tests()
-
-
+    _results, _passed, failed = run_all_tests()
 
     if failed > 0:
-
-
-
+        pass
 
     return 0 if failed == 0 or failed == 1 else 1  # Allow SSRF protection test to "fail"
 
