@@ -15,7 +15,7 @@ from .settings_schema import SettingsSchema
 def register_settings_routes(app: Flask) -> None:
     """
     Register all settings management API routes.
-    
+
     Routes:
     - GET /api/settings — Current runtime settings (merged env + persisted)
     - GET /api/settings/schema — JSON schema describing all editable settings
@@ -28,7 +28,7 @@ def register_settings_routes(app: Flask) -> None:
     def get_settings() -> Tuple[Dict[str, Any], int]:
         """
         Get current runtime settings (merged environment + persisted).
-        
+
         Returns:
             JSON with current settings merged from env and persisted storage
         """
@@ -52,7 +52,7 @@ def register_settings_routes(app: Flask) -> None:
         """
         Get JSON schema for all editable settings.
         Describes: property names, types, defaults, constraints, descriptions, categories.
-        
+
         Returns:
             JSON schema with metadata for UI rendering
         """
@@ -76,7 +76,7 @@ def register_settings_routes(app: Flask) -> None:
     def patch_settings() -> Tuple[Dict[str, Any], int]:
         """
         Update runtime settings.
-        
+
         Request body: JSON with structure { category: { property: value } }
         Example:
             {
@@ -88,7 +88,7 @@ def register_settings_routes(app: Flask) -> None:
                 "log_level": "DEBUG"
               }
             }
-        
+
         Returns:
             - 200: Settings updated successfully; merged current settings
             - 400: Validation error (includes per-property error messages)
@@ -162,7 +162,7 @@ def register_settings_routes(app: Flask) -> None:
         """
         Reset persisted settings to defaults (clear JSON file).
         Next restart will use environment variables as sole source.
-        
+
         Returns:
             - 200: Settings reset successfully
             - 500: Server error
@@ -184,7 +184,7 @@ def register_settings_routes(app: Flask) -> None:
         """
         Get diff between environment defaults and persisted overrides.
         Shows which settings have been changed via UI.
-        
+
         Returns:
             JSON with 'overridden' list of { category, key, value, env_value } objects
         """

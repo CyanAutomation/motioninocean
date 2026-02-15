@@ -283,7 +283,7 @@ class SettingsSchema:
     def get_schema(cls) -> Dict[str, Any]:
         """
         Get the complete settings schema.
-        
+
         Returns:
             Dict with { category: { properties: { ... } } } structure
         """
@@ -293,10 +293,10 @@ class SettingsSchema:
     def get_category_schema(cls, category: str) -> Optional[Dict[str, Any]]:
         """
         Get schema for a specific category.
-        
+
         Args:
             category: Category name (camera, feature_flags, logging, discovery)
-            
+
         Returns:
             Category schema or None if not found
         """
@@ -306,11 +306,11 @@ class SettingsSchema:
     def get_property_schema(cls, category: str, property_name: str) -> Optional[Dict[str, Any]]:
         """
         Get schema for a specific property.
-        
+
         Args:
             category: Category name
             property_name: Property name within category
-            
+
         Returns:
             Property schema or None if not found
         """
@@ -324,12 +324,12 @@ class SettingsSchema:
     ) -> Tuple[bool, Optional[str]]:
         """
         Validate a value against schema constraints.
-        
+
         Args:
             category: Category name
             property_name: Property name
             value: Value to validate
-            
+
         Returns:
             Tuple of (is_valid, error_message)
         """
@@ -374,7 +374,7 @@ class SettingsSchema:
     def get_defaults(cls) -> Dict[str, Dict[str, Any]]:
         """
         Extract default values for all settings.
-        
+
         Returns:
             Dict with { category: { property: default_value } } structure
         """
@@ -390,7 +390,7 @@ class SettingsSchema:
     def get_restartable_properties(cls) -> Dict[str, List[str]]:
         """
         Get list of properties that require restart when changed.
-        
+
         Returns:
             Dict with { category: [property_names] } structure
         """

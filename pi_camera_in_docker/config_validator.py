@@ -293,10 +293,10 @@ def validate_all_config(config: Dict[str, Any]) -> None:
 def validate_settings_patch(patch: Dict[str, Any]) -> Dict[str, str]:
     """
     Validate a settings PATCH request.
-    
+
     Args:
         patch: Dict with structure { category: { property: value } }
-        
+
     Returns:
         Dict of error messages { "category.property": "error message" } (empty if valid)
     """
