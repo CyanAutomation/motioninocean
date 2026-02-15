@@ -50,9 +50,12 @@ function setDiagnosticPanelExpanded(isExpanded) {
   }
 
   diagnosticsAdvancedCheckbox.checked = isExpanded;
-  diagnosticsAdvancedCheckbox.checked = isExpanded;
   diagnosticsCollapsibleContainer.hidden = !isExpanded;
   diagnosticsCollapsibleContainer.classList.toggle("hidden", !isExpanded);
+
+  if (diagnosticPanel instanceof HTMLElement) {
+    diagnosticPanel.classList.toggle("diagnostic-panel--collapsed", !isExpanded);
+  }
 }
 
 function isDiagnosticPanelContentVisible() {
