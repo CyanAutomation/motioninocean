@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-02-15
+
+- refactor: update file paths and improve type hinting for clarity
+
 ## [1.14.9] - 2026-02-15
 
 - Refactor debug logging in test_config.py; adjust stderr output and frame timing logic
