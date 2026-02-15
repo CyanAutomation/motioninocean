@@ -46,7 +46,8 @@ class ApplicationSettings:
     - logging: log_level, log_format, log_include_identifiers
     - discovery: discovery_enabled, discovery_management_url, discovery_token, discovery_interval_seconds
 
-    Thread-safe with file-based locking for multi-process consistency.
+    Uses file-based locking so each mutating operation performs an atomic
+    read-modify-write cycle across threads/processes.
     """
 
     DEFAULT_SCHEMA: ClassVar = {
@@ -103,6 +104,15 @@ class ApplicationSettings:
         Raises:
             SettingsValidationError: If file is corrupted or invalid
         """
+        try:
+            return self._load_unlocked()
+        except Exception as exc:
+            logger.error(f"Failed to load settings: {exc}")
+            message = f"Failed to load settings: {exc}"
+            raise SettingsValidationError(message) from exc
+
+    def _load_unlocked(self) -> Dict[str, Any]:
+        """Load settings from disk without acquiring the file lock."""
         if not self.path.exists():
             return self._clone_schema()
 
@@ -156,14 +166,9 @@ class ApplicationSettings:
                 schema["modified_by"] = raw["modified_by"]
 
             return schema
-
         except json.JSONDecodeError as exc:
             logger.error(f"Corrupted settings file {self.path}: {exc}")
             message = f"Corrupted settings file: {exc}"
-            raise SettingsValidationError(message) from exc
-        except Exception as exc:
-            logger.error(f"Failed to load settings: {exc}")
-            message = f"Failed to load settings: {exc}"
             raise SettingsValidationError(message) from exc
 
     def save(self, settings: Dict[str, Any], modified_by: str = "system") -> None:
@@ -228,22 +233,25 @@ class ApplicationSettings:
         Raises:
             SettingsValidationError: If key/category invalid
         """
-        data = self.load()
-        if category not in data["settings"]:
-            message = f"Unknown settings category: {category}"
-            raise SettingsValidationError(message)
-
-        if category == "feature_flags":
-            # Feature flags are dynamic; create entry if needed
-            data["settings"][category][key] = value
-        else:
-            # Other categories have fixed schema
-            if key not in data["settings"][category]:
-                message = f"Unknown settings key '{key}' in category '{category}'"
+        with self._exclusive_lock():
+            data = self._load_unlocked()
+            if category not in data["settings"]:
+                message = f"Unknown settings category: {category}"
                 raise SettingsValidationError(message)
-            data["settings"][category][key] = value
 
-        self.save(data["settings"], modified_by=modified_by)
+            if category == "feature_flags":
+                # Feature flags are dynamic; create entry if needed
+                data["settings"][category][key] = value
+            else:
+                # Other categories have fixed schema
+                if key not in data["settings"][category]:
+                    message = f"Unknown settings key '{key}' in category '{category}'"
+                    raise SettingsValidationError(message)
+                data["settings"][category][key] = value
+
+            data["last_modified"] = datetime.now(timezone.utc).isoformat()
+            data["modified_by"] = modified_by
+            self._save_atomic(data)
 
     def update_category(
         self, category: str, updates: Dict[str, Any], modified_by: str = "system"
@@ -259,22 +267,25 @@ class ApplicationSettings:
         Raises:
             SettingsValidationError: If any key invalid
         """
-        data = self.load()
-        if category not in data["settings"]:
-            message = f"Unknown settings category: {category}"
-            raise SettingsValidationError(message)
+        with self._exclusive_lock():
+            data = self._load_unlocked()
+            if category not in data["settings"]:
+                message = f"Unknown settings category: {category}"
+                raise SettingsValidationError(message)
 
-        if category == "feature_flags":
-            data["settings"][category].update(updates)
-        else:
-            # Validate all keys exist
-            for key in updates:
-                if key not in data["settings"][category]:
-                    message = f"Unknown settings key '{key}' in category '{category}'"
-                    raise SettingsValidationError(message)
-            data["settings"][category].update(updates)
+            if category == "feature_flags":
+                data["settings"][category].update(updates)
+            else:
+                # Validate all keys exist
+                for key in updates:
+                    if key not in data["settings"][category]:
+                        message = f"Unknown settings key '{key}' in category '{category}'"
+                        raise SettingsValidationError(message)
+                data["settings"][category].update(updates)
 
-        self.save(data["settings"], modified_by=modified_by)
+            data["last_modified"] = datetime.now(timezone.utc).isoformat()
+            data["modified_by"] = modified_by
+            self._save_atomic(data)
 
     def reset(self, modified_by: str = "system") -> None:
         """
