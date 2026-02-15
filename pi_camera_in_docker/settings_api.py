@@ -6,8 +6,9 @@ Endpoints: GET /api/settings, PATCH /api/settings, POST /api/settings/reset, GET
 
 from typing import Any, Dict, Tuple
 
-from .config_validator import validate_settings_patch
 from flask import Flask, current_app, jsonify, request
+
+from .config_validator import validate_settings_patch
 from .settings_schema import SettingsSchema
 
 
@@ -59,7 +60,7 @@ def register_settings_routes(app: Flask) -> None:
             schema = SettingsSchema.get_schema()
             defaults = SettingsSchema.get_defaults()
             restartable = SettingsSchema.get_restartable_properties()
-            
+
             return jsonify({
                 "schema": schema,
                 "defaults": defaults,
@@ -190,11 +191,12 @@ def register_settings_routes(app: Flask) -> None:
         try:
             # Collect environment defaults
             import os
+
             from main import _parse_resolution
-            
+
             env_defaults = {
                 "camera": {
-                    "resolution": _parse_resolution(os.environ.get("RESOLUTION", "640x480")).replace(',', 'x'),
+                    "resolution": _parse_resolution(os.environ.get("RESOLUTION", "640x480")).replace(",", "x"),
                     "fps": int(os.environ.get("FPS", "0")),
                     "jpeg_quality": int(os.environ.get("JPEG_QUALITY", "85")),
                     "max_stream_connections": int(os.environ.get("MAX_STREAM_CONNECTIONS", "2")),
@@ -213,7 +215,7 @@ def register_settings_routes(app: Flask) -> None:
                 },
                 "feature_flags": {},  # Would need to iterate through all flags
             }
-            
+
             changes = current_app.application_settings.get_changes_from_env(env_defaults)
             return jsonify(changes), 200
         except Exception as exc:

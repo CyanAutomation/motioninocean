@@ -301,21 +301,21 @@ def validate_settings_patch(patch: Dict[str, Any]) -> Dict[str, str]:
         Dict of error messages { "category.property": "error message" } (empty if valid)
     """
     from settings_schema import SettingsSchema
-    
+
     errors = {}
-    
+
     if not isinstance(patch, dict):
         return {"_root": "Patch must be a dictionary"}
-    
+
     # Iterate through all categories and properties in patch
     for category, properties in patch.items():
         if not isinstance(properties, dict):
             errors[f"{category}"] = "Category must contain property objects"
             continue
-        
+
         for prop_name, value in properties.items():
             is_valid, error_msg = SettingsSchema.validate_value(category, prop_name, value)
             if not is_valid:
                 errors[f"{category}.{prop_name}"] = error_msg
-    
+
     return errors

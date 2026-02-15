@@ -24,6 +24,7 @@ Motion In Ocean supports **runtime configuration management** through the web UI
 ## Settings Categories
 
 ### Camera Configuration (Immediate)
+
 Settings that affect video capture and streaming:
 
 - `MOTION_IN_OCEAN_RESOLUTION` - Video resolution
@@ -35,6 +36,7 @@ Settings that affect video capture and streaming:
 **UI Location**: Settings tab → Camera Configuration
 
 ### Logging Configuration (Immediate)
+
 Settings that control logging behavior:
 
 - `LOG_LEVEL` - Verbosity (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -44,6 +46,7 @@ Settings that control logging behavior:
 **UI Location**: Settings tab → Logging Configuration
 
 ### Node Discovery (Immediate)
+
 Settings for registering with a management node:
 
 - `DISCOVERY_ENABLED` - Enable/disable discovery
@@ -54,6 +57,7 @@ Settings for registering with a management node:
 **UI Location**: Settings tab → Node Discovery
 
 ### Feature Flags (Varies)
+
 Experimental features that can be toggled:
 
 - `MOTION_IN_OCEAN_QUALITY_ADAPTATION` - Auto JPEG quality adjustment
@@ -107,6 +111,7 @@ These environment variables are **system configuration** and require container r
 4. Click **Save** to persist changes
 
 ### Via API
+
 **Get all settings:**
 
 ```bash
@@ -156,6 +161,7 @@ curl http://localhost:8000/api/settings/changes
 - File has atomic writes and file locking for safe concurrent access
 
 ### Default Recovery
+
 To restore all settings to environment-variable defaults:
 
 1. Via UI: Settings tab → **Reset to Defaults** button
@@ -163,11 +169,12 @@ To restore all settings to environment-variable defaults:
 3. Via filesystem: Delete `/data/application-settings.json` and restart the container
 
 ### Volume Configuration
+
 Ensure your docker-compose or container configuration includes:
 
 ```yaml
 volumes:
-  - data:/data  # Persists application-settings.json
+  - data:/data # Persists application-settings.json
 ```
 
 ## Reference: .env Annotations

@@ -1349,134 +1349,148 @@ def _get_camera_info(picamera2_cls: Any) -> Tuple[list, str]:
     return [], "none"
 
 
-def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
-    # Picamera2() / create_video_configuration / start_recording markers are intentionally preserved.
+def _init_mock_camera_frames(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
+    """Initialize mock camera frame generation."""
+    recording_started: Event = state["recording_started"]
+    output: FrameBuffer = state["output"]
+    shutdown_requested: Event = state["shutdown_requested"]
+
+    if cfg["cat_gif_enabled"]:
+        # Use cat GIF streaming mode
+        cat_generator = CatGifGenerator(
+            api_url=cfg["cataas_api_url"],
+            resolution=cfg["resolution"],
+            jpeg_quality=cfg["jpeg_quality"],
+            target_fps=cfg["fps"] if cfg["fps"] > 0 else 10,
+            cache_ttl_seconds=cfg["cat_gif_cache_ttl_seconds"],
+        )
+        state["cat_gif_generator"] = cat_generator
+
+        def generate_cat_gif_frames() -> None:
+            recording_started.set()
+            try:
+                for frame in cat_generator.generate_frames():
+                    if shutdown_requested.is_set():
+                        break
+                    output.write(frame)
+            finally:
+                recording_started.clear()
+
+        Thread(target=generate_cat_gif_frames, daemon=True).start()
+    else:
+        # Use classic black frame mock mode
+        fallback = Image.new("RGB", cfg["resolution"], color=(0, 0, 0))
+        buf = io.BytesIO()
+        fallback.save(buf, format="JPEG", quality=cfg["jpeg_quality"])
+        frame = buf.getvalue()
+
+        def generate_mock_frames() -> None:
+            recording_started.set()
+            try:
+                while not shutdown_requested.is_set():
+                    time.sleep(1 / (cfg["fps"] if cfg["fps"] > 0 else 10))
+                    output.write(frame)
+            finally:
+                recording_started.clear()
+
+        Thread(target=generate_mock_frames, daemon=True).start()
+
+
+def _init_real_camera(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
+    """Initialize real camera recording."""
     recording_started: Event = state["recording_started"]
     output: FrameBuffer = state["output"]
     shutdown_requested: Event = state["shutdown_requested"]
     camera_lock: RLock = state["camera_lock"]
 
+    picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(
+        cfg["allow_pykms_mock"]
+    )
+    try:
+        # Detect available cameras before initialization
+        try:
+            detected_devices = _detect_camera_devices()
+            camera_inventory = {
+                "video_devices": detected_devices.get("video_devices", []),
+                "media_devices": detected_devices.get("media_devices", []),
+                "v4l_subdev_devices": detected_devices.get("v4l_subdev_devices", []),
+                "dma_heap_devices": detected_devices.get("dma_heap_devices", []),
+                "vchiq_exists": detected_devices.get("vchiq_device", False),
+            }
+            camera_info, detection_path = _get_camera_info(
+                picamera2_cls
+            )  # global_camera_info() marker
+            logger.info("Camera inventory detection path: %s", detection_path)
+            if not camera_info:
+                logger.error(
+                    "No cameras detected by picamera2 enumeration",
+                    extra={
+                        "camera_info_detection_path": detection_path,
+                        "camera_device_inventory": camera_inventory,
+                    },
+                )
+                message = "No cameras detected. Check device mappings and camera hardware."
+                raise RuntimeError(message)
+            logger.info(f"Detected {len(camera_info)} camera(s) available")
+        except IndexError as e:  # except IndexError marker for camera detection
+            message = (
+                "Camera enumeration failed. Verify device mappings and permissions. "
+                "See ./detect-devices.sh and docker-compose.yaml for configuration."
+            )
+            raise RuntimeError(message) from e
+
+        with camera_lock:
+            if shutdown_requested.is_set():
+                message = "Shutdown requested before camera startup completed"
+                raise RuntimeError(message)
+
+            picam2_instance = picamera2_cls()  # Picamera2() marker
+            state["picam2_instance"] = picam2_instance
+            video_config = picam2_instance.create_video_configuration(
+                main={"size": cfg["resolution"], "format": "BGR888"}
+            )  # create_video_configuration marker
+            picam2_instance.configure(video_config)
+            picam2_instance.start_recording(
+                jpeg_encoder_cls(q=cfg["jpeg_quality"]), file_output_cls(output)
+            )  # start_recording marker
+        recording_started.set()
+    except PermissionError as e:  # except PermissionError marker
+        _shutdown_camera(state)
+        logger.error(
+            "Permission denied accessing camera device. Check device mappings in "
+            "docker-compose.yaml and run ./detect-devices.sh on the host for guidance.",
+            exc_info=e,
+        )
+        raise
+    except RuntimeError as e:  # except RuntimeError marker
+        _shutdown_camera(state)
+        logger.error(
+            "Camera initialization failed. This may indicate missing device mappings, "
+            "insufficient permissions, or unavailable hardware. "
+            "See ./detect-devices.sh and docker-compose.yaml for troubleshooting.",
+            exc_info=e,
+        )
+        raise
+    except Exception as e:  # except Exception marker
+        _shutdown_camera(state)
+        logger.error(
+            "Unexpected error during camera initialization. "
+            "Check device availability and permissions.",
+            exc_info=e,
+        )
+        raise
+
+
+def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
+    # Picamera2() / create_video_configuration / start_recording markers are intentionally preserved.
+
     # Validate device availability early
     _check_device_availability(cfg)
 
     if cfg["mock_camera"]:
-        if cfg["cat_gif_enabled"]:
-            # Use cat GIF streaming mode
-            # Create generator outside the thread so we can store it in state
-            cat_generator = CatGifGenerator(
-                api_url=cfg["cataas_api_url"],
-                resolution=cfg["resolution"],
-                jpeg_quality=cfg["jpeg_quality"],
-                target_fps=cfg["fps"] if cfg["fps"] > 0 else 10,
-                cache_ttl_seconds=cfg["cat_gif_cache_ttl_seconds"],
-            )
-            state["cat_gif_generator"] = cat_generator
-
-            def generate_cat_gif_frames() -> None:
-                recording_started.set()
-                try:
-                    for frame in cat_generator.generate_frames():
-                        if shutdown_requested.is_set():
-                            break
-                        output.write(frame)
-                finally:
-                    recording_started.clear()
-
-            Thread(target=generate_cat_gif_frames, daemon=True).start()
-        else:
-            # Use classic black frame mock mode
-            fallback = Image.new("RGB", cfg["resolution"], color=(0, 0, 0))
-            buf = io.BytesIO()
-            fallback.save(buf, format="JPEG", quality=cfg["jpeg_quality"])
-            frame = buf.getvalue()
-
-            def generate_mock_frames() -> None:
-                recording_started.set()
-                try:
-                    while not shutdown_requested.is_set():
-                        time.sleep(1 / (cfg["fps"] if cfg["fps"] > 0 else 10))
-                        output.write(frame)
-                finally:
-                    recording_started.clear()
-
-            Thread(target=generate_mock_frames, daemon=True).start()
+        _init_mock_camera_frames(state, cfg)
     else:
-        picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(
-            cfg["allow_pykms_mock"]
-        )
-        try:
-            # Detect available cameras before initialization
-            try:
-                detected_devices = _detect_camera_devices()
-                camera_inventory = {
-                    "video_devices": detected_devices.get("video_devices", []),
-                    "media_devices": detected_devices.get("media_devices", []),
-                    "v4l_subdev_devices": detected_devices.get("v4l_subdev_devices", []),
-                    "dma_heap_devices": detected_devices.get("dma_heap_devices", []),
-                    "vchiq_exists": detected_devices.get("vchiq_device", False),
-                }
-                camera_info, detection_path = _get_camera_info(
-                    picamera2_cls
-                )  # global_camera_info() marker
-                logger.info("Camera inventory detection path: %s", detection_path)
-                if not camera_info:
-                    logger.error(
-                        "No cameras detected by picamera2 enumeration",
-                        extra={
-                            "camera_info_detection_path": detection_path,
-                            "camera_device_inventory": camera_inventory,
-                        },
-                    )
-                    message = "No cameras detected. Check device mappings and camera hardware."
-                    raise RuntimeError(message)
-                logger.info(f"Detected {len(camera_info)} camera(s) available")
-            except IndexError as e:  # except IndexError marker for camera detection
-                message = (
-                    "Camera enumeration failed. Verify device mappings and permissions. "
-                    "See ./detect-devices.sh and docker-compose.yaml for configuration."
-                )
-                raise RuntimeError(message) from e
-
-            with camera_lock:
-                if shutdown_requested.is_set():
-                    message = "Shutdown requested before camera startup completed"
-                    raise RuntimeError(message)
-
-                picam2_instance = picamera2_cls()  # Picamera2() marker
-                state["picam2_instance"] = picam2_instance
-                video_config = picam2_instance.create_video_configuration(
-                    main={"size": cfg["resolution"], "format": "BGR888"}
-                )  # create_video_configuration marker
-                picam2_instance.configure(video_config)
-                picam2_instance.start_recording(
-                    jpeg_encoder_cls(q=cfg["jpeg_quality"]), file_output_cls(output)
-                )  # start_recording marker
-            recording_started.set()
-        except PermissionError as e:  # except PermissionError marker
-            _shutdown_camera(state)
-            logger.error(
-                "Permission denied accessing camera device. Check device mappings in "
-                "docker-compose.yaml and run ./detect-devices.sh on the host for guidance.",
-                exc_info=e,
-            )
-            raise
-        except RuntimeError as e:  # except RuntimeError marker
-            _shutdown_camera(state)
-            logger.error(
-                "Camera initialization failed. This may indicate missing device mappings, "
-                "insufficient permissions, or unavailable hardware. "
-                "See ./detect-devices.sh and docker-compose.yaml for troubleshooting.",
-                exc_info=e,
-            )
-            raise
-        except Exception as e:  # except Exception marker
-            _shutdown_camera(state)
-            logger.error(
-                "Unexpected error during camera initialization. "
-                "Check device availability and permissions.",
-                exc_info=e,
-            )
-            raise
+        _init_real_camera(state, cfg)
 
 
 def handle_shutdown(app: Flask, signum: int, _frame: Optional[object]) -> None:

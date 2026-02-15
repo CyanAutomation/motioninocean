@@ -3,13 +3,15 @@ Tests for ApplicationSettings persistence layer
 """
 
 import json
+
+# Import from parent directory
+import sys
 import tempfile
 from pathlib import Path
 
 import pytest
 
-# Import from parent directory
-import sys
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "pi_camera_in_docker"))
 
 from application_settings import ApplicationSettings, SettingsValidationError
@@ -18,7 +20,7 @@ from application_settings import ApplicationSettings, SettingsValidationError
 @pytest.fixture
 def temp_settings_file():
     """Create a temporary settings file for testing."""
-    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
         temp_path = f.name
     yield temp_path
     # Cleanup
@@ -231,12 +233,12 @@ class TestApplicationSettingsValidation:
         settings = ApplicationSettings(temp_settings_file)
 
         # Create file with invalid version
-        with open(temp_settings_file, 'w') as f:
+        with open(temp_settings_file, "w") as f:
             json.dump({
                 "version": 99,
                 "settings": {"camera": {}, "feature_flags": {}, "logging": {}, "discovery": {}}
             }, f)
-        
+
         # Trying to load invalid version should raise
         with pytest.raises(SettingsValidationError):
             settings.load()
@@ -278,7 +280,7 @@ class TestApplicationSettingsFileCorruption:
         settings = ApplicationSettings(temp_settings_file)
 
         # Write invalid JSON
-        with open(temp_settings_file, 'w') as f:
+        with open(temp_settings_file, "w") as f:
             f.write("{ invalid json }")
 
         with pytest.raises(SettingsValidationError):
@@ -289,7 +291,7 @@ class TestApplicationSettingsFileCorruption:
         settings = ApplicationSettings(temp_settings_file)
 
         # Write invalid JSON
-        with open(temp_settings_file, 'w') as f:
+        with open(temp_settings_file, "w") as f:
             f.write("{ invalid json }")
 
         # Reset should still work
@@ -297,5 +299,5 @@ class TestApplicationSettingsFileCorruption:
         assert not Path(temp_settings_file).exists()
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
