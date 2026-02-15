@@ -11,6 +11,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.14.4] - 2026-02-15
+
+- feat: Implement cat GIF generator and refresh API
+- Add Cat GIF generator and integrate into mock camera mode
+- Remove backup pre-commit configuration file
+- Add pre-commit configuration for code quality and consistency
+- Fix pre-commit issues
+- Add health check section to config panel (#280)
+- Merge pull request #279 from CyanAutomation/codex/extend-ui-context-and-add-tests
+- Merge pull request #278 from CyanAutomation/codex/add-health_check-to-json-response
+- Add advanced diagnostics toggle coverage in frontend tests
+- Add health_check indicators to /api/config response
+- Merge pull request #277 from CyanAutomation/codex/add-styles-for-diagnostic-control-row
+- Refine diagnostics toggle layout and collapsed panel styling
+- Merge pull request #276 from CyanAutomation/codex/add-advanced-checkbox-functionality
+- Update management.js
+- Sync advanced diagnostics panel visibility and focus behavior
+- Merge pull request #275 from CyanAutomation/codex/add-frontend-test-for-management-panel-toggle
+- Update management-panel-collapse.test.mjs
+- Update management-panel-collapse.test.mjs
+- Merge pull request #274 from CyanAutomation/codex/update-tests-and-documentation-for-new-ux
+- Merge pull request #273 from CyanAutomation/codex/add-advanced-checkbox-and-diagnostics-container
+- Update management.js
+- Update management.html
+- Add VM-based test for management panel collapse toggle
+- Align config QA checks/docs with 3-section UX
+- Add advanced toggle for diagnostic panel visibility
+- Merge pull request #272 from CyanAutomation/codex/update-/api/config-response-structure
+- Merge pull request #271 from CyanAutomation/codex/add-toggle-functionality-to-management.js
+- Remove limits from /api/config response
+- Add collapsible node form panel state handling
+- Merge pull request #270 from CyanAutomation/codex/github-mention-codex-generated-pull-request
+- Merge pull request #269 from CyanAutomation/codex/update-renderconfig-to-remove-limits
+- Fix mobile node form display conflict
+- Remove limits rendering from config panel
+- Merge pull request #268 from CyanAutomation/codex/update-management.css-for-collapsed-layout
+- Merge pull request #267 from CyanAutomation/codex/remove-system-limits-config-group
+- Refine management form panel collapsed rail styling
+- Remove System Limits group from configuration panel
+- Merge pull request #266 from CyanAutomation/codex/github-mention-add-accessible-toggle-header-wrapper-for-nod
+- Update management.js
+- Add node form panel toggle behavior in management UI
+- Merge pull request #265 from CyanAutomation/codex/edit-management.html-for-panel-enhancements
+- Add collapsible header structure for node form panel
+- Enhance PRD documentation with detailed architecture and state machine diagrams for backend and frontend components
+
 - api: remove deprecated `limits` object from `/api/config` response
 
 ## [1.14.3] - 2026-02-14
