@@ -392,7 +392,7 @@ config = app.motion_config
 buffer = main.FrameBuffer(state["stream_stats"], target_fps=config["target_fps"])
 for _ in range(30):
     buffer.write(b"x" * 1024)
-    time.sleep(0.01)
+    time.sleep(1 / config["target_fps"] + 0.005)
 
 client = app.test_client()
 metrics = client.get("/metrics").get_json()
