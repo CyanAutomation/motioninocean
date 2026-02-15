@@ -1208,7 +1208,7 @@ def test_request_json_maps_timeout_failure(monkeypatch):
 
 
 def test_request_json_maps_connection_refused_or_reset(monkeypatch):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     def fake_getaddrinfo(host, port, proto):
         return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))]
@@ -1229,7 +1229,7 @@ def test_request_json_maps_connection_refused_or_reset(monkeypatch):
 
 
 def test_request_json_maps_tls_failure(monkeypatch):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     def fake_getaddrinfo(host, port, proto):
         return [
