@@ -98,46 +98,59 @@ class ApplicationSettings:
 
         try:
             content = self.path.read_text(encoding="utf-8").strip()
-            if not content:  # Handle empty files
+            if not content:  # Handle empty files gracefully
                 return self._clone_schema()
+
             raw = json.loads(content)
+            
+            # Validate version
+            if raw.get("version") != 1:
+                raise SettingsValidationError(f"Unsupported schema version: {raw.get('version')}")
+            
+            schema = self._clone_schema()
+
+            settings = raw.get("settings", {})
+            if isinstance(settings, dict):
+                # Merge persisted settings, keeping schema structure
+                schema["settings"]["camera"] = {
+                    **schema["settings"]["camera"],
+                    **{
+                        k: v
+                        for k, v in settings.get("camera", {}).items()
+                        if k in schema["settings"]["camera"]
+                    },
+                }
+                schema["settings"]["feature_flags"] = settings.get("feature_flags", {})
+                schema["settings"]["logging"] = {
+                    **schema["settings"]["logging"],
+                    **{
+                        k: v
+                        for k, v in settings.get("logging", {}).items()
+                        if k in schema["settings"]["logging"]
+                    },
+                }
+                schema["settings"]["discovery"] = {
+                    **schema["settings"]["discovery"],
+                    **{
+                        k: v
+                        for k, v in settings.get("discovery", {}).items()
+                        if k in schema["settings"]["discovery"]
+                    },
+                }
+
+            if raw.get("last_modified"):
+                schema["last_modified"] = raw["last_modified"]
+            if raw.get("modified_by"):
+                schema["modified_by"] = raw["modified_by"]
+
             return schema
 
-        settings = raw.get("settings", {})
-        if isinstance(settings, dict):
-            # Merge persisted settings, keeping schema structure
-            schema["settings"]["camera"] = {
-                **schema["settings"]["camera"],
-                **{
-                    k: v
-                    for k, v in settings.get("camera", {}).items()
-                    if k in schema["settings"]["camera"]
-                },
-            }
-            schema["settings"]["feature_flags"] = settings.get("feature_flags", {})
-            schema["settings"]["logging"] = {
-                **schema["settings"]["logging"],
-                **{
-                    k: v
-                    for k, v in settings.get("logging", {}).items()
-                    if k in schema["settings"]["logging"]
-                },
-            }
-            schema["settings"]["discovery"] = {
-                **schema["settings"]["discovery"],
-                **{
-                    k: v
-                    for k, v in settings.get("discovery", {}).items()
-                    if k in schema["settings"]["discovery"]
-                },
-            }
-
-        if raw.get("last_modified"):
-            schema["last_modified"] = raw["last_modified"]
-        if raw.get("modified_by"):
-            schema["modified_by"] = raw["modified_by"]
-
-        return schema
+        except json.JSONDecodeError as exc:
+            logger.error(f"Corrupted settings file {self.path}: {exc}")
+            raise SettingsValidationError(f"Corrupted settings file: {exc}") from exc
+        except Exception as exc:
+            logger.error(f"Failed to load settings: {exc}")
+            raise SettingsValidationError(f"Failed to load settings: {exc}") from exc
 
     def save(self, settings: Dict[str, Any], modified_by: str = "system") -> None:
         """
@@ -177,11 +190,13 @@ class ApplicationSettings:
             default: Default value if not found
 
         Returns:
-            Setting value or default
+            Setting value or default (treating None as unset)
         """
         data = self.load()
         try:
-            return data["settings"][category].get(key, default)
+            value = data["settings"][category].get(key, default)
+            # Treat None as "unset", return default instead
+            return default if value is None else value
         except (KeyError, AttributeError):
             return default
 

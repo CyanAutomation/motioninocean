@@ -6,9 +6,9 @@ Endpoints: GET /api/settings, PATCH /api/settings, POST /api/settings/reset, GET
 
 from typing import Any, Dict, Tuple
 
-from config_validator import validate_settings_patch
+from .config_validator import validate_settings_patch
 from flask import Flask, current_app, jsonify, request
-from settings_schema import SettingsSchema
+from .settings_schema import SettingsSchema
 
 
 def register_settings_routes(app: Flask) -> None:

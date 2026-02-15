@@ -227,18 +227,19 @@ class TestApplicationSettingsValidation:
             settings.save({"camera": {}})  # type: ignore
 
     def test_invalid_version_raises(self, temp_settings_file):
-        """Test that invalid version raises error."""
+        """Test that invalid version in file raises error on load."""
         settings = ApplicationSettings(temp_settings_file)
 
+        # Create file with invalid version
+        with open(temp_settings_file, 'w') as f:
+            json.dump({
+                "version": 99,
+                "settings": {"camera": {}, "feature_flags": {}, "logging": {}, "discovery": {}}
+            }, f)
+        
+        # Trying to load invalid version should raise
         with pytest.raises(SettingsValidationError):
-            # Create file with invalid version
-            with open(temp_settings_file, 'w') as f:
-                json.dump({
-                    "version": 99,
-                    "settings": {"camera": {}, "feature_flags": {}, "logging": {}, "discovery": {}}
-                }, f)
-            # Try to save will fail when validating
-            settings.save({"camera": {}, "feature_flags": {}, "logging": {}, "discovery": {}})  # type: ignore
+            settings.load()
 
 
 class TestApplicationSettingsConcurrency:
