@@ -183,6 +183,7 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
     ):
         super().__init__(host=host, port=port, timeout=timeout, context=context)
         self._connect_host = connect_host
+        self.port = port or 443
 
     def connect(self):
         sock = socket.create_connection((self._connect_host, self.port), self.timeout)
