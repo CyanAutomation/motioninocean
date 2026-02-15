@@ -221,8 +221,10 @@ class CatGifGenerator:
             yield jpeg_bytes
 
             # Advance frame index and loop
-            if self._frames:
-                frame_idx += 1
+            # Advance frame index and loop
+            with self._lock:
+                if self._frames:
+                    frame_idx += 1
 
             # Sleep respecting the frame's inherent timing
             time.sleep(current_frame_interval)
