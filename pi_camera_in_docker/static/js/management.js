@@ -50,7 +50,7 @@ function setDiagnosticPanelExpanded(isExpanded) {
   }
 
   diagnosticsAdvancedCheckbox.checked = isExpanded;
-  diagnosticsAdvancedCheckbox.setAttribute("aria-expanded", String(isExpanded));
+  diagnosticsAdvancedCheckbox.checked = isExpanded;
   diagnosticsCollapsibleContainer.hidden = !isExpanded;
   diagnosticsCollapsibleContainer.classList.toggle("hidden", !isExpanded);
 }
