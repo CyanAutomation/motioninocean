@@ -628,12 +628,6 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
                     "mock_camera": config["mock_camera"],
                     "uptime_seconds": uptime_seconds,
                 },
-                "limits": {
-                    "max_resolution": [4096, 4096],
-                    "max_fps": 120,
-                    "min_jpeg_quality": 1,
-                    "max_jpeg_quality": 100,
-                },
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "app_mode": config["app_mode"],
             }

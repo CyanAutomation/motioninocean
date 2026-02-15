@@ -145,13 +145,8 @@ def test_api_config_returns_render_config_shape_in_management_mode(monkeypatch):
         assert body["runtime"]["camera_active"] is False
         assert isinstance(body["runtime"]["mock_camera"], bool)
         assert body["runtime"]["uptime_seconds"] is None
+        assert "limits" not in body
 
-        assert body["limits"] == {
-            "max_resolution": [4096, 4096],
-            "max_fps": 120,
-            "min_jpeg_quality": 1,
-            "max_jpeg_quality": 100,
-        }
         assert isinstance(body["timestamp"], str)
         assert body["app_mode"] == "management"
 
@@ -355,7 +350,7 @@ def test_webcam_control_plane_endpoints_require_valid_bearer_when_token_set(monk
 
 
 def _assert_render_config_contract(payload: dict):
-    for key in ("camera_settings", "stream_control", "runtime", "limits", "timestamp"):
+    for key in ("camera_settings", "stream_control", "runtime", "timestamp"):
         assert key in payload
 
     assert set(payload["camera_settings"]) >= {"resolution", "fps", "target_fps", "jpeg_quality"}
@@ -366,12 +361,6 @@ def _assert_render_config_contract(payload: dict):
         "cors_origins",
     }
     assert set(payload["runtime"]) >= {"camera_active", "mock_camera", "uptime_seconds"}
-    assert set(payload["limits"]) >= {
-        "max_resolution",
-        "max_fps",
-        "min_jpeg_quality",
-        "max_jpeg_quality",
-    }
     assert isinstance(payload["timestamp"], str)
 
 
