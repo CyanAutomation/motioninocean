@@ -69,12 +69,8 @@ def _parse_resolution(resolution_str: str) -> Tuple[int, int]:
     return width, height
 
 
-def _load_config() -> Dict[str, Any]:
-    app_mode = os.environ.get("APP_MODE", DEFAULT_APP_MODE).strip().lower()  # os.environ.get marker
-    if app_mode not in ALLOWED_APP_MODES:
-        message = f"Invalid APP_MODE {app_mode}"
-        raise ValueError(message)
-
+def _load_camera_config() -> Dict[str, Any]:
+    """Load camera and streaming configuration."""
     try:
         resolution = _parse_resolution(os.environ.get("RESOLUTION", "640x480"))
     except ValueError:
@@ -111,6 +107,18 @@ def _load_config() -> Dict[str, Any]:
     if not 1 <= max_stream_connections <= 100:
         max_stream_connections = 10
 
+    return {
+        "resolution": resolution,
+        "fps": fps,
+        "target_fps": target_fps,
+        "jpeg_quality": jpeg_quality,
+        "max_frame_age_seconds": max_frame_age,
+        "max_stream_connections": max_stream_connections,
+    }
+
+
+def _load_stream_config() -> Dict[str, Any]:
+    """Load stream testing and cat GIF configuration."""
     api_test_mode_enabled = os.environ.get("API_TEST_MODE_ENABLED", "false").lower() in (
         "1",
         "true",
@@ -125,6 +133,26 @@ def _load_config() -> Dict[str, Any]:
     if api_test_cycle_interval_seconds <= 0:
         api_test_cycle_interval_seconds = 5.0
 
+    cat_gif_enabled = is_flag_enabled("CAT_GIF")
+    cataas_api_url = os.environ.get("CATAAS_API_URL", "https://cataas.com/cat.gif").strip()
+    try:
+        cat_gif_cache_ttl_seconds = float(os.environ.get("CAT_GIF_CACHE_TTL_SECONDS", "60"))
+    except ValueError:
+        cat_gif_cache_ttl_seconds = 60.0
+    if cat_gif_cache_ttl_seconds <= 0:
+        cat_gif_cache_ttl_seconds = 60.0
+
+    return {
+        "api_test_mode_enabled": api_test_mode_enabled,
+        "api_test_cycle_interval_seconds": api_test_cycle_interval_seconds,
+        "cat_gif_enabled": cat_gif_enabled,
+        "cataas_api_url": cataas_api_url,
+        "cat_gif_cache_ttl_seconds": cat_gif_cache_ttl_seconds,
+    }
+
+
+def _load_discovery_config() -> Dict[str, Any]:
+    """Load discovery service configuration."""
     discovery_enabled = os.environ.get("DISCOVERY_ENABLED", "false").lower() in (
         "1",
         "true",
@@ -139,15 +167,18 @@ def _load_config() -> Dict[str, Any]:
     if discovery_interval_seconds <= 0:
         discovery_interval_seconds = 30.0
     discovery_node_id = os.environ.get("DISCOVERY_NODE_ID", "").strip()
-    default_base_url = f"http://{socket.gethostname()}:8000"
-    base_url = os.environ.get("BASE_URL", default_base_url).strip() or default_base_url
 
-    # Canonical Pi 3 profile env var is MOTION_IN_OCEAN_PI3_PROFILE.
-    # Keep PI3_PROFILE as a legacy fallback for backward compatibility.
-    pi3_profile_raw = os.environ.get(
-        "MOTION_IN_OCEAN_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false")
-    )
+    return {
+        "discovery_enabled": discovery_enabled,
+        "discovery_management_url": discovery_management_url,
+        "discovery_token": discovery_token,
+        "discovery_interval_seconds": discovery_interval_seconds,
+        "discovery_node_id": discovery_node_id,
+    }
 
+
+def _load_networking_config() -> Dict[str, Any]:
+    """Load networking and CORS configuration."""
     cors_enabled = is_flag_enabled("CORS_SUPPORT")
     cors_origins_raw = os.environ.get("MOTION_IN_OCEAN_CORS_ORIGINS", "").strip()
     cors_origins = cors_origins_raw or "*" if cors_enabled else "disabled"
@@ -160,46 +191,110 @@ def _load_config() -> Dict[str, Any]:
     if not 1 <= bind_port <= 65535:
         bind_port = 8000
 
-    cat_gif_enabled = is_flag_enabled("CAT_GIF")
-    cataas_api_url = os.environ.get("CATAAS_API_URL", "https://cataas.com/cat.gif").strip()
-    try:
-        cat_gif_cache_ttl_seconds = float(os.environ.get("CAT_GIF_CACHE_TTL_SECONDS", "60"))
-    except ValueError:
-        cat_gif_cache_ttl_seconds = 60.0
-    if cat_gif_cache_ttl_seconds <= 0:
-        cat_gif_cache_ttl_seconds = 60.0
+    default_base_url = f"http://{socket.gethostname()}:8000"
+    base_url = os.environ.get("BASE_URL", default_base_url).strip() or default_base_url
 
     return {
-        "app_mode": app_mode,
-        "resolution": resolution,
-        "fps": fps,
-        "target_fps": target_fps,
-        "jpeg_quality": jpeg_quality,
-        "max_frame_age_seconds": max_frame_age,
-        "max_stream_connections": max_stream_connections,
-        "api_test_mode_enabled": api_test_mode_enabled,
-        "api_test_cycle_interval_seconds": api_test_cycle_interval_seconds,
-        "pi3_profile_enabled": pi3_profile_raw.lower() in ("1", "true", "yes"),
-        "mock_camera": is_flag_enabled("MOCK_CAMERA"),
-        "cat_gif_enabled": cat_gif_enabled,
-        "cataas_api_url": cataas_api_url,
-        "cat_gif_cache_ttl_seconds": cat_gif_cache_ttl_seconds,
         "cors_enabled": cors_enabled,
         "cors_origins": cors_origins,
+        "bind_host": bind_host,
+        "bind_port": bind_port,
+        "base_url": base_url,
+    }
+
+
+def _load_advanced_config() -> Dict[str, Any]:
+    """Load advanced and hardware-specific configuration."""
+    pi3_profile_raw = os.environ.get(
+        "MOTION_IN_OCEAN_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false")
+    )
+
+    return {
+        "pi3_profile_enabled": pi3_profile_raw.lower() in ("1", "true", "yes"),
+        "mock_camera": is_flag_enabled("MOCK_CAMERA"),
         "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
         in ("1", "true", "yes"),
         "node_registry_path": os.environ.get("NODE_REGISTRY_PATH", "/data/node-registry.json"),
-        # Auth is required if and only if token is non-empty
         "management_auth_token": os.environ.get("MANAGEMENT_AUTH_TOKEN", ""),
-        "discovery_enabled": discovery_enabled,
-        "discovery_management_url": discovery_management_url,
-        "discovery_token": discovery_token,
-        "discovery_interval_seconds": discovery_interval_seconds,
-        "discovery_node_id": discovery_node_id,
-        "base_url": base_url,
-        "bind_host": bind_host,
-        "bind_port": bind_port,
     }
+
+
+def _load_config() -> Dict[str, Any]:
+    """Load all configuration from environment variables using helper functions."""
+    app_mode = os.environ.get("APP_MODE", DEFAULT_APP_MODE).strip().lower()  # os.environ.get marker
+    if app_mode not in ALLOWED_APP_MODES:
+        message = f"Invalid APP_MODE {app_mode}"
+        raise ValueError(message)
+
+    config = {
+        "app_mode": app_mode,
+    }
+    config.update(_load_camera_config())
+    config.update(_load_stream_config())
+    config.update(_load_discovery_config())
+    config.update(_load_networking_config())
+    config.update(_load_advanced_config())
+
+    return config
+
+
+def _merge_camera_settings(
+    merged: Dict[str, Any], camera_settings: Dict[str, Any], env_config: Dict[str, Any]
+) -> None:
+    """Merge persisted camera settings into the merged config."""
+    if camera_settings.get("resolution") is not None:
+        try:
+            merged["resolution"] = _parse_resolution(camera_settings["resolution"])
+        except ValueError:
+            logger.warning("Invalid persisted resolution, using env value")
+
+    if camera_settings.get("fps") is not None:
+        merged["fps"] = camera_settings["fps"]
+        # Update target_fps if it equals old fps
+        if merged.get("target_fps") == env_config.get("fps"):
+            merged["target_fps"] = camera_settings["fps"]
+
+    if camera_settings.get("jpeg_quality") is not None:
+        quality = camera_settings["jpeg_quality"]
+        if 1 <= quality <= 100:
+            merged["jpeg_quality"] = quality
+        else:
+            logger.warning(f"Invalid persisted JPEG quality {quality}, using env value")
+
+    if camera_settings.get("max_stream_connections") is not None:
+        conns = camera_settings["max_stream_connections"]
+        if 1 <= conns <= 100:
+            merged["max_stream_connections"] = conns
+        else:
+            logger.warning(f"Invalid persisted max_stream_connections {conns}, using env value")
+
+    if camera_settings.get("max_frame_age_seconds") is not None:
+        age = camera_settings["max_frame_age_seconds"]
+        if age > 0:
+            merged["max_frame_age_seconds"] = age
+        else:
+            logger.warning(f"Invalid persisted max_frame_age_seconds {age}, using env value")
+
+
+def _merge_discovery_settings(merged: Dict[str, Any], discovery_settings: Dict[str, Any]) -> None:
+    """Merge persisted discovery settings into the merged config."""
+    if discovery_settings.get("discovery_enabled") is not None:
+        merged["discovery_enabled"] = discovery_settings["discovery_enabled"]
+
+    if discovery_settings.get("discovery_management_url") is not None:
+        url = discovery_settings["discovery_management_url"]
+        if url.strip():
+            merged["discovery_management_url"] = url
+
+    if discovery_settings.get("discovery_token") is not None:
+        token = discovery_settings["discovery_token"]
+        if token is not None:
+            merged["discovery_token"] = token
+
+    if discovery_settings.get("discovery_interval_seconds") is not None:
+        interval = discovery_settings["discovery_interval_seconds"]
+        if interval > 0:
+            merged["discovery_interval_seconds"] = interval
 
 
 def _merge_config_with_settings(env_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -230,38 +325,7 @@ def _merge_config_with_settings(env_config: Dict[str, Any]) -> Dict[str, Any]:
 
         # Merge camera settings
         camera_settings = settings.get("camera", {})
-        if camera_settings.get("resolution") is not None:
-            try:
-                merged["resolution"] = _parse_resolution(camera_settings["resolution"])
-            except ValueError:
-                logger.warning("Invalid persisted resolution, using env value")
-
-        if camera_settings.get("fps") is not None:
-            merged["fps"] = camera_settings["fps"]
-            # Update target_fps if it equals old fps
-            if merged.get("target_fps") == env_config.get("fps"):
-                merged["target_fps"] = camera_settings["fps"]
-
-        if camera_settings.get("jpeg_quality") is not None:
-            quality = camera_settings["jpeg_quality"]
-            if 1 <= quality <= 100:
-                merged["jpeg_quality"] = quality
-            else:
-                logger.warning(f"Invalid persisted JPEG quality {quality}, using env value")
-
-        if camera_settings.get("max_stream_connections") is not None:
-            conns = camera_settings["max_stream_connections"]
-            if 1 <= conns <= 100:
-                merged["max_stream_connections"] = conns
-            else:
-                logger.warning(f"Invalid persisted max_stream_connections {conns}, using env value")
-
-        if camera_settings.get("max_frame_age_seconds") is not None:
-            age = camera_settings["max_frame_age_seconds"]
-            if age > 0:
-                merged["max_frame_age_seconds"] = age
-            else:
-                logger.warning(f"Invalid persisted max_frame_age_seconds {age}, using env value")
+        _merge_camera_settings(merged, camera_settings, env_config)
 
         # Merge feature flags
         persisted_flags = settings.get("feature_flags", {})
@@ -277,23 +341,7 @@ def _merge_config_with_settings(env_config: Dict[str, Any]) -> Dict[str, Any]:
 
         # Merge discovery settings
         discovery_settings = settings.get("discovery", {})
-        if discovery_settings.get("discovery_enabled") is not None:
-            merged["discovery_enabled"] = discovery_settings["discovery_enabled"]
-
-        if discovery_settings.get("discovery_management_url") is not None:
-            url = discovery_settings["discovery_management_url"]
-            if url.strip():
-                merged["discovery_management_url"] = url
-
-        if discovery_settings.get("discovery_token") is not None:
-            token = discovery_settings["discovery_token"]
-            if token is not None:
-                merged["discovery_token"] = token
-
-        if discovery_settings.get("discovery_interval_seconds") is not None:
-            interval = discovery_settings["discovery_interval_seconds"]
-            if interval > 0:
-                merged["discovery_interval_seconds"] = interval
+        _merge_discovery_settings(merged, discovery_settings)
 
         logger.debug("Configuration merged with persisted settings")
 
