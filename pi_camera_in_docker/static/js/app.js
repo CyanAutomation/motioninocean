@@ -163,7 +163,14 @@ function assertSinglePollingMode() {
 }
 
 /**
- * Fetch and update stats from /metrics endpoint
+ * Fetch and update stats from /metrics endpoint.
+ *
+ * Polls metrics data and renders to UI. Handles timeouts, errors, connection status.
+ * Skips update if request already in flight, stats collapsed, or page hidden.
+ * Updates backoff on error or timeout.
+ *
+ * @async
+ * @returns {Promise<void>}
  */
 async function updateStats() {
   if (state.statsInFlight) return;
@@ -221,7 +228,12 @@ async function updateStats() {
 }
 
 /**
- * Toggle stats panel visibility (mobile)
+ * Toggle stats panel visibility and polling.
+ *
+ * Collapses/expands stats display, stops polling when collapsed,
+ * resumes polling when expanded.
+ *
+ * @returns {void}
  */
 function toggleStats() {
   state.statsCollapsed = !state.statsCollapsed;
@@ -243,7 +255,12 @@ function toggleStats() {
 }
 
 /**
- * Refresh video stream
+ * Refresh video stream with cache-busting query parameter.
+ *
+ * Resets stream src to force reload, notifies cat GIF generator if enabled.
+ * Animates refresh button on click.
+ *
+ * @returns {void}
  */
 function refreshStream() {
   if (!state.elements.videoStream) return;
@@ -268,7 +285,12 @@ function refreshStream() {
 }
 
 /**
- * Toggle fullscreen mode
+ * Toggle fullscreen mode for video container.
+ *
+ * Supports cross-browser fullscreen API (webkit, moz, ms prefixes).
+ * Exits fullscreen if already active, enters otherwise.
+ *
+ * @returns {void}
  */
 function toggleFullscreen() {
   const container = document.querySelector(".video-container");
@@ -357,7 +379,12 @@ function setConnectionStatus(status, text) {
 }
 
 /**
- * Start stats update interval
+ * Start stats update interval.
+ *
+ * Sets up periodic updateStats() calls at current frequency.
+ * Skips if interval already running, stats collapsed, or page hidden.
+ *
+ * @returns {void}
  */
 function startStatsUpdate() {
   if (state.updateInterval) return;
@@ -369,7 +396,11 @@ function startStatsUpdate() {
 }
 
 /**
- * Stop stats update interval
+ * Stop stats update interval.
+ *
+ * Clears interval timer and resets interval ID.
+ *
+ * @returns {void}
  */
 function stopStatsUpdate() {
   if (state.updateInterval) {
@@ -379,7 +410,12 @@ function stopStatsUpdate() {
 }
 
 /**
- * Adjust the stats polling frequency and restart the timer if needed.
+ * Set stats polling frequency and restart timer if active.
+ *
+ * Allows dynamic frequency adjustment. Stops and restarts interval if already running.
+ *
+ * @param {number} nextFrequency - Polling frequency in milliseconds.
+ * @returns {void}
  */
 function setUpdateFrequency(nextFrequency) {
   if (state.updateFrequency === nextFrequency) return;
@@ -391,7 +427,11 @@ function setUpdateFrequency(nextFrequency) {
 }
 
 /**
- * Increase polling backoff when failures or inactive streams occur.
+ * Increase polling backoff on errors/timeouts.
+ *
+ * Exponentially increases poll frequency (2^failures), capped at maxUpdateFrequency.
+ *
+ * @returns {void}
  */
 function increaseBackoff() {
   state.consecutiveFailures += 1;
@@ -403,7 +443,11 @@ function increaseBackoff() {
 }
 
 /**
- * Reset polling backoff on successful, active streams.
+ * Reset polling backoff on successful stream.
+ *
+ * Returns to baseUpdateFrequency and clears failure counter.
+ *
+ * @returns {void}
  */
 function resetBackoff() {
   if (state.consecutiveFailures === 0 && state.updateFrequency === state.baseUpdateFrequency) {
@@ -414,7 +458,14 @@ function resetBackoff() {
 }
 
 /**
- * Fetch stats from /metrics endpoint
+ * Fetch metrics from /metrics endpoint with timeout.
+ *
+ * Fetches JSON metrics data with REQUEST_TIMEOUT_MS abort signal.
+ * Throws if response not OK or timeout occurs.
+ *
+ * @async
+ * @returns {Promise<Object>} Metrics data object with fps, uptime, frame counts, etc.
+ * @throws {Error} If fetch fails, response not OK, or request times out.
  */
 async function fetchMetrics() {
   const controller = new AbortController();
@@ -436,7 +487,14 @@ async function fetchMetrics() {
 }
 
 /**
- * Render metrics data in the UI
+ * Render metrics data in UI elements.
+ *
+ * Updates FPS, uptime, frame counts, resolution, and connection status based on metrics.
+ * Determines if stream is active, stale, or inactive and adjusts polling backoff.
+ * Resets backoff on successful connection, increases on stale/inactive.
+ *
+ * @param {Object} data - Metrics data object from /metrics endpoint.
+ * @returns {void}
  */
 function renderMetrics(data) {
   const cameraActive = data.camera_active === true;
@@ -488,7 +546,12 @@ function renderMetrics(data) {
 }
 
 /**
- * Format uptime in human-readable format
+ * Format uptime seconds in human-readable format.
+ *
+ * Converts seconds to "Xd Yh Zm Ws" format (e.g., "2d 3h 4m 5s").
+ *
+ * @param {number} seconds - Uptime in seconds.
+ * @returns {string} Formatted uptime string, or "0s" if invalid.
  */
 function formatUptime(seconds) {
   if (!seconds || seconds < 0) return "0s";
@@ -508,7 +571,12 @@ function formatUptime(seconds) {
 }
 
 /**
- * Format large numbers with commas
+ * Format large numbers with locale-specific thousands separators.
+ *
+ * E.g., 1234567 → "1,234,567" (en-US locale).
+ *
+ * @param {number} num - Number to format.
+ * @returns {string} Formatted number string.
  */
 function formatNumber(num) {
   if (num === null || num === undefined) return "0";
@@ -516,7 +584,12 @@ function formatNumber(num) {
 }
 
 /**
- * Format seconds with a consistent precision
+ * Format seconds with two decimal places.
+ *
+ * E.g., 1.234 seconds → "1.23s".
+ *
+ * @param {number} seconds - Seconds value.
+ * @returns {string} Formatted seconds string, or "--" if invalid.
  */
 function formatSeconds(seconds) {
   if (seconds === null || seconds === undefined) return "--";
@@ -525,7 +598,11 @@ function formatSeconds(seconds) {
 }
 
 /**
- * Hide loading overlay
+ * Hide loading overlay with fade-out animation.
+ *
+ * Fades out opacity over 300ms then removes element from DOM.
+ *
+ * @returns {void}
  */
 function hideLoading() {
   const loadingOverlay = document.querySelector(".loading-overlay");
@@ -538,7 +615,15 @@ function hideLoading() {
 }
 
 /**
- * Switch between tabs (main/config)
+ * Switch between UI tabs (main/config/setup).
+ *
+ * Updates tab button state, shows/hides panels, starts/stops polling based on active tab.
+ * Main tab: displays video stream and stats, resumes stats polling.
+ * Config tab: displays settings panel, starts config refresh polling.
+ * Setup tab: displays setup wizard, stops all polling.
+ *
+ * @param {string} tabName - Tab name ("main", "config", "setup").
+ * @returns {void}
  */
 function switchTab(tabName) {
   const wasConfigTab = state.currentTab === "config";
@@ -974,6 +1059,11 @@ function applyStoredWizardState() {
   }
 }
 
+/**
+ * Collect setup wizard configuration from form inputs.
+ *
+ * @returns {Object} Configuration object with resolution, fps, quality settings.
+ */
 function collectSetupConfig() {
   return {
     resolution: document.getElementById("setup-resolution")?.value || "",
@@ -991,6 +1081,12 @@ function collectSetupConfig() {
   };
 }
 
+/**
+ * Apply configuration values to setup form inputs.
+ *
+ * @param {Object} config - Configuration object with setup values.
+ * @returns {void}
+ */
 function applyConfigToForm(config) {
   if (!config || typeof config !== "object") return;
 
@@ -1012,6 +1108,11 @@ function applyConfigToForm(config) {
   setValue("setup-auth-token", config.auth_token || "");
 }
 
+/**
+ * Infer recommended setup preset from environment selector values.
+ *
+ * @returns {string} Preset name ("pi3_low_power", "pi5_high_quality", or "custom").
+ */
 function inferPresetFromEnvironment() {
   const piVersion = document.getElementById("env-pi-version")?.value;
   const intent = document.getElementById("env-intent")?.value;
@@ -1021,6 +1122,12 @@ function inferPresetFromEnvironment() {
   return "custom";
 }
 
+/**
+ * Apply a preset configuration to the setup form.
+ *
+ * @param {string} preset - Preset name ("pi3_low_power", "pi5_high_quality", "custom").
+ * @returns {void}
+ */
 function applyPresetToForm(preset) {
   const envMockCamera = document.getElementById("env-mock-camera")?.value || "false";
 
@@ -1055,6 +1162,12 @@ function getStepIndex(step) {
   return setupWizard.steps.indexOf(step);
 }
 
+/**
+ * Navigate to a wizard step, updating UI and saving state.
+ *
+ * @param {string} step - Step name (e.g., "environment", "preset", "review").
+ * @returns {void}
+ */
 function setWizardStep(step) {
   if (!setupWizard.steps.includes(step)) return;
   setupWizard.currentStep = step;
@@ -1074,6 +1187,12 @@ function setWizardStep(step) {
   saveWizardState();
 }
 
+/**
+ * Validate wizard step form inputs.
+ *
+ * @param {string} step - Step name to validate ("environment", "preset", "review", etc.).
+ * @returns {boolean} True if step is valid or expert mode enabled; false if validation required but failed.
+ */
 function validateStep(step) {
   if (setupWizard.expertMode) return true;
 
@@ -1097,6 +1216,13 @@ function validateStep(step) {
   return true;
 }
 
+/**
+ * Update wizard step completion indicators (✓, !, ○).
+ *
+ * Marks steps as valid (✓), invalid if past (!) or pending (○) based on validation.
+ *
+ * @returns {void}
+ */
 function updateWizardCompletion() {
   setupWizard.steps.forEach((step) => {
     const statusEl = document.querySelector(`[data-step-status="${step}"]`);
@@ -1116,6 +1242,14 @@ function updateWizardCompletion() {
   });
 }
 
+/**
+ * Update wizard navigation buttons (Previous/Next) state.
+ *
+ * Disables Previous at first step, enables Next only if current step validates.
+ * Changes "Next" to "Done" at final step.
+ *
+ * @returns {void}
+ */
 function updateWizardNavigation() {
   const currentIndex = getStepIndex(setupWizard.currentStep);
   const prevBtn = document.getElementById("setup-prev-btn");
@@ -1143,6 +1277,14 @@ function escapeHtml(unsafe) {
     .replace(/'/g, "&#039;");
 }
 
+/**
+ * Update preset recommendation based on environment selection.
+ *
+ * Displays recommended preset and auto-selects if user hasn't chosen one.
+ * Applies preset configuration to form.
+ *
+ * @returns {void}
+ */
 function updatePresetRecommendation() {
   const recommendedPreset = inferPresetFromEnvironment();
   const recommendation = document.getElementById("preset-recommendation");
@@ -1157,6 +1299,13 @@ function updatePresetRecommendation() {
   }
 }
 
+/**
+ * Update review summary panel with selected configuration values.
+ *
+ * Displays environment, preset, resolution, FPS selected by user.
+ *
+ * @returns {void}
+ */
 function updateReviewSummary() {
   const summary = document.getElementById("review-summary");
   if (!summary) return;
@@ -1176,6 +1325,13 @@ function updateReviewSummary() {
     </ul>`;
 }
 
+/**
+ * Navigate to next setup wizard step if current step validates.
+ *
+ * Updates preset recommendation when leaving environment step.
+ *
+ * @returns {void}
+ */
 function onSetupNext() {
   if (!validateStep(setupWizard.currentStep)) return;
 
@@ -1189,6 +1345,11 @@ function onSetupNext() {
   }
 }
 
+/**
+ * Navigate to previous setup wizard step.
+ *
+ * @returns {void}
+ */
 function onSetupPrevious() {
   const prevIndex = getStepIndex(setupWizard.currentStep) - 1;
   if (prevIndex >= 0) {
@@ -1197,7 +1358,15 @@ function onSetupPrevious() {
 }
 
 /**
- * Load setup tab data and initialize event listeners
+ * Load setup tab data and initialize event listeners.
+ *
+ * Fetches setup templates from /api/setup/templates, initializes wizard UI,
+ * restores saved form state, and displays device detection results.
+ * Updates status indicator on success or error.
+ *
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} If template fetch fails or response is not OK.
  */
 async function loadSetupTab() {
   try {
@@ -1370,6 +1539,16 @@ function renderDeviceStatus(devices = {}, currentConfig = {}) {
   deviceStatus.className = `device-status ${summary.tone}`;
 }
 
+/**
+ * Re-scan Raspberry Pi hardware devices and update UI.
+ *
+ * Queries /api/setup/templates for device detection, updates device status display,
+ * disables button during scan operation, re-enables on completion or error.
+ *
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} If device template fetch fails.
+ */
 async function rescanSetupDevices() {
   const rescanBtn = document.getElementById("rescan-devices-btn");
   if (rescanBtn) {
@@ -1500,6 +1679,15 @@ function onPresetChange(event) {
   validateSetupForm();
 }
 
+/**
+ * Validate setup form field values.
+ *
+ * Validates resolution format (WIDTHxHEIGHT) and FPS range (0-120).
+ * Updates wizard navigation and completion state.
+ * Logs warnings to console for invalid values.
+ *
+ * @returns {void}
+ */
 function validateSetupForm() {
   const resolution = document.getElementById("setup-resolution")?.value || "";
   const fps = document.getElementById("setup-fps")?.value || "";
@@ -1516,6 +1704,16 @@ function validateSetupForm() {
   updateWizardCompletion();
 }
 
+/**
+ * Generate and apply configuration from setup wizard.
+ *
+ * Validates form, collects configuration, posts to /api/setup/validate and /api/setup/generate,
+ * displays results in modal, saves state, and updates main config panel on success.
+ *
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} If validation or generation fails.
+ */
 async function onGenerateClick() {
   try {
     validateSetupForm();

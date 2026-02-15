@@ -2,7 +2,6 @@
 Configuration tests - verify Docker Compose, Dockerfile, and .env files.
 """
 
-import ast
 import json
 import os
 import subprocess
@@ -10,16 +9,6 @@ import sys
 
 import pytest
 import yaml
-
-
-def test_python_syntax(workspace_root):
-    """Test if main.py has valid Python syntax."""
-    main_py = workspace_root / "pi_camera_in_docker" / "main.py"
-    assert main_py.exists(), "main.py not found"
-
-    code = main_py.read_text()
-    # This will raise SyntaxError if invalid
-    ast.parse(code)
 
 
 def test_docker_compose_valid_yaml(workspace_root):
@@ -197,6 +186,36 @@ def test_create_app_from_env_applies_resolution_and_fps_env(monkeypatch, tmp_pat
     assert app.motion_config["fps"] == 20
 
 
+def test_create_app_from_env_defaults_invalid_resolution_to_safe_fallback(monkeypatch, tmp_path):
+    """Invalid RESOLUTION env value should fall back to default tuple in app config."""
+    from pi_camera_in_docker import main
+
+    monkeypatch.setenv("APP_MODE", "management")
+    monkeypatch.setenv("MOCK_CAMERA", "true")
+    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry-invalid-resolution.json"))
+    monkeypatch.setenv("RESOLUTION", "invalid-resolution")
+    monkeypatch.setenv("FPS", "24")
+
+    app = main.create_app_from_env()
+    assert app.motion_config["resolution"] == (640, 480)
+    assert app.motion_config["fps"] == 24
+
+
+def test_create_app_from_env_defaults_invalid_fps_to_safe_fallback(monkeypatch, tmp_path):
+    """Invalid FPS env value should fall back to deterministic default in app config."""
+    from pi_camera_in_docker import main
+
+    monkeypatch.setenv("APP_MODE", "management")
+    monkeypatch.setenv("MOCK_CAMERA", "true")
+    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry-invalid-fps.json"))
+    monkeypatch.setenv("RESOLUTION", "800x600")
+    monkeypatch.setenv("FPS", "not-an-int")
+
+    app = main.create_app_from_env()
+    assert app.motion_config["resolution"] == (800, 600)
+    assert app.motion_config["fps"] == 0
+
+
 def test_real_camera_startup_failure_reports_clear_runtime_error(monkeypatch, tmp_path):
     """When real camera enumeration yields no cameras, startup should fail with actionable RuntimeError."""
     from pi_camera_in_docker import main
@@ -239,49 +258,60 @@ def test_real_camera_startup_failure_reports_clear_runtime_error(monkeypatch, tm
         main.create_webcam_app()
 
 
-def test_env_file_exists(workspace_root):
-    """Verify .env file exists."""
+def test_env_example_contains_required_runtime_variables_with_nonempty_defaults(workspace_root):
+    """Example env should define required runtime variables with parseable defaults."""
     env_file = workspace_root / "containers" / "motion-in-ocean-webcam" / ".env.example"
-    assert env_file.exists(), ".env file not found"
+    env_vars = {}
+    for line in env_file.read_text().splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        env_vars[key] = value
+
+    required_vars = {
+        "MOTION_IN_OCEAN_PORT",
+        "MOTION_IN_OCEAN_BIND_HOST",
+        "TZ",
+        "MOTION_IN_OCEAN_RESOLUTION",
+        "MOTION_IN_OCEAN_FPS",
+        "MOTION_IN_OCEAN_JPEG_QUALITY",
+        "MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS",
+        "MOCK_CAMERA",
+        "DISCOVERY_ENABLED",
+    }
+    assert required_vars.issubset(env_vars), f"Missing vars: {required_vars - set(env_vars)}"
+
+    nonempty_defaults = {
+        "MOTION_IN_OCEAN_PORT",
+        "MOTION_IN_OCEAN_BIND_HOST",
+        "TZ",
+        "MOTION_IN_OCEAN_RESOLUTION",
+        "MOTION_IN_OCEAN_FPS",
+        "MOTION_IN_OCEAN_JPEG_QUALITY",
+        "MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS",
+        "MOCK_CAMERA",
+        "DISCOVERY_ENABLED",
+    }
+    assert all(env_vars[key].strip() for key in nonempty_defaults)
+    assert 1 <= int(env_vars["MOTION_IN_OCEAN_PORT"]) <= 65535
+    width, height = map(int, env_vars["MOTION_IN_OCEAN_RESOLUTION"].split("x"))
+    assert width > 0 and height > 0
+    assert int(env_vars["MOTION_IN_OCEAN_FPS"]) > 0
+    assert 1 <= int(env_vars["MOTION_IN_OCEAN_JPEG_QUALITY"]) <= 100
+    assert int(env_vars["MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS"]) > 0
 
 
-@pytest.mark.parametrize(
-    "env_var",
-    ["TZ", "RESOLUTION"],
-)
-def test_env_file_has_required_variables(workspace_root, env_var):
-    """Verify .env file has required variables."""
-    env_file = workspace_root / "containers" / "motion-in-ocean-webcam" / ".env.example"
-    content = env_file.read_text()
-    assert f"{env_var}=" in content, f"Missing {env_var} in .env"
-
-
-@pytest.mark.parametrize(
-    "check_name,pattern",
-    [
-        ("Base image", ("FROM debian:bookworm", "FROM python:3.11-slim-bookworm")),
-        ("Python picamera2", "picamera2"),  # Can be in requirements.txt or Dockerfile
-        ("Python flask", "python3-flask"),
-        ("Working directory", "WORKDIR /app"),
-        ("Entry point", "CMD"),
-    ],
-)
-def test_dockerfile_has_required_elements(workspace_root, check_name, pattern):
-    """Verify Dockerfile or requirements.txt has required elements."""
+def test_dockerfile_runtime_contract_instructions(workspace_root):
+    """Dockerfile should include runtime instructions required for webcam operation."""
     dockerfile = workspace_root / "Dockerfile"
-    requirements = workspace_root / "requirements.txt"
-
     dockerfile_content = dockerfile.read_text()
-    requirements_content = requirements.read_text() if requirements.exists() else ""
 
-    combined_content = dockerfile_content + "\n" + requirements_content
-    if isinstance(pattern, tuple):
-        assert any(item in combined_content for item in pattern), (
-            "Missing in Dockerfile/requirements.txt: " + check_name
-        )
-        return
-
-    assert pattern in combined_content, f"Missing in Dockerfile/requirements.txt: {check_name}"
+    assert dockerfile_content.count("FROM debian:bookworm-slim") >= 2
+    assert "python3-picamera2" in dockerfile_content
+    assert "WORKDIR /app" in dockerfile_content
+    assert "COPY pi_camera_in_docker /app" in dockerfile_content
+    assert 'CMD ["python3", "/app/main.py"]' in dockerfile_content
 
 
 def _load_main_config_with_env(workspace_root, env_updates, unset_keys=None):

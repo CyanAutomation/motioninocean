@@ -226,28 +226,24 @@ class TestFeatureFlagsIntegration:
     """Test feature flags integration with main application."""
 
     def test_main_imports_feature_flags(self):
-        """Test that main.py imports the feature flags module."""
+        """main should expose and use the shared feature flag registry instance."""
         try:
             from pi_camera_in_docker import main
+            from pi_camera_in_docker.feature_flags import FeatureFlags, get_feature_flags
 
-            # Check that feature flags are imported and available
-            assert hasattr(main, "feature_flags")
-            assert hasattr(main, "is_flag_enabled")
+            assert isinstance(main.feature_flags, FeatureFlags)
+            assert main.feature_flags is get_feature_flags()
+            assert main.feature_flags._loaded is True
         except ImportError as e:
             pytest.skip(f"Cannot import main module: {e}")
 
     def test_feature_flags_loaded_in_main(self):
-        """Test that feature flags are loaded when main module initializes."""
+        """module-level convenience helper should resolve values from loaded registry."""
         try:
-            # Clear environment
-            with mock.patch.dict(os.environ, clear=True):
-                # We can't directly re-import main since it has module-level side effects
-                # But we can verify the feature flags system works
-                from pi_camera_in_docker.feature_flags import FeatureFlags
+            from pi_camera_in_docker import main
 
-                flags = FeatureFlags()
-                flags.load()
-                assert flags._loaded is True
+            assert callable(main.is_flag_enabled)
+            assert main.is_flag_enabled("FRAME_SIZE_OPTIMIZATION") is True
         except ImportError as e:
             pytest.skip(f"Cannot import feature flags: {e}")
 
@@ -256,43 +252,21 @@ class TestFeatureFlagsAPI:
     """Test the feature flags API endpoint."""
 
     def test_feature_flags_api_endpoint_exists(self):
-        """Test that the /api/feature-flags endpoint exists."""
+        """Feature flag summary payload should expose categories and known flags."""
         try:
-            import json
+            from pi_camera_in_docker.feature_flags import FeatureFlagCategory, get_feature_flags
 
-            from flask import Flask
+            flags = get_feature_flags()
+            summary = flags.get_summary()
+            debug_info = flags.get_flag_info("DEBUG_LOGGING")
+            mock_info = flags.get_flag_info("MOCK_CAMERA")
 
-            app = Flask(__name__)
-
-            @app.route("/api/feature-flags")
-            def get_feature_flags_status():
-                from pi_camera_in_docker.feature_flags import get_feature_flags
-
-                try:
-                    flags = get_feature_flags()
-                    flags_summary = flags.get_summary()
-
-                    all_flags = {}
-                    for flag_name, flag in flags._flags.items():
-                        all_flags[flag_name] = {
-                            "enabled": flag.enabled,
-                            "default": flag.default,
-                            "category": flag.category.value,
-                            "description": flag.description,
-                        }
-
-                    return json.dumps(
-                        {
-                            "summary": flags_summary,
-                            "flags": all_flags,
-                        }
-                    ), 200
-                except Exception as e:
-                    return json.dumps({"error": str(e)}), 500
-
-            # Verify route is registered
-            routes = {rule.rule for rule in app.url_map.iter_rules()}
-            assert "/api/feature-flags" in routes
-
+            expected_categories = {category.value for category in FeatureFlagCategory}
+            assert expected_categories.issubset(set(summary.keys()))
+            assert "DEBUG_LOGGING" in summary[FeatureFlagCategory.DEVELOPER_TOOLS.value]
+            assert "MOCK_CAMERA" in summary[FeatureFlagCategory.EXPERIMENTAL.value]
+            assert debug_info is not None and debug_info["category"] == "Developer Tools"
+            assert mock_info is not None and "MOCK_CAMERA" == mock_info["name"]
+            assert mock_info["backward_compat_vars"] == ["MOCK_CAMERA"]
         except ImportError as e:
             pytest.skip(f"Cannot setup Flask app: {e}")

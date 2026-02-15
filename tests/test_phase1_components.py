@@ -7,7 +7,6 @@ Tests for:
 1.4 API Rate Limiting
 """
 
-import contextlib
 import json
 import logging
 import sys
@@ -215,10 +214,10 @@ class TestConfigValidator:
     def test_validate_discovery_config_enabled_complete(self):
         """Test valid discovery config when enabled"""
         config = {
-            "DISCOVERY_ENABLED": "true",
-            "DISCOVERY_MANAGEMENT_URL": "http://localhost:8000",
-            "DISCOVERY_TOKEN": "token123456",
-            "DISCOVERY_BASE_URL": "http://webcam:8000",
+            "discovery_enabled": True,
+            "discovery_management_url": "http://localhost:8000",
+            "discovery_token": "token123456",
+            "base_url": "http://webcam:8000",
         }
         # Should not raise
         validate_discovery_config(config)
@@ -226,21 +225,19 @@ class TestConfigValidator:
     def test_validate_discovery_config_missing_url(self):
         """Test discovery config missing required URL when enabled"""
         config = {
-            "DISCOVERY_ENABLED": "true",
-            "DISCOVERY_TOKEN": "token123456",
-            "DISCOVERY_BASE_URL": "http://webcam:8000",
+            "discovery_enabled": True,
+            "discovery_token": "token123456",
+            "base_url": "http://webcam:8000",
             # Missing DISCOVERY_MANAGEMENT_URL
         }
-        # Note: Based on implementation, validation may not check mandatory fields
-        # This test documents current behavior - implementation may be lenient
-        with contextlib.suppress(ConfigValidationError):
+        with pytest.raises(ConfigValidationError) as exc_info:
             validate_discovery_config(config)
-            # If no error is raised, that's the current behavior
+        assert "DISCOVERY_MANAGEMENT_URL" in str(exc_info.value)
 
     def test_validate_discovery_config_disabled_partial(self):
         """Test that discovery config validation is skipped when disabled"""
         config = {
-            "DISCOVERY_ENABLED": "false",
+            "discovery_enabled": False,
             # Missing required fields, but should not raise
         }
         # Should not raise
@@ -249,10 +246,10 @@ class TestConfigValidator:
     def test_validate_all_config_valid_webcam(self):
         """Test valid webcam configuration"""
         config = {
-            "APP_MODE": "webcam",
-            "CAMERA_RESOLUTION": "1920x1080",
-            "CAMERA_FPS": 30,
-            "DISCOVERY_ENABLED": "false",
+            "app_mode": "webcam",
+            "resolution": (1920, 1080),
+            "fps": 30,
+            "discovery_enabled": False,
         }
         # Should not raise
         validate_all_config(config)
@@ -260,23 +257,25 @@ class TestConfigValidator:
     def test_validate_all_config_valid_management(self):
         """Test valid management configuration"""
         config = {
-            "APP_MODE": "management",
-            "DISCOVERY_ENABLED": "false",
+            "app_mode": "management",
+            "discovery_enabled": False,
         }
         # Should not raise
         validate_all_config(config)
 
-    def test_validate_all_config_invalid_resolution(self):
-        """Test config validation with invalid resolution"""
+    def test_validate_all_config_discovery_enabled_missing_management_url_raises(self):
+        """validate_all_config should reject discovery enabled config missing management URL."""
         config = {
-            "APP_MODE": "webcam",
-            "CAMERA_RESOLUTION": "invalid",
-            "DISCOVERY_ENABLED": "false",
+            "app_mode": "webcam",
+            "resolution": (1920, 1080),
+            "fps": 30,
+            "discovery_enabled": True,
+            "discovery_token": "token123456",
+            "base_url": "http://webcam:8000",
         }
-        # Note: validate_all_config may not validate all fields depending on implementation
-        with contextlib.suppress(ConfigValidationError):
+        with pytest.raises(ConfigValidationError) as exc_info:
             validate_all_config(config)
-            # If no error is raised, that's the current behavior
+        assert "DISCOVERY_MANAGEMENT_URL" in str(exc_info.value)
 
     def test_validate_settings_patch_package_import_path(self):
         """Test validate_settings_patch via package import path."""
@@ -284,37 +283,57 @@ class TestConfigValidator:
         errors = validate_settings_patch({"camera": {"fps": 30}})
         assert errors == {}
 
-    def test_validate_all_config_discovery_enabled_invalid(self):
-        """Test config validation with invalid discovery setup"""
+    def test_validate_all_config_discovery_enabled_missing_token_raises(self):
+        """validate_all_config should reject discovery enabled config missing discovery token."""
         config = {
-            "APP_MODE": "webcam",
-            "CAMERA_RESOLUTION": "1920x1080",
-            "CAMERA_FPS": 30,
-            "DISCOVERY_ENABLED": "true",
-            "DISCOVERY_MANAGEMENT_URL": "http://localhost:8000",
-            "DISCOVERY_TOKEN": "token",  # Too short!
-            "DISCOVERY_BASE_URL": "http://webcam:8000",
+            "app_mode": "webcam",
+            "resolution": (1920, 1080),
+            "fps": 30,
+            "discovery_enabled": True,
+            "discovery_management_url": "http://localhost:8000",
+            "base_url": "http://webcam:8000",
         }
-        # Note: validate_all_config may not validate token length depending on implementation
-        with contextlib.suppress(ConfigValidationError):
+        with pytest.raises(ConfigValidationError) as exc_info:
             validate_all_config(config)
-            # If no error is raised, that's the current behavior
+        assert "DISCOVERY_TOKEN" in str(exc_info.value)
 
 
 class TestRateLimiting:
     """Tests for API rate limiting (1.4)"""
 
-    def test_rate_limiting_endpoint_has_decorator(self):
-        """Test that rate limiting decorators have been applied to endpoints"""
-        # This verifies the code structure without needing a full app
-        # Check that the management_api module can be imported with limiter support
-        # Verify register_management_routes accepts limiter parameter
-        import inspect
+    def test_rate_limiting_applies_expected_limits_to_management_routes(self, tmp_path):
+        """register_management_routes should apply route-specific limits when limiter is provided."""
+        from flask import Flask
 
-        from pi_camera_in_docker import management_api
+        from pi_camera_in_docker.management_api import register_management_routes
 
-        sig = inspect.signature(management_api.register_management_routes)
-        assert "limiter" in sig.parameters
+        class RecordingLimiter:
+            def __init__(self):
+                self.applied_limits = []
+
+            def limit(self, limit_str):
+                def decorator(func):
+                    self.applied_limits.append((func.__name__, limit_str))
+                    return func
+
+                return decorator
+
+        app = Flask(__name__)
+        limiter = RecordingLimiter()
+        register_management_routes(
+            app=app,
+            registry_path=str(tmp_path / "node-registry.json"),
+            auth_token="",
+            node_discovery_shared_secret="discovery-secret",
+            limiter=limiter,
+        )
+
+        applied = dict(limiter.applied_limits)
+        assert applied.get("announce_node") == "10/minute"
+        assert applied.get("list_nodes") == "1000/minute"
+        assert applied.get("node_status") == "1000/minute"
+        assert "100/minute" in applied.values()
+        assert len(limiter.applied_limits) >= 8
 
 
 class TestCorrelationIdIntegration:
