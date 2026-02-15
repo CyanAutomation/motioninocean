@@ -30,6 +30,10 @@
             <span class="tab-icon">⚙️</span>
             <span class="tab-label">Configuration</span>
           </button>
+          <button class="tab-btn" data-tab="settings" id="settings-tab-btn" title="Settings">
+            <span class="tab-icon">🎛️</span>
+            <span class="tab-label">Settings</span>
+          </button>
           <button class="tab-btn" data-tab="setup" id="setup-tab-btn" title="Set-Up">
             <span class="tab-icon">🔧</span>
             <span class="tab-label">Set-Up</span>
@@ -305,6 +309,239 @@
           <!-- Footer -->
           <div class="config-footer">
             <p class="config-info">Configuration auto-updates every 5 seconds</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Panel -->
+      <div id="settings-panel" class="settings-panel hidden">
+        <!-- Loading Overlay -->
+        <div id="settings-loading" class="settings-loading hidden">
+          <div class="settings-spinner"></div>
+          <div class="settings-loading-text">Loading settings...</div>
+        </div>
+
+        <div class="settings-content">
+          <!-- Settings Header -->
+          <div class="settings-header ui-card">
+            <h2>Runtime Settings</h2>
+            <p class="settings-description">Edit these settings to customize your camera streaming experience. Changes are applied immediately or on next restart depending on the setting.</p>
+            <div class="settings-actions">
+              <button id="settings-save-btn" class="ui-btn ui-btn--primary" disabled>
+                Save Changes
+              </button>
+              <button id="settings-reset-btn" class="ui-btn ui-btn--secondary">
+                Reset to Defaults
+              </button>
+            </div>
+          </div>
+
+          <!-- Camera Settings Section -->
+          <section id="settings-camera" class="settings-section ui-card">
+            <div class="settings-section-header ui-panel-header">
+              <h3 class="settings-section-title">📷 Camera Configuration</h3>
+              <button class="settings-section-toggle" data-section="camera" title="Toggle">▼</button>
+            </div>
+            <div class="settings-section-content" data-section="camera">
+              <!-- Resolution -->
+              <div class="settings-control ui-form-control">
+                <div class="setting-label-group">
+                  <label for="setting-resolution" class="setting-label">Resolution</label>
+                  <span class="setting-description-inline">Video resolution (WIDTHxHEIGHT)</span>
+                </div>
+                <select id="setting-resolution" class="setting-input setting-select" data-category="camera" data-property="resolution">
+                  <option value="">Select resolution...</option>
+                  <option value="640x480">640x480 (VGA)</option>
+                  <option value="1280x720">1280x720 (HD)</option>
+                  <option value="1920x1080">1920x1080 (Full HD)</option>
+                  <option value="2592x1944">2592x1944 (5MP)</option>
+                </select>
+                <span class="setting-hint">Changing resolution requires camera restart</span>
+              </div>
+
+              <!-- FPS -->
+              <div class="settings-control ui-form-control">
+                <div class="setting-label-group">
+                  <label for="setting-fps" class="setting-label">Frame Rate (FPS)</label>
+                  <span class="setting-description-inline">Frames per second (0 = camera default)</span>
+                </div>
+                <input type="range" id="setting-fps" class="setting-input setting-slider"
+                  data-category="camera" data-property="fps" min="0" max="120" value="30" />
+                <div class="setting-value-display">
+                  <span class="setting-current-value">30</span> fps
+                </div>
+                <span class="setting-hint">Changing FPS requires camera restart</span>
+              </div>
+
+              <!-- JPEG Quality -->
+              <div class="settings-control ui-form-control">
+                <div class="setting-label-group">
+                  <label for="setting-jpeg-quality" class="setting-label">JPEG Quality</label>
+                  <span class="setting-description-inline">Compression level (1-100)</span>
+                </div>
+                <input type="range" id="setting-jpeg-quality" class="setting-input setting-slider"
+                  data-category="camera" data-property="jpeg_quality" min="1" max="100" value="85" />
+                <div class="setting-value-display">
+                  <span class="setting-current-value">85</span>
+                </div>
+                <span class="setting-hint">Lower quality = smaller files, higher quality = better images</span>
+              </div>
+
+              <!-- Max Stream Connections -->
+              <div class="settings-control ui-form-control">
+                <div class="setting-label-group">
+                  <label for="setting-max-connections" class="setting-label">Max Stream Connections</label>
+                  <span class="setting-description-inline">Maximum concurrent clients</span>
+                </div>
+                <input type="number" id="setting-max-connections" class="setting-input setting-number"
+                  data-category="camera" data-property="max_stream_connections" min="1" max="100" value="2" />
+                <span class="setting-hint">Limit concurrent streams to prevent overload</span>
+              </div>
+
+              <!-- Frame Cache Age -->
+              <div class="settings-control ui-form-control">
+                <div class="setting-label-group">
+                  <label for="setting-max-frame-age" class="setting-label">Frame Cache Age (seconds)</label>
+                  <span class="setting-description-inline">How long to cache frames</span>
+                </div>
+                <input type="number" id="setting-max-frame-age" class="setting-input setting-number"
+                  data-category="camera" data-property="max_frame_age_seconds" min="0.5" max="60" step="0.5" value="10" />
+                <span class="setting-hint">Higher values = more frame reuse, potentially stale frames</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Logging Settings Section -->
+          <section id="settings-logging" class="settings-section ui-card">
+            <div class="settings-section-header ui-panel-header">
+              <h3 class="settings-section-title">📝 Logging Configuration</h3>
+              <button class="settings-section-toggle" data-section="logging" title="Toggle">▼</button>
+            </div>
+            <div class="settings-section-content" data-section="logging">
+              <!-- Log Level -->
+              <div class="settings-control ui-form-control">
+                <div class="setting-label-group">
+                  <label for="setting-log-level" class="setting-label">Log Level</label>
+                  <span class="setting-description-inline">Logging verbosity</span>
+                </div>
+                <select id="setting-log-level" class="setting-input setting-select" data-category="logging" data-property="log_level">
+                  <option value="DEBUG">DEBUG (Most verbose)</option>
+                  <option value="INFO" selected>INFO (Standard)</option>
+                  <option value="WARNING">WARNING</option>
+                  <option value="ERROR">ERROR</option>
+                  <option value="CRITICAL">CRITICAL (Least verbose)</option>
+                </select>
+              </div>
+
+              <!-- Log Format -->
+              <div class="settings-control ui-form-control">
+                <div class="setting-label-group">
+                  <label for="setting-log-format" class="setting-label">Log Format</label>
+                  <span class="setting-description-inline">Output format</span>
+                </div>
+                <select id="setting-log-format" class="setting-input setting-select" data-category="logging" data-property="log_format">
+                  <option value="text" selected>Human-Readable Text</option>
+                  <option value="json">Structured JSON</option>
+                </select>
+                <span class="setting-hint">Changing log format requires server restart</span>
+              </div>
+
+              <!-- Include Identifiers -->
+              <div class="settings-control ui-form-control">
+                <input type="checkbox" id="setting-log-identifiers" class="setting-input setting-checkbox"
+                  data-category="logging" data-property="log_include_identifiers" />
+                <label for="setting-log-identifiers" class="setting-label">Include Process/Thread IDs</label>
+                <span class="setting-hint">Useful for debugging concurrency issues</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Discovery Settings Section -->
+          <section id="settings-discovery" class="settings-section ui-card">
+            <div class="settings-section-header ui-panel-header">
+              <h3 class="settings-section-title">🔗 Node Discovery</h3>
+              <button class="settings-section-toggle" data-section="discovery" title="Toggle">▼</button>
+            </div>
+            <div class="settings-section-content" data-section="discovery">
+              <!-- Discovery Enabled -->
+              <div class="settings-control ui-form-control">
+                <input type="checkbox" id="setting-discovery-enabled" class="setting-input setting-checkbox"
+                  data-category="discovery" data-property="discovery_enabled" />
+                <label for="setting-discovery-enabled" class="setting-label">Enable Discovery</label>
+                <span class="setting-hint">Announce this webcam to a management node automatically</span>
+              </div>
+
+              <!-- Management URL -->
+              <div class="settings-control ui-form-control">
+                <div class="setting-label-group">
+                  <label for="setting-discovery-url" class="setting-label">Management Node URL</label>
+                  <span class="setting-description-inline">e.g., http://192.168.1.10:8001</span>
+                </div>
+                <input type="text" id="setting-discovery-url" class="setting-input setting-text"
+                  data-category="discovery" data-property="discovery_management_url" 
+                  placeholder="http://127.0.0.1:8001" />
+              </div>
+
+              <!-- Discovery Token -->
+              <div class="settings-control ui-form-control">
+                <div class="setting-label-group">
+                  <label for="setting-discovery-token" class="setting-label">Discovery Shared Token</label>
+                  <span class="setting-description-inline">Must match management node's shared secret</span>
+                </div>
+                <input type="password" id="setting-discovery-token" class="setting-input setting-text"
+                  data-category="discovery" data-property="discovery_token" 
+                  placeholder="Leave empty to disable" />
+              </div>
+
+              <!-- Discovery Interval -->
+              <div class="settings-control ui-form-control">
+                <div class="setting-label-group">
+                  <label for="setting-discovery-interval" class="setting-label">Discovery Interval (seconds)</label>
+                  <span class="setting-description-inline">Re-announce frequency</span>
+                </div>
+                <input type="number" id="setting-discovery-interval" class="setting-input setting-number"
+                  data-category="discovery" data-property="discovery_interval_seconds" 
+                  min="5" max="3600" step="5" value="30" />
+              </div>
+            </div>
+          </section>
+
+          <!-- Feature Flags Section -->
+          <section id="settings-features" class="settings-section ui-card">
+            <div class="settings-section-header ui-panel-header">
+              <h3 class="settings-section-title">✨ Feature Flags</h3>
+              <button class="settings-section-toggle" data-section="features" title="Toggle">▼</button>
+            </div>
+            <div class="settings-section-content" data-section="features" id="feature-flags-container">
+              <!-- Feature flags will be dynamically loaded here -->
+              <div class="setting-placeholder">Loading feature flags...</div>
+            </div>
+          </section>
+
+          <!-- Changes Summary -->
+          <div id="settings-changes-summary" class="settings-changes-summary hidden">
+            <h3>Summary of Changes</h3>
+            <div id="settings-changes-list" class="settings-changes-list">
+              <!-- Changes will be listed here -->
+            </div>
+            <div id="settings-restart-warning" class="settings-restart-warning hidden">
+              <span class="warning-icon">⚠️</span>
+              <span class="warning-text">Some changes require a server restart to take effect.</span>
+            </div>
+          </div>
+
+          <!-- Error Alert -->
+          <div id="settings-error-alert" class="settings-alert error hidden">
+            <span class="alert-icon">⚠️</span>
+            <span id="settings-error-message" class="alert-message">Settings error</span>
+            <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">×</button>
+          </div>
+
+          <!-- Success Alert -->
+          <div id="settings-success-alert" class="settings-alert success hidden">
+            <span class="alert-icon">✅</span>
+            <span id="settings-success-message" class="alert-message">Settings saved successfully!</span>
+            <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">×</button>
           </div>
         </div>
       </div>
