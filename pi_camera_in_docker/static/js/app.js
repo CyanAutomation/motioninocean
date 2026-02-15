@@ -775,23 +775,6 @@ function renderConfig(data) {
     setConfigValue("config-uptime", formatUptime(rt.uptime_seconds));
   }
 
-  // Limits
-  if (data.limits) {
-    const lim = data.limits;
-
-    setConfigValue(
-      "config-limit-resolution",
-      lim.max_resolution ? `${lim.max_resolution[0]} × ${lim.max_resolution[1]}` : "--",
-    );
-    setConfigValue("config-limit-fps", lim.max_fps !== undefined ? `${lim.max_fps} FPS` : "--");
-    setConfigValue(
-      "config-limit-jpeg",
-      lim.min_jpeg_quality && lim.max_jpeg_quality
-        ? `${lim.min_jpeg_quality}% - ${lim.max_jpeg_quality}%`
-        : "--",
-    );
-  }
-
   // Timestamp
   if (data.timestamp) {
     const date = new Date(data.timestamp);
