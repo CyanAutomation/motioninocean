@@ -1458,7 +1458,7 @@ def test_node_action_passthrough_for_api_test_management_actions(monkeypatch, tm
 
 
 def test_diagnose_includes_structured_status_and_codes(monkeypatch):
-    management_api = importlib.import_module("management_api")
+    management_api = importlib.import_module("pi_camera_in_docker.management_api")
 
     node = {"id": "node-diag", "base_url": "http://example.invalid:8000", "transport": "http"}
 

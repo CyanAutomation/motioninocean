@@ -200,7 +200,7 @@ class TestDiscoveryEndToEnd:
             app = Flask(__name__)
 
             # Patch ALLOW_PRIVATE_IPS to allow private IP announcements for this test
-            with patch("management_api.ALLOW_PRIVATE_IPS", True):
+            with patch("pi_camera_in_docker.management_api.ALLOW_PRIVATE_IPS", True):
                 register_management_routes(
                     app,
                     registry_path,
@@ -297,7 +297,7 @@ class TestDiscoveryEndToEnd:
             app = Flask(__name__)
 
             # Patch ALLOW_PRIVATE_IPS to allow private IP announcements
-            with patch("management_api.ALLOW_PRIVATE_IPS", True):
+            with patch("pi_camera_in_docker.management_api.ALLOW_PRIVATE_IPS", True):
                 register_management_routes(
                     app,
                     registry_path,
@@ -359,7 +359,7 @@ class TestDiscoveryEndToEnd:
             app = Flask(__name__)
 
             # Patch ALLOW_PRIVATE_IPS to allow private IP announcements
-            with patch("management_api.ALLOW_PRIVATE_IPS", True):
+            with patch("pi_camera_in_docker.management_api.ALLOW_PRIVATE_IPS", True):
                 register_management_routes(
                     app,
                     registry_path,
@@ -455,7 +455,7 @@ class TestDiscoveryEndToEnd:
             app = Flask(__name__)
 
             # Patch ALLOW_PRIVATE_IPS to allow private IP announcements
-            with patch("management_api.ALLOW_PRIVATE_IPS", True):
+            with patch("pi_camera_in_docker.management_api.ALLOW_PRIVATE_IPS", True):
                 register_management_routes(
                     app,
                     registry_path,

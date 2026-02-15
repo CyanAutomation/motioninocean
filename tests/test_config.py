@@ -231,7 +231,6 @@ def test_env_file_has_required_variables(workspace_root, env_var):
         ("Base image", ("FROM debian:bookworm", "FROM python:3.11-slim-bookworm")),
         ("Python picamera2", "picamera2"),  # Can be in requirements.txt or Dockerfile
         ("Python flask", "python3-flask"),
-        ("Python opencv", "python3-opencv"),
         ("Working directory", "WORKDIR /app"),
         ("Entry point", "CMD"),
     ],

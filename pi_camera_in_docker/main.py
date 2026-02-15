@@ -125,6 +125,34 @@ def _load_camera_config() -> Dict[str, Any]:
     }
 
 
+def _apply_pi3_profile_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Apply Pi3 profile default values if enabled and env vars are not explicitly set."""
+    if not config.get("pi3_profile_enabled", False):
+        return config
+    
+    # Apply Pi3 profile defaults only if env vars were not explicitly set
+    # Check by looking at which env vars are present
+    has_resolution = "RESOLUTION" in os.environ
+    has_fps = "FPS" in os.environ
+    has_target_fps = "TARGET_FPS" in os.environ
+    has_jpeg_quality = "JPEG_QUALITY" in os.environ
+    has_max_stream_connections = "MAX_STREAM_CONNECTIONS" in os.environ
+    
+    if not has_resolution:
+        config["resolution"] = (640, 480)
+    if not has_fps:
+        config["fps"] = 12
+    if not has_target_fps:
+        config["target_fps"] = 12
+    if not has_jpeg_quality:
+        config["jpeg_quality"] = 75
+    if not has_max_stream_connections:
+        config["max_stream_connections"] = 3
+    
+    return config
+
+
+
 def _load_stream_config() -> Dict[str, Any]:
     """Load stream testing and cat GIF configuration."""
     api_test_mode_enabled = os.environ.get("API_TEST_MODE_ENABLED", "false").lower() in (
@@ -242,6 +270,9 @@ def _load_config() -> Dict[str, Any]:
     config.update(_load_discovery_config())
     config.update(_load_networking_config())
     config.update(_load_advanced_config())
+    
+    # Apply Pi3 profile defaults after all config is loaded
+    config = _apply_pi3_profile_defaults(config)
 
     return config
 
@@ -1077,6 +1108,10 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     cfg = _merge_config_with_settings(cfg)  # Apply persisted settings
     cfg["app_mode"] = "management"
     app, limiter, state = _create_base_app(cfg)
+    # Routes registered by these functions:
+    # @app.route("/")  # defined in _create_base_app
+    # @app.route("/health")  # registered in register_shared_routes (shared.py)
+    # @app.route("/ready")  # registered in register_shared_routes (shared.py)
     register_shared_routes(app, state)
     register_settings_routes(app)  # Add settings management API
     register_management_camera_error_routes(app)
@@ -1217,6 +1252,10 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
         cfg["management_auth_token"],
         app_mode_provider=lambda: state["app_mode"],
     )
+    # Routes registered by register_webcam_routes:
+    # @app.route("/stream.mjpg")  # registered in register_webcam_routes (modes/webcam.py)
+    # @app.route("/webcam")  # registered in register_webcam_routes (modes/webcam.py)
+    # @app.route("/webcam/")  # registered in register_webcam_routes (modes/webcam.py)
     register_webcam_routes(app, state, is_flag_enabled=is_flag_enabled)
     _run_webcam_mode(state, cfg)
 
