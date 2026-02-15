@@ -116,22 +116,11 @@ def register_settings_routes(app: Flask) -> None:
                         # Still save it; mark as pending restart
                     effective_patch[category][prop_name] = value
 
-            # Load current settings and apply patch
-            current = current_app.application_settings.load()
-            current_settings = current.get("settings", {})
-
-            for category, properties in effective_patch.items():
-                if category not in current_settings:
-                    current_settings[category] = {}
-                current_settings[category].update(properties)
-
-            # Persist changes
-            current_app.application_settings.save(
-                current_settings,
-                modified_by="api_patch"
+            # Persist changes in one lock-protected read-modify-write cycle
+            persisted = current_app.application_settings.apply_patch_atomic(
+                effective_patch,
+                modified_by="api_patch",
             )
-
-            persisted = current_app.application_settings.load()
 
             # Return result
             result = {
