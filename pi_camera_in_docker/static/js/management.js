@@ -45,7 +45,7 @@ function setDiagnosticPanelExpanded(isExpanded) {
   }
 
   advancedDiagnosticsToggle.checked = isExpanded;
-  advancedDiagnosticsToggle.setAttribute("aria-expanded", String(isExpanded));
+  advancedDiagnosticsToggle.checked = isExpanded;
   diagnosticPanelContent.hidden = !isExpanded;
 }
 
