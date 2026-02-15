@@ -598,7 +598,7 @@ function toggleNodeFormPanel() {
     return;
   }
 
-  const isExpanded = toggleNodeFormPanelBtn.getAttribute("aria-expanded") !== "false";
+  const isExpanded = toggleNodeFormPanelBtn.getAttribute("aria-expanded") === "true";
   setNodeFormPanelExpanded(!isExpanded);
 }
 
