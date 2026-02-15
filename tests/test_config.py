@@ -423,13 +423,13 @@ import pathlib
 import sys
 
 repo = pathlib.Path.cwd()
-sys.path.insert(0, str(repo / "pi_camera_in_docker"))
-import main
+sys.path.insert(0, str(repo)) # Add the parent directory of pi_camera_in_docker to sys.path
+import pi_camera_in_docker.main as main # Import as package
 
 app = main.create_app_from_env()
 client = app.test_client()
 results = {}
-for route in ("/webcam", "/webcam/"):
+for route in ("/webcam", "/webcam/"):\
     stream_response = client.get(f"{route}?action=stream")
     snapshot_response = client.get(f"{route}?action=snapshot")
     key = "with_slash" if route.endswith("/") else "no_slash"
@@ -485,8 +485,8 @@ import pathlib
 import sys
 
 repo = pathlib.Path.cwd()
-sys.path.insert(0, str(repo / "pi_camera_in_docker"))
-import main
+sys.path.insert(0, str(repo)) # Add the parent directory of pi_camera_in_docker to sys.path
+import pi_camera_in_docker.main as main # Import as package
 
 app = main.create_app_from_env()
 client = app.test_client()

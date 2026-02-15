@@ -12,18 +12,18 @@ from threading import Event, RLock, Thread
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlsplit, urlunsplit
 
-from application_settings import ApplicationSettings, SettingsValidationError
-from cat_gif_generator import CatGifGenerator
-from config_validator import ConfigValidationError, validate_all_config
-from discovery import DiscoveryAnnouncer, build_discovery_payload
-from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
+from .application_settings import ApplicationSettings, SettingsValidationError
+from .cat_gif_generator import CatGifGenerator
+from .config_validator import ConfigValidationError, validate_all_config
+from .discovery import DiscoveryAnnouncer, build_discovery_payload
+from .feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 from flask import Flask, g, jsonify, render_template, request
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from logging_config import configure_logging
-from management_api import register_management_routes
-from modes.webcam import (
+from .logging_config import configure_logging
+from .management_api import register_management_routes
+from .modes.webcam import (
     ConnectionTracker,
     FrameBuffer,
     StreamStats,
@@ -42,8 +42,8 @@ except (ModuleNotFoundError, ImportError):
         return []
 
 from PIL import Image
-from settings_api import register_settings_routes
-from shared import register_shared_routes, register_webcam_control_plane_auth
+from .settings_api import register_settings_routes
+from .shared import register_shared_routes, register_webcam_control_plane_auth
 from werkzeug.serving import make_server
 
 
