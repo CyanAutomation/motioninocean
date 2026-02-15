@@ -3,6 +3,7 @@ Tests for ApplicationSettings persistence layer
 """
 
 import json
+import threading
 
 # Import from parent directory
 import sys
@@ -270,6 +271,56 @@ class TestApplicationSettingsConcurrency:
         # Should have one of the saves (last one wins)
         loaded = settings1.load()
         assert loaded["settings"]["camera"]["fps"] in [60, 45]
+
+    def test_concurrent_set_keeps_updates_to_different_keys(self, temp_settings_file):
+        """Concurrent set operations on different keys should both persist."""
+        settings = ApplicationSettings(temp_settings_file)
+        start = threading.Barrier(2)
+
+        def set_fps():
+            start.wait()
+            settings.set("camera", "fps", 60, "thread_fps")
+
+        def set_quality():
+            start.wait()
+            settings.set("camera", "jpeg_quality", 85, "thread_quality")
+
+        thread_a = threading.Thread(target=set_fps)
+        thread_b = threading.Thread(target=set_quality)
+        thread_a.start()
+        thread_b.start()
+        thread_a.join()
+        thread_b.join()
+
+        loaded = settings.load()
+        assert loaded["settings"]["camera"]["fps"] == 60
+        assert loaded["settings"]["camera"]["jpeg_quality"] == 85
+
+    def test_concurrent_update_category_keeps_updates_to_different_keys(
+        self, temp_settings_file
+    ):
+        """Concurrent category updates should preserve all independent key changes."""
+        settings = ApplicationSettings(temp_settings_file)
+        start = threading.Barrier(2)
+
+        def update_camera_fps():
+            start.wait()
+            settings.update_category("camera", {"fps": 48}, "thread_fps")
+
+        def update_camera_quality():
+            start.wait()
+            settings.update_category("camera", {"jpeg_quality": 70}, "thread_quality")
+
+        thread_a = threading.Thread(target=update_camera_fps)
+        thread_b = threading.Thread(target=update_camera_quality)
+        thread_a.start()
+        thread_b.start()
+        thread_a.join()
+        thread_b.join()
+
+        loaded = settings.load()
+        assert loaded["settings"]["camera"]["fps"] == 48
+        assert loaded["settings"]["camera"]["jpeg_quality"] == 70
 
 
 class TestApplicationSettingsFileCorruption:
