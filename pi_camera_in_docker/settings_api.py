@@ -189,6 +189,24 @@ def register_settings_routes(app: Flask) -> None:
             # Collect environment defaults
             import os
 
+            def safe_int_env(name: str, default: int) -> int:
+                value = os.environ.get(name)
+                if value is None:
+                    return default
+                try:
+                    return int(value)
+                except (TypeError, ValueError):
+                    return default
+
+            def safe_float_env(name: str, default: float) -> float:
+                value = os.environ.get(name)
+                if value is None:
+                    return default
+                try:
+                    return float(value)
+                except (TypeError, ValueError):
+                    return default
+
             try:
                 width, height = parse_resolution(os.environ.get("RESOLUTION", "640x480"))
                 resolution = f"{width}x{height}"
@@ -198,10 +216,10 @@ def register_settings_routes(app: Flask) -> None:
             env_defaults = {
                 "camera": {
                     "resolution": resolution,
-                    "fps": int(os.environ.get("FPS", "0")),
-                    "jpeg_quality": int(os.environ.get("JPEG_QUALITY", "85")),
-                    "max_stream_connections": int(os.environ.get("MAX_STREAM_CONNECTIONS", "2")),
-                    "max_frame_age_seconds": float(os.environ.get("MAX_FRAME_AGE_SECONDS", "10")),
+                    "fps": safe_int_env("FPS", 0),
+                    "jpeg_quality": safe_int_env("JPEG_QUALITY", 85),
+                    "max_stream_connections": safe_int_env("MAX_STREAM_CONNECTIONS", 2),
+                    "max_frame_age_seconds": safe_float_env("MAX_FRAME_AGE_SECONDS", 10),
                 },
                 "logging": {
                     "log_level": os.environ.get("LOG_LEVEL", "INFO"),
@@ -212,7 +230,7 @@ def register_settings_routes(app: Flask) -> None:
                     "discovery_enabled": os.environ.get("DISCOVERY_ENABLED", "false").lower() in ("1", "true", "yes"),
                     "discovery_management_url": os.environ.get("DISCOVERY_MANAGEMENT_URL", "http://127.0.0.1:8001"),
                     "discovery_token": os.environ.get("DISCOVERY_TOKEN", ""),
-                    "discovery_interval_seconds": float(os.environ.get("DISCOVERY_INTERVAL_SECONDS", "30")),
+                    "discovery_interval_seconds": safe_float_env("DISCOVERY_INTERVAL_SECONDS", 30),
                 },
                 "feature_flags": {},  # Would need to iterate through all flags
             }
