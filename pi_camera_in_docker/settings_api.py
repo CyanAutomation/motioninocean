@@ -136,12 +136,14 @@ def register_settings_routes(app: Flask) -> None:
                 modified_by="api_patch"
             )
 
+            persisted = current_app.application_settings.load()
+
             # Return result
             result = {
                 "saved": True,
-                "settings": current_settings,
-                "last_modified": current.get("last_modified"),
-                "modified_by": "api_patch",
+                "settings": persisted.get("settings", {}),
+                "last_modified": persisted.get("last_modified"),
+                "modified_by": persisted.get("modified_by"),
             }
 
             if modified_on_restart:
