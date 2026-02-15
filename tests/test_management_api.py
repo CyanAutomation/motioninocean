@@ -191,6 +191,56 @@ def test_settings_changes_endpoint_handles_invalid_resolution_env(monkeypatch, t
     } in overridden
 
 
+def test_settings_patch_response_reflects_persisted_state(monkeypatch, tmp_path):
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    before = client.get("/api/settings")
+    assert before.status_code == 200
+    before_payload = before.get_json()
+
+    response = client.patch(
+        "/api/settings",
+        json={"camera": {"jpeg_quality": 70}},
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+
+    after = client.get("/api/settings")
+    assert after.status_code == 200
+    after_payload = after.get_json()
+
+    assert payload["settings"] == after_payload["settings"]
+    assert payload["modified_by"] == after_payload["modified_by"] == "api_patch"
+    assert payload["last_modified"] == after_payload["last_modified"]
+    assert payload["last_modified"] != before_payload["last_modified"]
+
+
+def test_settings_patch_requires_restart_response_reflects_persisted_state(monkeypatch, tmp_path):
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    before = client.get("/api/settings")
+    assert before.status_code == 200
+    before_payload = before.get_json()
+
+    response = client.patch(
+        "/api/settings",
+        json={"camera": {"resolution": "800x600"}},
+    )
+    assert response.status_code == 422
+    payload = response.get_json()
+
+    after = client.get("/api/settings")
+    assert after.status_code == 200
+    after_payload = after.get_json()
+
+    assert payload["requires_restart"] is True
+    assert "camera.resolution" in payload["modified_on_restart"]
+    assert payload["settings"] == after_payload["settings"]
+    assert payload["modified_by"] == after_payload["modified_by"] == "api_patch"
+    assert payload["last_modified"] == after_payload["last_modified"]
+    assert payload["last_modified"] != before_payload["last_modified"]
+
+
 def _auth_headers(token="test-token"):
     return {"Authorization": f"Bearer {token}"}
 
