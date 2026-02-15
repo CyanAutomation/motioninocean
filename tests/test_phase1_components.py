@@ -28,6 +28,7 @@ from pi_camera_in_docker.config_validator import (
     validate_float_range,
     validate_integer_range,
     validate_resolution,
+    validate_settings_patch,
     validate_url,
 )
 from pi_camera_in_docker.structured_logging import (
@@ -240,6 +241,13 @@ class TestConfigValidator:
         with contextlib.suppress(ConfigValidationError):
             validate_all_config(config)
             # If no error is raised, that's the current behavior
+
+
+    def test_validate_settings_patch_package_import_path(self):
+        """Test validate_settings_patch via package import path."""
+        # Valid value should produce no validation errors
+        errors = validate_settings_patch({"camera": {"fps": 30}})
+        assert errors == {}
 
     def test_validate_all_config_discovery_enabled_invalid(self):
         """Test config validation with invalid discovery setup"""

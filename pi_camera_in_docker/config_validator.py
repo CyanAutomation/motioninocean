@@ -300,7 +300,7 @@ def validate_settings_patch(patch: Dict[str, Any]) -> Dict[str, str]:
     Returns:
         Dict of error messages { "category.property": "error message" } (empty if valid)
     """
-    from settings_schema import SettingsSchema
+    from .settings_schema import SettingsSchema
 
     errors = {}
 
