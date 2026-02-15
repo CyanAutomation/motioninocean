@@ -18,6 +18,7 @@ Motion In Ocean enables reliable, stateless camera streaming for Raspberry Pi in
 **Domain**: IoT/Edge Computing, camera streaming, homelab integration (Home Assistant, OctoPrint, etc.)
 
 **Tech Stack**:
+
 - Python 3.9+ (3.11+ recommended)
 - Flask (lightweight HTTP API)
 - Picamera2 / libcamera (modern RPi camera support)
@@ -489,23 +490,27 @@ Then reference in [pi_camera_in_docker/runtime_config.py](pi_camera_in_docker/ru
 Key environment variables:
 
 **Camera:**
+
 - `RESOLUTION` (default: 640x480)
 - `FPS` (default: 24)
 - `JPEG_QUALITY` (1-100, default: 90)
 - `MAX_STREAM_CONNECTIONS` (default: 5)
 
 **Discovery:**
+
 - `DISCOVERY_ENABLED` (default: false)
-- `DISCOVERY_MANAGEMENT_URL` (example: http://management-hub:8001)
+- `DISCOVERY_MANAGEMENT_URL` (example: <http://management-hub:8001>)
 - `DISCOVERY_TOKEN` (must match `NODE_DISCOVERY_SHARED_SECRET` on management)
 - `DISCOVERY_INTERVAL_SECONDS` (default: 60)
 
 **Security:**
+
 - `WEBCAM_CONTROL_PLANE_AUTH_TOKEN` (bearer token for webcam APIs)
 - `MANAGEMENT_AUTH_TOKEN` (bearer token for management hub)
 - `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` (enable SSRF bypass for private ranges, default: false)
 
 **Advanced:**
+
 - `APP_MODE` (webcam|management, default: webcam)
 - `MOTION_IN_OCEAN_BIND_HOST` (default: 127.0.0.1, set to 0.0.0.0 for network access)
 - `PI3_PROFILE` (true for RPi 3 resource optimization)

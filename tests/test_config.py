@@ -158,62 +158,85 @@ def test_docker_compose_security(workspace_root):
         )
 
 
-@pytest.mark.parametrize(
-    "endpoint,marker",
-    [
-        ("/", '@app.route("/")'),
-        ("/health", '@app.route("/health")'),
-        ("/ready", '@app.route("/ready")'),
-        ("/stream.mjpg", '@app.route("/stream.mjpg")'),
-        ("/webcam", '@app.route("/webcam")'),
-        ("/webcam/", '@app.route("/webcam/")'),
-    ],
-)
-def test_flask_endpoint_defined(workspace_root, endpoint, marker):
-    """Verify Flask endpoints are defined in main.py."""
-    main_py = workspace_root / "pi_camera_in_docker" / "main.py"
-    code = main_py.read_text()
-    assert marker in code, f"Missing endpoint: {endpoint}"
+def test_create_app_registers_expected_routes_for_management_and_webcam_modes(monkeypatch, tmp_path):
+    """App creation should register core management and webcam routes in their respective modes."""
+    from pi_camera_in_docker import main
 
-
-@pytest.mark.parametrize(
-    "error_type,marker",
-    [
-        ("PermissionError", "except PermissionError"),
-        ("RuntimeError", "except RuntimeError"),
-        ("General exception", "except Exception"),
-        ("Try-finally", "finally:"),
-    ],
-)
-def test_error_handling_present(workspace_root, error_type, marker):
-    """Verify error handling is present in main.py."""
-    main_py = workspace_root / "pi_camera_in_docker" / "main.py"
-    code = main_py.read_text()
-    assert marker in code, f"Missing {error_type} handling"
-
-
-@pytest.mark.parametrize(
-    "env_var",
-    ["RESOLUTION", "FPS"],
-)
-def test_environment_variable_handled(workspace_root, env_var):
-    """Verify environment variables are handled in main.py.
-
-    Tests that env vars are handled either directly via os.environ.get()
-    or through the feature flags system (which supports backward compatibility).
-    """
-    main_py = workspace_root / "pi_camera_in_docker" / "main.py"
-    code = main_py.read_text()
-
-    # Check for direct env var handling OR feature flags system (backward compat)
-    has_direct_access = f'os.environ.get("{env_var}"' in code
-    has_feature_flags = (
-        f'is_flag_enabled("{env_var}")' in code or "from feature_flags import" in code
+    monkeypatch.setenv("APP_MODE", "management")
+    monkeypatch.setenv("MOCK_CAMERA", "true")
+    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "")
+    management_app = main.create_app_from_env()
+    management_routes = {rule.rule for rule in management_app.url_map.iter_rules()}
+    assert {"/", "/health", "/ready", "/metrics", "/api/config", "/api/nodes"}.issubset(
+        management_routes
     )
 
-    assert has_direct_access or has_feature_flags, (
-        f"Missing {env_var} handling (neither direct access nor feature flags found)"
+    monkeypatch.setenv("APP_MODE", "webcam")
+    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry-webcam.json"))
+    monkeypatch.setattr(main, "_run_webcam_mode", lambda _state, _cfg: None)
+    webcam_app = main.create_app_from_env()
+    webcam_routes = {rule.rule for rule in webcam_app.url_map.iter_rules()}
+    assert {"/", "/health", "/ready", "/metrics", "/stream.mjpg", "/webcam", "/webcam/"}.issubset(
+        webcam_routes
     )
+
+
+def test_create_app_from_env_applies_resolution_and_fps_env(monkeypatch, tmp_path):
+    """Environment variables should drive runtime camera config values used by the app."""
+    from pi_camera_in_docker import main
+
+    monkeypatch.setenv("APP_MODE", "management")
+    monkeypatch.setenv("MOCK_CAMERA", "true")
+    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("RESOLUTION", "1024x768")
+    monkeypatch.setenv("FPS", "20")
+
+    app = main.create_app_from_env()
+    assert app.motion_config["resolution"] == (1024, 768)
+    assert app.motion_config["fps"] == 20
+
+
+def test_real_camera_startup_failure_reports_clear_runtime_error(monkeypatch, tmp_path):
+    """When real camera enumeration yields no cameras, startup should fail with actionable RuntimeError."""
+    from pi_camera_in_docker import main
+
+    monkeypatch.setenv("APP_MODE", "webcam")
+    monkeypatch.setenv("MOCK_CAMERA", "false")
+    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setattr(main, "_check_device_availability", lambda _cfg: None)
+
+    class FakePicamera2:
+        pass
+
+    class FakeJpegEncoder:
+        def __init__(self, q):
+            self.quality = q
+
+    class FakeFileOutput:
+        def __init__(self, out):
+            self.output = out
+
+    monkeypatch.setattr(
+        main,
+        "import_camera_components",
+        lambda _allow: (FakePicamera2, FakeJpegEncoder, FakeFileOutput),
+    )
+    monkeypatch.setattr(
+        main,
+        "_detect_camera_devices",
+        lambda: {
+            "video_devices": ["/dev/video0"],
+            "media_devices": ["/dev/media0"],
+            "v4l_subdev_devices": [],
+            "dma_heap_devices": [],
+            "vchiq_device": True,
+        },
+    )
+    monkeypatch.setattr(main, "_get_camera_info", lambda _cls: ([], "test.path"))
+
+    with pytest.raises(RuntimeError, match="No cameras detected"):
+        main.create_webcam_app()
 
 
 def test_env_file_exists(workspace_root):

@@ -4,78 +4,143 @@ Integration tests - verify startup sequence, error recovery, and health checks.
 
 import pytest
 import yaml
+from pi_camera_in_docker.shared import register_shared_routes
 
 
-@pytest.mark.parametrize(
-    "scenario,markers",
-    [
-        (
-            "Permission denied handling",
-            ["except PermissionError", "Permission denied"],
-        ),
-        (
-            "RuntimeError handling",
-            ["except RuntimeError", "Camera initialization failed"],
-        ),
-        (
-            "General exception handling",
-            ["except Exception", "Unexpected error"],
-        ),
-        (
-            "Cleanup on error",
-            ["finally:", "stop_recording"],
-        ),
-    ],
-)
-def test_error_recovery_paths(workspace_root, scenario, markers):
-    """Verify error recovery paths are present."""
-    main_py = workspace_root / "pi_camera_in_docker" / "main.py"
-    code = main_py.read_text()
-
-    for marker in markers:
-        assert marker in code, f"Missing marker for {scenario}: {marker}"
+def _build_webcam_status_app(main_module, stream_status_payload):
+    cfg = {
+        "app_mode": "webcam",
+        "resolution": (640, 480),
+        "fps": 0,
+        "target_fps": 0,
+        "jpeg_quality": 90,
+        "max_frame_age_seconds": 10.0,
+        "max_stream_connections": 4,
+        "pi3_profile_enabled": False,
+        "mock_camera": True,
+        "cors_enabled": False,
+        "cors_origins": "",
+        "allow_pykms_mock": False,
+        "node_registry_path": "/tmp/node-registry.json",
+        "management_auth_token": "",
+    }
+    app, _limiter, state = main_module._create_base_app(cfg)
+    register_shared_routes(app, state, get_stream_status=lambda: dict(stream_status_payload))
+    return app, state
 
 
-@pytest.mark.parametrize(
-    "endpoint,markers",
-    [
-        ("/health", ['@app.route("/health")', "healthy", "200"]),
-        ("/ready", ['@app.route("/ready")', "not_ready", "503", "ready", "200"]),
-        ("/metrics", ['@app.route("/metrics")', "frames_captured", "current_fps"]),
-    ],
-)
-def test_health_endpoints_present(workspace_root, endpoint, markers):
-    """Verify health check endpoints are present."""
-    main_py = workspace_root / "pi_camera_in_docker" / "main.py"
-    code = main_py.read_text()
+def test_management_endpoints_return_contract_payloads(monkeypatch, tmp_path):
+    """Management mode should expose stable /health, /ready, and /metrics payload contracts."""
+    from pi_camera_in_docker import main
 
-    for marker in markers:
-        assert marker in code, f"Missing marker for {endpoint}: {marker}"
+    monkeypatch.setenv("APP_MODE", "management")
+    monkeypatch.setenv("MOCK_CAMERA", "true")
+    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "")
+
+    app = main.create_management_app()
+    client = app.test_client()
+
+    health = client.get("/health")
+    ready = client.get("/ready")
+    metrics = client.get("/metrics")
+
+    assert health.status_code == 200
+    assert health.get_json()["status"] == "healthy"
+    assert health.get_json()["app_mode"] == "management"
+
+    assert ready.status_code == 200
+    assert ready.get_json()["status"] == "ready"
+    assert ready.get_json()["reason"] == "no_camera_required"
+
+    assert metrics.status_code == 200
+    metrics_payload = metrics.get_json()
+    assert metrics_payload["app_mode"] == "management"
+    assert metrics_payload["camera_active"] is False
+    assert "current_fps" in metrics_payload
+    assert "frames_captured" in metrics_payload
 
 
-@pytest.mark.parametrize(
-    "metric,marker,file_path",
-    [
-        ("Frame count tracking", "self._frame_count += 1", "pi_camera_in_docker/modes/webcam.py"),
-        (
-            "FPS calculation",
-            "current_fps = stats.snapshot()",
-            "pi_camera_in_docker/modes/webcam.py",
-        ),
-        ("Frame timing", "self._frame_times_monotonic", "pi_camera_in_docker/modes/webcam.py"),
-        (
-            "Status endpoint",
-            "get_stream_status(stream_stats, config",
-            "pi_camera_in_docker/main.py",
-        ),
-        ("Uptime tracking", "app.start_time_monotonic", "pi_camera_in_docker/main.py"),
-    ],
-)
-def test_metrics_collection(workspace_root, metric, marker, file_path):
-    """Verify metrics collection is present."""
-    code_file = workspace_root / file_path
-    code = code_file.read_text()
-    assert marker in code, f"Missing metric: {metric}"
+def test_webcam_ready_transitions_from_not_ready_to_ready():
+    """Webcam /ready should require recording_started and fresh stream data."""
+    from pi_camera_in_docker import main
+
+    app, state = _build_webcam_status_app(
+        main,
+        {
+            "frames_captured": 12,
+            "current_fps": 8.5,
+            "last_frame_age_seconds": 0.2,
+        },
+    )
+    client = app.test_client()
+
+    initial = client.get("/ready")
+    assert initial.status_code == 503
+    assert initial.get_json()["status"] == "not_ready"
+
+    state["recording_started"].set()
+    ready = client.get("/ready")
+    assert ready.status_code == 200
+    ready_payload = ready.get_json()
+    assert ready_payload["status"] == "ready"
+    assert ready_payload["current_fps"] == 8.5
+    assert ready_payload["last_frame_age_seconds"] == 0.2
+
+
+def test_webcam_ready_reports_not_ready_for_stale_stream():
+    """Webcam /ready should remain not_ready when latest frame age exceeds threshold."""
+    from pi_camera_in_docker import main
+
+    app, state = _build_webcam_status_app(
+        main,
+        {
+            "frames_captured": 4,
+            "current_fps": 5.0,
+            "last_frame_age_seconds": 12.0,
+        },
+    )
+    state["recording_started"].set()
+    client = app.test_client()
+
+    response = client.get("/ready")
+    assert response.status_code == 503
+    payload = response.get_json()
+    assert payload["status"] == "not_ready"
+    assert payload["last_frame_age_seconds"] == 12.0
+
+
+def test_webcam_metrics_and_status_reflect_stream_activity():
+    """Webcam /metrics and /api/status should map recording/freshness to semantic status fields."""
+    from pi_camera_in_docker import main
+
+    app, state = _build_webcam_status_app(
+        main,
+        {
+            "frames_captured": 21,
+            "current_fps": 14.0,
+            "last_frame_age_seconds": 0.4,
+        },
+    )
+    state["recording_started"].set()
+    client = app.test_client()
+
+    metrics = client.get("/metrics")
+    status = client.get("/api/status")
+
+    assert metrics.status_code == 200
+    metrics_payload = metrics.get_json()
+    assert metrics_payload["camera_mode_enabled"] is True
+    assert metrics_payload["camera_active"] is True
+    assert metrics_payload["frames_captured"] == 21
+    assert metrics_payload["current_fps"] == 14.0
+
+    assert status.status_code == 200
+    status_payload = status.get_json()
+    assert status_payload["status"] == "ok"
+    assert status_payload["stream_available"] is True
+    assert status_payload["camera_active"] is True
+    assert status_payload["fps"] == 14.0
 
 
 def test_device_security_explicit_devices(workspace_root):
@@ -118,39 +183,32 @@ def test_udev_mount_read_only(workspace_root):
     assert "/run/udev" in content, "udev mount not found"
 
 
-def test_camera_detection_error_handling(workspace_root):
-    """Verify camera detection error handling is present."""
-    main_py = workspace_root / "pi_camera_in_docker" / "main.py"
-    code = main_py.read_text()
+def test_setup_generate_includes_v4l_subdev_when_detected(monkeypatch, tmp_path):
+    """Setup generation should emit explicit v4l-subdev mappings when device detection reports them."""
+    from pi_camera_in_docker import main
 
-    # Verify startup path attempts to retrieve camera inventory
-    assert "camera_info, detection_path = _get_camera_info" in code, (
-        "Camera detection retrieval missing from startup path"
+    monkeypatch.setenv("APP_MODE", "management")
+    monkeypatch.setenv("MOCK_CAMERA", "true")
+    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "")
+
+    app = main.create_management_app()
+    monkeypatch.setattr(
+        main,
+        "_detect_camera_devices",
+        lambda: {
+            "has_camera": True,
+            "video_devices": ["/dev/video0"],
+            "media_devices": ["/dev/media0"],
+            "v4l_subdev_devices": ["/dev/v4l-subdev0"],
+            "dma_heap_devices": ["/dev/dma_heap/system"],
+            "vchiq_device": True,
+            "dri_device": False,
+        },
     )
-    assert "Camera inventory detection path" in code, "Missing camera detection path logging"
+    client = app.test_client()
 
-    # Verify empty camera list handling
-    assert "if not camera_info:" in code, "Empty camera list check missing"
-    assert "raise RuntimeError" in code, "Expected RuntimeError raise missing"
-
-    # Verify IndexError handling
-    assert "except IndexError" in code, "IndexError handler missing"
-
-    # Verify helpful error messages
-    assert "No cameras detected" in code, "Missing camera detection error message"
-    assert "device mappings" in code, "Missing device mapping guidance"
-    assert "detect-devices.sh" in code, "Missing detect-devices.sh reference"
-
-
-def test_setup_generator_handles_v4l_subdev_devices(workspace_root):
-    """Verify setup generator includes /dev/v4l-subdev* detection and compose mappings."""
-    main_py = workspace_root / "pi_camera_in_docker" / "main.py"
-    code = main_py.read_text()
-
-    assert "v4l_subdev_devices" in code, "Missing v4l_subdev_devices detection key"
-    assert 'subdev_device = f"/dev/v4l-subdev{i}"' in code, (
-        "Missing /dev/v4l-subdev* discovery in setup generator"
-    )
-    assert 'detected_devices.get("v4l_subdev_devices")' in code, (
-        "Missing compose generation for subdev mappings"
-    )
+    response = client.post("/api/setup/generate", json={})
+    assert response.status_code == 200
+    compose_content = response.get_json()["docker_compose_yaml"]
+    assert "- /dev/v4l-subdev0:/dev/v4l-subdev0" in compose_content
