@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-The **Config Tab** is a well-designed interface for displaying system configuration information. It provides users with quick access to critical settings organized into four logical sections with an intuitive collapse/expand mechanism. The UI is **production-ready** with excellent responsiveness across desktop, tablet, and mobile viewports.
+The **Config Tab** is a well-designed interface for displaying system configuration information. It provides users with quick access to critical settings organized into three logical sections with an intuitive collapse/expand mechanism. The UI is **production-ready** with excellent responsiveness across desktop, tablet, and mobile viewports.
 
 **Overall Usability Score: 8.2/10** ✅ **GOOD**
 
@@ -21,7 +21,6 @@ The Config tab (`/config` endpoint) serves as a **read-only configuration viewer
 - **Camera Settings** - Active resolution, frame rate, JPEG quality
 - **Stream Control** - Connection limits, timeout values, CORS settings
 - **Runtime Information** - Camera status, uptime, mock camera indicator
-- **System Limits** - Hardware constraints and capabilities
 
 The interface automatically refreshes every 2 seconds and provides clear visual feedback for all user interactions.
 
@@ -33,9 +32,9 @@ The interface automatically refreshes every 2 seconds and provides clear visual 
 
 | Aspect                   | Status       | Details                                                     |
 | ------------------------ | ------------ | ----------------------------------------------------------- |
-| **Section Organization** | ✅ Excellent | Four logical groups, clearly labeled with icons             |
+| **Section Organization** | ✅ Excellent | Three logical groups, clearly labeled with icons            |
 | **Visual Hierarchy**     | ✅ Excellent | Headers use larger font, bold styling; values are secondary |
-| **Icon Usage**           | ✅ Excellent | Emoji icons (📷 📡 ⚙️ 📊) provide quick visual scanning     |
+| **Icon Usage**           | ✅ Excellent | Emoji icons (📷 📡 ⚙️) provide quick visual scanning        |
 | **Label Clarity**        | ✅ Good      | All labels use uppercase (e.g., "RESOLUTION", "FRAME RATE") |
 | **Color Scheme**         | ✅ Good      | Consistent with app theme; good contrast                    |
 | **Spacing**              | ✅ Good      | Consistent padding and margins; content not cramped         |
@@ -143,7 +142,7 @@ The interface automatically refreshes every 2 seconds and provides clear visual 
 
 - Toggle buttons are responsive and provide immediate feedback
 - Visual state changes are clear (▼ expanded, ▶ collapsed)
-- All four sections can be independently collapsed/expanded
+- All sections can be independently collapsed/expanded
 - Smooth transitions enhance the user experience
 - Collapsed sections still maintain visual presence in the layout
 
@@ -176,9 +175,6 @@ The interface automatically refreshes every 2 seconds and provides clear visual 
 | Mock Camera             | --        | ⚠️ Placeholder                                |
 | Uptime                  | --        | ⚠️ Placeholder (blue text)                    |
 | Last Updated            | --        | ⚠️ Placeholder                                |
-| Max Resolution          | --        | ⚠️ Placeholder                                |
-| Max FPS                 | --        | ⚠️ Placeholder                                |
-| JPEG Quality Range      | --        | ⚠️ Placeholder                                |
 
 **Status Issue:** The API endpoint `/api/config` appears to be returning incomplete data or not responding properly. Most values show placeholder ("--") instead of actual configuration values.
 
@@ -309,7 +305,7 @@ The interface automatically refreshes every 2 seconds and provides clear visual 
 
 ### Organization: 9/10
 
-- Four well-defined sections group related settings
+- Three well-defined sections group related settings
 - Collapsible design allows focusing on relevant data
 - Visual separation is excellent
 
@@ -409,16 +405,16 @@ The interface automatically refreshes every 2 seconds and provides clear visual 
 
 All screenshots captured during testing are located in the workspace and referenced below:
 
-| Screenshot                       | Purpose                        | Viewport | Notes                                        |
-| -------------------------------- | ------------------------------ | -------- | -------------------------------------------- |
-| config-tab-desktop-initial.png   | Initial state on desktop       | 1280×720 | Shows all 3 columns, update status           |
-| config-tab-desktop-loaded.png    | After 3-second wait            | 1280×720 | Confirms data polling                        |
-| config-tab-desktop-fullpage.png  | Full page view                 | 1280×720 | Shows all 4 sections including System Limits |
-| config-tab-desktop-collapsed.png | With Camera Settings collapsed | 1280×720 | Shows toggle to "▶" icon                     |
-| config-tab-desktop-expanded.png  | Section re-expanded            | 1280×720 | Shows toggle back to "▼" icon                |
-| config-tab-keyboard-focus.png    | Keyboard focus on toggle       | 1280×720 | Shows focus-visible outline                  |
-| config-tab-tablet.png            | Full page on tablet            | 768×1024 | Shows single-column responsive layout        |
-| config-tab-mobile.png            | Full page on mobile            | 375×667  | Shows mobile-optimized layout                |
+| Screenshot                       | Purpose                        | Viewport | Notes                                 |
+| -------------------------------- | ------------------------------ | -------- | ------------------------------------- |
+| config-tab-desktop-initial.png   | Initial state on desktop       | 1280×720 | Shows all 3 columns, update status    |
+| config-tab-desktop-loaded.png    | After 3-second wait            | 1280×720 | Confirms data polling                 |
+| config-tab-desktop-fullpage.png  | Full page view                 | 1280×720 | Shows all visible config sections     |
+| config-tab-desktop-collapsed.png | With Camera Settings collapsed | 1280×720 | Shows toggle to "▶" icon              |
+| config-tab-desktop-expanded.png  | Section re-expanded            | 1280×720 | Shows toggle back to "▼" icon         |
+| config-tab-keyboard-focus.png    | Keyboard focus on toggle       | 1280×720 | Shows focus-visible outline           |
+| config-tab-tablet.png            | Full page on tablet            | 768×1024 | Shows single-column responsive layout |
+| config-tab-mobile.png            | Full page on mobile            | 375×667  | Shows mobile-optimized layout         |
 
 ---
 

@@ -103,7 +103,6 @@ async function runTest() {
     const cameraSettings = await page.locator("text=📷 Camera Settings").count();
     const streamControl = await page.locator("text=📡 Stream Control").count();
     const runtimeInfo = await page.locator("text=⚙️ Runtime Information").count();
-    const systemLimits = await page.locator("text=📊 System Limits").count();
 
     findings.general.push({
       status: cameraSettings > 0 ? "✓" : "⚠",
@@ -121,12 +120,6 @@ async function runTest() {
       status: runtimeInfo > 0 ? "✓" : "⚠",
       test: "Runtime Information section",
       details: `Runtime Information section ${runtimeInfo > 0 ? "found" : "NOT FOUND"}`,
-    });
-
-    findings.general.push({
-      status: systemLimits > 0 ? "✓" : "⚠",
-      test: "System Limits section",
-      details: `System Limits section ${systemLimits > 0 ? "found" : "NOT FOUND"}`,
     });
 
     // ========== INTERACTIVITY TEST ==========
@@ -350,7 +343,7 @@ async function runTest() {
 
     // Check grouping
     assessments["Organization"].push(
-      "✓ Config items grouped into logical sections (Camera, Stream, Runtime, Limits)",
+      "✓ Config items grouped into logical sections (Camera, Stream, Runtime)",
     );
 
     // Check visual hierarchy
@@ -381,11 +374,10 @@ Generated: ${new Date().toISOString()}
 
 ## Executive Summary
 
-The Config tab provides system configuration information organized into four logical sections:
+The Config tab provides system configuration information organized into three logical sections:
 - **Camera Settings** - Active camera parameters (resolution, FPS, quality)
 - **Stream Control** - Connection limits and timeout settings
 - **Runtime Information** - Operational status and uptime
-- **System Limits** - Hardware and software constraints
 
 ---
 
@@ -472,12 +464,12 @@ ${findings.accessibility.map((f) => `| ${f.test} | ${f.status} | ${f.details} |`
 ## 5. Usability Assessment
 
 ### Information Clarity ✓
-- **Emoji Labels:** Each section uses distinctive emojis (📷 📡 ⚙️ 📊) making them easy to scan visually
+- **Emoji Labels:** Each section uses distinctive emojis (📷 📡 ⚙️) making them easy to scan visually
 - **Consistent Labeling:** All config items follow \`Label: Value\` pattern
 - **Hierarchical Headers:** Clear distinction between section titles and individual items
 
 ### Organization ✓
-- **Logical Grouping:** Config items are well-organized into 4 cohesive sections
+- **Logical Grouping:** Config items are well-organized into 3 cohesive sections
 - **Related Settings:** Camera parameters grouped together, stream controls grouped together
 - **Scanning:** Users can quickly find relevant settings
 
