@@ -704,3 +704,68 @@ def test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes
             assert state["picam2_instance"] is not None
 
         sys.modules.pop("main", None)
+
+
+def _build_base_app_config(cors_enabled=False, cors_origins="disabled"):
+    return {
+        "app_mode": "webcam",
+        "resolution": (640, 480),
+        "fps": 0,
+        "target_fps": 0,
+        "jpeg_quality": 90,
+        "max_frame_age_seconds": 10.0,
+        "max_stream_connections": 10,
+        "pi3_profile_enabled": False,
+        "mock_camera": True,
+        "cors_enabled": cors_enabled,
+        "cors_origins": cors_origins,
+        "allow_pykms_mock": False,
+        "node_registry_path": "/tmp/node-registry.json",
+        "management_auth_token": "",
+    }
+
+
+def test_register_middleware_keeps_cors_disabled_when_feature_off():
+    from pi_camera_in_docker import main
+
+    app, _limiter, _state = main._create_base_app(
+        _build_base_app_config(cors_enabled=False, cors_origins="https://allowed.example")
+    )
+
+    response = app.test_client().get("/api/config", headers={"Origin": "https://allowed.example"})
+
+    assert response.status_code == 200
+    assert "Access-Control-Allow-Origin" not in response.headers
+
+
+def test_register_middleware_applies_wildcard_cors_policy_from_config():
+    from pi_camera_in_docker import main
+
+    app, _limiter, _state = main._create_base_app(
+        _build_base_app_config(cors_enabled=True, cors_origins="*")
+    )
+
+    response = app.test_client().get("/api/config", headers={"Origin": "https://random.example"})
+
+    assert response.status_code == 200
+    assert response.headers.get("Access-Control-Allow-Origin") == "*"
+
+
+def test_register_middleware_applies_explicit_cors_origins_from_config():
+    from pi_camera_in_docker import main
+
+    app, _limiter, _state = main._create_base_app(
+        _build_base_app_config(
+            cors_enabled=True,
+            cors_origins="https://one.example, https://two.example",
+        )
+    )
+    client = app.test_client()
+
+    allowed = client.get("/api/config", headers={"Origin": "https://one.example"})
+    blocked = client.get("/api/config", headers={"Origin": "https://blocked.example"})
+
+    assert allowed.status_code == 200
+    assert allowed.headers.get("Access-Control-Allow-Origin") == "https://one.example"
+    assert blocked.status_code == 200
+    assert "Access-Control-Allow-Origin" not in blocked.headers
