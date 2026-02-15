@@ -293,7 +293,7 @@ print(json.dumps({
         print("--- Subprocess stdout ---")
         print(process.stdout)
         print("--- Subprocess stderr ---")
-        print(process.stderr, file=sys.stderr)  # Added this line
+        print(process.stderr)
         raise subprocess.CalledProcessError(
             process.returncode, process.args, output=process.stdout, stderr=process.stderr
         )
@@ -390,17 +390,12 @@ app = main.create_app_from_env()
 state = app.motion_state
 config = app.motion_config
 buffer = main.FrameBuffer(state["stream_stats"], target_fps=config["target_fps"])
-sys.stderr.write(f"DEBUG_TEST: config['target_fps'] = {config['target_fps']}\\n")
 for _ in range(30):
     buffer.write(b"x" * 1024)
-    time.sleep(0.01)
+    time.sleep(1 / config["target_fps"] + 0.005)
 
 client = app.test_client()
 metrics = client.get("/metrics").get_json()
-sys.stderr.write(f"DEBUG_TEST: Metrics from /metrics endpoint: {metrics}\\n")
-_, _, calculated_fps = state["stream_stats"].snapshot()
-sys.stderr.write(f"DEBUG_TEST: calculated_fps from snapshot (direct call) = {calculated_fps}\\n")
-sys.stderr.write(f"DEBUG_TEST: frame_times_monotonic = {list(state['stream_stats']._frame_times_monotonic)}\\n")
 print(json.dumps(metrics))
 """
 
