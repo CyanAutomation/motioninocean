@@ -5,6 +5,9 @@ const formTitle = document.getElementById("form-title");
 const cancelEditBtn = document.getElementById("cancel-edit-btn");
 const refreshBtn = document.getElementById("refresh-nodes-btn");
 const toggleNodeFormPanelBtn = document.getElementById("toggle-node-form-panel-btn");
+const managementLayout = document.getElementById("management-layout");
+const nodeFormPanelContainer = document.getElementById("node-form-panel-container");
+const nodeFormContentWrapper = document.getElementById("node-form-content-wrapper");
 const nodeFormContent = document.getElementById("node-form-content");
 const editingNodeIdInput = document.getElementById("editing-node-id");
 const diagnosticNodeId = document.getElementById("diagnostic-node-id");
@@ -32,6 +35,7 @@ const API_AUTH_HINT =
 
 const DOCKER_BASE_URL_PATTERN = String.raw`docker://[^\s/:]+:\d+/[^\s/]+`;
 const DOCKER_BASE_URL_HINT = "Use format: docker://proxy-hostname:port/container-id";
+const NODE_FORM_COLLAPSED_STORAGE_KEY = "management.nodeFormCollapsed";
 
 function updateBaseUrlValidation(transport = "http") {
   const baseUrlInput = document.getElementById("node-base-url");
@@ -579,18 +583,39 @@ function resetForm() {
   cancelEditBtn.classList.add("hidden");
 }
 
-function setNodeFormPanelExpanded(isExpanded) {
+function setNodeFormPanelCollapsed(isCollapsed) {
+  const isExpanded = !isCollapsed;
+
   if (!(toggleNodeFormPanelBtn instanceof HTMLButtonElement) || !(nodeFormContent instanceof HTMLElement)) {
     return;
   }
 
-  nodeFormContent.classList.toggle("hidden", !isExpanded);
+  if (managementLayout instanceof HTMLElement) {
+    managementLayout.classList.toggle("is-form-collapsed", isCollapsed);
+  }
+
+  if (nodeFormPanelContainer instanceof HTMLElement) {
+    nodeFormPanelContainer.classList.toggle("is-form-collapsed", isCollapsed);
+  }
+
+  if (nodeFormContentWrapper instanceof HTMLElement) {
+    nodeFormContentWrapper.classList.toggle("hidden", isCollapsed);
+  }
+
+  nodeFormContent.classList.toggle("hidden", isCollapsed);
   toggleNodeFormPanelBtn.setAttribute("aria-expanded", String(isExpanded));
-  toggleNodeFormPanelBtn.textContent = isExpanded ? "Collapse" : "Expand";
+  toggleNodeFormPanelBtn.textContent = isExpanded ? "«" : "»";
+  toggleNodeFormPanelBtn.title = isExpanded ? "Collapse node form panel" : "Expand node form panel";
   toggleNodeFormPanelBtn.setAttribute(
     "aria-label",
     isExpanded ? "Collapse node form panel" : "Expand node form panel",
   );
+
+  try {
+    globalThis.localStorage?.setItem(NODE_FORM_COLLAPSED_STORAGE_KEY, String(isCollapsed));
+  } catch {
+    // Ignore storage failures in private/incognito environments.
+  }
 }
 
 function toggleNodeFormPanel() {
@@ -599,7 +624,15 @@ function toggleNodeFormPanel() {
   }
 
   const isExpanded = toggleNodeFormPanelBtn.getAttribute("aria-expanded") === "true";
-  setNodeFormPanelExpanded(!isExpanded);
+  setNodeFormPanelCollapsed(isExpanded);
+}
+
+function getStoredNodeFormCollapsedPreference() {
+  try {
+    return globalThis.localStorage?.getItem(NODE_FORM_COLLAPSED_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
 }
 
 async function submitNodeForm(event) {
@@ -1051,7 +1084,7 @@ async function init() {
     }
   });
   if (toggleNodeFormPanelBtn instanceof HTMLButtonElement && nodeFormContent instanceof HTMLElement) {
-    setNodeFormPanelExpanded(true);
+    setNodeFormPanelCollapsed(getStoredNodeFormCollapsedPreference());
     toggleNodeFormPanelBtn.addEventListener("click", toggleNodeFormPanel);
   }
   tableBody.addEventListener("click", onTableClick);
