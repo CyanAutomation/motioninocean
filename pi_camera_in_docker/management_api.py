@@ -7,7 +7,7 @@ import ssl
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, cast
 from urllib.parse import urlparse, urlunparse
 
 from flask import Flask, jsonify, request
@@ -117,7 +117,7 @@ def _vet_resolved_addresses(addresses: Tuple[str, ...]) -> Tuple[str, ...]:
             raise NodeRequestError(message)
         if address not in vetted:
             vetted.append(address)
-    return tuple(vetted)
+    return cast(Tuple[str, ...], tuple(vetted))
 
 
 def _discovery_private_ip_block_response(base_url: str, blocked_target: str):
@@ -155,6 +155,7 @@ def _private_announcement_blocked(base_url: str) -> Optional[str]:
             return None
         for record in records:
             resolved_ip = record[4][0]
+            assert isinstance(resolved_ip, str)  # Assert type for MyPy
             if _is_blocked_address(resolved_ip):
                 return resolved_ip
     return None
@@ -330,9 +331,9 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
                 category="dns",
                 raw_error=str(exc),
             ) from exc
-        resolved_addresses = tuple(record[4][0] for record in records)
+        resolved_addresses = tuple(cast(str, record[4][0]) for record in records)
 
-    vetted_addresses = _vet_resolved_addresses(resolved_addresses)
+    vetted_addresses: Tuple[str, ...] = _vet_resolved_addresses(resolved_addresses) # type: ignore
     if not vetted_addresses:
         message = "name resolution returned no addresses"
         raise ConnectionError(message)
@@ -348,10 +349,10 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
 
     connection_errors = []
     for address in vetted_addresses:
-        connection = None
+        actual_connection: _PinnedHTTPConnection | _PinnedHTTPSConnection | None = None
         try:
             if is_https:
-                connection = _PinnedHTTPSConnection(
+                actual_connection = _PinnedHTTPSConnection(
                     host=hostname,
                     port=port,
                     connect_host=address,
@@ -359,15 +360,15 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
                     context=tls_context,
                 )
             else:
-                connection = _PinnedHTTPConnection(
+                actual_connection = _PinnedHTTPConnection(
                     host=hostname,
                     port=port,
                     connect_host=address,
                     timeout=REQUEST_TIMEOUT_SECONDS,
                 )
 
-            connection.request(method, request_target, body=data, headers=headers)
-            response = connection.getresponse()
+            actual_connection.request(method, request_target, body=data, headers=headers)
+            response = actual_connection.getresponse()
             body_text = response.read().decode("utf-8")
             if not body_text:
                 return response.status, {}
@@ -391,8 +392,8 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
                 )
             )
         finally:
-            if connection is not None:
-                connection.close()
+            if actual_connection is not None:
+                actual_connection.close()
 
     if connection_errors:
         if len(connection_errors) == 1:
