@@ -97,21 +97,10 @@ class ApplicationSettings:
             return self._clone_schema()
 
         try:
-            raw = json.loads(self.path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as exc:
-            logger.error(f"Settings file corrupted at {self.path}: {exc}")
-            message = f"settings file is corrupted and cannot be parsed: {self.path}"
-            raise SettingsValidationError(message) from exc
-
-        if not isinstance(raw, dict):
-            logger.warning("Settings file has invalid root type (expected dict), resetting")
-            return self._clone_schema()
-
-        # Validate structure
-        schema = self._clone_schema()
-        version = raw.get("version")
-        if version != 1:
-            logger.warning(f"Settings schema version {version} not recognized, using defaults")
+            content = self.path.read_text(encoding="utf-8").strip()
+            if not content:  # Handle empty files
+                return self._clone_schema()
+            raw = json.loads(content)
             return schema
 
         settings = raw.get("settings", {})
