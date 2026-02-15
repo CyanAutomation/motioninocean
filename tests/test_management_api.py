@@ -191,6 +191,66 @@ def test_settings_changes_endpoint_handles_invalid_resolution_env(monkeypatch, t
     } in overridden
 
 
+def test_settings_changes_endpoint_handles_invalid_numeric_env(monkeypatch, tmp_path):
+    monkeypatch.setenv("FPS", "invalid-fps")
+    monkeypatch.setenv("JPEG_QUALITY", "invalid-jpeg")
+    monkeypatch.setenv("MAX_STREAM_CONNECTIONS", "invalid-connections")
+    monkeypatch.setenv("MAX_FRAME_AGE_SECONDS", "invalid-age")
+    monkeypatch.setenv("DISCOVERY_INTERVAL_SECONDS", "invalid-interval")
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    save_response = client.patch(
+        "/api/settings",
+        json={
+            "camera": {
+                "fps": 12,
+                "jpeg_quality": 77,
+                "max_stream_connections": 5,
+                "max_frame_age_seconds": 4.5,
+            },
+            "discovery": {
+                "discovery_interval_seconds": 22.5,
+            },
+        },
+    )
+    assert save_response.status_code in (200, 422)
+
+    response = client.get("/api/settings/changes")
+    assert response.status_code == 200
+
+    overridden = response.get_json()["overridden"]
+    assert {
+        "category": "camera",
+        "key": "fps",
+        "value": 12,
+        "env_value": 0,
+    } in overridden
+    assert {
+        "category": "camera",
+        "key": "jpeg_quality",
+        "value": 77,
+        "env_value": 85,
+    } in overridden
+    assert {
+        "category": "camera",
+        "key": "max_stream_connections",
+        "value": 5,
+        "env_value": 2,
+    } in overridden
+    assert {
+        "category": "camera",
+        "key": "max_frame_age_seconds",
+        "value": 4.5,
+        "env_value": 10,
+    } in overridden
+    assert {
+        "category": "discovery",
+        "key": "discovery_interval_seconds",
+        "value": 22.5,
+        "env_value": 30,
+    } in overridden
+
+
 def test_settings_patch_response_reflects_persisted_state(monkeypatch, tmp_path):
     client = _new_management_client(monkeypatch, tmp_path)
 
