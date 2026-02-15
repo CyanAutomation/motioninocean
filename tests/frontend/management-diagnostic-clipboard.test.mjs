@@ -12,6 +12,15 @@ function extractDiagnosticHelpers(source) {
   return source.slice(start, end).trim();
 }
 
+function extractDiagnosticToggleHelpers(source) {
+  const start = source.indexOf("function setDiagnosticPanelExpanded");
+  const end = source.indexOf("\nfunction updateBaseUrlValidation", start);
+  if (start === -1 || end === -1) {
+    throw new Error("diagnostic toggle helpers definition not found");
+  }
+  return source.slice(start, end).trim();
+}
+
 function extractCopyHandlerBody(source) {
   const marker = 'copyDiagnosticReportBtn.addEventListener("click", async () => {';
   const start = source.indexOf(marker);
@@ -37,7 +46,60 @@ function extractCopyHandlerBody(source) {
 
 function buildUiContext() {
   const panelFocus = { called: 0 };
-  return {
+
+  const makeClassList = () => {
+    const values = new Set();
+    return {
+      add: (value) => values.add(value),
+      remove: (value) => values.delete(value),
+      toggle: (value, force) => {
+        if (force === true) {
+          values.add(value);
+          return true;
+        }
+
+        if (force === false) {
+          values.delete(value);
+          return false;
+        }
+
+        if (values.has(value)) {
+          values.delete(value);
+          return false;
+        }
+
+        values.add(value);
+        return true;
+      },
+      contains: (value) => values.has(value),
+    };
+  };
+
+  class MockHTMLElement {
+    constructor() {
+      this.hidden = false;
+      this.classList = makeClassList();
+    }
+  }
+
+  class MockHTMLInputElement extends MockHTMLElement {
+    constructor() {
+      super();
+      this.checked = false;
+    }
+  }
+
+  const diagnosticsAdvancedCheckbox = new MockHTMLInputElement();
+  const diagnosticsCollapsibleContainer = new MockHTMLElement();
+  diagnosticsCollapsibleContainer.hidden = true;
+  diagnosticsCollapsibleContainer.classList.add("hidden");
+
+  const diagnosticPanel = new MockHTMLElement();
+  diagnosticPanel.focus = () => (panelFocus.called += 1);
+
+  const context = {
+    HTMLInputElement: MockHTMLInputElement,
+    HTMLElement: MockHTMLElement,
     escapeHtml: (value) => String(value),
     latestDiagnosticResult: null,
     diagnosticNodeId: { textContent: "" },
@@ -49,15 +111,34 @@ function buildUiContext() {
     diagnosticChecksGrid: { innerHTML: "" },
     diagnosticRecommendations: { innerHTML: "" },
     copyDiagnosticReportBtn: { disabled: true },
-    diagnosticPanel: { focus: () => (panelFocus.called += 1) },
+    diagnosticPanel,
+    diagnosticsAdvancedCheckbox,
+    diagnosticsCollapsibleContainer,
     panelFocus,
     globalThis: {},
   };
+
+  context.setDiagnosticPanelExpanded = (isExpanded) => {
+    context.diagnosticsAdvancedCheckbox.checked = isExpanded;
+    context.diagnosticsCollapsibleContainer.hidden = !isExpanded;
+    context.diagnosticsCollapsibleContainer.classList.toggle("hidden", !isExpanded);
+  };
+  context.isDiagnosticPanelContentVisible = () => !context.diagnosticsCollapsibleContainer.hidden;
+
+  return context;
 }
 
 function evaluateHelpers() {
   const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
   const helperSource = extractDiagnosticHelpers(managementJs);
+  const context = buildUiContext();
+  vm.runInNewContext(`${helperSource};`, context);
+  return context;
+}
+
+function evaluateToggleHelpers() {
+  const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
+  const helperSource = extractDiagnosticToggleHelpers(managementJs);
   const context = buildUiContext();
   vm.runInNewContext(`${helperSource};`, context);
   return context;
@@ -100,7 +181,55 @@ test("showDiagnosticResults populates panel, rows, recommendations, and focuses 
   assert.match(context.diagnosticRecommendations.innerHTML, /diagnostic-pill--fail">\[FAIL\]/);
   assert.match(context.diagnosticRecommendations.innerHTML, /diagnostic-pill--pass">\[PASS\]/);
   assert.equal(context.copyDiagnosticReportBtn.disabled, false);
+  assert.equal(context.diagnosticsAdvancedCheckbox.checked, true);
+  assert.equal(context.diagnosticsCollapsibleContainer.hidden, false);
   assert.equal(context.panelFocus.called, 1);
+});
+
+test("showDiagnosticResults auto-expands diagnostics before focusing the panel", () => {
+  const context = evaluateHelpers();
+  context.diagnosticsCollapsibleContainer.hidden = true;
+  context.diagnosticsCollapsibleContainer.classList.add("hidden");
+
+  context.showDiagnosticResults({
+    node_id: "node-hidden",
+    diagnostics: {
+      registration: { valid: true, status: "pass" },
+      url_validation: { blocked: false, status: "pass" },
+      dns_resolution: { resolves: true, status: "pass" },
+      network_connectivity: { reachable: true, status: "pass" },
+      api_endpoint: { accessible: true, healthy: true, status: "pass" },
+    },
+    guidance: [],
+  });
+
+  assert.equal(context.diagnosticsCollapsibleContainer.hidden, false);
+  assert.equal(context.diagnosticsCollapsibleContainer.classList.contains("hidden"), false);
+  assert.equal(context.panelFocus.called, 1);
+});
+
+test("diagnostic Advanced toggle controls diagnostics container visibility", () => {
+  const context = evaluateToggleHelpers();
+
+  context.setDiagnosticPanelExpanded(false);
+  assert.equal(context.diagnosticsAdvancedCheckbox.checked, false);
+  assert.equal(context.diagnosticsCollapsibleContainer.hidden, true);
+
+  context.diagnosticsAdvancedCheckbox.checked = true;
+  context.toggleDiagnosticPanelContent();
+  assert.equal(context.diagnosticsCollapsibleContainer.hidden, false);
+
+  context.diagnosticsAdvancedCheckbox.checked = false;
+  context.toggleDiagnosticPanelContent();
+  assert.equal(context.diagnosticsCollapsibleContainer.hidden, true);
+});
+
+test("init defaults diagnostics to collapsed state", () => {
+  const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
+  assert.match(
+    managementJs,
+    /if \(diagnosticsAdvancedCheckbox instanceof HTMLInputElement && diagnosticsCollapsibleContainer instanceof HTMLElement\) \{\s*setDiagnosticPanelExpanded\(false\);/,
+  );
 });
 
 test("edge state: node not found/registration invalid marks registration as fail", () => {
@@ -179,6 +308,14 @@ test("accessibility markup keeps heading/list semantics and aria-live panel", ()
   assert.match(template, /<section[\s\S]*id="diagnostic-panel"[\s\S]*aria-live="polite"/);
   assert.match(template, /<h3>Diagnostic report<\/h3>/);
   assert.match(template, /<div class="diagnostic-recommendations" id="diagnostic-recommendations">[\s\S]*<h4>Recommendations<\/h4>[\s\S]*<ul>/);
+});
+
+
+test("diagnostics template exposes Advanced toggle with expected label and controls", () => {
+  const template = fs.readFileSync("pi_camera_in_docker/templates/management.html", "utf8");
+
+  assert.match(template, /<input[\s\S]*id="advanced-diagnostics-toggle"[\s\S]*aria-controls="diagnostic-panel-content"/);
+  assert.match(template, /<label for="advanced-diagnostics-toggle">Advanced \(show diagnostic report\)<\/label>/);
 });
 
 test("clipboard resilience: explicit Copy action reports unavailable clipboard", async () => {
