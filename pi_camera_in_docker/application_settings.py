@@ -105,7 +105,8 @@ class ApplicationSettings:
             SettingsValidationError: If file is corrupted or invalid
         """
         try:
-            return self._load_unlocked()
+            with self._exclusive_lock():
+                return self._load_unlocked()
         except Exception as exc:
             logger.error(f"Failed to load settings: {exc}")
             message = f"Failed to load settings: {exc}"
@@ -117,7 +118,13 @@ class ApplicationSettings:
             return self._clone_schema()
 
         try:
-            content = self.path.read_text(encoding="utf-8").strip()
+            try:
+                content = self.path.read_text(encoding="utf-8").strip()
+            except (FileNotFoundError, OSError):
+                # File may be removed/replaced after the existence check during
+                # concurrent reset/write operations; treat this as "no settings".
+                return self._clone_schema()
+
             if not content:  # Handle empty files gracefully
                 return self._clone_schema()
 
