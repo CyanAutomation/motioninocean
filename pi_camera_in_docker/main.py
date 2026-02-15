@@ -32,7 +32,15 @@ from modes.webcam import (
     register_management_camera_error_routes,
     register_webcam_routes,
 )
-from picamera2 import global_camera_info
+
+# Conditional import for picamera2 - not available in all test environments
+try:
+    from picamera2 import global_camera_info as _picamera2_global_camera_info
+except (ModuleNotFoundError, ImportError):
+    # Fallback when picamera2 is not available (e.g., in CI without hardware)
+    def _picamera2_global_camera_info():
+        return []
+
 from PIL import Image
 from settings_api import register_settings_routes
 from shared import register_shared_routes, register_webcam_control_plane_auth
@@ -1329,8 +1337,8 @@ def _shutdown_camera(state: Dict[str, Any]) -> None:
 
 def _get_camera_info(picamera2_cls: Any) -> Tuple[list, str]:
     try:
-        return global_camera_info(), "picamera2.global_camera_info"
-    except (ImportError, AttributeError):
+        return _picamera2_global_camera_info(), "picamera2.global_camera_info"
+    except (ImportError, AttributeError, NameError):
         logger.debug(
             "picamera2.global_camera_info import unavailable; falling back to Picamera2 class method"
         )
