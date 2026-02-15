@@ -1,0 +1,228 @@
+# Runtime Configuration Management
+
+## Overview
+
+Motion In Ocean supports **runtime configuration management** through the web UI 🎛️, allowing you to modify many settings without restarting containers or editing environment files.
+
+## How It Works
+
+1. **Environment Variables as System Defaults**
+   - Values in `.env` files serve as system defaults
+   - Environment variables are read at container startup
+   - These defaults persist if no UI changes are made
+
+2. **UI Settings Override Environment Variables**
+   - Changes made via the web UI Settings panel override environment defaults
+   - Settings are persisted to `/data/application-settings.json`
+   - Persisted settings survive container restarts
+   - Environment variables always act as fallback when no persisted value exists
+
+3. **Change Propagation**
+   - **Immediate**: Most settings (logging, discovery, camera) take effect immediately
+   - **Restart Required**: Some settings (marked in UI) require container restart to apply
+
+## Settings Categories
+
+### Camera Configuration (Immediate)
+Settings that affect video capture and streaming:
+
+- `MOTION_IN_OCEAN_RESOLUTION` - Video resolution
+- `MOTION_IN_OCEAN_FPS` - Frames per second
+- `MOTION_IN_OCEAN_JPEG_QUALITY` - Compression quality (1-100)
+- `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS` - Concurrent connections limit
+- `MAX_FRAME_AGE_SECONDS` - Frame cache duration
+
+**UI Location**: Settings tab → Camera Configuration
+
+### Logging Configuration (Immediate)
+Settings that control logging behavior:
+
+- `LOG_LEVEL` - Verbosity (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- `LOG_FORMAT` - Output format (text or json)
+- `LOG_INCLUDE_IDENTIFIERS` - Include process/thread IDs
+
+**UI Location**: Settings tab → Logging Configuration
+
+### Node Discovery (Immediate)
+Settings for registering with a management node:
+
+- `DISCOVERY_ENABLED` - Enable/disable discovery
+- `DISCOVERY_MANAGEMENT_URL` - Management node URL
+- `DISCOVERY_TOKEN` - Authentication token
+- `DISCOVERY_INTERVAL_SECONDS` - Announcement frequency
+
+**UI Location**: Settings tab → Node Discovery
+
+### Feature Flags (Varies)
+Experimental features that can be toggled:
+
+- `MOTION_IN_OCEAN_QUALITY_ADAPTATION` - Auto JPEG quality adjustment
+- `MOTION_IN_OCEAN_FPS_THROTTLE_ADAPTIVE` - Adaptive frame rate
+- `MOTION_IN_OCEAN_FRAME_SIZE_OPTIMIZATION` - Client-aware resolution
+- `MOTION_IN_OCEAN_PI3_OPTIMIZATION` - Raspberry Pi 3 optimizations
+- `MOTION_IN_OCEAN_PI5_OPTIMIZATION` - Raspberry Pi 5 optimizations
+- And more...
+
+**UI Location**: Settings tab → Feature Flags
+
+## Which Settings are NOT Runtime-Editable?
+
+These environment variables are **system configuration** and require container restart to change:
+
+### Deployment & Infrastructure
+
+- `MOTION_IN_OCEAN_IMAGE_TAG` - Docker image version
+- `MOTION_IN_OCEAN_PORT` - Web server port
+- `MOTION_IN_OCEAN_BIND_HOST` - Network bind address
+- `TZ` - Timezone
+- `BASE_URL` - Public URL (if using discovery with remote management)
+
+### Security & Authentication
+
+- `MANAGEMENT_AUTH_TOKEN` - API authentication token (management mode)
+- `NODE_DISCOVERY_SHARED_SECRET` - Discovery authentication (management mode)
+
+### Hardware & Mode Configuration
+
+- `APP_MODE` - Application mode (webcam or management)
+- `MOCK_CAMERA` - Enable synthetic camera
+- `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` - OctoPrint mode
+- `MOTION_IN_OCEAN_PI3_PROFILE` - Raspberry Pi 3 mode
+
+### Advanced Configuration
+
+- `NODE_REGISTRY_PATH` - Store path for node registry
+- `ALLOW_PYKMS_MOCK` - Internal KMS configuration
+- `LIMITER_STORAGE_URI` - Rate limiter backend
+- `CAT_GIF_*` - Cat GIF testing features
+- `DOCKER_PROXY_PORT` - Docker connectivity settings
+
+## Accessing Runtime Settings
+
+### Via Web UI
+
+1. Open the motion-in-ocean web interface
+2. Click the **🎛️ Settings** tab
+3. Modify values in the appropriate category
+4. Click **Save** to persist changes
+
+### Via API
+**Get all settings:**
+
+```bash
+curl http://localhost:8000/api/settings
+```
+
+**Update settings:**
+
+```bash
+curl -X PATCH http://localhost:8000/api/settings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "camera": {
+      "fps": 60,
+      "jpeg_quality": 80
+    },
+    "logging": {
+      "log_level": "DEBUG"
+    }
+  }'
+```
+
+**Get schema:**
+
+```bash
+curl http://localhost:8000/api/settings/schema
+```
+
+**Reset to defaults:**
+
+```bash
+curl -X POST http://localhost:8000/api/settings/reset
+```
+
+**View what's been overridden:**
+
+```bash
+curl http://localhost:8000/api/settings/changes
+```
+
+## Persistence & Recovery
+
+### Settings Storage
+
+- Runtime settings are stored in `/data/application-settings.json`
+- This file must be mounted as a volume for persistence across restarts
+- File has atomic writes and file locking for safe concurrent access
+
+### Default Recovery
+To restore all settings to environment-variable defaults:
+
+1. Via UI: Settings tab → **Reset to Defaults** button
+2. Via API: `POST /api/settings/reset`
+3. Via filesystem: Delete `/data/application-settings.json` and restart the container
+
+### Volume Configuration
+Ensure your docker-compose or container configuration includes:
+
+```yaml
+volumes:
+  - data:/data  # Persists application-settings.json
+```
+
+## Reference: .env Annotations
+
+Look for `[UI MANAGEABLE]` comments in `.env.example` files to identify which settings can be changed via the UI without restarting.
+
+Example:
+
+```dotenv
+# Camera FPS (Frames Per Second)
+# Default: 30
+# [UI MANAGEABLE] Runtime-editable via Settings tab
+MOTION_IN_OCEAN_FPS=30
+```
+
+## Best Practices
+
+1. **Use Environment Variables for Infrastructure**
+   - Set `MOTION_IN_OCEAN_PORT`, `MOTION_IN_OCEAN_BIND_HOST` in `.env`
+   - These rarely need to change
+
+2. **Use UI Settings for Tuning**
+   - Adjust `FPS`, `JPEG_QUALITY`, `LOG_LEVEL` via UI
+   - No restart needed; changes take effect immediately
+
+3. **Document Your Overrides**
+   - Note important settings overrides on a wiki or deployment doc
+   - Check `/api/settings/changes` to see current overrides
+
+4. **Monitor During Tuning**
+   - After changing performance settings (`FPS`, quality, connections)
+   - Watch system resources and logs for impact
+   - Revert if performance degrades
+
+## Troubleshooting
+
+### Settings don't persist
+
+- Check that `/data/` volume is writable
+- Check file permissions on `/data/application-settings.json`
+- View logs for validation errors
+
+### Settings revert after restart
+
+- The `/data` volume may not be properly mounted
+- Verify volume configuration in docker-compose
+- Check that volume path exists on host
+
+### UI shows different values than environment
+
+- This is expected! UI overrides take precedence
+- Use `/api/settings/changes` to see what's been overridden
+- Use `/api/settings/reset` to return to environment defaults
+
+---
+
+**Last Updated**: 2026-02-15  
+**Version**: Motion In Ocean v1.0+
