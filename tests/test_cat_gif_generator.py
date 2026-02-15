@@ -416,6 +416,46 @@ class TestCatGifGenerator:
         assert lock_held_during_fetch
         assert lock_held_during_fetch[0] is False
 
+    def test_generate_frames_handles_frame_list_shrinking(self):
+        """Test frame index is normalized when refreshed frame list gets smaller."""
+        from pi_camera_in_docker.cat_gif_generator import CatGifGenerator
+
+        gen = CatGifGenerator(
+            api_url="https://example.com/cat.gif",
+            resolution=(640, 480),
+            cache_ttl_seconds=3600.0,
+        )
+        gen._frames = [
+            (b"\xff\xd8\xff\xe0old1", 0.001),
+            (b"\xff\xd8\xff\xe0old2", 0.001),
+            (b"\xff\xd8\xff\xe0old3", 0.001),
+        ]
+        gen._fetch_time = time.time()
+
+        did_shrink = False
+
+        def mock_fetch():
+            nonlocal did_shrink
+            gen._frames = [(b"\xff\xd8\xff\xe0new", 0.001)]
+            gen._fetch_time = time.time()
+            gen._refresh_requested = False
+            did_shrink = True
+            return True
+
+        with mock.patch.object(gen, "_fetch_and_cache_gif", side_effect=mock_fetch):
+            frame_gen = gen.generate_frames()
+            # Consume two frames so internal frame_idx advances beyond size of refreshed list.
+            next(frame_gen)
+            next(frame_gen)
+
+            gen.request_refresh()
+
+            # Should not raise IndexError after shrinking from 3 frames to 1.
+            next_frame = next(frame_gen)
+
+        assert did_shrink is True
+        assert next_frame == b"\xff\xd8\xff\xe0new"
+
     @staticmethod
     def _create_test_gif() -> bytes:
         """Create a test GIF."""

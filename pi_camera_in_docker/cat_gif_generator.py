@@ -206,24 +206,23 @@ class CatGifGenerator:
                 should_fetch = self._refresh_requested or cache_expired or frame_count == 0
 
             if should_fetch:
-                self._fetch_and_cache_gif()
+                if self._fetch_and_cache_gif():
+                    frame_idx = 0
 
             with self._lock:
-                frames_snapshot = self._frames
-
-            if frames_snapshot:
-                frame_idx %= len(frames_snapshot)
-                jpeg_bytes, current_frame_interval = frames_snapshot[frame_idx]
-            else:
-                # Fallback: use black frame at target FPS
-                jpeg_bytes = self._fallback_frame
-                current_frame_interval = 1.0 / self.target_fps
+                if self._frames:
+                    frame_idx = frame_idx % len(self._frames)
+                    jpeg_bytes, current_frame_interval = self._frames[frame_idx]
+                else:
+                    # Fallback: use black frame at target FPS
+                    jpeg_bytes = self._fallback_frame
+                    current_frame_interval = 1.0 / self.target_fps
 
             yield jpeg_bytes
 
             # Advance frame index and loop
-            if frames_snapshot:
-                frame_idx = (frame_idx + 1) % len(frames_snapshot)
+            if self._frames:
+                frame_idx += 1
 
             # Sleep respecting the frame's inherent timing
             time.sleep(current_frame_interval)
