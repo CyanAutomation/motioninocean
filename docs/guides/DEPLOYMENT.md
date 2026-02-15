@@ -142,6 +142,62 @@ DISCOVERY_INTERVAL_SECONDS=30
 - Always set a strong `NODE_DISCOVERY_SHARED_SECRET`/`DISCOVERY_TOKEN`; unauthenticated discovery announcements are rejected.
 - This private-IP allowance applies to discovery registration policy only; do not use it as a substitute for perimeter firewall controls.
 
+### Authentication Boundaries and Headers
+
+The sequence below documents the three token paths used by browser users, discovery announcements, and management-to-node probes.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Browser as Browser operator
+    participant Mgmt as Management API
+    participant Webcam as Webcam node
+    participant Discovery as Discovery announcer
+
+    rect rgb(232, 245, 255)
+        Note over Browser,Mgmt: Path 1 — Browser accesses protected management routes
+        Browser->>Mgmt: GET /api/nodes\nAuthorization: Bearer <management token>
+        alt Valid MANAGEMENT_AUTH_TOKEN
+            Mgmt-->>Browser: 200 OK
+        else Missing/invalid token
+            Mgmt-->>Browser: 401 Unauthorized
+        end
+    end
+
+    rect rgb(233, 252, 240)
+        Note over Discovery,Mgmt: Path 2 — Webcam discovery announcement
+        Discovery->>Mgmt: POST /api/discovery/announce\nX-Discovery-Token: <DISCOVERY_TOKEN>
+        alt Token matches NODE_DISCOVERY_SHARED_SECRET and node URL is allowed
+            Mgmt-->>Discovery: 200 OK (node registered/updated)
+        else Invalid shared secret
+            Mgmt-->>Discovery: 401 NODE_UNAUTHORIZED
+        else Private IP announced while private IPs disabled
+            Mgmt-->>Discovery: 403 DISCOVERY_PRIVATE_IP_BLOCKED
+        end
+    end
+
+    rect rgb(255, 244, 232)
+        Note over Mgmt,Webcam: Path 3 — Management probes/actions against webcam node
+        Mgmt->>Webcam: GET /api/status\nAuthorization: Bearer <node.auth token>
+        alt Valid node.auth token and URL passes SSRF policy
+            Webcam-->>Mgmt: 200 OK (status)
+            Mgmt->>Webcam: POST /api/actions/*\nAuthorization: Bearer <node.auth token>
+            Webcam-->>Mgmt: 200 OK / 202 Accepted
+        else Node rejects token
+            Webcam-->>Mgmt: 401 NODE_UNAUTHORIZED
+        else Outbound URL blocked by SSRF guard
+            Mgmt-->>Mgmt: Abort request with SSRF_BLOCKED
+        end
+    end
+```
+
+**Legend (env var to auth path):**
+
+- `MANAGEMENT_AUTH_TOKEN`: bearer token expected on browser -> management protected routes.
+- `NODE_DISCOVERY_SHARED_SECRET`: management-side shared secret used to validate discovery announcements.
+- `DISCOVERY_TOKEN`: webcam/discovery-side secret sent to `/api/discovery/announce`; must match `NODE_DISCOVERY_SHARED_SECRET`.
+- `node.auth.token` (node config): bearer token management sends to webcam endpoints like `/api/status` and `/api/actions/*`.
+
 ---
 
 ## Legacy: Root-Level Compose Files
