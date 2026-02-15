@@ -309,10 +309,15 @@ def test_corrupted_registry_file_returns_500_error_payload(monkeypatch, tmp_path
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("NODE_REGISTRY_PATH", str(registry_path))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
-    sys.modules.pop("pi_camera_in_docker.main", None)
-    sys.modules.pop("pi_camera_in_docker.management_api", None)
-    main = importlib.import_module("pi_camera_in_docker.main")
-    client = main.create_management_app(main._load_config()).test_client()
+    original_sys_path = sys.path.copy()
+    sys.path.insert(0, str(workspace_root)) # Add the parent directory of pi_camera_in_docker to sys.path
+    try:
+        sys.modules.pop("pi_camera_in_docker.main", None)
+        sys.modules.pop("pi_camera_in_docker.management_api", None)
+        main = importlib.import_module("pi_camera_in_docker.main")
+        client = main.create_management_app(main._load_config()).test_client()
+    finally:
+        sys.path = original_sys_path
 
     listed = client.get("/api/nodes", headers=_auth_headers())
     assert listed.status_code == 500

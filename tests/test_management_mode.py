@@ -295,8 +295,8 @@ def test_request_logging_levels(monkeypatch):
         assert health_level is not None, "No health level log found"
         assert metrics_level is not None, "No metrics level log found"
 
-    assert "method=GET path=/health status=200 latency_ms=" in health_record
-    assert "method=GET path=/metrics status=200 latency_ms=" in metrics_record
+    assert "correlation_id=none method=GET path=/health status=200 latency_ms=" in health_record
+    assert "correlation_id=none method=GET path=/metrics status=200 latency_ms=" in metrics_record
     assert health_level == main.logging.DEBUG
     assert metrics_level == main.logging.INFO
 

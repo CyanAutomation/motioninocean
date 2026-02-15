@@ -77,8 +77,8 @@ def test_health_endpoints_present(workspace_root, endpoint, markers):
         ("Frame count tracking", "self._frame_count += 1"),
         ("FPS calculation", "def get_fps"),
         ("Frame timing", "self._frame_times_monotonic"),
-        ("Status endpoint", "def get_stream_status"),
-        ("Uptime tracking", "app.start_time"),
+        ("Status endpoint", "get_stream_status(stream_stats, config"),
+        ("Uptime tracking", "app.start_time_monotonic"),
     ],
 )
 def test_metrics_collection(workspace_root, metric, marker):

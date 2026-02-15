@@ -284,10 +284,21 @@ print(json.dumps({
         [sys.executable, "-c", script],
         cwd=workspace_root,
         env=env,
-        check=True,
+        check=False,  # Change to False to handle error manually
         capture_output=True,
         text=True,
     )
+
+    if process.returncode != 0:
+        print(f"Subprocess failed with exit code {process.returncode}")
+        print("--- Subprocess stdout ---")
+        print(process.stdout)
+        print("--- Subprocess stderr ---")
+        print(process.stderr)
+        raise subprocess.CalledProcessError(
+            process.returncode, process.args, output=process.stdout, stderr=process.stderr
+        )
+
     return json.loads(process.stdout.strip().splitlines()[-1])
 
 
