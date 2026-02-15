@@ -280,6 +280,71 @@
   font-size: 1.15rem;
 }
 
+/* Health indicator styling */
+.health-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: fit-content;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid transparent;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+}
+
+.health-indicator::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
+}
+
+.health-ok {
+  color: var(--color-success);
+  background: var(--success-15);
+  border-color: var(--success-40, color-mix(in srgb, var(--color-success) 40%, transparent));
+}
+
+.health-warn {
+  color: var(--color-warning);
+  background: var(--warning-15, color-mix(in srgb, var(--color-warning) 15%, var(--color-bg-canvas)));
+  border-color: var(--warning-45, color-mix(in srgb, var(--color-warning) 45%, transparent));
+}
+
+.health-fail {
+  color: var(--color-error);
+  background: var(--error-15);
+  border-color: var(--error-50, color-mix(in srgb, var(--color-error) 50%, transparent));
+  box-shadow: 0 0 0 1px var(--error-20, color-mix(in srgb, var(--color-error) 20%, transparent));
+}
+
+.health-unknown {
+  color: var(--color-text-secondary);
+  background: var(--muted-10, color-mix(in srgb, var(--color-text-muted) 10%, var(--color-bg-canvas)));
+  border-color: var(--color-border-default);
+}
+
+.config-health-legend {
+  margin-top: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.config-health-legend-label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
 /* Editable section styling */
 .editable-section {
   border-left: 3px solid var(--color-accent-primary);
@@ -416,6 +481,10 @@
 
   .config-value {
     font-size: 0.9rem;
+  }
+
+  .health-indicator {
+    font-size: 0.78rem;
   }
 }
 
