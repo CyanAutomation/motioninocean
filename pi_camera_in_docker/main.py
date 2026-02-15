@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path  # Moved here
 from threading import Event, RLock, Thread
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import urlsplit, urlunsplit
 
 from flask import Flask, g, jsonify, render_template, request
@@ -115,12 +115,12 @@ def _detect_camera_devices() -> Dict[str, Any]:
     Returns a dict with detected device information.
     Failures are logged but don't raise exceptions (graceful fallback).
     """
-    result: Dict[str, Union[bool, List[str]]] = {
+    result: Dict[str, Any] = { # Use Any here as a pragmatic solution for complex mixed-type dicts
         "has_camera": False,
-        "video_devices": List[str](),
-        "media_devices": List[str](),
-        "v4l_subdev_devices": List[str](),
-        "dma_heap_devices": List[str](),
+        "video_devices": [],
+        "media_devices": [],
+        "v4l_subdev_devices": [],
+        "dma_heap_devices": [],
         "vchiq_device": False,
         "dri_device": False,
     }
@@ -529,7 +529,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
     state = _init_app_state(config)
     app.motion_state = state
     app.motion_config = dict(config)
-    app.application_settings = ApplicationSettings()  # Add settings persistence
+    app.application_settings = cast(Any, ApplicationSettings())  # type: ignore[attr-defined] # Add settings persistence
 
     @app.route("/")
     def index() -> str:

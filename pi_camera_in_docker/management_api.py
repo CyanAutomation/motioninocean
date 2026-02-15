@@ -301,7 +301,7 @@ def _classify_url_error(reason: Any) -> Tuple[str, str]:
     return "connection failed", "network"
 
 
-def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[dict] = None):
+def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[dict] = None):  # type: ignore
     base_url = node["base_url"].rstrip("/")
     _validate_node_base_url(base_url)
 

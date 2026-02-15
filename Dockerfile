@@ -169,7 +169,7 @@ COPY --from=builder /usr/local/lib/python3.11/dist-packages /usr/local/lib/pytho
 COPY pi_camera_in_docker /app
 
 # Copy healthcheck script
-COPY healthcheck.py /app/healthcheck.py
+COPY scripts/healthcheck.py /app/healthcheck.py
 RUN chmod +x /app/healthcheck.py
 
 # Validate required Python modules and picamera2 camera-info contract in the final image

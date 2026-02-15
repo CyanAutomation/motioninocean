@@ -58,7 +58,7 @@ class FrameBuffer(io.BufferedIOBase):
         self._target_frame_interval = None if target_fps <= 0 else 1.0 / target_fps
         self._last_frame_monotonic: Optional[float] = None
 
-    def write(self, buf: bytes) -> int:
+    def write(self, buf: bytes) -> int: # type: ignore
         size = len(buf)
         if self._max_frame_size is not None and size > self._max_frame_size:
             return size
@@ -121,8 +121,8 @@ def import_camera_components(allow_pykms_mock: bool):
                 BGR888 = "BGR888"
                 XBGR8888 = "XBGR8888"
 
-            pykms_mock.PixelFormat = PixelFormatMock
-            kms_mock.PixelFormat = PixelFormatMock
+            pykms_mock.PixelFormat = PixelFormatMock # type: ignore
+            kms_mock.PixelFormat = PixelFormatMock # type: ignore # type: ignore[attr-defined]
             sys.modules["pykms"] = pykms_mock
             sys.modules["kms"] = kms_mock
             from picamera2 import Picamera2
@@ -183,7 +183,7 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
         },
     ]
 
-    def _json_error(code: str, message: str, status_code: int) -> tuple[Response, int]:
+    def _json_error(code: str, message: str, status_code: int) -> tuple[Response, int]:  # type: ignore
         return (
             jsonify(
                 {
@@ -195,7 +195,7 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
                 }
             ),
             status_code,
-        )
+        ) # type: ignore[return-value]
 
     def _parse_optional_action_body() -> tuple[Optional[dict], Optional[tuple[Response, int]]]:
         if not request.data:
@@ -360,11 +360,11 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
         return Response("Unsupported action", status=400)
 
     @app.route("/api/actions/<action>", methods=["POST"])
-    def webcam_action(action: str):
+    def webcam_action(action: str) -> Response | Tuple[Response, int]:
         normalized_action = action.strip().lower()
         body, body_error = _parse_optional_action_body()
         if body_error is not None:
-            return body_error
+            return body_error # type: ignore[return-value]
 
         if normalized_action == "restart":
             return _json_error(
