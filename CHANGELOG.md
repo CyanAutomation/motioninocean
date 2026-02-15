@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+- api: remove deprecated `limits` object from `/api/config` response
+
 ## [1.14.3] - 2026-02-14
 
 - Merge pull request #264 from CyanAutomation/codex/add-frontend-tests-for-showdiagnosticresults
