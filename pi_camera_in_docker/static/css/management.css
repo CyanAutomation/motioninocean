@@ -189,10 +189,7 @@
   }
 
   .management-layout.is-form-collapsed #node-form-content,
-  .management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) #node-form-content,
-  .management-layout.is-form-collapsed #node-form-content.hidden,
-  .management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) #node-form-content.hidden {
-    display: block;
+  .management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) #node-form-content {
     width: 100%;
     opacity: 1;
     pointer-events: auto;
