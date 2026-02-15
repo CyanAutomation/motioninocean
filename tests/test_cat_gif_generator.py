@@ -10,6 +10,25 @@ from unittest import mock
 from PIL import Image
 
 
+class _TrackingLock:
+    """Lock wrapper that tracks whether the lock is currently held."""
+
+    def __init__(self):
+        import threading
+
+        self._lock = threading.Lock()
+        self.is_held = False
+
+    def __enter__(self):
+        self._lock.acquire()
+        self.is_held = True
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.is_held = False
+        self._lock.release()
+
+
 class TestFetchCatGif:
     """Test the fetch_cat_gif function."""
 
@@ -341,6 +360,61 @@ class TestCatGifGenerator:
             # Next iteration should trigger fetch again
             next(frame_gen)
             assert fetch_called_count == initial_fetch_count + 1
+
+    def test_generate_frames_fetch_happens_outside_lock_for_refresh(self):
+        """Test refresh-triggered fetch does not run while generator lock is held."""
+        from pi_camera_in_docker.cat_gif_generator import CatGifGenerator
+
+        gen = CatGifGenerator(
+            api_url="https://example.com/cat.gif",
+            resolution=(640, 480),
+            cache_ttl_seconds=3600.0,
+        )
+        gen._lock = _TrackingLock()
+        gen._frames = [(b"\xff\xd8\xff\xe0test", 0.001)]
+        gen._fetch_time = time.time()
+
+        lock_held_during_fetch: list[bool] = []
+
+        def mock_fetch():
+            lock_held_during_fetch.append(gen._lock.is_held)
+            with gen._lock:
+                gen._refresh_requested = False
+            return False
+
+        with mock.patch.object(gen, "_fetch_and_cache_gif", side_effect=mock_fetch):
+            frame_gen = gen.generate_frames()
+            next(frame_gen)
+            gen.request_refresh()
+            next(frame_gen)
+
+        assert lock_held_during_fetch == [False]
+
+    def test_generate_frames_fetch_happens_outside_lock_for_cache_expiry(self):
+        """Test cache-expiry fetch does not run while generator lock is held."""
+        from pi_camera_in_docker.cat_gif_generator import CatGifGenerator
+
+        gen = CatGifGenerator(
+            api_url="https://example.com/cat.gif",
+            resolution=(640, 480),
+            cache_ttl_seconds=0.0,
+        )
+        gen._lock = _TrackingLock()
+        gen._frames = [(b"\xff\xd8\xff\xe0test", 0.001)]
+        gen._fetch_time = time.time() - 10
+
+        lock_held_during_fetch: list[bool] = []
+
+        def mock_fetch():
+            lock_held_during_fetch.append(gen._lock.is_held)
+            return False
+
+        with mock.patch.object(gen, "_fetch_and_cache_gif", side_effect=mock_fetch):
+            frame_gen = gen.generate_frames()
+            next(frame_gen)
+
+        assert lock_held_during_fetch
+        assert lock_held_during_fetch[0] is False
 
     @staticmethod
     def _create_test_gif() -> bytes:

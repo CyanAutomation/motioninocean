@@ -196,32 +196,34 @@ class CatGifGenerator:
             - Falls back to black frame if API errors occur
             - Respects frame timing from GIF and target_fps configuration
         """
-        # Initial fetch
-        self._fetch_and_cache_gif()
-
         frame_idx = 0
 
         while True:
+            should_fetch = False
             with self._lock:
-                # Check if refresh was requested or cache expired
-                if self._refresh_requested or self._is_cache_expired():
-                    self._fetch_and_cache_gif()
+                cache_expired = self._is_cache_expired()
+                frame_count = len(self._frames)
+                should_fetch = self._refresh_requested or cache_expired or frame_count == 0
 
-                # Decide which frame to use
-                if self._frames:
-                    jpeg_bytes, frame_duration = self._frames[frame_idx]
-                    current_frame_interval = frame_duration
-                else:
-                    # Fallback: use black frame at target FPS
-                    jpeg_bytes = self._fallback_frame
-                    current_frame_interval = 1.0 / self.target_fps
+            if should_fetch:
+                self._fetch_and_cache_gif()
+
+            with self._lock:
+                frames_snapshot = self._frames
+
+            if frames_snapshot:
+                frame_idx %= len(frames_snapshot)
+                jpeg_bytes, current_frame_interval = frames_snapshot[frame_idx]
+            else:
+                # Fallback: use black frame at target FPS
+                jpeg_bytes = self._fallback_frame
+                current_frame_interval = 1.0 / self.target_fps
 
             yield jpeg_bytes
 
             # Advance frame index and loop
-            with self._lock:
-                if self._frames:
-                    frame_idx = (frame_idx + 1) % len(self._frames)
+            if frames_snapshot:
+                frame_idx = (frame_idx + 1) % len(frames_snapshot)
 
             # Sleep respecting the frame's inherent timing
             time.sleep(current_frame_interval)
