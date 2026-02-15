@@ -526,7 +526,7 @@ def test_shutdown_updates_ready_metrics_and_api_status_immediately():
     from pi_camera_in_docker import main
     from pi_camera_in_docker.shared import register_shared_routes
 
-    app, state = main._create_base_app(
+    app, _limiter, state = main._create_base_app(
         {
             "app_mode": "webcam",
             "resolution": (640, 480),

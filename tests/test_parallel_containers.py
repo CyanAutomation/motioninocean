@@ -159,13 +159,21 @@ def test_management_query_node_ssrf_protection() -> TestResult:
     code, data = http_get("http://localhost:8001/api/nodes/webcam-01/status")
 
     # PASS if it correctly blocks with NODE_UNREACHABLE
+    error = data.get("error", {})
+    if isinstance(error, dict):
+        error_code = error.get("code")
+        reason = error.get("details", {}).get("reason", "")
+    else:
+        error_code = None
+        reason = ""
+    
     result.passed = (
         code == 503
-        and data.get("error", {}).get("code") == "NODE_UNREACHABLE"
-        and "blocked" in data.get("error", {}).get("details", {}).get("reason", "")
+        and error_code == "NODE_UNREACHABLE"
+        and "blocked" in reason
     )
-    result.message = f"Status: {code}, error: {data.get('error', {}).get('code')}"
-    result.details = data.get("error")
+    result.message = f"Status: {code}, error: {error_code}"
+    result.details = error
     return result
 
 

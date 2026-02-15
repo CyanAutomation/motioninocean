@@ -309,9 +309,9 @@ def test_corrupted_registry_file_returns_500_error_payload(monkeypatch, tmp_path
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("NODE_REGISTRY_PATH", str(registry_path))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
-    sys.modules.pop("main", None)
-    sys.modules.pop("management_api", None)
-    main = importlib.import_module("main")
+    sys.modules.pop("pi_camera_in_docker.main", None)
+    sys.modules.pop("pi_camera_in_docker.management_api", None)
+    main = importlib.import_module("pi_camera_in_docker.main")
     client = main.create_management_app(main._load_config()).test_client()
 
     listed = client.get("/api/nodes", headers=_auth_headers())
