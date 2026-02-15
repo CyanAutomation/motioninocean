@@ -390,17 +390,18 @@ app = main.create_app_from_env()
 state = app.motion_state
 config = app.motion_config
 buffer = main.FrameBuffer(state["stream_stats"], target_fps=config["target_fps"])
+sys.stderr.write(f"DEBUG_TEST: config['target_fps'] = {config['target_fps']}\\n")
 for _ in range(30):
     buffer.write(b"x" * 1024)
     time.sleep(1 / config["target_fps"] + 0.005)
 
 client = app.test_client()
 metrics = client.get("/metrics").get_json()
-print(json.dumps(metrics))
-print(f"DEBUG: config['target_fps'] = {config['target_fps']}")
+sys.stderr.write(f"DEBUG_TEST: Metrics from /metrics endpoint: {metrics}\\n")
 _, _, calculated_fps = state["stream_stats"].snapshot()
-print(f"DEBUG: calculated_fps from snapshot = {calculated_fps}")
-print(f"DEBUG: frame_times_monotonic = {list(state['stream_stats']._frame_times_monotonic)}")
+sys.stderr.write(f"DEBUG_TEST: calculated_fps from snapshot (direct call) = {calculated_fps}\\n")
+sys.stderr.write(f"DEBUG_TEST: frame_times_monotonic = {list(state['stream_stats']._frame_times_monotonic)}\\n")
+print(json.dumps(metrics))
 """
 
     env = os.environ.copy()
@@ -421,6 +422,7 @@ print(f"DEBUG: frame_times_monotonic = {list(state['stream_stats']._frame_times_
         capture_output=True,
         text=True,
     )
+    print(process.stderr, file=sys.stderr)
     # The output from the subprocess includes debug prints, so we need to find the last JSON line
     output_lines = process.stdout.strip().splitlines()
     metrics_json_line = next(line for line in reversed(output_lines) if line.startswith('{'))

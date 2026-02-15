@@ -151,7 +151,7 @@ def test_api_status_returns_current_api_test_scenario_when_inactive():
 
 def test_settings_changes_endpoint_compares_resolution_values(monkeypatch, tmp_path):
     monkeypatch.setenv("RESOLUTION", "1280x720")
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     save_response = client.patch(
         "/api/settings",
@@ -173,7 +173,7 @@ def test_settings_changes_endpoint_compares_resolution_values(monkeypatch, tmp_p
 
 def test_settings_changes_endpoint_handles_invalid_resolution_env(monkeypatch, tmp_path):
     monkeypatch.setenv("RESOLUTION", "invalid")
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     save_response = client.patch(
         "/api/settings",
@@ -199,7 +199,7 @@ def test_settings_changes_endpoint_handles_invalid_numeric_env(monkeypatch, tmp_
     monkeypatch.setenv("MAX_STREAM_CONNECTIONS", "invalid-connections")
     monkeypatch.setenv("MAX_FRAME_AGE_SECONDS", "invalid-age")
     monkeypatch.setenv("DISCOVERY_INTERVAL_SECONDS", "invalid-interval")
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     save_response = client.patch(
         "/api/settings",
@@ -254,7 +254,7 @@ def test_settings_changes_endpoint_handles_invalid_numeric_env(monkeypatch, tmp_
 
 
 def test_settings_patch_response_reflects_persisted_state(monkeypatch, tmp_path):
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     before = client.get("/api/settings")
     assert before.status_code == 200
@@ -278,7 +278,7 @@ def test_settings_patch_response_reflects_persisted_state(monkeypatch, tmp_path)
 
 
 def test_settings_patch_requires_restart_response_reflects_persisted_state(monkeypatch, tmp_path):
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     before = client.get("/api/settings")
     assert before.status_code == 200
@@ -319,7 +319,7 @@ def test_settings_endpoint_returns_effective_runtime_values(monkeypatch, tmp_pat
     monkeypatch.setenv("DISCOVERY_TOKEN", "env-token")
     monkeypatch.setenv("DISCOVERY_INTERVAL_SECONDS", "45")
 
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     patch_response = client.patch(
         "/api/settings",
@@ -360,8 +360,8 @@ def test_settings_endpoint_returns_effective_runtime_values(monkeypatch, tmp_pat
 
 
 def test_settings_patch_concurrent_overlapping_updates_are_merged(monkeypatch, tmp_path):
-    client_a = _new_management_client(monkeypatch, tmp_path)
-    client_b = _new_management_client(monkeypatch, tmp_path)
+    client_a, _ = _new_management_client(monkeypatch, tmp_path)
+    client_b, _ = _new_management_client(monkeypatch, tmp_path)
 
     start = threading.Barrier(2)
     statuses = []
@@ -392,7 +392,8 @@ def test_settings_patch_concurrent_overlapping_updates_are_merged(monkeypatch, t
     assert len(statuses) == 2
     assert all(status in (200, 422) for status in statuses)
 
-    final_response = _new_management_client(monkeypatch, tmp_path).get("/api/settings")
+    final_client, _ = _new_management_client(monkeypatch, tmp_path)
+    final_response = final_client.get("/api/settings")
     assert final_response.status_code == 200
     final_settings = final_response.get_json()["settings"]["camera"]
     assert final_settings["fps"] == 55
@@ -403,7 +404,7 @@ def _auth_headers(token="test-token"):
 
 
 def test_node_crud_and_overview(monkeypatch, tmp_path):
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-1",
@@ -447,7 +448,7 @@ def test_node_crud_and_overview(monkeypatch, tmp_path):
 
 
 def test_validation_and_transport_errors(monkeypatch, tmp_path):
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     invalid = client.post("/api/nodes", json={"id": "only-id"}, headers=_auth_headers())
     assert invalid.status_code == 400
@@ -502,7 +503,7 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
 
 
 def test_create_node_rejects_unmigratable_legacy_basic_auth(monkeypatch, tmp_path):
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-legacy-auth",
@@ -525,7 +526,7 @@ def test_create_node_rejects_unmigratable_legacy_basic_auth(monkeypatch, tmp_pat
 
 
 def test_ssrf_protection_blocks_local_targets(monkeypatch, tmp_path):
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-3",
@@ -581,7 +582,7 @@ def test_corrupted_registry_file_returns_500_error_payload(monkeypatch, tmp_path
 
 
 def test_ssrf_protection_blocks_ipv6_mapped_loopback(monkeypatch, tmp_path):
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-4",
@@ -610,7 +611,7 @@ def test_ssrf_protection_blocks_ipv6_mapped_loopback(monkeypatch, tmp_path):
 
 
 def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-5",
@@ -640,7 +641,7 @@ def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
 
 def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
     monkeypatch.setenv("MANAGEMENT_AUTH_REQUIRED", "true")
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-docker-shared",
@@ -685,7 +686,7 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
         return original_update_node(self, node_id, patch)
 
     monkeypatch.setattr(management_api.FileNodeRegistry, "update_node", flaky_update_node)
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-race",
@@ -710,7 +711,7 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
 
 def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
     monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     create_payload = {
         "node_id": "node-discovery-1",
@@ -754,7 +755,7 @@ def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
 
 def test_discovery_announce_parallel_requests_do_not_duplicate_error(monkeypatch, tmp_path):
     monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "node_id": "node-discovery-parallel",
@@ -792,7 +793,7 @@ def test_discovery_announce_parallel_requests_do_not_duplicate_error(monkeypatch
 
 def test_discovery_announce_requires_bearer_token(monkeypatch, tmp_path):
     monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "node_id": "node-discovery-2",
@@ -818,7 +819,7 @@ def test_discovery_announce_requires_bearer_token(monkeypatch, tmp_path):
 def test_discovery_announce_blocks_private_ip_without_opt_in(monkeypatch, tmp_path):
     monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     monkeypatch.delenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", raising=False)
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "node_id": "node-discovery-private-blocked",
@@ -845,7 +846,7 @@ def test_discovery_announce_blocks_private_ip_without_opt_in(monkeypatch, tmp_pa
 def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path):
     monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     monkeypatch.setenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "true")
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "node_id": "node-discovery-private-allowed",
@@ -867,7 +868,7 @@ def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path)
 
 def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
     monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     invalid = client.post(
         "/api/discovery/announce",
@@ -880,7 +881,7 @@ def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
 
 def test_discovery_approval_endpoint(monkeypatch, tmp_path):
     monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     announce_payload = {
         "node_id": "node-discovery-approval",
@@ -985,9 +986,7 @@ def test_build_headers_for_non_bearer_auth_returns_empty_headers():
 
 
 def test_node_status_returns_node_unauthorized_when_upstream_rejects_token(monkeypatch, tmp_path):
-    import pi_camera_in_docker.management_api as management_api
-
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
     payload = {
         "id": "node-auth-fail",
         "name": "Auth Fail Node",
@@ -1017,9 +1016,7 @@ def test_node_status_returns_node_unauthorized_when_upstream_rejects_token(monke
 
 
 def test_node_status_succeeds_when_upstream_token_is_accepted(monkeypatch, tmp_path):
-    import pi_camera_in_docker.management_api as management_api
-
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
     payload = {
         "id": "node-auth-ok",
         "name": "Auth OK Node",
@@ -1047,9 +1044,7 @@ def test_node_status_succeeds_when_upstream_token_is_accepted(monkeypatch, tmp_p
 
 
 def test_node_status_returns_node_api_mismatch_when_status_endpoint_missing(monkeypatch, tmp_path):
-    import pi_camera_in_docker.management_api as management_api
-
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
     payload = {
         "id": "node-api-mismatch",
         "name": "API Mismatch Node",
@@ -1079,9 +1074,7 @@ def test_node_status_returns_node_api_mismatch_when_status_endpoint_missing(monk
 
 
 def test_node_status_maps_503_payload_without_error_envelope(monkeypatch, tmp_path):
-    import pi_camera_in_docker.management_api as management_api
-
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
     payload = {
         "id": "node-unhealthy",
         "name": "Unhealthy Node",
@@ -1114,7 +1107,7 @@ def test_node_status_maps_503_payload_without_error_envelope(monkeypatch, tmp_pa
 
 
 def test_management_routes_require_authentication(monkeypatch, tmp_path):
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-authz",
@@ -1161,7 +1154,7 @@ def test_management_routes_require_authentication(monkeypatch, tmp_path):
 def test_node_status_maps_invalid_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
     import pi_camera_in_docker.management_api as management_api
 
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-invalid-status",
@@ -1193,9 +1186,7 @@ def test_node_status_maps_invalid_upstream_payload_to_controlled_error(monkeypat
 
 
 def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch, tmp_path):
-    import pi_camera_in_docker.management_api as management_api
-
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-action-contract",
@@ -1258,7 +1249,7 @@ def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch
 def test_node_action_maps_invalid_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
     import pi_camera_in_docker.management_api as management_api
 
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-invalid-action",
@@ -1291,7 +1282,7 @@ def test_node_action_maps_invalid_upstream_payload_to_controlled_error(monkeypat
 
 
 def test_create_node_migrates_legacy_auth_with_token(monkeypatch, tmp_path):
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-legacy-convert",
@@ -1621,9 +1612,7 @@ def test_request_json_https_uses_hostname_for_tls_and_pins_vetted_ip(monkeypatch
 
 
 def test_node_status_reports_connectivity_details(monkeypatch, tmp_path):
-    import pi_camera_in_docker.management_api as management_api
-
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-timeout",
@@ -1689,9 +1678,7 @@ def test_webcam_api_status_contract_shape_with_auth(monkeypatch):
 
 
 def test_node_action_passthrough_for_api_test_management_actions(monkeypatch, tmp_path):
-    import pi_camera_in_docker.management_api as management_api
-
-    client = _new_management_client(monkeypatch, tmp_path)
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-api-test-actions",
