@@ -524,7 +524,7 @@ def test_shutdown_camera_clears_recording_started_for_real_camera_path():
 def test_shutdown_updates_ready_metrics_and_api_status_immediately():
     """Control-plane status routes should reflect shutdown without waiting for frame thread teardown."""
     from pi_camera_in_docker import main
-    from shared import register_shared_routes
+    from pi_camera_in_docker.shared import register_shared_routes
 
     app, state = main._create_base_app(
         {

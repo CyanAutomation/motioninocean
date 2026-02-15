@@ -4,6 +4,10 @@ import tempfile
 import time
 from pathlib import Path
 
+from flask import Flask
+
+from pi_camera_in_docker.application_settings import ApplicationSettings
+
 # Add workspace root to sys.path for proper package imports
 workspace_root = Path(__file__).parent.parent
 sys.path.insert(0, str(workspace_root))
@@ -291,8 +295,8 @@ def test_request_logging_levels(monkeypatch):
         assert health_level is not None, "No health level log found"
         assert metrics_level is not None, "No metrics level log found"
 
-    assert "request method=GET path=/health status=200 latency_ms=" in health_record
-    assert "request method=GET path=/metrics status=200 latency_ms=" in metrics_record
+    assert "method=GET path=/health status=200 latency_ms=" in health_record
+    assert "method=GET path=/metrics status=200 latency_ms=" in metrics_record
     assert health_level == main.logging.DEBUG
     assert metrics_level == main.logging.INFO
 
@@ -304,13 +308,29 @@ def _new_webcam_client(monkeypatch, token: str):
     monkeypatch.setenv("MOCK_CAMERA", "true")
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", token)
 
-    sys.modules.pop("pi_camera_in_docker.main", None)
-    main = importlib.import_module("pi_camera_in_docker.main")
-    cfg = main._load_config()
-    cfg["app_mode"] = "webcam"
-    cfg["mock_camera"] = True
-    app = main.create_webcam_app(cfg)
-    return app.test_client()
+    # Monkeypatch ApplicationSettings to use tmpdir
+    from pi_camera_in_docker.application_settings import ApplicationSettings
+    original_app_settings_init = ApplicationSettings.__init__
+
+    def mock_app_settings_init(self, path=None):
+        if path is None:
+            path = str(Path(tmpdir) / "application-settings.json")
+        original_app_settings_init(self, path)
+
+    monkeypatch.setattr(ApplicationSettings, "__init__", mock_app_settings_init)
+
+    original_sys_path = sys.path.copy()
+    sys.path.insert(0, str(workspace_root)) # Add parent dir to sys.path
+    try:
+        sys.modules.pop("pi_camera_in_docker.main", None)
+        import pi_camera_in_docker.main as main
+        cfg = main._load_config()
+        cfg["app_mode"] = "webcam"
+        cfg["mock_camera"] = True
+        app = main.create_webcam_app(cfg)
+        return app.test_client()
+    finally:
+        sys.path = original_sys_path
 
 
 def test_webcam_control_plane_endpoints_do_not_require_auth_when_token_unset(monkeypatch):
