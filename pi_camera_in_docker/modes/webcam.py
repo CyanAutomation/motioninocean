@@ -65,11 +65,12 @@ class FrameBuffer(io.BufferedIOBase):
         with self.condition:
             now = time.monotonic()
             if self._target_frame_interval is not None and self._last_frame_monotonic is not None:
-                time_since_last_frame = now - self._last_frame_monotonic
-                if time_since_last_frame < self._target_frame_interval:
+                next_valid_capture_time = self._last_frame_monotonic + self._target_frame_interval
+                if now < next_valid_capture_time:
                     logger.debug(
-                        f"Frame dropped: now={now:.4f}, last={self._last_frame_monotonic:.4f}, "
-                        f"diff={time_since_last_frame:.4f}, interval={self._target_frame_interval:.4f}"
+                        f"Frame dropped: now={now:.4f}, last_capture={self._last_frame_monotonic:.4f}, "
+                        f"next_valid={next_valid_capture_time:.4f}, diff={now - self._last_frame_monotonic:.4f}, "
+                        f"interval={self._target_frame_interval:.4f}"
                     )
                     return size
             self.frame = buf
