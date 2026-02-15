@@ -5,7 +5,7 @@
 set -e
 
 VERSION_FILE="VERSION"
-CHANGELOG_FILE="CHANGELOG.md"
+CHANGELOG_FILE="docs/CHANGELOG.md"
 
 # Determine the current branch
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
