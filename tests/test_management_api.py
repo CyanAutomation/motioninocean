@@ -4,18 +4,30 @@ import ssl
 import sys
 import threading
 from datetime import datetime, timezone
+from pathlib import Path
 
 from flask import Flask
+
+# Import workspace root path (WORKSPACE_ROOT is set in conftest.py)
+# For module-level imports
+workspace_root = Path(__file__).parent.parent
 
 
 def _new_management_client(monkeypatch, tmp_path):
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
-    sys.modules.pop("main", None)
-    sys.modules.pop("management_api", None)
-    main = importlib.import_module("main")
-    return main.create_management_app(main._load_config()).test_client()
+    original_sys_path = sys.path.copy()
+    sys.path.insert(0, str(workspace_root)) # Add the parent directory of pi_camera_in_docker to sys.path
+    try:
+        # Clear existing modules to ensure fresh import with new path
+        sys.modules.pop("pi_camera_in_docker.main", None)
+        sys.modules.pop("pi_camera_in_docker.management_api", None)
+        # Import as a package module
+        main = importlib.import_module("pi_camera_in_docker.main")
+        return main.create_management_app(main._load_config()).test_client()
+    finally:
+        sys.path = original_sys_path
 
 
 def _new_webcam_contract_client(auth_token=""):
