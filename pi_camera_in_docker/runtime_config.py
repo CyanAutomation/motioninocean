@@ -268,26 +268,42 @@ def _merge_logging_settings(merged: Dict[str, Any], logging_settings: Dict[str, 
         merged["log_include_identifiers"] = logging_settings["log_include_identifiers"]
 
 
-def merge_config_with_settings(env_config: Dict[str, Any], app_settings: ApplicationSettings | None = None) -> Dict[str, Any]:
+def merge_config_with_persisted_settings(
+    env_config: Dict[str, Any], persisted: Dict[str, Any]
+) -> Dict[str, Any]:
     merged = dict(env_config)
+    settings = persisted.get("settings", {}) if isinstance(persisted, dict) else {}
+    _merge_camera_settings(merged, settings.get("camera", {}), env_config)
+    _merge_discovery_settings(merged, settings.get("discovery", {}))
+    _merge_logging_settings(merged, settings.get("logging", {}))
+    return merged
+
+
+def merge_config_with_settings(env_config: Dict[str, Any], app_settings: ApplicationSettings | None = None) -> Dict[str, Any]:
     try:
         settings_store = app_settings or ApplicationSettings()
         persisted = settings_store.load()
-        settings = persisted.get("settings", {})
-        _merge_camera_settings(merged, settings.get("camera", {}), env_config)
-        _merge_discovery_settings(merged, settings.get("discovery", {}))
-        _merge_logging_settings(merged, settings.get("logging", {}))
+        return merge_config_with_persisted_settings(env_config, persisted)
     except SettingsValidationError as exc:
         logger.warning(f"Could not load persisted settings: {exc}. Using env config only.")
     except Exception as exc:
         logger.warning(f"Unexpected error loading persisted settings: {exc}. Using env config only.")
-    return merged
+    return dict(env_config)
 
 
 def get_effective_settings_payload(app_settings: ApplicationSettings) -> Dict[str, Any]:
     env_config = load_env_config()
-    merged = merge_config_with_settings(env_config, app_settings=app_settings)
-    persisted = app_settings.load()
+    try:
+        persisted = app_settings.load()
+    except SettingsValidationError as exc:
+        logger.warning(f"Could not load persisted settings: {exc}. Using env config only.")
+        persisted = {}
+    except Exception as exc:
+        logger.warning(f"Unexpected error loading persisted settings: {exc}. Using env config only.")
+        persisted = {}
+
+    merged = merge_config_with_persisted_settings(env_config, persisted)
+
     return {
         "source": "merged",
         "settings": {
