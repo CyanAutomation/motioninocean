@@ -29,14 +29,17 @@ graph LR
     WC2 -->|POST /api/discovery/announce| MGMT
     MGMT -->|Upserts| REG
     BR -->|GET /nodes<br/>POST /nodes/{id}| MGMT
-    MGMT -->|GET /api/status<br/>/health, /ready, /metrics| WC1
-    MGMT -->|GET /api/status<br/>/health, /ready, /metrics| WC2
+    MGMT -->|Management aggregation contract:<br/>GET /api/status (required)| WC1
+    MGMT -->|Management aggregation contract:<br/>GET /api/status (required)| WC2
+    MGMT -.->|Operator diagnostics only:<br/>GET /health, /ready, /metrics| WC1
+    MGMT -.->|Operator diagnostics only:<br/>GET /health, /ready, /metrics| WC2
 ```
 
 **Key flows:**
 
 - Webcams announce themselves to management (discovery)
-- Management proxies queries to webcams (status aggregation)
+- Management status aggregation contract probes `GET /api/status` on each approved node
+- `/health`, `/ready`, and `/metrics` are operator-facing diagnostics and are not part of management health classification
 - Registry persists node metadata with atomic file locking
 
 ---
