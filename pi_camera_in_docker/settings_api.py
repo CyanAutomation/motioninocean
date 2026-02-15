@@ -192,11 +192,17 @@ def register_settings_routes(app: Flask) -> None:
             # Collect environment defaults
             import os
 
-            from main import _parse_resolution
+            from .main import _parse_resolution
+
+            try:
+                width, height = _parse_resolution(os.environ.get("RESOLUTION", "640x480"))
+                resolution = f"{width}x{height}"
+            except ValueError:
+                resolution = "640x480"
 
             env_defaults = {
                 "camera": {
-                    "resolution": _parse_resolution(os.environ.get("RESOLUTION", "640x480")).replace(",", "x"),
+                    "resolution": resolution,
                     "fps": int(os.environ.get("FPS", "0")),
                     "jpeg_quality": int(os.environ.get("JPEG_QUALITY", "85")),
                     "max_stream_connections": int(os.environ.get("MAX_STREAM_CONNECTIONS", "2")),
