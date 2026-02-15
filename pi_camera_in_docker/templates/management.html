@@ -156,6 +156,16 @@
           </table>
         </div>
 
+        <div class="ui-form-control">
+          <input
+            id="advanced-diagnostics-toggle"
+            type="checkbox"
+            aria-controls="diagnostic-panel-content"
+            aria-controls="diagnostic-panel-content"
+          />
+          <label for="advanced-diagnostics-toggle">Advanced (show diagnostic report)</label>
+        </div>
+
         <section
           id="diagnostic-panel"
           class="diagnostic-panel"
@@ -163,48 +173,54 @@
           aria-label="Node diagnostics panel"
           tabindex="-1"
         >
-          <div class="diagnostic-panel__header">
-            <h3>Diagnostic report</h3>
-            <button
-              id="copy-diagnostic-report-btn"
-              class="ui-btn ui-btn--secondary"
-              type="button"
-              disabled
-            >
-              Copy report
-            </button>
-          </div>
-
-          <div class="diagnostic-meta-row" id="diagnostic-meta-row">
-            <span>Node: <strong id="diagnostic-node-id">—</strong></span>
-            <span>Context: <strong id="diagnostic-context">No report loaded</strong></span>
-            <span>
-              Summary:
-              <span id="diagnostic-summary-badge" class="diagnostic-pill diagnostic-pill--neutral"
-                >Idle</span
+          <div id="diagnostic-panel-content" hidden>
+            <div class="diagnostic-panel__header">
+              <h3>Diagnostic report</h3>
+              <button
+                id="copy-diagnostic-report-btn"
+                class="ui-btn ui-btn--secondary"
+                type="button"
+                disabled
               >
-            </span>
-          </div>
-
-          <div class="diagnostic-summary-banner" id="diagnostic-summary-banner">
-            <div class="diagnostic-summary-banner__top">
-              <span id="diagnostic-overall-state-pill" class="diagnostic-pill diagnostic-pill--neutral"
-                >Idle</span
-              >
-              <strong id="diagnostic-summary-cta">Run diagnostics</strong>
+                Copy report
+              </button>
             </div>
-            <p id="diagnostic-summary-interpretation">Run Diagnose on a node to generate remediation guidance.</p>
-          </div>
 
-          <div id="diagnostic-checks-grid" class="diagnostic-checks-grid">
-            <p class="diagnostic-empty">Run Diagnose on a node to view structured checks.</p>
-          </div>
+            <div class="diagnostic-meta-row" id="diagnostic-meta-row">
+              <span>Node: <strong id="diagnostic-node-id">—</strong></span>
+              <span>Context: <strong id="diagnostic-context">No report loaded</strong></span>
+              <span>
+                Summary:
+                <span id="diagnostic-summary-badge" class="diagnostic-pill diagnostic-pill--neutral"
+                  >Idle</span
+                >
+              </span>
+            </div>
 
-          <div class="diagnostic-recommendations" id="diagnostic-recommendations">
-            <h4>Recommendations</h4>
-            <ul>
-              <li>No recommendations yet.</li>
-            </ul>
+            <div class="diagnostic-summary-banner" id="diagnostic-summary-banner">
+              <div class="diagnostic-summary-banner__top">
+                <span
+                  id="diagnostic-overall-state-pill"
+                  class="diagnostic-pill diagnostic-pill--neutral"
+                  >Idle</span
+                >
+                <strong id="diagnostic-summary-cta">Run diagnostics</strong>
+              </div>
+              <p id="diagnostic-summary-interpretation">
+                Run Diagnose on a node to generate remediation guidance.
+              </p>
+            </div>
+
+            <div id="diagnostic-checks-grid" class="diagnostic-checks-grid">
+              <p class="diagnostic-empty">Run Diagnose on a node to view structured checks.</p>
+            </div>
+
+            <div class="diagnostic-recommendations" id="diagnostic-recommendations">
+              <h4>Recommendations</h4>
+              <ul>
+                <li>No recommendations yet.</li>
+              </ul>
+            </div>
           </div>
         </section>
       </section>

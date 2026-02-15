@@ -20,6 +20,8 @@ const diagnosticChecksGrid = document.getElementById("diagnostic-checks-grid");
 const diagnosticRecommendations = document.getElementById("diagnostic-recommendations");
 const copyDiagnosticReportBtn = document.getElementById("copy-diagnostic-report-btn");
 const diagnosticPanel = document.getElementById("diagnostic-panel");
+const advancedDiagnosticsToggle = document.getElementById("advanced-diagnostics-toggle");
+const diagnosticPanelContent = document.getElementById("diagnostic-panel-content");
 
 let nodes = [];
 let nodeStatusMap = new Map();
@@ -36,6 +38,24 @@ const API_AUTH_HINT =
 const DOCKER_BASE_URL_PATTERN = String.raw`docker://[^\s/:]+:\d+/[^\s/]+`;
 const DOCKER_BASE_URL_HINT = "Use format: docker://proxy-hostname:port/container-id";
 const NODE_FORM_COLLAPSED_STORAGE_KEY = "management.nodeFormCollapsed";
+
+function setDiagnosticPanelExpanded(isExpanded) {
+  if (!(advancedDiagnosticsToggle instanceof HTMLInputElement) || !(diagnosticPanelContent instanceof HTMLElement)) {
+    return;
+  }
+
+  advancedDiagnosticsToggle.checked = isExpanded;
+  advancedDiagnosticsToggle.checked = isExpanded;
+  diagnosticPanelContent.hidden = !isExpanded;
+}
+
+function toggleDiagnosticPanelContent() {
+  if (!(advancedDiagnosticsToggle instanceof HTMLInputElement)) {
+    return;
+  }
+
+  setDiagnosticPanelExpanded(advancedDiagnosticsToggle.checked);
+}
 
 function updateBaseUrlValidation(transport = "http") {
   const baseUrlInput = document.getElementById("node-base-url");
@@ -980,6 +1000,7 @@ function showDiagnosticResults(diagnosticResult) {
 
   renderDiagnosticRecommendations(diagnosticResult.guidance || [], diagnosticResult.recommendations || []);
   copyDiagnosticReportBtn.disabled = false;
+  setDiagnosticPanelExpanded(true);
   if (diagnosticPanel && typeof diagnosticPanel.focus === "function") {
     diagnosticPanel.focus();
   }
@@ -1097,6 +1118,10 @@ async function init() {
     updateBaseUrlValidation(target.value);
   });
   updateBaseUrlValidation(document.getElementById("node-transport").value);
+  if (advancedDiagnosticsToggle instanceof HTMLInputElement && diagnosticPanelContent instanceof HTMLElement) {
+    setDiagnosticPanelExpanded(false);
+    advancedDiagnosticsToggle.addEventListener("change", toggleDiagnosticPanelContent);
+  }
   copyDiagnosticReportBtn.addEventListener("click", async () => {
     if (!latestDiagnosticResult) {
       showFeedback("Run Diagnose first to generate a report.", true);
