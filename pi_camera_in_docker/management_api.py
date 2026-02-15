@@ -165,6 +165,7 @@ class _PinnedHTTPConnection(http.client.HTTPConnection):
     def __init__(self, host: str, port: Optional[int], connect_host: str, timeout: float):
         super().__init__(host=host, port=port, timeout=timeout)
         self._connect_host = connect_host
+        self.port = port or 80
 
     def connect(self):
         self.sock = socket.create_connection((self._connect_host, self.port), self.timeout)
