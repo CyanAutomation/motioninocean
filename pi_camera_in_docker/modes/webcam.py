@@ -72,7 +72,7 @@ class FrameBuffer(io.BufferedIOBase):
                         f"next_valid={next_valid_capture_time:.4f}, diff={now - self._last_frame_monotonic:.4f}, "
                         f"interval={self._target_frame_interval:.4f}"
                     )
-                    return size
+                    return size # Frame is dropped because it's too soon
             self.frame = buf
             self._last_frame_monotonic = now
             self._stats.record_frame(now)
@@ -354,6 +354,8 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
         if not is_flag_enabled("OCTOPRINT_COMPATIBILITY"):
             return Response("OctoPrint compatibility routes are disabled.", status=404)
         action = request.args.get("action", "").strip().lower()
+        # Normalize malformed action values: strip anything after ? or & to handle legacy cache busters
+        action = action.split("?")[0].split("&")[0]
         if action == "stream":
             return _build_stream_response()
         if action == "snapshot":
