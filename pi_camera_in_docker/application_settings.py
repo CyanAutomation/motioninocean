@@ -142,7 +142,12 @@ class ApplicationSettings:
                         if k in schema["settings"]["camera"]
                     },
                 }
-                schema["settings"]["feature_flags"] = settings.get("feature_flags", {})
+                persisted_feature_flags = settings.get("feature_flags", {})
+                schema["settings"]["feature_flags"] = (
+                    persisted_feature_flags
+                    if isinstance(persisted_feature_flags, dict)
+                    else {}
+                )
                 schema["settings"]["logging"] = {
                     **schema["settings"]["logging"],
                     **{
@@ -368,7 +373,13 @@ class ApplicationSettings:
 
         # Feature flags: show difference
         persisted_flags = current["settings"].get("feature_flags", {})
+        if not isinstance(persisted_flags, dict):
+            persisted_flags = {}
+
         env_flags = env_defaults.get("feature_flags", {})
+        if not isinstance(env_flags, dict):
+            env_flags = {}
+
         for flag_name, flag_value in persisted_flags.items():
             if flag_value != env_flags.get(flag_name):
                 overridden.append(

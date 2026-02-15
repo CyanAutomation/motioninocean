@@ -177,6 +177,28 @@ class TestApplicationSettingsReset:
         assert loaded["settings"]["camera"]["fps"] is None
 
 
+    def test_load_coerces_invalid_feature_flags_to_empty_dict(self, temp_settings_file):
+        """Invalid persisted feature_flags values are treated as empty maps."""
+        settings = ApplicationSettings(temp_settings_file)
+
+        with open(temp_settings_file, "w") as f:
+            json.dump(
+                {
+                    "version": 1,
+                    "settings": {
+                        "camera": {},
+                        "feature_flags": ["invalid"],
+                        "logging": {},
+                        "discovery": {},
+                    },
+                },
+                f,
+            )
+
+        loaded = settings.load()
+        assert loaded["settings"]["feature_flags"] == {}
+
+
 class TestApplicationSettingsChanges:
     """Test change tracking."""
 
@@ -210,6 +232,30 @@ class TestApplicationSettingsChanges:
         assert override is not None
         assert override["value"] == 60
         assert override["env_value"] == 30
+
+    def test_get_changes_handles_invalid_feature_flag_maps(self, temp_settings_file):
+        """Non-dict feature flag maps are treated as empty during diffing."""
+        settings = ApplicationSettings(temp_settings_file)
+
+        with open(temp_settings_file, "w") as f:
+            json.dump(
+                {
+                    "version": 1,
+                    "settings": {
+                        "camera": {},
+                        "feature_flags": "not-a-dict",
+                        "logging": {},
+                        "discovery": {},
+                    },
+                },
+                f,
+            )
+
+        changes = settings.get_changes_from_env({"feature_flags": "bad-env-type"})
+        feature_flag_changes = [
+            c for c in changes["overridden"] if c["category"] == "feature_flags"
+        ]
+        assert feature_flag_changes == []
 
 
 class TestApplicationSettingsValidation:
