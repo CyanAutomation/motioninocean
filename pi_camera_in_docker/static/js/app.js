@@ -783,10 +783,82 @@ function renderConfig(data) {
     setConfigValue("config-uptime", formatUptime(rt.uptime_seconds));
   }
 
+  // Health Check
+  if (data.health_check) {
+    const hc = data.health_check;
+    const healthStates = [];
+
+    const applyIndicator = (elementId, indicator) => {
+      setHealthIndicator(elementId, indicator);
+      if (indicator && typeof indicator.state === "string") {
+        healthStates.push(indicator.state);
+      }
+    };
+
+    applyIndicator("config-health-camera-pipeline", hc.camera_pipeline);
+    applyIndicator("config-health-stream-freshness", hc.stream_freshness);
+    applyIndicator("config-health-connection-capacity", hc.connection_capacity);
+    applyIndicator("config-health-mock-mode", hc.mock_mode);
+
+    const normalizedStates = healthStates.map(normalizeHealthState);
+    let overallState = "unknown";
+    if (normalizedStates.includes("fail")) {
+      overallState = "fail";
+    } else if (normalizedStates.includes("warn")) {
+      overallState = "warn";
+    } else if (normalizedStates.includes("ok")) {
+      overallState = "ok";
+    }
+
+    setHealthIndicator("config-health-overall", {
+      state: overallState,
+      label: HEALTH_TEXT[overallState],
+      details: "Overall health derived from camera, stream freshness, connection capacity, and mock mode.",
+    });
+  }
+
   // Timestamp
   if (data.timestamp) {
     const date = new Date(data.timestamp);
     setConfigValue("config-timestamp", date.toLocaleTimeString());
+  }
+}
+
+const HEALTH_TEXT = {
+  ok: "OK",
+  warn: "Warning",
+  fail: "Failing",
+  unknown: "Unknown",
+};
+
+function normalizeHealthState(stateValue) {
+  const normalized = String(stateValue || "").toLowerCase();
+
+  if (["ok", "pass", "healthy", "ready"].includes(normalized)) return "ok";
+  if (["warn", "warning", "degraded"].includes(normalized)) return "warn";
+  if (["fail", "error", "failed", "down", "unhealthy"].includes(normalized)) return "fail";
+  return "unknown";
+}
+
+function setHealthIndicator(elementId, indicator) {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+
+  const stateKey = normalizeHealthState(indicator?.state);
+  const labelText =
+    typeof indicator?.label === "string" && indicator.label.trim().length > 0
+      ? indicator.label
+      : HEALTH_TEXT[stateKey];
+
+  element.textContent = labelText;
+  element.className = `config-value health-indicator health-${stateKey}`;
+  element.setAttribute("data-health-state", stateKey);
+
+  const detailText = typeof indicator?.details === "string" ? indicator.details.trim() : "";
+  if (detailText) {
+    element.title = detailText;
+  } else {
+    element.removeAttribute("title");
   }
 }
 
@@ -825,6 +897,13 @@ function clearConfigDisplay() {
   configValues.forEach((el) => {
     el.textContent = "--";
     el.className = "config-value";
+    if (el.id && el.id.startsWith("config-health-")) {
+      el.classList.add("health-indicator", "health-unknown");
+      el.setAttribute("data-health-state", "unknown");
+    } else {
+      el.removeAttribute("data-health-state");
+    }
+    el.removeAttribute("title");
   });
 }
 
