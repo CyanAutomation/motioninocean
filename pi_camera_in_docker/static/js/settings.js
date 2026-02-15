@@ -20,7 +20,12 @@ const SettingsUI = (() => {
   const successAlert = () => document.getElementById("settings-success-alert");
 
   /**
-   * Initialize Settings UI
+   * Initialize Settings UI.
+   *
+   * Attaches event listeners to tab, buttons, and form toggles.
+   * Called on module load (DOMContentLoaded or immediately).
+   *
+   * @returns {void}
    */
   const init = () => {
     // Register tab click handler
@@ -48,7 +53,14 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Load settings and schema when tab is clicked
+   * Handle settings tab click.
+   *
+   * Switches to settings panel, loads schema and current settings if not loaded,
+   * then renders form.
+   *
+   * @async
+   * @param {Event} e - Click event.
+   * @returns {Promise<void>}
    */
   const onTabClick = async (e) => {
     e.preventDefault();
@@ -72,7 +84,13 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Load settings and schema from API
+   * Load settings and schema from /api/settings and /api/settings/schema endpoints.
+   *
+   * Fetches in parallel, renders form, clears dirty state, displays success/error alert.
+   *
+   * @async
+   * @returns {Promise<void>}
+   * @throws {Error} If either endpoint fails or response is not OK.
    */
   const loadSettings = async () => {
     try {
@@ -110,7 +128,12 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Render all form sections
+   * Render all settings form sections.
+   *
+   * Renders Camera, Logging, Discovery, and Feature Flags sections.
+   * Attaches change event listeners to all form inputs.
+   *
+   * @returns {void}
    */
   const renderForm = () => {
     if (!schema) return;
@@ -135,7 +158,11 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Render Camera section
+   * Render Camera settings section.
+   *
+   * Populates resolution, FPS, JPEG quality, max connections, and max frame age inputs.
+   *
+   * @returns {void}
    */
   const renderCameraSettings = () => {
     const cameraSettings = currentSettings.camera || {};
@@ -174,7 +201,11 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Render Logging section
+   * Render Logging settings section.
+   *
+   * Populates log level, log format, and log identifiers inputs.
+   *
+   * @returns {void}
    */
   const renderLoggingSettings = () => {
     const loggingSettings = currentSettings.logging || {};
@@ -199,7 +230,11 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Render Discovery section
+   * Render Discovery settings section.
+   *
+   * Populates discovery enabled, management URL, discovery token, and interval inputs.
+   *
+   * @returns {void}
    */
   const renderDiscoverySettings = () => {
     const discoverySettings = currentSettings.discovery || {};
@@ -230,7 +265,12 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Render Feature Flags
+   * Render Feature Flags section.
+   *
+   * Dynamically creates feature flag checkboxes grouped by category.
+   * Includes flag descriptions and warnings from schema.
+   *
+   * @returns {void}
    */
   const renderFeatureFlags = () => {
     const container = document.getElementById("feature-flags-container");
@@ -305,7 +345,12 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Update slider display value
+   * Update slider value display element.
+   *
+   * Updates text element showing current slider value.
+   *
+   * @param {HTMLInputElement} slider - Slider input element.
+   * @returns {void}
    */
   const updateSliderDisplay = (slider) => {
     const container = slider.parentElement;
@@ -316,7 +361,13 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Handle field change
+   * Handle field change event.
+   *
+   * Marks field as dirty, enables save button, updates slider display if applicable.
+   * Builds dirty field tracking key from category.property.
+   *
+   * @param {Event} e - Change/input event from form input.
+   * @returns {void}
    */
   const onFieldChange = (e) => {
     const input = e.target;
@@ -335,7 +386,11 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Update save button state
+   * Update save button disabled state based on form dirty status.
+   *
+   * Disables save button if no changes, enables if form is dirty.
+   *
+   * @returns {void}
    */
   const updateSaveButton = () => {
     if (saveBtn()) {
@@ -344,7 +399,12 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Handle section toggle
+   * Handle section toggle button click.
+   *
+   * Toggles collapse state of settings section and toggle button classes.
+   *
+   * @param {Event} e - Click event from toggle button.
+   * @returns {void}
    */
   const onSectionToggle = (e) => {
     e.stopPropagation();
@@ -359,7 +419,12 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Handle section header click
+   * Handle section header click.
+   *
+   * Delegates to toggle button within header for collapse/expand.
+   *
+   * @param {Event} e - Click event from section header.
+   * @returns {void}
    */
   const onSectionHeaderClick = (e) => {
     const header = e.currentTarget;
@@ -370,7 +435,15 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Save settings
+   * Save changed settings via PATCH request.
+   *
+   * Collects dirty fields, builds patch payload, sends to /api/settings endpoint.
+   * Handles 200 (success), 422 (requires restart), 400 (validation error) responses.
+   * Updates form state and displays appropriate alert on completion.
+   *
+   * @async
+   * @returns {Promise<void>}
+   * @throws {Error} If request fails or response is unexpected status.
    */
   const onSave = async () => {
     if (!formDirty || dirtyFields.size === 0) {
@@ -448,7 +521,14 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Reset settings
+   * Reset all settings to default values.
+   *
+   * Requires user confirmation. Posts to /api/settings/reset endpoint.
+   * Reloads settings and clears dirty state on success.
+   *
+   * @async
+   * @returns {Promise<void>}
+   * @throws {Error} If reset request fails.
    */
   const onReset = async () => {
     if (!confirm("Reset all settings to defaults? This cannot be undone.")) {
@@ -474,7 +554,12 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Show error alert
+   * Display error alert message.
+   *
+   * Shows error alert with message, auto-hides after 8 seconds.
+   *
+   * @param {string} message - Error message to display.
+   * @returns {void}
    */
   const showError = (message) => {
     const alert = errorAlert();
@@ -487,7 +572,12 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Show success alert
+   * Display success alert message.
+   *
+   * Shows success alert with message, auto-hides after 6 seconds.
+   *
+   * @param {string} message - Success message to display.
+   * @returns {void}
    */
   const showSuccess = (message) => {
     const alert = successAlert();
@@ -500,7 +590,12 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Show warning alert (reuse success for now)
+   * Display warning alert message.
+   *
+   * Shows info/warning message via showSuccess with ℹ️ prefix.
+   *
+   * @param {string} message - Warning message to display.
+   * @returns {void}
    */
   const showWarning = (message) => {
     showSuccess("ℹ️ " + message);

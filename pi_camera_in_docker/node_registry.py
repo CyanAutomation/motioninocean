@@ -25,6 +25,7 @@ except ImportError:  # pragma: no cover - unavailable on non-Windows
 logger = logging.getLogger(__name__)
 
 
+# Node registry schema and validation constants
 REQUIRED_NODE_FIELDS = {
     "id",
     "name",
@@ -41,10 +42,22 @@ ALLOWED_TRANSPORTS = {"http", "docker"}
 
 
 class NodeValidationError(ValueError):
-    pass
+    """Exception raised for node validation or registry operation errors.
+
+    Used to wrap validation failures, permission issues, or file corruption errors.
+    """
 
 
 def _node_auth_error(node_id: str, reason: str) -> NodeValidationError:
+    """Create NodeValidationError for deprecated auth field usage.
+
+    Args:
+        node_id: ID of node with deprecated auth.
+        reason: Human-readable reason (e.g., "legacy keys present").
+
+    Returns:
+        NodeValidationError with detailed migration guidance.
+    """
     return NodeValidationError(
         " ".join(
             [
@@ -57,6 +70,22 @@ def _node_auth_error(node_id: str, reason: str) -> NodeValidationError:
 
 
 def migrate_legacy_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
+    """Migrate legacy basic auth fields to modern bearer token format.
+
+    Handles backward compatibility for nodes using deprecated auth fields:
+    - auth.type="basic" with auth.token or auth.encoded → bearer token
+    - Removes legacy keys (username, password, encoded) after migration.
+
+    Args:
+        auth: Auth dictionary potentially containing legacy fields.
+        node_id: Node ID for error context (default: "unknown").
+
+    Returns:
+        Migrated auth dict with type="bearer" and token field.
+
+    Raises:
+        NodeValidationError: If auth structure invalid or cannot auto-migrate.
+    """
     if not isinstance(auth, dict):
         message = "auth must be an object"
         raise NodeValidationError(message)
@@ -104,20 +133,63 @@ def migrate_legacy_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
 
 
 class NodeRegistry(ABC):
+    """Abstract base class for node registry implementations.
+
+    Defines interface for persistent node storage operations: CRUD, listing, upsert.
+    Implementations must handle validation, file locking, and error recovery.
+    """
+
     @abstractmethod
     def list_nodes(self) -> List[Dict[str, Any]]:
+        """List all registered nodes.
+
+        Returns:
+            List of node dictionaries.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def get_node(self, node_id: str) -> Optional[Dict[str, Any]]:
+        """Get node by ID.
+
+        Args:
+            node_id: Unique node identifier.
+
+        Returns:
+            Node dictionary or None if not found.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def create_node(self, node: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new node.
+
+        Args:
+            node: Node data with required fields (id, name, base_url, auth, etc.).
+
+        Returns:
+            Created node dictionary.
+
+        Raises:
+            NodeValidationError: If validation fails or node ID already exists.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def update_node(self, node_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
+        """Update existing node with partial data.
+
+        Args:
+            node_id: ID of node to update.
+            patch: Partial node data to merge (any fields).
+
+        Returns:
+            Updated node dictionary.
+
+        Raises:
+            KeyError: If node not found.
+            NodeValidationError: If validation fails.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -127,14 +199,50 @@ class NodeRegistry(ABC):
         create_value: Dict[str, Any],
         patch_value: Dict[str, Any],
     ) -> Dict[str, Any]:
+        """Create node if not exists, else update with patch.
+
+        Args:
+            node_id: Node ID to upsert.
+            create_value: Data for node creation (if new).
+            patch_value: Data for node update (if exists).
+
+        Returns:
+            Dict with 'node' and 'upserted' keys ("created" or "updated").
+
+        Raises:
+            NodeValidationError: If validation fails.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def delete_node(self, node_id: str) -> bool:
+        """Delete node by ID.
+
+        Args:
+            node_id: ID of node to delete.
+
+        Returns:
+            True if deleted, False if not found.
+        """
         raise NotImplementedError
 
 
 def _validate_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
+    """Validate and normalize auth configuration.
+
+    Runs migrate_legacy_auth(), ensures no legacy keys remain, validates type/token.
+    Supports: auth.type="none" (no token) or "bearer" (requires token).
+
+    Args:
+        auth: Auth dictionary to validate.
+        node_id: Node ID for error context (default: "unknown").
+
+    Returns:
+        Validated auth dictionary.
+
+    Raises:
+        NodeValidationError: If auth.type invalid, legacy keys present, or token missing.
+    """
     auth = migrate_legacy_auth(auth, node_id=node_id)
 
     auth_type = auth.get("type", "none")
@@ -157,6 +265,22 @@ def _validate_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
 
 
 def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]:
+    """Validate and normalize node data.
+
+    Validates required fields (unless partial=True), type-checks all fields,
+    validates auth, discovery, transport, base_url format.
+    Sets last_seen timestamp if missing (and not partial).
+
+    Args:
+        node: Node data dictionary.
+        partial: If True, only provided fields required (for PATCH operations).
+
+    Returns:
+        Validated and normalized node dictionary.
+
+    Raises:
+        NodeValidationError: If validation fails for any field.
+    """
     if not isinstance(node, dict):
         message = "node payload must be an object"
         raise NodeValidationError(message)
@@ -251,6 +375,19 @@ def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]
 
 
 class FileNodeRegistry(NodeRegistry):
+    """File-based node registry with POSIX/Windows file locking.
+
+    Stores nodes in JSON file with exclusive locking to prevent concurrent mutations.
+    Auto-creates parent directory and handles legacy auth migration on load.
+    Supports both fcntl (Unix) and msvcrt (Windows) locking mechanisms.
+
+    Attributes:
+        path: Path to JSON registry file.
+
+    Raises:
+        NodeValidationError: If registry directory not writable or file corrupted.
+    """
+
     def __init__(self, path: str):
         self.path = Path(path)
         try:
@@ -265,6 +402,17 @@ class FileNodeRegistry(NodeRegistry):
             raise NodeValidationError(message) from e
 
     def _load(self) -> Dict[str, Any]:
+        """Load and validate registry from JSON file.
+
+        Auto-creates empty registry if file doesn't exist.
+        Validates all nodes during load, applies migration to legacy auth fields.
+
+        Returns:
+            Dict with "nodes" key containing list of validated node dicts.
+
+        Raises:
+            NodeValidationError: If file corrupted or node validation fails.
+        """
         if not self.path.exists():
             return {"nodes": []}
         try:
@@ -290,6 +438,14 @@ class FileNodeRegistry(NodeRegistry):
         return {"nodes": migrated_nodes}
 
     def _save(self, data: Dict[str, Any]) -> None:
+        """Save registry to JSON file with atomic write.
+
+        Uses temp file + atomic rename to prevent corruption on crash.
+        Fsyncs data to disk before rename.
+
+        Args:
+            data: Registry dict with "nodes" key.
+        """
         with tempfile.NamedTemporaryFile(
             "w", delete=False, dir=self.path.parent, encoding="utf-8"
         ) as temp:
@@ -301,6 +457,17 @@ class FileNodeRegistry(NodeRegistry):
 
     @contextmanager
     def _exclusive_lock(self):
+        """Context manager for exclusive file locking.
+
+        Uses fcntl.flock (Unix) or msvcrt.locking (Windows) for cross-platform support.
+        Lock file created in same directory as registry file.
+
+        Yields:
+            None (lock held for context duration).
+
+        Raises:
+            RuntimeError: If no supported locking backend available.
+        """
         lock_path = self.path.parent / f"{self.path.name}.lock"
         with lock_path.open("a+b") as lock_file:
             if fcntl is not None:

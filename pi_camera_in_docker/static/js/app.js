@@ -346,7 +346,11 @@ function onFullscreenChange() {
 }
 
 /**
- * Handle stream load event
+ * Handle stream load event.
+ *
+ * Hides loading overlay and sets connection status to connected.
+ *
+ * @returns {void}
  */
 function onStreamLoad() {
   hideLoading();
@@ -354,7 +358,11 @@ function onStreamLoad() {
 }
 
 /**
- * Handle stream error event
+ * Handle stream error event.
+ *
+ * Logs error, sets connection status to disconnected, increases polling backoff.
+ *
+ * @returns {void}
  */
 function onStreamError() {
   console.error("Video stream error");
@@ -363,7 +371,14 @@ function onStreamError() {
 }
 
 /**
- * Set connection status
+ * Set connection status indicator and text.
+ *
+ * Updates UI indicator class and text based on status (connected, disconnected, stale, inactive).
+ * Sets state.isConnected based on status.
+ *
+ * @param {string} status - Status type ("connected", "disconnected", "stale", "inactive").
+ * @param {string} text - Display text for status indicator.
+ * @returns {void}
  */
 function setConnectionStatus(status, text) {
   state.isConnected = status === "connected" || status === "stale";
@@ -807,7 +822,12 @@ async function updateConfig() {
 }
 
 /**
- * Show error alert in config panel
+ * Show error alert in config panel with message.
+ *
+ * Displays error message in config error alert element.
+ *
+ * @param {string} message - Error message to display.
+ * @returns {void}
  */
 function showConfigError(message) {
   if (!state.elements.configErrorAlert) return;
@@ -819,7 +839,13 @@ function showConfigError(message) {
 }
 
 /**
- * Render configuration data in the UI
+ * Render configuration data in UI elements.
+ *
+ * Displays camera settings, stream stats, hardware info, feature flags, and health status.
+ * Updates resolution, FPS, quality, and other configuration values from API response.
+ *
+ * @param {Object} data - Configuration data object from /api/config endpoint.
+ * @returns {void}
  */
 function renderConfig(data) {
   // Camera Settings
@@ -948,7 +974,14 @@ function setHealthIndicator(elementId, indicator) {
 }
 
 /**
- * Set a config value element's text content with badge styling for booleans
+ * Set config value element text with badge styling for boolean values.
+ *
+ * Updates element text content and applies badge classes for Enabled/Disabled/Yes/No values.
+ * Removes badge class for other values.
+ *
+ * @param {string} elementId - HTML element ID to update.
+ * @param {string} value - Value to display.
+ * @returns {void}
  */
 function setConfigValue(elementId, value) {
   const element = document.getElementById(elementId);
@@ -967,7 +1000,12 @@ function setConfigValue(elementId, value) {
 }
 
 /**
- * Format boolean value as Yes/No with proper styling
+ * Format boolean value as "Enabled" or "Disabled".
+ *
+ * Returns "Enabled" for true, "Disabled" for false, "--" for null/undefined.
+ *
+ * @param {boolean|null|undefined} value - Boolean value to format.
+ * @returns {string} Formatted string ("Enabled", "Disabled", or "--").
  */
 function formatBoolean(value) {
   if (value === null || value === undefined) return "--";
@@ -975,7 +1013,11 @@ function formatBoolean(value) {
 }
 
 /**
- * Clear all config display values
+ * Clear all config display values to "--".
+ *
+ * Resets all config value elements, removes health indicators, resets health state.
+ *
+ * @returns {void}
  */
 function clearConfigDisplay() {
   const configValues = document.querySelectorAll('[data-config-value="true"]');
@@ -1004,6 +1046,14 @@ const setupWizard = {
   initialized: false,
 };
 
+/**
+ * Load wizard state from localStorage.
+ *
+ * Retrieves and parses wizard state JSON from setupWizard.storageKey.
+ * Returns empty object if missing or parse fails.
+ *
+ * @returns {Object} Wizard state object or empty object.
+ */
 function getWizardStateFromStorage() {
   try {
     const raw = localStorage.getItem(setupWizard.storageKey);
@@ -1013,6 +1063,14 @@ function getWizardStateFromStorage() {
   }
 }
 
+/**
+ * Save wizard state to localStorage.
+ *
+ * Persists current step, expert mode, environment selections, preset, and form fields.
+ * Enables state recovery on page reload.
+ *
+ * @returns {void}
+ */
 function saveWizardState() {
   const payload = {
     currentStep: setupWizard.currentStep,
@@ -1029,6 +1087,14 @@ function saveWizardState() {
   localStorage.setItem(setupWizard.storageKey, JSON.stringify(payload));
 }
 
+/**
+ * Apply stored wizard state to form inputs.
+ *
+ * Restores environment selections, preset, and form field values from localStorage.
+ * Safe-guards against missing IDs and invalid objects.
+ *
+ * @returns {void}
+ */
 function applyStoredWizardState() {
   const stored = getWizardStateFromStorage();
   if (!stored || typeof stored !== "object") return;
@@ -1410,6 +1476,17 @@ async function loadSetupTab() {
   }
 }
 
+/**
+ * Analyze device detection results and provide setup guidance.
+ *
+ * Examines /dev/video*, /dev/media*, /dev/dma_heap, /dev/vchiq availability.
+ * Returns status summary with tone, guidance, and recommendations based on signals detected.
+ * Adapts guidance for management vs webcam mode.
+ *
+ * @param {Object} [devices={}] - Devices object with video_devices, media_devices, etc.
+ * @param {Object} [currentConfig={}] - Current configuration object with intent mode.
+ * @returns {Object} Summary with status, tone, guidance, recommendations, device counts.
+ */
 function getDeviceDetectionSummary(devices = {}, currentConfig = {}) {
   const videoCount = devices.video_devices?.length || 0;
   const mediaCount = devices.media_devices?.length || 0;
@@ -1473,6 +1550,17 @@ function getDeviceDetectionSummary(devices = {}, currentConfig = {}) {
   };
 }
 
+/**
+ * Render device detection status display with checklist and recommendations.
+ *
+ * Creates visual checklist of camera device interfaces with pass/fail indicators.
+ * Displays detection summary, guidance text, and recommended next steps.
+ * Uses detectDeviceDetectionSummary() to determine status tone and content.
+ *
+ * @param {Object} [devices={}] - Devices object from device detection endpoint.
+ * @param {Object} [currentConfig={}] - Current configuration object.
+ * @returns {void}
+ */
 function renderDeviceStatus(devices = {}, currentConfig = {}) {
   const deviceStatus = document.getElementById("device-status");
   if (!deviceStatus) return;
@@ -1575,6 +1663,15 @@ async function rescanSetupDevices() {
   }
 }
 
+/**
+ * Update setup UI from template data.
+ *
+ * Renders device status, applies current configuration to form fields, updates mock camera setting.
+ * Bridges between API response and UI form state.
+ *
+ * @param {Object} data - Setup templates data with detected_devices and current_config.
+ * @returns {void}
+ */
 function updateSetupUI(data) {
   state.setupDetectedDevices = data.detected_devices || state.setupDetectedDevices || {};
   renderDeviceStatus(state.setupDetectedDevices, data.current_config || {});
@@ -1785,7 +1882,12 @@ function copyToClipboard(targetId, buttonElement) {
 }
 
 /**
- * Show setup error alert
+ * Show setup error alert with message.
+ *
+ * Displays error message in setup error alert element.
+ *
+ * @param {string} message - Error message to display.
+ * @returns {void}
  */
 function showSetupError(message) {
   const errorAlert = document.getElementById("setup-error-alert");
@@ -1798,7 +1900,12 @@ function showSetupError(message) {
 }
 
 /**
- * Show setup success alert
+ * Show setup success alert with message.
+ *
+ * Displays success message in setup success alert element.
+ *
+ * @param {string} message - Success message to display.
+ * @returns {void}
  */
 function showSetupSuccess(message) {
   const successAlert = document.getElementById("setup-success-alert");
