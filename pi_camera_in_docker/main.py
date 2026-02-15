@@ -1312,14 +1312,18 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
         return
 
     required_devices = ["/dev/vchiq"]
-    node_patterns = {
-        "video": "/dev/video*",
-        "media": "/dev/media*",
-        "v4l_subdev": "/dev/v4l-subdev*",
-        "dma_heap": "/dev/dma_heap/*",
+    device_patterns = {
+        "video": range(10),  # /dev/video0 through /dev/video9
+        "media": range(10),  # /dev/media0 through /dev/media9
+        "v4l_subdev": range(64),  # /dev/v4l-subdev0 through /dev/v4l-subdev63
+        "dma_heap": ["system", "linux,cma"],  # Common dma_heap device names
     }
+    
     discovered_nodes = {
-        node_group: sorted(Path("/").glob(pattern.lstrip("/"))) for node_group, pattern in node_patterns.items()
+        "video": [Path(f"/dev/video{i}") for i in device_patterns["video"] if Path(f"/dev/video{i}").exists()],
+        "media": [Path(f"/dev/media{i}") for i in device_patterns["media"] if Path(f"/dev/media{i}").exists()],
+        "v4l_subdev": [Path(f"/dev/v4l-subdev{i}") for i in device_patterns["v4l_subdev"] if Path(f"/dev/v4l-subdev{i}").exists()],
+        "dma_heap": [Path(f"/dev/dma_heap/{name}") for name in device_patterns["dma_heap"] if Path(f"/dev/dma_heap/{name}").exists()],
     }
 
     preflight_summary = {
