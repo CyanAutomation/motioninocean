@@ -73,7 +73,10 @@ test("node form panel toggle defaults expanded and flips collapsed state with st
     }
 
     addEventListener(event, handler) {
-      this.listeners.set(event, handler);
+      if (!this.listeners.has(event)) {
+        this.listeners.set(event, []);
+      }
+      this.listeners.get(event).push(handler);
     }
 
     setAttribute(name, value) {
