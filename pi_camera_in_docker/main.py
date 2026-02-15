@@ -794,9 +794,10 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
             return jsonify({"error": f"Failed to generate configuration: {e!s}"}), 500
 
     # NOTE: The following endpoints are defined in shared.py via register_shared_routes:
-
-
-
+    # @app.route("/health")
+    # @app.route("/ready")
+    # @app.route("/metrics")
+    # Metrics tracking: frames_captured, current_fps
 
     return app, limiter, state
 

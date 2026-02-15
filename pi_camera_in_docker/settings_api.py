@@ -111,7 +111,7 @@ def register_settings_routes(app: Flask) -> None:
             # Check which properties require restart
             restartable_properties = SettingsSchema.get_restartable_properties()
             modified_on_restart = []
-            effective_patch = {}
+            effective_patch: Dict[str, Dict[str, Any]] = {}
 
             for category, properties in patch_data.items():
                 effective_patch[category] = {}

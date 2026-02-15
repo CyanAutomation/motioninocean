@@ -86,8 +86,8 @@ def _validate_node_base_url(base_url: str) -> None:
         raise NodeRequestError(message)
 
 
-def _is_blocked_address(raw: str) -> bool:
-    ip = ipaddress.ip_address(raw)
+def _is_blocked_address(raw: Any) -> bool:
+    ip = ipaddress.ip_address(str(raw))
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
         ip = ip.ipv4_mapped
 
@@ -312,14 +312,16 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
         raise NodeRequestError(message)
 
     port = parsed_url.port
+    # Explicitly cast hostname to str to help MyPy inference
+    hostname_str = str(hostname)
     try:
-        if _is_blocked_address(hostname):
+        if _is_blocked_address(hostname_str):
             message = "node target is not allowed"
             raise NodeRequestError(message)
-        resolved_addresses = (hostname,)
+        resolved_addresses = (hostname_str,)
     except ValueError:
         try:
-            records = socket.getaddrinfo(hostname, port or None, proto=socket.IPPROTO_TCP)
+            records = socket.getaddrinfo(hostname_str, port or None, proto=socket.IPPROTO_TCP)
         except socket.gaierror as exc:
             error_message = "dns resolution failed"
             raise NodeConnectivityError(

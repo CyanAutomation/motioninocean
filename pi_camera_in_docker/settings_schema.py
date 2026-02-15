@@ -378,7 +378,7 @@ class SettingsSchema:
         Returns:
             Dict with { category: { property: default_value } } structure
         """
-        defaults = {}
+        defaults: Dict[str, Dict[str, Any]] = {}
         for category, schema in cls.SCHEMA_DEFINITION.items():
             defaults[category] = {}
             for prop_name, prop_schema in schema.get("properties", {}).items():
@@ -394,7 +394,7 @@ class SettingsSchema:
         Returns:
             Dict with { category: [property_names] } structure
         """
-        restartable = {}
+        restartable: Dict[str, List[str]] = {}
         for category, schema in cls.SCHEMA_DEFINITION.items():
             restartable[category] = []
             for prop_name, prop_schema in schema.get("properties", {}).items():
