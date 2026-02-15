@@ -64,15 +64,12 @@ class FrameBuffer(io.BufferedIOBase):
             return size
         with self.condition:
             now = time.monotonic()
-            if self._target_frame_interval is not None and self._last_frame_monotonic is not None:
-                next_valid_capture_time = self._last_frame_monotonic + self._target_frame_interval
-                if now < next_valid_capture_time:
-                    logger.debug(
-                        f"Frame dropped: now={now:.4f}, last_capture={self._last_frame_monotonic:.4f}, "
-                        f"next_valid={next_valid_capture_time:.4f}, diff={now - self._last_frame_monotonic:.4f}, "
-                        f"interval={self._target_frame_interval:.4f}"
-                    )
-                    return size # Frame is dropped because it's too soon
+            if (
+                self._target_frame_interval is not None
+                and self._last_frame_monotonic is not None
+                and now < self._last_frame_monotonic + self._target_frame_interval
+            ):
+                return size
             self.frame = buf
             self._last_frame_monotonic = now
             self._stats.record_frame(now)

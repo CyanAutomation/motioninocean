@@ -293,7 +293,7 @@ print(json.dumps({
         print("--- Subprocess stdout ---")
         print(process.stdout)
         print("--- Subprocess stderr ---")
-        print(process.stderr)
+        print(process.stderr, file=sys.stderr)  # Added this line
         raise subprocess.CalledProcessError(
             process.returncode, process.args, output=process.stdout, stderr=process.stderr
         )
