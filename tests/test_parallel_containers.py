@@ -19,7 +19,7 @@ import urllib.request
 from typing import Any, Dict, Tuple
 
 
-class TestResult:
+class SmokeResult:
     def __init__(self, name: str):
         self.name = name
         self.passed = False
@@ -75,9 +75,9 @@ def http_post(url: str, data: Dict[str, Any], timeout: int = 5) -> Tuple[int, Di
         return 503, {"error": str(exc)}
 
 
-def test_webcam_health() -> TestResult:
+def check_webcam_health() -> SmokeResult:
     """Test webcam container /health endpoint."""
-    result = TestResult("Webcam /health endpoint")
+    result = SmokeResult("Webcam /health endpoint")
     code, data = http_get("http://localhost:8000/health")
     result.passed = code == 200 and data.get("status") == "healthy"
     result.message = f"Status: {code}, app_mode: {data.get('app_mode')}"
@@ -85,9 +85,9 @@ def test_webcam_health() -> TestResult:
     return result
 
 
-def test_webcam_ready() -> TestResult:
+def check_webcam_ready() -> SmokeResult:
     """Test webcam container /ready endpoint."""
-    result = TestResult("Webcam /ready endpoint")
+    result = SmokeResult("Webcam /ready endpoint")
     code, data = http_get("http://localhost:8000/ready")
     result.passed = code == 200 and data.get("status") == "ready"
     result.message = f"Status: {code}, frames: {data.get('frames_captured')}"
@@ -95,9 +95,9 @@ def test_webcam_ready() -> TestResult:
     return result
 
 
-def test_webcam_metrics() -> TestResult:
+def check_webcam_metrics() -> SmokeResult:
     """Test webcam container /metrics endpoint."""
-    result = TestResult("Webcam /metrics endpoint")
+    result = SmokeResult("Webcam /metrics endpoint")
     code, data = http_get("http://localhost:8000/metrics")
     result.passed = code == 200 and data.get("camera_active")
     result.message = f"Status: {code}, FPS: {data.get('current_fps')}"
@@ -109,9 +109,9 @@ def test_webcam_metrics() -> TestResult:
     return result
 
 
-def test_management_health() -> TestResult:
+def check_management_health() -> SmokeResult:
     """Test management container /health endpoint."""
-    result = TestResult("Management /health endpoint")
+    result = SmokeResult("Management /health endpoint")
     code, data = http_get("http://localhost:8001/health")
     result.passed = code == 200 and data.get("status") == "healthy"
     result.message = f"Status: {code}, app_mode: {data.get('app_mode')}"
@@ -119,9 +119,9 @@ def test_management_health() -> TestResult:
     return result
 
 
-def test_management_list_nodes() -> TestResult:
+def check_management_list_nodes() -> SmokeResult:
     """Test management container /api/nodes list."""
-    result = TestResult("Management /api/nodes list")
+    result = SmokeResult("Management /api/nodes list")
     code, data = http_get("http://localhost:8001/api/nodes")
     result.passed = code == 200 and "nodes" in data
     result.message = f"Status: {code}, nodes: {len(data.get('nodes', []))}"
@@ -129,9 +129,9 @@ def test_management_list_nodes() -> TestResult:
     return result
 
 
-def test_management_register_node() -> TestResult:
+def check_management_register_node() -> SmokeResult:
     """Test management node registration."""
-    result = TestResult("Management node registration")
+    result = SmokeResult("Management node registration")
 
     payload = {
         "id": "webcam-01",
@@ -151,9 +151,9 @@ def test_management_register_node() -> TestResult:
     return result
 
 
-def test_management_query_node_ssrf_protection() -> TestResult:
+def check_management_query_node_ssrf_protection() -> SmokeResult:
     """Test that SSRF protection blocks private node IPs (expected behavior)."""
-    result = TestResult("Management node query (SSRF protection block)")
+    result = SmokeResult("Management node query (SSRF protection block)")
 
     # This will fail due to SSRF protection - because the resolved IP is private
     code, data = http_get("http://localhost:8001/api/nodes/webcam-01/status")
@@ -173,9 +173,9 @@ def test_management_query_node_ssrf_protection() -> TestResult:
     return result
 
 
-def test_management_overview() -> TestResult:
+def check_management_overview() -> SmokeResult:
     """Test management overview endpoint."""
-    result = TestResult("Management /api/management/overview")
+    result = SmokeResult("Management /api/management/overview")
     code, data = http_get("http://localhost:8001/api/management/overview")
 
     result.passed = code == 200 and "summary" in data
@@ -188,14 +188,14 @@ def test_management_overview() -> TestResult:
 def run_all_tests() -> Tuple[list, int, int]:
     """Run all tests and return results."""
     tests = [
-        test_webcam_health,
-        test_webcam_ready,
-        test_webcam_metrics,
-        test_management_health,
-        test_management_list_nodes,
-        test_management_register_node,
-        test_management_query_node_ssrf_protection,
-        test_management_overview,
+        check_webcam_health,
+        check_webcam_ready,
+        check_webcam_metrics,
+        check_management_health,
+        check_management_list_nodes,
+        check_management_register_node,
+        check_management_query_node_ssrf_protection,
+        check_management_overview,
     ]
 
     results = []

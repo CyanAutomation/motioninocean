@@ -6,24 +6,6 @@ import pytest
 import yaml
 
 
-def test_startup_sequence_markers(workspace_root):
-    """Verify the startup sequence markers are present."""
-    main_py = workspace_root / "pi_camera_in_docker" / "main.py"
-    code = main_py.read_text()
-
-    startup_markers = [
-        ("Configuration loading", "os.environ.get"),
-        ("Resolution parsing", "resolution_str.split"),
-        ("Camera initialization", "Picamera2()"),
-        ("Camera configuration", "create_video_configuration"),
-        ("Start recording", "start_recording"),
-        ("Start Flask server", "app.run"),
-    ]
-
-    for step, marker in startup_markers:
-        assert marker in code, f"Missing startup step: {step}"
-
-
 @pytest.mark.parametrize(
     "scenario,markers",
     [

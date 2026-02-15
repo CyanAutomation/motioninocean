@@ -3,7 +3,6 @@ Unit tests for Flask application components.
 Tests without requiring camera hardware.
 """
 
-import json
 import sys
 from pathlib import Path
 
@@ -178,36 +177,27 @@ def test_check_device_availability_warns_when_no_camera_nodes_detected(monkeypat
     assert "Verify host camera drivers and container device mappings" in joined_warning
 
 
-def test_flask_routes():
-    """Test that Flask routes are properly defined."""
-    try:
-        from flask import Flask
-    except ImportError:
-        pytest.skip("Flask not installed in this environment")
+def test_management_app_registers_core_routes(monkeypatch, tmp_path):
+    """Management app should expose core UI, health, and management API routes."""
+    from pi_camera_in_docker import main
 
-    app = Flask(__name__)
+    monkeypatch.setenv("APP_MODE", "management")
+    monkeypatch.setenv("MOCK_CAMERA", "true")
+    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "")
 
-    # Define test routes same as in main.py
-    @app.route("/")
-    def index():
-        return "index"
-
-    @app.route("/health")
-    def health():
-        return json.dumps({"status": "healthy"}), 200
-
-    @app.route("/ready")
-    def ready():
-        return json.dumps({"status": "ready"}), 200
-
-    @app.route("/stream.mjpg")
-    def video_feed():
-        return "stream"
-
-    # Verify all expected routes are registered
-    expected_routes = {"/", "/health", "/ready", "/stream.mjpg"}
+    app = main.create_management_app()
     registered_routes = {rule.rule for rule in app.url_map.iter_rules()}
 
+    expected_routes = {
+        "/",
+        "/health",
+        "/ready",
+        "/metrics",
+        "/api/config",
+        "/api/nodes",
+        "/api/management/overview",
+    }
     assert expected_routes.issubset(registered_routes), (
         f"Missing routes: {expected_routes - registered_routes}"
     )
