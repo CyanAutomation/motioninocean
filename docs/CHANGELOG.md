@@ -11,6 +11,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.15.1] - 2026-02-15
+
+- refactor: update Dockerfile to copy full application code and set PYTHONPATH for module execution
+- refactor: enhance documentation with detailed docstrings for various functions and tests
+- refactor: enhance documentation with detailed docstrings for webcam mode and management scripts
+- refactor: enhance documentation with detailed docstrings across multiple files
+- refactor: enhance documentation and improve test coverage for camera streaming functionality
+- refactor: rename test functions and classes for consistency and clarity
+
 ## [1.15.0] - 2026-02-15
 
 - refactor: update file paths and improve type hinting for clarity
