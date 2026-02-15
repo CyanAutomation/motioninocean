@@ -1,4 +1,5 @@
 import ipaddress
+import http.client
 import json
 import os
 import socket
@@ -158,11 +159,34 @@ def _private_announcement_blocked(base_url: str) -> Optional[str]:
     return None
 
 
-def _format_connect_netloc(address: str, port: Optional[int]) -> str:
-    host = f"[{address}]" if ":" in address else address
-    if port is None:
-        return host
-    return f"{host}:{port}"
+class _PinnedHTTPConnection(http.client.HTTPConnection):
+    """HTTP connection that always connects to a pre-vetted IP address."""
+
+    def __init__(self, host: str, port: Optional[int], connect_host: str, timeout: float):
+        super().__init__(host=host, port=port, timeout=timeout)
+        self._connect_host = connect_host
+
+    def connect(self):
+        self.sock = socket.create_connection((self._connect_host, self.port), self.timeout)
+
+
+class _PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """HTTPS connection that pins DNS to a vetted IP while preserving SNI hostname."""
+
+    def __init__(
+        self,
+        host: str,
+        port: Optional[int],
+        connect_host: str,
+        timeout: float,
+        context: ssl.SSLContext,
+    ):
+        super().__init__(host=host, port=port, timeout=timeout, context=context)
+        self._connect_host = connect_host
+
+    def connect(self):
+        sock = socket.create_connection((self._connect_host, self.port), self.timeout)
+        self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
 
 
 def _error_response(
@@ -311,49 +335,57 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
     headers = {"Content-Type": "application/json", **_build_headers(node)}
     headers.setdefault("Host", parsed_url.netloc)
     data = json.dumps(body).encode("utf-8") if body is not None else None
+    request_target = urlunparse(("", "", parsed_url.path, parsed_url.params, parsed_url.query, "")) or "/"
+    is_https = parsed_url.scheme == "https"
+    tls_context = ssl.create_default_context() if is_https else None
 
     connection_errors = []
     for address in vetted_addresses:
-        connect_url = urlunparse(
-            (
-                parsed_url.scheme,
-                _format_connect_netloc(address, port),
-                parsed_url.path,
-                parsed_url.params,
-                parsed_url.query,
-                parsed_url.fragment,
-            )
-        )
-
+        connection = None
         try:
-            req = urllib.request.Request(url=connect_url, method=method, headers=headers, data=data)
-            with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as response:  # nosec B310 - URL is pre-validated against SSRF
-                payload = response.read().decode("utf-8")
-                if not payload:
-                    return response.status, {}
-                try:
-                    return response.status, json.loads(payload)
-                except json.JSONDecodeError as exc:
-                    message = "node returned malformed JSON"
-                    raise NodeInvalidResponseError(message) from exc
-        except urllib.error.HTTPError as exc:
-            body_text = exc.read().decode("utf-8") if exc.fp else ""
+            if is_https:
+                connection = _PinnedHTTPSConnection(
+                    host=hostname,
+                    port=port,
+                    connect_host=address,
+                    timeout=REQUEST_TIMEOUT_SECONDS,
+                    context=tls_context,
+                )
+            else:
+                connection = _PinnedHTTPConnection(
+                    host=hostname,
+                    port=port,
+                    connect_host=address,
+                    timeout=REQUEST_TIMEOUT_SECONDS,
+                )
+
+            connection.request(method, request_target, body=data, headers=headers)
+            response = connection.getresponse()
+            body_text = response.read().decode("utf-8")
+            if not body_text:
+                return response.status, {}
             try:
-                body_json = json.loads(body_text) if body_text else {}
-            except json.JSONDecodeError as decode_exc:
+                body_json = json.loads(body_text)
+            except json.JSONDecodeError as exc:
                 message = "node returned malformed JSON"
-                raise NodeInvalidResponseError(message) from decode_exc
-            return exc.code, body_json
-        except urllib.error.URLError as exc:
-            reason, category = _classify_url_error(exc.reason)
+                raise NodeInvalidResponseError(message) from exc
+            return response.status, body_json
+        except NodeInvalidResponseError:
+            raise
+        except (urllib.error.URLError, OSError, ssl.SSLError, ssl.CertificateError) as exc:
+            reason_source = exc.reason if isinstance(exc, urllib.error.URLError) else exc
+            reason, category = _classify_url_error(reason_source)
             connection_errors.append(
                 NodeConnectivityError(
                     reason,
                     reason=reason,
                     category=category,
-                    raw_error=str(exc.reason),
+                    raw_error=str(reason_source),
                 )
             )
+        finally:
+            if connection is not None:
+                connection.close()
 
     if connection_errors:
         if len(connection_errors) == 1:
