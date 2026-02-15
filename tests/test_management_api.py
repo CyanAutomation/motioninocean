@@ -1493,7 +1493,7 @@ def test_diagnose_includes_structured_status_and_codes(monkeypatch):
 
 
 def test_diagnose_recommendations_keep_backward_compatible_guidance(monkeypatch):
-    management_api = importlib.import_module("management_api")
+    management_api = importlib.import_module("pi_camera_in_docker.management_api")
 
     node = {"id": "node-diag", "base_url": "http://example.invalid:8000", "transport": "http"}
 

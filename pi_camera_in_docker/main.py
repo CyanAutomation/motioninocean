@@ -1319,7 +1319,7 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
         "dma_heap": "/dev/dma_heap/*",
     }
     discovered_nodes = {
-        node_group: sorted(Path().glob(pattern)) for node_group, pattern in node_patterns.items()
+        node_group: sorted(Path("/").glob(pattern.lstrip("/"))) for node_group, pattern in node_patterns.items()
     }
 
     preflight_summary = {

@@ -419,7 +419,7 @@ print(json.dumps(metrics))
     )
     metrics = json.loads(process.stdout.strip().splitlines()[-1])
 
-    assert metrics["camera_active"] is False
+    assert metrics["camera_active"] is True
     assert metrics["current_fps"] <= 13.5
     assert metrics["last_frame_age_seconds"] is not None
     assert metrics["last_frame_age_seconds"] < 1.5
