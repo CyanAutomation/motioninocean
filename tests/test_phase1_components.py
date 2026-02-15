@@ -242,7 +242,6 @@ class TestConfigValidator:
             validate_all_config(config)
             # If no error is raised, that's the current behavior
 
-
     def test_validate_settings_patch_package_import_path(self):
         """Test validate_settings_patch via package import path."""
         # Valid value should produce no validation errors

@@ -6,6 +6,7 @@ from typing import Any, Dict, Tuple
 from .application_settings import ApplicationSettings, SettingsValidationError
 from .feature_flags import is_flag_enabled
 
+
 logger = logging.getLogger(__name__)
 
 ALLOWED_APP_MODES = {"webcam", "management"}
@@ -157,7 +158,8 @@ def _load_logging_config() -> Dict[str, Any]:
     return {
         "log_level": os.environ.get("LOG_LEVEL", "INFO"),
         "log_format": os.environ.get("LOG_FORMAT", "text"),
-        "log_include_identifiers": os.environ.get("LOG_INCLUDE_IDENTIFIERS", "false").lower() in (
+        "log_include_identifiers": os.environ.get("LOG_INCLUDE_IDENTIFIERS", "false").lower()
+        in (
             "1",
             "true",
             "yes",
@@ -221,7 +223,9 @@ def load_env_config() -> Dict[str, Any]:
     return _apply_pi3_profile_defaults(config)
 
 
-def _merge_camera_settings(merged: Dict[str, Any], camera_settings: Dict[str, Any], env_config: Dict[str, Any]) -> None:
+def _merge_camera_settings(
+    merged: Dict[str, Any], camera_settings: Dict[str, Any], env_config: Dict[str, Any]
+) -> None:
     if camera_settings.get("resolution") is not None:
         try:
             merged["resolution"] = parse_resolution(camera_settings["resolution"])
@@ -284,7 +288,9 @@ def merge_config_with_persisted_settings(
     return merged
 
 
-def merge_config_with_settings(env_config: Dict[str, Any], app_settings: ApplicationSettings | None = None) -> Dict[str, Any]:
+def merge_config_with_settings(
+    env_config: Dict[str, Any], app_settings: ApplicationSettings | None = None
+) -> Dict[str, Any]:
     try:
         settings_store = app_settings or ApplicationSettings()
         persisted = settings_store.load()
@@ -292,7 +298,9 @@ def merge_config_with_settings(env_config: Dict[str, Any], app_settings: Applica
     except SettingsValidationError as exc:
         logger.warning(f"Could not load persisted settings: {exc}. Using env config only.")
     except Exception as exc:
-        logger.warning(f"Unexpected error loading persisted settings: {exc}. Using env config only.")
+        logger.warning(
+            f"Unexpected error loading persisted settings: {exc}. Using env config only."
+        )
     return dict(env_config)
 
 
@@ -304,7 +312,9 @@ def get_effective_settings_payload(app_settings: ApplicationSettings) -> Dict[st
         logger.warning(f"Could not load persisted settings: {exc}. Using env config only.")
         persisted = {}
     except Exception as exc:
-        logger.warning(f"Unexpected error loading persisted settings: {exc}. Using env config only.")
+        logger.warning(
+            f"Unexpected error loading persisted settings: {exc}. Using env config only."
+        )
         persisted = {}
 
     merged = merge_config_with_persisted_settings(env_config, persisted)

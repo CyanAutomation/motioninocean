@@ -166,12 +166,8 @@ def test_management_query_node_ssrf_protection() -> TestResult:
     else:
         error_code = None
         reason = ""
-    
-    result.passed = (
-        code == 503
-        and error_code == "NODE_UNREACHABLE"
-        and "blocked" in reason
-    )
+
+    result.passed = code == 503 and error_code == "NODE_UNREACHABLE" and "blocked" in reason
     result.message = f"Status: {code}, error: {error_code}"
     result.details = error
     return result

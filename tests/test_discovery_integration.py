@@ -191,6 +191,7 @@ class TestDiscoveryEndToEnd:
     def test_webcam_announces_to_management_and_gets_approved(self, monkeypatch):
         """Full flow: webcam announces -> management receives -> admin approves node."""
         from flask import Flask
+
         from pi_camera_in_docker.management_api import register_management_routes
 
         with tempfile.TemporaryDirectory() as registry_dir:
@@ -253,6 +254,7 @@ class TestDiscoveryEndToEnd:
     def test_webcam_announces_with_private_ip_blocked_without_opt_in(self, monkeypatch):
         """Verify private IP announcements are blocked unless explicitly allowed."""
         from flask import Flask
+
         from pi_camera_in_docker.management_api import register_management_routes
 
         with tempfile.TemporaryDirectory() as registry_dir:
@@ -289,6 +291,7 @@ class TestDiscoveryEndToEnd:
     def test_webcam_announces_with_private_ip_allowed_with_opt_in(self, monkeypatch):
         """Verify private IP announcements are allowed when explicitly configured."""
         from flask import Flask
+
         from pi_camera_in_docker.management_api import register_management_routes
 
         with tempfile.TemporaryDirectory() as registry_dir:
@@ -351,6 +354,7 @@ class TestDiscoveryEndToEnd:
     def test_multiple_webcams_announce_independently(self, monkeypatch):
         """Verify multiple webcams can announce independently without conflicts."""
         from flask import Flask
+
         from pi_camera_in_docker.management_api import register_management_routes
 
         with tempfile.TemporaryDirectory() as registry_dir:
@@ -412,6 +416,7 @@ class TestDiscoveryEndToEnd:
     def test_discovery_announce_without_shared_secret_fails(self, monkeypatch):
         """Verify announcement fails if NODE_DISCOVERY_SHARED_SECRET not configured."""
         from flask import Flask
+
         from pi_camera_in_docker.management_api import register_management_routes
 
         with tempfile.TemporaryDirectory() as registry_dir:
@@ -447,6 +452,7 @@ class TestDiscoveryEndToEnd:
         import time
 
         from flask import Flask
+
         from pi_camera_in_docker.management_api import register_management_routes
 
         with tempfile.TemporaryDirectory() as registry_dir:

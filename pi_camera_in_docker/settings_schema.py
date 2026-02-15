@@ -4,7 +4,7 @@ Generates JSON schema for all runtime-editable settings.
 Used by /api/settings/schema endpoint to provide UI with metadata.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
 
 class SettingsSchema:
@@ -14,7 +14,7 @@ class SettingsSchema:
     """
 
     # Define all editable settings with their schema
-    SCHEMA_DEFINITION = {
+    SCHEMA_DEFINITION: ClassVar[Dict[str, Any]] = {
         "camera": {
             "title": "Camera Configuration",
             "description": "Video capture and streaming parameters",

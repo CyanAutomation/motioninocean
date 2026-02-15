@@ -4,7 +4,6 @@ import io
 import logging
 import os
 import signal
-import socket
 import time
 from datetime import datetime, timezone
 from pathlib import Path  # Moved here
@@ -12,22 +11,18 @@ from threading import Event, RLock, Thread
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlsplit, urlunsplit
 
-from .application_settings import ApplicationSettings, SettingsValidationError
-from .cat_gif_generator import CatGifGenerator
-from .config_validator import ConfigValidationError, validate_all_config
-from .discovery import DiscoveryAnnouncer, build_discovery_payload
-from .feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 from flask import Flask, g, jsonify, render_template, request
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+
+from .application_settings import ApplicationSettings
+from .cat_gif_generator import CatGifGenerator
+from .config_validator import ConfigValidationError, validate_all_config
+from .discovery import DiscoveryAnnouncer, build_discovery_payload
+from .feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 from .logging_config import configure_logging
 from .management_api import register_management_routes
-from .runtime_config import (
-    merge_config_with_settings,
-    parse_resolution,
-    load_env_config,
-)
 from .modes.webcam import (
     ConnectionTracker,
     FrameBuffer,
@@ -37,6 +32,11 @@ from .modes.webcam import (
     register_management_camera_error_routes,
     register_webcam_routes,
 )
+from .runtime_config import (
+    load_env_config,
+    merge_config_with_settings,
+)
+
 
 # Conditional import for picamera2 - not available in all test environments
 try:
@@ -46,10 +46,12 @@ except (ModuleNotFoundError, ImportError):
     def _picamera2_global_camera_info():
         return []
 
+
 from PIL import Image
+from werkzeug.serving import make_server
+
 from .settings_api import register_settings_routes
 from .shared import register_shared_routes, register_webcam_control_plane_auth
-from werkzeug.serving import make_server
 
 
 ALLOWED_APP_MODES = {"webcam", "management"}
@@ -80,9 +82,6 @@ def _parse_resolution(resolution_str: str) -> Tuple[int, int]:
         message = f"Resolution dimensions out of valid range (1-4096): {width}x{height}"
         raise ValueError(message)
     return width, height
-
-
-
 
 
 def _load_advanced_config() -> Dict[str, Any]:
@@ -461,6 +460,7 @@ def _init_flask_app(_config: Dict[str, Any]) -> Tuple[Flask, Limiter]:
 
 def _register_middleware(app: Flask, config: Dict[str, Any]) -> None:
     """Register middleware for correlation ID, logging, and CORS."""
+
     # Add correlation ID middleware
     @app.before_request
     def _add_correlation_id() -> None:
@@ -482,10 +482,18 @@ def _register_middleware(app: Flask, config: Dict[str, Any]) -> None:
         cors_origins_config = config.get("cors_origins", "*")
 
         if isinstance(cors_origins_config, str):
-            parsed_origins = [origin.strip() for origin in cors_origins_config.split(",") if origin.strip()]
-            cors_origins = parsed_origins if len(parsed_origins) > 1 else (parsed_origins[0] if parsed_origins else "*")
+            parsed_origins = [
+                origin.strip() for origin in cors_origins_config.split(",") if origin.strip()
+            ]
+            cors_origins = (
+                parsed_origins
+                if len(parsed_origins) > 1
+                else (parsed_origins[0] if parsed_origins else "*")
+            )
         elif isinstance(cors_origins_config, (list, tuple, set)):
-            parsed_origins = [str(origin).strip() for origin in cors_origins_config if str(origin).strip()]
+            parsed_origins = [
+                str(origin).strip() for origin in cors_origins_config if str(origin).strip()
+            ]
             cors_origins = parsed_origins if parsed_origins else "*"
         else:
             cors_origins = "*"
@@ -786,22 +794,9 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
             return jsonify({"error": f"Failed to generate configuration: {e!s}"}), 500
 
     # NOTE: The following endpoints are defined in shared.py via register_shared_routes:
-    # @app.route("/health")
-    # def health():
-    #     """Health check endpoint - returns healthy status and 200."""
-    #     return jsonify({"status": "healthy", ...}), 200
-    #
-    # @app.route("/ready")
-    # def ready():
-    #     """Readiness check endpoint - returns ready or not_ready status with 200 or 503."""
-    #     if not_ready:
-    #         return jsonify({"status": "not_ready", ...}), 503
-    #     return jsonify({"status": "ready", ...}), 200
-    #
-    # @app.route("/metrics")
-    # def metrics():
-    #     """Metrics endpoint - exposes frames_captured and current_fps."""
-    #     return jsonify({"frames_captured": count, "current_fps": fps}), 200
+
+
+
 
     return app, limiter, state
 
@@ -1049,19 +1044,35 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
         "v4l_subdev": range(64),  # /dev/v4l-subdev0 through /dev/v4l-subdev63
         "dma_heap": ["system", "linux,cma"],  # Common dma_heap device names
     }
-    
+
     device_pattern_display = {
         "video": "/dev/video*",
         "media": "/dev/media*",
         "v4l_subdev": "/dev/v4l-subdev*",
         "dma_heap": "/dev/dma_heap/*",
     }
-    
+
     discovered_nodes = {
-        "video": [Path(f"/dev/video{i}") for i in device_patterns["video"] if Path(f"/dev/video{i}").exists()],
-        "media": [Path(f"/dev/media{i}") for i in device_patterns["media"] if Path(f"/dev/media{i}").exists()],
-        "v4l_subdev": [Path(f"/dev/v4l-subdev{i}") for i in device_patterns["v4l_subdev"] if Path(f"/dev/v4l-subdev{i}").exists()],
-        "dma_heap": [Path(f"/dev/dma_heap/{name}") for name in device_patterns["dma_heap"] if Path(f"/dev/dma_heap/{name}").exists()],
+        "video": [
+            Path(f"/dev/video{i}")
+            for i in device_patterns["video"]
+            if Path(f"/dev/video{i}").exists()
+        ],
+        "media": [
+            Path(f"/dev/media{i}")
+            for i in device_patterns["media"]
+            if Path(f"/dev/media{i}").exists()
+        ],
+        "v4l_subdev": [
+            Path(f"/dev/v4l-subdev{i}")
+            for i in device_patterns["v4l_subdev"]
+            if Path(f"/dev/v4l-subdev{i}").exists()
+        ],
+        "dma_heap": [
+            Path(f"/dev/dma_heap/{name}")
+            for name in device_patterns["dma_heap"]
+            if Path(f"/dev/dma_heap/{name}").exists()
+        ],
     }
 
     preflight_summary = {

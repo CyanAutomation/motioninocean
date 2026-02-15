@@ -90,7 +90,6 @@ class ApplicationSettings:
         except (PermissionError, OSError) as e:
             # In test environments or restricted permissions, directory creation may fail
             # This is non-fatal - we'll just log and continue
-            import logging
             logger = logging.getLogger(__name__)
             logger.debug(f"Could not create settings directory {self.path.parent}: {e}")
 
@@ -151,9 +150,7 @@ class ApplicationSettings:
                 }
                 persisted_feature_flags = settings.get("feature_flags", {})
                 schema["settings"]["feature_flags"] = (
-                    persisted_feature_flags
-                    if isinstance(persisted_feature_flags, dict)
-                    else {}
+                    persisted_feature_flags if isinstance(persisted_feature_flags, dict) else {}
                 )
                 schema["settings"]["logging"] = {
                     **schema["settings"]["logging"],
@@ -314,14 +311,14 @@ class ApplicationSettings:
                 "last_modified": datetime.now(timezone.utc).isoformat(),
                 "modified_by": modified_by,
             }
-            
+
             for category, properties in patch.items():
                 if category not in temp_data["settings"]:
                     temp_data["settings"][category] = {}
                 temp_data["settings"][category].update(properties)
-            
+
             self._validate_settings_structure(temp_data)
-            
+
             # Apply validated updates to actual data
             for category, properties in patch.items():
                 if category not in current_settings:

@@ -1,5 +1,5 @@
-import ipaddress
 import http.client
+import ipaddress
 import json
 import os
 import socket
@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from flask import Flask, jsonify, request
+
 from .node_registry import FileNodeRegistry, NodeValidationError, validate_node
 from .transport_url_validation import parse_docker_url
 
@@ -337,7 +338,9 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
     headers = {"Content-Type": "application/json", **_build_headers(node)}
     headers.setdefault("Host", parsed_url.netloc)
     data = json.dumps(body).encode("utf-8") if body is not None else None
-    request_target = urlunparse(("", "", parsed_url.path, parsed_url.params, parsed_url.query, "")) or "/"
+    request_target = (
+        urlunparse(("", "", parsed_url.path, parsed_url.params, parsed_url.query, "")) or "/"
+    )
     is_https = parsed_url.scheme == "https"
     tls_context = ssl.create_default_context() if is_https else None
 

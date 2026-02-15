@@ -39,6 +39,7 @@ def pytest_collection_modifyitems(config, items):
     # Check if picamera2 is available
     try:
         import picamera2  # noqa: F401
+
         has_picamera2 = True
     except (ModuleNotFoundError, ImportError):
         has_picamera2 = False
@@ -54,17 +55,26 @@ def pytest_collection_modifyitems(config, items):
         if not has_picamera2:
             test_name = item.nodeid.lower()
             # Skip tests that explicitly require camera hardware
-            if any(keyword in test_name for keyword in [
-                "camera", "picamera2", "real_camera", "init_real_camera",
-                "run_webcam_mode", "webcam_mode_env", "management_mode_boots",
-                "shutdown_camera"
-            ]):
+            if any(
+                keyword in test_name
+                for keyword in [
+                    "camera",
+                    "picamera2",
+                    "real_camera",
+                    "init_real_camera",
+                    "run_webcam_mode",
+                    "webcam_mode_env",
+                    "management_mode_boots",
+                    "shutdown_camera",
+                ]
+            ):
                 item.add_marker(skip_no_camera)
 
         # Skip docker integration tests if docker-compose.yaml doesn't exist
         if not docker_compose_exists:
             test_name = item.nodeid.lower()
-            if any(keyword in test_name for keyword in [
-                "device_security", "udev_mount", "docker-compose"
-            ]):
+            if any(
+                keyword in test_name
+                for keyword in ["device_security", "udev_mount", "docker-compose"]
+            ):
                 item.add_marker(skip_no_docker_compose)

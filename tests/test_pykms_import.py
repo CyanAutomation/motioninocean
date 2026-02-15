@@ -2,9 +2,12 @@ import importlib
 import logging
 import sys
 import types
+
 import pytest
 
+
 logger = logging.getLogger(__name__)
+
 
 @pytest.fixture
 def clean_sys_modules():
@@ -14,11 +17,13 @@ def clean_sys_modules():
     sys.modules.clear()
     sys.modules.update(original_sys_modules)
 
+
 @pytest.fixture(autouse=True)
 def caplog_for_test(caplog):
     """Fixture to capture logs during tests."""
     caplog.set_level(logging.INFO)
     return caplog
+
 
 def test_module_not_found_scenario(clean_sys_modules, caplog_for_test):
     """
@@ -33,7 +38,7 @@ def test_module_not_found_scenario(clean_sys_modules, caplog_for_test):
     # Test 1: Simulate the absence of pykms by blocking it
     logger.info("\n[Test 1] ModuleNotFoundError scenario")
     logger.info("-" * 60)
-    
+
     # Temporarily remove pykms and kms from sys.modules
     sys.modules["pykms"] = None
     sys.modules["kms"] = None
@@ -69,13 +74,14 @@ def test_module_not_found_scenario(clean_sys_modules, caplog_for_test):
                 # Verify PixelFormat mock is available
                 # Re-import pykms to get the mock
                 import pykms
+
                 if hasattr(pykms, "PixelFormat") and hasattr(pykms.PixelFormat, "RGB888"):
                     logger.info("✓ PixelFormat mock with RGB888 attribute available")
                 else:
                     logger.warning("⚠️  WARNING: PixelFormat mock may be incomplete")
 
                 logger.info("\n✅ SUCCESS: ModuleNotFoundError workaround working correctly")
-                assert True # Explicitly pass
+                assert True  # Explicitly pass
             except Exception as retry_error:
                 pytest.fail(f"FAIL: Import still failed after workaround: {retry_error}")
         else:
@@ -119,13 +125,17 @@ def test_attribute_error_scenario(clean_sys_modules, caplog_for_test):
         picamera2_module = importlib.import_module("picamera2")
         # Attempt to access Picamera2 which might trigger the underlying PixelFormat issue
         _ = picamera2_module.Picamera2
-        logger.warning("⚠️  Note: picamera2 imported without error (may have internal fallback). This is acceptable for this test.")
-        assert True # If picamera2 handles it internally, this scenario might not strictly fail import.
+        logger.warning(
+            "⚠️  Note: picamera2 imported without error (may have internal fallback). This is acceptable for this test."
+        )
+        assert (
+            True
+        )  # If picamera2 handles it internally, this scenario might not strictly fail import.
     except AttributeError as attr_error:
         if "PixelFormat" in str(attr_error):
             logger.info("✓ Expected AttributeError caught: %s", attr_error)
             logger.info("✓ This error would be caught by the enhanced workaround in main.py")
-            assert True # Expected behavior
+            assert True  # Expected behavior
         else:
             pytest.fail(f"FAIL: Unexpected AttributeError: {attr_error}")
     except Exception as e:

@@ -10,6 +10,7 @@ from flask import Flask
 
 from pi_camera_in_docker.application_settings import ApplicationSettings
 
+
 # Import workspace root path (WORKSPACE_ROOT is set in conftest.py)
 # For module-level imports
 workspace_root = Path(__file__).parent.parent
@@ -20,7 +21,6 @@ def _new_management_client(monkeypatch, tmp_path):
     monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
     # Monkeypatch ApplicationSettings to use tmp_path
-    from pi_camera_in_docker.application_settings import ApplicationSettings
     original_app_settings_init = ApplicationSettings.__init__
 
     def mock_app_settings_init(self, path=None):
@@ -30,7 +30,9 @@ def _new_management_client(monkeypatch, tmp_path):
 
     monkeypatch.setattr(ApplicationSettings, "__init__", mock_app_settings_init)
     original_sys_path = sys.path.copy()
-    sys.path.insert(0, str(workspace_root)) # Add the parent directory of pi_camera_in_docker to sys.path
+    sys.path.insert(
+        0, str(workspace_root)
+    )  # Add the parent directory of pi_camera_in_docker to sys.path
     try:
         # Clear existing modules to ensure fresh import with new path
         sys.modules.pop("pi_camera_in_docker.main", None)
@@ -303,8 +305,6 @@ def test_settings_patch_requires_restart_response_reflects_persisted_state(monke
     assert payload["last_modified"] != before_payload["last_modified"]
 
 
-
-
 def test_settings_endpoint_returns_effective_runtime_values(monkeypatch, tmp_path):
     monkeypatch.setenv("RESOLUTION", "1280x720")
     monkeypatch.setenv("FPS", "24")
@@ -358,7 +358,6 @@ def test_settings_endpoint_returns_effective_runtime_values(monkeypatch, tmp_pat
     }
 
 
-
 def test_settings_patch_concurrent_overlapping_updates_are_merged(monkeypatch, tmp_path):
     client_a, _ = _new_management_client(monkeypatch, tmp_path)
     client_b, _ = _new_management_client(monkeypatch, tmp_path)
@@ -398,6 +397,7 @@ def test_settings_patch_concurrent_overlapping_updates_are_merged(monkeypatch, t
     final_settings = final_response.get_json()["settings"]["camera"]
     assert final_settings["fps"] == 55
     assert final_settings["jpeg_quality"] == 72
+
 
 def _auth_headers(token="test-token"):
     return {"Authorization": f"Bearer {token}"}
@@ -562,7 +562,9 @@ def test_corrupted_registry_file_returns_500_error_payload(monkeypatch, tmp_path
     monkeypatch.setenv("NODE_REGISTRY_PATH", str(registry_path))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
     original_sys_path = sys.path.copy()
-    sys.path.insert(0, str(workspace_root)) # Add the parent directory of pi_camera_in_docker to sys.path
+    sys.path.insert(
+        0, str(workspace_root)
+    )  # Add the parent directory of pi_camera_in_docker to sys.path
     try:
         sys.modules.pop("pi_camera_in_docker.main", None)
         sys.modules.pop("pi_camera_in_docker.management_api", None)
@@ -676,7 +678,7 @@ def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
 
 
 def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch, tmp_path):
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     original_update_node = management_api.FileNodeRegistry.update_node
 
@@ -915,7 +917,7 @@ def test_discovery_approval_endpoint(monkeypatch, tmp_path):
 
 
 def test_build_headers_for_bearer_auth_with_token():
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     node = {"auth": {"type": "bearer", "token": "node-token"}}
 
@@ -924,7 +926,7 @@ def test_build_headers_for_bearer_auth_with_token():
 
 
 def test_request_json_sends_bearer_auth_header_for_node_probes(monkeypatch):
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     class FakeResponse:
         status = 200
@@ -968,7 +970,7 @@ def test_request_json_sends_bearer_auth_header_for_node_probes(monkeypatch):
 
 
 def test_build_headers_for_bearer_auth_without_token_returns_empty_headers():
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     node = {"auth": {"type": "bearer"}}
 
@@ -977,7 +979,7 @@ def test_build_headers_for_bearer_auth_without_token_returns_empty_headers():
 
 
 def test_build_headers_for_non_bearer_auth_returns_empty_headers():
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     node = {"auth": {"type": "basic", "encoded": "abc", "username": "camera", "password": "secret"}}
 
@@ -1152,7 +1154,7 @@ def test_management_routes_require_authentication(monkeypatch, tmp_path):
 
 
 def test_node_status_maps_invalid_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
@@ -1247,7 +1249,7 @@ def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch
 
 
 def test_node_action_maps_invalid_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
@@ -1306,7 +1308,7 @@ def test_create_node_migrates_legacy_auth_with_token(monkeypatch, tmp_path):
 
 
 def test_request_json_uses_vetted_resolved_ip_and_preserves_host_header(monkeypatch):
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     class FakeResponse:
         status = 200
@@ -1365,7 +1367,7 @@ def test_request_json_uses_vetted_resolved_ip_and_preserves_host_header(monkeypa
 
 
 def test_request_json_retries_next_vetted_address_when_first_connection_fails(monkeypatch):
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     class FakeResponse:
         status = 200
@@ -1419,7 +1421,7 @@ def test_request_json_retries_next_vetted_address_when_first_connection_fails(mo
 
 
 def test_request_json_maps_name_resolution_failure_to_dns_category(monkeypatch):
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     def fake_getaddrinfo(host, port, proto):
         raise socket.gaierror("name or service not known")
@@ -1436,7 +1438,7 @@ def test_request_json_maps_name_resolution_failure_to_dns_category(monkeypatch):
 
 
 def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     def fake_getaddrinfo(host, port, proto):
         return [
@@ -1455,7 +1457,7 @@ def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
 
 
 def test_request_json_maps_timeout_failure(monkeypatch):
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     captured = {}
 
@@ -1490,7 +1492,7 @@ def test_request_json_maps_timeout_failure(monkeypatch):
 
 
 def test_request_json_maps_connection_refused_or_reset(monkeypatch):
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     def fake_getaddrinfo(host, port, proto):
         return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))]
@@ -1521,7 +1523,7 @@ def test_request_json_maps_connection_refused_or_reset(monkeypatch):
 
 
 def test_request_json_maps_tls_failure(monkeypatch):
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     def fake_getaddrinfo(host, port, proto):
         return [
@@ -1554,7 +1556,7 @@ def test_request_json_maps_tls_failure(monkeypatch):
 
 
 def test_request_json_https_uses_hostname_for_tls_and_pins_vetted_ip(monkeypatch):
-    import pi_camera_in_docker.management_api as management_api
+    from pi_camera_in_docker import management_api
 
     class FakeResponse:
         status = 200

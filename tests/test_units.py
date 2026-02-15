@@ -9,7 +9,8 @@ from pathlib import Path
 
 import pytest
 
-# Add workspace root to sys.path for proper package imports  
+
+# Add workspace root to sys.path for proper package imports
 workspace_root = Path(__file__).parent.parent
 sys.path.insert(0, str(workspace_root))
 
@@ -17,6 +18,7 @@ sys.path.insert(0, str(workspace_root))
 def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch):
     """Preflight should summarize discovered node counts and samples."""
     from pathlib import Path
+
     from pi_camera_in_docker import main
 
     def fake_glob(self, pattern):
@@ -37,7 +39,16 @@ def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch
 
     def mock_path_exists(self):
         # We also need to mock specific device paths to exist
-        if str(self) in ["/dev/vchiq", "/dev/video0", "/dev/video1", "/dev/media0", "/dev/v4l-subdev0", "/dev/dri", "/dev/dma_heap/linux,cma", "/dev/dma_heap/system"]:
+        if str(self) in [
+            "/dev/vchiq",
+            "/dev/video0",
+            "/dev/video1",
+            "/dev/media0",
+            "/dev/v4l-subdev0",
+            "/dev/dri",
+            "/dev/dma_heap/linux,cma",
+            "/dev/dma_heap/system",
+        ]:
             return True
         return False
 
@@ -62,6 +73,7 @@ def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch
 def test_check_device_availability_does_not_warn_when_video_nodes_exist(monkeypatch):
     """Preflight should not warn for missing non-video node groups when video nodes exist."""
     from pathlib import Path
+
     from pi_camera_in_docker import main
 
     def fake_glob(self, pattern):
@@ -102,6 +114,7 @@ def test_check_device_availability_does_not_warn_when_video_nodes_exist(monkeypa
 def test_check_device_availability_warns_when_video_nodes_missing(monkeypatch):
     """Preflight should warn when no video node is present, even if others exist."""
     from pathlib import Path
+
     from pi_camera_in_docker import main
 
     def fake_glob(self, pattern):
@@ -144,6 +157,7 @@ def test_check_device_availability_warns_when_video_nodes_missing(monkeypatch):
 def test_check_device_availability_warns_when_no_camera_nodes_detected(monkeypatch):
     """No video/media/subdev nodes should trigger stronger enumeration warning."""
     from pathlib import Path
+
     from pi_camera_in_docker import main
 
     monkeypatch.setattr(Path, "glob", lambda self, pattern: [])
@@ -434,8 +448,9 @@ def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypa
     from threading import Event, RLock
 
     pytest.importorskip("flask")
-    from pi_camera_in_docker import main
     from modes.webcam import ConnectionTracker, FrameBuffer, StreamStats
+
+    from pi_camera_in_docker import main
 
     cfg = {
         "mock_camera": False,

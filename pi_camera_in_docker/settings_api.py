@@ -4,6 +4,7 @@ Provides runtime configuration management via REST API.
 Endpoints: GET /api/settings, PATCH /api/settings, POST /api/settings/reset, GET /api/settings/schema
 """
 
+import os
 from typing import Any, Dict, Tuple
 
 from flask import Flask, current_app, jsonify, request
@@ -56,11 +57,13 @@ def register_settings_routes(app: Flask) -> None:
             defaults = SettingsSchema.get_defaults()
             restartable = SettingsSchema.get_restartable_properties()
 
-            return jsonify({
-                "schema": schema,
-                "defaults": defaults,
-                "restartable_properties": restartable,
-            }), 200
+            return jsonify(
+                {
+                    "schema": schema,
+                    "defaults": defaults,
+                    "restartable_properties": restartable,
+                }
+            ), 200
         except Exception as exc:
             return (
                 jsonify({"error": "Failed to generate settings schema", "details": str(exc)}),
@@ -98,10 +101,12 @@ def register_settings_routes(app: Flask) -> None:
             # Validate patch
             validation_errors = validate_settings_patch(patch_data)
             if validation_errors:
-                return jsonify({
-                    "error": "Validation failed",
-                    "validation_errors": validation_errors,
-                }), 400
+                return jsonify(
+                    {
+                        "error": "Validation failed",
+                        "validation_errors": validation_errors,
+                    }
+                ), 400
 
             # Check which properties require restart
             restartable_properties = SettingsSchema.get_restartable_properties()
@@ -155,10 +160,12 @@ def register_settings_routes(app: Flask) -> None:
         """
         try:
             current_app.application_settings.reset(modified_by="api_reset")
-            return jsonify({
-                "reset": True,
-                "message": "Settings reset to defaults. Environment variables are now source of truth."
-            }), 200
+            return jsonify(
+                {
+                    "reset": True,
+                    "message": "Settings reset to defaults. Environment variables are now source of truth.",
+                }
+            ), 200
         except Exception as exc:
             return (
                 jsonify({"error": "Failed to reset settings", "details": str(exc)}),
@@ -176,8 +183,6 @@ def register_settings_routes(app: Flask) -> None:
         """
         try:
             # Collect environment defaults
-            import os
-
             def safe_int_env(name: str, default: int) -> int:
                 value = os.environ.get(name)
                 if value is None:
@@ -213,11 +218,17 @@ def register_settings_routes(app: Flask) -> None:
                 "logging": {
                     "log_level": os.environ.get("LOG_LEVEL", "INFO"),
                     "log_format": os.environ.get("LOG_FORMAT", "text"),
-                    "log_include_identifiers": os.environ.get("LOG_INCLUDE_IDENTIFIERS", "false").lower() in ("1", "true", "yes"),
+                    "log_include_identifiers": os.environ.get(
+                        "LOG_INCLUDE_IDENTIFIERS", "false"
+                    ).lower()
+                    in ("1", "true", "yes"),
                 },
                 "discovery": {
-                    "discovery_enabled": os.environ.get("DISCOVERY_ENABLED", "false").lower() in ("1", "true", "yes"),
-                    "discovery_management_url": os.environ.get("DISCOVERY_MANAGEMENT_URL", "http://127.0.0.1:8001"),
+                    "discovery_enabled": os.environ.get("DISCOVERY_ENABLED", "false").lower()
+                    in ("1", "true", "yes"),
+                    "discovery_management_url": os.environ.get(
+                        "DISCOVERY_MANAGEMENT_URL", "http://127.0.0.1:8001"
+                    ),
                     "discovery_token": os.environ.get("DISCOVERY_TOKEN", ""),
                     "discovery_interval_seconds": safe_float_env("DISCOVERY_INTERVAL_SECONDS", 30),
                 },

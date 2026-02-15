@@ -3,6 +3,8 @@
 import re
 from typing import Any, Dict, Optional, Tuple
 
+from .settings_schema import SettingsSchema
+
 
 class ConfigValidationError(ValueError):
     """Raised when configuration is invalid."""
@@ -290,6 +292,7 @@ def validate_all_config(config: Dict[str, Any]) -> None:
     # - If MANAGEMENT_AUTH_TOKEN set, ensure it's strong enough
     # etc.
 
+
 def validate_settings_patch(patch: Dict[str, Any]) -> Dict[str, str]:
     """
     Validate a settings PATCH request.
@@ -300,8 +303,6 @@ def validate_settings_patch(patch: Dict[str, Any]) -> Dict[str, str]:
     Returns:
         Dict of error messages { "category.property": "error message" } (empty if valid)
     """
-    from .settings_schema import SettingsSchema
-
     errors = {}
 
     if not isinstance(patch, dict):

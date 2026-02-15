@@ -98,13 +98,19 @@ def test_docker_compose_device_mappings(workspace_root):
     is_privileged = service.get("privileged", False)
 
     if is_privileged:
-        assert True  # privileged mode grants access, so specific device mappings are not strictly required
+        assert (
+            True
+        )  # privileged mode grants access, so specific device mappings are not strictly required
         return
 
     # If not privileged, then explicit device mappings are required
     assert len(devices) > 0, "No device mappings found and not running in privileged mode"
-    assert any("/dev/dma_heap" in str(d) for d in devices), "Missing /dev/dma_heap device (or privileged mode)"
-    assert any("/dev/vchiq" in str(d) for d in devices), "Missing /dev/vchiq device (or privileged mode)"
+    assert any("/dev/dma_heap" in str(d) for d in devices), (
+        "Missing /dev/dma_heap device (or privileged mode)"
+    )
+    assert any("/dev/vchiq" in str(d) for d in devices), (
+        "Missing /dev/vchiq device (or privileged mode)"
+    )
 
     # /dev/video* devices can be configured via explicit device mappings OR device_cgroup_rules
     # Check for either approach
@@ -140,7 +146,9 @@ def test_docker_compose_security(workspace_root):
         "privileged: true" in content and "# privileged: true" not in content
     )
     if is_privileged_explicitly_set:
-        assert True  # privileged: true is present and explicitly allowed per docker-compose.yaml comments
+        assert (
+            True
+        )  # privileged: true is present and explicitly allowed per docker-compose.yaml comments
     else:
         # If not privileged, ensure it's not present or commented out if it was.
         # This branch ensures that if privileged is used, it must be the uncommented one.
@@ -420,7 +428,7 @@ print(json.dumps(metrics))
     print(process.stderr, file=sys.stderr)
     # The output from the subprocess includes debug prints, so we need to find the last JSON line
     output_lines = process.stdout.strip().splitlines()
-    metrics_json_line = next(line for line in reversed(output_lines) if line.startswith('{'))
+    metrics_json_line = next(line for line in reversed(output_lines) if line.startswith("{"))
     metrics = json.loads(metrics_json_line)
 
     assert metrics["camera_active"] is True
@@ -560,9 +568,9 @@ def test_detect_devices_script_includes_v4l_subdev(workspace_root):
 def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspace_root):
     """Verify setup UI device detection captures /dev/v4l-subdev* nodes."""
     original_path = sys.path.copy()
-    sys.path.insert(0, str(workspace_root)) # Add parent dir to sys.path
+    sys.path.insert(0, str(workspace_root))  # Add parent dir to sys.path
     try:
-        import pi_camera_in_docker.main as main
+        from pi_camera_in_docker import main
 
         existing_paths = {
             "/dev/vchiq",
@@ -589,11 +597,11 @@ def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspa
 def test_setup_ui_generated_compose_includes_v4l_subdev_mapping(workspace_root):
     """Verify setup UI compose generation emits /dev/v4l-subdev* mappings."""
     original_path = sys.path.copy()
-    sys.path.insert(0, str(workspace_root)) # Add parent dir to sys.path
+    sys.path.insert(0, str(workspace_root))  # Add parent dir to sys.path
     try:
-        import pi_camera_in_docker.main as main
+        from pi_camera_in_docker import main
     finally:
-        sys.path = original_path # Restore sys.path
+        sys.path = original_path  # Restore sys.path
 
     detected_devices = {
         "dma_heap_devices": ["/dev/dma_heap/system"],

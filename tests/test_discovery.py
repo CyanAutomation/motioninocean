@@ -1,5 +1,4 @@
 import sys
-import sys
 import threading
 
 import pytest
@@ -7,9 +6,9 @@ import pytest
 
 def test_load_config_discovery_defaults(monkeypatch, workspace_root):
     original_path = sys.path.copy()
-    sys.path.insert(0, str(workspace_root)) # Add parent dir to sys.path
+    sys.path.insert(0, str(workspace_root))  # Add parent dir to sys.path
     try:
-        import pi_camera_in_docker.main as main
+        from pi_camera_in_docker import main
 
         monkeypatch.delenv("DISCOVERY_ENABLED", raising=False)
         monkeypatch.delenv("DISCOVERY_MANAGEMENT_URL", raising=False)
@@ -32,9 +31,9 @@ def test_load_config_discovery_defaults(monkeypatch, workspace_root):
 
 def test_load_config_discovery_overrides(monkeypatch, workspace_root):
     original_path = sys.path.copy()
-    sys.path.insert(0, str(workspace_root)) # Add parent dir to sys.path
+    sys.path.insert(0, str(workspace_root))  # Add parent dir to sys.path
     try:
-        import pi_camera_in_docker.main as main
+        from pi_camera_in_docker import main
 
         monkeypatch.setenv("DISCOVERY_ENABLED", "true")
         monkeypatch.setenv("DISCOVERY_MANAGEMENT_URL", "http://192.168.1.100:8001")

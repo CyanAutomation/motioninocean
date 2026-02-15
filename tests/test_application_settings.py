@@ -3,12 +3,12 @@ Tests for ApplicationSettings persistence layer
 """
 
 import json
-import threading
-from contextlib import contextmanager
 
 # Import from parent directory
 import sys
 import tempfile
+import threading
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -177,7 +177,6 @@ class TestApplicationSettingsReset:
         loaded = settings.load()
         assert loaded["settings"]["camera"]["fps"] is None
 
-
     def test_load_coerces_invalid_feature_flags_to_empty_dict(self, temp_settings_file):
         """Invalid persisted feature_flags values are treated as empty maps."""
         settings = ApplicationSettings(temp_settings_file)
@@ -227,9 +226,7 @@ class TestApplicationSettingsChanges:
         changes = settings.get_changes_from_env(env_defaults)
         assert len(changes["overridden"]) > 0
 
-        override = next(
-            (o for o in changes["overridden"] if o["key"] == "fps"), None
-        )
+        override = next((o for o in changes["overridden"] if o["key"] == "fps"), None)
         assert override is not None
         assert override["value"] == 60
         assert override["env_value"] == 30
@@ -282,10 +279,13 @@ class TestApplicationSettingsValidation:
 
         # Create file with invalid version
         with open(temp_settings_file, "w") as f:
-            json.dump({
-                "version": 99,
-                "settings": {"camera": {}, "feature_flags": {}, "logging": {}, "discovery": {}}
-            }, f)
+            json.dump(
+                {
+                    "version": 99,
+                    "settings": {"camera": {}, "feature_flags": {}, "logging": {}, "discovery": {}},
+                },
+                f,
+            )
 
         # Trying to load invalid version should raise
         with pytest.raises(SettingsValidationError):
@@ -301,19 +301,25 @@ class TestApplicationSettingsConcurrency:
         settings2 = ApplicationSettings(temp_settings_file)
 
         # Save from both instances
-        settings1.save({
-            "camera": {"fps": 60},
-            "feature_flags": {},
-            "logging": {},
-            "discovery": {},
-        }, "test1")
+        settings1.save(
+            {
+                "camera": {"fps": 60},
+                "feature_flags": {},
+                "logging": {},
+                "discovery": {},
+            },
+            "test1",
+        )
 
-        settings2.save({
-            "camera": {"fps": 45},
-            "feature_flags": {},
-            "logging": {},
-            "discovery": {},
-        }, "test2")
+        settings2.save(
+            {
+                "camera": {"fps": 45},
+                "feature_flags": {},
+                "logging": {},
+                "discovery": {},
+            },
+            "test2",
+        )
 
         # Should have one of the saves (last one wins)
         loaded = settings1.load()
@@ -343,9 +349,7 @@ class TestApplicationSettingsConcurrency:
         assert loaded["settings"]["camera"]["fps"] == 60
         assert loaded["settings"]["camera"]["jpeg_quality"] == 85
 
-    def test_concurrent_update_category_keeps_updates_to_different_keys(
-        self, temp_settings_file
-    ):
+    def test_concurrent_update_category_keeps_updates_to_different_keys(self, temp_settings_file):
         """Concurrent category updates should preserve all independent key changes."""
         settings = ApplicationSettings(temp_settings_file)
         start = threading.Barrier(2)
@@ -384,9 +388,7 @@ class TestApplicationSettingsConcurrency:
         settings.load()
         assert lock_used["value"] is True
 
-    def test_load_handles_file_removed_after_exists_check(
-        self, temp_settings_file, monkeypatch
-    ):
+    def test_load_handles_file_removed_after_exists_check(self, temp_settings_file, monkeypatch):
         """Load should return defaults when file disappears during read."""
         settings = ApplicationSettings(temp_settings_file)
 

@@ -4,9 +4,8 @@ import tempfile
 import time
 from pathlib import Path
 
-from flask import Flask
-
 from pi_camera_in_docker.application_settings import ApplicationSettings
+
 
 # Add workspace root to sys.path for proper package imports
 workspace_root = Path(__file__).parent.parent
@@ -309,7 +308,6 @@ def _new_webcam_client(monkeypatch, token: str):
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", token)
 
     # Monkeypatch ApplicationSettings to use tmpdir
-    from pi_camera_in_docker.application_settings import ApplicationSettings
     original_app_settings_init = ApplicationSettings.__init__
 
     def mock_app_settings_init(self, path=None):
@@ -320,10 +318,11 @@ def _new_webcam_client(monkeypatch, token: str):
     monkeypatch.setattr(ApplicationSettings, "__init__", mock_app_settings_init)
 
     original_sys_path = sys.path.copy()
-    sys.path.insert(0, str(workspace_root)) # Add parent dir to sys.path
+    sys.path.insert(0, str(workspace_root))  # Add parent dir to sys.path
     try:
         sys.modules.pop("pi_camera_in_docker.main", None)
-        import pi_camera_in_docker.main as main
+        from pi_camera_in_docker import main
+
         cfg = main._load_config()
         cfg["app_mode"] = "webcam"
         cfg["mock_camera"] = True
