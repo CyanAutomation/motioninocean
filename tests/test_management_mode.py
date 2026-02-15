@@ -145,6 +145,11 @@ def test_api_config_returns_render_config_shape_in_management_mode(monkeypatch):
         assert body["runtime"]["camera_active"] is False
         assert isinstance(body["runtime"]["mock_camera"], bool)
         assert body["runtime"]["uptime_seconds"] is None
+        _assert_health_check_contract(body)
+        assert body["health_check"]["camera_pipeline"]["state"] == "unknown"
+        assert body["health_check"]["stream_freshness"]["state"] == "unknown"
+        assert body["health_check"]["connection_capacity"]["state"] == "ok"
+        assert body["health_check"]["mock_mode"]["state"] in {"ok", "warn"}
         assert "limits" not in body
 
         assert isinstance(body["timestamp"], str)
@@ -160,6 +165,11 @@ def test_api_config_returns_webcam_connection_counts(monkeypatch):
     assert body["app_mode"] == "webcam"
     assert body["stream_control"]["max_stream_connections"] == 10
     assert body["stream_control"]["current_stream_connections"] == 0
+    _assert_health_check_contract(body)
+    assert body["health_check"]["camera_pipeline"]["state"] in {"ok", "fail"}
+    assert body["health_check"]["stream_freshness"]["state"] in {"ok", "fail", "unknown"}
+    assert body["health_check"]["connection_capacity"]["state"] in {"ok", "warn", "fail"}
+    assert body["health_check"]["mock_mode"]["state"] in {"ok", "warn"}
 
 
 def test_api_config_webcam_includes_render_config_keys_and_defaulted_values(monkeypatch):
@@ -198,6 +208,7 @@ def test_api_config_webcam_includes_render_config_keys_and_defaulted_values(monk
         assert body["stream_control"]["cors_origins"] == "*"
         assert isinstance(body["runtime"]["uptime_seconds"], float)
         assert body["runtime"]["uptime_seconds"] >= 0.0
+        _assert_health_check_contract(body)
 
 
 def test_api_config_management_includes_render_config_keys_and_defaulted_values(monkeypatch):
@@ -234,6 +245,7 @@ def test_api_config_management_includes_render_config_keys_and_defaulted_values(
         assert body["stream_control"]["cors_origins"] == "*"
         assert body["runtime"]["camera_active"] is False
         assert body["runtime"]["uptime_seconds"] is None
+        _assert_health_check_contract(body)
 
 
 def test_request_logging_levels(monkeypatch):
@@ -350,7 +362,7 @@ def test_webcam_control_plane_endpoints_require_valid_bearer_when_token_set(monk
 
 
 def _assert_render_config_contract(payload: dict):
-    for key in ("camera_settings", "stream_control", "runtime", "timestamp"):
+    for key in ("camera_settings", "stream_control", "runtime", "health_check", "timestamp"):
         assert key in payload
 
     assert set(payload["camera_settings"]) >= {"resolution", "fps", "target_fps", "jpeg_quality"}
@@ -361,7 +373,31 @@ def _assert_render_config_contract(payload: dict):
         "cors_origins",
     }
     assert set(payload["runtime"]) >= {"camera_active", "mock_camera", "uptime_seconds"}
+    assert set(payload["health_check"]) >= {
+        "camera_pipeline",
+        "stream_freshness",
+        "connection_capacity",
+        "mock_mode",
+    }
     assert isinstance(payload["timestamp"], str)
+
+
+def _assert_health_check_contract(payload: dict):
+    allowed_states = {"ok", "warn", "fail", "unknown"}
+    indicators = payload["health_check"]
+    for key in (
+        "camera_pipeline",
+        "stream_freshness",
+        "connection_capacity",
+        "mock_mode",
+    ):
+        assert key in indicators
+        indicator = indicators[key]
+        assert indicator["state"] in allowed_states
+        assert isinstance(indicator["label"], str)
+        assert indicator["label"]
+        assert isinstance(indicator["details"], str)
+        assert indicator["details"]
 
 
 def test_webcam_api_test_mode_transitions_and_status_contract(monkeypatch):

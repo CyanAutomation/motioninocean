@@ -585,14 +585,131 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
 
     @app.route("/api/config")
     def api_config():
+        def _indicator(state_value: str, label: str, details: str) -> Dict[str, str]:
+            return {
+                "state": state_value,
+                "label": label,
+                "details": details,
+            }
+
+        def _build_health_check(
+            camera_is_active: bool,
+            stream_status: Dict[str, Any],
+            current_connections_count: int,
+            max_connections_count: int,
+        ) -> Dict[str, Dict[str, str]]:
+            last_frame_age_seconds = stream_status.get("last_frame_age_seconds")
+            max_age_seconds = state.get("max_frame_age_seconds", config["max_frame_age_seconds"])
+
+            if camera_is_active:
+                camera_pipeline = _indicator(
+                    "ok",
+                    "Camera pipeline active",
+                    "Camera recording pipeline is active.",
+                )
+            elif state.get("app_mode") == "management":
+                camera_pipeline = _indicator(
+                    "unknown",
+                    "Camera pipeline not required",
+                    "Management mode does not require an active camera pipeline.",
+                )
+            else:
+                camera_pipeline = _indicator(
+                    "fail",
+                    "Camera pipeline inactive",
+                    "Camera recording pipeline is not active.",
+                )
+
+            if last_frame_age_seconds is None:
+                stream_freshness = _indicator(
+                    "unknown",
+                    "Stream freshness unavailable",
+                    "No frame age is currently available to evaluate freshness.",
+                )
+            elif last_frame_age_seconds <= max_age_seconds:
+                stream_freshness = _indicator(
+                    "ok",
+                    "Stream is fresh",
+                    f"Last frame age {last_frame_age_seconds:.2f}s is within the {max_age_seconds:.2f}s threshold.",
+                )
+            else:
+                stream_freshness = _indicator(
+                    "fail",
+                    "Stream is stale",
+                    f"Last frame age {last_frame_age_seconds:.2f}s exceeds the {max_age_seconds:.2f}s threshold.",
+                )
+
+            connection_ratio = (
+                current_connections_count / max_connections_count
+                if max_connections_count > 0
+                else 0.0
+            )
+            if max_connections_count <= 0:
+                connection_capacity = _indicator(
+                    "unknown",
+                    "Connection capacity unavailable",
+                    "Maximum stream connections is not configured.",
+                )
+            elif connection_ratio >= 1.0:
+                connection_capacity = _indicator(
+                    "fail",
+                    "Connection capacity reached",
+                    f"{current_connections_count}/{max_connections_count} stream connections are in use.",
+                )
+            elif connection_ratio >= 0.8:
+                connection_capacity = _indicator(
+                    "warn",
+                    "Connection capacity nearing limit",
+                    f"{current_connections_count}/{max_connections_count} stream connections are in use.",
+                )
+            else:
+                connection_capacity = _indicator(
+                    "ok",
+                    "Connection capacity healthy",
+                    f"{current_connections_count}/{max_connections_count} stream connections are in use.",
+                )
+
+            expected_real_camera = state.get("app_mode") == "webcam"
+            if config["mock_camera"] and expected_real_camera:
+                mock_mode = _indicator(
+                    "warn",
+                    "Mock camera enabled",
+                    "Mock camera is enabled while webcam mode is active.",
+                )
+            elif config["mock_camera"]:
+                mock_mode = _indicator(
+                    "ok",
+                    "Mock camera enabled",
+                    "Mock camera is enabled for a non-webcam mode.",
+                )
+            else:
+                mock_mode = _indicator(
+                    "ok",
+                    "Real camera mode",
+                    "Mock camera is disabled.",
+                )
+
+            return {
+                "camera_pipeline": camera_pipeline,
+                "stream_freshness": stream_freshness,
+                "connection_capacity": connection_capacity,
+                "mock_mode": mock_mode,
+            }
+
         if state.get("app_mode") == "webcam":
             tracker = state.get("connection_tracker")
             recording_started = state.get("recording_started")
+            stream_stats = state.get("stream_stats")
 
             current_connections = (
                 tracker.get_count() if isinstance(tracker, ConnectionTracker) else 0
             )
             camera_active = isinstance(recording_started, Event) and recording_started.is_set()
+            stream_status = (
+                get_stream_status(stream_stats, config["resolution"])
+                if isinstance(stream_stats, StreamStats)
+                else {"last_frame_age_seconds": None}
+            )
             uptime_seconds = round(
                 max(
                     0.0,
@@ -603,7 +720,16 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
         else:
             current_connections = 0
             camera_active = False
+            stream_status = {"last_frame_age_seconds": None}
             uptime_seconds = None
+
+        max_connections = state.get("max_stream_connections", config["max_stream_connections"])
+        health_check = _build_health_check(
+            camera_active,
+            stream_status,
+            current_connections,
+            max_connections,
+        )
 
         return jsonify(
             {
@@ -628,6 +754,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
                     "mock_camera": config["mock_camera"],
                     "uptime_seconds": uptime_seconds,
                 },
+                "health_check": health_check,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "app_mode": config["app_mode"],
             }
