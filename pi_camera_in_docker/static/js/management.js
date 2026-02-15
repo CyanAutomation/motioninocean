@@ -22,6 +22,8 @@ const copyDiagnosticReportBtn = document.getElementById("copy-diagnostic-report-
 const diagnosticPanel = document.getElementById("diagnostic-panel");
 const advancedDiagnosticsToggle = document.getElementById("advanced-diagnostics-toggle");
 const diagnosticPanelContent = document.getElementById("diagnostic-panel-content");
+const diagnosticsAdvancedCheckbox = advancedDiagnosticsToggle;
+const diagnosticsCollapsibleContainer = diagnosticPanelContent;
 
 let nodes = [];
 let nodeStatusMap = new Map();
@@ -40,21 +42,33 @@ const DOCKER_BASE_URL_HINT = "Use format: docker://proxy-hostname:port/container
 const NODE_FORM_COLLAPSED_STORAGE_KEY = "management.nodeFormCollapsed";
 
 function setDiagnosticPanelExpanded(isExpanded) {
-  if (!(advancedDiagnosticsToggle instanceof HTMLInputElement) || !(diagnosticPanelContent instanceof HTMLElement)) {
+  if (
+    !(diagnosticsAdvancedCheckbox instanceof HTMLInputElement) ||
+    !(diagnosticsCollapsibleContainer instanceof HTMLElement)
+  ) {
     return;
   }
 
-  advancedDiagnosticsToggle.checked = isExpanded;
-  advancedDiagnosticsToggle.checked = isExpanded;
-  diagnosticPanelContent.hidden = !isExpanded;
+  diagnosticsAdvancedCheckbox.checked = isExpanded;
+  diagnosticsAdvancedCheckbox.checked = isExpanded;
+  diagnosticsCollapsibleContainer.hidden = !isExpanded;
+  diagnosticsCollapsibleContainer.classList.toggle("hidden", !isExpanded);
+}
+
+function isDiagnosticPanelContentVisible() {
+  if (!(diagnosticsCollapsibleContainer instanceof HTMLElement)) {
+    return false;
+  }
+
+  return !diagnosticsCollapsibleContainer.hidden && !diagnosticsCollapsibleContainer.classList.contains("hidden");
 }
 
 function toggleDiagnosticPanelContent() {
-  if (!(advancedDiagnosticsToggle instanceof HTMLInputElement)) {
+  if (!(diagnosticsAdvancedCheckbox instanceof HTMLInputElement)) {
     return;
   }
 
-  setDiagnosticPanelExpanded(advancedDiagnosticsToggle.checked);
+  setDiagnosticPanelExpanded(diagnosticsAdvancedCheckbox.checked);
 }
 
 function updateBaseUrlValidation(transport = "http") {
@@ -1001,7 +1015,7 @@ function showDiagnosticResults(diagnosticResult) {
   renderDiagnosticRecommendations(diagnosticResult.guidance || [], diagnosticResult.recommendations || []);
   copyDiagnosticReportBtn.disabled = false;
   setDiagnosticPanelExpanded(true);
-  if (diagnosticPanel && typeof diagnosticPanel.focus === "function") {
+  if (isDiagnosticPanelContentVisible() && diagnosticPanel && typeof diagnosticPanel.focus === "function") {
     diagnosticPanel.focus();
   }
 }
@@ -1118,9 +1132,9 @@ async function init() {
     updateBaseUrlValidation(target.value);
   });
   updateBaseUrlValidation(document.getElementById("node-transport").value);
-  if (advancedDiagnosticsToggle instanceof HTMLInputElement && diagnosticPanelContent instanceof HTMLElement) {
+  if (diagnosticsAdvancedCheckbox instanceof HTMLInputElement && diagnosticsCollapsibleContainer instanceof HTMLElement) {
     setDiagnosticPanelExpanded(false);
-    advancedDiagnosticsToggle.addEventListener("change", toggleDiagnosticPanelContent);
+    diagnosticsAdvancedCheckbox.addEventListener("change", toggleDiagnosticPanelContent);
   }
   copyDiagnosticReportBtn.addEventListener("click", async () => {
     if (!latestDiagnosticResult) {
