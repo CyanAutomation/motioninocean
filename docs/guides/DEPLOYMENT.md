@@ -234,8 +234,8 @@ MANAGEMENT_AUTH_TOKEN=              # Leave empty for LAN-only
 Motion in Ocean supports a hub-and-spoke architecture where:
 
 - **Management Host**: Runs management mode; provides control plane and web UI
-- **Webcam Hosts**: Run webcam mode; stream video and provide health/status endpoints
-- **Communication**: Management mode probes remote endpoints and aggregates status via HTTP
+- **Webcam Hosts**: Run webcam mode; stream video and implement the management aggregation contract at `/api/status`
+- **Communication**: Management mode probes `/api/status` and aggregates node status via HTTP
 
 **Architecture Diagram:**
 
@@ -248,8 +248,10 @@ graph TD
     FileRegistry["FileNodeRegistry<br/>(Persistent JSON)"]
 
     Browser -->|Web UI & API| Management
-    Management -->|GET /api/status (required)<br/>GET /health (liveness)<br/>GET /ready (optional)<br/>GET /metrics (optional)| WebcamOne
-    Management -->|GET /api/status (required)<br/>GET /health (liveness)<br/>GET /ready (optional)<br/>GET /metrics (optional)| WebcamTwo
+    Management -->|Management aggregation contract:<br/>GET /api/status (required)| WebcamOne
+    Management -->|Management aggregation contract:<br/>GET /api/status (required)| WebcamTwo
+    Management -.->|Operator diagnostics only:<br/>GET /health (liveness),<br/>GET /ready (optional),<br/>GET /metrics (optional)| WebcamOne
+    Management -.->|Operator diagnostics only:<br/>GET /health (liveness),<br/>GET /ready (optional),<br/>GET /metrics (optional)| WebcamTwo
     Management -->|CRUD /api/nodes| FileRegistry
     WebcamOne -.->|Stream /stream.mjpg| Browser
     WebcamTwo -.->|Stream /stream.mjpg| Browser
@@ -264,7 +266,7 @@ HTTP-based access is the recommended approach for most deployments:
 
 - ✅ Simple setup, no special configuration needed beyond binding to network interface
 - ✅ Works across any network (local, VPN, etc.)
-- ✅ Full support for management operations (status, health checks)
+- ✅ Full support for management operations using the `/api/status` aggregation contract
 - ✅ Built-in SSRF protections
 
 ### Prerequisites
