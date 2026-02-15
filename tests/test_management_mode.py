@@ -2,6 +2,11 @@ import importlib
 import sys
 import tempfile
 import time
+from pathlib import Path
+
+# Add workspace root to sys.path for proper package imports
+workspace_root = Path(__file__).parent.parent
+sys.path.insert(0, str(workspace_root))
 
 
 def test_management_mode_boots_without_camera(monkeypatch):
@@ -11,10 +16,10 @@ def test_management_mode_boots_without_camera(monkeypatch):
         monkeypatch.setenv("APP_MODE", "management")
         monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "false")
 
-        sys.modules.pop("main", None)
+        sys.modules.pop("pi_camera_in_docker.main", None)
         sys.modules.pop("picamera2", None)
 
-        main = importlib.import_module("main")
+        main = importlib.import_module("pi_camera_in_docker.main")
         client = main.create_management_app(main._load_config()).test_client()
 
         health = client.get("/health")
@@ -59,8 +64,8 @@ def test_webcam_mode_env_validation_and_startup(monkeypatch):
         monkeypatch.setenv("MAX_FRAME_AGE_SECONDS", "-1")
         monkeypatch.setenv("MAX_STREAM_CONNECTIONS", "not_an_int")
 
-        sys.modules.pop("main", None)
-        main = importlib.import_module("main")
+        sys.modules.pop("pi_camera_in_docker.main", None)
+        main = importlib.import_module("pi_camera_in_docker.main")
 
         cfg = main._load_config()
         assert cfg["resolution"] == (640, 480)
@@ -82,8 +87,8 @@ def test_root_serves_management_template_in_management_mode(monkeypatch):
         monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
         monkeypatch.setenv("APP_MODE", "management")
 
-        sys.modules.pop("main", None)
-        main = importlib.import_module("main")
+        sys.modules.pop("pi_camera_in_docker.main", None)
+        main = importlib.import_module("pi_camera_in_docker.main")
         client = main.create_management_app(main._load_config()).test_client()
 
         response = client.get("/")
@@ -99,8 +104,8 @@ def test_root_serves_stream_template_in_webcam_mode(monkeypatch):
         monkeypatch.setenv("APP_MODE", "management")
         monkeypatch.setenv("MOCK_CAMERA", "true")
 
-        sys.modules.pop("main", None)
-        main = importlib.import_module("main")
+        sys.modules.pop("pi_camera_in_docker.main", None)
+        main = importlib.import_module("pi_camera_in_docker.main")
         cfg = main._load_config()
         cfg["app_mode"] = "webcam"
         cfg["mock_camera"] = True
@@ -122,8 +127,8 @@ def test_api_config_returns_render_config_shape_in_management_mode(monkeypatch):
         monkeypatch.setenv("MOCK_CAMERA", "false")
         monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "false")
 
-        sys.modules.pop("main", None)
-        main = importlib.import_module("main")
+        sys.modules.pop("pi_camera_in_docker.main", None)
+        main = importlib.import_module("pi_camera_in_docker.main")
         app = main.create_management_app(main._load_config())
         client = app.test_client()
 
@@ -185,8 +190,8 @@ def test_api_config_webcam_includes_render_config_keys_and_defaulted_values(monk
         monkeypatch.setenv("MAX_FRAME_AGE_SECONDS", "invalid")
         monkeypatch.setenv("MOTION_IN_OCEAN_CORS_ORIGINS", "")
 
-        sys.modules.pop("main", None)
-        main = importlib.import_module("main")
+        sys.modules.pop("pi_camera_in_docker.main", None)
+        main = importlib.import_module("pi_camera_in_docker.main")
         cfg = main._load_config()
         cfg["app_mode"] = "webcam"
         cfg["mock_camera"] = True
@@ -224,8 +229,8 @@ def test_api_config_management_includes_render_config_keys_and_defaulted_values(
         monkeypatch.setenv("MAX_FRAME_AGE_SECONDS", "invalid")
         monkeypatch.setenv("MOTION_IN_OCEAN_CORS_ORIGINS", "")
 
-        sys.modules.pop("main", None)
-        main = importlib.import_module("main")
+        sys.modules.pop("pi_camera_in_docker.main", None)
+        main = importlib.import_module("pi_camera_in_docker.main")
         client = main.create_management_app(main._load_config()).test_client()
 
         response = client.get("/api/config")
@@ -253,8 +258,8 @@ def test_request_logging_levels(monkeypatch):
         monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
         monkeypatch.setenv("APP_MODE", "management")
 
-        sys.modules.pop("main", None)
-        main = importlib.import_module("main")
+        sys.modules.pop("pi_camera_in_docker.main", None)
+        main = importlib.import_module("pi_camera_in_docker.main")
         client = main.create_management_app(main._load_config()).test_client()
 
         records = []
@@ -299,8 +304,8 @@ def _new_webcam_client(monkeypatch, token: str):
     monkeypatch.setenv("MOCK_CAMERA", "true")
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", token)
 
-    sys.modules.pop("main", None)
-    main = importlib.import_module("main")
+    sys.modules.pop("pi_camera_in_docker.main", None)
+    main = importlib.import_module("pi_camera_in_docker.main")
     cfg = main._load_config()
     cfg["app_mode"] = "webcam"
     cfg["mock_camera"] = True

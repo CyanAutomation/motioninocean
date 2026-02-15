@@ -8,6 +8,8 @@ from pathlib import Path
 
 from flask import Flask
 
+from pi_camera_in_docker.application_settings import ApplicationSettings
+
 # Import workspace root path (WORKSPACE_ROOT is set in conftest.py)
 # For module-level imports
 workspace_root = Path(__file__).parent.parent
@@ -17,6 +19,16 @@ def _new_management_client(monkeypatch, tmp_path):
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
+    # Monkeypatch ApplicationSettings to use tmp_path
+    from pi_camera_in_docker.application_settings import ApplicationSettings
+    original_app_settings_init = ApplicationSettings.__init__
+
+    def mock_app_settings_init(self, path=None):
+        if path is None:
+            path = str(tmp_path / "application-settings.json")
+        original_app_settings_init(self, path)
+
+    monkeypatch.setattr(ApplicationSettings, "__init__", mock_app_settings_init)
     original_sys_path = sys.path.copy()
     sys.path.insert(0, str(workspace_root)) # Add the parent directory of pi_camera_in_docker to sys.path
     try:

@@ -4,13 +4,19 @@ Tests without requiring camera hardware.
 """
 
 import json
+import sys
+from pathlib import Path
 
 import pytest
+
+# Add workspace root to sys.path for proper package imports  
+workspace_root = Path(__file__).parent.parent
+sys.path.insert(0, str(workspace_root))
 
 
 def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch):
     """Preflight should summarize discovered node counts and samples."""
-    import main
+    from pi_camera_in_docker import main
 
     def fake_glob(pattern):
         matches = {
@@ -40,7 +46,7 @@ def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch
 
 def test_check_device_availability_does_not_warn_when_video_nodes_exist(monkeypatch):
     """Preflight should not warn for missing non-video node groups when video nodes exist."""
-    import main
+    from pi_camera_in_docker import main
 
     def fake_glob(pattern):
         matches = {
@@ -68,7 +74,7 @@ def test_check_device_availability_does_not_warn_when_video_nodes_exist(monkeypa
 
 def test_check_device_availability_warns_when_video_nodes_missing(monkeypatch):
     """Preflight should warn when no video node is present, even if others exist."""
-    import main
+    from pi_camera_in_docker import main
 
     def fake_glob(pattern):
         matches = {
@@ -100,7 +106,7 @@ def test_check_device_availability_warns_when_video_nodes_missing(monkeypatch):
 
 def test_check_device_availability_warns_when_no_camera_nodes_detected(monkeypatch):
     """No video/media/subdev nodes should trigger stronger enumeration warning."""
-    import main
+    from pi_camera_in_docker import main
 
     monkeypatch.setattr(main.glob, "glob", lambda pattern: [])
     monkeypatch.setattr(main.os.path, "exists", lambda path: path != "/dev/vchiq")
@@ -340,7 +346,7 @@ def test_get_camera_info_prefers_module_level_global_camera_info(monkeypatch):
 
         sys.modules["picamera2"] = fake_module
         sys.modules.pop("main", None)
-        main = importlib.import_module("main")
+        main = importlib.import_module("pi_camera_in_docker.main")
 
         camera_info, detection_path = main._get_camera_info(FakePicamera2)
 
@@ -374,7 +380,7 @@ def test_get_camera_info_falls_back_to_class_method(monkeypatch):
         sys.modules["picamera2"] = fake_module
 
         sys.modules.pop("main", None)
-        main = importlib.import_module("main")
+        main = importlib.import_module("pi_camera_in_docker.main")
 
         camera_info, detection_path = main._get_camera_info(FakePicamera2)
 
@@ -390,7 +396,7 @@ def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypa
     from threading import Event, RLock
 
     pytest.importorskip("flask")
-    import main
+    from pi_camera_in_docker import main
     from modes.webcam import ConnectionTracker, FrameBuffer, StreamStats
 
     cfg = {
@@ -473,7 +479,7 @@ def test_shutdown_camera_clears_recording_started_for_real_camera_path():
     """Shutdown should clear recording_started and stop an active real camera instance."""
     from threading import Event, RLock
 
-    import main
+    from pi_camera_in_docker import main
 
     class FakePicam:
         def __init__(self):
@@ -504,7 +510,7 @@ def test_shutdown_camera_clears_recording_started_for_real_camera_path():
 
 def test_shutdown_updates_ready_metrics_and_api_status_immediately():
     """Control-plane status routes should reflect shutdown without waiting for frame thread teardown."""
-    import main
+    from pi_camera_in_docker import main
     from shared import register_shared_routes
 
     app, state = main._create_base_app(
@@ -570,7 +576,7 @@ def test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes
         monkeypatch.setenv("MOCK_CAMERA", "true")
 
         sys.modules.pop("main", None)
-        main = importlib.import_module("main")
+        main = importlib.import_module("pi_camera_in_docker.main")
 
         class FakePicamera2:
             started = False
