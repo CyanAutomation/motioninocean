@@ -689,11 +689,11 @@ def _generate_env_content(config: Dict[str, Any]) -> str:
     return "\n".join(env_lines)
 
 
-def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
+def _init_flask_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter]:
+    """Initialize Flask app and rate limiter."""
     app = Flask(__name__, static_folder="static", static_url_path="/static")
     app.start_time_monotonic = time.monotonic()
 
-    # Initialize rate limiter (global default: 100 requests/minute)
     limiter = Limiter(
         app=app,
         key_func=get_remote_address,
@@ -701,6 +701,11 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
         storage_uri=os.environ.get("LIMITER_STORAGE_URI", "memory://"),
     )
 
+    return app, limiter
+
+
+def _register_middleware(app: Flask, config: Dict[str, Any]) -> None:
+    """Register middleware for correlation ID, logging, and CORS."""
     # Add correlation ID middleware
     @app.before_request
     def _add_correlation_id() -> None:
@@ -721,7 +726,10 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
     if config["cors_enabled"]:
         CORS(app, resources={r"/*": {"origins": ["*"]}})
 
-    state = {
+
+def _init_app_state(config: Dict[str, Any]) -> dict:
+    """Initialize application state dictionary."""
+    return {
         "app_mode": config["app_mode"],
         "recording_started": Event(),
         "shutdown_requested": Event(),
@@ -730,6 +738,17 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
         "picam2_instance": None,
         "cat_gif_generator": None,
     }
+
+
+def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
+    # Initialize Flask app and limiter
+    app, limiter = _init_flask_app(config)
+
+    # Register middleware
+    _register_middleware(app, config)
+
+    # Initialize application state
+    state = _init_app_state(config)
     app.motion_state = state
     app.motion_config = dict(config)
     app.application_settings = ApplicationSettings()  # Add settings persistence

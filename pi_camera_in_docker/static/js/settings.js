@@ -139,7 +139,7 @@ const SettingsUI = (() => {
    */
   const renderCameraSettings = () => {
     const cameraSettings = currentSettings.camera || {};
-    const schema_camera = schema.camera?.properties || {};
+    
 
     // Resolution
     const resolutionSelect = document.getElementById('setting-resolution');
