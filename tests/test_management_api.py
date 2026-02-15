@@ -43,7 +43,7 @@ def _new_management_client(monkeypatch, tmp_path):
 
 
 def _new_webcam_contract_client(auth_token=""):
-    import shared
+    from pi_camera_in_docker import shared
 
     app = Flask(__name__)
     state = {
@@ -61,7 +61,7 @@ def _new_webcam_contract_client(auth_token=""):
 
 
 def test_api_status_ignores_api_test_mode_when_lock_is_missing():
-    import shared
+    from pi_camera_in_docker import shared
 
     app = Flask(__name__)
     state = {
@@ -92,7 +92,7 @@ def test_api_status_ignores_api_test_mode_when_lock_is_missing():
 
 
 def test_api_status_returns_current_api_test_scenario_when_inactive():
-    import shared
+    from pi_camera_in_docker import shared
 
     app = Flask(__name__)
     state = {
@@ -424,7 +424,7 @@ def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
 
 
 def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch, tmp_path):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     original_update_node = management_api.FileNodeRegistry.update_node
 
@@ -663,7 +663,7 @@ def test_discovery_approval_endpoint(monkeypatch, tmp_path):
 
 
 def test_build_headers_for_bearer_auth_with_token():
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     node = {"auth": {"type": "bearer", "token": "node-token"}}
 
@@ -672,7 +672,7 @@ def test_build_headers_for_bearer_auth_with_token():
 
 
 def test_request_json_sends_bearer_auth_header_for_node_probes(monkeypatch):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     class FakeResponse:
         status = 200
@@ -706,7 +706,7 @@ def test_request_json_sends_bearer_auth_header_for_node_probes(monkeypatch):
 
 
 def test_build_headers_for_bearer_auth_without_token_returns_empty_headers():
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     node = {"auth": {"type": "bearer"}}
 
@@ -715,7 +715,7 @@ def test_build_headers_for_bearer_auth_without_token_returns_empty_headers():
 
 
 def test_build_headers_for_non_bearer_auth_returns_empty_headers():
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     node = {"auth": {"type": "basic", "encoded": "abc", "username": "camera", "password": "secret"}}
 
@@ -1054,7 +1054,7 @@ def test_create_node_migrates_legacy_auth_with_token(monkeypatch, tmp_path):
 
 
 def test_request_json_uses_vetted_resolved_ip_and_preserves_host_header(monkeypatch):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     class FakeResponse:
         status = 200
@@ -1101,7 +1101,7 @@ def test_request_json_uses_vetted_resolved_ip_and_preserves_host_header(monkeypa
 
 
 def test_request_json_retries_next_vetted_address_when_first_connection_fails(monkeypatch):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     class FakeResponse:
         status = 200
@@ -1147,7 +1147,7 @@ def test_request_json_retries_next_vetted_address_when_first_connection_fails(mo
 
 
 def test_request_json_maps_name_resolution_failure_to_dns_category(monkeypatch):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     def fake_getaddrinfo(host, port, proto):
         raise socket.gaierror("name or service not known")
@@ -1164,7 +1164,7 @@ def test_request_json_maps_name_resolution_failure_to_dns_category(monkeypatch):
 
 
 def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     def fake_getaddrinfo(host, port, proto):
         return [
@@ -1183,7 +1183,7 @@ def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
 
 
 def test_request_json_maps_timeout_failure(monkeypatch):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     captured = {}
 

@@ -1023,6 +1023,44 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
             logger.exception("Setup generation endpoint failed")
             return jsonify({"error": f"Failed to generate configuration: {e!s}"}), 500
 
+    @app.route("/health")
+    def health():
+        """Health check endpoint - returns 200 if service is healthy."""
+        if state.get("app_mode") == "webcam":
+            recording_started = state.get("recording_started")
+            if recording_started and recording_started.is_set():
+                return jsonify({"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}), 200
+        return jsonify({"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}), 200
+
+    @app.route("/ready")
+    def ready():
+        """Readiness check endpoint - returns 200 if ready to serve traffic, 503 if not ready."""
+        if state.get("app_mode") == "webcam":
+            recording_started = state.get("recording_started")
+            if not recording_started or not recording_started.is_set():
+                return jsonify({"status": "not_ready", "reason": "Camera not ready", "timestamp": datetime.now(timezone.utc).isoformat()}), 503
+            return jsonify({"status": "ready", "timestamp": datetime.now(timezone.utc).isoformat()}), 200
+        # Management mode is always ready
+        return jsonify({"status": "ready", "timestamp": datetime.now(timezone.utc).isoformat()}), 200
+
+    @app.route("/metrics")
+    def metrics():
+        """Metrics endpoint - exposes frame count and FPS metrics."""
+        if state.get("app_mode") == "webcam":
+            stream_stats = state.get("stream_stats")
+            if stream_stats:
+                frame_count, _last_frame_time, current_fps = stream_stats.snapshot()
+                return jsonify({
+                    "frames_captured": frame_count,
+                    "current_fps": current_fps,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }), 200
+        return jsonify({
+            "frames_captured": 0,
+            "current_fps": 0.0,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }), 200
+
     return app, limiter, state
 
 
