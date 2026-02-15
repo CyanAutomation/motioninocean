@@ -1,0 +1,381 @@
+"""
+Application Settings Management
+Persists runtime configuration changes to disk (/data/application-settings.json).
+Follows the same file-locking pattern as node_registry.py for atomic operations.
+"""
+
+import json
+import logging
+import os
+import tempfile
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict
+
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - unavailable on non-POSIX
+    fcntl = None
+
+try:
+    import msvcrt
+except ImportError:  # pragma: no cover - unavailable on non-Windows
+    msvcrt = None
+
+
+logger = logging.getLogger(__name__)
+
+
+class SettingsValidationError(ValueError):
+    """Raised when settings validation fails."""
+
+
+
+class ApplicationSettings:
+    """
+    Manages persistent application settings stored in JSON file.
+
+    Settings are organized by category:
+    - camera: resolution, fps, jpeg_quality, max_stream_connections, max_frame_age_seconds
+    - feature_flags: MOTION_IN_OCEAN_* feature toggle flags
+    - logging: log_level, log_format, log_include_identifiers
+    - discovery: discovery_enabled, discovery_management_url, discovery_token, discovery_interval_seconds
+
+    Thread-safe with file-based locking for multi-process consistency.
+    """
+
+    DEFAULT_SCHEMA = {
+        "version": 1,
+        "settings": {
+            "camera": {
+                "resolution": None,  # "1280x720" format, null = use env default
+                "fps": None,
+                "jpeg_quality": None,
+                "max_stream_connections": None,
+                "max_frame_age_seconds": None,
+            },
+            "feature_flags": {},  # Dict of {flag_name: bool}
+            "logging": {
+                "log_level": None,
+                "log_format": None,
+                "log_include_identifiers": None,
+            },
+            "discovery": {
+                "discovery_enabled": None,
+                "discovery_management_url": None,
+                "discovery_token": None,
+                "discovery_interval_seconds": None,
+            },
+        },
+        "last_modified": None,
+        "modified_by": "system",  # Track which component made last change
+    }
+
+    def __init__(self, path: str = "/data/application-settings.json"):
+        """
+        Initialize ApplicationSettings with file path.
+
+        Args:
+            path: Path to JSON settings file. Defaults to /data/application-settings.json
+        """
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+
+    def load(self) -> Dict[str, Any]:
+        """
+        Load settings from disk. Returns merged schema with persisted values.
+
+        Returns:
+            Dict with 'version', 'settings', 'last_modified', 'modified_by' keys
+
+        Raises:
+            SettingsValidationError: If file is corrupted or invalid
+        """
+        if not self.path.exists():
+            return self._clone_schema()
+
+        try:
+            raw = json.loads(self.path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            logger.error(f"Settings file corrupted at {self.path}: {exc}")
+            message = f"settings file is corrupted and cannot be parsed: {self.path}"
+            raise SettingsValidationError(message) from exc
+
+        if not isinstance(raw, dict):
+            logger.warning("Settings file has invalid root type (expected dict), resetting")
+            return self._clone_schema()
+
+        # Validate structure
+        schema = self._clone_schema()
+        version = raw.get("version")
+        if version != 1:
+            logger.warning(f"Settings schema version {version} not recognized, using defaults")
+            return schema
+
+        settings = raw.get("settings", {})
+        if isinstance(settings, dict):
+            # Merge persisted settings, keeping schema structure
+            schema["settings"]["camera"] = {
+                **schema["settings"]["camera"],
+                **{
+                    k: v
+                    for k, v in settings.get("camera", {}).items()
+                    if k in schema["settings"]["camera"]
+                },
+            }
+            schema["settings"]["feature_flags"] = settings.get("feature_flags", {})
+            schema["settings"]["logging"] = {
+                **schema["settings"]["logging"],
+                **{
+                    k: v
+                    for k, v in settings.get("logging", {}).items()
+                    if k in schema["settings"]["logging"]
+                },
+            }
+            schema["settings"]["discovery"] = {
+                **schema["settings"]["discovery"],
+                **{
+                    k: v
+                    for k, v in settings.get("discovery", {}).items()
+                    if k in schema["settings"]["discovery"]
+                },
+            }
+
+        if raw.get("last_modified"):
+            schema["last_modified"] = raw["last_modified"]
+        if raw.get("modified_by"):
+            schema["modified_by"] = raw["modified_by"]
+
+        return schema
+
+    def save(self, settings: Dict[str, Any], modified_by: str = "system") -> None:
+        """
+        Save settings to disk atomically.
+
+        Args:
+            settings: Dict with 'settings' key containing camera/feature_flags/logging/discovery
+            modified_by: Label for who made this change (e.g., "api", "ui", "system")
+
+        Raises:
+            SettingsValidationError: If validation fails
+        """
+        data = {
+            "version": 1,
+            "settings": settings,
+            "last_modified": datetime.now(timezone.utc).isoformat(),
+            "modified_by": modified_by,
+        }
+
+        try:
+            self._validate_settings_structure(data)
+        except Exception as exc:
+            logger.error(f"Settings validation failed: {exc}")
+            raise SettingsValidationError(f"Invalid settings structure: {exc}") from exc
+
+        with self._exclusive_lock():
+            self._save_atomic(data)
+            logger.info(f"Settings saved by {modified_by}")
+
+    def get(self, category: str, key: str, default: Any = None) -> Any:
+        """
+        Get a single setting value.
+
+        Args:
+            category: Category name (camera, feature_flags, logging, discovery)
+            key: Setting key within category
+            default: Default value if not found
+
+        Returns:
+            Setting value or default
+        """
+        data = self.load()
+        try:
+            return data["settings"][category].get(key, default)
+        except (KeyError, AttributeError):
+            return default
+
+    def set(self, category: str, key: str, value: Any, modified_by: str = "system") -> None:
+        """
+        Set a single setting value and persist.
+
+        Args:
+            category: Category name
+            key: Setting key within category
+            value: New value
+            modified_by: Label for who made this change
+
+        Raises:
+            SettingsValidationError: If key/category invalid
+        """
+        data = self.load()
+        if category not in data["settings"]:
+            raise SettingsValidationError(f"Unknown settings category: {category}")
+
+        if category == "feature_flags":
+            # Feature flags are dynamic; create entry if needed
+            data["settings"][category][key] = value
+        else:
+            # Other categories have fixed schema
+            if key not in data["settings"][category]:
+                raise SettingsValidationError(
+                    f"Unknown settings key '{key}' in category '{category}'"
+                )
+            data["settings"][category][key] = value
+
+        self.save(data["settings"], modified_by=modified_by)
+
+    def update_category(
+        self, category: str, updates: Dict[str, Any], modified_by: str = "system"
+    ) -> None:
+        """
+        Update multiple settings in a category.
+
+        Args:
+            category: Category name
+            updates: Dict of {key: value} updates
+            modified_by: Label for who made this change
+
+        Raises:
+            SettingsValidationError: If any key invalid
+        """
+        data = self.load()
+        if category not in data["settings"]:
+            raise SettingsValidationError(f"Unknown settings category: {category}")
+
+        if category == "feature_flags":
+            data["settings"][category].update(updates)
+        else:
+            # Validate all keys exist
+            for key in updates:
+                if key not in data["settings"][category]:
+                    raise SettingsValidationError(
+                        f"Unknown settings key '{key}' in category '{category}'"
+                    )
+            data["settings"][category].update(updates)
+
+        self.save(data["settings"], modified_by=modified_by)
+
+    def reset(self, modified_by: str = "system") -> None:
+        """
+        Clear all persisted settings; revert to defaults.
+
+        Args:
+            modified_by: Label for who triggered reset
+        """
+        with self._exclusive_lock():
+            if self.path.exists():
+                self.path.unlink()
+            logger.info(f"Settings reset to defaults by {modified_by}")
+
+    def get_changes_from_env(self, env_defaults: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Get diff between current persisted settings and provided env defaults.
+        Shows which settings have been overridden via the UI.
+
+        Args:
+            env_defaults: Dict matching schema structure with environment values
+
+        Returns:
+            Dict with 'overridden' list of {category, key, value, env_value} objects
+        """
+        current = self.load()
+        overridden = []
+
+        for category in ["camera", "logging", "discovery"]:
+            persisted = current["settings"].get(category, {})
+            env_vals = env_defaults.get(category, {})
+            for key, value in persisted.items():
+                if value is not None and value != env_vals.get(key):
+                    overridden.append(
+                        {
+                            "category": category,
+                            "key": key,
+                            "value": value,
+                            "env_value": env_vals.get(key),
+                        }
+                    )
+
+        # Feature flags: show difference
+        persisted_flags = current["settings"].get("feature_flags", {})
+        env_flags = env_defaults.get("feature_flags", {})
+        for flag_name, flag_value in persisted_flags.items():
+            if flag_value != env_flags.get(flag_name):
+                overridden.append(
+                    {
+                        "category": "feature_flags",
+                        "key": flag_name,
+                        "value": flag_value,
+                        "env_value": env_flags.get(flag_name),
+                    }
+                )
+
+        return {"overridden": overridden}
+
+    @staticmethod
+    def _clone_schema() -> Dict[str, Any]:
+        """Create a copy of default schema."""
+        return json.loads(json.dumps(ApplicationSettings.DEFAULT_SCHEMA))
+
+    @staticmethod
+    def _validate_settings_structure(data: Dict[str, Any]) -> None:
+        """Validate settings structure before save."""
+        if not isinstance(data, dict):
+            raise SettingsValidationError("Root must be a dict")
+
+        if data.get("version") != 1:
+            raise SettingsValidationError(f"Unsupported schema version: {data.get('version')}")
+
+        settings = data.get("settings", {})
+        if not isinstance(settings, dict):
+            raise SettingsValidationError("'settings' must be a dict")
+
+        # Check known categories exist
+        for category in ["camera", "feature_flags", "logging", "discovery"]:
+            if category not in settings:
+                raise SettingsValidationError(f"Missing required category: {category}")
+
+    def _save_atomic(self, data: Dict[str, Any]) -> None:
+        """Save data to file atomically using temp file + rename."""
+        with tempfile.NamedTemporaryFile(
+            "w", delete=False, dir=self.path.parent, encoding="utf-8", suffix=".tmp"
+        ) as temp:
+            json.dump(data, temp, indent=2)
+            temp.flush()
+            os.fsync(temp.fileno())
+            temp_path = temp.name
+        Path(temp_path).replace(self.path)
+
+    @contextmanager
+    def _exclusive_lock(self):
+        """Context manager for exclusive file-based locking."""
+        lock_path = self.path.parent / f"{self.path.name}.lock"
+        with lock_path.open("a+b") as lock_file:
+            if fcntl is not None:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                try:
+                    yield
+                finally:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                return
+
+            if msvcrt is not None:
+                file_size = lock_file.seek(0, 2)
+                if file_size == 0:
+                    lock_file.write(b"\0")
+                    lock_file.flush()
+                lock_file.seek(0)
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+                try:
+                    yield
+                finally:
+                    lock_file.seek(0)
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                return
+
+            message = "No supported file-lock backend available for this platform"
+            raise RuntimeError(message)
+
+        message = "No supported file-lock backend available for this platform"
+        raise RuntimeError(message)

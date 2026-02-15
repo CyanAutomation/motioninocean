@@ -44,12 +44,12 @@ services:
 
     environment:
       # Enable mock camera with cat GIFs
-      MOCK_CAMERA: 'true'
-      CAT_GIF: 'true'
-      CATAAS_API_URL: 'https://cataas.com/cat.gif'
-      
+      MOCK_CAMERA: "true"
+      CAT_GIF: "true"
+      CATAAS_API_URL: "https://cataas.com/cat.gif"
+
       # How long to cache each cat GIF before fetching a new one (seconds)
       # 60 = fetch new cat every minute
       # 120 = fetch new cat every 2 minutes
       # 30 = fetch new cat every 30 seconds (more API calls)
-      CAT_GIF_CACHE_TTL_SECONDS: '60'
+      CAT_GIF_CACHE_TTL_SECONDS: "60"

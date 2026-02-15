@@ -12,6 +12,7 @@ from threading import Event, RLock, Thread
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlsplit, urlunsplit
 
+from application_settings import ApplicationSettings, SettingsValidationError
 from cat_gif_generator import CatGifGenerator
 from config_validator import ConfigValidationError, validate_all_config
 from discovery import DiscoveryAnnouncer, build_discovery_payload
@@ -33,6 +34,7 @@ from modes.webcam import (
 )
 from picamera2 import global_camera_info
 from PIL import Image
+from settings_api import register_settings_routes
 from shared import register_shared_routes, register_webcam_control_plane_auth
 from werkzeug.serving import make_server
 
@@ -201,6 +203,113 @@ def _load_config() -> Dict[str, Any]:
         "bind_host": bind_host,
         "bind_port": bind_port,
     }
+
+
+def _merge_config_with_settings(env_config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Merge environment config with persisted application settings.
+    
+    Priority: Env vars act as system defaults, but persisted settings (UI-driven)
+    override them for runtime-tunable values. Some settings can only come from env vars.
+    
+    Runtime-tunable settings (can be overridden by persisted settings):
+    - camera: resolution, fps, jpeg_quality, max_stream_connections, max_frame_age_seconds
+    - feature_flags: most toggles (except hardware-dependent ones)
+    - logging: log_level, log_format, log_include_identifiers
+    - discovery: discovery_enabled, discovery_management_url, discovery_token, discovery_interval_seconds
+    
+    Args:
+        env_config: Configuration loaded from environment variables
+        
+    Returns:
+        Merged configuration with persisted settings applied
+    """
+    merged = dict(env_config)
+
+    try:
+        app_settings = ApplicationSettings()
+        persisted = app_settings.load()
+        settings = persisted.get("settings", {})
+
+        # Merge camera settings
+        camera_settings = settings.get("camera", {})
+        if camera_settings.get("resolution") is not None:
+            try:
+                merged["resolution"] = _parse_resolution(camera_settings["resolution"])
+            except ValueError:
+                logger.warning("Invalid persisted resolution, using env value")
+
+        if camera_settings.get("fps") is not None:
+            merged["fps"] = camera_settings["fps"]
+            # Update target_fps if it equals old fps
+            if merged.get("target_fps") == env_config.get("fps"):
+                merged["target_fps"] = camera_settings["fps"]
+
+        if camera_settings.get("jpeg_quality") is not None:
+            quality = camera_settings["jpeg_quality"]
+            if 1 <= quality <= 100:
+                merged["jpeg_quality"] = quality
+            else:
+                logger.warning(f"Invalid persisted JPEG quality {quality}, using env value")
+
+        if camera_settings.get("max_stream_connections") is not None:
+            conns = camera_settings["max_stream_connections"]
+            if 1 <= conns <= 100:
+                merged["max_stream_connections"] = conns
+            else:
+                logger.warning(f"Invalid persisted max_stream_connections {conns}, using env value")
+
+        if camera_settings.get("max_frame_age_seconds") is not None:
+            age = camera_settings["max_frame_age_seconds"]
+            if age > 0:
+                merged["max_frame_age_seconds"] = age
+            else:
+                logger.warning(f"Invalid persisted max_frame_age_seconds {age}, using env value")
+
+        # Merge feature flags
+        persisted_flags = settings.get("feature_flags", {})
+        if persisted_flags:
+            for flag_name, flag_value in persisted_flags.items():
+                # Only override feature flags that are runtime-safe
+                # Skip hardware-dependent flags (MOCK_CAMERA, PI3_OPTIMIZATION, etc.)
+                hardware_flags = {"MOCK_CAMERA", "PI3_OPTIMIZATION", "PI5_OPTIMIZATION"}
+                if flag_name not in hardware_flags:
+                    # Update feature flags dynamically
+                    # This will be integrated with feature_flags module in next step
+                    pass
+
+        # Merge logging settings (will be handled by logging config refactor)
+        logging_settings = settings.get("logging", {})
+        # Note: Logging level changes will require app context integration
+
+        # Merge discovery settings
+        discovery_settings = settings.get("discovery", {})
+        if discovery_settings.get("discovery_enabled") is not None:
+            merged["discovery_enabled"] = discovery_settings["discovery_enabled"]
+
+        if discovery_settings.get("discovery_management_url") is not None:
+            url = discovery_settings["discovery_management_url"]
+            if url.strip():
+                merged["discovery_management_url"] = url
+
+        if discovery_settings.get("discovery_token") is not None:
+            token = discovery_settings["discovery_token"]
+            if token is not None:
+                merged["discovery_token"] = token
+
+        if discovery_settings.get("discovery_interval_seconds") is not None:
+            interval = discovery_settings["discovery_interval_seconds"]
+            if interval > 0:
+                merged["discovery_interval_seconds"] = interval
+
+        logger.debug("Configuration merged with persisted settings")
+
+    except SettingsValidationError as exc:
+        logger.warning(f"Could not load persisted settings: {exc}. Using env config only.")
+    except Exception as exc:
+        logger.warning(f"Unexpected error loading persisted settings: {exc}. Using env config only.")
+
+    return merged
 
 
 def _detect_camera_devices() -> Dict[str, Any]:
@@ -582,6 +691,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
     }
     app.motion_state = state
     app.motion_config = dict(config)
+    app.application_settings = ApplicationSettings()  # Add settings persistence
 
     @app.route("/")
     def index() -> str:
@@ -878,9 +988,11 @@ def _register_request_logging(app: Flask) -> None:
 
 def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     cfg = _load_config() if config is None else config
+    cfg = _merge_config_with_settings(cfg)  # Apply persisted settings
     cfg["app_mode"] = "management"
     app, state = _create_base_app(cfg)
     register_shared_routes(app, state)
+    register_settings_routes(app)  # Add settings management API
     register_management_camera_error_routes(app)
     register_management_routes(
         app,
@@ -899,6 +1011,7 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
 
 def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     cfg = _load_config() if config is None else config
+    cfg = _merge_config_with_settings(cfg)  # Apply persisted settings
     cfg["app_mode"] = "webcam"
     app, state = _create_base_app(cfg)
 
@@ -1012,6 +1125,7 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
         get_stream_status=lambda: get_stream_status(stream_stats, cfg["resolution"]),
         get_api_test_status_override=_get_api_test_status_override,
     )
+    register_settings_routes(app)  # Add settings management API
     register_webcam_control_plane_auth(
         app,
         cfg["management_auth_token"],
@@ -1155,7 +1269,6 @@ def _shutdown_camera(state: Dict[str, Any]) -> None:
 
 def _get_camera_info(picamera2_cls: Any) -> Tuple[list, str]:
     try:
-
         return global_camera_info(), "picamera2.global_camera_info"
     except (ImportError, AttributeError):
         logger.debug(
