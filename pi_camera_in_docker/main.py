@@ -12,6 +12,7 @@ from threading import Event, RLock, Thread
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlsplit, urlunsplit
 
+from cat_gif_generator import CatGifGenerator
 from config_validator import ConfigValidationError, validate_all_config
 from discovery import DiscoveryAnnouncer, build_discovery_payload
 from feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
@@ -159,6 +160,15 @@ def _load_config() -> Dict[str, Any]:
     if not 1 <= bind_port <= 65535:
         bind_port = 8000
 
+    cat_gif_enabled = is_flag_enabled("CAT_GIF")
+    cataas_api_url = os.environ.get("CATAAS_API_URL", "https://cataas.com/cat.gif").strip()
+    try:
+        cat_gif_cache_ttl_seconds = float(os.environ.get("CAT_GIF_CACHE_TTL_SECONDS", "60"))
+    except ValueError:
+        cat_gif_cache_ttl_seconds = 60.0
+    if cat_gif_cache_ttl_seconds <= 0:
+        cat_gif_cache_ttl_seconds = 60.0
+
     return {
         "app_mode": app_mode,
         "resolution": resolution,
@@ -171,6 +181,9 @@ def _load_config() -> Dict[str, Any]:
         "api_test_cycle_interval_seconds": api_test_cycle_interval_seconds,
         "pi3_profile_enabled": pi3_profile_raw.lower() in ("1", "true", "yes"),
         "mock_camera": is_flag_enabled("MOCK_CAMERA"),
+        "cat_gif_enabled": cat_gif_enabled,
+        "cataas_api_url": cataas_api_url,
+        "cat_gif_cache_ttl_seconds": cat_gif_cache_ttl_seconds,
         "cors_enabled": cors_enabled,
         "cors_origins": cors_origins,
         "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
@@ -1175,21 +1188,43 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     _check_device_availability(cfg)
 
     if cfg["mock_camera"]:
-        fallback = Image.new("RGB", cfg["resolution"], color=(0, 0, 0))
-        buf = io.BytesIO()
-        fallback.save(buf, format="JPEG", quality=cfg["jpeg_quality"])
-        frame = buf.getvalue()
+        if cfg["cat_gif_enabled"]:
+            # Use cat GIF streaming mode
+            def generate_cat_gif_frames() -> None:
+                recording_started.set()
+                try:
+                    cat_generator = CatGifGenerator(
+                        api_url=cfg["cataas_api_url"],
+                        resolution=cfg["resolution"],
+                        jpeg_quality=cfg["jpeg_quality"],
+                        target_fps=cfg["fps"] if cfg["fps"] > 0 else 10,
+                        cache_ttl_seconds=cfg["cat_gif_cache_ttl_seconds"],
+                    )
+                    for frame in cat_generator.generate_frames():
+                        if shutdown_requested.is_set():
+                            break
+                        output.write(frame)
+                finally:
+                    recording_started.clear()
 
-        def generate_mock_frames() -> None:
-            recording_started.set()
-            try:
-                while not shutdown_requested.is_set():
-                    time.sleep(1 / (cfg["fps"] if cfg["fps"] > 0 else 10))
-                    output.write(frame)
-            finally:
-                recording_started.clear()
+            Thread(target=generate_cat_gif_frames, daemon=True).start()
+        else:
+            # Use classic black frame mock mode
+            fallback = Image.new("RGB", cfg["resolution"], color=(0, 0, 0))
+            buf = io.BytesIO()
+            fallback.save(buf, format="JPEG", quality=cfg["jpeg_quality"])
+            frame = buf.getvalue()
 
-        Thread(target=generate_mock_frames, daemon=True).start()
+            def generate_mock_frames() -> None:
+                recording_started.set()
+                try:
+                    while not shutdown_requested.is_set():
+                        time.sleep(1 / (cfg["fps"] if cfg["fps"] > 0 else 10))
+                        output.write(frame)
+                finally:
+                    recording_started.clear()
+
+            Thread(target=generate_mock_frames, daemon=True).start()
     else:
         picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(
             cfg["allow_pykms_mock"]
