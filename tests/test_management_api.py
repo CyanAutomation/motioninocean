@@ -147,6 +147,50 @@ def test_api_status_returns_current_api_test_scenario_when_inactive():
     assert state["api_test"]["current_state_index"] == 1
 
 
+def test_settings_changes_endpoint_compares_resolution_values(monkeypatch, tmp_path):
+    monkeypatch.setenv("RESOLUTION", "1280x720")
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    save_response = client.patch(
+        "/api/settings",
+        json={"camera": {"resolution": "1920x1080"}},
+    )
+    assert save_response.status_code in (200, 422)
+
+    response = client.get("/api/settings/changes")
+    assert response.status_code == 200
+
+    overridden = response.get_json()["overridden"]
+    assert {
+        "category": "camera",
+        "key": "resolution",
+        "value": "1920x1080",
+        "env_value": "1280x720",
+    } in overridden
+
+
+def test_settings_changes_endpoint_handles_invalid_resolution_env(monkeypatch, tmp_path):
+    monkeypatch.setenv("RESOLUTION", "invalid")
+    client = _new_management_client(monkeypatch, tmp_path)
+
+    save_response = client.patch(
+        "/api/settings",
+        json={"camera": {"resolution": "800x600"}},
+    )
+    assert save_response.status_code in (200, 422)
+
+    response = client.get("/api/settings/changes")
+    assert response.status_code == 200
+
+    overridden = response.get_json()["overridden"]
+    assert {
+        "category": "camera",
+        "key": "resolution",
+        "value": "800x600",
+        "env_value": "640x480",
+    } in overridden
+
+
 def _auth_headers(token="test-token"):
     return {"Authorization": f"Bearer {token}"}
 
