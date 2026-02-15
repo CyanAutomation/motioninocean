@@ -156,10 +156,17 @@ sequenceDiagram
     UI->>UI: Set up polling loop
     loop every STATUS_POLL_INTERVAL
         alt statusRefreshInFlight check
-            UI->>Mgmt: GET /api/nodes/{ids}/status<br/>(batch or parallel)
-            Mgmt->>Nodes: Proxy GET /api/status<br/>to each node
-            Nodes-->>Mgmt: Response or error
-            Mgmt-->>UI: Aggregated response
+            par per-node status requests
+                UI->>Mgmt: GET /api/nodes/{id}/status<br/>(node A)
+                Mgmt->>Nodes: Proxy GET /api/status<br/>to node A
+                Nodes-->>Mgmt: Status/error (node A)
+                Mgmt-->>UI: Status response (node A)
+            and
+                UI->>Mgmt: GET /api/nodes/{id}/status<br/>(node B ... N)
+                Mgmt->>Nodes: Proxy GET /api/status<br/>to each node
+                Nodes-->>Mgmt: Status/error per node
+                Mgmt-->>UI: Status response per node
+            end
             UI->>UI: statusRefreshInFlight=false
         else retry pending (statusRefreshPending)
             UI->>UI: Defer until current<br/>refresh completes
