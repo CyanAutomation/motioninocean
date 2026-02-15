@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urlparse, urlunparse
 
 from flask import Flask, jsonify, request
-from node_registry import FileNodeRegistry, NodeValidationError, validate_node
+from .node_registry import FileNodeRegistry, NodeValidationError, validate_node
 from transport_url_validation import parse_docker_url
 
 

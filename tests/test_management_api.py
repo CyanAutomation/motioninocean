@@ -724,7 +724,7 @@ def test_build_headers_for_non_bearer_auth_returns_empty_headers():
 
 
 def test_node_status_returns_node_unauthorized_when_upstream_rejects_token(monkeypatch, tmp_path):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     client = _new_management_client(monkeypatch, tmp_path)
     payload = {
@@ -756,7 +756,7 @@ def test_node_status_returns_node_unauthorized_when_upstream_rejects_token(monke
 
 
 def test_node_status_succeeds_when_upstream_token_is_accepted(monkeypatch, tmp_path):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     client = _new_management_client(monkeypatch, tmp_path)
     payload = {
@@ -786,7 +786,7 @@ def test_node_status_succeeds_when_upstream_token_is_accepted(monkeypatch, tmp_p
 
 
 def test_node_status_returns_node_api_mismatch_when_status_endpoint_missing(monkeypatch, tmp_path):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     client = _new_management_client(monkeypatch, tmp_path)
     payload = {
@@ -818,7 +818,7 @@ def test_node_status_returns_node_api_mismatch_when_status_endpoint_missing(monk
 
 
 def test_node_status_maps_503_payload_without_error_envelope(monkeypatch, tmp_path):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     client = _new_management_client(monkeypatch, tmp_path)
     payload = {
@@ -898,7 +898,7 @@ def test_management_routes_require_authentication(monkeypatch, tmp_path):
 
 
 def test_node_status_maps_invalid_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     client = _new_management_client(monkeypatch, tmp_path)
 
@@ -932,7 +932,7 @@ def test_node_status_maps_invalid_upstream_payload_to_controlled_error(monkeypat
 
 
 def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch, tmp_path):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     client = _new_management_client(monkeypatch, tmp_path)
 
@@ -995,7 +995,7 @@ def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch
 
 
 def test_node_action_maps_invalid_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     client = _new_management_client(monkeypatch, tmp_path)
 
@@ -1252,7 +1252,7 @@ def test_request_json_maps_tls_failure(monkeypatch):
 
 
 def test_node_status_reports_connectivity_details(monkeypatch, tmp_path):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     client = _new_management_client(monkeypatch, tmp_path)
 
@@ -1320,7 +1320,7 @@ def test_webcam_api_status_contract_shape_with_auth(monkeypatch):
 
 
 def test_node_action_passthrough_for_api_test_management_actions(monkeypatch, tmp_path):
-    import management_api
+    import pi_camera_in_docker.management_api as management_api
 
     client = _new_management_client(monkeypatch, tmp_path)
 

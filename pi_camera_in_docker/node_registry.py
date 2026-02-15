@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from transport_url_validation import validate_base_url_for_transport
+from .transport_url_validation import validate_base_url_for_transport
 
 
 try:

@@ -72,19 +72,19 @@ def test_health_endpoints_present(workspace_root, endpoint, markers):
 
 
 @pytest.mark.parametrize(
-    "metric,marker",
+    "metric,marker,file_path",
     [
-        ("Frame count tracking", "self._frame_count += 1"),
-        ("FPS calculation", "def get_fps"),
-        ("Frame timing", "self._frame_times_monotonic"),
-        ("Status endpoint", "get_stream_status(stream_stats, config"),
-        ("Uptime tracking", "app.start_time_monotonic"),
+        ("Frame count tracking", "self._frame_count += 1", "pi_camera_in_docker/modes/webcam.py"),
+        ("FPS calculation", "current_fps = stats.snapshot()", "pi_camera_in_docker/modes/webcam.py"),
+        ("Frame timing", "self._frame_times_monotonic", "pi_camera_in_docker/modes/webcam.py"),
+        ("Status endpoint", "get_stream_status(stream_stats, config", "pi_camera_in_docker/main.py"),
+        ("Uptime tracking", "app.start_time_monotonic", "pi_camera_in_docker/main.py"),
     ],
 )
-def test_metrics_collection(workspace_root, metric, marker):
+def test_metrics_collection(workspace_root, metric, marker, file_path):
     """Verify metrics collection is present."""
-    main_py = workspace_root / "pi_camera_in_docker" / "main.py"
-    code = main_py.read_text()
+    code_file = workspace_root /file_path
+    code = code_file.read_text()
     assert marker in code, f"Missing metric: {metric}"
 
 
