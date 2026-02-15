@@ -28,6 +28,20 @@ def parse_docker_url(base_url: str) -> Tuple[str, int, str]:
 
 
 def validate_base_url_for_transport(base_url: str, transport: str) -> None:
+    """Validate base URL format matches transport protocol.
+
+    Ensures URL scheme is compatible with the transport type:
+    - HTTP transport requires http:// or https:// scheme.
+    - Docker transport requires docker:// scheme with valid docker URL structure
+      (hostname, port, container ID per docker://host:port/container-id format).
+
+    Args:
+        base_url: Full URL string to validate.
+        transport: Transport type ('http' or 'docker').
+
+    Raises:
+        ValueError: If URL scheme doesn't match transport type or docker:// URL is malformed.
+    """
     if transport == "http":
         error_message = "base_url must start with http:// or https://"
         if not base_url.startswith(("http://", "https://")):

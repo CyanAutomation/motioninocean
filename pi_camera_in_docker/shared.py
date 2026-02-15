@@ -6,6 +6,17 @@ from flask import Flask, jsonify, request
 
 
 def extract_bearer_token(auth_header: str) -> Optional[str]:
+    """Extract bearer token from Authorization header.
+
+    Parses standard HTTP Authorization header (format: "Bearer <token>").
+    Case-insensitive scheme matching per RFC 7235.
+
+    Args:
+        auth_header: Raw Authorization header value.
+
+    Returns:
+        Bearer token string, or None if header is missing/malformed or token empty.
+    """
     if not auth_header.lower().startswith("bearer "):
         return None
     token = auth_header[7:].strip()
@@ -15,6 +26,23 @@ def extract_bearer_token(auth_header: str) -> Optional[str]:
 def register_webcam_control_plane_auth(
     app: Flask, auth_token: str, app_mode_provider: Callable[[], str]
 ) -> None:
+    """Register Flask before_request guard for webcam control plane authentication.
+
+    Protects webcam mode endpoints with bearer token validation. Routes protected:
+    - /health, /ready, /metrics, /api/status (exact match)
+    - /api/actions/* (prefix match)
+
+    Management mode requests bypass protection (app_mode == 'management').
+    If auth_token is empty, protection is disabled (no-op).
+
+    Args:
+        app: Flask application instance.
+        auth_token: Bearer token required for access. Empty string disables protection.
+        app_mode_provider: Callable returning current app mode ('webcam' or 'management').
+
+    Raises:
+        Generates HTTP 401 Unauthorized response if token is missing/invalid.
+    """
     protected_exact_paths = {"/health", "/ready", "/metrics", "/api/status"}
 
     @app.before_request
@@ -52,6 +80,33 @@ def register_shared_routes(
     get_stream_status: Optional[Callable[[], dict]] = None,
     get_api_test_status_override: Optional[Callable[[float, int], Optional[dict]]] = None,
 ) -> None:
+    """Register universal health check and status endpoints.
+
+    Registers four routes on the Flask app:
+    - GET /health: App is running (lightweight, always 200)
+    - GET /ready: App is ready to serve (503 if webcam not initialized)
+    - GET /metrics: Prometheus-style metrics snapshot
+    - GET /api/status: Detailed status including stream/camera/connection state
+
+    Behavior varies by app_mode:
+    - 'webcam': /ready waits for first frame; /api/status includes stream stats
+    - 'management': /ready returns immediately; /api/status is stub
+
+    Provides API test mode support for deterministic testing via state['api_test'].
+
+    Args:
+        app: Flask application instance.
+        state: Shared app state dict with keys:
+            - 'app_mode': 'webcam' or 'management'
+            - 'max_stream_connections': Max concurrent stream limit
+            - 'max_frame_age_seconds': Staleness threshold for ready probe
+            - 'recording_started': threading.Event for camera initialization
+            - 'connection_tracker': Optional ConnectionTracker instance (webcam mode)
+            - 'api_test': Optional dict for API test scenario cycling
+        get_stream_status: Optional callback returning dict with 'current_fps', 
+            'last_frame_age_seconds', 'frames_captured'.
+        get_api_test_status_override: Optional callback for custom test payload override.
+    """
     api_test_scenarios = [
         {
             "status": "ok",

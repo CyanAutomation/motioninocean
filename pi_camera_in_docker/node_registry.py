@@ -498,15 +498,41 @@ class FileNodeRegistry(NodeRegistry):
         raise RuntimeError(message)
 
     def list_nodes(self) -> List[Dict[str, Any]]:
+        """List all registered nodes.
+
+        Returns:
+            List of node dictionaries.
+        """
         return self._load()["nodes"]
 
     def get_node(self, node_id: str) -> Optional[Dict[str, Any]]:
+        """Get node by ID.
+
+        Args:
+            node_id: Unique node identifier.
+
+        Returns:
+            Node dictionary or None if not found.
+        """
         for node in self.list_nodes():
             if node.get("id") == node_id:
                 return node
         return None
 
     def create_node(self, node: Dict[str, Any]) -> Dict[str, Any]:
+        """Create new node with exclusive lock.
+
+        Validates node, checks ID uniqueness, appends to registry.
+
+        Args:
+            node: Node data with required fields.
+
+        Returns:
+            Created node dictionary.
+
+        Raises:
+            NodeValidationError: If validation fails or ID already exists.
+        """
         candidate = validate_node(node)
 
         with self._exclusive_lock():
@@ -519,6 +545,22 @@ class FileNodeRegistry(NodeRegistry):
             return candidate
 
     def update_node(self, node_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
+        """Update existing node by merging patch data.
+
+        Validates patch, merges with existing node (deep-merges discovery), re-validates merged.
+        Checks ID uniqueness after merge.
+
+        Args:
+            node_id: ID of node to update.
+            patch: Partial node data to merge.
+
+        Returns:
+            Updated node dictionary.
+
+        Raises:
+            KeyError: If node_id not found.
+            NodeValidationError: If validation or ID uniqueness check fails.
+        """
         validated_patch = validate_node(patch, partial=True)
 
         with self._exclusive_lock():
@@ -549,6 +591,23 @@ class FileNodeRegistry(NodeRegistry):
         create_value: Dict[str, Any],
         patch_value: Dict[str, Any],
     ) -> Dict[str, Any]:
+        \"\"\"Create or update node with exclusive lock.
+
+        If node exists: merges patch_value and validates merged result.
+        If node not exists: creates with create_value.
+        Returns dict with 'node' and 'upserted' (\"created\"/\"updated\") keys.
+
+        Args:
+            node_id: Node ID to upsert.
+            create_value: Data for node creation (if new).
+            patch_value: Data for node update (if exists).
+
+        Returns:
+            Dict with keys: 'node' (the node), 'upserted' (\"created\" or \"updated\").
+
+        Raises:
+            NodeValidationError: If validation or ID uniqueness check fails.
+        \"\"\"
         candidate = validate_node(create_value)
         validated_patch = validate_node(patch_value, partial=True)
 
@@ -582,6 +641,14 @@ class FileNodeRegistry(NodeRegistry):
             return {"node": candidate, "upserted": "created"}
 
     def delete_node(self, node_id: str) -> bool:
+        """Delete node by ID with exclusive lock.
+
+        Args:
+            node_id: ID of node to delete.
+
+        Returns:
+            True if deleted, False if not found.
+        """
         with self._exclusive_lock():
             data = self._load()
             previous_count = len(data["nodes"])

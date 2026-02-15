@@ -14,6 +14,20 @@ DEFAULT_APP_MODE = "webcam"
 
 
 def parse_resolution(resolution_str: str) -> Tuple[int, int]:
+    """Parse resolution string into (width, height) tuple.
+
+    Format: 'WIDTHxHEIGHT' (e.g., '640x480', '1920x1080').
+    Valid ranges: 1-4096 pixels per dimension.
+
+    Args:
+        resolution_str: Resolution string in format 'WIDTHxHEIGHT'.
+
+    Returns:
+        Tuple of (width: int, height: int).
+
+    Raises:
+        ValueError: If format is invalid or dimensions are out of range.
+    """
     parts = resolution_str.split("x")
     if len(parts) != 2:
         message = f"Invalid resolution format: {resolution_str}"
@@ -26,6 +40,22 @@ def parse_resolution(resolution_str: str) -> Tuple[int, int]:
 
 
 def _load_camera_config() -> Dict[str, Any]:
+    """Load camera configuration from environment variables.
+
+    Parses and validates camera settings with fallback defaults:
+    - RESOLUTION (default: 640x480)
+    - FPS (default: 0, auto-detect)
+    - TARGET_FPS (default: matches FPS)
+    - JPEG_QUALITY (1-100, default: 90)
+    - MAX_FRAME_AGE_SECONDS (default: 10)
+    - MAX_STREAM_CONNECTIONS (1-100, default: 10)
+
+    Invalid values fall back to documented defaults without raising.
+
+    Returns:
+        Dict with keys: resolution (tuple), fps, target_fps, jpeg_quality,
+        max_frame_age_seconds, max_stream_connections.
+    """
     try:
         resolution = parse_resolution(os.environ.get("RESOLUTION", "640x480"))
     except ValueError:
@@ -73,6 +103,24 @@ def _load_camera_config() -> Dict[str, Any]:
 
 
 def _apply_pi3_profile_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Apply Raspberry Pi 3 resource optimization defaults.
+
+    When PI3_PROFILE=true and environment variables are NOT explicitly set,
+    applies conservative defaults for Pi 3 limited resources:
+    - Resolution: 640x480
+    - FPS: 12
+    - Target FPS: 12
+    - JPEG Quality: 75
+    - Max Connections: 3
+
+    Skips any setting that was explicitly provided via environment variable.
+
+    Args:
+        config: Configuration dict from load_env_config().
+
+    Returns:
+        Config dict with Pi3 defaults applied where env vars weren't set.
+    """
     if not config.get("pi3_profile_enabled", False):
         return config
 
@@ -97,6 +145,21 @@ def _apply_pi3_profile_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _load_stream_config() -> Dict[str, Any]:
+    """Load stream and mock camera configuration from environment variables.
+
+    Parses settings for API test mode and cat GIF mock camera (cataas.com).
+
+    Env vars:
+    - API_TEST_MODE_ENABLED (default: false)
+    - API_TEST_CYCLE_INTERVAL_SECONDS (default: 5.0)
+    - CAT_GIF (feature flag, default: false)
+    - CATAAS_API_URL (default: https://cataas.com/cat.gif)
+    - CAT_GIF_CACHE_TTL_SECONDS (default: 60.0)
+
+    Returns:
+        Dict with keys: api_test_mode_enabled, api_test_cycle_interval_seconds,
+        cat_gif_enabled, cataas_api_url, cat_gif_cache_ttl_seconds.
+    """
     api_test_mode_enabled = os.environ.get("API_TEST_MODE_ENABLED", "false").lower() in (
         "1",
         "true",
@@ -148,6 +211,21 @@ def _load_stream_config() -> Dict[str, Any]:
 
 
 def _load_discovery_config() -> Dict[str, Any]:
+    """Load node discovery/registration configuration from environment variables.
+
+    Parses discovery protocol settings for webcam self-registration to management hub.
+
+    Env vars:
+    - DISCOVERY_ENABLED (default: false)
+    - DISCOVERY_MANAGEMENT_URL (default: http://127.0.0.1:8001)
+    - DISCOVERY_TOKEN (bearer token for announcement authentication)
+    - DISCOVERY_INTERVAL_SECONDS (default: 30.0, minimum: >0)
+    - DISCOVERY_NODE_ID (optional, for identifying this node)
+
+    Returns:
+        Dict with keys: discovery_enabled, discovery_management_url, discovery_token,
+        discovery_interval_seconds, discovery_node_id.
+    """
     discovery_enabled = os.environ.get("DISCOVERY_ENABLED", "false").lower() in (
         "1",
         "true",
@@ -173,6 +251,16 @@ def _load_discovery_config() -> Dict[str, Any]:
 
 
 def _load_logging_config() -> Dict[str, Any]:
+    """Load logging configuration from environment variables.
+
+    Env vars:
+    - LOG_LEVEL: Python logging level (default: INFO)
+    - LOG_FORMAT: text|json (default: text)
+    - LOG_INCLUDE_IDENTIFIERS: true/false for process/thread IDs (default: false)
+
+    Returns:
+        Dict with keys: log_level, log_format, log_include_identifiers.
+    """
     return {
         "log_level": os.environ.get("LOG_LEVEL", "INFO"),
         "log_format": os.environ.get("LOG_FORMAT", "text"),
@@ -186,6 +274,18 @@ def _load_logging_config() -> Dict[str, Any]:
 
 
 def _load_networking_config() -> Dict[str, Any]:
+    """Load network binding and CORS configuration from environment variables.
+
+    Env vars:
+    - MOTION_IN_OCEAN_BIND_HOST (default: 127.0.0.1)
+    - MOTION_IN_OCEAN_PORT (1-65535, default: 8000)
+    - BASE_URL (default: http://hostname:8000)
+    - CORS_SUPPORT (feature flag, default: false)
+    - MOTION_IN_OCEAN_CORS_ORIGINS (default: * if enabled, else disabled)
+
+    Returns:
+        Dict with keys: cors_enabled, cors_origins, bind_host, bind_port, base_url.
+    """
     cors_enabled = is_flag_enabled("CORS_SUPPORT")
     cors_origins_raw = os.environ.get("MOTION_IN_OCEAN_CORS_ORIGINS", "").strip()
     cors_origins = cors_origins_raw or "*" if cors_enabled else "disabled"
@@ -211,6 +311,19 @@ def _load_networking_config() -> Dict[str, Any]:
 
 
 def _load_advanced_config() -> Dict[str, Any]:
+    """Load advanced/internal configuration from environment variables.
+
+    Env vars:
+    - MOTION_IN_OCEAN_PI3_PROFILE or PI3_PROFILE (default: false)
+    - MOCK_CAMERA (feature flag, default: false)
+    - ALLOW_PYKMS_MOCK (default: false)
+    - NODE_REGISTRY_PATH (default: /data/node-registry.json)
+    - MANAGEMENT_AUTH_TOKEN (bearer token for management mode auth)
+
+    Returns:
+        Dict with keys: pi3_profile_enabled, mock_camera, allow_pykms_mock,
+        node_registry_path, management_auth_token.
+    """
     pi3_profile_raw = os.environ.get(
         "MOTION_IN_OCEAN_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false")
     )
@@ -226,6 +339,23 @@ def _load_advanced_config() -> Dict[str, Any]:
 
 
 def load_env_config() -> Dict[str, Any]:
+    """Load all configuration from environment variables.
+
+    Assembles complete config by calling all _load_*_config() helpers.
+    APP_MODE must be 'webcam' or 'management'.
+    Applies Pi3 profile defaults if enabled.
+
+    Env vars:
+    - APP_MODE (default: webcam, required: must be 'webcam' or 'management')
+    - All vars checked by _load_*_config() functions
+
+    Returns:
+        Complete flattened configuration dict with all keys from all
+        _load_*_config() functions, plus pi3_profile_enabled flag.
+
+    Raises:
+        ValueError: If APP_MODE is invalid.
+    """
     app_mode = os.environ.get("APP_MODE", DEFAULT_APP_MODE).strip().lower()
     if app_mode not in ALLOWED_APP_MODES:
         message = f"Invalid APP_MODE {app_mode}"
@@ -244,6 +374,17 @@ def load_env_config() -> Dict[str, Any]:
 def _merge_camera_settings(
     merged: Dict[str, Any], camera_settings: Dict[str, Any], env_config: Dict[str, Any]
 ) -> None:
+    """Merge persisted camera settings into config.
+
+    Validates and applies persisted settings for: resolution, fps, jpeg_quality,
+    max_stream_connections, max_frame_age_seconds. Invalid values are logged
+    and skipped (uses environment value instead). Modifies merged dict in-place.
+
+    Args:
+        merged: Config dict to update in-place (typically copy of env_config).
+        camera_settings: Persisted camera settings from application_settings.json.
+        env_config: Environment configuration for fallback values.
+    """
     if camera_settings.get("resolution") is not None:
         try:
             merged["resolution"] = parse_resolution(camera_settings["resolution"])
@@ -272,6 +413,16 @@ def _merge_camera_settings(
 
 
 def _merge_discovery_settings(merged: Dict[str, Any], discovery_settings: Dict[str, Any]) -> None:
+    """Merge persisted discovery settings into config.
+
+    Applies persisted settings for: discovery_enabled, discovery_management_url,
+    discovery_token, discovery_interval_seconds. Validates values before merging.
+    Modifies merged dict in-place.
+
+    Args:
+        merged: Config dict to update in-place (typically copy of env_config).
+        discovery_settings: Persisted discovery settings from application_settings.json.
+    """
     if discovery_settings.get("discovery_enabled") is not None:
         merged["discovery_enabled"] = discovery_settings["discovery_enabled"]
     if discovery_settings.get("discovery_management_url") is not None:
@@ -287,6 +438,15 @@ def _merge_discovery_settings(merged: Dict[str, Any], discovery_settings: Dict[s
 
 
 def _merge_logging_settings(merged: Dict[str, Any], logging_settings: Dict[str, Any]) -> None:
+    """Merge persisted logging settings into config.
+
+    Applies persisted settings for: log_level, log_format, log_include_identifiers.
+    Modifies merged dict in-place.
+
+    Args:
+        merged: Config dict to update in-place (typically copy of env_config).
+        logging_settings: Persisted logging settings from application_settings.json.
+    """
     if logging_settings.get("log_level") is not None:
         merged["log_level"] = logging_settings["log_level"]
     if logging_settings.get("log_format") is not None:
@@ -298,6 +458,19 @@ def _merge_logging_settings(merged: Dict[str, Any], logging_settings: Dict[str, 
 def merge_config_with_persisted_settings(
     env_config: Dict[str, Any], persisted: Dict[str, Any]
 ) -> Dict[str, Any]:
+    """Merge persisted application settings with environment configuration.
+
+    Precedence (high to low):
+    1. Persisted settings from application_settings.json (if valid)
+    2. Environment variables (fallback)
+
+    Args:
+        env_config: Full environment configuration from load_env_config().
+        persisted: Parsed JSON from ApplicationSettings.load() (or dict like {}).
+
+    Returns:
+        Merged config dict with persisted settings overriding env values where present.
+    """
     merged = dict(env_config)
     settings = persisted.get("settings", {}) if isinstance(persisted, dict) else {}
     _merge_camera_settings(merged, settings.get("camera", {}), env_config)
@@ -309,6 +482,19 @@ def merge_config_with_persisted_settings(
 def merge_config_with_settings(
     env_config: Dict[str, Any], app_settings: ApplicationSettings | None = None
 ) -> Dict[str, Any]:
+    """Load and merge persisted settings with environment configuration.
+
+    Attempts to load persisted settings from file. If loading fails (validation error,
+    file not found, parse error), logs warning and returns env_config unchanged.
+    Merging uses merge_config_with_persisted_settings().
+
+    Args:
+        env_config: Full environment configuration from load_env_config().
+        app_settings: Optional ApplicationSettings instance; creates new if None.
+
+    Returns:
+        Merged configuration, or env_config if persisted settings unavailable.
+    """
     try:
         settings_store = app_settings or ApplicationSettings()
         persisted = settings_store.load()
@@ -323,6 +509,19 @@ def merge_config_with_settings(
 
 
 def get_effective_settings_payload(app_settings: ApplicationSettings) -> Dict[str, Any]:
+    """Get current effective settings as JSON-serializable payload.
+
+    Loads environment config, merges with persisted settings, and returns
+    structured payload for /api/settings endpoint. Includes source metadata,
+    timestamps, and feature flags from persisted store.
+
+    Args:
+        app_settings: ApplicationSettings instance for loading persisted data.
+
+    Returns:
+        Dict with keys: source, settings (camera/logging/discovery/feature_flags),
+        last_modified, modified_by.
+    """
     env_config = load_env_config()
     try:
         persisted = app_settings.load()
