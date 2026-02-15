@@ -155,7 +155,7 @@ test("node form panel toggle defaults expanded and flips collapsed state with st
   assert.equal(nodeFormPanelContainer.classList.contains("is-form-collapsed"), false);
   assert.equal(nodeFormContent.classList.contains("hidden"), false);
 
-  const toggleHandler = toggleNodeFormPanelBtn.listeners.get("click");
+  const toggleHandler = toggleNodeFormPanelBtn.listeners.get("click")?.[0];
   assert.equal(typeof toggleHandler, "function");
 
   toggleHandler();
