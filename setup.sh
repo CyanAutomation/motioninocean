@@ -1,7 +1,7 @@
 #!/bin/bash
 # Motion In Ocean - Interactive Setup Assistant
 # Supports both new directory-based deployments and legacy root-level setup
-# 
+#
 # NEW RECOMMENDED APPROACH:
 #   cd containers/motioniocean-{webcam|management}
 #   /path/to/setup.sh
@@ -32,6 +32,7 @@ fi
 # Paths for environment files
 ENV_FILE=".env"
 ENV_EXAMPLE=".env.example"
+# shellcheck disable=SC2034  # Variable is a constant for generated file name
 OVERRIDE_FILE="docker-compose.override.yaml"
 
 copy_env() {

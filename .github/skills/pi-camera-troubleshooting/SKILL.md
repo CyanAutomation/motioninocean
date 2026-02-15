@@ -161,19 +161,23 @@ Good: `MOTION_IN_OCEAN_HEALTHCHECK_READY=true` (or `HEALTHCHECK_READY=true`) mat
 3. **Health endpoint unhealthy**
    - If `/health` fails: service process issue (startup crash/bind failure).
    - Run `docker compose logs --tail=200 motion-in-ocean` and restart:
+
      ```bash
      docker compose restart motion-in-ocean
      ```
+
    - Validate container healthcheck mode:
      - Default should target `/health`.
      - If readiness mode enabled, temporary camera issues may mark container unhealthy by design.
 
 4. **Non-Pi development environment**
    - Set mock mode:
+
      ```bash
      export MOCK_CAMERA=true
      docker compose up -d --force-recreate
      ```
+
    - Expected in mock mode:
      - `/health` returns `200`.
      - `/ready` should become `200` once mock frame generator starts.

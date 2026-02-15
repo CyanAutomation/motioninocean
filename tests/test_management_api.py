@@ -1475,7 +1475,9 @@ def test_diagnose_recommendations_keep_backward_compatible_guidance(monkeypatch)
             category="timeout",
         )
 
-    monkeypatch.setattr(management_api.socket, "getaddrinfo", lambda *_a, **_kw: [(2, 1, 6, "", ("8.8.8.8", 8000))])
+    monkeypatch.setattr(
+        management_api.socket, "getaddrinfo", lambda *_a, **_kw: [(2, 1, 6, "", ("8.8.8.8", 8000))]
+    )
     monkeypatch.setattr(management_api, "_request_json", _raise_timeout)
 
     payload = management_api._diagnose_node(node)

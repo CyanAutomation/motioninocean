@@ -9,7 +9,9 @@ This document captures shared product context used by both backend and frontend 
 
 ## Problem Statement
 
-Running a Raspberry Pi CSI camera in a Dockerized homelab setup is operationally complex. Users need a system that is easy to deploy, provides reliable live-stream visibility, and communicates health/readiness clearly so failures can be detected and recovered quickly.
+Running a Raspberry Pi CSI camera in a Dockerized homelab setup is operationally complex.
+Users need a system that is easy to deploy, provides reliable live-stream visibility,
+and communicates health/readiness clearly so failures can be detected and recovered quickly.
 
 ## Cross-Cutting Goals
 
@@ -49,6 +51,7 @@ flowchart TD
 ```
 
 **Validation functions:**
+
 - `validate_resolution()`: WIDTHxHEIGHT format, max 4096x4096
 - `validate_integer_range()`: Min/max bounds checking
 - `validate_all_config()`: Preflighting at startup
@@ -73,28 +76,28 @@ sequenceDiagram
     and
         Webcam2->>Mgmt: POST /announce (to node B)
     end
-    
+
     Mgmt->>Mgmt: Both requests<br/>begin upsert logic
-    
+
     Mgmt->>Lock: Webcam1 requests lock
     Mgmt->>Lock: Webcam2 requests lock
-    
+
     Lock->>Lock: Serialize: Webcam1 first
     Lock-->>Webcam1: Lock acquired
-    
+
     Webcam1->>Reg: Read registry
     Webcam1->>Reg: Find/create node A
     Webcam1->>Reg: Write updated registry
-    
+
     Webcam1->>Lock: Release lock
     Lock-->>Webcam2: Lock acquired
-    
+
     Webcam2->>Reg: Read registry<br/>(includes node A)
     Webcam2->>Reg: Find/create node B
     Webcam2->>Reg: Write updated registry
-    
+
     Webcam2->>Lock: Release lock
-    
+
     note over Lock
         Atomic file locking (fcntl on POSIX, msvcrt on Windows)
         ensures registry consistency under concurrent updates
@@ -102,6 +105,7 @@ sequenceDiagram
 ```
 
 **Atomicity guarantees:**
+
 - Read-modify-write serialized via file lock
 - Multiple concurrent nodes cannot corrupt registry
 - Last writer wins (expected behavior for discovery)
@@ -116,37 +120,37 @@ sequenceDiagram
 ```mermaid
 stateDiagram-v2
     [*] --> State0: api-test-reset or startup
-    
+
     State0: stream_available=true
     State0: camera_active=true
     State0: fps=24.0
     State0: Label: "OK"
-    
+
     State0 --> State1: Auto-advance interval<br/>(api-test-start) OR<br/>api-test-step
-    
+
     State1: stream_available=false
     State1: camera_active=true
     State1: fps=0.0
     State1: Label: "Degraded<br/>(no stream)"
-    
+
     State1 --> State2: Auto-advance interval OR<br/>api-test-step
-    
+
     State2: stream_available=false
     State2: camera_active=false
     State2: fps=0.0
     State2: Label: "Degraded<br/>(no camera)"
-    
+
     State2 --> State0: Auto-advance interval OR<br/>api-test-step
-    
+
     note right of State0
         Healthy state; all systems nominal
     end note
-    
+
     note right of State1
         Stream unavailable but camera still active
         (simulates encoder failure)
     end note
-    
+
     note right of State2
         Both stream and camera unavailable
         (simulates complete failure)
@@ -154,6 +158,7 @@ stateDiagram-v2
 ```
 
 **Control actions:**
+
 - `POST /api/actions/api-test-start`: Begin auto-transitions at `API_TEST_CYCLE_INTERVAL_SECONDS` (default 5s)
 - `POST /api/actions/api-test-step`: Advance exactly one state (manual), then pause
 - `POST /api/actions/api-test-stop`: Freeze current state (no more transitions)
@@ -165,7 +170,9 @@ stateDiagram-v2
 
 ## Shared Non-Goals
 
-- Internet-hardened production platform (e.g., full zero-trust posture, enterprise IAM).
+- Internet-hardened production platform (e.g., full zero-trust posture,
+
+  enterprise IAM).
 - Multi-protocol media platform beyond current scoped transports (e.g., full HLS/RTSP suite by default).
 - Heavy orchestration dependencies for baseline single-node use.
 - Rich media management workflows (recording library, editing, archival pipeline).

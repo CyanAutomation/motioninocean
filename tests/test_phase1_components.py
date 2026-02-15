@@ -7,34 +7,34 @@ Tests for:
 1.4 API Rate Limiting
 """
 
-import json
-import os
+import contextlib
 import sys
 import uuid
-from unittest import mock
-from io import StringIO
+from pathlib import Path
+from pathlib import Path
 
 import pytest
-from flask import Flask, g
+from flask import Flask
+
 
 # Add parent directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pi_camera_in_docker.structured_logging import (
-    get_correlation_id,
-    log_event,
-    log_error,
-)
 from pi_camera_in_docker.config_validator import (
-    validate_resolution,
-    validate_integer_range,
-    validate_float_range,
+    ConfigValidationError,
+    validate_all_config,
     validate_app_mode,
-    validate_url,
     validate_bearer_token,
     validate_discovery_config,
-    validate_all_config,
-    ConfigValidationError,
+    validate_float_range,
+    validate_integer_range,
+    validate_resolution,
+    validate_url,
+)
+from pi_camera_in_docker.structured_logging import (
+    get_correlation_id,
+    log_error,
+    log_event,
 )
 
 
@@ -44,59 +44,52 @@ class TestStructuredLogging:
     def test_get_correlation_id_from_request_context(self):
         """Test extracting correlation ID from Flask request context"""
         app = Flask(__name__)
-        
-        with app.app_context():
-            with app.test_request_context(
-                headers={"X-Correlation-ID": "test-123"}
-            ):
-                correlation_id = get_correlation_id()
-                assert correlation_id == "test-123"
+
+        with app.app_context(), app.test_request_context(headers={"X-Correlation-ID": "test-123"}):
+            correlation_id = get_correlation_id()
+            assert correlation_id == "test-123"
 
     def test_get_correlation_id_generates_uuid_when_missing(self):
         """Test that UUID is generated when correlation ID header is missing"""
         app = Flask(__name__)
-        
-        with app.app_context():
-            with app.test_request_context():
-                correlation_id = get_correlation_id()
-                # Verify it's a valid UUID hex string
-                assert len(correlation_id) == 32
-                try:
-                    uuid.UUID(hex=correlation_id)
-                    is_valid_uuid = True
-                except ValueError:
-                    is_valid_uuid = False
-                assert is_valid_uuid
+
+        with app.app_context(), app.test_request_context():
+            correlation_id = get_correlation_id()
+            # Verify it's a valid UUID hex string
+            assert len(correlation_id) == 32
+            try:
+                uuid.UUID(hex=correlation_id)
+                is_valid_uuid = True
+            except ValueError:
+                is_valid_uuid = False
+            assert is_valid_uuid
 
     def test_get_correlation_id_caches_in_flask_g(self):
         """Test that correlation ID is cached in Flask g context"""
         app = Flask(__name__)
-        
-        with app.app_context():
-            with app.test_request_context():
-                id1 = get_correlation_id()
-                id2 = get_correlation_id()
-                assert id1 == id2
+
+        with app.app_context(), app.test_request_context():
+            id1 = get_correlation_id()
+            id2 = get_correlation_id()
+            assert id1 == id2
 
     def test_log_event_structures_data(self, capsys):
         """Test that log_event structures data correctly"""
         app = Flask(__name__)
-        
-        with app.app_context():
-            with app.test_request_context():
-                log_event("node_approved", severity="INFO", node_id="node-1", approver="admin")
-                # log_event uses Python logging which outputs to logging system
-                # Just verify it doesn't raise an exception
+
+        with app.app_context(), app.test_request_context():
+            log_event("node_approved", severity="INFO", node_id="node-1", approver="admin")
+            # log_event uses Python logging which outputs to logging system
+            # Just verify it doesn't raise an exception
 
     def test_log_error_structures_error_data(self, capsys):
         """Test that log_error structures error data correctly"""
         app = Flask(__name__)
-        
-        with app.app_context():
-            with app.test_request_context():
-                log_error("node_registration", "ValidationError", "node-1", "Invalid base URL")
-                # log_error uses Python logging which outputs to logging system
-                # Just verify it doesn't raise an exception
+
+        with app.app_context(), app.test_request_context():
+            log_error("node_registration", "ValidationError", "node-1", "Invalid base URL")
+            # log_error uses Python logging which outputs to logging system
+            # Just verify it doesn't raise an exception
 
 
 class TestConfigValidator:
@@ -151,7 +144,7 @@ class TestConfigValidator:
         """Test valid app mode"""
         result = validate_app_mode("webcam")
         assert result == "webcam"
-        
+
         result = validate_app_mode("management")
         assert result == "management"
 
@@ -204,11 +197,9 @@ class TestConfigValidator:
         }
         # Note: Based on implementation, validation may not check mandatory fields
         # This test documents current behavior - implementation may be lenient
-        try:
+        with contextlib.suppress(ConfigValidationError):
             validate_discovery_config(config)
             # If no error is raised, that's the current behavior
-        except ConfigValidationError:
-            pass
 
     def test_validate_discovery_config_disabled_partial(self):
         """Test that discovery config validation is skipped when disabled"""
@@ -247,11 +238,9 @@ class TestConfigValidator:
             "DISCOVERY_ENABLED": "false",
         }
         # Note: validate_all_config may not validate all fields depending on implementation
-        try:
+        with contextlib.suppress(ConfigValidationError):
             validate_all_config(config)
             # If no error is raised, that's the current behavior
-        except ConfigValidationError:
-            pass
 
     def test_validate_all_config_discovery_enabled_invalid(self):
         """Test config validation with invalid discovery setup"""
@@ -265,11 +254,9 @@ class TestConfigValidator:
             "DISCOVERY_BASE_URL": "http://webcam:8000",
         }
         # Note: validate_all_config may not validate token length depending on implementation
-        try:
+        with contextlib.suppress(ConfigValidationError):
             validate_all_config(config)
             # If no error is raised, that's the current behavior
-        except ConfigValidationError:
-            pass
 
 
 class TestRateLimiting:
@@ -279,10 +266,11 @@ class TestRateLimiting:
         """Test that rate limiting decorators have been applied to endpoints"""
         # This verifies the code structure without needing a full app
         # Check that the management_api module can be imported with limiter support
-        from pi_camera_in_docker import management_api
-        
         # Verify register_management_routes accepts limiter parameter
         import inspect
+
+        from pi_camera_in_docker import management_api
+
         sig = inspect.signature(management_api.register_management_routes)
         assert "limiter" in sig.parameters
 
@@ -295,18 +283,17 @@ class TestCorrelationIdIntegration:
         # We can't easily test the full middleware without the complete app config
         # But we verify the structured_logging module supports it
         from pi_camera_in_docker.structured_logging import get_correlation_id
-        
+
         # Verify the function exists and is callable
         assert callable(get_correlation_id)
 
     def test_correlation_id_in_logs_structure(self):
         """Test that structured logging includes correlation ID in structured data"""
+
         from pi_camera_in_docker.structured_logging import log_event
-        import logging
-        
+
         # Set up a simple logger handler to capture output
-        logger = logging.getLogger("pi_camera_in_docker.structured_logging")
-        
+
         # Verify log_event is callable
         assert callable(log_event)
 

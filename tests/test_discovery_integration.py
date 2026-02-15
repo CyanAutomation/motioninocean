@@ -7,9 +7,7 @@ import json
 import tempfile
 import threading
 import time
-from unittest.mock import patch, MagicMock
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 
 class TestDiscoveryAnnounceIntegration:
@@ -17,10 +15,10 @@ class TestDiscoveryAnnounceIntegration:
 
     def test_announcer_makes_successful_announcement(self):
         """Verify announcer successfully posts discovery announcement to management endpoint."""
-        from discovery import DiscoveryAnnouncer
+        from unittest.mock import MagicMock, patch
         from urllib.request import Request
-        from unittest.mock import patch, MagicMock
-        import io
+
+        from discovery import DiscoveryAnnouncer
 
         shutdown_event = threading.Event()
         payload = {
@@ -59,8 +57,9 @@ class TestDiscoveryAnnounceIntegration:
 
     def test_announcer_handles_http_error(self):
         """Verify announcer handles HTTP errors gracefully."""
-        from discovery import DiscoveryAnnouncer
         import urllib.error
+
+        from discovery import DiscoveryAnnouncer
 
         shutdown_event = threading.Event()
         payload = {"node_id": "node-test-2"}
@@ -88,8 +87,8 @@ class TestDiscoveryAnnounceIntegration:
 
     def test_announcer_handles_network_timeout(self):
         """Verify announcer handles network timeouts."""
+
         from discovery import DiscoveryAnnouncer
-        import urllib.error
 
         shutdown_event = threading.Event()
         payload = {"node_id": "node-test-3"}
@@ -112,8 +111,9 @@ class TestDiscoveryAnnounceIntegration:
 
     def test_announcer_retries_with_exponential_backoff(self):
         """Verify announcer retries with exponential backoff on failures."""
-        from discovery import DiscoveryAnnouncer
         import urllib.error
+
+        from discovery import DiscoveryAnnouncer
 
         shutdown_event = threading.Event()
         payload = {"node_id": "node-test-4"}
@@ -190,16 +190,15 @@ class TestDiscoveryEndToEnd:
 
     def test_webcam_announces_to_management_and_gets_approved(self, monkeypatch):
         """Full flow: webcam announces -> management receives -> admin approves node."""
-        from management_api import register_management_routes
         from flask import Flask
-        import tempfile
+        from management_api import register_management_routes
 
         with tempfile.TemporaryDirectory() as registry_dir:
             registry_path = f"{registry_dir}/registry.json"
 
             # Create management app
             app = Flask(__name__)
-            
+
             # Patch ALLOW_PRIVATE_IPS to allow private IP announcements for this test
             with patch("management_api.ALLOW_PRIVATE_IPS", True):
                 register_management_routes(
@@ -229,7 +228,9 @@ class TestDiscoveryEndToEnd:
                 node_data = response.json["node"]
                 assert node_data["id"] == "node-webcam-1"
                 assert node_data["discovery"]["source"] == "discovered"
-                assert node_data["discovery"]["approved"] is False, "New discovery should start unapproved"
+                assert (
+                    node_data["discovery"]["approved"] is False
+                ), "New discovery should start unapproved"
 
                 # Step 2: Admin approves the discovered node
                 approval_response = client.post(
@@ -251,9 +252,8 @@ class TestDiscoveryEndToEnd:
 
     def test_webcam_announces_with_private_ip_blocked_without_opt_in(self, monkeypatch):
         """Verify private IP announcements are blocked unless explicitly allowed."""
-        from management_api import register_management_routes
         from flask import Flask
-        import tempfile
+        from management_api import register_management_routes
 
         with tempfile.TemporaryDirectory() as registry_dir:
             registry_path = f"{registry_dir}/registry.json"
@@ -288,15 +288,14 @@ class TestDiscoveryEndToEnd:
 
     def test_webcam_announces_with_private_ip_allowed_with_opt_in(self, monkeypatch):
         """Verify private IP announcements are allowed when explicitly configured."""
-        from management_api import register_management_routes
         from flask import Flask
-        import tempfile
+        from management_api import register_management_routes
 
         with tempfile.TemporaryDirectory() as registry_dir:
             registry_path = f"{registry_dir}/registry.json"
 
             app = Flask(__name__)
-            
+
             # Patch ALLOW_PRIVATE_IPS to allow private IP announcements
             with patch("management_api.ALLOW_PRIVATE_IPS", True):
                 register_management_routes(
@@ -351,15 +350,14 @@ class TestDiscoveryEndToEnd:
 
     def test_multiple_webcams_announce_independently(self, monkeypatch):
         """Verify multiple webcams can announce independently without conflicts."""
-        from management_api import register_management_routes
         from flask import Flask
-        import tempfile
+        from management_api import register_management_routes
 
         with tempfile.TemporaryDirectory() as registry_dir:
             registry_path = f"{registry_dir}/registry.json"
 
             app = Flask(__name__)
-            
+
             # Patch ALLOW_PRIVATE_IPS to allow private IP announcements
             with patch("management_api.ALLOW_PRIVATE_IPS", True):
                 register_management_routes(
@@ -413,9 +411,8 @@ class TestDiscoveryEndToEnd:
 
     def test_discovery_announce_without_shared_secret_fails(self, monkeypatch):
         """Verify announcement fails if NODE_DISCOVERY_SHARED_SECRET not configured."""
-        from management_api import register_management_routes
         from flask import Flask
-        import tempfile
+        from management_api import register_management_routes
 
         with tempfile.TemporaryDirectory() as registry_dir:
             registry_path = f"{registry_dir}/registry.json"
@@ -440,23 +437,23 @@ class TestDiscoveryEndToEnd:
             response = client.post(
                 "/api/discovery/announce",
                 json=payload,
-                headers={"Authorization": f"Bearer anything"},
+                headers={"Authorization": "Bearer anything"},
             )
 
             assert response.status_code == 401, "Should fail without valid secret"
 
     def test_discovery_node_updates_last_announce_timestamp(self, monkeypatch):
         """Verify repeated announcements update last_announce_at timestamp."""
-        from management_api import register_management_routes
-        from flask import Flask
-        import tempfile
         import time
+
+        from flask import Flask
+        from management_api import register_management_routes
 
         with tempfile.TemporaryDirectory() as registry_dir:
             registry_path = f"{registry_dir}/registry.json"
 
             app = Flask(__name__)
-            
+
             # Patch ALLOW_PRIVATE_IPS to allow private IP announcements
             with patch("management_api.ALLOW_PRIVATE_IPS", True):
                 register_management_routes(

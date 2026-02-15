@@ -69,7 +69,7 @@ jobs:
           if [ -f "CHANGELOG.md" ]; then
             # Use awk to extract content between version headers
             CHANGELOG_CONTENT=$(awk "/## \[${VERSION}\]/,/## \[.*\]/{if (/## \[${VERSION}\]/) {found=1; next} if (/## \[.*\]/ && found) exit; if (found) print}" CHANGELOG.md | sed '/^$/d')
-            
+
             if [ -z "$CHANGELOG_CONTENT" ]; then
               echo "Warning: No changelog section found for version ${VERSION}"
               CHANGELOG_CONTENT="Release ${VERSION} - See commit history for details."

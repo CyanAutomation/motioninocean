@@ -182,7 +182,7 @@ check_gh_cli() {
         echo "  https://github.com/${REPO_SLUG}/actions"
         return 1
     fi
-    
+
     # Check if gh is authenticated
     if ! gh auth status &> /dev/null; then
         echo "[WARN] GitHub CLI is not authenticated."
@@ -192,7 +192,7 @@ check_gh_cli() {
         echo "  https://github.com/${REPO_SLUG}/actions"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -202,7 +202,7 @@ rollback_release() {
     echo "[ERROR] Workflow failed or was cancelled."
     echo "[INFO] Rolling back release v${NEW_VERSION}..."
     echo ""
-    
+
     # Delete remote tags
     echo "[INFO] Deleting remote tags..."
     if git push origin --delete "v${NEW_VERSION}" 2>/dev/null; then
@@ -210,7 +210,7 @@ rollback_release() {
     else
         echo "[WARN] Could not delete remote tag v${NEW_VERSION} (may not exist)"
     fi
-    
+
     # Delete local tags
     echo "[INFO] Deleting local tags..."
     if git tag -d "v${NEW_VERSION}" 2>/dev/null; then
@@ -218,7 +218,7 @@ rollback_release() {
     else
         echo "[WARN] Could not delete local tag v${NEW_VERSION}"
     fi
-    
+
     # Reset to previous commit
     echo "[INFO] Reverting release commit..."
     if git reset --hard HEAD~1; then
@@ -226,7 +226,7 @@ rollback_release() {
     else
         echo "[ERROR] Failed to revert local commit"
     fi
-    
+
     # Force push to remote to remove the commit
     echo "[INFO] Removing commit from remote..."
     if git push -f origin "${CURRENT_BRANCH}"; then
@@ -235,12 +235,12 @@ rollback_release() {
         echo "[ERROR] Failed to remove commit from remote"
         echo "[INFO] You may need to manually revert: git push -f origin ${CURRENT_BRANCH}"
     fi
-    
+
     # Restore VERSION and CHANGELOG files
     echo "[INFO] Restoring VERSION and CHANGELOG files..."
     git checkout HEAD -- "${VERSION_FILE}" "${CHANGELOG_FILE}" 2>/dev/null || true
     echo "[INFO] Restored files"
-    
+
     echo ""
     echo "[ERROR] Release rollback complete."
     echo "The repository has been restored to its state before the release."
@@ -251,16 +251,16 @@ rollback_release() {
 if check_gh_cli; then
     # Wait a few seconds for the workflow to be triggered
     sleep 5
-    
+
     # Find the workflow run for this tag
     WORKFLOW_NAME="Build and publish Docker image"
     MAX_WAIT_MINUTES=20
     MAX_WAIT_SECONDS=$((MAX_WAIT_MINUTES * 60))
     POLL_INTERVAL=10
     ELAPSED=0
-    
+
     echo "Searching for workflow run (timeout: ${MAX_WAIT_MINUTES} minutes)..."
-    
+
     WORKFLOW_RUN_ID=""
     while [ $ELAPSED -lt $MAX_WAIT_SECONDS ]; do
         # Get the latest workflow run for this tag
@@ -270,17 +270,17 @@ if check_gh_cli; then
             --json databaseId,headBranch,conclusion,status \
             --jq ".[] | select(.headBranch == \"v${NEW_VERSION}\") | .databaseId" \
             --limit 1 2>/dev/null | head -1)
-        
+
         if [ -n "${WORKFLOW_RUN_ID}" ]; then
             echo "[INFO] Found workflow run: ${WORKFLOW_RUN_ID}"
             break
         fi
-        
+
         echo "  Waiting for workflow to start... (${ELAPSED}s elapsed)"
         sleep $POLL_INTERVAL
         ELAPSED=$((ELAPSED + POLL_INTERVAL))
     done
-    
+
     if [ -z "${WORKFLOW_RUN_ID}" ]; then
         echo "[WARN] Could not find workflow run after ${MAX_WAIT_MINUTES} minutes."
         echo "The workflow may not have been triggered or may be delayed."
@@ -301,7 +301,7 @@ if check_gh_cli; then
         echo "[INFO] Monitoring workflow progress..."
         echo "View detailed logs: https://github.com/${REPO_SLUG}/actions/runs/${WORKFLOW_RUN_ID}"
         echo ""
-        
+
         WORKFLOW_STATUS=""
         ELAPSED=0
         while [ $ELAPSED -lt $MAX_WAIT_SECONDS ]; do
@@ -309,10 +309,10 @@ if check_gh_cli; then
             WORKFLOW_DATA=$(gh run view "${WORKFLOW_RUN_ID}" \
                 --repo "${REPO_SLUG}" \
                 --json status,conclusion 2>/dev/null)
-            
+
             WORKFLOW_STATUS=$(echo "${WORKFLOW_DATA}" | jq -r '.status')
             WORKFLOW_CONCLUSION=$(echo "${WORKFLOW_DATA}" | jq -r '.conclusion')
-            
+
             case "${WORKFLOW_STATUS}" in
                 "completed")
                     echo ""
@@ -342,11 +342,11 @@ if check_gh_cli; then
                     rollback_release
                     ;;
             esac
-            
+
             sleep $POLL_INTERVAL
             ELAPSED=$((ELAPSED + POLL_INTERVAL))
         done
-        
+
         # Timeout reached
         echo ""
         echo "[WARN] Workflow did not complete within ${MAX_WAIT_MINUTES} minutes."

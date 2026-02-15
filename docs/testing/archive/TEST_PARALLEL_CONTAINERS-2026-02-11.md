@@ -343,7 +343,7 @@ Use Docker port mapping to simulate multi-host scenario:
 **Implementation:**
 
 1. Publish webcam container on 127.0.0.1:9000 (in addition to 8000)
-2. Register node with http://127.0.0.1:9000 (public-facing, if were host network)
+2. Register node with <http://127.0.0.1:9000> (public-facing, if were host network)
 3. Would still be blocked due to localhost/loopback check
 
 ### Option 4: Code Modification for Test Mode ⚠️

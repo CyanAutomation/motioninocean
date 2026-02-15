@@ -104,17 +104,17 @@ def test_docker_compose_device_mappings(workspace_root):
     has_video_device_mapping = any("/dev/video" in str(d) for d in devices)
     has_video_cgroup_rule = any("81:*" in str(rule) for rule in device_cgroup_rules)
 
-    assert has_video_device_mapping or has_video_cgroup_rule, (
-        "Missing /dev/video* device configuration (neither explicit mapping nor cgroup rule)"
-    )
+    assert (
+        has_video_device_mapping or has_video_cgroup_rule
+    ), "Missing /dev/video* device configuration (neither explicit mapping nor cgroup rule)"
 
     # /dev/v4l-subdev* devices should also be mapped explicitly or covered by cgroup rules.
     has_v4l_subdev_mapping = any("/dev/v4l-subdev" in str(d) for d in devices)
     has_v4l_subdev_cgroup_rule = any("81:*" in str(rule) for rule in device_cgroup_rules)
 
-    assert has_v4l_subdev_mapping or has_v4l_subdev_cgroup_rule, (
-        "Missing /dev/v4l-subdev* configuration (neither explicit mapping nor cgroup rule)"
-    )
+    assert (
+        has_v4l_subdev_mapping or has_v4l_subdev_cgroup_rule
+    ), "Missing /dev/v4l-subdev* configuration (neither explicit mapping nor cgroup rule)"
 
 
 def test_docker_compose_security(workspace_root):
@@ -180,9 +180,9 @@ def test_environment_variable_handled(workspace_root, env_var):
         f'is_flag_enabled("{env_var}")' in code or "from feature_flags import" in code
     )
 
-    assert has_direct_access or has_feature_flags, (
-        f"Missing {env_var} handling (neither direct access nor feature flags found)"
-    )
+    assert (
+        has_direct_access or has_feature_flags
+    ), f"Missing {env_var} handling (neither direct access nor feature flags found)"
 
 
 def test_env_file_exists(workspace_root):

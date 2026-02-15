@@ -3,7 +3,7 @@
 import json
 import logging
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask import g, request
 
@@ -15,9 +15,7 @@ def get_correlation_id() -> str:
     """Get or create correlation ID for current request."""
     if not hasattr(g, "correlation_id"):
         # Try to get from request header, or generate new one
-        g.correlation_id = request.headers.get(
-            "X-Correlation-ID", uuid.uuid4().hex
-        )
+        g.correlation_id = request.headers.get("X-Correlation-ID", uuid.uuid4().hex)
     return g.correlation_id
 
 
@@ -27,7 +25,7 @@ def log_event(
     **context: Any,
 ) -> None:
     """Log a structured event with correlation ID and context.
-    
+
     Args:
         event_type: Name of the event (e.g., "node_approved", "announcement_sent")
         severity: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -58,7 +56,7 @@ def log_error(
     **context: Any,
 ) -> None:
     """Log a structured error with full context.
-    
+
     Args:
         operation: The operation being performed (e.g., "node_request", "announcement_send")
         error_type: Category of error (e.g., "timeout", "auth_failed", "network_error")

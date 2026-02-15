@@ -2,7 +2,8 @@
 
 ## Scope
 
-This document contains backend-specific requirements only. For shared problem statement, cross-cutting goals, and shared constraints/non-goals, see [PRD-core.md](PRD-core.md).
+This document contains backend-specific requirements only. For shared problem statement,
+cross-cutting goals, and shared constraints/non-goals, see [PRD-core.md](PRD-core.md).
 
 ## Backend Requirements
 
@@ -33,6 +34,7 @@ graph LR
 ```
 
 **Key flows:**
+
 - Webcams announce themselves to management (discovery)
 - Management proxies queries to webcams (status aggregation)
 - Registry persists node metadata with atomic file locking
@@ -70,6 +72,7 @@ sequenceDiagram
 ```
 
 **Concurrency details:**
+
 - Frame writes use `Condition` to efficiently notify waiting readers
 - Stats snapshot holds `Lock` only long enough to read counters
 - FPS calculated from rolling 30-frame window (monotonic timestamps)
@@ -139,6 +142,7 @@ flowchart LR
 ```
 
 **Configuration:**
+
 - Default: `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=false` (production-safe)
 - For LANs: Set to `true`
 - Bearer token in `Authorization: Bearer <token>` header
@@ -166,25 +170,25 @@ Persistence uses registry abstraction (initially file-backed via `NODE_REGISTRY_
 ```mermaid
 stateDiagram-v2
     [*] --> Announced: Webcam announces
-    
+
     Announced: source="discovered"
     Announced: approved=false
-    
+
     Announced --> Approved: Admin approves<br/>POST /api/nodes/{id}/discovery/approve
-    
+
     Approved: source="discovered"
     Approved: approved=true
-    
+
     Announced --> Deleted: Admin deletes
     Approved --> Deleted: Admin deletes
-    
+
     Deleted: [*]
-    
+
     note right of Announced
         Registration pending;
         hidden from /api/management/overview
     end note
-    
+
     note right of Approved
         Ready for aggregation;
         /api/nodes/{id}/status queryable
@@ -242,7 +246,7 @@ sequenceDiagram
     UI->>Mgmt: GET /api/management/overview
     Mgmt->>Mgmt: Read approved nodes from registry
     note over Mgmt: Acquire lock, filter approved=true
-    
+
     par Parallel status queries
         Mgmt->>Nodes: GET /api/nodes/{id1}/status
         Nodes-->>Mgmt: 200 {stream_available,<br/>camera_active, fps}
@@ -253,7 +257,7 @@ sequenceDiagram
         Mgmt->>Nodes: GET /api/nodes/{id3}/status
         Nodes-->>Mgmt: 401 Unauthorized
     end
-    
+
     Mgmt->>Mgmt: Classify errors:<br/>UNREACHABLE, UNAUTHORIZED,<br/>INVALID_RESPONSE
     Mgmt->>Mgmt: Aggregate into summary
     Mgmt-->>UI: 200 {nodes: [...],<br/>summary, errors}

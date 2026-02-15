@@ -114,9 +114,9 @@ def test_device_security_no_new_privileges(workspace_root):
     security_opt = service.get("security_opt", [])
 
     # Should have no-new-privileges or similar
-    assert len(security_opt) > 0 or "privileged" not in service or not service.get("privileged"), (
-        "Security options not properly configured"
-    )
+    assert (
+        len(security_opt) > 0 or "privileged" not in service or not service.get("privileged")
+    ), "Security options not properly configured"
 
 
 def test_udev_mount_read_only(workspace_root):
@@ -134,9 +134,9 @@ def test_camera_detection_error_handling(workspace_root):
     code = main_py.read_text()
 
     # Verify startup path attempts to retrieve camera inventory
-    assert "camera_info, detection_path = _get_camera_info" in code, (
-        "Camera detection retrieval missing from startup path"
-    )
+    assert (
+        "camera_info, detection_path = _get_camera_info" in code
+    ), "Camera detection retrieval missing from startup path"
     assert "Camera inventory detection path" in code, "Missing camera detection path logging"
 
     # Verify empty camera list handling
@@ -158,9 +158,9 @@ def test_setup_generator_handles_v4l_subdev_devices(workspace_root):
     code = main_py.read_text()
 
     assert "v4l_subdev_devices" in code, "Missing v4l_subdev_devices detection key"
-    assert 'subdev_device = f"/dev/v4l-subdev{i}"' in code, (
-        "Missing /dev/v4l-subdev* discovery in setup generator"
-    )
-    assert 'detected_devices.get("v4l_subdev_devices")' in code, (
-        "Missing compose generation for subdev mappings"
-    )
+    assert (
+        'subdev_device = f"/dev/v4l-subdev{i}"' in code
+    ), "Missing /dev/v4l-subdev* discovery in setup generator"
+    assert (
+        'detected_devices.get("v4l_subdev_devices")' in code
+    ), "Missing compose generation for subdev mappings"

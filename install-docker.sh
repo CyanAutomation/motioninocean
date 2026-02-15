@@ -54,5 +54,3 @@ rm -f get-docker.sh # Clean up the downloaded script
 echo "Adding current user to the 'docker' group to run Docker without sudo..."
 sudo usermod -aG docker "${USER}"
 echo "Please log out and log back in for the group change to take effect."
-
-

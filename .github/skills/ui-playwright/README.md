@@ -96,10 +96,10 @@ Request an AI agent UI audit to validate:
 
 ## Resources
 
-- **Playwright Documentation:** https://playwright.dev
+- **Playwright Documentation:** <https://playwright.dev>
 - **Playwright Inspector:** `npx playwright inspect` (debug specific pages)
-- **Accessibility (WCAG 2.1):** https://www.w3.org/WAI/WCAG21/quickref/
-- **WebAIM Color Contrast:** https://webaim.org/resources/contrastchecker/
+- **Accessibility (WCAG 2.1):** <https://www.w3.org/WAI/WCAG21/quickref/>
+- **WebAIM Color Contrast:** <https://webaim.org/resources/contrastchecker/>
 
 ## Common Audit Patterns
 
@@ -151,7 +151,7 @@ Systematically explore failures:
 **Q: Can't connect to server**
 
 - Verify motion-in-ocean running: `docker ps` or `lsof -i :8000`
-- Check baseUrl in audit script (default: http://localhost:8000)
+- Check baseUrl in audit script (default: <http://localhost:8000>)
 - Ensure mock camera mode if no hardware: `MOCK_CAMERA=true`
 
 **Q: Screenshots not captured**

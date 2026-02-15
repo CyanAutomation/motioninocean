@@ -47,6 +47,7 @@ Important security considerations:
 ### Recommended mitigations
 
 - Bind to localhost where possible:
+
   ```yaml
   ports:
     - "127.0.0.1:8000:8000"

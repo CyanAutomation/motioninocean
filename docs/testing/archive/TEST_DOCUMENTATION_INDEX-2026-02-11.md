@@ -206,6 +206,7 @@ curl -X POST http://localhost:8001/api/nodes \
 ### Endpoints Tested
 
 **Webcam Container (8000):**
+
 | Endpoint | Method | Purpose | Status |
 |----------|--------|---------|--------|
 | /health | GET | Liveness probe | ✅ |
@@ -213,6 +214,7 @@ curl -X POST http://localhost:8001/api/nodes \
 | /metrics | GET | Performance metrics | ✅ |
 
 **Management Container (8001):**
+
 | Endpoint | Method | Purpose | Status |
 |----------|--------|---------|--------|
 | /health | GET | Health check | ✅ |

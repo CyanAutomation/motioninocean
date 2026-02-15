@@ -2,7 +2,8 @@
 
 ## Scope
 
-This document contains frontend-specific requirements only. For shared problem statement, cross-cutting goals, and shared constraints/non-goals, see [PRD-core.md](PRD-core.md).
+This document contains frontend-specific requirements only. For shared problem statement,
+cross-cutting goals, and shared constraints/non-goals, see [PRD-core.md](PRD-core.md).
 
 ## Frontend Requirements
 
@@ -19,39 +20,39 @@ This document contains frontend-specific requirements only. For shared problem s
 ```mermaid
 stateDiagram-v2
     [*] --> Connecting: Load page
-    
+
     Connecting: Poll /metrics
     Connecting: retry backoff: 2s
-    
+
     Connecting --> Connected: /metrics 200 OK
     Connecting --> Disconnected: /metrics error +<br/>consecutiveFailures > threshold
-    
+
     Connected: Display stats
     Connected: Config polling active
     Connected: Setup detection active
-    
+
     Connected --> Connected: /metrics 200 OK<br/>reset consecutiveFailures
     Connected --> Disconnected: /metrics error<br/>+consecutiveFailures++
-    
+
     Disconnected: Show disconnected state
     Disconnected: retry backoff<br/>increases to max 30s
-    
+
     Disconnected --> Connected: /metrics 200 OK
     Disconnected --> Disconnected: /metrics error<br/>backoff continues
-    
+
     Disconnected --> Connecting: User clicks refresh
     Connected --> Connecting: User clicks refresh
-    
+
     note right of Connecting
         Initial state; immediate polling
         2 second interval
     end note
-    
+
     note right of Connected
         Active streaming; UI responsive
         Separate intervals for config, setup
     end note
-    
+
     note right of Disconnected
         Exponential backoff: 2s → 4s → 8s → 30s
         Manual refresh overrides backoff
@@ -59,6 +60,7 @@ stateDiagram-v2
 ```
 
 **Polling intervals:**
+
 - Stats refresh: 2-30s (exponential backoff on failure)
 - Config polling: 5s (independent)
 - Setup detection: 5s (independent, during idle)
@@ -90,6 +92,7 @@ flowchart TD
 ```
 
 **Config & setup polling are independent:**
+
 - Config polling: `/api/config` every 5s (resolution, FPS, JPEG quality changes)
 - Setup detection: Device discovery endpoint every 5s (during setup tab)
 - All three polling streams use shared `updateInterval` but separate timers
@@ -132,6 +135,7 @@ When accessing `GET /` on management host, displays node management interface.
 ### Node Management Interface
 
 **Features:**
+
 - Node registration form (manual or discovered)
 - Node table with approval/deletion controls
 - Status polling for each node (independent)
@@ -148,7 +152,7 @@ sequenceDiagram
     UI->>UI: Load node list or<br/>refresh clicked
     UI->>Mgmt: GET /api/nodes
     Mgmt-->>UI: [{id, name, base_url,<br/>approved, ...}]
-    
+
     UI->>UI: Set up polling loop
     loop every STATUS_POLL_INTERVAL
         alt statusRefreshInFlight check
@@ -167,6 +171,7 @@ sequenceDiagram
 ```
 
 **Deduplication logic:**
+
 - `statusRefreshInFlight=true` during fetch
 - `statusRefreshPending=true` if new poll requested during fetch
 - Next cycle processes pending poll
@@ -177,22 +182,22 @@ sequenceDiagram
 ```mermaid
 flowchart TD
     A["User action:<br/>Create/Update/Delete"] --> B{{"Action<br/>type?"}}
-    
+
     B -->|Create| C["Fill form:<br/>ID, name, base_url,<br/>auth,labels"]
     C --> D["Validate input<br/>on client"]
     D --> E{{"Valid?"}}
     E -->|No| F["Show validation<br/>errors"]
     F --> C
     E -->|Yes| G["POST /api/nodes<br/>with JSON body"]
-    
+
     B -->|Update| H["Edit selected node<br/>fields"]
     H --> D
-    
+
     B -->|Delete| I["Confirmation<br/>dialog"]
     I --> J{{"Confirm?"}}
     J -->|No| K["Cancel"]
     J -->|Yes| L["DELETE /api/nodes/{id}"]
-    
+
     G --> M{{"Server<br/>ok?"}}
     L --> M
     M -->|201/200| N["Refresh node list"]
@@ -200,7 +205,7 @@ flowchart TD
     O --> P{{"Retry?"}}
     P -->|Yes| C
     P -->|No| Q["Dismiss"]
-    
+
     N --> R["Update UI<br/>node table"]
     Q --> S["End"]
     K --> S

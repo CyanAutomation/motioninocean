@@ -150,9 +150,9 @@ def test_flask_routes():
     expected_routes = {"/", "/health", "/ready", "/stream.mjpg"}
     registered_routes = {rule.rule for rule in app.url_map.iter_rules()}
 
-    assert expected_routes.issubset(registered_routes), (
-        f"Missing routes: {expected_routes - registered_routes}"
-    )
+    assert expected_routes.issubset(
+        registered_routes
+    ), f"Missing routes: {expected_routes - registered_routes}"
 
 
 def test_dockerfile_has_flask(workspace_root):
@@ -171,9 +171,9 @@ def test_dockerfile_has_flask(workspace_root):
     )
     has_requirements = "flask" in requirements_content
 
-    assert has_pip_install or has_requirements, (
-        "Flask not found in requirements.txt or Dockerfile pip install"
-    )
+    assert (
+        has_pip_install or has_requirements
+    ), "Flask not found in requirements.txt or Dockerfile pip install"
 
 
 @pytest.mark.parametrize(
@@ -633,26 +633,26 @@ def test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes
                 lambda _allow: (FakePicamera2, FakeJpegEncoder, FakeFileOutput),
             )
 
-        if mode == "module_level":
+            if _mode == "module_level":
 
-            def get_camera_info_module(_cls):
-                return ([{"id": "cam0"}], "picamera2.global_camera_info")
+                def get_camera_info_module(_cls):
+                    return ([{"id": "cam0"}], "picamera2.global_camera_info")
 
-            monkeypatch.setattr(
-                main,
-                "_get_camera_info",
-                get_camera_info_module,
-            )
-        else:
+                monkeypatch.setattr(
+                    main,
+                    "_get_camera_info",
+                    get_camera_info_module,
+                )
+            else:
 
-            def get_camera_info_class(_cls):
-                return ([{"id": "cam0"}], "Picamera2.global_camera_info")
+                def get_camera_info_class(_cls):
+                    return ([{"id": "cam0"}], "Picamera2.global_camera_info")
 
-            monkeypatch.setattr(
-                main,
-                "_get_camera_info",
-                get_camera_info_class,
-            )
+                monkeypatch.setattr(
+                    main,
+                    "_get_camera_info",
+                    get_camera_info_class,
+                )
 
             main._run_webcam_mode(state, cfg)
 

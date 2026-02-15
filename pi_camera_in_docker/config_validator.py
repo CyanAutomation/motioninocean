@@ -1,6 +1,5 @@
 """Configuration validation and startup checks."""
 
-import os
 import re
 from typing import Any, Dict, Optional, Tuple
 
@@ -15,40 +14,44 @@ class ConfigValidationError(ValueError):
 
 def validate_resolution(value: str) -> Tuple[int, int]:
     """Validate and parse RESOLUTION environment variable.
-    
+
     Args:
         value: Expected format: WIDTHxHEIGHT (e.g., "640x480")
-        
+
     Returns:
         Tuple of (width, height)
-        
+
     Raises:
         ConfigValidationError: If format invalid or values out of range
     """
     if not value or not isinstance(value, str):
+        message = "RESOLUTION must be a non-empty string"
         raise ConfigValidationError(
-            "RESOLUTION must be a non-empty string",
+            message,
             hint="Expected format: WIDTHxHEIGHT (e.g., 640x480)",
         )
 
     parts = value.split("x")
     if len(parts) != 2:
+        message = f"RESOLUTION format invalid: '{value}'"
         raise ConfigValidationError(
-            f"RESOLUTION format invalid: '{value}'",
+            message,
             hint="Expected format: WIDTHxHEIGHT (e.g., 640x480)",
         )
 
     try:
         width, height = int(parts[0].strip()), int(parts[1].strip())
-    except ValueError:
+    except ValueError as exc:
+        message = f"RESOLUTION values must be integers: '{value}'"
         raise ConfigValidationError(
-            f"RESOLUTION values must be integers: '{value}'",
+            message,
             hint="Expected format: WIDTHxHEIGHT (e.g., 640x480)",
-        )
+        ) from exc
 
     if not (1 <= width <= 4096) or not (1 <= height <= 4096):
+        message = f"RESOLUTION values out of range: width={width}, height={height}"
         raise ConfigValidationError(
-            f"RESOLUTION values out of range: width={width}, height={height}",
+            message,
             hint="Both width and height must be between 1 and 4096 pixels",
         )
 
@@ -63,17 +66,17 @@ def validate_integer_range(
     default: int,
 ) -> int:
     """Validate integer config parameter with range check.
-    
+
     Args:
         value: String value to parse
         name: Config parameter name (for error messages)
         min_val: Minimum allowed value (inclusive)
         max_val: Maximum allowed value (inclusive)
         default: Default value if not provided or invalid
-        
+
     Returns:
         Validated integer value
-        
+
     Raises:
         ConfigValidationError: If value out of range
     """
@@ -82,15 +85,17 @@ def validate_integer_range(
 
     try:
         parsed = int(value.strip())
-    except ValueError:
+    except ValueError as exc:
+        message = f"{name} must be an integer, got: '{value}'"
         raise ConfigValidationError(
-            f"{name} must be an integer, got: '{value}'",
+            message,
             hint=f"Valid range: {min_val}-{max_val}",
-        )
+        ) from exc
 
     if not (min_val <= parsed <= max_val):
+        message = f"{name} value out of range: {parsed}"
         raise ConfigValidationError(
-            f"{name} value out of range: {parsed}",
+            message,
             hint=f"Valid range: {min_val}-{max_val}",
         )
 
@@ -105,17 +110,17 @@ def validate_float_range(
     default: float,
 ) -> float:
     """Validate float config parameter with range check.
-    
+
     Args:
         value: String value to parse
         name: Config parameter name (for error messages)
         min_val: Minimum allowed value (inclusive)
         max_val: Maximum allowed value (inclusive)
         default: Default value if not provided or invalid
-        
+
     Returns:
         Validated float value
-        
+
     Raises:
         ConfigValidationError: If value out of range
     """
@@ -124,15 +129,17 @@ def validate_float_range(
 
     try:
         parsed = float(value.strip())
-    except ValueError:
+    except ValueError as exc:
+        message = f"{name} must be a float, got: '{value}'"
         raise ConfigValidationError(
-            f"{name} must be a float, got: '{value}'",
+            message,
             hint=f"Valid range: {min_val}-{max_val}",
-        )
+        ) from exc
 
     if not (min_val <= parsed <= max_val):
+        message = f"{name} value out of range: {parsed}"
         raise ConfigValidationError(
-            f"{name} value out of range: {parsed}",
+            message,
             hint=f"Valid range: {min_val}-{max_val}",
         )
 
@@ -141,58 +148,62 @@ def validate_float_range(
 
 def validate_app_mode(value: str) -> str:
     """Validate APP_MODE environment variable.
-    
+
     Args:
         value: App mode value
-        
+
     Returns:
         Validated app mode
-        
+
     Raises:
         ConfigValidationError: If not a valid app mode
     """
     allowed = {"webcam", "management"}
     if value.strip().lower() not in allowed:
+        message = f"APP_MODE must be one of {allowed}, got: '{value}'"
         raise ConfigValidationError(
-            f"APP_MODE must be one of {allowed}, got: '{value}'",
+            message,
             hint=f"Set APP_MODE={next(iter(allowed))} or equivalent",
         )
     return value.strip().lower()
 
 
-def validate_url(value: str, name: str, allow_localhost: bool = True) -> str:
+def validate_url(value: str, name: str) -> str:
     """Validate URL format.
-    
+
     Args:
         value: URL to validate
         name: Parameter name (for error messages)
         allow_localhost: Whether to allow localhost URLs
-        
+
     Returns:
         Validated URL
-        
+
     Raises:
         ConfigValidationError: If URL format invalid
     """
     if not value or not value.strip():
+        message = f"{name} cannot be empty"
         raise ConfigValidationError(
-            f"{name} cannot be empty",
+            message,
             hint="Expected format: http://host:port or http://ip:port",
         )
 
     url = value.strip()
 
     if not url.startswith(("http://", "https://")):
+        message = f"{name} must start with http:// or https://, got: '{url}'"
         raise ConfigValidationError(
-            f"{name} must start with http:// or https://, got: '{url}'",
+            message,
             hint="Example: http://192.168.1.100:8001",
         )
 
     # Basic URL pattern check
     pattern = r"^https?://[a-zA-Z0-9\.\-]+(:[0-9]+)?(/.*)?$"
     if not re.match(pattern, url):
+        message = f"{name} format invalid: '{url}'"
         raise ConfigValidationError(
-            f"{name} format invalid: '{url}'",
+            message,
             hint="Expected format: http://host:port or http://ip:port",
         )
 
@@ -201,20 +212,21 @@ def validate_url(value: str, name: str, allow_localhost: bool = True) -> str:
 
 def validate_bearer_token(value: str, name: str) -> str:
     """Validate bearer token format.
-    
+
     Args:
         value: Token value
         name: Parameter name (for error messages)
-        
+
     Returns:
         Validated token
-        
+
     Raises:
         ConfigValidationError: If token invalid
     """
     if value and len(value.strip()) < 8:
+        message = f"{name} is too short (minimum 8 characters): {len(value)} chars"
         raise ConfigValidationError(
-            f"{name} is too short (minimum 8 characters): {len(value)} chars",
+            message,
             hint="Use a strong random token, e.g., from: openssl rand -hex 16",
         )
 
@@ -223,10 +235,10 @@ def validate_bearer_token(value: str, name: str) -> str:
 
 def validate_discovery_config(config: Dict[str, Any]) -> None:
     """Validate cross-field discovery configuration.
-    
+
     Args:
         config: Configuration dictionary
-        
+
     Raises:
         ConfigValidationError: If discovery config is invalid
     """
@@ -239,30 +251,33 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
     base_url = config.get("base_url", "").strip()
 
     if not management_url:
+        message = "DISCOVERY_ENABLED=true requires DISCOVERY_MANAGEMENT_URL to be set"
         raise ConfigValidationError(
-            "DISCOVERY_ENABLED=true requires DISCOVERY_MANAGEMENT_URL to be set",
+            message,
             hint="Example: DISCOVERY_MANAGEMENT_URL=http://management-host:8001",
         )
 
     if not token:
+        message = "DISCOVERY_ENABLED=true requires DISCOVERY_TOKEN to be set"
         raise ConfigValidationError(
-            "DISCOVERY_ENABLED=true requires DISCOVERY_TOKEN to be set",
+            message,
             hint="Use same token as NODE_DISCOVERY_SHARED_SECRET on management node",
         )
 
     if not base_url or base_url == "http://unknown-host:8000":
+        message = "DISCOVERY_ENABLED=true requires BASE_URL to be set to reachable address"
         raise ConfigValidationError(
-            "DISCOVERY_ENABLED=true requires BASE_URL to be set to reachable address",
+            message,
             hint="Example: BASE_URL=http://192.168.1.100:8000",
         )
 
 
 def validate_all_config(config: Dict[str, Any]) -> None:
     """Validate complete configuration at startup.
-    
+
     Args:
         config: Configuration dictionary returned from _load_config()
-        
+
     Raises:
         ConfigValidationError: If any configuration is invalid
     """

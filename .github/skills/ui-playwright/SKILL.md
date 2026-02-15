@@ -156,6 +156,7 @@ Use this skill when:
    ```
 
 4. **Capture initial state** (screenshot at default viewport 1280×720):
+
    ```javascript
    await page.screenshot({ path: "webcam-initial-desktop.png" });
    ```
@@ -353,6 +354,7 @@ For each viewport, take screenshots and verify:
 2. **Add node workflow:**
    - [ ] Form shows "Add node" title
    - [ ] Fill form fields:
+
      ```javascript
      await page.fill("input#node-id", "cam-office");
      await page.fill("input#node-name", "Office Camera");
@@ -361,6 +363,7 @@ For each viewport, take screenshots and verify:
      await page.selectOption("select#auth-type", "bearer");
      await page.fill("input#bearer-token", "secret-token-123");
      ```
+
    - Click Save: `await page.click('button[type="submit"]');`
    - [ ] Form feedback shows success message (green)
    - [ ] Form resets (fields cleared, title back to "Add node")

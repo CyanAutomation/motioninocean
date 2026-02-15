@@ -108,7 +108,7 @@ def _is_blocked_address(raw: str) -> bool:
 
 
 def _vet_resolved_addresses(addresses: Tuple[str, ...]) -> Tuple[str, ...]:
-    vetted = []
+    vetted: list[str] = []
     for address in addresses:
         if _is_blocked_address(address):
             message = "node target is not allowed"
@@ -327,7 +327,7 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
 
         try:
             req = urllib.request.Request(url=connect_url, method=method, headers=headers, data=data)
-            with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+            with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as response:  # nosec B310 - URL is pre-validated against SSRF
                 payload = response.read().decode("utf-8")
                 if not payload:
                     return response.status, {}
@@ -394,7 +394,7 @@ def _get_docker_container_status(
 
     try:
         req = urllib.request.Request(url=api_url, method="GET", headers=headers)
-        with urllib.request.urlopen(req, timeout=2.5) as response:
+        with urllib.request.urlopen(req, timeout=2.5) as response:  # nosec B310 - URL is pre-validated against SSRF
             payload = response.read().decode("utf-8")
             container_info = json.loads(payload) if payload else {}
 
@@ -433,21 +433,22 @@ def _get_docker_container_status(
                 reason="connection refused",
                 category="connection_refused_or_reset",
                 raw_error=reason_msg,
-            )
+            ) from exc
         if "timed out" in reason_msg.lower():
-                            error_message = "docker proxy request timed out"
-                            raise NodeConnectivityError(
-                                error_message,                reason="request timed out",
+            error_message = "docker proxy request timed out"
+            raise NodeConnectivityError(
+                error_message,
+                reason="request timed out",
                 category="timeout",
                 raw_error=reason_msg,
-            )
+            ) from exc
         error_message = "docker proxy connection failed"
         raise NodeConnectivityError(
             error_message,
             reason="connection failed",
             category="network",
             raw_error=reason_msg,
-        )
+        ) from exc
 
 
 def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
@@ -497,7 +498,7 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
 
         try:
             records = socket.getaddrinfo(proxy_host, proxy_port, proto=socket.IPPROTO_TCP)
-            resolved_ips = list(set(record[4][0] for record in records))
+            resolved_ips = list({record[4][0] for record in records})
             results["diagnostics"]["dns_resolution"].update(
                 {"resolves": True, "status": "pass", "resolved_ips": resolved_ips}
             )
@@ -522,7 +523,9 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
             status_code, status_payload = _get_docker_container_status(
                 proxy_host, proxy_port, container_id, auth_headers
             )
-            results["diagnostics"]["network_connectivity"].update({"reachable": True, "status": "pass"})
+            results["diagnostics"]["network_connectivity"].update(
+                {"reachable": True, "status": "pass"}
+            )
             results["diagnostics"]["api_endpoint"].update(
                 {
                     "accessible": status_code in {200, 404},
@@ -587,7 +590,9 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
         results["diagnostics"]["registration"].update(
             {"valid": False, "status": "fail", "error": str(exc), "code": "INVALID_BASE_URL"}
         )
-        _add_recommendation("Fix: Ensure base_url is valid (http:// or https://)", "fail", "INVALID_BASE_URL")
+        _add_recommendation(
+            "Fix: Ensure base_url is valid (http:// or https://)", "fail", "INVALID_BASE_URL"
+        )
         return results
 
     parsed = urlparse(base_url)
@@ -622,7 +627,7 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         records = socket.getaddrinfo(hostname, parsed.port or None, proto=socket.IPPROTO_TCP)
-        resolved_ips = list(set(record[4][0] for record in records))
+        resolved_ips = list({record[4][0] for record in records})
         results["diagnostics"]["dns_resolution"].update(
             {"resolves": True, "status": "pass", "resolved_ips": resolved_ips}
         )
@@ -676,12 +681,18 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
                 "accessible": status_code in {200, 503},
                 "status_code": status_code,
                 "healthy": status_code == 200,
-                "status": "pass" if status_code == 200 else "warn" if status_code == 503 else "fail",
+                "status": "pass"
+                if status_code == 200
+                else "warn"
+                if status_code == 503
+                else "fail",
             }
         )
 
         if status_code == 200:
-            _add_recommendation("Node is reachable and responsive. Status check successful.", "pass")
+            _add_recommendation(
+                "Node is reachable and responsive. Status check successful.", "pass"
+            )
         elif status_code == 503:
             results["diagnostics"]["api_endpoint"]["code"] = "API_STATUS_503"
             _add_recommendation(
@@ -808,13 +819,14 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
                     node_id,
                     {"container_id": container_id, "proxy": f"{proxy_host}:{proxy_port}"},
                 )
-            return {}, (
-                "DOCKER_API_ERROR",
-                f"docker proxy returned unexpected status {status_code}",
-                502,
-                node_id,
-                {"status_code": status_code, "proxy": f"{proxy_host}:{proxy_port}"},
-            )
+            else:
+                return {}, (
+                    "DOCKER_API_ERROR",
+                    f"docker proxy returned unexpected status {status_code}",
+                    502,
+                    node_id,
+                    {"status_code": status_code, "proxy": f"{proxy_host}:{proxy_port}"},
+                )
         except NodeConnectivityError as exc:
             return {}, (
                 "DOCKER_PROXY_UNREACHABLE",
@@ -956,7 +968,7 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
 def register_management_routes(
     app: Flask,
     registry_path: str,
-    auth_token: str = "",
+    auth_token: Optional[str] = None,
     node_discovery_shared_secret: Optional[str] = None,
     limiter=None,
 ) -> None:
@@ -964,13 +976,14 @@ def register_management_routes(
     discovery_secret = node_discovery_shared_secret
     if discovery_secret is None:
         discovery_secret = os.environ.get("NODE_DISCOVERY_SHARED_SECRET", "")
-    
+
     # Helper: Apply rate limit decorator if limiter is available
     def _maybe_limit(limit_str: str):
         def decorator(f):
             if limiter is not None:
                 return limiter.limit(limit_str)(f)
             return f
+
         return decorator
 
     def _enforce_management_auth() -> Optional[Tuple[Any, int]]:
@@ -1105,10 +1118,6 @@ def register_management_routes(
             raise
         if existing and "discovery" not in payload:
             payload["discovery"] = _manual_discovery_defaults(existing)
-        effective_transport = payload.get(
-            "transport",
-            existing.get("transport") if (existing and isinstance(existing, dict)) else None,
-        )
         try:
             updated = registry.update_node(node_id, payload)
         except KeyError:

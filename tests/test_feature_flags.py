@@ -53,9 +53,9 @@ class TestFeatureFlagRegistry:
             "ALTERNATIVE_PROTOCOLS",
         }
 
-        assert expected_flags.issubset(set(all_flags.keys())), (
-            f"Missing flags: {expected_flags - set(all_flags.keys())}"
-        )
+        assert expected_flags.issubset(
+            set(all_flags.keys())
+        ), f"Missing flags: {expected_flags - set(all_flags.keys())}"
 
     def test_backward_compatibility_mock_camera(self):
         """Test backward compatibility with legacy MOCK_CAMERA env var."""

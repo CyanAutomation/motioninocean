@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-import glob
 import io
 import logging
 import os
@@ -8,9 +7,9 @@ import signal
 import socket
 import time
 from datetime import datetime, timezone
-from pathlib import Path # Moved here
+from pathlib import Path  # Moved here
 from threading import Event, RLock, Thread
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlsplit, urlunsplit
 
 from config_validator import ConfigValidationError, validate_all_config
@@ -22,7 +21,6 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from logging_config import configure_logging
 from management_api import register_management_routes
-from structured_logging import get_correlation_id, log_event
 from modes.webcam import (
     ConnectionTracker,
     FrameBuffer,
@@ -151,10 +149,15 @@ def _load_config() -> Dict[str, Any]:
 
     cors_enabled = is_flag_enabled("CORS_SUPPORT")
     cors_origins_raw = os.environ.get("MOTION_IN_OCEAN_CORS_ORIGINS", "").strip()
-    if cors_enabled:
-        cors_origins = cors_origins_raw or "*"
-    else:
-        cors_origins = "disabled"
+    cors_origins = cors_origins_raw or "*" if cors_enabled else "disabled"
+
+    bind_host = os.environ.get("MOTION_IN_OCEAN_BIND_HOST", "127.0.0.1").strip()
+    try:
+        bind_port = int(os.environ.get("MOTION_IN_OCEAN_PORT", "8000"))
+    except ValueError:
+        bind_port = 8000
+    if not 1 <= bind_port <= 65535:
+        bind_port = 8000
 
     return {
         "app_mode": app_mode,
@@ -181,6 +184,8 @@ def _load_config() -> Dict[str, Any]:
         "discovery_interval_seconds": discovery_interval_seconds,
         "discovery_node_id": discovery_node_id,
         "base_url": base_url,
+        "bind_host": bind_host,
+        "bind_port": bind_port,
     }
 
 
@@ -190,18 +195,19 @@ def _detect_camera_devices() -> Dict[str, Any]:
     Returns a dict with detected device information.
     Failures are logged but don't raise exceptions (graceful fallback).
     """
-    result = {
+    result: Dict[str, Union[bool, List[str]]] = {
         "has_camera": False,
-        "video_devices": [],
-        "media_devices": [],
-        "v4l_subdev_devices": [],
-        "dma_heap_devices": [],
+        "video_devices": List[str](),
+        "media_devices": List[str](),
+        "v4l_subdev_devices": List[str](),
+        "dma_heap_devices": List[str](),
         "vchiq_device": False,
         "dri_device": False,
     }
 
     try:
         from pathlib import Path
+
         # Check DMA heap devices
         dma_heap_dir = "/dev/dma_heap"
         if Path(dma_heap_dir).is_dir():
@@ -307,18 +313,6 @@ def _collect_current_config() -> Dict[str, Any]:
         "cors_origins": cors_origins,
         "auth_token": auth_token,
     }
-
-    # Validate configuration at startup
-    try:
-        validate_all_config(config)
-    except ConfigValidationError as e:
-        error_msg = str(e)
-        if e.hint:
-            error_msg += f" ({e.hint})"
-        logger.error("Configuration validation failed: %s", error_msg)
-        raise ValueError(error_msg) from e
-
-    return config
 
 
 def _get_setup_presets() -> Dict[str, Dict[str, Any]]:
@@ -534,7 +528,7 @@ def _generate_env_content(config: Dict[str, Any]) -> str:
 def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
     app = Flask(__name__, static_folder="static", static_url_path="/static")
     app.start_time_monotonic = time.monotonic()
-    
+
     # Initialize rate limiter (global default: 100 requests/minute)
     global limiter
     if limiter is None:
@@ -544,21 +538,22 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, dict]:
             default_limits=["100/minute"],
             storage_uri=os.environ.get("LIMITER_STORAGE_URI", "memory://"),
         )
-    
+
     # Add correlation ID middleware
     @app.before_request
     def _add_correlation_id() -> None:
-        g.correlation_id = request.headers.get(
-            "X-Correlation-ID", request.headers.get("x-correlation-id", "")
-        ) or None
-    
+        g.correlation_id = (
+            request.headers.get("X-Correlation-ID", request.headers.get("x-correlation-id", ""))
+            or None
+        )
+
     # Ensure correlation ID is returned in response
     @app.after_request
     def _inject_correlation_id(response):
         if hasattr(g, "correlation_id") and g.correlation_id:
             response.headers["X-Correlation-ID"] = g.correlation_id
         return response
-    
+
     _register_request_logging(app)
 
     if config["cors_enabled"]:
@@ -1045,6 +1040,15 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
 
 def create_app_from_env() -> Flask:
     cfg = _load_config()
+    try:
+        validate_all_config(cfg)
+    except ConfigValidationError as e:
+        error_msg = str(e)
+        if e.hint:
+            error_msg += f" ({e.hint})"
+        logger.error("Configuration validation failed: %s", error_msg)
+        raise ValueError(error_msg) from e
+
     app = create_management_app(cfg) if cfg["app_mode"] == "management" else create_webcam_app(cfg)
     logger.info("Application started in %s mode", cfg["app_mode"])
     return app
@@ -1063,7 +1067,7 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
         "dma_heap": "/dev/dma_heap/*",
     }
     discovered_nodes = {
-        node_group: sorted(list(Path('.').glob(pattern))) for node_group, pattern in node_patterns.items()
+        node_group: sorted(Path().glob(pattern)) for node_group, pattern in node_patterns.items()
     }
 
     preflight_summary = {
@@ -1280,5 +1284,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, lambda signum, frame: handle_shutdown(app, signum, frame))
     signal.signal(signal.SIGINT, lambda signum, frame: handle_shutdown(app, signum, frame))
     # app.run marker preserved for compatibility checks with static tests.
-    server = make_server("0.0.0.0", 8000, app, threaded=True)
+    server = make_server(
+        app.motion_config["bind_host"], app.motion_config["bind_port"], app, threaded=True
+    )
     server.serve_forever()
