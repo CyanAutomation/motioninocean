@@ -437,6 +437,7 @@ sys.path.insert(0, str(repo)) # Add the parent directory of pi_camera_in_docker 
 import pi_camera_in_docker.main as main # Import as package
 
 app = main.create_app_from_env()
+app.motion_state["recording_started"].clear()
 client = app.test_client()
 results = {}
 for route in ("/webcam", "/webcam/"):\
@@ -499,6 +500,7 @@ sys.path.insert(0, str(repo)) # Add the parent directory of pi_camera_in_docker 
 import pi_camera_in_docker.main as main # Import as package
 
 app = main.create_app_from_env()
+app.motion_state["recording_started"].clear()
 client = app.test_client()
 results = {
     "stream": {
