@@ -1,0 +1,32 @@
+{
+  "tags": {
+    "allowUnknownTags": true,
+    "dictionaries": ["jsdoc", "closure"]
+  },
+  "source": {
+    "include": [
+      "pi_camera_in_docker/static/js"
+    ],
+    "exclude": [
+      "pi_camera_in_docker/static/js/**/*.test.js",
+      "node_modules"
+    ]
+  },
+  "opts": {
+    "destination": "./docs/_build/html/js",
+    "recurse": true,
+    "readme": "./README.md",
+    "package": "./package.json"
+  },
+  "plugins": [
+    "plugins/markdown"
+  ],
+  "templates": {
+    "cleverLinks": false,
+    "monospaceLinks": false
+  },
+  "docdash": {
+    "static": true,
+    "sort": true
+  }
+}

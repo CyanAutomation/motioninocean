@@ -234,12 +234,21 @@ Expected: No critical vulnerabilities. Warnings require review.
 
 - **Imports**: Organized groups (stdlib → third-party → local), sorted alphabetically within groups
 - **Type hints**: Required for all public functions, class methods, and module-level variables
-- **Docstrings**: Google-style docstrings for public classes and functions
 - **Line length**: Max 100 characters (enforced by Ruff)
 - **Quote style**: Double quotes for strings (enforced by Ruff)
 - **Naming**: `snake_case` for functions/variables, `PascalCase` for classes, `UPPERCASE` for constants
 
-Example:
+#### Documentation Requirements
+
+**Python (Google-Style Docstrings)**
+
+All public functions, classes, and methods must have Google-style docstrings with:
+- Brief one-line description
+- Detailed description (if needed)
+- Args section: Parameter names, types, descriptions
+- Returns section: Type and description
+- Raises section: Exception types that can be raised
+- Examples or Notes for complex logic
 
 ```python
 """Module for camera frame capture and streaming."""
@@ -252,12 +261,49 @@ from pi_camera_in_docker.shared import register_routes
 def capture_frame(timeout_ms: Optional[int] = None) -> bytes:
     """Capture a single frame from camera.
 
+    Acquires a frame from the camera hardware via picamera2 and encodes
+    to JPEG format at the configured quality setting.
+
     Args:
-        timeout_ms: Maximum wait time in milliseconds.
+        timeout_ms: Maximum wait time in milliseconds. If None, uses default
+            from application settings. Must be greater than 0.
 
     Returns:
-        JPEG-encoded frame bytes.
+        JPEG-encoded frame bytes ready for streaming.
+
+    Raises:
+        RuntimeError: If camera is not initialized or frame capture fails.
+        TimeoutError: If frame not ready within timeout_ms.
     """
+    # Implementation
+```
+
+**JavaScript (JSDoc Comments)**
+
+All public functions in JavaScript must have JSDoc headers with:
+- Brief description tag @description or inline
+- Parameter documentation @param with type and description
+- Return type @returns with Promise<T> for async functions
+- Exception information @throws for error cases
+- @async for async functions
+
+```javascript
+/**
+ * Fetch stream metadata from remote node.
+ *
+ * Queries /api/status endpoint with bearer token authentication.
+ * Includes automatic retry with exponential backoff on network errors.
+ *
+ * @param {string} nodeId - Unique node identifier
+ * @param {string} baseUrl - Node base URL (http[s]://host:port)
+ * @param {string} authToken - Bearer token for authentication
+ * @returns {Promise<Object>} Node status object with stream info
+ * @throws {Error} If node unreachable after retries or auth fails
+ * @async
+ */
+async function fetchNodeStatus(nodeId, baseUrl, authToken) {
+    // Implementation
+}
 ```
 
 ---
@@ -858,6 +904,56 @@ Common causes:
 ### Camera Not Detected on Raspberry Pi
 
 See [.github/skills/pi-camera-troubleshooting/SKILL.md](.github/skills/pi-camera-troubleshooting/SKILL.md) for detailed diagnostics.
+
+---
+
+## Building & Generating Documentation
+
+Motion In Ocean uses automated documentation generation from source code docstrings and JSDoc comments.
+
+### Building Sphinx Documentation (Python)
+
+Generate HTML documentation from Python docstrings using Sphinx with napoleon extension:
+
+```bash
+# Build HTML documentation
+make docs-build
+# Output: docs/_build/html/index.html
+
+# Validate documentation (warnings treated as errors)
+make docs-check
+# Use in CI to catch broken references and incomplete docstrings
+
+# Clean build artifacts
+make docs-clean
+```
+
+### Generating JSDoc (JavaScript)
+
+Generate HTML documentation from JavaScript JSDoc comments:
+
+```bash
+# Build JSDoc
+make jsdoc
+# Output: docs/_build/html/js/index.html
+```
+
+### Documentation Structure
+
+- **Python API:** Auto-generated from Google-style docstrings in `pi_camera_in_docker/*.py`
+- **JavaScript API:** Auto-generated from JSDoc comments in `pi_camera_in_docker/static/js/*.js`
+- **Guides:** Manual markdown files in `docs/guides/` (DEPLOYMENT.md, FEATURE_FLAGS.md, etc.)
+
+### Documentation Requirements
+
+When adding new functions/classes:
+
+1. **Python:** Add Google-style docstring with Args, Returns, Raises sections
+2. **JavaScript:** Add JSDoc header with @param, @returns, @throws, @async tags
+3. **Build locally:** `make docs-check` to validate before pushing
+4. **PR checklist:** Ensure "Documentation updated" if behavior changed
+
+See [Code Style Guidelines](#code-style-guidelines) above for examples.
 
 ---
 

@@ -1,7 +1,7 @@
 # Makefile for motion-in-ocean development tasks
 # Provides convenient shortcuts for common operations
 
-.PHONY: help install install-dev install-node test lint format type-check security clean run-mock docker-build docker-run pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive
+.PHONY: help install install-dev install-node test lint format type-check security clean run-mock docker-build docker-run pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
 help:
@@ -19,6 +19,12 @@ help:
 	@echo "  make format           Format code (ruff format)"
 	@echo "  make type-check       Run type checker (mypy)"
 	@echo "  make security         Run security checks (bandit)"
+	@echo ""
+	@echo "Documentation:"
+	@echo "  make docs-build       Build Sphinx HTML documentation"
+	@echo "  make docs-check       Check if documentation builds (CI validation)"
+	@echo "  make jsdoc            Build JSDoc for JavaScript files"
+	@echo "  make docs-clean       Clean documentation build artifacts"
 	@echo ""
 	@echo "Validation:"
 	@echo "  make validate-diagrams    Validate Mermaid diagram syntax"
@@ -96,6 +102,43 @@ security-all:
 	bandit -r pi_camera_in_docker/ -c pyproject.toml
 	@echo "Checking for known vulnerabilities in dependencies..."
 	safety check --json || true
+
+# Documentation targets
+docs-build:
+	@echo "Building Sphinx documentation..."
+	@if ! command -v sphinx-build &> /dev/null; then \
+		echo "Installing Sphinx..."; \
+		pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints; \
+	fi
+	@cd docs && sphinx-build -b html -W . _build/html
+	@echo "✓ Documentation built to docs/_build/html/index.html"
+
+docs-check:
+	@echo "Checking documentation build (warnings as errors)..."
+	@if ! command -v sphinx-build &> /dev/null; then \
+		echo "Installing Sphinx..."; \
+		pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints; \
+	fi
+	@cd docs && sphinx-build -b html -W --keep-going . _build/html 2>&1 | tee /tmp/docs-check.log
+	@if grep -q "WARNING\|ERROR" /tmp/docs-check.log; then \
+		echo "✗ Documentation check failed (see above for warnings)"; \
+		exit 1; \
+	fi
+	@echo "✓ Documentation check passed!"
+
+jsdoc:
+	@echo "Building JSDoc documentation..."
+	@if ! command -v jsdoc &> /dev/null; then \
+		echo "Installing JSDoc..."; \
+		npm install --save-dev jsdoc docdash; \
+	fi
+	jsdoc -c jsdoc.json
+	@echo "✓ JSDoc built to docs/_build/html/js/index.html"
+
+docs-clean:
+	@echo "Cleaning documentation build artifacts..."
+	rm -rf docs/_build
+	@echo "✓ Documentation cleaned!"
 
 # Diagram validation targets
 validate-diagrams:
