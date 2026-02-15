@@ -165,8 +165,8 @@ WORKDIR /app
 # Debian Bookworm uses Python 3.11 by default
 COPY --from=builder /usr/local/lib/python3.11/dist-packages /usr/local/lib/python3.11/dist-packages
 
-# Copy the application code
-COPY pi_camera_in_docker /app
+# Copy the application code (full directory structure for package imports)
+COPY . /app
 
 # Copy healthcheck script
 COPY scripts/healthcheck.py /app/healthcheck.py
@@ -197,5 +197,8 @@ PY
 # Explicitly set STOPSIGNAL to SIGTERM for graceful shutdown handling
 STOPSIGNAL SIGTERM
 
-# Set the entry point
-CMD ["python3", "/app/main.py"]
+# Set PYTHONPATH to ensure package discovery for module execution
+ENV PYTHONPATH=/app:$PYTHONPATH
+
+# Set the entry point using module execution (-m) for relative imports to work
+CMD ["python3", "-m", "pi_camera_in_docker.main"]
