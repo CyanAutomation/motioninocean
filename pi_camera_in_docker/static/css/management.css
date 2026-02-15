@@ -44,11 +44,82 @@
   grid-template-columns: 320px 1fr;
   gap: var(--space-4);
   padding: var(--space-4);
+  transition: grid-template-columns 220ms ease;
+}
+
+.management-layout.is-form-collapsed {
+  grid-template-columns: 44px 1fr;
+}
+
+.management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) {
+  grid-template-columns: 44px 1fr;
 }
 
 .node-form-panel,
 .node-list-panel {
   padding: var(--space-4);
+}
+
+.node-form-panel {
+  min-width: 0;
+  overflow: hidden;
+  transition: width 220ms ease, padding 220ms ease;
+}
+
+.node-form-panel .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+#toggle-node-form-panel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+#toggle-node-form-panel-btn::before {
+  content: "◀";
+  font-size: 0.8rem;
+}
+
+#toggle-node-form-panel-btn[aria-expanded="false"]::before {
+  content: "▶";
+}
+
+#node-form-content {
+  opacity: 1;
+  width: 100%;
+  overflow: hidden;
+  transition: width 220ms ease, opacity 180ms ease;
+}
+
+.management-layout.is-form-collapsed .node-form-panel,
+.management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) .node-form-panel {
+  padding-inline: var(--space-2);
+}
+
+.management-layout.is-form-collapsed #node-form-content,
+.management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) #node-form-content {
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.management-layout.is-form-collapsed #toggle-node-form-panel-btn,
+.management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) #toggle-node-form-panel-btn {
+  width: 2rem;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0;
+  font-size: 0;
 }
 
 #node-form {
@@ -106,8 +177,33 @@
 }
 
 @media (max-width: 900px) {
-  .management-layout {
+  .management-layout,
+  .management-layout.is-form-collapsed,
+  .management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) {
     grid-template-columns: 1fr;
+  }
+
+  .management-layout.is-form-collapsed .node-form-panel,
+  .management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) .node-form-panel {
+    padding-inline: var(--space-4);
+  }
+
+  .management-layout.is-form-collapsed #node-form-content,
+  .management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) #node-form-content,
+  .management-layout.is-form-collapsed #node-form-content.hidden,
+  .management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) #node-form-content.hidden {
+    display: block;
+    width: 100%;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .management-layout.is-form-collapsed #toggle-node-form-panel-btn,
+  .management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) #toggle-node-form-panel-btn {
+    width: auto;
+    min-width: 0;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.8rem;
   }
 }
 
