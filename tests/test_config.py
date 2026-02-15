@@ -397,6 +397,10 @@ for _ in range(30):
 client = app.test_client()
 metrics = client.get("/metrics").get_json()
 print(json.dumps(metrics))
+print(f"DEBUG: config['target_fps'] = {config['target_fps']}")
+_, _, calculated_fps = state["stream_stats"].snapshot()
+print(f"DEBUG: calculated_fps from snapshot = {calculated_fps}")
+print(f"DEBUG: frame_times_monotonic = {list(state['stream_stats']._frame_times_monotonic)}")
 """
 
     env = os.environ.copy()
@@ -417,7 +421,10 @@ print(json.dumps(metrics))
         capture_output=True,
         text=True,
     )
-    metrics = json.loads(process.stdout.strip().splitlines()[-1])
+    # The output from the subprocess includes debug prints, so we need to find the last JSON line
+    output_lines = process.stdout.strip().splitlines()
+    metrics_json_line = next(line for line in reversed(output_lines) if line.startswith('{'))
+    metrics = json.loads(metrics_json_line)
 
     assert metrics["camera_active"] is True
     assert metrics["current_fps"] <= 13.5

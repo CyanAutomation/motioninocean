@@ -1,5 +1,6 @@
 import logging
 import os
+import socket
 from typing import Any, Dict, Tuple
 
 from .application_settings import ApplicationSettings, SettingsValidationError
@@ -177,11 +178,15 @@ def _load_networking_config() -> Dict[str, Any]:
     if not 1 <= bind_port <= 65535:
         bind_port = 8000
 
+    default_base_url = f"http://{socket.gethostname()}:8000"
+    base_url = os.environ.get("BASE_URL", default_base_url).strip() or default_base_url
+
     return {
         "cors_enabled": cors_enabled,
         "cors_origins": cors_origins,
         "bind_host": bind_host,
         "bind_port": bind_port,
+        "base_url": base_url,
     }
 
 

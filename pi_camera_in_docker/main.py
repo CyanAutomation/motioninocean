@@ -71,33 +71,18 @@ def _redacted_url_for_logs(url: str) -> str:
 
 
 def _parse_resolution(resolution_str: str) -> Tuple[int, int]:
-    return parse_resolution(resolution_str)
+    parts = resolution_str.split("x")
+    if len(parts) != 2:
+        message = f"Invalid resolution format: {resolution_str}"
+        raise ValueError(message)
+    width, height = int(parts[0]), int(parts[1])
+    if width <= 0 or height <= 0 or width > 4096 or height > 4096:
+        message = f"Resolution dimensions out of valid range (1-4096): {width}x{height}"
+        raise ValueError(message)
+    return width, height
 
 
-def _load_networking_config() -> Dict[str, Any]:
-    """Load networking and CORS configuration."""
-    cors_enabled = is_flag_enabled("CORS_SUPPORT")
-    cors_origins_raw = os.environ.get("MOTION_IN_OCEAN_CORS_ORIGINS", "").strip()
-    cors_origins = cors_origins_raw or "*" if cors_enabled else "disabled"
 
-    bind_host = os.environ.get("MOTION_IN_OCEAN_BIND_HOST", "127.0.0.1").strip()
-    try:
-        bind_port = int(os.environ.get("MOTION_IN_OCEAN_PORT", "8000"))
-    except ValueError:
-        bind_port = 8000
-    if not 1 <= bind_port <= 65535:
-        bind_port = 8000
-
-    default_base_url = f"http://{socket.gethostname()}:8000"
-    base_url = os.environ.get("BASE_URL", default_base_url).strip() or default_base_url
-
-    return {
-        "cors_enabled": cors_enabled,
-        "cors_origins": cors_origins,
-        "bind_host": bind_host,
-        "bind_port": bind_port,
-        "base_url": base_url,
-    }
 
 
 def _load_advanced_config() -> Dict[str, Any]:

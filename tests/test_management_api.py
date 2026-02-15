@@ -37,7 +37,9 @@ def _new_management_client(monkeypatch, tmp_path):
         sys.modules.pop("pi_camera_in_docker.management_api", None)
         # Import as a package module
         main = importlib.import_module("pi_camera_in_docker.main")
-        return main.create_management_app(main._load_config()).test_client()
+        management_api = importlib.import_module("pi_camera_in_docker.management_api")
+        client = main.create_management_app(main._load_config()).test_client()
+        return client, management_api
     finally:
         sys.path = original_sys_path
 
