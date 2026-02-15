@@ -4,6 +4,7 @@ Tests for ApplicationSettings persistence layer
 
 import json
 import threading
+from contextlib import contextmanager
 
 # Import from parent directory
 import sys
@@ -321,6 +322,38 @@ class TestApplicationSettingsConcurrency:
         loaded = settings.load()
         assert loaded["settings"]["camera"]["fps"] == 48
         assert loaded["settings"]["camera"]["jpeg_quality"] == 70
+
+    def test_load_acquires_lock(self, temp_settings_file, monkeypatch):
+        """Load should acquire the settings lock before reading."""
+        settings = ApplicationSettings(temp_settings_file)
+        lock_used = {"value": False}
+
+        @contextmanager
+        def tracked_lock():
+            lock_used["value"] = True
+            yield
+
+        monkeypatch.setattr(settings, "_exclusive_lock", tracked_lock)
+
+        settings.load()
+        assert lock_used["value"] is True
+
+    def test_load_handles_file_removed_after_exists_check(
+        self, temp_settings_file, monkeypatch
+    ):
+        """Load should return defaults when file disappears during read."""
+        settings = ApplicationSettings(temp_settings_file)
+
+        # Ensure the file exists so load reaches read_text.
+        Path(temp_settings_file).write_text("{}", encoding="utf-8")
+
+        def raise_file_not_found(*args, **kwargs):
+            raise FileNotFoundError("settings file disappeared")
+
+        monkeypatch.setattr(Path, "read_text", raise_file_not_found)
+
+        loaded = settings.load()
+        assert loaded == settings._clone_schema()
 
 
 class TestApplicationSettingsFileCorruption:
