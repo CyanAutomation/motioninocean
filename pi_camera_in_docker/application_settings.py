@@ -303,10 +303,6 @@ class ApplicationSettings:
         self, patch: Dict[str, Any], modified_by: str = "system"
     ) -> Dict[str, Any]:
         """Apply a validated settings patch and persist as one locked operation."""
-    def apply_patch_atomic(
-        self, patch: Dict[str, Any], modified_by: str = "system"
-    ) -> Dict[str, Any]:
-        """Apply a validated settings patch and persist as one locked operation."""
         with self._exclusive_lock():
             data = self._load_unlocked()
             current_settings = data.setdefault("settings", {})
