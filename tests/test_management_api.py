@@ -691,12 +691,22 @@ def test_request_json_sends_bearer_auth_header_for_node_probes(monkeypatch):
     def fake_getaddrinfo(host, port, proto):
         return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))]
 
-    def fake_urlopen(req, timeout):
-        captured["headers"].append(req.get_header("Authorization"))
-        return FakeResponse()
+    class FakeHTTPConnection:
+        def __init__(self, host, port, connect_host, timeout):
+            _ = (host, port, connect_host, timeout)
+
+        def request(self, method, target, body=None, headers=None):
+            _ = (method, target, body)
+            captured["headers"].append(headers.get("Authorization"))
+
+        def getresponse(self):
+            return FakeResponse()
+
+        def close(self):
+            return None
 
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
-    monkeypatch.setattr(management_api.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
 
     node = {"base_url": "http://example.com", "auth": {"type": "bearer", "token": "node-token"}}
     status_code, _ = management_api._request_json(node, "GET", "/api/status")
@@ -1077,14 +1087,25 @@ def test_request_json_uses_vetted_resolved_ip_and_preserves_host_header(monkeypa
             (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80)),
         ]
 
-    def fake_urlopen(req, timeout):
-        captured["url"] = req.full_url
-        captured["host"] = req.get_header("Host")
-        captured["timeout"] = timeout
-        return FakeResponse()
+    class FakeHTTPConnection:
+        def __init__(self, host, port, connect_host, timeout):
+            captured["connect_host"] = connect_host
+            captured["timeout"] = timeout
+            _ = (host, port)
+
+        def request(self, method, target, body=None, headers=None):
+            captured["target"] = target
+            captured["host"] = headers.get("Host")
+            _ = (method, body)
+
+        def getresponse(self):
+            return FakeResponse()
+
+        def close(self):
+            return None
 
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
-    monkeypatch.setattr(management_api.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
 
     status_code, payload = management_api._request_json(
         {"base_url": "http://example.com", "auth": {"type": "none"}},
@@ -1095,7 +1116,8 @@ def test_request_json_uses_vetted_resolved_ip_and_preserves_host_header(monkeypa
     assert status_code == 200
     assert payload == {"ok": True}
     assert captured["getaddrinfo"] == ("example.com", None, socket.IPPROTO_TCP)
-    assert captured["url"] == "http://93.184.216.34/api/status"
+    assert captured["connect_host"] == "93.184.216.34"
+    assert captured["target"] == "/api/status"
     assert captured["host"] == "example.com"
     assert captured["timeout"] == management_api.REQUEST_TIMEOUT_SECONDS
 
@@ -1121,16 +1143,27 @@ def test_request_json_retries_next_vetted_address_when_first_connection_fails(mo
             (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.35", 80)),
         ]
 
-    attempted_urls = []
+    attempted_addresses = []
 
-    def fake_urlopen(req, timeout):
-        attempted_urls.append(req.full_url)
-        if req.full_url == "http://93.184.216.34/api/status":
-            raise management_api.urllib.error.URLError("timed out")
-        return FakeResponse()
+    class FakeHTTPConnection:
+        def __init__(self, host, port, connect_host, timeout):
+            _ = (host, port, timeout)
+            self.connect_host = connect_host
+
+        def request(self, method, target, body=None, headers=None):
+            _ = (method, target, body, headers)
+
+        def getresponse(self):
+            attempted_addresses.append(self.connect_host)
+            if self.connect_host == "93.184.216.34":
+                raise socket.timeout("timed out")
+            return FakeResponse()
+
+        def close(self):
+            return None
 
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
-    monkeypatch.setattr(management_api.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
 
     status_code, payload = management_api._request_json(
         {"base_url": "http://example.com", "auth": {"type": "none"}},
@@ -1140,10 +1173,7 @@ def test_request_json_retries_next_vetted_address_when_first_connection_fails(mo
 
     assert status_code == 200
     assert payload == {"ok": True}
-    assert attempted_urls == [
-        "http://93.184.216.34/api/status",
-        "http://93.184.216.35/api/status",
-    ]
+    assert attempted_addresses == ["93.184.216.34", "93.184.216.35"]
 
 
 def test_request_json_maps_name_resolution_failure_to_dns_category(monkeypatch):
@@ -1190,12 +1220,22 @@ def test_request_json_maps_timeout_failure(monkeypatch):
     def fake_getaddrinfo(host, port, proto):
         return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))]
 
-    def fake_urlopen(req, timeout):
-        captured["timeout"] = timeout
-        raise management_api.urllib.error.URLError(socket.timeout("timed out"))
+    class FakeHTTPConnection:
+        def __init__(self, host, port, connect_host, timeout):
+            captured["timeout"] = timeout
+            _ = (host, port, connect_host)
+
+        def request(self, method, target, body=None, headers=None):
+            _ = (method, target, body, headers)
+
+        def getresponse(self):
+            raise socket.timeout("timed out")
+
+        def close(self):
+            return None
 
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
-    monkeypatch.setattr(management_api.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
 
     node = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
@@ -1213,11 +1253,21 @@ def test_request_json_maps_connection_refused_or_reset(monkeypatch):
     def fake_getaddrinfo(host, port, proto):
         return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))]
 
-    def fake_urlopen(req, timeout):
-        raise management_api.urllib.error.URLError(ConnectionRefusedError("connection refused"))
+    class FakeHTTPConnection:
+        def __init__(self, host, port, connect_host, timeout):
+            _ = (host, port, connect_host, timeout)
+
+        def request(self, method, target, body=None, headers=None):
+            _ = (method, target, body, headers)
+
+        def getresponse(self):
+            raise ConnectionRefusedError("connection refused")
+
+        def close(self):
+            return None
 
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
-    monkeypatch.setattr(management_api.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
 
     node = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
@@ -1236,11 +1286,21 @@ def test_request_json_maps_tls_failure(monkeypatch):
             (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 443))
         ]
 
-    def fake_urlopen(req, timeout):
-        raise management_api.urllib.error.URLError(ssl.SSLError("certificate verify failed"))
+    class FakeHTTPSConnection:
+        def __init__(self, host, port, connect_host, timeout, context):
+            _ = (host, port, connect_host, timeout, context)
+
+        def request(self, method, target, body=None, headers=None):
+            _ = (method, target, body, headers)
+
+        def getresponse(self):
+            raise ssl.SSLError("certificate verify failed")
+
+        def close(self):
+            return None
 
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
-    monkeypatch.setattr(management_api.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(management_api, "_PinnedHTTPSConnection", FakeHTTPSConnection)
 
     node = {"base_url": "https://example.com", "auth": {"type": "none"}}
     try:
@@ -1249,6 +1309,64 @@ def test_request_json_maps_tls_failure(monkeypatch):
     except management_api.NodeConnectivityError as exc:
         assert exc.reason == "tls handshake failed"
         assert exc.category == "tls"
+
+
+def test_request_json_https_uses_hostname_for_tls_and_pins_vetted_ip(monkeypatch):
+    import pi_camera_in_docker.management_api as management_api
+
+    class FakeResponse:
+        status = 200
+
+        def read(self):
+            return b'{"ok": true}'
+
+    captured = {}
+
+    def fake_getaddrinfo(host, port, proto):
+        captured["getaddrinfo"] = (host, port, proto)
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 443))
+        ]
+
+    class FakeHTTPSConnection:
+        def __init__(self, host, port, connect_host, timeout, context):
+            captured["tls_host"] = host
+            captured["connect_host"] = connect_host
+            captured["timeout"] = timeout
+            captured["has_context"] = context is not None
+            _ = port
+
+        def request(self, method, target, body=None, headers=None):
+            captured["method"] = method
+            captured["target"] = target
+            captured["host_header"] = headers.get("Host")
+            _ = body
+
+        def getresponse(self):
+            return FakeResponse()
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+    monkeypatch.setattr(management_api, "_PinnedHTTPSConnection", FakeHTTPSConnection)
+
+    status_code, payload = management_api._request_json(
+        {"base_url": "https://example.com", "auth": {"type": "none"}},
+        "GET",
+        "/api/status",
+    )
+
+    assert status_code == 200
+    assert payload == {"ok": True}
+    assert captured["getaddrinfo"] == ("example.com", None, socket.IPPROTO_TCP)
+    assert captured["tls_host"] == "example.com"
+    assert captured["connect_host"] == "93.184.216.34"
+    assert captured["method"] == "GET"
+    assert captured["target"] == "/api/status"
+    assert captured["host_header"] == "example.com"
+    assert captured["timeout"] == management_api.REQUEST_TIMEOUT_SECONDS
+    assert captured["has_context"] is True
 
 
 def test_node_status_reports_connectivity_details(monkeypatch, tmp_path):
