@@ -1319,6 +1319,13 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
         "dma_heap": ["system", "linux,cma"],  # Common dma_heap device names
     }
     
+    device_pattern_display = {
+        "video": "/dev/video*",
+        "media": "/dev/media*",
+        "v4l_subdev": "/dev/v4l-subdev*",
+        "dma_heap": "/dev/dma_heap/*",
+    }
+    
     discovered_nodes = {
         "video": [Path(f"/dev/video{i}") for i in device_patterns["video"] if Path(f"/dev/video{i}").exists()],
         "media": [Path(f"/dev/media{i}") for i in device_patterns["media"] if Path(f"/dev/media{i}").exists()],
@@ -1351,12 +1358,12 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
         )
     elif not discovered_nodes["video"]:
         missing_node_groups = [
-            node_patterns[group_name]
+            device_pattern_display[group_name]
             for group_name in ("video", "media", "v4l_subdev")
             if not discovered_nodes[group_name]
         ]
         present_node_groups = [
-            node_patterns[group_name]
+            device_pattern_display[group_name]
             for group_name in ("video", "media", "v4l_subdev")
             if discovered_nodes[group_name]
         ]

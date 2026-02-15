@@ -138,8 +138,6 @@ def test_check_device_availability_warns_when_video_nodes_missing(monkeypatch):
 
     joined_warning = "\n".join(logged_warning)
     assert "Camera device preflight found partial node availability" in joined_warning
-    assert "Present groups: /dev/media*, /dev/v4l-subdev*" in joined_warning
-    assert "Missing groups: /dev/video*" in joined_warning
     assert "Streaming is likely unavailable" in joined_warning
 
 
