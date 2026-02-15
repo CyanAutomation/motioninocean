@@ -11,6 +11,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.14.7] - 2026-02-15
+
+- chore: Update VERSION to 1.14.6 and correct CHANGELOG path in release script
+- chore: Bump version to 1.14.5
+- fix: Clear recording_started state in app initialization for consistent test behavior
+- fix: Adjust sleep duration in FrameBuffer write loop for accurate target FPS
+- refactor: Update device pattern display in availability check and clean up test assertions
+- refactor: Update device availability checks and mock path methods in unit tests
+- refactor: Update glob pattern to use absolute path and adjust management API import
+- feat: Implement Pi3 profile defaults and update import paths for management API
+- refactor: Update import statements to use package-relative paths in integration and management tests
+- feat: Add health, readiness, and metrics endpoints to the main application
+- refactor: Update import statements to use package-relative paths for consistency across modules and tests
+- refactor: Improve error handling in subprocess calls and update test assertions for clarity
+- refactor: Update module imports to use package-relative paths in test files
+- refactor: Update import statements for consistency and clarity across test files
+- refactor: Update import statements to use package-relative paths in test files
+- refactor: Update import statements to use package-relative paths for consistency across test files
+- refactor: Enhance directory creation in ApplicationSettings and add CAT_GIF feature flag
+- refactor: Update import statements to use package-relative paths for better module resolution
+- refactor: Update import paths for pi_camera_in_docker and enhance module loading in tests
+- refactor: Add conditional import for picamera2 and enhance test skipping logic
+- refactor: Update docker-compose and environment file paths in configuration tests
+- refactor: Update Flask app initialization function parameter for clarity
+- refactor: Clean up whitespace in configuration validation and settings API files
+- Enhance runtime settings documentation and improve UI/UX
+- refactor: Improve Flask app initialization and middleware registration
+- feat: Refactor configuration loading into separate functions for camera, stream, and discovery settings
+- Add health indicator rendering in config panel (#281)
+- refactor: Improve error handling and validation messages in ApplicationSettings
+- Add scripts for device detection, health checks, and deployment validation
+- feat: Enhance ApplicationSettings with version validation and error handling
+- feat: Implement settings management UI and persistence tests
+- feat: Add new docker-compose configurations for management, webcam, and mock camera modes
+- feat: Add settings management API and application settings persistence
+
 ## [1.14.4] - 2026-02-15
 
 - feat: Implement cat GIF generator and refresh API
