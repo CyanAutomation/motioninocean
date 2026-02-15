@@ -393,7 +393,7 @@ buffer = main.FrameBuffer(state["stream_stats"], target_fps=config["target_fps"]
 sys.stderr.write(f"DEBUG_TEST: config['target_fps'] = {config['target_fps']}\\n")
 for _ in range(30):
     buffer.write(b"x" * 1024)
-    time.sleep(1 / config["target_fps"] + 0.005)
+    time.sleep(0.01)
 
 client = app.test_client()
 metrics = client.get("/metrics").get_json()
@@ -449,7 +449,7 @@ app = main.create_app_from_env()
 app.motion_state["recording_started"].clear()
 client = app.test_client()
 results = {}
-for route in ("/webcam", "/webcam/"):\
+for route in ("/webcam", "/webcam/"):
     stream_response = client.get(f"{route}?action=stream")
     snapshot_response = client.get(f"{route}?action=snapshot")
     key = "with_slash" if route.endswith("/") else "no_slash"
