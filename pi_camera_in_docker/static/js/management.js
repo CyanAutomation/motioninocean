@@ -4,6 +4,8 @@ const feedback = document.getElementById("form-feedback");
 const formTitle = document.getElementById("form-title");
 const cancelEditBtn = document.getElementById("cancel-edit-btn");
 const refreshBtn = document.getElementById("refresh-nodes-btn");
+const toggleNodeFormPanelBtn = document.getElementById("toggle-node-form-panel-btn");
+const nodeFormContent = document.getElementById("node-form-content");
 const editingNodeIdInput = document.getElementById("editing-node-id");
 const diagnosticNodeId = document.getElementById("diagnostic-node-id");
 const diagnosticContext = document.getElementById("diagnostic-context");
@@ -577,6 +579,29 @@ function resetForm() {
   cancelEditBtn.classList.add("hidden");
 }
 
+function setNodeFormPanelExpanded(isExpanded) {
+  if (!(toggleNodeFormPanelBtn instanceof HTMLButtonElement) || !(nodeFormContent instanceof HTMLElement)) {
+    return;
+  }
+
+  nodeFormContent.classList.toggle("hidden", !isExpanded);
+  toggleNodeFormPanelBtn.setAttribute("aria-expanded", String(isExpanded));
+  toggleNodeFormPanelBtn.textContent = isExpanded ? "Collapse" : "Expand";
+  toggleNodeFormPanelBtn.setAttribute(
+    "aria-label",
+    isExpanded ? "Collapse node form panel" : "Expand node form panel",
+  );
+}
+
+function toggleNodeFormPanel() {
+  if (!(toggleNodeFormPanelBtn instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  const isExpanded = toggleNodeFormPanelBtn.getAttribute("aria-expanded") === "true";
+  setNodeFormPanelExpanded(!isExpanded);
+}
+
 async function submitNodeForm(event) {
   event.preventDefault();
   showFeedback("");
@@ -1025,6 +1050,10 @@ async function init() {
       startStatusRefreshInterval();
     }
   });
+  if (toggleNodeFormPanelBtn instanceof HTMLButtonElement && nodeFormContent instanceof HTMLElement) {
+    setNodeFormPanelExpanded(true);
+    toggleNodeFormPanelBtn.addEventListener("click", toggleNodeFormPanel);
+  }
   tableBody.addEventListener("click", onTableClick);
   document.getElementById("node-transport").addEventListener("change", (event) => {
     const target = event.target;
