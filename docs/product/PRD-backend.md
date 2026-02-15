@@ -177,7 +177,7 @@ stateDiagram-v2
     Announced: source="discovered"
     Announced: approved=false
 
-    Announced --> Approved: Admin approves<br/>POST /api/nodes/{id}/discovery/approve
+    Announced --> Approved: Admin approves<br/>POST /api/nodes/<id>/discovery/<decision>
 
     Approved: source="discovered"
     Approved: approved=true
@@ -189,14 +189,19 @@ stateDiagram-v2
 
     note right of Announced
         Registration pending;
-        hidden from /api/management/overview
+        still included in /api/management/overview
     end note
 
     note right of Approved
-        Ready for aggregation;
-        /api/nodes/{id}/status queryable
+        Approval enables admin workflow/UI controls;
+        status aggregation is not approval-gated
+        /api/nodes/<id>/status queryable
     end note
 ```
+
+**Current behavior note:** `management_overview()` aggregates all registry nodes, including those with `discovery.approved=false`.
+
+**Follow-up implementation task (if product decision is to hide unapproved nodes):** Update `pi_camera_in_docker/management_api.py::management_overview()` to filter with `node.discovery.approved` before per-node status checks so `/api/management/overview` excludes unapproved discoveries.
 
 **Atomicity:** Registry lock ensures concurrent announcements from multiple webcams are serialized.
 
@@ -247,8 +252,8 @@ sequenceDiagram
     participant Nodes as Webcam<br/>Nodes
 
     UI->>Mgmt: GET /api/management/overview
-    Mgmt->>Mgmt: Read approved nodes from registry
-    note over Mgmt: Acquire lock, filter approved=true
+    Mgmt->>Mgmt: Read nodes from registry
+    note over Mgmt: Acquire lock; include approved and unapproved nodes
 
     par Parallel status queries
         Mgmt->>Nodes: GET /api/nodes/{id1}/status
@@ -270,7 +275,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A["GET /api/management/overview"] --> B["Read registry lock,<br/>collect approved nodes"]
+    A["GET /api/management/overview"] --> B["Read registry lock,<br/>collect all nodes"]
     B --> C["For each node"]
     C --> D{{"Node<br/>transport?"}}
     D -->|http| E["Parse base_url IP"]
