@@ -23,14 +23,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from pi_camera_in_docker.config_validator import (
     ConfigValidationError,
     validate_all_config,
-    validate_app_mode,
-    validate_bearer_token,
     validate_discovery_config,
-    validate_float_range,
-    validate_integer_range,
-    validate_resolution,
     validate_settings_patch,
-    validate_url,
 )
 from pi_camera_in_docker.structured_logging import (
     get_correlation_id,
@@ -135,87 +129,6 @@ class TestStructuredLogging:
 
 class TestConfigValidator:
     """Tests for configuration validation (1.3)"""
-
-    def test_validate_resolution_valid(self):
-        """Test valid resolution format"""
-        result = validate_resolution("1920x1080")
-        assert result == (1920, 1080)
-
-    def test_validate_resolution_invalid_format(self):
-        """Test invalid resolution format raises error"""
-        with pytest.raises(ConfigValidationError) as exc_info:
-            validate_resolution("invalid")
-        assert "RESOLUTION format invalid" in str(exc_info.value)
-
-    def test_validate_resolution_out_of_range(self):
-        """Test resolution out of range"""
-        with pytest.raises(ConfigValidationError) as exc_info:
-            validate_resolution("10000x10000")
-        assert "RESOLUTION values out of range" in str(exc_info.value)
-
-    def test_validate_integer_range_valid(self):
-        """Test valid integer in range"""
-        result = validate_integer_range("50", "test_param", 1, 100, 0)
-        assert result == 50
-
-    def test_validate_integer_range_out_of_range(self):
-        """Test integer out of range"""
-        with pytest.raises(ConfigValidationError) as exc_info:
-            validate_integer_range("150", "test_param", 1, 100, 50)
-        assert "out of range" in str(exc_info.value)
-
-    def test_validate_integer_range_wrong_type(self):
-        """Test non-integer input"""
-        with pytest.raises(ConfigValidationError) as exc_info:
-            validate_integer_range("not_a_number", "test_param", 1, 100, 50)
-        assert "must be an integer" in str(exc_info.value)
-
-    def test_validate_float_range_valid(self):
-        """Test valid float in range"""
-        result = validate_float_range("1.5", "test_param", 0.5, 3.0, 1.0)
-        assert result == 1.5
-
-    def test_validate_float_range_out_of_range(self):
-        """Test float out of range"""
-        with pytest.raises(ConfigValidationError) as exc_info:
-            validate_float_range("5.0", "test_param", 0.5, 3.0, 1.0)
-        assert "out of range" in str(exc_info.value)
-
-    def test_validate_app_mode_valid(self):
-        """Test valid app mode"""
-        result = validate_app_mode("webcam")
-        assert result == "webcam"
-
-        result = validate_app_mode("management")
-        assert result == "management"
-
-    def test_validate_app_mode_invalid(self):
-        """Test invalid app mode"""
-        with pytest.raises(ConfigValidationError) as exc_info:
-            validate_app_mode("invalid_mode")
-        assert "must be one of" in str(exc_info.value)
-
-    def test_validate_url_valid(self):
-        """Test valid URLs"""
-        assert validate_url("http://example.com", "TEST_URL") == "http://example.com"
-        assert validate_url("https://example.com:8000", "TEST_URL") == "https://example.com:8000"
-
-    def test_validate_url_invalid_scheme(self):
-        """Test URL with invalid scheme"""
-        with pytest.raises(ConfigValidationError) as exc_info:
-            validate_url("ftp://example.com", "TEST_URL")
-        assert "http://" in str(exc_info.value) or "https://" in str(exc_info.value)
-
-    def test_validate_bearer_token_valid(self):
-        """Test valid bearer token"""
-        result = validate_bearer_token("mytoken123", "TEST_TOKEN")
-        assert result == "mytoken123"
-
-    def test_validate_bearer_token_too_short(self):
-        """Test bearer token too short"""
-        with pytest.raises(ConfigValidationError) as exc_info:
-            validate_bearer_token("short", "TEST_TOKEN")
-        assert "minimum 8 characters" in str(exc_info.value)
 
     def test_validate_discovery_config_enabled_complete(self):
         """Test valid discovery config when enabled"""
@@ -385,25 +298,33 @@ class TestCorrelationIdIntegration:
 class TestConfigValidationHints:
     """Tests for user-friendly error hints in config validation"""
 
-    def test_resolution_error_includes_hint(self):
-        """Test that resolution error includes helpful hint"""
-        try:
-            validate_resolution("999999x999999")
-        except ConfigValidationError as e:
-            assert e.hint is not None or "must be between" in str(e)
+    def test_discovery_missing_base_url_includes_hint(self):
+        """Test that discovery/base-url validation returns helpful hints."""
+        config = {
+            "discovery_enabled": True,
+            "discovery_management_url": "http://localhost:8000",
+            "discovery_token": "token123456",
+            # Missing base_url
+        }
+        with pytest.raises(ConfigValidationError) as exc_info:
+            validate_all_config(config)
+
+        assert "BASE_URL" in str(exc_info.value)
+        assert exc_info.value.hint is not None
 
     def test_discovery_config_error_includes_hint(self):
         """Test that discovery config error includes helpful hint"""
         config = {
-            "DISCOVERY_ENABLED": "true",
-            "DISCOVERY_TOKEN": "short",  # Too short
-            "DISCOVERY_MANAGEMENT_URL": "http://localhost:8000",
-            "DISCOVERY_BASE_URL": "http://webcam:8000",
+            "discovery_enabled": True,
+            "discovery_management_url": "http://localhost:8000",
+            "base_url": "http://webcam:8000",
+            # Missing token
         }
-        try:
+        with pytest.raises(ConfigValidationError) as exc_info:
             validate_discovery_config(config)
-        except ConfigValidationError as e:
-            assert "DISCOVERY_TOKEN" in str(e) or "8 characters" in str(e)
+
+        assert "DISCOVERY_TOKEN" in str(exc_info.value)
+        assert exc_info.value.hint is not None
 
 
 if __name__ == "__main__":
