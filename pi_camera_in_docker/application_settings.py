@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, ClassVar, Dict
 
+import sentry_sdk
+
 
 try:
     import fcntl
@@ -191,6 +193,11 @@ class ApplicationSettings:
         Raises:
             SettingsValidationError: If validation fails
         """
+        sentry_sdk.set_tag("component", "settings")
+        sentry_sdk.set_context("settings_operation", {
+            "modified_by": modified_by,
+        })
+
         data = {
             "version": 1,
             "settings": settings,

@@ -299,3 +299,63 @@ This is optional as users can always set BASE_URL explicitly if auto-detection d
 ---
 
 **Summary**: Configuration documentation is now complete, comprehensive, and user-friendly. Users can copy .env.example files and understand what each variable does without reading source code.
+
+## SENTRY_DSN
+
+**Type**: String  
+**Default**: Empty (Sentry disabled)  
+**Scope**: Both webcam and management modes
+
+Optional Sentry DSN for error tracking and monitoring.
+
+When set, enables Sentry error tracking to capture exceptions, errors, and performance issues
+from Motion In Ocean containers. Useful for production deployments and monitoring distributed
+camera networks.
+
+**Features**:
+- Automatic exception capture (errors are sent to Sentry immediately)
+- Structured logging breadcrumbs (HTTP requests, errors, state changes)
+- Performance monitoring (traces for slow operations)
+- Data redaction (auth tokens and sensitive headers automatically removed)
+- Low-overhead async transport (doesn't block request handling)
+
+**Security**:
+- Auth tokens (WEBCAM_CONTROL_PLANE_AUTH_TOKEN, MANAGEMENT_AUTH_TOKEN, DISCOVERY_TOKEN)
+  are automatically redacted before sending to Sentry
+- Request URLs and environment variables containing tokens are filtered
+- PII (personal identifiable information) is not sent by default
+
+**Performance Impact**:
+- Minimal when disabled (no overhead)
+- ~10% event sampling rate when enabled (configurable in code)
+- Uses async background thread to avoid blocking
+- Suitable for Raspberry Pi deployments
+
+**Example (Docker Compose)**:
+
+```yaml
+environment:
+  # Enable Sentry error tracking
+  SENTRY_DSN: "https://your-project-key@o0.ingest.sentry.io/your-project-id"
+```
+
+**Example (Kubernetes)**:
+
+```yaml
+env:
+- name: SENTRY_DSN
+  valueFrom:
+    secretKeyRef:
+      name: motion-in-ocean-secrets
+      key: sentry-dsn
+```
+
+**Typical Values**:
+- Leave empty for development/testing (no overhead)
+- Set to your Sentry project DSN for production monitoring
+- DSN format: `https://publicKey@o0.ingest.sentry.io/projectId`
+
+**Related**:
+- Monitoring and debugging production deployments
+- Tracking errors across distributed camera nodes
+- Performance profiling for bottlenecks

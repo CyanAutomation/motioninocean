@@ -312,8 +312,8 @@ def test_dockerfile_runtime_contract_instructions(workspace_root):
     assert dockerfile_content.count("FROM debian:bookworm-slim") >= 2
     assert "python3-picamera2" in dockerfile_content
     assert "WORKDIR /app" in dockerfile_content
-    assert "COPY pi_camera_in_docker /app" in dockerfile_content
-    assert 'CMD ["python3", "/app/main.py"]' in dockerfile_content
+    assert "COPY pi_camera_in_docker/ /app/pi_camera_in_docker/" in dockerfile_content
+    assert 'CMD ["python3", "-m", "pi_camera_in_docker.main"]' in dockerfile_content
 
 
 def _load_main_config_with_env(workspace_root, env_updates, unset_keys=None):

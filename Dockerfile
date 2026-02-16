@@ -167,8 +167,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 # Create non-root app user for runtime security
 # Even with privileged: true in docker-compose, reduces blast radius if process is compromised
-RUN addgroup -g 10001 app && \
-    adduser -D -u 10001 -G app app
+RUN groupadd -g 10001 app && \
+    useradd -u 10001 -g app -s /usr/sbin/nologin -m app
 
 # Set the working directory
 WORKDIR /app
@@ -181,8 +181,6 @@ COPY --from=builder /usr/local/lib/python3.11/dist-packages /usr/local/lib/pytho
 # Improves cache reuse, prevents accidental inclusion of non-essential files, enhances reproducibility
 COPY requirements.txt /app/
 COPY pi_camera_in_docker/ /app/pi_camera_in_docker/
-COPY static/ /app/static/
-COPY templates/ /app/templates/
 COPY VERSION /app/
 COPY scripts/healthcheck.py /app/healthcheck.py
 RUN chmod +x /app/healthcheck.py
@@ -213,7 +211,7 @@ PY
 STOPSIGNAL SIGTERM
 
 # Set PYTHONPATH to ensure package discovery for module execution
-ENV PYTHONPATH=/app:$PYTHONPATH
+ENV PYTHONPATH=/app
 
 # Switch to non-root user for runtime
 USER app

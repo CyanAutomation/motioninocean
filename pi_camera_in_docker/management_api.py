@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple, cast
 from urllib.parse import urlparse, urlunparse
 
+import sentry_sdk
 from flask import Flask, jsonify, request
 
 from .node_registry import FileNodeRegistry, NodeValidationError, validate_node
@@ -385,6 +386,20 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
     """
     base_url = node["base_url"].rstrip("/")
     _validate_node_base_url(base_url)
+
+    # Set Sentry context for this node request
+    node_id = node.get("id", "unknown")
+    sentry_sdk.set_tag("component", "management")
+    sentry_sdk.set_tag("node_id", node_id)
+    sentry_sdk.set_context(
+        "node_request",
+        {
+            "node_id": node_id,
+            "method": method,
+            "path": path,
+            "base_url": node.get("base_url", "unknown"),
+        },
+    )
 
     url = base_url + path
     parsed_url = urlparse(url)
