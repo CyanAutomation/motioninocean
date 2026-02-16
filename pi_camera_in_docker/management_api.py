@@ -414,7 +414,7 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
             ) from exc
         resolved_addresses = tuple(cast("str", record[4][0]) for record in records)
 
-    vetted_addresses: Tuple[str, ...] = cast(Tuple[str, ...], _vet_resolved_addresses(resolved_addresses))
+    vetted_addresses: Tuple[str, ...] = cast(Tuple[str, ...], _vet_resolved_addresses(resolved_addresses))  # type: ignore[assignment]
     if not vetted_addresses:
         message = "name resolution returned no addresses"
         raise ConnectionError(message)
