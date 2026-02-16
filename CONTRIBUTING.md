@@ -147,6 +147,29 @@ Please keep changes:
 - Avoid new dependencies unless strongly justified
 - Add comments where Raspberry Pi quirks require explanation
 
+### Documentation standards
+
+When adding new functions, classes, or methods, include docstrings/JSDoc headers:
+
+**Python:**  
+All public functions, classes, and methods must have Google-style docstrings with Args, Returns, and Raises sections. See example in [AGENTS.md](AGENTS.md#documentation-requirements).
+
+**JavaScript:**  
+All public functions must have JSDoc headers with @param, @returns, @throws, and @async tags for async functions. See example in [AGENTS.md](AGENTS.md#documentation-requirements).
+
+Build and validate documentation locally before pushing:
+
+```bash
+# Validate documentation build
+make docs-check
+
+# Build full documentation (HTML)
+make docs-build
+
+# Build JSDoc for JavaScript
+make jsdoc
+```
+
 ### Logging style
 
 - Production/operator logs should avoid emoji markers.
@@ -241,6 +264,9 @@ Please use clear commit messages:
    # Run tests
    make test
 
+   # Validate documentation
+   make docs-check
+
    # Or run all checks at once
    make ci
    ```
@@ -254,7 +280,10 @@ Please use clear commit messages:
    - why it changed
    - how it was tested
 
-If your PR changes behaviour or config, please update README and the relevant docs in `docs/` accordingly.
+If your PR changes behaviour, config, or adds new public functions, please ensure:
+-  Documentation (docstrings/JSDoc) is updated
+- README and relevant docs in `docs/` are updated
+- Documentation builds without warnings (`make docs-check`)
 
 **Note:** Pre-commit hooks will automatically run basic checks when you commit. The CI pipeline will run comprehensive checks on all PRs.
 
