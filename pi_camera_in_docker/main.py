@@ -108,22 +108,6 @@ def _parse_resolution(resolution_str: str) -> Tuple[int, int]:
     return width, height
 
 
-def _load_advanced_config() -> Dict[str, Any]:
-    """Load advanced and hardware-specific configuration."""
-    pi3_profile_raw = os.environ.get(
-        "MOTION_IN_OCEAN_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false")
-    )
-
-    return {
-        "pi3_profile_enabled": pi3_profile_raw.lower() in ("1", "true", "yes"),
-        "mock_camera": is_flag_enabled("MOCK_CAMERA"),
-        "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
-        in ("1", "true", "yes"),
-        "node_registry_path": os.environ.get("NODE_REGISTRY_PATH", "/data/node-registry.json"),
-        "management_auth_token": os.environ.get("MANAGEMENT_AUTH_TOKEN", ""),
-    }
-
-
 def _load_config() -> Dict[str, Any]:
     """Load all configuration from environment variables.
 
