@@ -64,22 +64,22 @@ See [pi_camera_in_docker/runtime_config.py](pi_camera_in_docker/runtime_config.p
 
 ### Key Modules
 
-| Module | Purpose |
-|--------|---------|
-| **main.py** | Flask app, mode detection, initialization |
-| **modes/webcam.py** | Camera capture, frame buffer, MJPEG streaming |
-| **management_api.py** | Node registry, discovery endpoints, SSRF validation |
-| **discovery.py** | DiscoveryAnnouncer daemon thread (self-registration) |
-| **settings_api.py** | `/api/settings` GET/PATCH endpoints, schema |
-| **shared.py** | Common routes: `/health`, `/ready`, `/metrics` |
-| **application_settings.py** | Atomic file-based settings persistence |
-| **runtime_config.py** | Environment-based config loading, merging |
-| **feature_flags.py** | Registry of feature gates (mock camera, adapters, etc.) |
-| **config_validator.py** | Runtime config validation with helpful error hints |
-| **settings_schema.py** | JSON schema for all editable settings |
-| **transport_url_validation.py** | SSRF protection, URL safeguarding |
-| **cat_gif_generator.py** | Fallback animated test GIF |
-| **logging_config.py** | Structured JSON logging setup |
+| Module                          | Purpose                                                 |
+| ------------------------------- | ------------------------------------------------------- |
+| **main.py**                     | Flask app, mode detection, initialization               |
+| **modes/webcam.py**             | Camera capture, frame buffer, MJPEG streaming           |
+| **management_api.py**           | Node registry, discovery endpoints, SSRF validation     |
+| **discovery.py**                | DiscoveryAnnouncer daemon thread (self-registration)    |
+| **settings_api.py**             | `/api/settings` GET/PATCH endpoints, schema             |
+| **shared.py**                   | Common routes: `/health`, `/ready`, `/metrics`          |
+| **application_settings.py**     | Atomic file-based settings persistence                  |
+| **runtime_config.py**           | Environment-based config loading, merging               |
+| **feature_flags.py**            | Registry of feature gates (mock camera, adapters, etc.) |
+| **config_validator.py**         | Runtime config validation with helpful error hints      |
+| **settings_schema.py**          | JSON schema for all editable settings                   |
+| **transport_url_validation.py** | SSRF protection, URL safeguarding                       |
+| **cat_gif_generator.py**        | Fallback animated test GIF                              |
+| **logging_config.py**           | Structured JSON logging setup                           |
 
 Files: [pi_camera_in_docker/](pi_camera_in_ocean/)
 
@@ -243,6 +243,7 @@ Expected: No critical vulnerabilities. Warnings require review.
 **Python (Google-Style Docstrings)**
 
 All public functions, classes, and methods must have Google-style docstrings with:
+
 - Brief one-line description
 - Detailed description (if needed)
 - Args section: Parameter names, types, descriptions
@@ -281,6 +282,7 @@ def capture_frame(timeout_ms: Optional[int] = None) -> bytes:
 **JavaScript (JSDoc Comments)**
 
 All public functions in JavaScript must have JSDoc headers with:
+
 - Brief description tag @description or inline
 - Parameter documentation @param with type and description
 - Return type @returns with Promise<T> for async functions
@@ -302,7 +304,7 @@ All public functions in JavaScript must have JSDoc headers with:
  * @async
  */
 async function fetchNodeStatus(nodeId, baseUrl, authToken) {
-    // Implementation
+  // Implementation
 }
 ```
 
@@ -496,7 +498,9 @@ All responses use JSON with consistent structure:
 ```json
 {
   "status": "ok",
-  "data": { /* response-specific data */ }
+  "data": {
+    /* response-specific data */
+  }
 }
 ```
 
@@ -597,11 +601,11 @@ See [docs/guides/DEPLOYMENT.md#authentication-boundaries-and-headers](docs/guide
 
 **Three token paths:**
 
-| Path | Token | Used For |
-|------|-------|----------|
-| Browser → Management | `MANAGEMENT_AUTH_TOKEN` | Protecting `/api/nodes/*` |
-| Webcam → Management (discovery) | `DISCOVERY_TOKEN` | Validating node self-registration |
-| Management → Webcam | `WEBCAM_CONTROL_PLANE_AUTH_TOKEN` | Probing remote `/api/status` |
+| Path                            | Token                             | Used For                          |
+| ------------------------------- | --------------------------------- | --------------------------------- |
+| Browser → Management            | `MANAGEMENT_AUTH_TOKEN`           | Protecting `/api/nodes/*`         |
+| Webcam → Management (discovery) | `DISCOVERY_TOKEN`                 | Validating node self-registration |
+| Management → Webcam             | `WEBCAM_CONTROL_PLANE_AUTH_TOKEN` | Probing remote `/api/status`      |
 
 ### Bearer Token Generation
 
@@ -810,7 +814,6 @@ docker buildx build --platform linux/arm64,linux/amd64 -t ghcr.io/cyanautomation
    ```
 
 4. **Checklist:**
-
    - [ ] All tests pass (`make test`)
    - [ ] Code style passes (`make lint`, `make format`, `make type-check`)
    - [ ] Security passes (`make security`)
@@ -823,22 +826,28 @@ docker buildx build --platform linux/arm64,linux/amd64 -t ghcr.io/cyanautomation
 
 ```markdown
 ## Summary
+
 [1-2 sentences describing the change]
 
 ## Motivation
+
 [Why this change is needed]
 
 ## Changes
+
 - [Change 1]
 - [Change 2]
 
 ## Testing
+
 [How this was tested, manual steps if needed]
 
 ## Screenshots (if UI)
+
 [Screenshots of new UI, before/after if applicable]
 
 ## Deployment Notes
+
 [Any new env vars, database migrations, etc.]
 ```
 

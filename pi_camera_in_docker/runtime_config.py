@@ -196,8 +196,7 @@ def _load_stream_config() -> Dict[str, Any]:
         cat_gif_retry_max_seconds = 60.0
     if cat_gif_retry_max_seconds <= 0:
         cat_gif_retry_max_seconds = 60.0
-    if cat_gif_retry_max_seconds < cat_gif_retry_base_seconds:
-        cat_gif_retry_max_seconds = cat_gif_retry_base_seconds
+    cat_gif_retry_max_seconds = max(cat_gif_retry_max_seconds, cat_gif_retry_base_seconds)
 
     return {
         "api_test_mode_enabled": api_test_mode_enabled,

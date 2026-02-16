@@ -488,7 +488,6 @@ class FileNodeRegistry(NodeRegistry):
                 try:
                     yield
                 finally:
-                    lock_file.seek(0)
                     msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
                 return
 

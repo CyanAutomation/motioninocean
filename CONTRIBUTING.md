@@ -149,26 +149,121 @@ Please keep changes:
 
 ### Documentation standards
 
-When adding new functions, classes, or methods, include docstrings/JSDoc headers:
+All new code must include comprehensive docstrings and JSDoc headers. Use the quick reference at [docs/DOCUMENTATION_GUIDE.md](docs/DOCUMENTATION_GUIDE.md) for examples and validation commands.
 
-**Python:**  
-All public functions, classes, and methods must have Google-style docstrings with Args, Returns, and Raises sections. See example in [AGENTS.md](AGENTS.md#documentation-requirements).
+#### Python Documentation (Google-Style Docstrings)
 
-**JavaScript:**  
-All public functions must have JSDoc headers with @param, @returns, @throws, and @async tags for async functions. See example in [AGENTS.md](AGENTS.md#documentation-requirements).
+**Required for:**
+
+- All public functions and methods
+- All public classes
+- Private methods/functions with > 5 lines of code
+- All module-level docstrings
+
+**Components:**
+
+- Brief one-line description
+- Detailed explanation (if needed)
+- `Args`: Parameter names, types, descriptions
+- `Returns`: Type and description
+- `Raises`: Exception types and conditions
+- `Examples` or `Notes`: For complex logic
+
+**Reference files with examples:**
+
+- [pi_camera_in_docker/management_api.py](pi_camera_in_docker/management_api.py) — REST endpoints, node management
+- [pi_camera_in_docker/settings_api.py](pi_camera_in_docker/settings_api.py) — Configuration endpoints
+- [pi_camera_in_docker/runtime_config.py](pi_camera_in_docker/runtime_config.py) — Configuration loading
+- [pi_camera_in_docker/modes/webcam.py](pi_camera_in_docker/modes/webcam.py) — Camera streaming implementation
+
+**Example:**
+
+```python
+def capture_frame(timeout_ms: Optional[int] = None) -> bytes:
+    """Capture a single frame from camera.
+
+    Acquires a frame from the camera hardware via picamera2 and encodes
+    to JPEG format at the configured quality setting.
+
+    Args:
+        timeout_ms: Maximum wait time in milliseconds. If None, uses default
+            from application settings. Must be greater than 0.
+
+    Returns:
+        JPEG-encoded frame bytes ready for streaming.
+
+    Raises:
+        RuntimeError: If camera is not initialized or frame capture fails.
+        TimeoutError: If frame not ready within timeout_ms.
+    """
+```
+
+#### JavaScript Documentation (JSDoc)
+
+**Required for:**
+
+- All public functions
+- All classes and constructors
+- Private functions/methods with > 10 lines of code
+- All module-level headers
+
+**Components:**
+
+- Brief description (inline or @description)
+- `@param {type}` — Parameter type and description
+- `@returns {type}` — Return type and description
+- `@throws` — Exception types that can be raised
+- `@async` — For async functions
+- `@private` — For internal use only
+
+**Reference files with examples:**
+
+- [pi_camera_in_docker/static/js/app.js](pi_camera_in_docker/static/js/app.js) — Streaming viewer logic
+- [pi_camera_in_docker/static/js/management.js](pi_camera_in_docker/static/js/management.js) — Node management dashboard
+- [pi_camera_in_docker/static/js/settings.js](pi_camera_in_docker/static/js/settings.js) — Settings form handling
+
+**Example:**
+
+```javascript
+/**
+ * Fetch stream metadata from remote node.
+ *
+ * Queries /api/status endpoint with bearer token authentication.
+ * Includes automatic retry with exponential backoff on network errors.
+ *
+ * @param {string} nodeId - Unique node identifier
+ * @param {string} baseUrl - Node base URL (http[s]://host:port)
+ * @param {string} authToken - Bearer token for authentication
+ * @returns {Promise<Object>} Node status object with stream info
+ * @throws {Error} If node unreachable after retries or auth fails
+ * @async
+ */
+async function fetchNodeStatus(nodeId, baseUrl, authToken) {
+  // Implementation
+}
+```
+
+#### Validation & Resources
 
 Build and validate documentation locally before pushing:
 
 ```bash
-# Validate documentation build
+# Check documentation builds without warnings (CI validation)
 make docs-check
 
-# Build full documentation (HTML)
+# Build full HTML documentation from docstrings
 make docs-build
 
 # Build JSDoc for JavaScript
 make jsdoc
+
+# Clean build artifacts
+make docs-clean
 ```
+
+**Quick reference:** [docs/DOCUMENTATION_GUIDE.md](docs/DOCUMENTATION_GUIDE.md) — Complete examples, patterns, and checklist
+
+**Full guidelines:** [AGENTS.md#documentation-requirements](AGENTS.md#documentation-requirements) — Detailed rules and style conventions
 
 ### Logging style
 
@@ -281,7 +376,8 @@ Please use clear commit messages:
    - how it was tested
 
 If your PR changes behaviour, config, or adds new public functions, please ensure:
--  Documentation (docstrings/JSDoc) is updated
+
+- Documentation (docstrings/JSDoc) is updated
 - README and relevant docs in `docs/` are updated
 - Documentation builds without warnings (`make docs-check`)
 

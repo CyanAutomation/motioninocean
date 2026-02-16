@@ -312,7 +312,10 @@
 
 .health-warn {
   color: var(--color-warning);
-  background: var(--warning-15, color-mix(in srgb, var(--color-warning) 15%, var(--color-bg-canvas)));
+  background: var(
+    --warning-15,
+    color-mix(in srgb, var(--color-warning) 15%, var(--color-bg-canvas))
+  );
   border-color: var(--warning-45, color-mix(in srgb, var(--color-warning) 45%, transparent));
 }
 
@@ -325,7 +328,10 @@
 
 .health-unknown {
   color: var(--color-text-secondary);
-  background: var(--muted-10, color-mix(in srgb, var(--color-text-muted) 10%, var(--color-bg-canvas)));
+  background: var(
+    --muted-10,
+    color-mix(in srgb, var(--color-text-muted) 10%, var(--color-bg-canvas))
+  );
   border-color: var(--color-border-default);
 }
 

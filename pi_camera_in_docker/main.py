@@ -1120,6 +1120,10 @@ def create_app_from_env() -> Flask:
         logger.error("Configuration validation failed: %s", error_msg)
         raise ValueError(error_msg) from e
 
+    # Initialize Sentry error tracking if DSN is provided
+    sentry_dsn = os.environ.get("SENTRY_DSN")
+    init_sentry(sentry_dsn, cfg["app_mode"])
+
     app = create_management_app(cfg) if cfg["app_mode"] == "management" else create_webcam_app(cfg)
     logger.info("Application started in %s mode", cfg["app_mode"])
     return app

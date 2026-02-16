@@ -119,7 +119,6 @@ class TestRateLimiting:
 
     def test_rate_limiting_applies_expected_limits_to_management_routes(self, tmp_path):
         """register_management_routes should apply route-specific limits when limiter is provided."""
-        from flask import Flask
 
         from pi_camera_in_docker.management_api import register_management_routes
 
