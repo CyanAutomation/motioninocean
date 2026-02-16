@@ -55,6 +55,7 @@ except (ModuleNotFoundError, ImportError):
 from PIL import Image
 from werkzeug.serving import make_server
 
+from .sentry_config import init_sentry
 from .settings_api import register_settings_routes
 from .shared import register_shared_routes, register_webcam_control_plane_auth
 

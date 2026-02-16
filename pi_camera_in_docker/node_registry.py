@@ -494,8 +494,6 @@ class FileNodeRegistry(NodeRegistry):
 
             message = "No supported file-lock backend available for this platform"
             raise RuntimeError(message)
-        message = "No supported file-lock backend available for this platform"
-        raise RuntimeError(message)
 
     def list_nodes(self) -> List[Dict[str, Any]]:
         """List all registered nodes.

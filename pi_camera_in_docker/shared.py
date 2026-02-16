@@ -103,7 +103,7 @@ def register_shared_routes(
             - 'recording_started': threading.Event for camera initialization
             - 'connection_tracker': Optional ConnectionTracker instance (webcam mode)
             - 'api_test': Optional dict for API test scenario cycling
-        get_stream_status: Optional callback returning dict with 'current_fps', 
+        get_stream_status: Optional callback returning dict with 'current_fps',
             'last_frame_age_seconds', 'frames_captured'.
         get_api_test_status_override: Optional callback for custom test payload override.
     """

@@ -10,6 +10,9 @@ flask-cors==6.0.2
 # Rate limiting for Flask APIs
 Flask-Limiter==3.11.0
 
+# Error tracking and APM
+sentry-sdk[flask]==2.19.0
+
 # Lightweight image generation for mock camera fallback
 # NOTE: This is now conditionally installed via Dockerfile build arg INCLUDE_MOCK_CAMERA
 # Default build includes this dependency for development/testing flexibility
