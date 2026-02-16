@@ -79,7 +79,10 @@ class TestStructuredLogging:
         app = Flask(__name__)
 
         with caplog.at_level(logging.INFO, logger="pi_camera_in_docker.structured_logging"):
-            with app.app_context(), app.test_request_context(headers={"X-Correlation-ID": "req-123"}):
+            with (
+                app.app_context(),
+                app.test_request_context(headers={"X-Correlation-ID": "req-123"}),
+            ):
                 caplog.clear()
                 log_event("node_approved", severity="INFO", node_id="node-1", approver="admin")
                 records = [
@@ -101,7 +104,10 @@ class TestStructuredLogging:
         app = Flask(__name__)
 
         with caplog.at_level(logging.ERROR, logger="pi_camera_in_docker.structured_logging"):
-            with app.app_context(), app.test_request_context(headers={"X-Correlation-ID": "req-err-1"}):
+            with (
+                app.app_context(),
+                app.test_request_context(headers={"X-Correlation-ID": "req-err-1"}),
+            ):
                 caplog.clear()
                 log_error(
                     operation="node_registration",
@@ -344,7 +350,10 @@ class TestCorrelationIdIntegration:
         app = Flask(__name__)
 
         with caplog.at_level(logging.INFO, logger="pi_camera_in_docker.structured_logging"):
-            with app.app_context(), app.test_request_context(headers={"X-Correlation-ID": "corr-fixed"}):
+            with (
+                app.app_context(),
+                app.test_request_context(headers={"X-Correlation-ID": "corr-fixed"}),
+            ):
                 caplog.clear()
                 log_event("request_start")
                 log_event("request_end")
@@ -354,7 +363,9 @@ class TestCorrelationIdIntegration:
                     if record.name == "pi_camera_in_docker.structured_logging"
                 ]
                 assert len(records) >= 2
-                payloads = [json.loads(record.getMessage().split(" ", 1)[1]) for record in records[-2:]]
+                payloads = [
+                    json.loads(record.getMessage().split(" ", 1)[1]) for record in records[-2:]
+                ]
                 assert payloads[0]["correlation_id"] == "corr-fixed"
                 assert payloads[1]["correlation_id"] == "corr-fixed"
 

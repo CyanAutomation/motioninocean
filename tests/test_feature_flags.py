@@ -266,7 +266,7 @@ class TestFeatureFlagsAPI:
             assert "DEBUG_LOGGING" in summary[FeatureFlagCategory.DEVELOPER_TOOLS.value]
             assert "MOCK_CAMERA" in summary[FeatureFlagCategory.EXPERIMENTAL.value]
             assert debug_info is not None and debug_info["category"] == "Developer Tools"
-            assert mock_info is not None and "MOCK_CAMERA" == mock_info["name"]
+            assert mock_info is not None and mock_info["name"] == "MOCK_CAMERA"
             assert mock_info["backward_compat_vars"] == ["MOCK_CAMERA"]
         except ImportError as e:
             pytest.skip(f"Cannot setup Flask app: {e}")

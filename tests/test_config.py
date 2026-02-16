@@ -147,7 +147,9 @@ def test_docker_compose_security(workspace_root):
         )
 
 
-def test_create_app_registers_expected_routes_for_management_and_webcam_modes(monkeypatch, tmp_path):
+def test_create_app_registers_expected_routes_for_management_and_webcam_modes(
+    monkeypatch, tmp_path
+):
     """App creation should register core management and webcam routes in their respective modes."""
     from pi_camera_in_docker import main
 

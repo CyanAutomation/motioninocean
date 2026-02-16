@@ -2,8 +2,8 @@
 Integration tests - verify startup sequence, error recovery, and health checks.
 """
 
-import pytest
 import yaml
+
 from pi_camera_in_docker.shared import register_shared_routes
 
 

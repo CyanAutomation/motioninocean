@@ -924,7 +924,8 @@ function renderConfig(data) {
     setHealthIndicator("config-health-overall", {
       state: overallState,
       label: HEALTH_TEXT[overallState],
-      details: "Overall health derived from camera, stream freshness, connection capacity, and mock mode.",
+      details:
+        "Overall health derived from camera, stream freshness, connection capacity, and mock mode.",
     });
   }
 
