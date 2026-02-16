@@ -47,6 +47,9 @@ services:
       # Only enable for internal networks. See .env for security notes
       MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS: ${MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS:-false}
 
+      # Error tracking (optional)
+      SENTRY_DSN: ${SENTRY_DSN:-}
+
     ports:
       - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT:-8001}:8000"
 

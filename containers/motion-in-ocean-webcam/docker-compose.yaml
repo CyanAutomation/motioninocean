@@ -55,6 +55,9 @@ services:
       CATAAS_API_URL: ${CATAAS_API_URL:-https://cataas.com/cat.gif}
       CAT_GIF_CACHE_TTL_SECONDS: ${CAT_GIF_CACHE_TTL_SECONDS:-60}
 
+      # Error tracking (optional)
+      SENTRY_DSN: ${SENTRY_DSN:-}
+
     ports:
       - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT:-8000}:8000"
 

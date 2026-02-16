@@ -8,8 +8,8 @@ FROM debian:bookworm-slim AS builder
 # Default is "true" for development and testing flexibility
 ARG INCLUDE_MOCK_CAMERA=true
 
-# Install dependencies and configure Raspberry Pi repository
-# Consolidated into single layer for better caching and reduced image size
+# ---- Layer 1: System Build Tools (Stable) ----
+# Install base system dependencies and build toolchain
 # Using BuildKit cache mounts to speed up rebuilds
 # Includes resilient installation with retry logic for transient network failures
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -24,6 +24,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         gnupg \
         curl \
         gcc && \
+    rm -rf /var/lib/apt/lists/*
+
+# ---- Layer 2: Raspberry Pi Repository & Camera Packages (Stable) ----
+# Configure Raspberry Pi repository and install picamera2 system packages
+# Both stages require this setup; duplication is necessary in multi-stage builds
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -e && \
     # Function to download GPG key with retry logic (exponential backoff)
     download_gpg_key() { \
         local url="$1" \
@@ -63,23 +71,21 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     test -s /usr/share/keyrings/raspberrypi.gpg || (echo "ERROR: GPG dearmor produced empty file"; exit 1) && \
     echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
     rm /tmp/raspberrypi.gpg.key && \
-    # Update apt cache after adding Raspberry Pi repository with retries
     apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
-    # Install picamera2 packages with retries
     apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         python3-libcamera \
         python3-picamera2 && \
     rm -rf /var/lib/apt/lists/*
 
-# Set up Python virtual environment and install dependencies
-# Copy requirements.txt first for better layer caching
+# ---- Layer 3: Python Dependencies (Volatile) ----
+# Prepare for pip install: copy requirements and install pip packages
+# Separate layer enables fast cache hits when only requirements.txt changes
 WORKDIR /app
 COPY requirements.txt /app/
-# Using BuildKit cache mount to speed up pip installs
-# Install base requirements, then conditionally install Pillow for mock camera support
-# Using --break-system-packages flag required for pip on Debian 12+
-# Exclude numpy from pip installation (using python3-numpy from apt for binary compatibility with simplejpeg)
-# Add --no-cache-dir to reduce pip cache in built packages
+
+# Install Python packages with BuildKit cache mount for faster rebuilds
+# Exclude numpy (use system python3-numpy for simplejpeg compatibility)
+# Conditionally install Pillow for mock camera support (controlled by INCLUDE_MOCK_CAMERA)
 RUN --mount=type=cache,target=/root/.cache/pip \
     grep -v "numpy" requirements.txt | grep -v "Pillow" > /tmp/requirements-base.txt && \
     pip3 install --break-system-packages --no-cache-dir -r /tmp/requirements-base.txt && \
@@ -97,18 +103,14 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Python 3.11 from system packages (Bookworm); aligned with requires-python >=3.9 in pyproject.toml
 FROM debian:bookworm-slim
 
-# OCI labels for GHCR metadata and discoverability
+# ---- OCI Labels (Metadata - no cache impact) ----
 LABEL org.opencontainers.image.source="https://github.com/CyanAutomation/motioninocean"
 LABEL org.opencontainers.image.description="Raspberry Pi CSI camera streaming container (Picamera2/libcamera)"
 LABEL org.opencontainers.image.authors="CyanAutomation"
 LABEL org.opencontainers.image.vendor="CyanAutomation"
 
-# Set up Raspberry Pi repository and install runtime packages
-# Using BuildKit cache mounts to speed up rebuilds
-# Note: OpenCV not installed (edge detection feature was removed)
-# Note: python3-flask removed (duplicate - installed via pip), libcap-dev and libcamera-dev removed (dev libraries not needed in runtime)
-# Note: pykms/python3-kms not installed as DrmPreview functionality is not used in headless streaming mode
-# Includes resilient installation with retry logic for transient network failures
+# ---- Layer 1: System Dependencies (Stable) ----
+# Install base system packages. Mirrored from builder stage (required for both image construction and runtime)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
@@ -116,6 +118,17 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get install -y --no-install-recommends \
         gnupg \
         curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# ---- Layer 2: Raspberry Pi Repository & Camera Packages (Stable) ----
+# Configure RPi repository and install camera runtime packages
+# Note: Duplication with builder stage is necessary (each stage needs its own repo setup in multi-stage builds)
+# Note: OpenCV not installed (edge detection feature was removed)
+# Note: python3-flask removed (duplicate - installed via pip), libcap-dev and libcamera-dev removed (dev libraries not needed in runtime)
+# Note: pykms/python3-kms not installed as DrmPreview functionality is not used in headless streaming mode
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -e && \
     # Function to download GPG key with retry logic (exponential backoff)
     download_gpg_key() { \
         local url="$1" \
@@ -147,7 +160,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         echo "FATAL: Failed to download GPG key after $max_attempts attempts"; \
         return 1; \
     } && \
-    # Add Raspberry Pi repository with resilient GPG key download
     download_gpg_key "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" || \
     download_gpg_key "http://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" || \
     (echo "ERROR: Failed to download GPG key from all sources"; exit 1) && \
@@ -155,9 +167,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     test -s /usr/share/keyrings/raspberrypi.gpg || (echo "ERROR: GPG dearmor produced empty file"; exit 1) && \
     echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
     rm /tmp/raspberrypi.gpg.key && \
-    # Update apt cache after adding Raspberry Pi repository with retries
     apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
-    # Install Python runtime and camera packages from Raspberry Pi repository with retries
     apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         python3 \
         python3-numpy \
@@ -165,21 +175,23 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3-picamera2 && \
     rm -rf /var/lib/apt/lists/*
 
+# ---- Layer 3: Non-Root User Setup (Runtime Security) ----
 # Create non-root app user for runtime security
 # Even with privileged: true in docker-compose, reduces blast radius if process is compromised
 RUN groupadd -g 10001 app && \
     useradd -u 10001 -g app -s /usr/sbin/nologin -m app
 
-# Set the working directory
+# ---- Layer 4: Prepare Application Directory ----
 WORKDIR /app
 
-# Copy Python packages from builder stage
+# ---- Layer 5: Copy Pip Packages & Application Code (Change Frequency Order) ----
+# Copy pre-compiled Python packages from builder stage
 # Debian Bookworm uses Python 3.11 by default
 COPY --from=builder /usr/local/lib/python3.11/dist-packages /usr/local/lib/python3.11/dist-packages
 
 # Copy application code with explicit per-file/directory COPYs
+# Ordered by change frequency: stable → dynamic (requirements are pre-copied in builder)
 # Improves cache reuse, prevents accidental inclusion of non-essential files, enhances reproducibility
-COPY requirements.txt /app/
 COPY pi_camera_in_docker/ /app/pi_camera_in_docker/
 COPY VERSION /app/
 COPY scripts/healthcheck.py /app/healthcheck.py
