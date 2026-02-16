@@ -12,7 +12,7 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
 
-def _redact_auth_data(event: Dict[str, Any], hint: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _redact_auth_data(event: Dict[str, Any], _hint: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Redact sensitive authentication data from Sentry events.
 
     Redacts:
@@ -25,7 +25,7 @@ def _redact_auth_data(event: Dict[str, Any], hint: Dict[str, Any]) -> Optional[D
 
     Args:
         event: Sentry event dictionary to filter
-        hint: Additional context (exception, original_exception)
+        _hint: Additional context (exception, original_exception) - unused but required by API
 
     Returns:
         Modified event (or None to drop event)
@@ -59,7 +59,7 @@ def _redact_auth_data(event: Dict[str, Any], hint: Dict[str, Any]) -> Optional[D
     return event
 
 
-def _breadcrumb_filter(crumb: Dict[str, Any], hint: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _breadcrumb_filter(crumb: Dict[str, Any], _hint: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Filter noisy breadcrumbs to reduce event volume.
 
     Drops:
@@ -71,7 +71,7 @@ def _breadcrumb_filter(crumb: Dict[str, Any], hint: Dict[str, Any]) -> Optional[
 
     Args:
         crumb: Breadcrumb dictionary
-        hint: Additional context
+        _hint: Additional context - unused but required by API
 
     Returns:
         Breadcrumb (or None to drop)
@@ -111,7 +111,6 @@ def init_sentry(sentry_dsn: Optional[str], app_mode: str) -> None:
         integrations=[
             FlaskIntegration(
                 transaction_style="endpoint",
-                request_bodies="small",  # Only capture small request bodies
             ),
         ],
         # Set sample rate to reduce volume on Pi

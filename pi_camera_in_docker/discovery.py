@@ -1,5 +1,4 @@
 
-import sentry_sdk
 """Discovery and self-registration protocol for Motion In Ocean webcam nodes.
 
 Implements automatic node discovery where webcam nodes periodically announce

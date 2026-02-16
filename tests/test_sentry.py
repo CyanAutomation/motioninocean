@@ -1,11 +1,6 @@
 """Integration tests for Sentry error tracking integration."""
 
-import os
 from unittest import mock
-
-import pytest
-
-import sentry_sdk
 
 
 class TestSentryIntegration:
@@ -109,7 +104,7 @@ class TestSentryIntegration:
 
 def test_sentry_config_module_imports():
     """Test that sentry_config module can be imported."""
-    from pi_camera_in_docker.sentry_config import init_sentry, _redact_auth_data, _breadcrumb_filter
+    from pi_camera_in_docker.sentry_config import _breadcrumb_filter, _redact_auth_data, init_sentry
     assert callable(init_sentry)
     assert callable(_redact_auth_data)
     assert callable(_breadcrumb_filter)

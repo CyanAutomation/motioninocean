@@ -4,8 +4,8 @@ import time
 from collections import deque
 from threading import Condition, Lock
 from typing import Any, Callable, Dict, Optional, Tuple
-import sentry_sdk
 
+import sentry_sdk
 from flask import Flask, Response, jsonify, request
 from werkzeug.exceptions import BadRequest
 
@@ -196,8 +196,8 @@ def import_camera_components(allow_pykms_mock: bool):
     try:
         from picamera2 import Picamera2
     except (ModuleNotFoundError, AttributeError) as e:
-            sentry_sdk.set_tag("component", "camera")
-            sentry_sdk.capture_exception(e)
+        sentry_sdk.set_tag("component", "camera")
+        sentry_sdk.capture_exception(e)
         if allow_pykms_mock and ("pykms" in str(e) or "kms" in str(e) or "PixelFormat" in str(e)):
             import sys
             import types
