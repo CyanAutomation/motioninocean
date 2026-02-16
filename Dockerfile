@@ -94,7 +94,14 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # ---- Final Stage ----
 # The final image uses debian:bookworm-slim with system Python to ensure apt-installed
 # python3-picamera2 is available in the same Python environment used by the application
+# Python 3.11 from system packages (Bookworm); aligned with requires-python >=3.9 in pyproject.toml
 FROM debian:bookworm-slim
+
+# OCI labels for GHCR metadata and discoverability
+LABEL org.opencontainers.image.source="https://github.com/CyanAutomation/motioninocean"
+LABEL org.opencontainers.image.description="Raspberry Pi CSI camera streaming container (Picamera2/libcamera)"
+LABEL org.opencontainers.image.authors="CyanAutomation"
+LABEL org.opencontainers.image.vendor="CyanAutomation"
 
 # Set up Raspberry Pi repository and install runtime packages
 # Using BuildKit cache mounts to speed up rebuilds
@@ -158,6 +165,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3-picamera2 && \
     rm -rf /var/lib/apt/lists/*
 
+# Create non-root app user for runtime security
+# Even with privileged: true in docker-compose, reduces blast radius if process is compromised
+RUN addgroup -g 10001 app && \
+    adduser -D -u 10001 -G app app
+
 # Set the working directory
 WORKDIR /app
 
@@ -165,10 +177,13 @@ WORKDIR /app
 # Debian Bookworm uses Python 3.11 by default
 COPY --from=builder /usr/local/lib/python3.11/dist-packages /usr/local/lib/python3.11/dist-packages
 
-# Copy the application code (full directory structure for package imports)
-COPY . /app
-
-# Copy healthcheck script
+# Copy application code with explicit per-file/directory COPYs
+# Improves cache reuse, prevents accidental inclusion of non-essential files, enhances reproducibility
+COPY requirements.txt /app/
+COPY pi_camera_in_docker/ /app/pi_camera_in_docker/
+COPY static/ /app/static/
+COPY templates/ /app/templates/
+COPY VERSION /app/
 COPY scripts/healthcheck.py /app/healthcheck.py
 RUN chmod +x /app/healthcheck.py
 
@@ -199,6 +214,9 @@ STOPSIGNAL SIGTERM
 
 # Set PYTHONPATH to ensure package discovery for module execution
 ENV PYTHONPATH=/app:$PYTHONPATH
+
+# Switch to non-root user for runtime
+USER app
 
 # Set the entry point using module execution (-m) for relative imports to work
 CMD ["python3", "-m", "pi_camera_in_docker.main"]
