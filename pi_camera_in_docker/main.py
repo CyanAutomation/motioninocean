@@ -153,7 +153,7 @@ def _detect_camera_devices() -> Dict[str, Any]:
     Returns a dict with detected device information.
     Failures are logged but don't raise exceptions (graceful fallback).
     """
-    result: Dict[str, Any] = { # Use Any here as a pragmatic solution for complex mixed-type dicts
+    result: Dict[str, Any] = {  # Use Any here as a pragmatic solution for complex mixed-type dicts
         "has_camera": False,
         "video_devices": [],
         "media_devices": [],
@@ -600,6 +600,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
         Returns:
             JSON object with camera settings, stream control info, runtime status, and health checks.
         """
+
         def _indicator(state_value: str, label: str, details: str) -> Dict[str, str]:
             return {
                 "state": state_value,
@@ -1308,6 +1309,8 @@ def _init_mock_camera_frames(state: Dict[str, Any], cfg: Dict[str, Any]) -> None
             jpeg_quality=cfg["jpeg_quality"],
             target_fps=cfg["fps"] if cfg["fps"] > 0 else 10,
             cache_ttl_seconds=cfg["cat_gif_cache_ttl_seconds"],
+            retry_base_seconds=cfg["cat_gif_retry_base_seconds"],
+            retry_max_seconds=cfg["cat_gif_retry_max_seconds"],
         )
         state["cat_gif_generator"] = cat_generator
 

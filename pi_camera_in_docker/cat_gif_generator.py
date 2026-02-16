@@ -116,6 +116,8 @@ class CatGifGenerator:
         jpeg_quality: int = 90,
         target_fps: int = 10,
         cache_ttl_seconds: float = 60.0,
+        retry_base_seconds: float = 1.0,
+        retry_max_seconds: float = 60.0,
     ):
         """
         Initialize the Cat GIF generator.
@@ -126,12 +128,16 @@ class CatGifGenerator:
             jpeg_quality: JPEG quality (1-100)
             target_fps: Desired frames per second for playback
             cache_ttl_seconds: How long to cache a GIF before fetching a new one
+            retry_base_seconds: Base delay used for exponential retry backoff
+            retry_max_seconds: Maximum delay cap for exponential retry backoff
         """
         self.api_url = api_url
         self.resolution = resolution
         self.jpeg_quality = jpeg_quality
         self.target_fps = max(1, target_fps)  # At least 1 FPS
         self.cache_ttl_seconds = cache_ttl_seconds
+        self.retry_base_seconds = max(0.1, retry_base_seconds)
+        self.retry_max_seconds = max(self.retry_base_seconds, retry_max_seconds)
 
         self._frames: list[Tuple[bytes, float]] = []
         self._fallback_frame: bytes = self._create_fallback_frame()
@@ -139,6 +145,8 @@ class CatGifGenerator:
         self._lock = threading.Lock()
         self._refresh_requested = False
         self._frame_iteration_complete = False
+        self._next_retry_time = 0.0
+        self._consecutive_failures = 0
 
     def _create_fallback_frame(self) -> bytes:
         """Create a black JPEG as fallback for API errors."""
@@ -169,19 +177,33 @@ class CatGifGenerator:
         gif_bytes = fetch_cat_gif(self.api_url)
         if gif_bytes is None:
             logger.warning("Failed to fetch cat GIF; using fallback frame")
+            self._record_fetch_failure()
             return False
 
         frames = extract_gif_frames(gif_bytes, self.resolution, self.jpeg_quality)
         if not frames:
             logger.warning("Failed to extract frames from cat GIF; using fallback frame")
+            self._record_fetch_failure()
             return False
 
         with self._lock:
             self._frames = frames
             self._fetch_time = time.time()
             self._refresh_requested = False
+            self._consecutive_failures = 0
+            self._next_retry_time = 0.0
 
         return True
+
+    def _record_fetch_failure(self) -> None:
+        """Record a failed fetch and schedule the next retry window."""
+        with self._lock:
+            self._consecutive_failures += 1
+            retry_delay = min(
+                self.retry_base_seconds * (2 ** (self._consecutive_failures - 1)),
+                self.retry_max_seconds,
+            )
+            self._next_retry_time = time.time() + retry_delay
 
     def generate_frames(self) -> Iterator[bytes]:
         """
@@ -203,7 +225,8 @@ class CatGifGenerator:
             with self._lock:
                 cache_expired = self._is_cache_expired()
                 frame_count = len(self._frames)
-                should_fetch = self._refresh_requested or cache_expired or frame_count == 0
+                fetch_requested = self._refresh_requested or cache_expired or frame_count == 0
+                should_fetch = fetch_requested and time.time() >= self._next_retry_time
 
             if should_fetch:
                 if self._fetch_and_cache_gif():

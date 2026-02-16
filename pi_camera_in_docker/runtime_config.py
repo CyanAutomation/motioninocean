@@ -120,12 +120,30 @@ def _load_stream_config() -> Dict[str, Any]:
     if cat_gif_cache_ttl_seconds <= 0:
         cat_gif_cache_ttl_seconds = 60.0
 
+    try:
+        cat_gif_retry_base_seconds = float(os.environ.get("CAT_GIF_RETRY_BASE_SECONDS", "1"))
+    except ValueError:
+        cat_gif_retry_base_seconds = 1.0
+    if cat_gif_retry_base_seconds <= 0:
+        cat_gif_retry_base_seconds = 1.0
+
+    try:
+        cat_gif_retry_max_seconds = float(os.environ.get("CAT_GIF_RETRY_MAX_SECONDS", "60"))
+    except ValueError:
+        cat_gif_retry_max_seconds = 60.0
+    if cat_gif_retry_max_seconds <= 0:
+        cat_gif_retry_max_seconds = 60.0
+    if cat_gif_retry_max_seconds < cat_gif_retry_base_seconds:
+        cat_gif_retry_max_seconds = cat_gif_retry_base_seconds
+
     return {
         "api_test_mode_enabled": api_test_mode_enabled,
         "api_test_cycle_interval_seconds": api_test_cycle_interval_seconds,
         "cat_gif_enabled": cat_gif_enabled,
         "cataas_api_url": cataas_api_url,
         "cat_gif_cache_ttl_seconds": cat_gif_cache_ttl_seconds,
+        "cat_gif_retry_base_seconds": cat_gif_retry_base_seconds,
+        "cat_gif_retry_max_seconds": cat_gif_retry_max_seconds,
     }
 
 
