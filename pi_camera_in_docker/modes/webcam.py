@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 from flask import Flask, Response, jsonify, request
 from werkzeug.exceptions import BadRequest
 
+
 """Webcam mode implementation: camera frame capture, buffering, and MJPEG streaming.
 
 Provides frame capture from Picamera2 hardware into a thread-safe buffer with
@@ -89,7 +90,7 @@ class FrameBuffer(io.BufferedIOBase):
         self._target_frame_interval = None if target_fps <= 0 else 1.0 / target_fps
         self._last_frame_monotonic: Optional[float] = None
 
-    def write(self, buf: bytes) -> int: # type: ignore
+    def write(self, buf: bytes) -> int:  # type: ignore
         """Write frame data from encoder (Picamera2 interface).
 
         Stores frame, records statistics, and notifies waiting consumers.
@@ -207,8 +208,8 @@ def import_camera_components(allow_pykms_mock: bool):
                 BGR888 = "BGR888"
                 XBGR8888 = "XBGR8888"
 
-            pykms_mock.PixelFormat = PixelFormatMock # type: ignore
-            kms_mock.PixelFormat = PixelFormatMock # type: ignore # type: ignore[attr-defined]
+            pykms_mock.PixelFormat = PixelFormatMock  # type: ignore
+            kms_mock.PixelFormat = PixelFormatMock  # type: ignore # type: ignore[attr-defined]
             sys.modules["pykms"] = pykms_mock
             sys.modules["kms"] = kms_mock
             from picamera2 import Picamera2
@@ -300,7 +301,7 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
                 }
             ),
             status_code,
-        ) # type: ignore[return-value]
+        )  # type: ignore[return-value]
 
     def _parse_optional_action_body() -> tuple[Optional[dict], Optional[tuple[Response, int]]]:
         if not request.data:
@@ -469,7 +470,7 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
         normalized_action = action.strip().lower()
         body, body_error = _parse_optional_action_body()
         if body_error is not None:
-            return body_error # type: ignore[return-value]
+            return body_error  # type: ignore[return-value]
 
         if normalized_action == "restart":
             return _json_error(
