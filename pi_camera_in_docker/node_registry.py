@@ -588,7 +588,7 @@ class FileNodeRegistry(NodeRegistry):
         create_value: Dict[str, Any],
         patch_value: Dict[str, Any],
     ) -> Dict[str, Any]:
-        \"\"\"Create or update node with exclusive lock.
+        """Create or update node with exclusive lock.
 
         If node exists: merges patch_value and validates merged result.
         If node not exists: creates with create_value.
@@ -604,7 +604,7 @@ class FileNodeRegistry(NodeRegistry):
 
         Raises:
             NodeValidationError: If validation or ID uniqueness check fails.
-        \"\"\"
+        """
         candidate = validate_node(create_value)
         validated_patch = validate_node(patch_value, partial=True)
 

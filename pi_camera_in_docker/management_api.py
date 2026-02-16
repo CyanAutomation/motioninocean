@@ -17,7 +17,6 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple, cast
 from urllib.parse import urlparse, urlunparse
 
-import sentry_sdk
 from flask import Flask, jsonify, request
 
 from .node_registry import FileNodeRegistry, NodeValidationError, validate_node

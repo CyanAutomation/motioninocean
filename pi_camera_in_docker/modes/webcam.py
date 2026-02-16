@@ -434,7 +434,7 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
         return _build_snapshot_response()
 
     @app.route("/api/cat-gif/refresh", methods=["POST"])
-    def refresh_cat_gif() -> Response:
+    def refresh_cat_gif() -> Response | Tuple[Response, int]:
         cat_generator = state.get("cat_gif_generator")
         if cat_generator is None:
             return jsonify(
