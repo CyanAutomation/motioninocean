@@ -11,6 +11,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.15.2] - 2026-02-16
+
+- feat: add Sentry DSN configuration for error tracking in management and webcam services
+- refactor: clean up imports and improve type hinting in Sentry configuration and tests
+- fix: update Dockerfile user creation commands and adjust test assertions for runtime contract
+- fix: update CORS options to include send_wildcard default and add type ignore for vetted_addresses
+- Add parent-module and resolve-from packages with initial implementation
+- Various update node packages
+- feat: enhance documentation standards and add comprehensive examples for Python and JavaScript
+- feat: add Sentry SDK for error tracking and APM
+- docs: add documentation standards for Python and JavaScript functions
+- refactor: enhance documentation structure and add Sphinx configuration for Python and JSDoc for JavaScript
+- refactor: enhance documentation with detailed docstrings for node registry, runtime config, shared functions, and transport URL validation
+- [config] Remove dead validator helpers and update coverage (#311)
+- [runtime] Remove unused main _load_advanced_config helper (#309)
+- chore(deps-dev): bump ruff from 0.15.0 to 0.15.1 (#308)
+- chore(deps-dev): bump eslint from 9.39.2 to 10.0.0 (#307)
+- chore(deps): bump flask-limiter from 3.5.0 to 3.11.0 (#306)
+- chore(deps): bump actions/setup-python from 5 to 6 (#305)
+- [tests] Remove unused structured logging module coverage (#310)
+- [management] Align form panel DOM ids with JS selectors (#304)
+- [webcam] Add cat GIF fetch retry backoff (#303)
+- chore: automated code quality fixes [nightly] (#302)
+- [management] Stabilize collapsed form header toggle layout (#301)
+- refactor: enhance documentation with detailed comments and JSDoc annotations across multiple JavaScript files
+
 ## [1.15.1] - 2026-02-15
 
 - refactor: update Dockerfile to copy full application code and set PYTHONPATH for module execution
