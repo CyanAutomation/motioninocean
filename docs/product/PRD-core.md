@@ -52,9 +52,9 @@ flowchart TD
 
 **Validation functions:**
 
-- `validate_resolution()`: WIDTHxHEIGHT format, max 4096x4096
-- `validate_integer_range()`: Min/max bounds checking
-- `validate_all_config()`: Preflighting at startup
+- `runtime_config.parse_resolution()`: WIDTHxHEIGHT parsing and bounds guardrails with safe fallbacks
+- `runtime_config.load_env_config()`: Environment parsing and normalization for camera/stream/discovery/network settings
+- `validate_all_config()`: Startup preflight for cross-field constraints (for example discovery requirements)
 - Feature flags bootstrapped from env vars (DISCOVERY_ENABLED, etc.)
 
 ---
