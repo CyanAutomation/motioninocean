@@ -456,6 +456,77 @@ class TestCatGifGenerator:
         assert did_shrink is True
         assert next_frame == b"\xff\xd8\xff\xe0new"
 
+    def test_failed_fetch_uses_backoff_instead_of_refetching_every_frame(self):
+        """Test failed fetch is not retried on every generated frame."""
+        from pi_camera_in_docker.cat_gif_generator import CatGifGenerator
+
+        gen = CatGifGenerator(
+            api_url="https://example.com/cat.gif",
+            resolution=(640, 480),
+            target_fps=30,
+            retry_base_seconds=10.0,
+            retry_max_seconds=60.0,
+        )
+
+        with mock.patch(
+            "pi_camera_in_docker.cat_gif_generator.fetch_cat_gif", return_value=None
+        ) as mock_fetch:
+            frame_gen = gen.generate_frames()
+            next(frame_gen)
+            next(frame_gen)
+            next(frame_gen)
+
+        assert mock_fetch.call_count == 1
+
+    def test_backoff_resets_after_successful_fetch(self):
+        """Test failure counters and retry window reset after a successful fetch."""
+        from pi_camera_in_docker.cat_gif_generator import CatGifGenerator
+
+        gen = CatGifGenerator(
+            api_url="https://example.com/cat.gif",
+            resolution=(640, 480),
+            retry_base_seconds=1.0,
+            retry_max_seconds=8.0,
+        )
+
+        with mock.patch("pi_camera_in_docker.cat_gif_generator.fetch_cat_gif", return_value=None):
+            assert gen._fetch_and_cache_gif() is False
+
+        assert gen._consecutive_failures == 1
+        assert gen._next_retry_time > time.time()
+
+        gif_bytes = self._create_test_gif()
+        with mock.patch(
+            "pi_camera_in_docker.cat_gif_generator.fetch_cat_gif", return_value=gif_bytes
+        ):
+            assert gen._fetch_and_cache_gif() is True
+
+        assert gen._consecutive_failures == 0
+        assert gen._next_retry_time == 0.0
+
+    def test_fallback_frames_continue_while_waiting_for_retry(self):
+        """Test fallback frames still stream while waiting for next retry time."""
+        from pi_camera_in_docker.cat_gif_generator import CatGifGenerator
+
+        gen = CatGifGenerator(
+            api_url="https://example.com/cat.gif",
+            resolution=(640, 480),
+            target_fps=30,
+            retry_base_seconds=10.0,
+            retry_max_seconds=60.0,
+        )
+
+        with mock.patch(
+            "pi_camera_in_docker.cat_gif_generator.fetch_cat_gif", return_value=None
+        ) as mock_fetch:
+            frame_gen = gen.generate_frames()
+            frames = [next(frame_gen), next(frame_gen), next(frame_gen)]
+
+        assert mock_fetch.call_count == 1
+        assert frames[0] == gen._fallback_frame
+        assert frames[1] == gen._fallback_frame
+        assert frames[2] == gen._fallback_frame
+
     @staticmethod
     def _create_test_gif() -> bytes:
         """Create a test GIF."""

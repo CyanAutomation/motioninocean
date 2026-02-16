@@ -1309,6 +1309,8 @@ def _init_mock_camera_frames(state: Dict[str, Any], cfg: Dict[str, Any]) -> None
             jpeg_quality=cfg["jpeg_quality"],
             target_fps=cfg["fps"] if cfg["fps"] > 0 else 10,
             cache_ttl_seconds=cfg["cat_gif_cache_ttl_seconds"],
+            retry_base_seconds=cfg["cat_gif_retry_base_seconds"],
+            retry_max_seconds=cfg["cat_gif_retry_max_seconds"],
         )
         state["cat_gif_generator"] = cat_generator
 
