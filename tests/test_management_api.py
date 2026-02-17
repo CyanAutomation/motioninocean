@@ -1676,6 +1676,7 @@ def test_request_json_host_header_omits_userinfo_and_default_http_port(monkeypat
 
 def test_request_json_host_header_formats_ipv6_and_omits_userinfo(monkeypatch):
     from pi_camera_in_docker import management_api
+    ipv6_host = "2606:2800:220:1:248:1893:25c8:1946"
 
     class FakeResponse:
         status = 200
@@ -1703,20 +1704,26 @@ def test_request_json_host_header_formats_ipv6_and_omits_userinfo(monkeypatch):
         management_api.socket,
         "getaddrinfo",
         lambda host, port, proto: [
-            (socket.AF_INET6, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("2001:db8::1", 8443, 0, 0))
+            (
+                socket.AF_INET6,
+                socket.SOCK_STREAM,
+                socket.IPPROTO_TCP,
+                "",
+                (ipv6_host, 8443, 0, 0),
+            )
         ],
     )
     monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
 
     status_code, payload = management_api._request_json(
-        {"base_url": "http://user:pass@[2001:db8::1]:8443", "auth": {"type": "none"}},
+        {"base_url": f"http://user:pass@[{ipv6_host}]:8443", "auth": {"type": "none"}},
         "GET",
         "/api/status",
     )
 
     assert status_code == 200
     assert payload == {"ok": True}
-    assert captured["host_header"] == "[2001:db8::1]:8443"
+    assert captured["host_header"] == f"[{ipv6_host}]:8443"
 
 
 def test_request_json_host_header_omits_default_https_port_without_explicit_port(monkeypatch):
