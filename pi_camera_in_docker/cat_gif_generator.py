@@ -94,11 +94,11 @@ def extract_gif_frames(
             frames.append((jpeg_bytes, duration_seconds))
 
         logger.info(f"Extracted {len(frames)} frames from cat GIF")
-        return frames
-
     except Exception as e:
         logger.error(f"Failed to extract frames from GIF: {e}")
         return []
+    else:
+        return frames
 
 
 class CatGifGenerator:
@@ -237,8 +237,7 @@ class CatGifGenerator:
                 fetch_requested = self._refresh_requested or cache_expired or frame_count == 0
                 should_fetch = fetch_requested and current_time >= self._next_retry_time
 
-            if should_fetch:
-                if self._fetch_and_cache_gif():
+            if should_fetch and self._fetch_and_cache_gif():
                     frame_idx = 0
 
             with self._lock:

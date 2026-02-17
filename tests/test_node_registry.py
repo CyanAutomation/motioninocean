@@ -176,7 +176,7 @@ def test_upsert_node_is_atomic_for_concurrent_creates(tmp_path):
             },
         }
         barrier.wait()
-        results.append(registry.upsert_node("node-atomic", create_value, patch_value)["upserted"])
+        results.append(registry.upsert_webcam("node-atomic", create_value, patch_value)["upserted"])
 
     t1 = threading.Thread(target=announce, args=("Node A",))
     t2 = threading.Thread(target=announce, args=("Node B",))

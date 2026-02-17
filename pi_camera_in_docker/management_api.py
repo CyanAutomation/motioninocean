@@ -475,7 +475,8 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
             except json.JSONDecodeError as exc:
                 message = "webcam returned malformed JSON"
                 raise NodeInvalidResponseError(message) from exc
-            return response.status, body_json
+            else:
+                return response.status, body_json
         except NodeInvalidResponseError:
             raise
         except (urllib.error.URLError, OSError, ssl.SSLError, ssl.CertificateError) as exc:
@@ -976,13 +977,6 @@ def _status_for_webcam(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[T
                     webcam_id,
                     {"container_id": container_id, "proxy": f"{proxy_host}:{proxy_port}"},
                 )
-            return {}, (
-                "DOCKER_API_ERROR",
-                f"docker proxy returned unexpected status {status_code}",
-                502,
-                webcam_id,
-                {"status_code": status_code, "proxy": f"{proxy_host}:{proxy_port}"},
-            )
         except NodeConnectivityError as exc:
             return {}, (
                 "DOCKER_PROXY_UNREACHABLE",
@@ -995,6 +989,14 @@ def _status_for_webcam(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[T
                     "raw_error": _sanitize_error_text(exc.raw_error),
                     "proxy": f"{proxy_host}:{proxy_port}",
                 },
+            )
+        else:
+            return {}, (
+                "DOCKER_API_ERROR",
+                f"docker proxy returned unexpected status {status_code}",
+                502,
+                webcam_id,
+                {"status_code": status_code, "proxy": f"{proxy_host}:{proxy_port}"},
             )
 
     # Handle HTTP transport (original logic)
@@ -1113,7 +1115,7 @@ def _status_for_webcam(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[T
         }, None
 
     return {}, (
-        "NODE_STATUS_ERROR",
+        "WEBCAM_STATUS_ERROR",
         f"webcam {webcam_id} returned unexpected status response",
         502,
         webcam_id,
@@ -1249,7 +1251,7 @@ def register_management_routes(
             },
         }
         try:
-            upserted = registry.upsert_node(validated["id"], validated, patch)
+            upserted = registry.upsert_webcam(validated["id"], validated, patch)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
@@ -1283,7 +1285,7 @@ def register_management_routes(
             raise
         if webcam is None:
             return _error_response(
-                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
+                "WEBCAM_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
         return jsonify(webcam), 200
 
@@ -1304,7 +1306,7 @@ def register_management_routes(
             updated = registry.update_webcam(webcam_id, payload)
         except KeyError:
             return _error_response(
-                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
+                "WEBCAM_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
@@ -1329,7 +1331,7 @@ def register_management_routes(
 
         if webcam is None:
             return _error_response(
-                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
+                "WEBCAM_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
 
         discovery = webcam.get("discovery", _manual_discovery_defaults(webcam))
@@ -1342,7 +1344,7 @@ def register_management_routes(
                 return _registry_corruption_response(exc)
             return _error_response("VALIDATION_ERROR", str(exc), 400, webcam_id=webcam_id)
 
-        return jsonify({"webcam": updated, "decision": decision}), 200
+        return jsonify({"node": updated, "decision": decision}), 200
 
     @app.route("/api/webcams/<webcam_id>", methods=["DELETE"])
     @_maybe_limit("100/minute")
@@ -1355,7 +1357,7 @@ def register_management_routes(
             raise
         if not deleted:
             return _error_response(
-                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
+                "WEBCAM_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
         return "", 204
 
@@ -1380,7 +1382,7 @@ def register_management_routes(
             raise
         if webcam is None:
             return _error_response(
-                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
+                "WEBCAM_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
 
         result, error = _status_for_webcam(webcam)
@@ -1416,7 +1418,7 @@ def register_management_routes(
             raise
         if webcam is None:
             return _error_response(
-                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
+                "WEBCAM_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
 
         results = _diagnose_webcam(webcam)
@@ -1433,7 +1435,7 @@ def register_management_routes(
             raise
         if webcam is None:
             return _error_response(
-                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
+                "WEBCAM_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
         if webcam.get("transport") != "http":
             return _error_response(

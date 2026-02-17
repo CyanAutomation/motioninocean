@@ -8,8 +8,6 @@ from pathlib import Path
 
 from flask import Flask
 
-from pi_camera_in_docker.application_settings import ApplicationSettings
-
 
 # Import workspace root path (WORKSPACE_ROOT is set in conftest.py)
 # For module-level imports
@@ -26,6 +24,7 @@ def _new_management_client(monkeypatch, tmp_path):
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
 
     original_sys_path = sys.path.copy()
     sys.path.insert(
@@ -685,7 +684,7 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
             raise KeyError(webcam_id)
         return original_update_webcam(self, webcam_id, patch)
 
-    monkeypatch.setattr(management_api.FileWebcamRegistry, "update_node", flaky_update_node)
+    monkeypatch.setattr(management_api.FileWebcamRegistry, "update_webcam", flaky_update_node)
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
@@ -1827,7 +1826,7 @@ def test_diagnose_includes_structured_status_and_codes(monkeypatch):
     monkeypatch.setattr(management_api.socket, "getaddrinfo", _fake_getaddrinfo)
     monkeypatch.setattr(management_api, "_request_json", _fake_request_json)
 
-    payload = management_api._diagnose_webcam(node)
+    payload = management_api._diagnose_webcam(webcam)
 
     assert isinstance(payload["guidance"], list)
     assert isinstance(payload["recommendations"], list)
@@ -1865,7 +1864,7 @@ def test_diagnose_recommendations_keep_backward_compatible_guidance(monkeypatch)
     )
     monkeypatch.setattr(management_api, "_request_json", _raise_timeout)
 
-    payload = management_api._diagnose_webcam(node)
+    payload = management_api._diagnose_webcam(webcam)
 
     assert payload["guidance"] == [entry["message"] for entry in payload["recommendations"]]
     assert payload["recommendations"][0]["status"] == "fail"

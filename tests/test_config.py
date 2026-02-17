@@ -303,7 +303,8 @@ def test_env_example_contains_required_runtime_variables_with_nonempty_defaults(
     assert all(env_vars[key].strip() for key in nonempty_defaults)
     assert 1 <= int(env_vars["MOTION_IN_OCEAN_PORT"]) <= 65535
     width, height = map(int, env_vars["MOTION_IN_OCEAN_RESOLUTION"].split("x"))
-    assert width > 0 and height > 0
+    assert width > 0
+    assert height > 0
     assert int(env_vars["MOTION_IN_OCEAN_FPS"]) > 0
     assert 1 <= int(env_vars["MOTION_IN_OCEAN_JPEG_QUALITY"]) <= 100
     assert int(env_vars["MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS"]) > 0
@@ -357,11 +358,11 @@ print(json.dumps({
     )
 
     if process.returncode != 0:
-        print(f"Subprocess failed with exit code {process.returncode}")
-        print("--- Subprocess stdout ---")
-        print(process.stdout)
-        print("--- Subprocess stderr ---")
-        print(process.stderr)
+
+
+
+
+
         raise subprocess.CalledProcessError(
             process.returncode, process.args, output=process.stdout, stderr=process.stderr
         )
@@ -485,7 +486,7 @@ print(json.dumps(metrics))
         capture_output=True,
         text=True,
     )
-    print(process.stderr, file=sys.stderr)
+
     # The output from the subprocess includes debug prints, so we need to find the last JSON line
     output_lines = process.stdout.strip().splitlines()
     metrics_json_line = next(line for line in reversed(output_lines) if line.startswith("{"))

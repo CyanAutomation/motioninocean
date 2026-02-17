@@ -191,9 +191,12 @@ class ApplicationSettings:
             if raw.get("modified_by"):
                 schema["modified_by"] = raw["modified_by"]
 
-            return schema
         except json.JSONDecodeError as exc:
             logger.error(f"Corrupted settings file {self.path}: {exc}")
+            message = f"Corrupted settings file: {exc}"
+            raise SettingsValidationError(message) from exc
+        else:
+            return schema
             message = f"Corrupted settings file: {exc}"
             raise SettingsValidationError(message) from exc
 
@@ -249,10 +252,11 @@ class ApplicationSettings:
         data = self.load()
         try:
             value = data["settings"][category].get(key, default)
-            # Treat None as "unset", return default instead
-            return default if value is None else value
         except (KeyError, AttributeError):
             return default
+        else:
+            # Treat None as "unset", return default instead
+            return default if value is None else value
 
     def set(self, category: str, key: str, value: Any, modified_by: str = "system") -> None:
         """

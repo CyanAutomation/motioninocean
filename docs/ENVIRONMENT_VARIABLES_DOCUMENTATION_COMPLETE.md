@@ -313,6 +313,7 @@ from Motion In Ocean containers. Useful for production deployments and monitorin
 camera networks.
 
 **Features**:
+
 - Automatic exception capture (errors are sent to Sentry immediately)
 - Structured logging breadcrumbs (HTTP requests, errors, state changes)
 - Performance monitoring (traces for slow operations)
@@ -320,12 +321,14 @@ camera networks.
 - Low-overhead async transport (doesn't block request handling)
 
 **Security**:
+
 - Auth tokens (WEBCAM_CONTROL_PLANE_AUTH_TOKEN, MANAGEMENT_AUTH_TOKEN, DISCOVERY_TOKEN)
   are automatically redacted before sending to Sentry
 - Request URLs and environment variables containing tokens are filtered
 - PII (personal identifiable information) is not sent by default
 
 **Performance Impact**:
+
 - Minimal when disabled (no overhead)
 - ~10% event sampling rate when enabled (configurable in code)
 - Uses async background thread to avoid blocking
@@ -351,11 +354,13 @@ env:
 ```
 
 **Typical Values**:
+
 - Leave empty for development/testing (no overhead)
 - Set to your Sentry project DSN for production monitoring
 - DSN format: `https://publicKey@o0.ingest.sentry.io/projectId`
 
 **Related**:
+
 - Monitoring and debugging production deployments
 - Tracking errors across distributed camera nodes
 - Performance profiling for bottlenecks

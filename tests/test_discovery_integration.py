@@ -227,7 +227,7 @@ class TestDiscoveryEndToEnd:
 
                 assert response.status_code == 201, response.json
                 node_data = response.json["node"]
-                assert node_data["webcam_id"] == "node-webcam-1"
+                assert node_data["id"] == "node-webcam-1"
                 assert node_data["discovery"]["source"] == "discovered"
                 assert node_data["discovery"]["approved"] is False, (
                     "New discovery should start unapproved"
@@ -247,7 +247,7 @@ class TestDiscoveryEndToEnd:
                 list_response = client.get("/api/webcams")
                 assert list_response.status_code == 200
                 nodes = list_response.json["webcams"]
-                approved_nodes = [n for n in nodes if n["webcam_id"] == "node-webcam-1"]
+                approved_nodes = [n for n in nodes if n["id"] == "node-webcam-1"]
                 assert len(approved_nodes) == 1
                 assert approved_nodes[0]["discovery"]["approved"] is True
 
