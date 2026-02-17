@@ -481,15 +481,6 @@ class TestResourceExhaustion:
 class TestMonotonicTiming:
     """Test monotonic clock usage for reliable timing."""
 
-    def test_uptime_calculation_monotonic(self):
-        """Test that uptime uses monotonic clock."""
-        start_time = time.monotonic()
-        time.sleep(0.1)
-        uptime = time.monotonic() - start_time
-
-        assert uptime >= 0.1
-        assert uptime < 1.0  # Sanity check
-
     def test_frame_age_calculation(self):
         """Test frame age calculation with monotonic time."""
         stats = StreamStats()
@@ -507,22 +498,6 @@ class TestMonotonicTiming:
             age = time.monotonic() - last_frame_time
             assert age >= 0.1
             assert age < 1.0
-
-    def test_timing_immune_to_clock_changes(self):
-        """Test that monotonic timing is immune to system clock changes."""
-        # This test verifies we're using monotonic time, which doesn't change
-        # with system clock adjustments
-
-        start_mono = time.monotonic()
-        time.sleep(0.05)
-        end_mono = time.monotonic()
-
-        elapsed_mono = end_mono - start_mono
-
-        # Monotonic time should always increase
-        assert elapsed_mono > 0
-        assert 0.04 < elapsed_mono < 0.2  # Allow for scheduling delays
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

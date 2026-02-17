@@ -13,13 +13,20 @@ class TestFeatureFlagRegistry:
     """Test the FeatureFlags registry system."""
 
     def test_feature_flags_initialization(self):
-        """Test that FeatureFlags can be initialized."""
+        """Feature flags registry should expose known flag metadata contract."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
         flags = FeatureFlags()
-        assert flags is not None
-        assert not flags._loaded
-        assert len(flags.get_all_flags()) > 0
+        all_flags = flags.get_all_flags()
+        mock_camera_info = flags.get_flag_info("MOCK_CAMERA")
+
+        assert isinstance(all_flags, dict)
+        assert "MOCK_CAMERA" in all_flags
+        assert mock_camera_info is not None
+        assert mock_camera_info["name"] == "MOCK_CAMERA"
+        assert "default" in mock_camera_info
+        assert "category" in mock_camera_info
+        assert "backward_compat_vars" in mock_camera_info
 
     def test_all_flags_registered(self):
         """Test that all expected flags are registered."""

@@ -197,27 +197,6 @@ def test_management_app_registers_core_routes(monkeypatch, tmp_path):
     )
 
 
-def test_dockerfile_has_flask(workspace_root):
-    """Verify Flask is declared in Dockerfile or requirements."""
-    dockerfile_path = workspace_root / "Dockerfile"
-    requirements_path = workspace_root / "requirements.txt"
-    assert dockerfile_path.exists(), "Dockerfile not found"
-    assert requirements_path.exists(), "requirements.txt not found"
-
-    dockerfile_content = dockerfile_path.read_text().lower()
-    requirements_content = requirements_path.read_text().lower()
-
-    has_pip_install = (
-        "pip3 install" in dockerfile_content
-        and "flask" in dockerfile_content.split("pip3 install", 1)[-1].split("\n")[0]
-    )
-    has_requirements = "flask" in requirements_content
-
-    assert has_pip_install or has_requirements, (
-        "Flask not found in requirements.txt or Dockerfile pip install"
-    )
-
-
 def test_frame_buffer_write_updates_stats_and_latest_frame(monkeypatch):
     """FrameBuffer writes should update latest frame and stream stats deterministically."""
     from pi_camera_in_docker.modes import webcam as webcam_mode

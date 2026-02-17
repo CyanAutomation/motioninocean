@@ -6,19 +6,14 @@ from unittest import mock
 class TestSentryIntegration:
     """Test Sentry error tracking initialization and behavior."""
 
-    def test_sentry_disabled_when_dsn_empty(self):
-        """Sentry should be disabled when SENTRY_DSN is empty."""
+    def test_sentry_skips_init_when_dsn_missing(self):
+        """Sentry should skip SDK initialization when DSN is empty or None."""
         from pi_camera_in_docker.sentry_config import init_sentry
 
-        # This should not raise and should not initialize SDK
-        init_sentry("", "webcam")
-
-    def test_sentry_disabled_when_dsn_none(self):
-        """Sentry should be disabled when SENTRY_DSN is None."""
-        from pi_camera_in_docker.sentry_config import init_sentry
-
-        # This should not raise
-        init_sentry(None, "webcam")
+        with mock.patch("sentry_sdk.init") as mock_init:
+            init_sentry("", "webcam")
+            init_sentry(None, "webcam")
+            mock_init.assert_not_called()
 
     def test_sentry_initializes_with_valid_dsn(self):
         """Sentry should initialize when valid DSN is provided."""

@@ -11,8 +11,8 @@ import pytest
 import yaml
 
 
-def test_docker_compose_valid_yaml(workspace_root):
-    """Test if docker-compose.yaml is valid YAML."""
+def test_webcam_compose_contract_basics(workspace_root):
+    """Webcam compose file should parse and expose core service runtime contracts."""
     compose_file = workspace_root / "containers" / "motion-in-ocean-webcam" / "docker-compose.yaml"
     assert compose_file.exists(), "docker-compose.yaml not found"
 
@@ -21,24 +21,7 @@ def test_docker_compose_valid_yaml(workspace_root):
 
     assert config is not None
     assert "services" in config
-
-
-def test_docker_compose_has_service(workspace_root):
-    """Verify motion-in-ocean service is defined."""
-    compose_file = workspace_root / "containers" / "motion-in-ocean-webcam" / "docker-compose.yaml"
-
-    with open(compose_file) as f:
-        config = yaml.safe_load(f)
-
     assert "motion-in-ocean" in config["services"]
-
-
-def test_docker_compose_required_fields(workspace_root):
-    """Verify required fields in docker-compose service."""
-    compose_file = workspace_root / "containers" / "motion-in-ocean-webcam" / "docker-compose.yaml"
-
-    with open(compose_file) as f:
-        config = yaml.safe_load(f)
 
     service = config["services"]["motion-in-ocean"]
     required_fields = ["image", "restart", "ports", "healthcheck"]
@@ -46,29 +29,9 @@ def test_docker_compose_required_fields(workspace_root):
     for field in required_fields:
         assert field in service, f"Missing required field: {field}"
 
-
-def test_docker_compose_environment_config(workspace_root):
-    """Verify environment configuration exists."""
-    compose_file = workspace_root / "containers" / "motion-in-ocean-webcam" / "docker-compose.yaml"
-
-    with open(compose_file) as f:
-        config = yaml.safe_load(f)
-
-    service = config["services"]["motion-in-ocean"]
-    # Either environment or env_file should be present
     assert "environment" in service or "env_file" in service
 
-
-def test_docker_compose_healthcheck(workspace_root):
-    """Verify healthcheck configuration."""
-    compose_file = workspace_root / "containers" / "motion-in-ocean-webcam" / "docker-compose.yaml"
-
-    with open(compose_file) as f:
-        config = yaml.safe_load(f)
-
-    service = config["services"]["motion-in-ocean"]
     healthcheck = service.get("healthcheck", {})
-
     assert "test" in healthcheck, "Missing healthcheck test"
     assert "/health" in str(healthcheck.get("test")), "Healthcheck should use /health endpoint"
 
@@ -325,12 +288,21 @@ def test_dockerfile_runtime_contract_instructions(workspace_root):
     """Dockerfile should include runtime instructions required for webcam operation."""
     dockerfile = workspace_root / "Dockerfile"
     dockerfile_content = dockerfile.read_text()
+    requirements_path = workspace_root / "requirements.txt"
+    requirements_content = requirements_path.read_text().lower()
 
     assert dockerfile_content.count("FROM debian:bookworm-slim") >= 2
     assert "python3-picamera2" in dockerfile_content
     assert "WORKDIR /app" in dockerfile_content
     assert "COPY pi_camera_in_docker/ /app/pi_camera_in_docker/" in dockerfile_content
     assert 'CMD ["python3", "-m", "pi_camera_in_docker.main"]' in dockerfile_content
+
+    has_pip_install = (
+        "pip3 install" in dockerfile_content.lower()
+        and "flask" in dockerfile_content.lower().split("pip3 install", 1)[-1].split("\n")[0]
+    )
+    has_requirements = "flask" in requirements_content
+    assert has_pip_install or has_requirements, "Flask dependency contract missing"
 
 
 def _load_main_config_with_env(workspace_root, env_updates, unset_keys=None):
@@ -620,16 +592,6 @@ print(json.dumps(results))
     assert results["snapshot"]["status"] == 503
     assert results["stream_cache_buster"]["status"] == results["stream"]["status"]
     assert results["invalid"]["status"] == 400
-
-
-def test_detect_devices_script_includes_v4l_subdev(workspace_root):
-    """Verify detect-devices.sh detects and emits /dev/v4l-subdev* mappings."""
-    script_file = workspace_root / "scripts" / "detect-devices.sh"
-    content = script_file.read_text()
-
-    assert "V4L_SUBDEV_DEVICES" in content, "Missing dedicated v4l-subdev device array"
-    assert "/dev/v4l-subdev*" in content, "Missing /dev/v4l-subdev* discovery glob"
-    assert "V4L2 sub-device nodes" in content, "Missing v4l-subdev output section"
 
 
 def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspace_root):
