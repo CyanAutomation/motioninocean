@@ -84,9 +84,7 @@ def test_check_device_availability_does_not_warn_when_video_nodes_exist(monkeypa
         return str(self) == "/dev/dma_heap"
 
     def mock_path_exists(self):
-        if str(self) in ["/dev/vchiq", "/dev/video0", "/dev/media0", "/dev/dma_heap/system"]:
-            return True
-        return False
+        return str(self) in ["/dev/vchiq", "/dev/video0", "/dev/media0", "/dev/dma_heap/system"]
 
     monkeypatch.setattr(Path, "glob", fake_glob)
     monkeypatch.setattr(Path, "is_dir", mock_path_is_dir)
@@ -123,9 +121,12 @@ def test_check_device_availability_warns_when_video_nodes_missing(monkeypatch):
         return str(self) == "/dev/dma_heap"
 
     def mock_path_exists(self):
-        if str(self) in ["/dev/vchiq", "/dev/media0", "/dev/v4l-subdev0", "/dev/dma_heap/system"]:
-            return True
-        return False
+        return str(self) in [
+            "/dev/vchiq",
+            "/dev/media0",
+            "/dev/v4l-subdev0",
+            "/dev/dma_heap/system",
+        ]
 
     monkeypatch.setattr(Path, "glob", fake_glob)
     monkeypatch.setattr(Path, "is_dir", mock_path_is_dir)
