@@ -918,7 +918,7 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     register_management_camera_error_routes(app)
     register_management_routes(
         app,
-        cfg["node_registry_path"],
+        cfg["webcam_registry_path"],
         auth_token=cfg["management_auth_token"],
         limiter=limiter,
     )
@@ -926,7 +926,7 @@ def create_management_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     logger.info(
         "management_mode_initialized: auth_required=%s, registry_path=%s",
         bool(cfg["management_auth_token"]),
-        cfg["node_registry_path"],
+        cfg["webcam_registry_path"],
     )
     return app
 

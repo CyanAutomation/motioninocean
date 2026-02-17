@@ -1265,7 +1265,7 @@ def register_management_routes(
         if "discovery" not in payload:
             payload["discovery"] = _manual_discovery_defaults()
         try:
-            created = registry.create_node(payload)
+            created = registry.create_webcam(payload)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
@@ -1276,7 +1276,7 @@ def register_management_routes(
     @_maybe_limit("1000/minute")
     def get_webcam(webcam_id: str):
         try:
-            webcam = registry.get_node(webcam_id)
+            webcam = registry.get_webcam(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
@@ -1285,7 +1285,7 @@ def register_management_routes(
             return _error_response(
                 "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
-        return jsonify(node), 200
+        return jsonify(webcam), 200
 
     @app.route("/api/webcams/<webcam_id>", methods=["PUT"])
     @_maybe_limit("100/minute")
@@ -1293,7 +1293,7 @@ def register_management_routes(
         payload = request.get_json(silent=True) or {}
 
         try:
-            existing = registry.get_node(webcam_id)
+            existing = registry.get_webcam(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
@@ -1301,7 +1301,7 @@ def register_management_routes(
         if existing and "discovery" not in payload:
             payload["discovery"] = _manual_discovery_defaults(existing)
         try:
-            updated = registry.update_node(webcam_id, payload)
+            updated = registry.update_webcam(webcam_id, payload)
         except KeyError:
             return _error_response(
                 "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
@@ -1321,7 +1321,7 @@ def register_management_routes(
             )
 
         try:
-            webcam = registry.get_node(webcam_id)
+            webcam = registry.get_webcam(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
@@ -1332,11 +1332,11 @@ def register_management_routes(
                 "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
 
-        discovery = node.get("discovery", _manual_discovery_defaults(node))
+        discovery = webcam.get("discovery", _manual_discovery_defaults(webcam))
         discovery["approved"] = decision == "approve"
 
         try:
-            updated = registry.update_node(webcam_id, {"discovery": discovery})
+            updated = registry.update_webcam(webcam_id, {"discovery": discovery})
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
@@ -1348,7 +1348,7 @@ def register_management_routes(
     @_maybe_limit("100/minute")
     def delete_webcam(webcam_id: str):
         try:
-            deleted = registry.delete_node(webcam_id)
+            deleted = registry.delete_webcam(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
@@ -1373,7 +1373,7 @@ def register_management_routes(
             JSON status dict with stream_available, camera_active, fps, connections, etc.
         """
         try:
-            webcam = registry.get_node(webcam_id)
+            webcam = registry.get_webcam(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
@@ -1383,7 +1383,7 @@ def register_management_routes(
                 "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
 
-        result, error = _status_for_webcam(node)
+        result, error = _status_for_webcam(webcam)
         if error:
             return _error_response(*error)
         return jsonify(result), 200
@@ -1409,7 +1409,7 @@ def register_management_routes(
         - guidance: list of human-readable recommendations
         """
         try:
-            webcam = registry.get_node(webcam_id)
+            webcam = registry.get_webcam(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
@@ -1419,14 +1419,14 @@ def register_management_routes(
                 "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
 
-        results = _diagnose_node(node)
+        results = _diagnose_webcam(webcam)
         return jsonify(results), 200
 
     @app.route("/api/webcams/<webcam_id>/actions/<action>", methods=["POST"])
     @_maybe_limit("100/minute")
     def node_action(webcam_id: str, action: str):
         try:
-            webcam = registry.get_node(webcam_id)
+            webcam = registry.get_webcam(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
@@ -1435,7 +1435,7 @@ def register_management_routes(
             return _error_response(
                 "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
-        if node.get("transport") != "http":
+        if webcam.get("transport") != "http":
             return _error_response(
                 "TRANSPORT_UNSUPPORTED",
                 "actions currently support http transport only",
@@ -1445,7 +1445,7 @@ def register_management_routes(
 
         payload = request.get_json(silent=True) or {}
         try:
-            status_code, response = _request_json(node, "POST", f"/api/actions/{action}", payload)
+            status_code, response = _request_json(webcam, "POST", f"/api/actions/{action}", payload)
         except NodeInvalidResponseError:
             return _error_response(
                 "WEBCAM_INVALID_RESPONSE",
@@ -1487,7 +1487,7 @@ def register_management_routes(
     @_maybe_limit("100/minute")
     def management_overview():
         try:
-            nodes = registry.list_nodes()
+            nodes = registry.list_webcams()
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
@@ -1495,7 +1495,7 @@ def register_management_routes(
         statuses = []
         unavailable_nodes = 0
         for webcam in nodes:
-            result, error = _status_for_node(node)
+            result, error = _status_for_webcam(webcam)
             if error:
                 unavailable_nodes += 1
                 statuses.append(
