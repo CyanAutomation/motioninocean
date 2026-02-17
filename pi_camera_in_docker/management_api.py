@@ -160,7 +160,7 @@ def _vet_resolved_addresses(addresses: Tuple[str, ...]) -> Tuple[str, ...]:
             raise NodeRequestError(message)
         if address not in vetted:
             vetted.append(address)
-    return cast("Tuple[str, ...]", tuple(vetted))
+    return tuple(vetted)  # type: ignore[return-value]
 
 
 def _discovery_private_ip_block_response(base_url: str, blocked_target: str):
@@ -429,9 +429,9 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
             ) from exc
         resolved_addresses = tuple(cast("str", record[4][0]) for record in records)
 
-    vetted_addresses: Tuple[str, ...] = cast(
-        "Tuple[str, ...]", _vet_resolved_addresses(resolved_addresses)
-    )  # type: ignore[assignment]
+    vetted_addresses: Tuple[str, ...] = _vet_resolved_addresses(  # type: ignore[assignment]
+        cast(Tuple[str, ...], resolved_addresses)
+    )
     if not vetted_addresses:
         message = "name resolution returned no addresses"
         raise ConnectionError(message)
