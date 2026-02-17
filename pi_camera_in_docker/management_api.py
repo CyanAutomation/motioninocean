@@ -156,10 +156,14 @@ def _vet_resolved_addresses(addresses: Tuple[str, ...]) -> Tuple[str, ...]:
     vetted: list[str] = []
     for address in addresses:
         if _is_blocked_address(address):
-            message = "webcam target is not allowed"
-            raise NodeRequestError(message)
+            continue
         if address not in vetted:
             vetted.append(address)
+
+    if not vetted:
+        message = "webcam target is not allowed"
+        raise NodeRequestError(message)
+
     return tuple(vetted)  # type: ignore[return-value]
 
 
