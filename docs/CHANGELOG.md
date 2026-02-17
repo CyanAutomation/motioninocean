@@ -11,6 +11,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.15.6] - 2026-02-17
+
+- [refactor] Update environment variable references from "WEBCAM_DISCOVERY_SHARED_SECRET" to "NODE_DISCOVERY_SHARED_SECRET" in test cases
+- [refactor] Update codebase to replace "node" references with "webcam" and improve error handling in various modules
+- [refactor] Update references from "node" to "webcam" across codebase, including API endpoints, environment variables, and tests
+- [refactor] Update references from "node" to "webcam" in environment variables, documentation, and codebase
+- Refactor code structure for improved readability and maintainability
+- [refactor] Replace validate_node with validate_webcam in FileWebcamRegistry methods and update test environment variable from DISCOVERY_NODE_ID to DISCOVERY_WEBCAM_ID
+- [refactor] Update references from "node" to "webcam" in management API, registry, and migration scripts
+- [refactor] Replace validate_node with validate_webcam in FileWebcamRegistry methods
+- [refactor] Update references from "node" to "webcam" in management API and tests
+- [refactor] Update "node_registry_path" to "webcam_registry_path" in configuration files
+- [refactor] Optimize Dockerfile by copying GPG key and apt source list from builder stage
+- [refactor] Rename "node" references to "webcam" in management API and node registry
+- [refactor] Update terminology from "node" to "webcam" in management API and tests
+- [refactor] Replace "node" terminology with "webcam" in registry and management API
+- Rebrand "node" terminology to "webcam" throughout the project
+- [feat] Add comprehensive rebrand script for node to webcam terminology
+- [fix] Add missing camera runtime settings and update test configurations
+
 ## [1.15.5] - 2026-02-17
 
 - [docs] Update README and .env.example files for configuration clarity and runtime settings management
