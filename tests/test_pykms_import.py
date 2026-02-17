@@ -30,7 +30,7 @@ def _install_fake_picamera2_modules(monkeypatch):
     return FakePicamera2, FakeJpegEncoder, FakeFileOutput
 
 
-def test_import_camera_components_mocks_pykms_when_allowed(monkeypatch):
+def test_import_components_mocks_pykms_when_allowed(monkeypatch):
     """When picamera2 initially fails on pykms import, helper should inject mocks and retry."""
     from pi_camera_in_docker.modes.webcam import import_camera_components
 
@@ -62,7 +62,7 @@ def test_import_camera_components_mocks_pykms_when_allowed(monkeypatch):
     assert sys.modules["pykms"].PixelFormat.RGB888 == "RGB888"
 
 
-def test_import_camera_components_raises_when_mock_not_allowed(monkeypatch):
+def test_import_components_raises_when_mock_not_allowed(monkeypatch):
     """If pykms-related import fails and fallback is disabled, error should be surfaced."""
     from pi_camera_in_docker.modes.webcam import import_camera_components
 

@@ -193,6 +193,7 @@ def test_settings_changes_endpoint_handles_invalid_resolution_env(monkeypatch, t
 
 
 def test_settings_changes_endpoint_handles_invalid_numeric_env(monkeypatch, tmp_path):
+    monkeypatch.setenv("PI3_PROFILE", "true")
     monkeypatch.setenv("FPS", "invalid-fps")
     monkeypatch.setenv("JPEG_QUALITY", "invalid-jpeg")
     monkeypatch.setenv("MAX_STREAM_CONNECTIONS", "invalid-connections")

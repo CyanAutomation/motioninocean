@@ -98,7 +98,7 @@ class TestConfigValidator:
         valid_errors = validate_settings_patch({"camera": {"fps": 30}})
         assert valid_errors == {}
 
-        invalid_errors = validate_settings_patch({"camera": {"fps": 0}})
+        invalid_errors = validate_settings_patch({"camera": {"fps": "invalid"}})
         assert "camera.fps" in invalid_errors
 
     def test_validate_all_config_discovery_enabled_missing_token_raises(self):

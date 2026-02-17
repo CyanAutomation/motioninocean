@@ -163,6 +163,7 @@ def test_settings_changes_reports_no_override_for_defaults(monkeypatch, tmp_path
     # Set up application settings path
     settings_path = tmp_path / "application-settings.json"
     monkeypatch.setenv("APPLICATION_SETTINGS_PATH", str(settings_path))
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
 
     # Create the app in management mode
     monkeypatch.setenv("APP_MODE", "management")
