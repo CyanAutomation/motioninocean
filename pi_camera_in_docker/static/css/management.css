@@ -208,7 +208,8 @@
   }
 
   .management-layout.is-form-collapsed #webcam-form-content,
-  .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"]) #webcam-form-content {
+  .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"])
+    #webcam-form-content {
     width: 100%;
     opacity: 1;
     pointer-events: auto;

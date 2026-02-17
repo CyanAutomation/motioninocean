@@ -346,11 +346,11 @@ environment:
 
 ```yaml
 env:
-- name: SENTRY_DSN
-  valueFrom:
-    secretKeyRef:
-      name: motion-in-ocean-secrets
-      key: sentry-dsn
+  - name: SENTRY_DSN
+    valueFrom:
+      secretKeyRef:
+        name: motion-in-ocean-secrets
+        key: sentry-dsn
 ```
 
 **Typical Values**:

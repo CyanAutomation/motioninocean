@@ -121,9 +121,9 @@ function formatDateTime(isoString) {
 }
 
 function getDiscoveryInfo(webcam = {}) {
-  const discovery = node.discovery || {};
+  const discovery = webcam.discovery || {};
   const source = discovery.source || "manual";
-  const firstSeen = discovery.first_seen || node.last_seen || null;
+  const firstSeen = discovery.first_seen || webcam.last_seen || null;
   const lastAnnounceAt = discovery.last_announce_at || null;
   const approved = source === "discovered" ? discovery.approved === true : true;
   return { source, firstSeen, lastAnnounceAt, approved };
@@ -229,7 +229,7 @@ function buildWebcamPayload({ preserveLastSeen = false } = {}) {
   };
 
   if (preserveLastSeen) {
-    const existing = nodes.find((node) => node.id === editingWebcamIdInput.value);
+    const existing = webcams.find((node) => node.id === editingWebcamIdInput.value);
     if (existing?.last_seen) {
       payload.last_seen = existing.last_seen;
     }
@@ -302,7 +302,7 @@ function isFailureStatus(status = {}) {
 }
 
 function enrichStatusWithAggregation(webcamId, status = {}) {
-  const existing = webcamStatusAggregationMap.get(nodeId) || {
+  const existing = webcamStatusAggregationMap.get(webcamId) || {
     last_success_at: null,
     first_failure_at: null,
     consecutive_failures: 0,
@@ -327,7 +327,7 @@ function enrichStatusWithAggregation(webcamId, status = {}) {
     next.consecutive_failures = 0;
   }
 
-  webcamStatusAggregationMap.set(nodeId, next);
+  webcamStatusAggregationMap.set(webcamId, next);
   return { ...status, ...next };
 }
 
@@ -464,17 +464,17 @@ function escapeHtml(value) {
 }
 
 function renderRows() {
-  if (!nodes.length) {
+  if (!webcams.length) {
     tableBody.innerHTML = '<tr><td colspan="8" class="empty">No nodes registered.</td></tr>';
     return;
   }
 
-  tableBody.innerHTML = nodes
+  tableBody.innerHTML = webcams
     .map((node) => {
       const status = webcamStatusMap.get(node.id) || { status: "unknown", stream_available: false };
       const normalizedStatus = normalizeWebcamStatusForUi(status);
       const streamText = status.stream_available ? "Available" : "Unavailable";
-      const discovery = getDiscoveryInfo(webcam);
+      const discovery = getDiscoveryInfo(node);
       const aggregateDetails = formatAggregationDetails(status);
       const detailsTooltip = [normalizedStatus.helpText, status.error_details]
         .filter(Boolean)
@@ -532,8 +532,8 @@ async function fetchWebcams() {
       throw new Error("Failed to load nodes");
     }
     const payload = await response.json();
-    nodes = payload.nodes || [];
-    const activeNodeIds = new Set(nodes.map((node) => node.id));
+    webcams = payload.nodes || [];
+    const activeNodeIds = new Set(webcams.map((node) => node.id));
     for (const nodeId of webcamStatusMap.keys()) {
       if (!activeNodeIds.has(nodeId)) {
         webcamStatusMap.delete(nodeId);
@@ -589,7 +589,7 @@ async function refreshStatuses({ fromInterval = false } = {}) {
       const nextStatusMap = new Map();
 
       await Promise.all(
-        nodes.map(async (node) => {
+        webcams.map(async (node) => {
           try {
             const response = await managementFetch(
               `/api/webcams/${encodeURIComponent(node.id)}/status`,
@@ -672,7 +672,9 @@ function setNodeFormPanelCollapsed(isCollapsed) {
   webcamFormContent.classList.toggle("hidden", isCollapsed);
   toggleWebcamFormPanelBtn.setAttribute("aria-expanded", String(isExpanded));
   toggleWebcamFormPanelBtn.textContent = isExpanded ? "«" : "»";
-  toggleWebcamFormPanelBtn.title = isExpanded ? "Collapse webcam form panel" : "Expand webcam form panel";
+  toggleWebcamFormPanelBtn.title = isExpanded
+    ? "Collapse webcam form panel"
+    : "Expand webcam form panel";
   toggleWebcamFormPanelBtn.setAttribute(
     "aria-label",
     isExpanded ? "Collapse webcam form panel" : "Expand webcam form panel",
@@ -760,7 +762,7 @@ async function submitNodeForm(event) {
  * @returns {void}
  */
 function beginEditNode(nodeId) {
-  const webcam = nodes.find((entry) => entry.id === nodeId);
+  const webcam = webcams.find((entry) => entry.id === nodeId);
   if (!webcam) {
     return;
   }

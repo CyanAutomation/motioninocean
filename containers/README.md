@@ -72,6 +72,7 @@ cd containers/motioniocean-webcam && docker compose -f docker-compose.yml -f doc
 These settings control deployment and system behavior, and are set at container startup. They **cannot** be modified via the web UI.
 
 **Webcam mode:**
+
 - `MOTION_IN_OCEAN_PORT`, `MOTION_IN_OCEAN_BIND_HOST` — Network binding
 - `MOCK_CAMERA`, `CAT_GIF`, `CATAAS_API_URL` — Mock camera for testing
 - `MOTION_IN_OCEAN_PI3_PROFILE`, `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` — Hardware/integration profiles
@@ -81,6 +82,7 @@ These settings control deployment and system behavior, and are set at container 
 - `LIMITER_STORAGE_URI`, `ALLOW_PYKMS_MOCK` — Advanced system settings
 
 **Management mode:**
+
 - Same network, persistence, and system settings as webcam
 - Plus: `NODE_DISCOVERY_SHARED_SECRET`, `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` — Discovery security
 - Plus: `DOCKER_PROXY_PORT` — Docker transport support
@@ -99,11 +101,13 @@ These settings control camera behavior, logging, discovery, and feature flags. T
 4. **Feature Flags** — Performance optimization, debugging, observability, integrations
 
 **Access and manage settings:**
+
 - Webcam UI: `http://localhost:8000/api/settings/schema`
 - Management UI: `http://localhost:8001/api/settings/schema`
 - Persistent storage: `/data/application-settings.json` (JSON file, readable/editable)
 
 **Precedence order:**
+
 1. **Highest:** Persisted settings in `/data/application-settings.json` (set via UI)
 2. **Middle:** Environment variables (`.env` or docker-compose)
 3. **Lowest:** Hardcoded application defaults (in source code)

@@ -415,6 +415,7 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
     port = parsed_url.port
     # Explicitly cast hostname to str to help MyPy inference
     hostname_str = str(hostname)
+    resolved_addresses: Tuple[str, ...]
     try:
         if _is_blocked_address(hostname_str):
             message = "webcam target is not allowed"

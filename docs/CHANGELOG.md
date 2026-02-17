@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - refactor: Simplify mock_path_exists function in unit tests for clarity
 - refactor: Simplify mock_path_is_dir function in unit tests for clarity
 - refactor: Add type ignore comments for type checking in Sentry initialization
-- [refactor] Simplify return type casting in _vet_resolved_addresses and _request_json functions
+- [refactor] Simplify return type casting in \_vet_resolved_addresses and \_request_json functions
 - [refactor] Update variable name from "node_id" to "webcam_id" in create_webcam_app function
 - [refactor] Improve code formatting and readability across multiple files
 - [refactor] Update test to use "id" instead of "webcam_id" for webcam list response
@@ -79,7 +79,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - refactor: enhance documentation structure and add Sphinx configuration for Python and JSDoc for JavaScript
 - refactor: enhance documentation with detailed docstrings for node registry, runtime config, shared functions, and transport URL validation
 - [config] Remove dead validator helpers and update coverage (#311)
-- [runtime] Remove unused main _load_advanced_config helper (#309)
+- [runtime] Remove unused main \_load_advanced_config helper (#309)
 - chore(deps-dev): bump ruff from 0.15.0 to 0.15.1 (#308)
 - chore(deps-dev): bump eslint from 9.39.2 to 10.0.0 (#307)
 - chore(deps): bump flask-limiter from 3.5.0 to 3.11.0 (#306)
