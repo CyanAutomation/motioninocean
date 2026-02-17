@@ -13,7 +13,7 @@ Motion In Ocean supports **runtime configuration management** through the web UI
 
 2. **UI Settings Override Environment Variables**
    - Changes made via the web UI Settings panel override environment defaults
-   - Settings are persisted to `/data/application-settings.json`
+   - Settings are persisted to `APPLICATION_SETTINGS_PATH` (default: `/data/application-settings.json`)
    - Persisted settings survive container restarts
    - Environment variables always act as fallback when no persisted value exists
 
@@ -96,6 +96,7 @@ These environment variables are **system configuration** and require container r
 ### Advanced Configuration
 
 - `NODE_REGISTRY_PATH` - Store path for node registry
+- `APPLICATION_SETTINGS_PATH` - Store path for runtime settings JSON/lock files
 - `ALLOW_PYKMS_MOCK` - Internal KMS configuration
 - `LIMITER_STORAGE_URI` - Rate limiter backend
 - `CAT_GIF_*` - Cat GIF testing features
@@ -156,7 +157,7 @@ curl http://localhost:8000/api/settings/changes
 
 ### Settings Storage
 
-- Runtime settings are stored in `/data/application-settings.json`
+- Runtime settings are stored in `APPLICATION_SETTINGS_PATH` (default: `/data/application-settings.json`)
 - This file must be mounted as a volume for persistence across restarts
 - File has atomic writes and file locking for safe concurrent access
 
@@ -166,7 +167,7 @@ To restore all settings to environment-variable defaults:
 
 1. Via UI: Settings tab → **Reset to Defaults** button
 2. Via API: `POST /api/settings/reset`
-3. Via filesystem: Delete `/data/application-settings.json` and restart the container
+3. Via filesystem: Delete the file pointed to by `APPLICATION_SETTINGS_PATH` and restart the container
 
 ### Volume Configuration
 
@@ -176,6 +177,21 @@ Ensure your docker-compose or container configuration includes:
 volumes:
   - data:/data # Persists application-settings.json
 ```
+
+### Restricted Deployments (Read-Only /data)
+
+If `/data` is read-only in your environment, set a writable alternate path:
+
+```yaml
+services:
+  motion-in-ocean:
+    environment:
+      APPLICATION_SETTINGS_PATH: /tmp/motion-in-ocean/application-settings.json
+    tmpfs:
+      - /tmp
+```
+
+This keeps runtime settings and lock files writable even when `/data` cannot be written.
 
 ### Ownership & Permissions at Startup
 
@@ -225,7 +241,7 @@ MOTION_IN_OCEAN_FPS=30
 ### Settings don't persist
 
 - Check that `/data/` volume is writable
-- Check file permissions on `/data/application-settings.json`
+- Check file permissions on the path configured by `APPLICATION_SETTINGS_PATH`
 - View logs for validation errors
 
 ### Settings revert after restart

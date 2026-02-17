@@ -33,6 +33,7 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
         "mock_camera": False,
         "allow_pykms_mock": False,
         "node_registry_path": "/data/node-registry.json",
+        "application_settings_path": "/data/application-settings.json",
         "management_auth_token": "",
     }
 
@@ -77,3 +78,50 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
     assert payload["settings"]["feature_flags"] == {"FLAG_A": True}
     assert payload["last_modified"] == "2026-01-01T00:00:00+00:00"
     assert payload["modified_by"] == "api_patch"
+
+
+def test_load_env_config_supports_application_settings_path(monkeypatch):
+    """APPLICATION_SETTINGS_PATH should be exposed in runtime configuration."""
+    monkeypatch.setenv("APPLICATION_SETTINGS_PATH", "/tmp/custom-settings.json")
+
+    cfg = runtime_config.load_env_config()
+
+    assert cfg["application_settings_path"] == "/tmp/custom-settings.json"
+
+
+def test_merge_config_with_settings_uses_application_settings_path(monkeypatch, tmp_path):
+    """merge_config_with_settings should construct ApplicationSettings from env-configured path."""
+    settings_path = tmp_path / "custom-settings.json"
+    env_config = {
+        "application_settings_path": str(settings_path),
+        "fps": 20,
+    }
+    observed = {"path": None}
+
+    class StubSettingsStore:
+        def __init__(self, path: str):
+            observed["path"] = path
+
+        def load(self):
+            return {"settings": {"camera": {}, "discovery": {}, "logging": {}}}
+
+    monkeypatch.setattr(runtime_config, "ApplicationSettings", StubSettingsStore)
+
+    runtime_config.merge_config_with_settings(env_config)
+
+    assert observed["path"] == str(settings_path)
+
+
+def test_create_app_from_env_honors_application_settings_path(monkeypatch, tmp_path):
+    """Application should use APPLICATION_SETTINGS_PATH for its settings persistence store."""
+    from pi_camera_in_docker import main
+
+    settings_path = tmp_path / "custom" / "app-settings.json"
+    monkeypatch.setenv("APP_MODE", "management")
+    monkeypatch.setenv("MOCK_CAMERA", "true")
+    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("APPLICATION_SETTINGS_PATH", str(settings_path))
+
+    app = main.create_app_from_env()
+
+    assert str(app.application_settings.path) == str(settings_path)

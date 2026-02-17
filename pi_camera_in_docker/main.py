@@ -566,7 +566,9 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
     state = _init_app_state(config)
     app.motion_state = state
     app.motion_config = dict(config)
-    app.application_settings = cast("Any", ApplicationSettings())  # type: ignore[attr-defined] # Add settings persistence
+    app.application_settings = cast(
+        "Any", ApplicationSettings(config["application_settings_path"])
+    )  # type: ignore[attr-defined]
 
     @app.route("/")
     def index() -> str:

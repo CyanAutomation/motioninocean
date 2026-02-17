@@ -54,6 +54,7 @@ services:
       CAT_GIF: ${CAT_GIF:-false}
       CATAAS_API_URL: ${CATAAS_API_URL:-https://cataas.com/cat.gif}
       CAT_GIF_CACHE_TTL_SECONDS: ${CAT_GIF_CACHE_TTL_SECONDS:-60}
+      APPLICATION_SETTINGS_PATH: ${APPLICATION_SETTINGS_PATH:-/data/application-settings.json}
 
       # Error tracking (optional)
       SENTRY_DSN: ${SENTRY_DSN:-}
