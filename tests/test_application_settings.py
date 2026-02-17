@@ -373,6 +373,24 @@ class TestApplicationSettingsConcurrency:
         assert loaded["settings"]["camera"]["fps"] == 48
         assert loaded["settings"]["camera"]["jpeg_quality"] == 70
 
+    def test_custom_settings_path_creates_lock_file_next_to_settings_file(self, tmp_path):
+        """Custom settings paths should create lock files in the same directory."""
+        settings_path = tmp_path / "restricted" / "application-settings.json"
+        settings = ApplicationSettings(str(settings_path))
+
+        settings.save(
+            {
+                "camera": {"fps": 30},
+                "feature_flags": {},
+                "logging": {},
+                "discovery": {},
+            },
+            "test",
+        )
+
+        assert settings_path.exists()
+        assert (settings_path.parent / f"{settings_path.name}.lock").exists()
+
     def test_load_acquires_lock(self, temp_settings_file, monkeypatch):
         """Load should acquire the settings lock before reading."""
         settings = ApplicationSettings(temp_settings_file)

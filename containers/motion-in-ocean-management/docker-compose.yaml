@@ -46,6 +46,7 @@ services:
       # SSRF Protection: Allow private IP ranges for node discovery
       # Only enable for internal networks. See .env for security notes
       MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS: ${MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS:-false}
+      APPLICATION_SETTINGS_PATH: ${APPLICATION_SETTINGS_PATH:-/data/application-settings.json}
 
       # Error tracking (optional)
       SENTRY_DSN: ${SENTRY_DSN:-}

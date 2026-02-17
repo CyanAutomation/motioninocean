@@ -317,11 +317,12 @@ def _load_advanced_config() -> Dict[str, Any]:
     - MOCK_CAMERA (feature flag, default: false)
     - ALLOW_PYKMS_MOCK (default: false)
     - NODE_REGISTRY_PATH (default: /data/node-registry.json)
+    - APPLICATION_SETTINGS_PATH (default: /data/application-settings.json)
     - MANAGEMENT_AUTH_TOKEN (bearer token for management mode auth)
 
     Returns:
         Dict with keys: pi3_profile_enabled, mock_camera, allow_pykms_mock,
-        node_registry_path, management_auth_token.
+        node_registry_path, application_settings_path, management_auth_token.
     """
     pi3_profile_raw = os.environ.get(
         "MOTION_IN_OCEAN_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false")
@@ -333,6 +334,9 @@ def _load_advanced_config() -> Dict[str, Any]:
         "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
         in ("1", "true", "yes"),
         "node_registry_path": os.environ.get("NODE_REGISTRY_PATH", "/data/node-registry.json"),
+        "application_settings_path": os.environ.get(
+            "APPLICATION_SETTINGS_PATH", "/data/application-settings.json"
+        ),
         "management_auth_token": os.environ.get("MANAGEMENT_AUTH_TOKEN", ""),
     }
 
@@ -495,7 +499,9 @@ def merge_config_with_settings(
         Merged configuration, or env_config if persisted settings unavailable.
     """
     try:
-        settings_store = app_settings or ApplicationSettings()
+        settings_store = app_settings or ApplicationSettings(
+            env_config.get("application_settings_path", "/data/application-settings.json")
+        )
         persisted = settings_store.load()
         return merge_config_with_persisted_settings(env_config, persisted)
     except SettingsValidationError as exc:
