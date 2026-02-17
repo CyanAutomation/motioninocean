@@ -18,10 +18,10 @@ def _node(webcam_id: str, name: str) -> dict:
 
 def test_update_node_raises_keyerror_when_target_missing(tmp_path):
     registry = FileWebcamRegistry(str(tmp_path / "registry.json"))
-    registry.create_node(_node("node-1", "One"))
+    registry.create_webcam(_node("node-1", "One"))
 
     try:
-        registry.update_node("missing", {"name": "Updated"})
+        registry.update_webcam("missing", {"name": "Updated"})
         assert False, "Expected KeyError"
     except KeyError as exc:
         assert exc.args == ("missing",)
@@ -29,11 +29,11 @@ def test_update_node_raises_keyerror_when_target_missing(tmp_path):
 
 def test_update_node_detects_id_collision(tmp_path):
     registry = FileWebcamRegistry(str(tmp_path / "registry.json"))
-    registry.create_node(_node("node-1", "One"))
-    registry.create_node(_node("node-2", "Two"))
+    registry.create_webcam(_node("node-1", "One"))
+    registry.create_webcam(_node("node-2", "Two"))
 
     try:
-        registry.update_node("node-1", {"id": "node-2"})
+        registry.update_webcam("node-1", {"id": "node-2"})
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
         assert str(exc) == "webcam node-2 already exists"
@@ -45,7 +45,7 @@ def test_create_node_rejects_basic_auth_without_convertible_token(tmp_path):
     node["auth"] = {"type": "basic", "username": "camera", "password": "secret"}
 
     try:
-        registry.create_node(node)
+        registry.create_webcam(node)
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
         assert "auth.type='basic' cannot be auto-migrated without an API token" in str(exc)
@@ -61,7 +61,7 @@ def test_create_node_migrates_legacy_auth_with_token(tmp_path):
         "password": "legacy",
     }
 
-    created = registry.create_node(node)
+    created = registry.create_webcam(node)
     assert created["auth"] == {"type": "bearer", "token": "new-api-token"}
 
 
@@ -71,7 +71,7 @@ def test_create_node_requires_bearer_token(tmp_path):
     node["auth"] = {"type": "bearer"}
 
     try:
-        registry.create_node(node)
+        registry.create_webcam(node)
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
         assert str(exc) == "auth.token is required for auth.type='bearer'"
@@ -104,7 +104,7 @@ def test_load_migrates_legacy_auth_from_registry_file(tmp_path):
     )
 
     registry = FileWebcamRegistry(str(registry_path))
-    listed = registry.list_nodes()
+    listed = registry.list_webcams()
     assert listed[0]["auth"] == {"type": "bearer", "token": "api-token"}
 
 
@@ -136,7 +136,7 @@ def test_load_rejects_unmigratable_legacy_auth(tmp_path):
 
     registry = FileWebcamRegistry(str(registry_path))
     try:
-        registry.list_nodes()
+        registry.list_webcams()
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
         assert "uses deprecated auth fields" in str(exc)
@@ -148,7 +148,7 @@ def test_load_raises_validation_error_for_corrupted_registry_json(tmp_path):
 
     registry = FileWebcamRegistry(str(registry_path))
     try:
-        registry.list_nodes()
+        registry.list_webcams()
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
         assert "webcam registry file is corrupted and cannot be parsed" in str(exc)
@@ -186,6 +186,6 @@ def test_upsert_node_is_atomic_for_concurrent_creates(tmp_path):
     t2.join()
 
     assert sorted(results) == ["created", "updated"]
-    nodes = registry.list_nodes()
+    nodes = registry.list_webcams()
     assert len(nodes) == 1
     assert nodes[0]["id"] == "node-atomic"

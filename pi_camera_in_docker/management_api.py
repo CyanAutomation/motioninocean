@@ -20,7 +20,7 @@ from urllib.parse import urlparse, urlunparse
 import sentry_sdk
 from flask import Flask, jsonify, request
 
-from .node_registry import FileWebcamRegistry, NodeValidationError, validate_node
+from .node_registry import FileWebcamRegistry, NodeValidationError, validate_webcam
 from .transport_url_validation import parse_docker_url
 
 
@@ -589,14 +589,14 @@ def _get_docker_container_status(
         ) from exc
 
 
-def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
-    """Perform comprehensive diagnostic checks on a registered node.
+def _diagnose_webcam(node: Dict[str, Any]) -> Dict[str, Any]:
+    """Perform comprehensive diagnostic checks on a registered webcam.
 
     Validates webcam registration, URL formatting, DNS resolution, network connectivity,
     and API endpoint accessibility. Returns detailed results and remediation guidance.
 
     Args:
-        node: Node dict with id, base_url, transport, etc.
+        node: Webcam dict with id, base_url, transport, etc.
 
     Returns:
         Dict with diagnostics results, status checks, and troubleshooting guidance.
@@ -921,13 +921,13 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
     return results
 
 
-def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tuple]]:
+def _status_for_webcam(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tuple]]:
     """Fetch current status from a remote webcam via HTTP or Docker API.
 
     Handles both HTTP and Docker transports. Returns webcam status dict or error tuple.
 
     Args:
-        node: Node dict with id, base_url, transport, auth, etc.
+        node: Webcam dict with id, base_url, transport, auth, etc.
 
     Returns:
         Tuple of (status_dict, error_tuple_or_none).
@@ -1260,7 +1260,7 @@ def register_management_routes(
 
     @app.route("/api/webcams", methods=["POST"])
     @_maybe_limit("100/minute")
-    def create_node():
+    def create_webcam():
         payload = request.get_json(silent=True) or {}
         if "discovery" not in payload:
             payload["discovery"] = _manual_discovery_defaults()
@@ -1274,7 +1274,7 @@ def register_management_routes(
 
     @app.route("/api/webcams/<webcam_id>", methods=["GET"])
     @_maybe_limit("1000/minute")
-    def get_node(webcam_id: str):
+    def get_webcam(webcam_id: str):
         try:
             webcam = registry.get_node(webcam_id)
         except NodeValidationError as exc:
@@ -1289,7 +1289,7 @@ def register_management_routes(
 
     @app.route("/api/webcams/<webcam_id>", methods=["PUT"])
     @_maybe_limit("100/minute")
-    def update_node(webcam_id: str):
+    def update_webcam(webcam_id: str):
         payload = request.get_json(silent=True) or {}
 
         try:
@@ -1346,7 +1346,7 @@ def register_management_routes(
 
     @app.route("/api/webcams/<webcam_id>", methods=["DELETE"])
     @_maybe_limit("100/minute")
-    def delete_node(webcam_id: str):
+    def delete_webcam(webcam_id: str):
         try:
             deleted = registry.delete_node(webcam_id)
         except NodeValidationError as exc:
@@ -1361,8 +1361,8 @@ def register_management_routes(
 
     @app.route("/api/webcams/<webcam_id>/status", methods=["GET"])
     @_maybe_limit("1000/minute")
-    def node_status(webcam_id: str):
-        """Get current status of a registered node.
+    def webcam_status(webcam_id: str):
+        """Get current status of a registered webcam.
 
         Queries the webcam for its stream status, camera state, and connectivity.
 
@@ -1383,14 +1383,14 @@ def register_management_routes(
                 "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
 
-        result, error = _status_for_node(node)
+        result, error = _status_for_webcam(node)
         if error:
             return _error_response(*error)
         return jsonify(result), 200
 
     @app.route("/api/webcams/<webcam_id>/diagnose", methods=["GET"])
     @_maybe_limit("100/minute")
-    def diagnose_node(webcam_id: str):
+    def diagnose_webcam(webcam_id: str):
         """
         Perform detailed diagnostics on webcam connectivity and configuration.
         Returns structured diagnostic information and actionable guidance.
