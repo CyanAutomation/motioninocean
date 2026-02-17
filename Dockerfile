@@ -104,6 +104,10 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Python 3.11 from system packages (Bookworm); aligned with requires-python >=3.9 in pyproject.toml
 FROM debian:bookworm-slim
 
+# Copy GPG key and apt source list from builder stage
+COPY --from=builder /usr/share/keyrings/raspberrypi.gpg /usr/share/keyrings/raspberrypi.gpg
+COPY --from=builder /etc/apt/sources.list.d/raspi.list /etc/apt/sources.list.d/raspi.list
+
 # ---- OCI Labels (Metadata - no cache impact) ----
 LABEL org.opencontainers.image.source="https://github.com/CyanAutomation/motioninocean"
 LABEL org.opencontainers.image.description="Raspberry Pi CSI camera streaming container (Picamera2/libcamera)"
@@ -118,58 +122,16 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
-        gnupg \
-        curl \
         gosu && \
     rm -rf /var/lib/apt/lists/*
 
-# ---- Layer 2: Raspberry Pi Repository & Camera Packages (Stable) ----
-# Configure RPi repository and install camera runtime packages
-# Note: Duplication with builder stage is necessary (each stage needs its own repo setup in multi-stage builds)
-# Note: OpenCV not installed (edge detection feature was removed)
-# Note: python3-flask removed (duplicate - installed via pip), libcap-dev and libcamera-dev removed (dev libraries not needed in runtime)
-# Note: pykms/python3-kms not installed as DrmPreview functionality is not used in headless streaming mode
+
+
+# ---- Layer 2: Raspberry Pi Camera Packages (Stable) ----
+# Install Raspberry Pi camera runtime packages using the copied repository setup
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
-    # Function to download GPG key with retry logic (exponential backoff)
-    download_gpg_key() { \
-        local url="$1" \
-        local output="$2" \
-        local max_attempts=5 \
-        local attempt=1 \
-        local backoff=2; \
-        while [ $attempt -le $max_attempts ]; do \
-            echo "[Attempt $attempt/$max_attempts] Downloading Raspberry Pi GPG key from $url..."; \
-            if curl -L --connect-timeout 10 --max-time 60 --retry 3 --retry-all-errors --retry-delay 2 -f "$url" -o "$output" 2>&1; then \
-                if [ -s "$output" ]; then \
-                    size=$(stat -c%s "$output" 2>/dev/null || stat -f%z "$output" 2>/dev/null || echo "unknown"); \
-                    echo "✓ GPG key downloaded successfully ($size bytes)"; \
-                    return 0; \
-                else \
-                    echo "ERROR: GPG key file is empty"; \
-                    rm -f "$output"; \
-                fi; \
-            else \
-                echo "ERROR: curl failed with exit code $? for URL: $url"; \
-            fi; \
-            if [ $attempt -lt $max_attempts ]; then \
-                echo "Retrying in ${backoff}s..."; \
-                sleep $backoff; \
-                backoff=$((backoff * 2)); \
-            fi; \
-            attempt=$((attempt + 1)); \
-        done; \
-        echo "FATAL: Failed to download GPG key after $max_attempts attempts"; \
-        return 1; \
-    } && \
-    download_gpg_key "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" || \
-    download_gpg_key "http://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" || \
-    (echo "ERROR: Failed to download GPG key from all sources"; exit 1) && \
-    gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
-    test -s /usr/share/keyrings/raspberrypi.gpg || (echo "ERROR: GPG dearmor produced empty file"; exit 1) && \
-    echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
-    rm /tmp/raspberrypi.gpg.key && \
     apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
     apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         python3 \
