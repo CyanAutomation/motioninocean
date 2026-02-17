@@ -433,7 +433,7 @@ class FileWebcamRegistry(WebcamRegistry):
                 raise NodeValidationError(message)
 
             migrated = dict(node)
-            migrated_nodes.append(validate_node(migrated))
+            migrated_nodes.append(validate_webcam(migrated))
 
         return {"nodes": migrated_nodes}
 
@@ -530,7 +530,7 @@ class FileWebcamRegistry(WebcamRegistry):
         Raises:
             NodeValidationError: If validation fails or ID already exists.
         """
-        candidate = validate_node(node)
+        candidate = validate_webcam(node)
 
         with self._exclusive_lock():
             data = self._load()
@@ -558,7 +558,7 @@ class FileWebcamRegistry(WebcamRegistry):
             KeyError: If webcam_id not found.
             NodeValidationError: If validation or ID uniqueness check fails.
         """
-        validated_patch = validate_node(patch, partial=True)
+        validated_patch = validate_webcam(patch, partial=True)
 
         with self._exclusive_lock():
             data = self._load()
@@ -605,8 +605,8 @@ class FileWebcamRegistry(WebcamRegistry):
         Raises:
             NodeValidationError: If validation or ID uniqueness check fails.
         """
-        candidate = validate_node(create_value)
-        validated_patch = validate_node(patch_value, partial=True)
+        candidate = validate_webcam(create_value)
+        validated_patch = validate_webcam(patch_value, partial=True)
 
         with self._exclusive_lock():
             data = self._load()

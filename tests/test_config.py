@@ -155,7 +155,7 @@ def test_create_app_registers_expected_routes_for_management_and_webcam_modes(
 
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("MOCK_CAMERA", "true")
-    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings.json"))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "")
     management_app = main.create_app_from_env()
