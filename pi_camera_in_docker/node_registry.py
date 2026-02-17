@@ -428,11 +428,11 @@ class FileWebcamRegistry(WebcamRegistry):
 
         migrated_nodes: List[Dict[str, Any]] = []
         for index, webcam in enumerate(nodes):
-            if not isinstance(node, dict):
+            if not isinstance(webcam, dict):
                 message = f"webcam at index {index} must be an object"
                 raise NodeValidationError(message)
 
-            migrated = dict(node)
+            migrated = dict(webcam)
             migrated_nodes.append(validate_webcam(migrated))
 
         return {"nodes": migrated_nodes}
@@ -512,8 +512,8 @@ class FileWebcamRegistry(WebcamRegistry):
             Node dictionary or None if not found.
         """
         for webcam in self.list_webcams():
-            if node.get("id") == webcam_id:
-                return node
+            if webcam.get("id") == webcam_id:
+                return webcam
         return None
 
     def create_webcam(self, node: Dict[str, Any]) -> Dict[str, Any]:

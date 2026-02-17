@@ -16,7 +16,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from pi_camera_in_docker.node_registry import NodeValidationError, validate_node
+from pi_camera_in_docker.node_registry import NodeValidationError, validate_webcam
 
 
 def migrate_registry(path: Path, dry_run: bool = False) -> bool:
@@ -41,7 +41,7 @@ def migrate_registry(path: Path, dry_run: bool = False) -> bool:
         if not isinstance(node, dict):
             message = f"node at index {index} must be an object"
             raise NodeValidationError(message)
-        migrated = validate_node(node)
+        migrated = validate_webcam(node)
         migrated_nodes.append(migrated)
         if migrated != node:
             changed = True

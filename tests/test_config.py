@@ -165,7 +165,7 @@ def test_create_app_registers_expected_routes_for_management_and_webcam_modes(
     )
 
     monkeypatch.setenv("APP_MODE", "webcam")
-    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry-webcam.json"))
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry-webcam.json"))
     monkeypatch.setattr(main, "_run_webcam_mode", lambda _state, _cfg: None)
     webcam_app = main.create_app_from_env()
     webcam_routes = {rule.rule for rule in webcam_app.url_map.iter_rules()}
@@ -180,7 +180,7 @@ def test_create_app_from_env_applies_resolution_and_fps_env(monkeypatch, tmp_pat
 
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("MOCK_CAMERA", "true")
-    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings.json"))
     monkeypatch.setenv("RESOLUTION", "1024x768")
     monkeypatch.setenv("FPS", "20")
@@ -196,7 +196,7 @@ def test_create_app_from_env_defaults_invalid_resolution_to_safe_fallback(monkey
 
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("MOCK_CAMERA", "true")
-    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry-invalid-resolution.json"))
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry-invalid-resolution.json"))
     monkeypatch.setenv("APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-invalid-resolution.json"))
     monkeypatch.setenv("RESOLUTION", "invalid-resolution")
     monkeypatch.setenv("FPS", "24")
@@ -212,7 +212,7 @@ def test_create_app_from_env_defaults_invalid_fps_to_safe_fallback(monkeypatch, 
 
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("MOCK_CAMERA", "true")
-    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry-invalid-fps.json"))
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry-invalid-fps.json"))
     monkeypatch.setenv("APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-invalid-fps.json"))
     monkeypatch.setenv("RESOLUTION", "800x600")
     monkeypatch.setenv("FPS", "not-an-int")
@@ -228,7 +228,7 @@ def test_real_camera_startup_failure_reports_clear_runtime_error(monkeypatch, tm
 
     monkeypatch.setenv("APP_MODE", "webcam")
     monkeypatch.setenv("MOCK_CAMERA", "false")
-    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings.json"))
     monkeypatch.setattr(main, "_check_device_availability", lambda _cfg: None)
 

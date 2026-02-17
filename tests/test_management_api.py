@@ -1827,7 +1827,7 @@ def test_diagnose_includes_structured_status_and_codes(monkeypatch):
     monkeypatch.setattr(management_api.socket, "getaddrinfo", _fake_getaddrinfo)
     monkeypatch.setattr(management_api, "_request_json", _fake_request_json)
 
-    payload = management_api._diagnose_node(node)
+    payload = management_api._diagnose_webcam(node)
 
     assert isinstance(payload["guidance"], list)
     assert isinstance(payload["recommendations"], list)
@@ -1865,7 +1865,7 @@ def test_diagnose_recommendations_keep_backward_compatible_guidance(monkeypatch)
     )
     monkeypatch.setattr(management_api, "_request_json", _raise_timeout)
 
-    payload = management_api._diagnose_node(node)
+    payload = management_api._diagnose_webcam(node)
 
     assert payload["guidance"] == [entry["message"] for entry in payload["recommendations"]]
     assert payload["recommendations"][0]["status"] == "fail"

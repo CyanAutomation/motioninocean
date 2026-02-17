@@ -1182,14 +1182,14 @@ def register_management_routes(
 
     @app.route("/api/webcams", methods=["GET"])
     @_maybe_limit("1000/minute")
-    def list_nodes():
+    def list_webcams():
         """List all registered nodes.
 
         Returns:
             JSON list of all webcam dicts from registry.
         """
         try:
-            nodes = registry.list_nodes()
+            nodes = registry.list_webcams()
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
@@ -1227,7 +1227,7 @@ def register_management_routes(
             "discovery": _discovery_metadata(),
         }
         try:
-            validated = validate_node(candidate)
+            validated = validate_webcam(candidate)
         except NodeValidationError as exc:
             return _error_response("VALIDATION_ERROR", str(exc), 400)
 
