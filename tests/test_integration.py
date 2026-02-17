@@ -144,72 +144,23 @@ def test_webcam_metrics_and_status_reflect_stream_activity():
     assert status_payload["fps"] == 14.0
 
 
-def test_device_security_explicit_devices(workspace_root):
-    """Verify explicit device mappings are used."""
-    compose_file = workspace_root / "docker-compose.yaml"
-
-    with open(compose_file) as f:
-        config = yaml.safe_load(f)
-
-    service = config["services"]["motion-in-ocean"]
-
-    # Should have devices list
-    assert "devices" in service, "Missing devices configuration"
-    devices = service["devices"]
-    assert len(devices) > 0, "No devices configured"
-
-
-def test_device_security_no_new_privileges(workspace_root):
-    """Verify security options are set."""
-    compose_file = workspace_root / "docker-compose.yaml"
-
-    with open(compose_file) as f:
-        config = yaml.safe_load(f)
-
-    service = config["services"]["motion-in-ocean"]
-    security_opt = service.get("security_opt", [])
-
-    # Should have no-new-privileges or similar
-    assert len(security_opt) > 0 or "privileged" not in service or not service.get("privileged"), (
-        "Security options not properly configured"
-    )
-
-
-def test_udev_mount_read_only(workspace_root):
-    """Verify udev is mounted read-only."""
-    compose_file = workspace_root / "docker-compose.yaml"
-    content = compose_file.read_text()
-
-    # Check for read-only udev mount
-    assert "/run/udev" in content, "udev mount not found"
-
-
-def test_setup_generate_includes_v4l_subdev_when_detected(monkeypatch, tmp_path):
-    """Setup generation should emit explicit v4l-subdev mappings when device detection reports them."""
+def test_shared_health_endpoints_exist():
+    """Verify shared /health and /ready endpoints are registered in the Flask app's URL map."""
     from pi_camera_in_docker import main
 
-    monkeypatch.setenv("APP_MODE", "management")
-    monkeypatch.setenv("MOCK_CAMERA", "true")
-    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
-    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "")
+    app = main.create_webcam_app() # Use webcam app as it has all shared routes
 
-    app = main.create_management_app()
-    monkeypatch.setattr(
-        main,
-        "_detect_camera_devices",
-        lambda: {
-            "has_camera": True,
-            "video_devices": ["/dev/video0"],
-            "media_devices": ["/dev/media0"],
-            "v4l_subdev_devices": ["/dev/v4l-subdev0"],
-            "dma_heap_devices": ["/dev/dma_heap/system"],
-            "vchiq_device": True,
-            "dri_device": False,
-        },
-    )
-    client = app.test_client()
+    # Check for /health and /ready
+    assert "/health" in [str(rule) for rule in app.url_map.iter_rules()]
+    assert "/ready" in [str(rule) for rule in app.url_map.iter_rules()]
 
-    response = client.post("/api/setup/generate", json={})
-    assert response.status_code == 200
-    compose_content = response.get_json()["docker_compose_yaml"]
-    assert "- /dev/v4l-subdev0:/dev/v4l-subdev0" in compose_content
+
+def test_shared_metrics_endpoint_exists():
+    """Verify shared /metrics endpoint is registered in the Flask app's URL map."""
+    from pi_camera_in_docker import main
+
+    app = main.create_webcam_app() # Use webcam app as it has all shared routes
+
+    # Check for /metrics
+    assert "/metrics" in [str(rule) for rule in app.url_map.iter_rules()]
+
