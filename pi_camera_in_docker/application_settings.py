@@ -99,13 +99,9 @@ class ApplicationSettings:
         self.path = Path(path)
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
-        except PermissionError as exc:
-            message = _permission_guidance(self.path.parent, "creating settings directory")
-            logger.error(message)
-            raise SettingsValidationError(message) from exc
         except OSError as e:
-            # In test environments or restricted permissions, directory creation may fail
-            # This is non-fatal - we'll just log and continue
+            # In test environments or restricted permissions, directory creation may fail.
+            # This is non-fatal; subsequent operations will raise actionable errors as needed.
             logger.debug(f"Could not create settings directory {self.path.parent}: {e}")
 
     def load(self) -> Dict[str, Any]:
@@ -503,6 +499,3 @@ class ApplicationSettings:
             message = _permission_guidance(lock_path, "acquiring settings lock")
             logger.error(message)
             raise SettingsValidationError(message) from exc
-
-        # If we reach here, no file lock backend is available
-        raise RuntimeError("No supported file-lock backend available for this platform")

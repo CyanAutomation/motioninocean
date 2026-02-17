@@ -425,8 +425,8 @@ class TestApplicationSettingsConcurrency:
 class TestApplicationSettingsPermissionErrors:
     """Test permission-denied error guidance for settings paths."""
 
-    def test_init_permission_error_has_actionable_guidance(self, monkeypatch, tmp_path):
-        """Init should raise guidance when directory creation is permission denied."""
+    def test_init_permission_error_logs_and_continues(self, monkeypatch, tmp_path, caplog):
+        """Init should preserve existing contract and not fail on permission errors."""
         target_path = tmp_path / "no-write" / "application-settings.json"
 
         def deny_mkdir(self, *args, **kwargs):
@@ -434,13 +434,11 @@ class TestApplicationSettingsPermissionErrors:
 
         monkeypatch.setattr(Path, "mkdir", deny_mkdir)
 
-        with pytest.raises(SettingsValidationError) as exc_info:
-            ApplicationSettings(str(target_path))
+        with caplog.at_level("DEBUG"):
+            settings = ApplicationSettings(str(target_path))
 
-        message = str(exc_info.value)
-        assert str(target_path.parent) in message
-        assert "Check /data mount ownership" in message
-        assert "APPLICATION_SETTINGS_PATH" in message
+        assert settings.path == target_path
+        assert f"Could not create settings directory {target_path.parent}" in caplog.text
 
     def test_save_permission_error_has_actionable_guidance(self, temp_settings_file, monkeypatch):
         """Save should raise guidance when write is permission denied."""
