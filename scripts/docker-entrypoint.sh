@@ -16,7 +16,7 @@ log_writable_status() {
 
 if [ "$(id -u)" -eq 0 ]; then
     mkdir -p "${DATA_DIR}"
-    if chown -R "${APP_UID}:${APP_GID}" "${DATA_DIR}"; then
+    if chown -Rh "${APP_UID}:${APP_GID}" "${DATA_DIR}"; then
         echo "[entrypoint] Updated ownership for ${DATA_DIR} to ${APP_UID}:${APP_GID}"
     else
         echo "[entrypoint] WARNING: Failed to update ownership for ${DATA_DIR} to ${APP_UID}:${APP_GID}" >&2
