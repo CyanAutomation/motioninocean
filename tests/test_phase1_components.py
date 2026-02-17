@@ -27,15 +27,22 @@ from pi_camera_in_docker.config_validator import (
 class TestConfigValidator:
     """Tests for configuration validation (1.3)"""
 
-    def test_validate_discovery_config_enabled_complete(self):
-        """Test valid discovery config when enabled"""
-        config = {
-            "discovery_enabled": True,
-            "discovery_management_url": "http://localhost:8000",
-            "discovery_token": "token123456",
-            "base_url": "http://webcam:8000",
-        }
-        # Should not raise
+    @pytest.mark.parametrize(
+        "config",
+        [
+            {
+                "discovery_enabled": True,
+                "discovery_management_url": "http://localhost:8000",
+                "discovery_token": "token123456",
+                "base_url": "http://webcam:8000",
+            },
+            {
+                "discovery_enabled": False,
+            },
+        ],
+    )
+    def test_validate_discovery_config_accepts_valid_config_per_mode(self, config):
+        """validate_discovery_config should accept complete enabled config and disabled partial config."""
         validate_discovery_config(config)
 
     def test_validate_discovery_config_missing_url(self):
@@ -50,33 +57,23 @@ class TestConfigValidator:
             validate_discovery_config(config)
         assert "DISCOVERY_MANAGEMENT_URL" in str(exc_info.value)
 
-    def test_validate_discovery_config_disabled_partial(self):
-        """Test that discovery config validation is skipped when disabled"""
-        config = {
-            "discovery_enabled": False,
-            # Missing required fields, but should not raise
-        }
-        # Should not raise
-        validate_discovery_config(config)
-
-    def test_validate_all_config_valid_webcam(self):
-        """Test valid webcam configuration"""
-        config = {
-            "app_mode": "webcam",
-            "resolution": (1920, 1080),
-            "fps": 30,
-            "discovery_enabled": False,
-        }
-        # Should not raise
-        validate_all_config(config)
-
-    def test_validate_all_config_valid_management(self):
-        """Test valid management configuration"""
-        config = {
-            "app_mode": "management",
-            "discovery_enabled": False,
-        }
-        # Should not raise
+    @pytest.mark.parametrize(
+        "config",
+        [
+            {
+                "app_mode": "webcam",
+                "resolution": (1920, 1080),
+                "fps": 30,
+                "discovery_enabled": False,
+            },
+            {
+                "app_mode": "management",
+                "discovery_enabled": False,
+            },
+        ],
+    )
+    def test_validate_all_config_accepts_valid_base_configs(self, config):
+        """validate_all_config should accept valid webcam and management base configurations."""
         validate_all_config(config)
 
     def test_validate_all_config_discovery_enabled_missing_management_url_raises(self):

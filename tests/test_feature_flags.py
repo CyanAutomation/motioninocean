@@ -252,24 +252,21 @@ class TestFeatureFlagsIntegration:
 class TestFeatureFlagsAPI:
     """Test the feature flags API endpoint."""
 
-    def test_feature_flags_api_endpoint_exists(self):
+    def test_feature_flags_summary_contract(self):
         """Feature flag summary payload should expose categories and known flags."""
-        try:
-            from pi_camera_in_docker.feature_flags import FeatureFlagCategory, get_feature_flags
+        from pi_camera_in_docker.feature_flags import FeatureFlagCategory, get_feature_flags
 
-            flags = get_feature_flags()
-            summary = flags.get_summary()
-            debug_info = flags.get_flag_info("DEBUG_LOGGING")
-            mock_info = flags.get_flag_info("MOCK_CAMERA")
+        flags = get_feature_flags()
+        summary = flags.get_summary()
+        debug_info = flags.get_flag_info("DEBUG_LOGGING")
+        mock_info = flags.get_flag_info("MOCK_CAMERA")
 
-            expected_categories = {category.value for category in FeatureFlagCategory}
-            assert expected_categories.issubset(set(summary.keys()))
-            assert "DEBUG_LOGGING" in summary[FeatureFlagCategory.DEVELOPER_TOOLS.value]
-            assert "MOCK_CAMERA" in summary[FeatureFlagCategory.EXPERIMENTAL.value]
-            assert debug_info is not None
-            assert debug_info["category"] == "Developer Tools"
-            assert mock_info is not None
-            assert mock_info["name"] == "MOCK_CAMERA"
-            assert mock_info["backward_compat_vars"] == ["MOCK_CAMERA"]
-        except ImportError as e:
-            pytest.skip(f"Cannot setup Flask app: {e}")
+        expected_categories = {category.value for category in FeatureFlagCategory}
+        assert expected_categories.issubset(set(summary.keys()))
+        assert "DEBUG_LOGGING" in summary[FeatureFlagCategory.DEVELOPER_TOOLS.value]
+        assert "MOCK_CAMERA" in summary[FeatureFlagCategory.EXPERIMENTAL.value]
+        assert debug_info is not None
+        assert debug_info["category"] == "Developer Tools"
+        assert mock_info is not None
+        assert mock_info["name"] == "MOCK_CAMERA"
+        assert mock_info["backward_compat_vars"] == ["MOCK_CAMERA"]

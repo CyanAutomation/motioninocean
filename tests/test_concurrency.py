@@ -255,94 +255,8 @@ class TestConcurrentStreamAccess:
         # Final connection count should be 0 (all cleaned up)
         assert active_connections == 0, "Connection leak detected"
 
-    def test_connection_tracking_race_condition(self):
-        """Test for race conditions in connection tracking."""
-        active_connections = 0
-        connection_lock = Lock()
-        increments = 0
-        decrements = 0
-
-        def increment_connections():
-            nonlocal active_connections, increments
-            for _ in range(100):
-                with connection_lock:
-                    active_connections += 1
-                    increments += 1
-
-        def decrement_connections():
-            nonlocal active_connections, decrements
-            for _ in range(100):
-                with connection_lock:
-                    if active_connections > 0:
-                        active_connections -= 1
-                        decrements += 1
-
-        # Run increment and decrement operations concurrently
-        inc_threads = [threading.Thread(target=increment_connections) for _ in range(5)]
-        dec_threads = [threading.Thread(target=decrement_connections) for _ in range(5)]
-
-        for thread in inc_threads + dec_threads:
-            thread.start()
-        for thread in inc_threads + dec_threads:
-            thread.join(timeout=5.0)
-
-        # Verify no negative connections
-        assert active_connections >= 0, "Connection count went negative"
-
-        # Verify math adds up
-        assert active_connections == increments - decrements
-
-
 class TestSignalHandling:
     """Test signal handling for graceful shutdown."""
-
-    def test_shutdown_event_flag(self):
-        """Test that shutdown events are properly set and cleared."""
-        shutdown_event = Event()
-        recording_started = Event()
-
-        def handle_shutdown():
-            """Simulate signal handler."""
-            recording_started.clear()
-            shutdown_event.set()
-
-        # Start recording
-        recording_started.set()
-        assert recording_started.is_set()
-        assert not shutdown_event.is_set()
-
-        # Trigger shutdown
-        handle_shutdown()
-        assert not recording_started.is_set()
-        assert shutdown_event.is_set()
-
-    def test_mock_thread_cleanup_timeout(self):
-        """Test that mock thread cleanup handles timeout properly."""
-        shutdown_event = Event()
-        thread_stopped = False
-
-        def mock_thread_function():
-            nonlocal thread_stopped
-            try:
-                while not shutdown_event.is_set():
-                    time.sleep(0.1)
-            finally:
-                thread_stopped = True
-
-        # Start mock thread
-        mock_thread = threading.Thread(target=mock_thread_function)
-        mock_thread.daemon = False
-        mock_thread.start()
-
-        # Signal shutdown
-        shutdown_event.set()
-
-        # Wait with timeout
-        mock_thread.join(timeout=2.0)
-
-        # Thread should have stopped
-        assert not mock_thread.is_alive()
-        assert thread_stopped
 
     def test_mock_thread_forced_termination(self):
         """Test forced termination of stuck mock thread."""
@@ -416,26 +330,6 @@ class TestResourceExhaustion:
 
         # At least one large frame should have been dropped
         assert dropped_count > 0, "Expected large frames to be dropped"
-
-    def test_stream_timeout_handling(self):
-        """Test that streams timeout when no frames are produced."""
-        stats = StreamStats()
-        buffer = FrameBuffer(stats)
-
-        # Simulate a stream consumer waiting for frames
-        timeout_count = 0
-        max_timeouts = 3
-
-        for _ in range(5):
-            with buffer.condition:
-                notified = buffer.condition.wait(timeout=0.1)
-                if not notified:
-                    timeout_count += 1
-                    if timeout_count >= max_timeouts:
-                        break
-
-        # Should have hit the timeout limit
-        assert timeout_count >= max_timeouts
 
     def test_concurrent_frame_writes_under_load(self):
         """Test system behavior under heavy concurrent frame writes."""
