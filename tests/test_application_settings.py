@@ -422,6 +422,60 @@ class TestApplicationSettingsConcurrency:
         assert loaded == settings._clone_schema()
 
 
+class TestApplicationSettingsPermissionErrors:
+    """Test permission-denied error guidance for settings paths."""
+
+    def test_init_permission_error_has_actionable_guidance(self, monkeypatch, tmp_path):
+        """Init should raise guidance when directory creation is permission denied."""
+        target_path = tmp_path / "no-write" / "application-settings.json"
+
+        def deny_mkdir(self, *args, **kwargs):
+            raise PermissionError("permission denied")
+
+        monkeypatch.setattr(Path, "mkdir", deny_mkdir)
+
+        with pytest.raises(SettingsValidationError) as exc_info:
+            ApplicationSettings(str(target_path))
+
+        message = str(exc_info.value)
+        assert str(target_path.parent) in message
+        assert "Check /data mount ownership" in message
+        assert "APPLICATION_SETTINGS_PATH" in message
+
+    def test_save_permission_error_has_actionable_guidance(self, temp_settings_file, monkeypatch):
+        """Save should raise guidance when write is permission denied."""
+        settings = ApplicationSettings(temp_settings_file)
+
+        def deny_save(*args, **kwargs):
+            raise PermissionError("permission denied")
+
+        monkeypatch.setattr(settings, "_save_atomic", deny_save)
+
+        with pytest.raises(SettingsValidationError) as exc_info:
+            settings.set("camera", "fps", 30, "test")
+
+        message = str(exc_info.value)
+        assert temp_settings_file in message
+        assert "Check /data mount ownership" in message
+        assert "APPLICATION_SETTINGS_PATH" in message
+
+    def test_load_permission_error_has_actionable_guidance(self, temp_settings_file, monkeypatch):
+        """Load should raise guidance when lock acquisition is permission denied."""
+        settings = ApplicationSettings(temp_settings_file)
+
+        def deny_open(self, *args, **kwargs):
+            raise PermissionError("permission denied")
+
+        monkeypatch.setattr(Path, "open", deny_open)
+
+        with pytest.raises(SettingsValidationError) as exc_info:
+            settings.load()
+
+        message = str(exc_info.value)
+        assert "Check /data mount ownership" in message
+        assert "APPLICATION_SETTINGS_PATH" in message
+
+
 class TestApplicationSettingsFileCorruption:
     """Test handling of corrupted files."""
 
