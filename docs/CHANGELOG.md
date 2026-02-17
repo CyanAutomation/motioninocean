@@ -11,6 +11,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.15.4] - 2026-02-17
+
+- Release v1.15.3
+- [settings] Address review feedback on lock flow and init contract (#318)
+- Codex-generated pull request (#317)
+- [config] Add configurable application settings path (#316)
+- [webcam] Tighten cat GIF retry reset and retry-time checks (#315)
+- [containers] Fix /data ownership at startup before app launch (#314)
+- [docker] Add CA certificates for CAT GIF HTTPS (#313)
+- chore: automated code quality fixes [nightly] (#312)
+
 ## [1.15.3] - 2026-02-17
 
 - No changes to log.
