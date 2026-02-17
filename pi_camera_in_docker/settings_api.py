@@ -10,7 +10,11 @@ from typing import Any, Dict, Tuple
 from flask import Flask, current_app, jsonify, request
 
 from .config_validator import validate_settings_patch
-from .runtime_config import get_effective_settings_payload, parse_resolution, _load_camera_config
+from .runtime_config import (
+    _load_camera_config,
+    get_effective_settings_payload,
+    parse_resolution,
+)
 from .settings_schema import SettingsSchema
 
 

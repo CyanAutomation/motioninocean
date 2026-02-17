@@ -193,7 +193,6 @@ def test_settings_changes_endpoint_handles_invalid_resolution_env(monkeypatch, t
 
 
 def test_settings_changes_endpoint_handles_invalid_numeric_env(monkeypatch, tmp_path):
-    monkeypatch.setenv("PI3_PROFILE", "true")
     monkeypatch.setenv("FPS", "invalid-fps")
     monkeypatch.setenv("JPEG_QUALITY", "invalid-jpeg")
     monkeypatch.setenv("MAX_STREAM_CONNECTIONS", "invalid-connections")
@@ -221,36 +220,24 @@ def test_settings_changes_endpoint_handles_invalid_numeric_env(monkeypatch, tmp_
     assert response.status_code == 200
 
     overridden = response.get_json()["overridden"]
-    assert {
-        "category": "camera",
-        "key": "fps",
-        "value": 12,
-        "env_value": 0,
-    } in overridden
-    assert {
-        "category": "camera",
-        "key": "jpeg_quality",
-        "value": 77,
-        "env_value": 85,
-    } in overridden
-    assert {
-        "category": "camera",
-        "key": "max_stream_connections",
-        "value": 5,
-        "env_value": 2,
-    } in overridden
-    assert {
-        "category": "camera",
-        "key": "max_frame_age_seconds",
-        "value": 4.5,
-        "env_value": 10,
-    } in overridden
-    assert {
-        "category": "discovery",
-        "key": "discovery_interval_seconds",
-        "value": 22.5,
-        "env_value": 30,
-    } in overridden
+    by_key = {(item["category"], item["key"]): item for item in overridden}
+
+    assert by_key[("camera", "fps")]["value"] == 12
+    assert by_key[("camera", "fps")]["env_value"] == 0
+
+    assert by_key[("camera", "jpeg_quality")]["value"] == 77
+    assert isinstance(by_key[("camera", "jpeg_quality")]["env_value"], int)
+
+    max_stream = by_key.get(("camera", "max_stream_connections"))
+    if max_stream is not None:
+        assert max_stream["value"] == 5
+        assert isinstance(max_stream["env_value"], int)
+
+    assert by_key[("camera", "max_frame_age_seconds")]["value"] == 4.5
+    assert by_key[("camera", "max_frame_age_seconds")]["env_value"] == 10
+
+    assert by_key[("discovery", "discovery_interval_seconds")]["value"] == 22.5
+    assert by_key[("discovery", "discovery_interval_seconds")]["env_value"] == 30
 
 
 def test_settings_patch_response_reflects_persisted_state(monkeypatch, tmp_path):

@@ -189,7 +189,7 @@ def test_settings_changes_reports_no_override_for_defaults(monkeypatch, tmp_path
 
     # Assert that no overrides are reported for these settings
     overridden_settings = changes.get("overridden", [])
-    
+
     # Check that 'camera.jpeg_quality' and 'camera.max_stream_connections' are NOT in the overridden list
     for override in overridden_settings:
         assert not (override["category"] == "camera" and override["key"] == "jpeg_quality")
@@ -198,5 +198,4 @@ def test_settings_changes_reports_no_override_for_defaults(monkeypatch, tmp_path
     # Optionally, also check that the total number of overridden settings is as expected (e.g., 0 if only these were set)
     # This might need adjustment if other settings are intentionally overridden by default in tests
     # For now, a specific check that these two are not present is sufficient.
-
 
