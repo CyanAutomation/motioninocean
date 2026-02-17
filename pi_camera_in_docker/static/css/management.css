@@ -62,7 +62,7 @@
 
 .node-form-panel {
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   transition:
     width 220ms ease,
     padding 220ms ease;
@@ -108,7 +108,8 @@
 
 .management-layout.is-form-collapsed .node-form-panel,
 .management-layout:has(#toggle-node-form-panel-btn[aria-expanded="false"]) .node-form-panel {
-  padding-inline: var(--space-2);
+  padding: 0;
+  border-right: 1px solid var(--color-border-subtle);
 }
 
 .management-layout.is-form-collapsed #node-form-content,

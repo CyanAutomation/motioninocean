@@ -16,7 +16,7 @@ test("clearConfigDisplay only resets dedicated config value nodes", () => {
   try {
     appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
   } catch (error) {
-    throw new Error(`Failed to read app.js: ${error.message}`);
+    throw new Error(`Failed to read app.js: ${error.message}`, { cause: error });
   }
   const clearConfigDisplayFn = extractClearConfigDisplay(appJs);
 
