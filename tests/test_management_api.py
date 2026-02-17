@@ -709,7 +709,7 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
 
 
 def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
-    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     create_payload = {
@@ -753,7 +753,7 @@ def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
 
 
 def test_discovery_announce_parallel_requests_do_not_duplicate_error(monkeypatch, tmp_path):
-    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
@@ -791,7 +791,7 @@ def test_discovery_announce_parallel_requests_do_not_duplicate_error(monkeypatch
 
 
 def test_discovery_announce_requires_bearer_token(monkeypatch, tmp_path):
-    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
@@ -816,7 +816,7 @@ def test_discovery_announce_requires_bearer_token(monkeypatch, tmp_path):
 
 
 def test_discovery_announce_blocks_private_ip_without_opt_in(monkeypatch, tmp_path):
-    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     monkeypatch.delenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", raising=False)
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
@@ -843,7 +843,7 @@ def test_discovery_announce_blocks_private_ip_without_opt_in(monkeypatch, tmp_pa
 
 
 def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path):
-    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     monkeypatch.setenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "true")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
@@ -866,7 +866,7 @@ def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path)
 
 
 def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
-    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     invalid = client.post(
@@ -879,7 +879,7 @@ def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
 
 
 def test_discovery_approval_endpoint(monkeypatch, tmp_path):
-    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     announce_payload = {
