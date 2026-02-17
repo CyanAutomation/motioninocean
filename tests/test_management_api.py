@@ -1434,23 +1434,75 @@ def test_request_json_maps_name_resolution_failure_to_dns_category(monkeypatch):
         assert exc.category == "dns"
 
 
-def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
+def test_vet_resolved_addresses_raises_when_all_addresses_blocked():
+    from pi_camera_in_docker import management_api
+
+    addresses = ("127.0.0.1", "10.0.0.5")
+
+    try:
+        management_api._vet_resolved_addresses(addresses)
+        raise AssertionError("expected NodeRequestError")
+    except management_api.NodeRequestError as exc:
+        assert str(exc) == "webcam target is not allowed"
+
+
+def test_vet_resolved_addresses_returns_only_allowed_from_mixed_results():
+    from pi_camera_in_docker import management_api
+
+    addresses = ("127.0.0.1", "93.184.216.34", "10.0.0.5", "93.184.216.35")
+
+    assert management_api._vet_resolved_addresses(addresses) == ("93.184.216.34", "93.184.216.35")
+
+
+def test_vet_resolved_addresses_deduplicates_allowed_addresses():
+    from pi_camera_in_docker import management_api
+
+    addresses = ("93.184.216.34", "93.184.216.34", "93.184.216.35", "93.184.216.35")
+
+    assert management_api._vet_resolved_addresses(addresses) == ("93.184.216.34", "93.184.216.35")
+
+
+def test_request_json_uses_allowed_ip_when_resolved_set_contains_blocked_ip(monkeypatch):
     from pi_camera_in_docker import management_api
 
     def fake_getaddrinfo(host, port, proto):
         return [
-            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80)),
             (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("127.0.0.1", 80)),
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80)),
         ]
 
+    class FakeResponse:
+        status = 200
+
+        def read(self):
+            return b'{"ok": true}'
+
+    attempted_addresses = []
+
+    class FakeHTTPConnection:
+        def __init__(self, host, port, connect_host, timeout):
+            _ = (host, port, timeout)
+            self.connect_host = connect_host
+
+        def request(self, method, target, body=None, headers=None):
+            _ = (method, target, body, headers)
+
+        def getresponse(self):
+            attempted_addresses.append(self.connect_host)
+            return FakeResponse()
+
+        def close(self):
+            return None
+
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+    monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
 
     webcam = {"base_url": "http://example.com", "auth": {"type": "none"}}
-    try:
-        management_api._request_json(webcam, "GET", "/api/status")
-        raise AssertionError("expected NodeRequestError")
-    except management_api.NodeRequestError as exc:
-        assert str(exc) == "webcam target is not allowed"
+    status_code, payload = management_api._request_json(webcam, "GET", "/api/status")
+
+    assert status_code == 200
+    assert payload == {"ok": True}
+    assert attempted_addresses == ["93.184.216.34"]
 
 
 def test_request_json_maps_timeout_failure(monkeypatch):
