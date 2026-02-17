@@ -1,5 +1,6 @@
 import sys
 import threading
+from unittest.mock import patch
 
 import pytest
 
@@ -110,3 +111,47 @@ def test_discovery_announcer_log_url_redacts_query_and_credentials():
     )
 
     assert announcer.management_url_log == "http://example.local:8001/api/discovery/announce"
+
+
+def test_discovery_announcer_start_is_thread_safe_and_idempotent():
+    from discovery import DiscoveryAnnouncer
+
+    shutdown_event = threading.Event()
+    announcer = DiscoveryAnnouncer(
+        management_url="http://127.0.0.1:8001",
+        token="token",
+        interval_seconds=30,
+        webcam_id="node-1",
+        payload={"webcam_id": "node-1"},
+        shutdown_event=shutdown_event,
+    )
+
+    started_threads = []
+    barrier = threading.Barrier(8)
+
+    def start_from_worker() -> None:
+        barrier.wait()
+        announcer.start()
+
+    with patch.object(announcer, "_run_loop", side_effect=shutdown_event.wait):
+        for _ in range(8):
+            worker = threading.Thread(target=start_from_worker)
+            started_threads.append(worker)
+            worker.start()
+
+        for worker in started_threads:
+            worker.join(timeout=2.0)
+
+        thread_ref = announcer._thread
+        assert thread_ref is not None
+        assert thread_ref.is_alive()
+        assert thread_ref.name == "discovery-announcer"
+
+        announcer.start()
+        assert announcer._thread is thread_ref
+
+        announcer.stop(timeout_seconds=1.0)
+        announcer.stop(timeout_seconds=1.0)
+
+        assert shutdown_event.is_set()
+        assert not thread_ref.is_alive()
