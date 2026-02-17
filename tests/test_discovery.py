@@ -59,12 +59,12 @@ def test_build_discovery_payload_uses_override_node_id():
 
     payload = build_discovery_payload(
         {
-            "discovery_node_id": "node-explicit",
+            "discovery_webcam_id": "node-explicit",
             "discovery_base_url": "http://camera.local:8000",
         }
     )
 
-    assert payload["node_id"] == "node-explicit"
+    assert payload["webcam_id"] == "node-explicit"
     assert payload["base_url"] == "http://camera.local:8000"
     assert payload["transport"] == "http"
     assert "stream" in payload["capabilities"]
@@ -79,8 +79,8 @@ def test_discovery_announcer_stop_sets_shutdown_event():
         management_url="http://127.0.0.1:8001",
         token="token",
         interval_seconds=30,
-        node_id="node-1",
-        payload={"node_id": "node-1"},
+        webcam_id="node-1",
+        payload={"webcam_id": "node-1"},
         shutdown_event=shutdown_event,
     )
 
@@ -104,8 +104,8 @@ def test_discovery_announcer_log_url_redacts_query_and_credentials():
         management_url="http://user:pass@example.local:8001?token=secret",
         token="token",
         interval_seconds=30,
-        node_id="node-1",
-        payload={"node_id": "node-1"},
+        webcam_id="node-1",
+        payload={"webcam_id": "node-1"},
         shutdown_event=shutdown_event,
     )
 

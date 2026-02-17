@@ -1,0 +1,466 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.1, pytest-8.4.2, pluggy-1.6.0 -- /home/codespace/.python/current/bin/python
+cachedir: .pytest_cache
+rootdir: /workspaces/MotionInOcean
+configfile: pyproject.toml
+plugins: anyio-4.11.0, cov-7.0.0, mock-3.14.0
+collecting ... collected 251 items
+
+tests/test_application_settings.py::TestApplicationSettingsBasic::test_init_creates_path PASSED [  0%]
+tests/test_application_settings.py::TestApplicationSettingsBasic::test_load_default_schema PASSED [  0%]
+tests/test_application_settings.py::TestApplicationSettingsBasic::test_save_and_load PASSED [  1%]
+tests/test_application_settings.py::TestApplicationSettingsGetSet::test_get_single_value PASSED [  1%]
+tests/test_application_settings.py::TestApplicationSettingsGetSet::test_get_default_when_not_set PASSED [  1%]
+tests/test_application_settings.py::TestApplicationSettingsGetSet::test_set_multiple_in_category PASSED [  2%]
+tests/test_application_settings.py::TestApplicationSettingsGetSet::test_set_invalid_category_raises PASSED [  2%]
+tests/test_application_settings.py::TestApplicationSettingsGetSet::test_set_invalid_property_raises PASSED [  3%]
+tests/test_application_settings.py::TestApplicationSettingsFeatureFlags::test_set_feature_flag PASSED [  3%]
+tests/test_application_settings.py::TestApplicationSettingsFeatureFlags::test_update_feature_flags PASSED [  3%]
+tests/test_application_settings.py::TestApplicationSettingsReset::test_reset_clears_file PASSED [  4%]
+tests/test_application_settings.py::TestApplicationSettingsReset::test_load_after_reset_returns_defaults PASSED [  4%]
+tests/test_application_settings.py::TestApplicationSettingsReset::test_load_coerces_invalid_feature_flags_to_empty_dict PASSED [  5%]
+tests/test_application_settings.py::TestApplicationSettingsChanges::test_get_changes_shows_overrides PASSED [  5%]
+tests/test_application_settings.py::TestApplicationSettingsChanges::test_get_changes_handles_invalid_feature_flag_maps PASSED [  5%]
+tests/test_application_settings.py::TestApplicationSettingsValidation::test_invalid_root_type_raises PASSED [  6%]
+tests/test_application_settings.py::TestApplicationSettingsValidation::test_missing_required_categories_raises PASSED [  6%]
+tests/test_application_settings.py::TestApplicationSettingsValidation::test_invalid_version_raises PASSED [  7%]
+tests/test_application_settings.py::TestApplicationSettingsConcurrency::test_concurrent_save_safe PASSED [  7%]
+tests/test_application_settings.py::TestApplicationSettingsConcurrency::test_concurrent_set_keeps_updates_to_different_keys PASSED [  7%]
+tests/test_application_settings.py::TestApplicationSettingsConcurrency::test_concurrent_update_category_keeps_updates_to_different_keys PASSED [  8%]
+tests/test_application_settings.py::TestApplicationSettingsConcurrency::test_custom_settings_path_creates_lock_file_next_to_settings_file PASSED [  8%]
+tests/test_application_settings.py::TestApplicationSettingsConcurrency::test_load_acquires_lock PASSED [  9%]
+tests/test_application_settings.py::TestApplicationSettingsConcurrency::test_load_handles_file_removed_after_exists_check PASSED [  9%]
+tests/test_application_settings.py::TestApplicationSettingsPermissionErrors::test_init_permission_error_logs_and_continues PASSED [  9%]
+tests/test_application_settings.py::TestApplicationSettingsPermissionErrors::test_save_permission_error_has_actionable_guidance PASSED [ 10%]
+tests/test_application_settings.py::TestApplicationSettingsPermissionErrors::test_load_permission_error_has_actionable_guidance PASSED [ 10%]
+tests/test_application_settings.py::TestApplicationSettingsFileCorruption::test_corrupted_json_raises PASSED [ 11%]
+tests/test_application_settings.py::TestApplicationSettingsFileCorruption::test_corrupted_file_recovery PASSED [ 11%]
+tests/test_cat_gif_generator.py::TestFetchCatGif::test_fetch_cat_gif_success PASSED [ 11%]
+tests/test_cat_gif_generator.py::TestFetchCatGif::test_fetch_cat_gif_timeout PASSED [ 12%]
+tests/test_cat_gif_generator.py::TestFetchCatGif::test_fetch_cat_gif_http_error PASSED [ 12%]
+tests/test_cat_gif_generator.py::TestFetchCatGif::test_fetch_cat_gif_url_error PASSED [ 13%]
+tests/test_cat_gif_generator.py::TestExtractGifFrames::test_extract_single_frame_gif PASSED [ 13%]
+tests/test_cat_gif_generator.py::TestExtractGifFrames::test_extract_animated_gif PASSED [ 13%]
+tests/test_cat_gif_generator.py::TestExtractGifFrames::test_extract_gif_frames_respects_resolution PASSED [ 14%]
+tests/test_cat_gif_generator.py::TestExtractGifFrames::test_extract_gif_frames_respects_quality PASSED [ 14%]
+tests/test_cat_gif_generator.py::TestExtractGifFrames::test_extract_gif_frames_invalid_data PASSED [ 15%]
+tests/test_cat_gif_generator.py::TestExtractGifFrames::test_extract_gif_frames_empty_input PASSED [ 15%]
+tests/test_cat_gif_generator.py::TestCatGifGenerator::test_initialization PASSED [ 15%]
+tests/test_cat_gif_generator.py::TestCatGifGenerator::test_target_fps_minimum PASSED [ 16%]
+tests/test_cat_gif_generator.py::TestCatGifGenerator::test_request_refresh PASSED [ 16%]
+tests/test_cat_gif_generator.py::TestCatGifGenerator::test_cache_expiration PASSED [ 17%]
+tests/test_cat_gif_generator.py::TestCatGifGenerator::test_generate_frames_with_fallback PASSED [ 17%]
+tests/test_cat_gif_generator.py::TestCatGifGenerator::test_generate_frames_with_valid_gif PASSED [ 17%]
+tests/test_cat_gif_generator.py::TestCatGifGenerator::test_generate_frames_refresh_request_honored PASSED [ 18%]
+tests/test_cat_gif_generator.py::TestCatGifGenerator::test_generate_frames_fetch_happens_outside_lock_for_refresh PASSED [ 18%]
+tests/test_cat_gif_generator.py::TestCatGifGenerator::test_generate_frames_fetch_happens_outside_lock_for_cache_expiry PASSED [ 19%]
+tests/test_cat_gif_generator.py::TestCatGifGenerator::test_generate_frames_handles_frame_list_shrinking PASSED [ 19%]
+tests/test_cat_gif_generator.py::TestCatGifGenerator::test_failed_fetch_uses_backoff_instead_of_refetching_every_frame PASSED [ 19%]
+tests/test_cat_gif_generator.py::TestCatGifGenerator::test_backoff_resets_after_successful_fetch PASSED [ 20%]
+tests/test_cat_gif_generator.py::TestCatGifGenerator::test_fallback_frames_continue_while_waiting_for_retry PASSED [ 20%]
+tests/test_cat_gif_generator.py::TestCatGifGeneratorIntegration::test_full_workflow_with_mock_api PASSED [ 21%]
+tests/test_concurrency.py::TestThreadSafety::test_stream_stats_concurrent_writes PASSED [ 21%]
+tests/test_concurrency.py::TestThreadSafety::test_stream_stats_concurrent_reads PASSED [ 21%]
+tests/test_concurrency.py::TestThreadSafety::test_frame_buffer_concurrent_write_read PASSED [ 22%]
+tests/test_concurrency.py::TestConcurrentStreamAccess::test_multiple_stream_connections PASSED [ 22%]
+tests/test_concurrency.py::TestConcurrentStreamAccess::test_connection_tracking_race_condition PASSED [ 23%]
+tests/test_concurrency.py::TestSignalHandling::test_shutdown_event_flag PASSED [ 23%]
+tests/test_concurrency.py::TestSignalHandling::test_mock_thread_cleanup_timeout PASSED [ 23%]
+tests/test_concurrency.py::TestSignalHandling::test_mock_thread_forced_termination PASSED [ 24%]
+tests/test_concurrency.py::TestResourceExhaustion::test_frame_size_limit_enforcement PASSED [ 24%]
+tests/test_concurrency.py::TestResourceExhaustion::test_frame_buffer_memory_protection PASSED [ 25%]
+tests/test_concurrency.py::TestResourceExhaustion::test_stream_timeout_handling PASSED [ 25%]
+tests/test_concurrency.py::TestResourceExhaustion::test_concurrent_frame_writes_under_load PASSED [ 25%]
+tests/test_concurrency.py::TestMonotonicTiming::test_uptime_calculation_monotonic PASSED [ 26%]
+tests/test_concurrency.py::TestMonotonicTiming::test_frame_age_calculation PASSED [ 26%]
+tests/test_concurrency.py::TestMonotonicTiming::test_timing_immune_to_clock_changes PASSED [ 27%]
+tests/test_config.py::test_docker_compose_valid_yaml PASSED              [ 27%]
+tests/test_config.py::test_docker_compose_has_service PASSED             [ 27%]
+tests/test_config.py::test_docker_compose_required_fields PASSED         [ 28%]
+tests/test_config.py::test_docker_compose_environment_config PASSED      [ 28%]
+tests/test_config.py::test_docker_compose_healthcheck PASSED             [ 29%]
+tests/test_config.py::test_docker_compose_device_mappings PASSED         [ 29%]
+tests/test_config.py::test_docker_compose_security PASSED                [ 29%]
+tests/test_config.py::test_create_app_registers_expected_routes_for_management_and_webcam_modes FAILED [ 30%]
+tests/test_config.py::test_create_app_from_env_applies_resolution_and_fps_env PASSED [ 30%]
+tests/test_config.py::test_create_app_from_env_defaults_invalid_resolution_to_safe_fallback PASSED [ 31%]
+tests/test_config.py::test_create_app_from_env_defaults_invalid_fps_to_safe_fallback PASSED [ 31%]
+tests/test_config.py::test_real_camera_startup_failure_reports_clear_runtime_error SKIPPED [ 31%]
+tests/test_config.py::test_env_example_contains_required_runtime_variables_with_nonempty_defaults PASSED [ 32%]
+tests/test_config.py::test_dockerfile_runtime_contract_instructions PASSED [ 32%]
+tests/test_config.py::test_pi3_profile_applies_defaults_when_explicit_env_absent PASSED [ 33%]
+tests/test_config.py::test_manual_env_values_override_pi3_profile_defaults PASSED [ 33%]
+tests/test_config.py::test_legacy_pi3_profile_env_var_is_still_supported PASSED [ 33%]
+tests/test_config.py::test_metrics_remain_stable_under_pi3_target_fps_throttle PASSED [ 34%]
+tests/test_config.py::test_octoprint_compat_webcam_routes_support_trailing_and_non_trailing_slash PASSED [ 34%]
+tests/test_config.py::test_octoprint_compat_webcam_action_normalization PASSED [ 35%]
+tests/test_config.py::test_detect_devices_script_includes_v4l_subdev PASSED [ 35%]
+tests/test_config.py::test_setup_ui_detect_camera_devices_collects_v4l_subdev SKIPPED [ 35%]
+tests/test_config.py::test_setup_ui_generated_compose_includes_v4l_subdev_mapping PASSED [ 36%]
+tests/test_discovery.py::test_load_config_discovery_defaults PASSED      [ 36%]
+tests/test_discovery.py::test_load_config_discovery_overrides FAILED     [ 37%]
+tests/test_discovery.py::test_build_discovery_payload_uses_override_node_id PASSED [ 37%]
+tests/test_discovery.py::test_discovery_announcer_stop_sets_shutdown_event PASSED [ 37%]
+tests/test_discovery.py::test_build_discovery_payload_requires_base_url PASSED [ 38%]
+tests/test_discovery.py::test_discovery_announcer_log_url_redacts_query_and_credentials FAILED [ 38%]
+tests/test_discovery_integration.py::TestDiscoveryAnnounceIntegration::test_announcer_makes_successful_announcement FAILED [ 39%]
+tests/test_discovery_integration.py::TestDiscoveryAnnounceIntegration::test_announcer_handles_http_error FAILED [ 39%]
+tests/test_discovery_integration.py::TestDiscoveryAnnounceIntegration::test_announcer_handles_network_timeout FAILED [ 39%]
+tests/test_discovery_integration.py::TestDiscoveryAnnounceIntegration::test_announcer_retries_with_exponential_backoff FAILED [ 40%]
+tests/test_discovery_integration.py::TestDiscoveryAnnounceIntegration::test_announcer_thread_lifecycle FAILED [ 40%]
+tests/test_discovery_integration.py::TestDiscoveryEndToEnd::test_webcam_announces_to_management_and_gets_approved FAILED [ 41%]
+tests/test_discovery_integration.py::TestDiscoveryEndToEnd::test_webcam_announces_with_private_ip_blocked_without_opt_in FAILED [ 41%]
+tests/test_discovery_integration.py::TestDiscoveryEndToEnd::test_webcam_announces_with_private_ip_allowed_with_opt_in FAILED [ 41%]
+tests/test_discovery_integration.py::TestDiscoveryEndToEnd::test_webcam_discovery_payload_structure FAILED [ 42%]
+tests/test_discovery_integration.py::TestDiscoveryEndToEnd::test_multiple_webcams_announce_independently FAILED [ 42%]
+tests/test_discovery_integration.py::TestDiscoveryEndToEnd::test_discovery_announce_without_shared_secret_fails PASSED [ 43%]
+tests/test_discovery_integration.py::TestDiscoveryEndToEnd::test_discovery_node_updates_last_announce_timestamp FAILED [ 43%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_feature_flags_initialization PASSED [ 43%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_all_flags_registered PASSED [ 44%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_backward_compatibility_mock_camera SKIPPED [ 44%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_prefixed_env_vars_take_precedence PASSED [ 45%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_backward_compatibility_octoprint_compatibility PASSED [ 45%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_prefixed_octoprint_env_var_takes_precedence PASSED [ 45%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_flag_defaults PASSED [ 46%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_parse_bool_variations PASSED [ 46%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_unknown_flag_raises_error PASSED [ 47%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_get_flags_by_category PASSED [ 47%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_get_flag_info PASSED [ 47%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_get_flag_info_unknown PASSED [ 48%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_is_flag_enabled_convenience_function PASSED [ 48%]
+tests/test_feature_flags.py::TestFeatureFlagRegistry::test_backward_compat_cors_not_mapped PASSED [ 49%]
+tests/test_feature_flags.py::TestFeatureFlagsIntegration::test_main_imports_feature_flags PASSED [ 49%]
+tests/test_feature_flags.py::TestFeatureFlagsIntegration::test_feature_flags_loaded_in_main PASSED [ 49%]
+tests/test_feature_flags.py::TestFeatureFlagsAPI::test_feature_flags_api_endpoint_exists PASSED [ 50%]
+tests/test_integration.py::test_management_endpoints_return_contract_payloads PASSED [ 50%]
+tests/test_integration.py::test_webcam_ready_transitions_from_not_ready_to_ready PASSED [ 50%]
+tests/test_integration.py::test_webcam_ready_reports_not_ready_for_stale_stream PASSED [ 51%]
+tests/test_integration.py::test_webcam_metrics_and_status_reflect_stream_activity PASSED [ 51%]
+tests/test_integration.py::test_device_security_explicit_devices SKIPPED [ 52%]
+tests/test_integration.py::test_device_security_no_new_privileges SKIPPED [ 52%]
+tests/test_integration.py::test_udev_mount_read_only SKIPPED (docker-
+compose.yaml not found)                                                  [ 52%]
+tests/test_integration.py::test_setup_generate_includes_v4l_subdev_when_detected PASSED [ 53%]
+tests/test_management_api.py::test_api_status_ignores_api_test_mode_when_lock_is_missing PASSED [ 53%]
+tests/test_management_api.py::test_api_status_returns_current_api_test_scenario_when_inactive PASSED [ 54%]
+tests/test_management_api.py::test_settings_changes_endpoint_compares_resolution_values PASSED [ 54%]
+tests/test_management_api.py::test_settings_changes_endpoint_handles_invalid_resolution_env PASSED [ 54%]
+tests/test_management_api.py::test_settings_changes_endpoint_handles_invalid_numeric_env PASSED [ 55%]
+tests/test_management_api.py::test_settings_patch_response_reflects_persisted_state PASSED [ 55%]
+tests/test_management_api.py::test_settings_patch_requires_restart_response_reflects_persisted_state PASSED [ 56%]
+tests/test_management_api.py::test_settings_endpoint_returns_effective_runtime_values PASSED [ 56%]
+tests/test_management_api.py::test_settings_patch_concurrent_overlapping_updates_are_merged PASSED [ 56%]
+tests/test_management_api.py::test_node_crud_and_overview FAILED         [ 57%]
+tests/test_management_api.py::test_validation_and_transport_errors PASSED [ 57%]
+tests/test_management_api.py::test_create_node_rejects_unmigratable_legacy_basic_auth FAILED [ 58%]
+tests/test_management_api.py::test_ssrf_protection_blocks_local_targets PASSED [ 58%]
+tests/test_management_api.py::test_corrupted_registry_file_returns_500_error_payload PASSED [ 58%]
+tests/test_management_api.py::test_ssrf_protection_blocks_ipv6_mapped_loopback PASSED [ 59%]
+tests/test_management_api.py::test_ssrf_protection_blocks_metadata_ip_literal PASSED [ 59%]
+tests/test_management_api.py::test_docker_transport_allows_any_valid_token PASSED [ 60%]
+tests/test_management_api.py::test_update_node_returns_404_when_node_disappears_during_update FAILED [ 60%]
+tests/test_management_api.py::test_discovery_announce_creates_then_updates_node FAILED [ 60%]
+tests/test_management_api.py::test_discovery_announce_parallel_requests_do_not_duplicate_error FAILED [ 61%]
+tests/test_management_api.py::test_discovery_announce_requires_bearer_token PASSED [ 61%]
+tests/test_management_api.py::test_discovery_announce_blocks_private_ip_without_opt_in FAILED [ 62%]
+tests/test_management_api.py::test_discovery_announce_allows_private_ip_with_opt_in FAILED [ 62%]
+tests/test_management_api.py::test_discovery_announce_validates_payload FAILED [ 62%]
+tests/test_management_api.py::test_discovery_approval_endpoint FAILED    [ 63%]
+tests/test_management_api.py::test_build_headers_for_bearer_auth_with_token FAILED [ 63%]
+tests/test_management_api.py::test_request_json_sends_bearer_auth_header_for_node_probes FAILED [ 64%]
+tests/test_management_api.py::test_build_headers_for_bearer_auth_without_token_returns_empty_headers FAILED [ 64%]
+tests/test_management_api.py::test_build_headers_for_non_bearer_auth_returns_empty_headers FAILED [ 64%]
+tests/test_management_api.py::test_node_status_returns_node_unauthorized_when_upstream_rejects_token FAILED [ 65%]
+tests/test_management_api.py::test_node_status_succeeds_when_upstream_token_is_accepted PASSED [ 65%]
+tests/test_management_api.py::test_node_status_returns_node_api_mismatch_when_status_endpoint_missing PASSED [ 66%]
+tests/test_management_api.py::test_node_status_maps_503_payload_without_error_envelope FAILED [ 66%]
+tests/test_management_api.py::test_management_routes_require_authentication PASSED [ 66%]
+tests/test_management_api.py::test_node_status_maps_invalid_upstream_payload_to_controlled_error FAILED [ 67%]
+tests/test_management_api.py::test_node_action_forwards_restart_and_unsupported_action_payload PASSED [ 67%]
+tests/test_management_api.py::test_node_action_maps_invalid_upstream_payload_to_controlled_error PASSED [ 68%]
+tests/test_management_api.py::test_create_node_migrates_legacy_auth_with_token PASSED [ 68%]
+tests/test_management_api.py::test_request_json_uses_vetted_resolved_ip_and_preserves_host_header PASSED [ 68%]
+tests/test_management_api.py::test_request_json_retries_next_vetted_address_when_first_connection_fails PASSED [ 69%]
+tests/test_management_api.py::test_request_json_maps_name_resolution_failure_to_dns_category FAILED [ 69%]
+tests/test_management_api.py::test_request_json_rejects_blocked_ip_in_resolved_set FAILED [ 70%]
+tests/test_management_api.py::test_request_json_maps_timeout_failure FAILED [ 70%]
+tests/test_management_api.py::test_request_json_maps_connection_refused_or_reset FAILED [ 70%]
+tests/test_management_api.py::test_request_json_maps_tls_failure FAILED  [ 71%]
+tests/test_management_api.py::test_request_json_https_uses_hostname_for_tls_and_pins_vetted_ip PASSED [ 71%]
+tests/test_management_api.py::test_node_status_reports_connectivity_details PASSED [ 72%]
+tests/test_management_api.py::test_webcam_api_status_contract_shape_reports_required_fields PASSED [ 72%]
+tests/test_management_api.py::test_webcam_api_status_contract_shape_with_auth PASSED [ 72%]
+tests/test_management_api.py::test_node_action_passthrough_for_api_test_management_actions PASSED [ 73%]
+tests/test_management_api.py::test_diagnose_includes_structured_status_and_codes FAILED [ 73%]
+tests/test_management_api.py::test_diagnose_recommendations_keep_backward_compatible_guidance FAILED [ 74%]
+tests/test_management_mode.py::test_management_mode_boots_without_camera SKIPPED [ 74%]
+tests/test_management_mode.py::test_webcam_mode_env_validation_and_startup SKIPPED [ 74%]
+tests/test_management_mode.py::test_root_serves_management_template_in_management_mode FAILED [ 75%]
+tests/test_management_mode.py::test_root_serves_stream_template_in_webcam_mode PASSED [ 75%]
+tests/test_management_mode.py::test_api_config_returns_render_config_shape_in_management_mode FAILED [ 76%]
+tests/test_management_mode.py::test_api_config_returns_webcam_connection_counts PASSED [ 76%]
+tests/test_management_mode.py::test_api_config_webcam_includes_render_config_keys_and_defaulted_values PASSED [ 76%]
+tests/test_management_mode.py::test_api_config_management_includes_render_config_keys_and_defaulted_values FAILED [ 77%]
+tests/test_management_mode.py::test_request_logging_levels FAILED        [ 77%]
+tests/test_management_mode.py::test_webcam_control_plane_endpoints_do_not_require_auth_when_token_unset PASSED [ 78%]
+tests/test_management_mode.py::test_webcam_control_plane_endpoints_require_valid_bearer_when_token_set PASSED [ 78%]
+tests/test_management_mode.py::test_webcam_api_test_mode_transitions_and_status_contract PASSED [ 78%]
+tests/test_management_mode.py::test_webcam_status_contract_reports_degraded_until_stream_is_fresh PASSED [ 79%]
+tests/test_management_mode.py::test_webcam_stream_and_snapshot_routes_are_not_protected_by_control_plane_auth PASSED [ 79%]
+tests/test_management_mode.py::test_webcam_action_route_requires_auth_and_returns_contract PASSED [ 80%]
+tests/test_node_registry.py::test_update_node_raises_keyerror_when_target_missing PASSED [ 80%]
+tests/test_node_registry.py::test_update_node_detects_id_collision PASSED [ 80%]
+tests/test_node_registry.py::test_create_node_rejects_basic_auth_without_convertible_token FAILED [ 81%]
+tests/test_node_registry.py::test_create_node_migrates_legacy_auth_with_token PASSED [ 81%]
+tests/test_node_registry.py::test_create_node_requires_bearer_token PASSED [ 82%]
+tests/test_node_registry.py::test_load_migrates_legacy_auth_from_registry_file PASSED [ 82%]
+tests/test_node_registry.py::test_load_rejects_unmigratable_legacy_auth FAILED [ 82%]
+tests/test_node_registry.py::test_load_raises_validation_error_for_corrupted_registry_json PASSED [ 83%]
+tests/test_node_registry.py::test_upsert_node_is_atomic_for_concurrent_creates FAILED [ 83%]
+tests/test_phase1_components.py::TestConfigValidator::test_validate_discovery_config_enabled_complete PASSED [ 84%]
+tests/test_phase1_components.py::TestConfigValidator::test_validate_discovery_config_missing_url PASSED [ 84%]
+tests/test_phase1_components.py::TestConfigValidator::test_validate_discovery_config_disabled_partial PASSED [ 84%]
+tests/test_phase1_components.py::TestConfigValidator::test_validate_all_config_valid_webcam PASSED [ 85%]
+tests/test_phase1_components.py::TestConfigValidator::test_validate_all_config_valid_management PASSED [ 85%]
+tests/test_phase1_components.py::TestConfigValidator::test_validate_all_config_discovery_enabled_missing_management_url_raises PASSED [ 86%]
+tests/test_phase1_components.py::TestConfigValidator::test_validate_settings_patch_package_import_path PASSED [ 86%]
+tests/test_phase1_components.py::TestConfigValidator::test_validate_all_config_discovery_enabled_missing_token_raises PASSED [ 86%]
+tests/test_phase1_components.py::TestRateLimiting::test_rate_limiting_applies_expected_limits_to_management_routes FAILED [ 87%]
+tests/test_phase1_components.py::TestConfigValidationHints::test_discovery_missing_base_url_includes_hint PASSED [ 87%]
+tests/test_phase1_components.py::TestConfigValidationHints::test_discovery_config_error_includes_hint PASSED [ 88%]
+tests/test_pykms_import.py::test_module_not_found_scenario SKIPPED       [ 88%]
+tests/test_pykms_import.py::test_attribute_error_scenario SKIPPED (could
+not import 'picamera2': No module named 'picamera2')                     [ 88%]
+tests/test_runtime_config.py::test_get_effective_settings_payload_uses_single_persisted_snapshot PASSED [ 89%]
+tests/test_runtime_config.py::test_load_env_config_supports_application_settings_path PASSED [ 89%]
+tests/test_runtime_config.py::test_merge_config_with_settings_uses_application_settings_path PASSED [ 90%]
+tests/test_runtime_config.py::test_create_app_from_env_honors_application_settings_path FAILED [ 90%]
+tests/test_runtime_config.py::test_merge_config_with_settings_logs_actionable_permission_warning PASSED [ 90%]
+tests/test_sentry.py::TestSentryIntegration::test_sentry_disabled_when_dsn_empty PASSED [ 91%]
+tests/test_sentry.py::TestSentryIntegration::test_sentry_disabled_when_dsn_none PASSED [ 91%]
+tests/test_sentry.py::TestSentryIntegration::test_sentry_initializes_with_valid_dsn PASSED [ 92%]
+tests/test_sentry.py::TestSentryIntegration::test_sentry_captures_auth_token_redaction PASSED [ 92%]
+tests/test_sentry.py::TestSentryIntegration::test_sentry_filters_health_breadcrumbs PASSED [ 92%]
+tests/test_sentry.py::test_sentry_config_module_imports PASSED           [ 93%]
+tests/test_units.py::test_check_device_availability_logs_preflight_with_nodes_present PASSED [ 93%]
+tests/test_units.py::test_check_device_availability_does_not_warn_when_video_nodes_exist PASSED [ 94%]
+tests/test_units.py::test_check_device_availability_warns_when_video_nodes_missing PASSED [ 94%]
+tests/test_units.py::test_check_device_availability_warns_when_no_camera_nodes_detected SKIPPED [ 94%]
+tests/test_units.py::test_management_app_registers_core_routes FAILED    [ 95%]
+tests/test_units.py::test_dockerfile_has_flask PASSED                    [ 95%]
+tests/test_units.py::test_streaming_output_class PASSED                  [ 96%]
+tests/test_units.py::test_healthcheck_url_validation_allows_valid_hostname PASSED [ 96%]
+tests/test_units.py::test_get_camera_info_prefers_module_level_global_camera_info SKIPPED [ 96%]
+tests/test_units.py::test_get_camera_info_falls_back_to_class_method SKIPPED [ 97%]
+tests/test_units.py::test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected SKIPPED [ 97%]
+tests/test_units.py::test_shutdown_camera_clears_recording_started_for_real_camera_path SKIPPED [ 98%]
+tests/test_units.py::test_shutdown_updates_ready_metrics_and_api_status_immediately PASSED [ 98%]
+tests/test_units.py::test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes SKIPPED [ 98%]
+tests/test_units.py::test_register_middleware_keeps_cors_disabled_when_feature_off PASSED [ 99%]
+tests/test_units.py::test_register_middleware_applies_wildcard_cors_policy_from_config PASSED [ 99%]
+tests/test_units.py::test_register_middleware_applies_explicit_cors_origins_from_config PASSED [100%]
+
+=================================== FAILURES ===================================
+/workspaces/MotionInOcean/tests/test_config.py:163: AssertionError: assert False
+/workspaces/MotionInOcean/tests/test_discovery.py:51: KeyError: 'discovery_node_id'
+/workspaces/MotionInOcean/tests/test_discovery.py:103: TypeError: DiscoveryAnnouncer.__init__() got an unexpected keyword argument 'node_id'
+/workspaces/MotionInOcean/tests/test_discovery_integration.py:39: TypeError: DiscoveryAnnouncer.__init__() got an unexpected keyword argument 'node_id'
+/workspaces/MotionInOcean/tests/test_discovery_integration.py:75: TypeError: DiscoveryAnnouncer.__init__() got an unexpected keyword argument 'node_id'
+/workspaces/MotionInOcean/tests/test_discovery_integration.py:99: TypeError: DiscoveryAnnouncer.__init__() got an unexpected keyword argument 'node_id'
+/workspaces/MotionInOcean/tests/test_discovery_integration.py:134: TypeError: DiscoveryAnnouncer.__init__() got an unexpected keyword argument 'node_id'
+/workspaces/MotionInOcean/tests/test_discovery_integration.py:165: TypeError: DiscoveryAnnouncer.__init__() got an unexpected keyword argument 'node_id'
+/workspaces/MotionInOcean/tests/test_discovery_integration.py:228: AssertionError: {'error': {'code': 'VALIDATION_ERROR', 'details': {}, 'message': 'id must be a non-empty string', 'timestamp': '2026-02-17T22:17:39.848502+00:00'}}
+/workspaces/MotionInOcean/tests/test_discovery_integration.py:288: AssertionError: Private IP should be blocked
+/workspaces/MotionInOcean/tests/test_discovery_integration.py:326: AssertionError: {'error': {'code': 'VALIDATION_ERROR', 'details': {}, 'message': 'id must be a non-empty string', 'timestamp': '2026-02-17T22:17:39.938826+00:00'}}
+/workspaces/MotionInOcean/tests/test_discovery_integration.py:343: AssertionError: Missing required field: node_id
+/workspaces/MotionInOcean/tests/test_discovery_integration.py:404: AssertionError: {'error': {'code': 'VALIDATION_ERROR', 'details': {}, 'message': 'id must be a non-empty string', 'timestamp': '2026-02-17T22:17:39.994722+00:00'}}
+/workspaces/MotionInOcean/tests/test_discovery_integration.py:486: AssertionError: {'error': {'code': 'VALIDATION_ERROR', 'details': {}, 'message': 'id must be a non-empty string', 'timestamp': '2026-02-17T22:17:40.082218+00:00'}}
+/workspaces/MotionInOcean/tests/test_management_api.py:426: KeyError: 'nodes'
+/workspaces/MotionInOcean/tests/test_management_api.py:518: assert 500 == 400
+/workspaces/MotionInOcean/tests/test_management_api.py:681: AttributeError: type object 'FileWebcamRegistry' has no attribute 'update_node'
+/workspaces/MotionInOcean/tests/test_management_api.py:729: assert 401 == 201
+/workspaces/MotionInOcean/tests/test_management_api.py:788: assert [401, 401] == [200, 201]
+/workspaces/MotionInOcean/tests/test_management_api.py:838: assert 401 == 403
+/workspaces/MotionInOcean/tests/test_management_api.py:865: assert 401 == 201
+/workspaces/MotionInOcean/tests/test_management_api.py:878: assert 401 == 400
+/workspaces/MotionInOcean/tests/test_management_api.py:899: assert 401 == 201
+/workspaces/MotionInOcean/tests/test_management_api.py:922: NameError: name 'node' is not defined
+/workspaces/MotionInOcean/tests/test_management_api.py:964: NameError: name 'node' is not defined
+/workspaces/MotionInOcean/tests/test_management_api.py:975: NameError: name 'node' is not defined
+/workspaces/MotionInOcean/tests/test_management_api.py:984: NameError: name 'node' is not defined
+/workspaces/MotionInOcean/tests/test_management_api.py:1014: assert 500 == 200
+/workspaces/MotionInOcean/tests/test_management_api.py:1105: KeyError: 'unavailable_nodes'
+/workspaces/MotionInOcean/tests/test_management_api.py:1184: assert 500 == 200
+/workspaces/MotionInOcean/tests/test_management_api.py:1431: NameError: name 'node' is not defined
+/workspaces/MotionInOcean/tests/test_management_api.py:1451: NameError: name 'node' is not defined
+/workspaces/MotionInOcean/tests/test_management_api.py:1484: NameError: name 'node' is not defined
+/workspaces/MotionInOcean/tests/test_management_api.py:1516: NameError: name 'node' is not defined
+/workspaces/MotionInOcean/tests/test_management_api.py:1549: NameError: name 'node' is not defined
+/workspaces/MotionInOcean/tests/test_management_api.py:1830: NameError: name 'node' is not defined
+/workspaces/MotionInOcean/tests/test_management_api.py:1868: NameError: name 'node' is not defined
+/workspaces/MotionInOcean/pi_camera_in_docker/node_registry.py:402: pi_camera_in_docker.node_registry.NodeValidationError: Permission denied accessing registry path: /data. Set NODE_REGISTRY_PATH to a writable directory (e.g., ./data/node-registry.json) and ensure the container has write access. See DEPLOYMENT.md for details.
+/workspaces/MotionInOcean/pi_camera_in_docker/node_registry.py:402: pi_camera_in_docker.node_registry.NodeValidationError: Permission denied accessing registry path: /data. Set NODE_REGISTRY_PATH to a writable directory (e.g., ./data/node-registry.json) and ensure the container has write access. See DEPLOYMENT.md for details.
+/workspaces/MotionInOcean/pi_camera_in_docker/node_registry.py:402: pi_camera_in_docker.node_registry.NodeValidationError: Permission denied accessing registry path: /data. Set NODE_REGISTRY_PATH to a writable directory (e.g., ./data/node-registry.json) and ensure the container has write access. See DEPLOYMENT.md for details.
+/workspaces/MotionInOcean/pi_camera_in_docker/node_registry.py:402: pi_camera_in_docker.node_registry.NodeValidationError: Permission denied accessing registry path: /data. Set NODE_REGISTRY_PATH to a writable directory (e.g., ./data/node-registry.json) and ensure the container has write access. See DEPLOYMENT.md for details.
+/workspaces/MotionInOcean/pi_camera_in_docker/node_registry.py:110: NameError: name '_node_auth_error' is not defined
+/workspaces/MotionInOcean/pi_camera_in_docker/node_registry.py:110: NameError: name '_node_auth_error' is not defined
+/workspaces/MotionInOcean/tests/test_node_registry.py:188: AssertionError: assert [] == ['created', 'updated']
+/workspaces/MotionInOcean/tests/test_phase1_components.py:147: AssertionError: assert None == '10/minute'
+/workspaces/MotionInOcean/pi_camera_in_docker/node_registry.py:402: pi_camera_in_docker.node_registry.NodeValidationError: Permission denied accessing registry path: /data. Set NODE_REGISTRY_PATH to a writable directory (e.g., ./data/node-registry.json) and ensure the container has write access. See DEPLOYMENT.md for details.
+/workspaces/MotionInOcean/pi_camera_in_docker/node_registry.py:402: pi_camera_in_docker.node_registry.NodeValidationError: Permission denied accessing registry path: /data. Set NODE_REGISTRY_PATH to a writable directory (e.g., ./data/node-registry.json) and ensure the container has write access. See DEPLOYMENT.md for details.
+=============================== warnings summary ===============================
+tests/test_node_registry.py::test_upsert_node_is_atomic_for_concurrent_creates
+  /usr/local/python/3.12.1/lib/python3.12/site-packages/_pytest/threadexception.py:58: PytestUnhandledThreadExceptionWarning: Exception in thread Thread-205 (announce)
+  
+  Traceback (most recent call last):
+    File "/usr/local/python/3.12.1/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+      self.run()
+    File "/usr/local/python/3.12.1/lib/python3.12/threading.py", line 1010, in run
+      self._target(*self._args, **self._kwargs)
+    File "/workspaces/MotionInOcean/tests/test_node_registry.py", line 179, in announce
+      results.append(registry.upsert_node("node-atomic", create_value, patch_value)["upserted"])
+                     ^^^^^^^^^^^^^^^^^^^^
+  AttributeError: 'FileWebcamRegistry' object has no attribute 'upsert_node'
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnhandledThreadExceptionWarning(msg))
+
+tests/test_node_registry.py::test_upsert_node_is_atomic_for_concurrent_creates
+  /usr/local/python/3.12.1/lib/python3.12/site-packages/_pytest/threadexception.py:58: PytestUnhandledThreadExceptionWarning: Exception in thread Thread-204 (announce)
+  
+  Traceback (most recent call last):
+    File "/usr/local/python/3.12.1/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+      self.run()
+    File "/usr/local/python/3.12.1/lib/python3.12/threading.py", line 1010, in run
+      self._target(*self._args, **self._kwargs)
+    File "/workspaces/MotionInOcean/tests/test_node_registry.py", line 179, in announce
+      results.append(registry.upsert_node("node-atomic", create_value, patch_value)["upserted"])
+                     ^^^^^^^^^^^^^^^^^^^^
+  AttributeError: 'FileWebcamRegistry' object has no attribute 'upsert_node'
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnhandledThreadExceptionWarning(msg))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.1-final-0 ________________
+
+Name                                              Stmts   Miss   Cover   Missing
+--------------------------------------------------------------------------------
+pi_camera_in_docker/__init__.py                       0      0 100.00%
+pi_camera_in_docker/application_settings.py         230     40  82.61%   136-138, 254-255, 307-308, 316-317, 342, 350, 370-373, 407, 414-415, 435, 438-440, 463-466, 482-497
+pi_camera_in_docker/cat_gif_generator.py            124      6  95.16%   75-77, 185-187
+pi_camera_in_docker/config_validator.py              36      4  88.89%   87, 92-93, 98
+pi_camera_in_docker/discovery.py                     88     35  60.23%   112-115, 125, 133-178, 187-200
+pi_camera_in_docker/feature_flags.py                135      9  93.33%   305-306, 309-310, 318-322, 376-381, 447
+pi_camera_in_docker/logging_config.py                53      6  88.68%   20, 39-40, 43, 54, 62
+pi_camera_in_docker/main.py                         524    236  54.96%   52, 82-86, 101-109, 141-197, 205-246, 263, 298-301, 305-307, 311-313, 317-319, 323-325, 381, 499, 516-522, 581, 617, 635-642, 654, 660, 666, 685-692, 727-730, 776, 781-802, 807-819, 830-832, 847-849, 1006, 1011, 1076-1102, 1121-1126, 1189, 1198, 1241-1242, 1249-1255, 1271-1289, 1300-1321, 1336, 1343-1423, 1445, 1461-1467
+pi_camera_in_docker/management_api.py               618    302  51.13%   101-102, 139, 159-160, 167, 185-204, 230-232, 235-236, 328, 336, 350-364, 408-409, 418, 422-424, 436-437, 472, 496-509, 514, 529-584, 604-921, 943-987, 1002, 1042, 1065-1066, 1115, 1161, 1196, 1216, 1234-1259, 1271, 1278-1288, 1297-1300, 1306, 1311, 1313, 1318-1345, 1350-1360, 1377-1380, 1382, 1411-1423, 1430-1433, 1435, 1457-1466, 1475, 1494, 1513
+pi_camera_in_docker/modes/__init__.py                 0      0 100.00%
+pi_camera_in_docker/modes/webcam.py                 263     69  73.76%   64-66, 108, 116, 142-144, 157, 196-225, 311, 315-316, 319, 326, 336-337, 362, 368, 372, 379, 389, 391, 400, 411, 424, 428, 441-450, 460-469, 476, 493, 504, 519, 564
+pi_camera_in_docker/node_registry.py                272     86  68.38%   61, 90-91, 104-108, 127, 250-251, 255-256, 285-286, 307-308, 312-313, 320-321, 334, 339-340, 344-345, 351-352, 359-360, 368-369, 424, 427, 432-433, 481-495, 517, 538-539, 580-582, 608-638, 649-656
+pi_camera_in_docker/runtime_config.py               215     63  70.70%   37-38, 86, 93, 127-144, 172-173, 175, 181-182, 184, 188-189, 191, 195-196, 198, 240, 295-296, 298, 364-365, 394-395, 408-410, 413-415, 432-434, 436, 438-440, 456, 458, 509-510, 533-540
+pi_camera_in_docker/sentry_config.py                 30      0 100.00%
+pi_camera_in_docker/settings_api.py                  86     20  76.74%   40-41, 55-68, 99, 104, 145-146, 161-170, 240-241
+pi_camera_in_docker/settings_schema.py               66     19  71.21%   290, 303, 338, 345, 348, 352, 354, 357, 361, 363, 366, 369, 381-387
+pi_camera_in_docker/shared.py                        98      8  91.84%   51, 146, 155-158, 166-167, 192, 300
+pi_camera_in_docker/transport_url_validation.py      31      5  83.87%   9-10, 15, 48, 54
+--------------------------------------------------------------------------------
+TOTAL                                              2869    908  68.35%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+=========================== short test summary info ============================
+FAILED tests/test_config.py::test_create_app_registers_expected_routes_for_management_and_webcam_modes - AssertionError: assert False
+ +  where False = <built-in method issubset of set object at 0x7b4dfbc05000>({'/api/config', '/api/feature-flags', '/health', '/stream.mjpg', '/api/webcams/<webcam_id>/status', '/static/<path:filename>', '/api/webcams/<webcam_id>/actions/<action>', '/api/setup/templates', '/api/management/overview', '/api/settings/reset', '/', '/api/status', '/api/webcams', '/api/discovery/announce', '/api/webcams/<webcam_id>/diagnose', '/api/setup/validate', '/api/settings/changes', '/metrics', '/api/setup/generate', '/api/settings', '/api/settings/schema', '/api/webcams/<webcam_id>/discovery/<decision>', '/ready', '/snapshot.jpg', '/api/webcams/<webcam_id>'})
+ +    where <built-in method issubset of set object at 0x7b4dfbc05000> = {'/api/config', '/ready', '/api/nodes', '/health', '/', '/metrics'}.issubset
+FAILED tests/test_discovery.py::test_load_config_discovery_overrides - KeyError: 'discovery_node_id'
+FAILED tests/test_discovery.py::test_discovery_announcer_log_url_redacts_query_and_credentials - TypeError: DiscoveryAnnouncer.__init__() got an unexpected keyword argument 'node_id'
+FAILED tests/test_discovery_integration.py::TestDiscoveryAnnounceIntegration::test_announcer_makes_successful_announcement - TypeError: DiscoveryAnnouncer.__init__() got an unexpected keyword argument 'node_id'
+FAILED tests/test_discovery_integration.py::TestDiscoveryAnnounceIntegration::test_announcer_handles_http_error - TypeError: DiscoveryAnnouncer.__init__() got an unexpected keyword argument 'node_id'
+FAILED tests/test_discovery_integration.py::TestDiscoveryAnnounceIntegration::test_announcer_handles_network_timeout - TypeError: DiscoveryAnnouncer.__init__() got an unexpected keyword argument 'node_id'
+FAILED tests/test_discovery_integration.py::TestDiscoveryAnnounceIntegration::test_announcer_retries_with_exponential_backoff - TypeError: DiscoveryAnnouncer.__init__() got an unexpected keyword argument 'node_id'
+FAILED tests/test_discovery_integration.py::TestDiscoveryAnnounceIntegration::test_announcer_thread_lifecycle - TypeError: DiscoveryAnnouncer.__init__() got an unexpected keyword argument 'node_id'
+FAILED tests/test_discovery_integration.py::TestDiscoveryEndToEnd::test_webcam_announces_to_management_and_gets_approved - AssertionError: {'error': {'code': 'VALIDATION_ERROR', 'details': {}, 'message': 'id must be a non-empty string', 'timestamp': '2026-02-17T22:17:39.848502+00:00'}}
+assert 400 == 201
+ +  where 400 = <WrapperTestResponse streamed [400 BAD REQUEST]>.status_code
+FAILED tests/test_discovery_integration.py::TestDiscoveryEndToEnd::test_webcam_announces_with_private_ip_blocked_without_opt_in - AssertionError: Private IP should be blocked
+assert 400 == 403
+ +  where 400 = <WrapperTestResponse streamed [400 BAD REQUEST]>.status_code
+FAILED tests/test_discovery_integration.py::TestDiscoveryEndToEnd::test_webcam_announces_with_private_ip_allowed_with_opt_in - AssertionError: {'error': {'code': 'VALIDATION_ERROR', 'details': {}, 'message': 'id must be a non-empty string', 'timestamp': '2026-02-17T22:17:39.938826+00:00'}}
+assert 400 == 201
+ +  where 400 = <WrapperTestResponse streamed [400 BAD REQUEST]>.status_code
+FAILED tests/test_discovery_integration.py::TestDiscoveryEndToEnd::test_webcam_discovery_payload_structure - AssertionError: Missing required field: node_id
+assert 'node_id' in {'webcam_id': 'node-51f6ef3cad2fd935', 'name': 'codespaces-30af4b', 'base_url': 'http://192.168.1.50:8000', 'transport': 'http', 'capabilities': ['stream', 'snapshot'], 'labels': {'hostname': 'codespaces-30af4b', 'device_class': 'webcam', 'app_mode': 'webcam'}, 'auth': {'type': 'none'}}
+FAILED tests/test_discovery_integration.py::TestDiscoveryEndToEnd::test_multiple_webcams_announce_independently - AssertionError: {'error': {'code': 'VALIDATION_ERROR', 'details': {}, 'message': 'id must be a non-empty string', 'timestamp': '2026-02-17T22:17:39.994722+00:00'}}
+assert 400 == 201
+ +  where 400 = <WrapperTestResponse streamed [400 BAD REQUEST]>.status_code
+FAILED tests/test_discovery_integration.py::TestDiscoveryEndToEnd::test_discovery_node_updates_last_announce_timestamp - AssertionError: {'error': {'code': 'VALIDATION_ERROR', 'details': {}, 'message': 'id must be a non-empty string', 'timestamp': '2026-02-17T22:17:40.082218+00:00'}}
+assert 400 == 201
+ +  where 400 = <WrapperTestResponse streamed [400 BAD REQUEST]>.status_code
+FAILED tests/test_management_api.py::test_node_crud_and_overview - KeyError: 'nodes'
+FAILED tests/test_management_api.py::test_create_node_rejects_unmigratable_legacy_basic_auth - assert 500 == 400
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+FAILED tests/test_management_api.py::test_update_node_returns_404_when_node_disappears_during_update - AttributeError: type object 'FileWebcamRegistry' has no attribute 'update_node'
+FAILED tests/test_management_api.py::test_discovery_announce_creates_then_updates_node - assert 401 == 201
+ +  where 401 = <WrapperTestResponse streamed [401 UNAUTHORIZED]>.status_code
+FAILED tests/test_management_api.py::test_discovery_announce_parallel_requests_do_not_duplicate_error - assert [401, 401] == [200, 201]
+  
+  At index 0 diff: 401 != 200
+  
+  Full diff:
+    [
+  -     200,
+  -     201,
+  ?     ^
+  +     401,
+  ?     ^
+  +     401,
+    ]
+FAILED tests/test_management_api.py::test_discovery_announce_blocks_private_ip_without_opt_in - assert 401 == 403
+ +  where 401 = <WrapperTestResponse streamed [401 UNAUTHORIZED]>.status_code
+FAILED tests/test_management_api.py::test_discovery_announce_allows_private_ip_with_opt_in - assert 401 == 201
+ +  where 401 = <WrapperTestResponse streamed [401 UNAUTHORIZED]>.status_code
+FAILED tests/test_management_api.py::test_discovery_announce_validates_payload - assert 401 == 400
+ +  where 401 = <WrapperTestResponse streamed [401 UNAUTHORIZED]>.status_code
+FAILED tests/test_management_api.py::test_discovery_approval_endpoint - assert 401 == 201
+ +  where 401 = <WrapperTestResponse streamed [401 UNAUTHORIZED]>.status_code
+FAILED tests/test_management_api.py::test_build_headers_for_bearer_auth_with_token - NameError: name 'node' is not defined
+FAILED tests/test_management_api.py::test_request_json_sends_bearer_auth_header_for_node_probes - NameError: name 'node' is not defined
+FAILED tests/test_management_api.py::test_build_headers_for_bearer_auth_without_token_returns_empty_headers - NameError: name 'node' is not defined
+FAILED tests/test_management_api.py::test_build_headers_for_non_bearer_auth_returns_empty_headers - NameError: name 'node' is not defined
+FAILED tests/test_management_api.py::test_node_status_returns_node_unauthorized_when_upstream_rejects_token - assert 500 == 200
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+FAILED tests/test_management_api.py::test_node_status_maps_503_payload_without_error_envelope - KeyError: 'unavailable_nodes'
+FAILED tests/test_management_api.py::test_node_status_maps_invalid_upstream_payload_to_controlled_error - assert 500 == 200
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+FAILED tests/test_management_api.py::test_request_json_maps_name_resolution_failure_to_dns_category - NameError: name 'node' is not defined
+FAILED tests/test_management_api.py::test_request_json_rejects_blocked_ip_in_resolved_set - NameError: name 'node' is not defined
+FAILED tests/test_management_api.py::test_request_json_maps_timeout_failure - NameError: name 'node' is not defined
+FAILED tests/test_management_api.py::test_request_json_maps_connection_refused_or_reset - NameError: name 'node' is not defined
+FAILED tests/test_management_api.py::test_request_json_maps_tls_failure - NameError: name 'node' is not defined
+FAILED tests/test_management_api.py::test_diagnose_includes_structured_status_and_codes - NameError: name 'node' is not defined
+FAILED tests/test_management_api.py::test_diagnose_recommendations_keep_backward_compatible_guidance - NameError: name 'node' is not defined
+FAILED tests/test_management_mode.py::test_root_serves_management_template_in_management_mode - pi_camera_in_docker.node_registry.NodeValidationError: Permission denied accessing registry path: /data. Set NODE_REGISTRY_PATH to a writable directory (e.g., ./data/node-registry.json) and ensure the container has write access. See DEPLOYMENT.md for details.
+FAILED tests/test_management_mode.py::test_api_config_returns_render_config_shape_in_management_mode - pi_camera_in_docker.node_registry.NodeValidationError: Permission denied accessing registry path: /data. Set NODE_REGISTRY_PATH to a writable directory (e.g., ./data/node-registry.json) and ensure the container has write access. See DEPLOYMENT.md for details.
+FAILED tests/test_management_mode.py::test_api_config_management_includes_render_config_keys_and_defaulted_values - pi_camera_in_docker.node_registry.NodeValidationError: Permission denied accessing registry path: /data. Set NODE_REGISTRY_PATH to a writable directory (e.g., ./data/node-registry.json) and ensure the container has write access. See DEPLOYMENT.md for details.
+FAILED tests/test_management_mode.py::test_request_logging_levels - pi_camera_in_docker.node_registry.NodeValidationError: Permission denied accessing registry path: /data. Set NODE_REGISTRY_PATH to a writable directory (e.g., ./data/node-registry.json) and ensure the container has write access. See DEPLOYMENT.md for details.
+FAILED tests/test_node_registry.py::test_create_node_rejects_basic_auth_without_convertible_token - NameError: name '_node_auth_error' is not defined
+FAILED tests/test_node_registry.py::test_load_rejects_unmigratable_legacy_auth - NameError: name '_node_auth_error' is not defined
+FAILED tests/test_node_registry.py::test_upsert_node_is_atomic_for_concurrent_creates - AssertionError: assert [] == ['created', 'updated']
+  
+  Right contains 2 more items, first extra item: 'created'
+  
+  Full diff:
+  + []
+  - [
+  -     'created',
+  -     'updated',
+  - ]
+FAILED tests/test_phase1_components.py::TestRateLimiting::test_rate_limiting_applies_expected_limits_to_management_routes - AssertionError: assert None == '10/minute'
+ +  where None = <built-in method get of dict object at 0x7b4dfba21e40>('announce_node')
+ +    where <built-in method get of dict object at 0x7b4dfba21e40> = {'list_webcams': '1000/minute', 'announce_webcam': '10/minute', 'create_webcam': '100/minute', 'get_webcam': '1000/minute', 'update_webcam': '100/minute', 'set_node_discovery_approval': '100/minute', 'delete_webcam': '100/minute', 'webcam_status': '1000/minute', 'diagnose_webcam': '100/minute', 'node_action': '100/minute', 'management_overview': '100/minute'}.get
+FAILED tests/test_runtime_config.py::test_create_app_from_env_honors_application_settings_path - pi_camera_in_docker.node_registry.NodeValidationError: Permission denied accessing registry path: /data. Set NODE_REGISTRY_PATH to a writable directory (e.g., ./data/node-registry.json) and ensure the container has write access. See DEPLOYMENT.md for details.
+FAILED tests/test_units.py::test_management_app_registers_core_routes - pi_camera_in_docker.node_registry.NodeValidationError: Permission denied accessing registry path: /data. Set NODE_REGISTRY_PATH to a writable directory (e.g., ./data/node-registry.json) and ensure the container has write access. See DEPLOYMENT.md for details.
+=========== 47 failed, 188 passed, 16 skipped, 2 warnings in 27.34s ============
