@@ -678,14 +678,14 @@ def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
 def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch, tmp_path):
     from pi_camera_in_docker import management_api
 
-    original_update_webcam = management_api.FileNodeRegistry.update_node
+    original_update_webcam = management_api.FileWebcamRegistry.update_node
 
     def flaky_update_node(self, webcam_id, patch):
         if webcam_id == "node-race":
             raise KeyError(webcam_id)
         return original_update_node(self, webcam_id, patch)
 
-    monkeypatch.setattr(management_api.FileNodeRegistry, "update_node", flaky_update_node)
+    monkeypatch.setattr(management_api.FileWebcamRegistry, "update_node", flaky_update_node)
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {

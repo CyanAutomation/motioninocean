@@ -20,7 +20,7 @@ from urllib.parse import urlparse, urlunparse
 import sentry_sdk
 from flask import Flask, jsonify, request
 
-from .node_registry import FileNodeRegistry, NodeValidationError, validate_node
+from .node_registry import FileWebcamRegistry, NodeValidationError, validate_node
 from .transport_url_validation import parse_docker_url
 
 
@@ -1141,7 +1141,7 @@ def register_management_routes(
         node_discovery_shared_secret: Optional token for discovery announcements.
         limiter: Optional Flask-Limiter instance for rate limiting.
     """
-    registry = FileNodeRegistry(registry_path)
+    registry = FileWebcamRegistry(registry_path)
     discovery_secret = node_discovery_shared_secret
     if discovery_secret is None:
         discovery_secret = os.environ.get("NODE_DISCOVERY_SHARED_SECRET", "")

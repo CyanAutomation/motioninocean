@@ -41,7 +41,7 @@ ALLOWED_DISCOVERY_SOURCES = {"manual", "discovered"}
 ALLOWED_TRANSPORTS = {"http", "docker"}
 
 
-class WebcamValidationError(ValueError):
+class NodeValidationError(ValueError):
     """Exception raised for webcam validation or registry operation errors.
 
     Used to wrap validation failures, permission issues, or file corruption errors.
