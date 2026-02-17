@@ -570,7 +570,7 @@ class FileWebcamRegistry(WebcamRegistry):
                     validated_patch.get("discovery"), dict
                 ):
                     merged["discovery"] = {**existing["discovery"], **validated_patch["discovery"]}
-                merged = validate_node(merged)
+                merged = validate_webcam(merged)
                 if any(
                     other_index != index and other.get("id") == merged["id"]
                     for other_index, other in enumerate(data["nodes"])
@@ -619,7 +619,7 @@ class FileWebcamRegistry(WebcamRegistry):
                     validated_patch.get("discovery"), dict
                 ):
                     merged["discovery"] = {**existing["discovery"], **validated_patch["discovery"]}
-                merged = validate_node(merged)
+                merged = validate_webcam(merged)
                 if any(
                     other_index != index and other.get("id") == merged["id"]
                     for other_index, other in enumerate(data["nodes"])
