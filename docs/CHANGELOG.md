@@ -11,6 +11,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.15.8] - 2026-02-17
+
+- [discovery] Make announcer start/stop thread-safe (#320)
+- refactor: Improve documentation formatting and update variable references in code
+- [management] Keep allowed DNS resolutions when mixed with blocked IPs (#319)
+- refactor: Update test cases to use management_api directly from client initialization
+- fix: Add missing name field in package-lock.json
+- refactor: Remove unused device security tests and streamline health endpoint checks
+
 ## [1.15.7] - 2026-02-17
 
 - refactor: Add temporary application settings fixture and complete config dictionary for testing
