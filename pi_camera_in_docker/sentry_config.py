@@ -106,7 +106,7 @@ def init_sentry(sentry_dsn: Optional[str], app_mode: str) -> None:
         # Sentry disabled when DSN not provided
         return
 
-    sentry_sdk.init(
+    sentry_sdk.init(  # type: ignore[call-arg]
         dsn=sentry_dsn,
         integrations=[
             FlaskIntegration(
@@ -120,9 +120,9 @@ def init_sentry(sentry_dsn: Optional[str], app_mode: str) -> None:
         debug=False,
         # Use async transport to avoid blocking request handling
         # Sends events in background thread with queue
-        transport="asyncio",
+        transport="asyncio",  # type: ignore[arg-type]
         # Before send hook to redact sensitive data
-        before_send=_redact_auth_data,
+        before_send=_redact_auth_data,  # type: ignore[arg-type]
         # Breadcrumb filter to skip noisy endpoints
         before_breadcrumb=_breadcrumb_filter,
         # Set app_mode as default tag for all events
