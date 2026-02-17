@@ -13,7 +13,7 @@ import socket
 import urllib.error
 import urllib.request
 import uuid
-from threading import Event, Thread
+from threading import Event, Lock, Thread
 from typing import Any, Dict, Optional
 from urllib.parse import urlsplit, urlunsplit
 
@@ -103,16 +103,18 @@ class DiscoveryAnnouncer:
         self.payload = payload
         self.shutdown_event = shutdown_event
         self._thread: Optional[Thread] = None
+        self._thread_lock = Lock()
 
     def start(self) -> None:
         """Start the discovery announcement daemon thread.
 
         Safe to call multiple times (idempotent).
         """
-        if self._thread and self._thread.is_alive():
-            return
-        self._thread = Thread(target=self._run_loop, name="discovery-announcer", daemon=True)
-        self._thread.start()
+        with self._thread_lock:
+            if self._thread and self._thread.is_alive():
+                return
+            self._thread = Thread(target=self._run_loop, name="discovery-announcer", daemon=True)
+            self._thread.start()
 
     def stop(self, timeout_seconds: float = 3.0) -> None:
         """Stop the discovery announcement daemon thread gracefully.
@@ -120,9 +122,10 @@ class DiscoveryAnnouncer:
         Args:
             timeout_seconds: Maximum time to wait for thread termination.
         """
-        self.shutdown_event.set()
-        if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=timeout_seconds)
+        with self._thread_lock:
+            self.shutdown_event.set()
+            if self._thread and self._thread.is_alive():
+                self._thread.join(timeout=timeout_seconds)
 
     def _announce_once(self) -> bool:
         """Attempt a single announcement to management hub.
