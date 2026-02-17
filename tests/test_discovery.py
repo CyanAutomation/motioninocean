@@ -113,6 +113,27 @@ def test_discovery_announcer_log_url_redacts_query_and_credentials():
     assert announcer.management_url_log == "http://example.local:8001/api/discovery/announce"
 
 
+@pytest.mark.parametrize(
+    ("management_url", "expected_host", "expected_port"),
+    [
+        ("http://192.168.1.10:8001", "192.168.1.10", 8001),
+        ("http://management.local:8001", "management.local", 8001),
+        ("http://[2001:db8::1]:8001", "2001:db8::1", 8001),
+    ],
+)
+def test_safe_management_url_handles_host_formats(management_url, expected_host, expected_port):
+    from urllib.parse import urlsplit
+
+    from pi_camera_in_docker.discovery import _safe_management_url
+
+    safe_url = _safe_management_url(management_url)
+    parsed = urlsplit(safe_url)
+
+    assert safe_url.endswith("/api/discovery/announce")
+    assert parsed.hostname == expected_host
+    assert parsed.port == expected_port
+
+
 def test_discovery_announcer_start_is_thread_safe_and_idempotent():
     from discovery import DiscoveryAnnouncer
 

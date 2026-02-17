@@ -46,6 +46,8 @@ def _safe_management_url(management_url: str) -> str:
     """
     parts = urlsplit(management_url)
     host = parts.hostname or ""
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
     if parts.port is not None:
         host = f"{host}:{parts.port}"
     base_path = parts.path.rstrip("/")
