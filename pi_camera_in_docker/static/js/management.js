@@ -6,19 +6,19 @@
  * authentication, and real-time status polling.
  */
 
-const tableBody = document.getElementById("nodes-table-body");
-const webcamForm = document.getElementById("node-form");
+const tableBody = document.getElementById("webcams-table-body");
+const webcamForm = document.getElementById("webcam-form");
 const feedback = document.getElementById("form-feedback");
 const formTitle = document.getElementById("form-title");
 const cancelEditBtn = document.getElementById("cancel-edit-btn");
-const refreshBtn = document.getElementById("refresh-nodes-btn");
-const toggleWebcamFormPanelBtn = document.getElementById("toggle-node-form-panel-btn");
+const refreshBtn = document.getElementById("refresh-webcams-btn");
+const toggleWebcamFormPanelBtn = document.getElementById("toggle-webcam-form-panel-btn");
 const managementLayout = document.getElementById("management-layout");
-const webcamFormPanelContainer = document.getElementById("node-form-panel-container");
-const webcamFormContentWrapper = document.getElementById("node-form-content-wrapper");
-const webcamFormContent = document.getElementById("node-form-content");
-const editingWebcamIdInput = document.getElementById("editing-node-id");
-const diagnosticWebcamId = document.getElementById("diagnostic-node-id");
+const webcamFormPanelContainer = document.getElementById("webcam-form-panel-container");
+const webcamFormContentWrapper = document.getElementById("webcam-form-content-wrapper");
+const webcamFormContent = document.getElementById("webcam-form-content");
+const editingWebcamIdInput = document.getElementById("editing-webcam-id");
+const diagnosticWebcamId = document.getElementById("diagnostic-webcam-id");
 const diagnosticContext = document.getElementById("diagnostic-context");
 const diagnosticSummaryBadge = document.getElementById("diagnostic-summary-badge");
 const diagnosticOverallStatePill = document.getElementById("diagnostic-overall-state-pill");
@@ -68,6 +68,23 @@ function setDiagnosticPanelExpanded(isExpanded) {
   }
 }
 
+function getMissingRequiredElementIds() {
+  const requiredElements = [
+    ["webcams-table-body", tableBody],
+    ["webcam-form", webcamForm],
+    ["form-title", formTitle],
+    ["cancel-edit-btn", cancelEditBtn],
+    ["refresh-webcams-btn", refreshBtn],
+    ["editing-webcam-id", editingWebcamIdInput],
+    ["webcam-transport", document.getElementById("webcam-transport")],
+    ["copy-diagnostic-report-btn", copyDiagnosticReportBtn],
+  ];
+
+  return requiredElements
+    .filter(([, element]) => element == null)
+    .map(([id]) => id);
+}
+
 function isDiagnosticPanelContentVisible() {
   if (!(diagnosticsCollapsibleContainer instanceof HTMLElement)) {
     return false;
@@ -88,7 +105,7 @@ function toggleDiagnosticPanelContent() {
 }
 
 function updateBaseUrlValidation(transport = "http") {
-  const baseUrlInput = document.getElementById("node-base-url");
+  const baseUrlInput = document.getElementById("webcam-base-url");
   if (!(baseUrlInput instanceof HTMLInputElement)) {
     return;
   }
@@ -149,6 +166,13 @@ function describeApiError(errorPayload = {}) {
 }
 
 function showFeedback(message, isError = false) {
+  if (!(feedback instanceof HTMLElement)) {
+    if (message) {
+      const logger = isError ? console.error : console.info;
+      logger(`[management-ui] ${message}`);
+    }
+    return;
+  }
   feedback.textContent = message;
   feedback.style.color = isError ? "#b91c1c" : "#166534";
 }
@@ -191,18 +215,18 @@ async function managementFetch(path, options = {}) {
 }
 
 function getAuthPayload() {
-  const type = document.getElementById("node-auth-type").value;
+  const type = document.getElementById("webcam-auth-type").value;
 
   if (type !== "bearer") {
     return { type: "none" };
   }
 
-  const token = document.getElementById("node-auth-token").value.trim();
+  const token = document.getElementById("webcam-auth-token").value.trim();
   return token ? { type, token } : { type };
 }
 
 function getParsedLabels() {
-  const raw = document.getElementById("node-labels").value.trim();
+  const raw = document.getElementById("webcam-labels").value.trim();
   if (!raw) {
     return {};
   }
@@ -212,16 +236,16 @@ function getParsedLabels() {
 function buildWebcamPayload({ preserveLastSeen = false } = {}) {
   const nowIso = new Date().toISOString();
   const capabilities = document
-    .getElementById("node-capabilities")
+    .getElementById("webcam-capabilities")
     .value.split(",")
     .map((entry) => entry.trim())
     .filter(Boolean);
 
   const payload = {
-    id: document.getElementById("node-id").value.trim(),
-    name: document.getElementById("node-name").value.trim(),
-    base_url: document.getElementById("node-base-url").value.trim(),
-    transport: document.getElementById("node-transport").value,
+    id: document.getElementById("webcam-id").value.trim(),
+    name: document.getElementById("webcam-name").value.trim(),
+    base_url: document.getElementById("webcam-base-url").value.trim(),
+    transport: document.getElementById("webcam-transport").value,
     auth: getAuthPayload(),
     capabilities,
     labels: getParsedLabels(),
@@ -640,10 +664,10 @@ async function refreshStatuses({ fromInterval = false } = {}) {
 
 function resetForm() {
   webcamForm.reset();
-  updateBaseUrlValidation(document.getElementById("node-transport").value);
+  updateBaseUrlValidation(document.getElementById("webcam-transport").value);
   editingWebcamIdInput.value = "";
   formTitle.textContent = "Add node";
-  document.getElementById("node-id").disabled = false;
+  document.getElementById("webcam-id").disabled = false;
   cancelEditBtn.classList.add("hidden");
 }
 
@@ -769,16 +793,16 @@ function beginEditNode(nodeId) {
 
   editingWebcamIdInput.value = webcam.id;
   formTitle.textContent = `Edit webcam: ${webcam.id}`;
-  document.getElementById("node-id").value = webcam.id;
-  document.getElementById("node-id").disabled = true;
-  document.getElementById("node-name").value = webcam.name || "";
-  document.getElementById("node-base-url").value = webcam.base_url || "";
-  document.getElementById("node-transport").value = webcam.transport || "http";
-  updateBaseUrlValidation(document.getElementById("node-transport").value);
-  document.getElementById("node-auth-type").value = webcam.auth?.type || "none";
-  document.getElementById("node-auth-token").value = webcam.auth?.token || "";
-  document.getElementById("node-capabilities").value = (webcam.capabilities || []).join(", ");
-  document.getElementById("node-labels").value = JSON.stringify(webcam.labels || {}, null, 2);
+  document.getElementById("webcam-id").value = webcam.id;
+  document.getElementById("webcam-id").disabled = true;
+  document.getElementById("webcam-name").value = webcam.name || "";
+  document.getElementById("webcam-base-url").value = webcam.base_url || "";
+  document.getElementById("webcam-transport").value = webcam.transport || "http";
+  updateBaseUrlValidation(document.getElementById("webcam-transport").value);
+  document.getElementById("webcam-auth-type").value = webcam.auth?.type || "none";
+  document.getElementById("webcam-auth-token").value = webcam.auth?.token || "";
+  document.getElementById("webcam-capabilities").value = (webcam.capabilities || []).join(", ");
+  document.getElementById("webcam-labels").value = JSON.stringify(webcam.labels || {}, null, 2);
   cancelEditBtn.classList.remove("hidden");
 }
 
@@ -1196,6 +1220,14 @@ function onTableClick(event) {
 }
 
 async function init() {
+  const missingElementIds = getMissingRequiredElementIds();
+  if (missingElementIds.length > 0) {
+    const details = `Missing required management UI element(s): ${missingElementIds.join(", ")}`;
+    console.error(`[management-ui] ${details}`);
+    showFeedback("Management UI failed to initialize due to missing page elements.", true);
+    return;
+  }
+
   webcamForm.addEventListener("submit", submitNodeForm);
   cancelEditBtn.addEventListener("click", () => {
     resetForm();
@@ -1219,7 +1251,7 @@ async function init() {
     toggleWebcamFormPanelBtn.addEventListener("click", toggleNodeFormPanel);
   }
   tableBody.addEventListener("click", onTableClick);
-  document.getElementById("node-transport").addEventListener("change", (event) => {
+  document.getElementById("webcam-transport").addEventListener("change", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLSelectElement)) {
       return;
@@ -1227,7 +1259,7 @@ async function init() {
 
     updateBaseUrlValidation(target.value);
   });
-  updateBaseUrlValidation(document.getElementById("node-transport").value);
+  updateBaseUrlValidation(document.getElementById("webcam-transport").value);
   if (
     diagnosticsAdvancedCheckbox instanceof HTMLInputElement &&
     diagnosticsCollapsibleContainer instanceof HTMLElement
