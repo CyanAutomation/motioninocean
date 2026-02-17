@@ -915,16 +915,7 @@ def test_discovery_approval_endpoint(monkeypatch, tmp_path):
     assert rejected.json["node"]["discovery"]["approved"] is False
 
 
-def test_build_headers_for_bearer_auth_with_token():
-    from pi_camera_in_docker import management_api
-
-    webcam = {"auth": {"type": "bearer", "token": "node-token"}}
-
-    headers = management_api._build_headers(webcam)
-    assert headers == {"Authorization": "Bearer node-token"}
-
-
-def test_request_json_sends_bearer_auth_header_for_node_probes(monkeypatch):
+def test_request_json_sets_authorization_header_by_auth_mode(monkeypatch):
     from pi_camera_in_docker import management_api
 
     class FakeResponse:
@@ -961,31 +952,18 @@ def test_request_json_sends_bearer_auth_header_for_node_probes(monkeypatch):
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
     monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
 
-    webcam = {"base_url": "http://example.com", "auth": {"type": "bearer", "token": "node-token"}}
-    status_code, _ = management_api._request_json(webcam, "GET", "/api/status")
-    assert status_code == 200
+    cases = [
+        ({"type": "bearer", "token": "node-token"}, "Bearer node-token"),
+        ({"type": "bearer"}, None),
+        ({"type": "basic", "encoded": "abc", "username": "camera", "password": "secret"}, None),
+    ]
 
-    assert captured["headers"] == ["Bearer node-token"]
-
-
-def test_build_headers_for_bearer_auth_without_token_returns_empty_headers():
-    from pi_camera_in_docker import management_api
-
-    webcam = {"auth": {"type": "bearer"}}
-
-    headers = management_api._build_headers(webcam)
-    assert headers == {}
-
-
-def test_build_headers_for_non_bearer_auth_returns_empty_headers():
-    from pi_camera_in_docker import management_api
-
-    webcam = {
-        "auth": {"type": "basic", "encoded": "abc", "username": "camera", "password": "secret"}
-    }
-
-    headers = management_api._build_headers(webcam)
-    assert headers == {}
+    for auth_payload, expected_auth_header in cases:
+        captured["headers"].clear()
+        webcam = {"base_url": "http://example.com", "auth": auth_payload}
+        status_code, _ = management_api._request_json(webcam, "GET", "/api/status")
+        assert status_code == 200
+        assert captured["headers"] == [expected_auth_header]
 
 
 def test_node_status_returns_node_unauthorized_when_upstream_rejects_token(monkeypatch, tmp_path):

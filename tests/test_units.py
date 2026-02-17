@@ -218,66 +218,24 @@ def test_dockerfile_has_flask(workspace_root):
     )
 
 
-def test_streaming_output_class():
-    """Test the StreamingOutput class functionality."""
-    import io
-    import time
-    from collections import deque
-    from threading import Condition
+def test_frame_buffer_write_updates_stats_and_latest_frame(monkeypatch):
+    """FrameBuffer writes should update latest frame and stream stats deterministically."""
+    from pi_camera_in_docker.modes import webcam as webcam_mode
 
-    class StreamingOutput(io.BufferedIOBase):
-        def __init__(self):
-            self.frame = None
-            self.condition = Condition()
-            self.frame_count = 0
-            self.last_frame_time = time.time()
-            self.frame_times = deque(maxlen=30)
+    timestamps = iter([100.0, 101.0])
+    monkeypatch.setattr(webcam_mode.time, "monotonic", lambda: next(timestamps))
 
-        def write(self, buf):
-            with self.condition:
-                self.frame = buf
-                self.frame_count += 1
-                now = time.time()
-                self.frame_times.append(now)
-                self.condition.notify_all()
+    stats = webcam_mode.StreamStats()
+    output = webcam_mode.FrameBuffer(stats, target_fps=0)
 
-        def get_fps(self):
-            if len(self.frame_times) < 2:
-                return 0.0
-            time_span = self.frame_times[-1] - self.frame_times[0]
-            if time_span == 0:
-                return 0.0
-            return (len(self.frame_times) - 1) / time_span
+    assert output.write(b"frame-1") == 7
+    assert output.write(b"frame-2") == 7
+    assert output.frame == b"frame-2"
 
-        def get_status(self):
-            return {
-                "frames_captured": self.frame_count,
-                "current_fps": round(self.get_fps(), 2),
-            }
-
-    # Test instantiation
-    output = StreamingOutput()
-    assert output.frame_count == 0
-    assert len(output.frame_times) == 0
-
-    # Test writing frames
-    for i in range(5):
-        output.write(b"test_frame_" + str(i).encode())
-        time.sleep(0.01)
-
-    assert output.frame_count == 5
-    assert len(output.frame_times) == 5
-
-    # Test FPS calculation
-    fps = output.get_fps()
-    assert fps > 0
-    assert fps < 1000  # Sanity check
-
-    # Test status endpoint
-    status = output.get_status()
-    assert "frames_captured" in status
-    assert "current_fps" in status
-    assert status["frames_captured"] == 5
+    frame_count, last_frame_time, current_fps = stats.snapshot()
+    assert frame_count == 2
+    assert last_frame_time == 101.0
+    assert current_fps == 1.0
 
 
 def test_healthcheck_url_validation_allows_valid_hostname(monkeypatch):

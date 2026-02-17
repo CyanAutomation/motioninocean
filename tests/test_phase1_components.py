@@ -93,11 +93,13 @@ class TestConfigValidator:
             validate_all_config(config)
         assert "DISCOVERY_MANAGEMENT_URL" in str(exc_info.value)
 
-    def test_validate_settings_patch_package_import_path(self):
-        """Test validate_settings_patch via package import path."""
-        # Valid value should produce no validation errors
-        errors = validate_settings_patch({"camera": {"fps": 30}})
-        assert errors == {}
+    def test_validate_settings_patch_reports_valid_and_invalid_values(self):
+        """validate_settings_patch should accept valid values and report invalid ones."""
+        valid_errors = validate_settings_patch({"camera": {"fps": 30}})
+        assert valid_errors == {}
+
+        invalid_errors = validate_settings_patch({"camera": {"fps": 0}})
+        assert "camera.fps" in invalid_errors
 
     def test_validate_all_config_discovery_enabled_missing_token_raises(self):
         """validate_all_config should reject discovery enabled config missing discovery token."""

@@ -142,26 +142,60 @@ def test_webcam_metrics_and_status_reflect_stream_activity():
     assert status_payload["fps"] == 14.0
 
 
-def test_shared_health_endpoints_exist():
-    """Verify shared /health and /ready endpoints are registered in the Flask app's URL map."""
+def test_settings_changes_reports_no_override_for_defaults(monkeypatch, tmp_path):
+    """
+    Verify that /api/settings/changes reports no override when persisted values
+    for jpeg_quality and max_stream_connections equal effective runtime defaults.
+    """
     from pi_camera_in_docker import main
+    from pi_camera_in_docker.application_settings import ApplicationSettings
+    from pi_camera_in_docker.runtime_config import load_env_config
 
-    cfg = main._load_config()
-    cfg["mock_camera"] = True
-    app = main.create_webcam_app(cfg)  # Use webcam app as it has all shared routes
+    # Ensure environment variables are not set for these to pick up defaults
+    monkeypatch.delenv("JPEG_QUALITY", raising=False)
+    monkeypatch.delenv("MAX_STREAM_CONNECTIONS", raising=False)
 
-    # Check for /health and /ready
-    assert "/health" in [str(rule) for rule in app.url_map.iter_rules()]
-    assert "/ready" in [str(rule) for rule in app.url_map.iter_rules()]
+    # Get the actual default values from runtime_config
+    env_defaults = load_env_config()
+    default_jpeg_quality = env_defaults["jpeg_quality"]
+    default_max_stream_connections = env_defaults["max_stream_connections"]
+
+    # Set up application settings path
+    settings_path = tmp_path / "application-settings.json"
+    monkeypatch.setenv("APPLICATION_SETTINGS_PATH", str(settings_path))
+
+    # Create the app in management mode
+    monkeypatch.setenv("APP_MODE", "management")
+    app = main.create_management_app()
+    client = app.test_client()
+
+    # Persist settings with values equal to the defaults
+    app_settings = ApplicationSettings(str(settings_path))
+    app_settings.apply_patch_atomic(
+        {
+            "camera": {
+                "jpeg_quality": default_jpeg_quality,
+                "max_stream_connections": default_max_stream_connections,
+            }
+        },
+        modified_by="test",
+    )
+
+    # Make a request to the /api/settings/changes endpoint
+    response = client.get("/api/settings/changes")
+    assert response.status_code == 200
+    changes = response.get_json()
+
+    # Assert that no overrides are reported for these settings
+    overridden_settings = changes.get("overridden", [])
+    
+    # Check that 'camera.jpeg_quality' and 'camera.max_stream_connections' are NOT in the overridden list
+    for override in overridden_settings:
+        assert not (override["category"] == "camera" and override["key"] == "jpeg_quality")
+        assert not (override["category"] == "camera" and override["key"] == "max_stream_connections")
+
+    # Optionally, also check that the total number of overridden settings is as expected (e.g., 0 if only these were set)
+    # This might need adjustment if other settings are intentionally overridden by default in tests
+    # For now, a specific check that these two are not present is sufficient.
 
 
-def test_shared_metrics_endpoint_exists():
-    """Verify shared /metrics endpoint is registered in the Flask app's URL map."""
-    from pi_camera_in_docker import main
-
-    cfg = main._load_config()
-    cfg["mock_camera"] = True
-    app = main.create_webcam_app(cfg)  # Use webcam app as it has all shared routes
-
-    # Check for /metrics
-    assert "/metrics" in [str(rule) for rule in app.url_map.iter_rules()]

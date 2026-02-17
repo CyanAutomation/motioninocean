@@ -1,144 +1,79 @@
-import importlib
-import logging
+import builtins
 import sys
 import types
 
 import pytest
 
 
-logger = logging.getLogger(__name__)
+def _install_fake_picamera2_modules(monkeypatch):
+    picamera2_module = types.ModuleType("picamera2")
+    encoders_module = types.ModuleType("picamera2.encoders")
+    outputs_module = types.ModuleType("picamera2.outputs")
+
+    class FakePicamera2:
+        pass
+
+    class FakeJpegEncoder:
+        pass
+
+    class FakeFileOutput:
+        pass
+
+    picamera2_module.Picamera2 = FakePicamera2
+    encoders_module.JpegEncoder = FakeJpegEncoder
+    outputs_module.FileOutput = FakeFileOutput
+
+    monkeypatch.setitem(sys.modules, "picamera2", picamera2_module)
+    monkeypatch.setitem(sys.modules, "picamera2.encoders", encoders_module)
+    monkeypatch.setitem(sys.modules, "picamera2.outputs", outputs_module)
+
+    return FakePicamera2, FakeJpegEncoder, FakeFileOutput
 
 
-@pytest.fixture
-def clean_sys_modules():
-    """Fixture to clean up sys.modules after tests that modify it."""
-    original_sys_modules = sys.modules.copy()
-    yield
-    sys.modules.clear()
-    sys.modules.update(original_sys_modules)
+def test_import_camera_components_mocks_pykms_when_allowed(monkeypatch):
+    """When picamera2 initially fails on pykms import, helper should inject mocks and retry."""
+    from pi_camera_in_docker.modes.webcam import import_camera_components
+
+    expected_picamera2, expected_encoder, expected_output = _install_fake_picamera2_modules(
+        monkeypatch
+    )
+
+    monkeypatch.delitem(sys.modules, "pykms", raising=False)
+    monkeypatch.delitem(sys.modules, "kms", raising=False)
+
+    real_import = builtins.__import__
+    should_fail_once = {"value": True}
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "picamera2" and should_fail_once["value"]:
+            should_fail_once["value"] = False
+            raise ModuleNotFoundError("No module named 'pykms'")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(allow_pykms_mock=True)
+
+    assert picamera2_cls is expected_picamera2
+    assert jpeg_encoder_cls is expected_encoder
+    assert file_output_cls is expected_output
+    assert hasattr(sys.modules["pykms"], "PixelFormat")
+    assert hasattr(sys.modules["kms"], "PixelFormat")
+    assert sys.modules["pykms"].PixelFormat.RGB888 == "RGB888"
 
 
-@pytest.fixture(autouse=True)
-def caplog_for_test(caplog):
-    """Fixture to capture logs during tests."""
-    caplog.set_level(logging.INFO)
-    return caplog
+def test_import_camera_components_raises_when_mock_not_allowed(monkeypatch):
+    """If pykms-related import fails and fallback is disabled, error should be surfaced."""
+    from pi_camera_in_docker.modes.webcam import import_camera_components
 
+    real_import = builtins.__import__
 
-def test_module_not_found_scenario(clean_sys_modules, caplog_for_test):
-    """
-    Test scenario: Simulate ModuleNotFoundError for pykms and verify the workaround.
-    """
-    # Ensure picamera2 is available, skip if not
-    pytest.importorskip("picamera2")
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "picamera2":
+            raise ModuleNotFoundError("No module named 'pykms'")
+        return real_import(name, globals, locals, fromlist, level)
 
-    logger.info("Testing pykms import workaround (ModuleNotFoundError scenario)...")
-    logger.info("=" * 60)
+    monkeypatch.setattr(builtins, "__import__", fake_import)
 
-    # Test 1: Simulate the absence of pykms by blocking it
-    logger.info("\n[Test 1] ModuleNotFoundError scenario")
-    logger.info("-" * 60)
-
-    # Temporarily remove pykms and kms from sys.modules
-    sys.modules["pykms"] = None
-    sys.modules["kms"] = None
-
-    try:
-        # Try importing picamera2 - this should initially raise ModuleNotFoundError
-        importlib.import_module("picamera2")
-        pytest.fail("FAIL: Import should have failed but succeeded before workaround.")
-    except ModuleNotFoundError as e:
-        if "pykms" in str(e) or "kms" in str(e):
-            logger.info("✓ Expected error caught: %s", e)
-
-            # Now apply the workaround
-            logger.info("\nApplying mock module workaround...")
-
-            # Create mock modules
-            pykms_mock = types.ModuleType("pykms")
-            kms_mock = types.ModuleType("kms")
-
-            # Add to sys.modules
-            sys.modules["pykms"] = pykms_mock
-            sys.modules["kms"] = kms_mock
-
-            logger.info("✓ Mock modules created and registered")
-
-            # Retry import
-            try:
-                picamera2_module = importlib.import_module("picamera2")
-                # Access a common attribute to ensure it's functional
-                _ = picamera2_module.Picamera2
-                logger.info("✓ picamera2 imported successfully with mock modules!")
-
-                # Verify PixelFormat mock is available
-                # Re-import pykms to get the mock
-                import pykms
-
-                if hasattr(pykms, "PixelFormat") and hasattr(pykms.PixelFormat, "RGB888"):
-                    logger.info("✓ PixelFormat mock with RGB888 attribute available")
-                else:
-                    logger.warning("⚠️  WARNING: PixelFormat mock may be incomplete")
-
-                logger.info("\n✅ SUCCESS: ModuleNotFoundError workaround working correctly")
-                assert True  # Explicitly pass
-            except Exception as retry_error:
-                pytest.fail(f"FAIL: Import still failed after workaround: {retry_error}")
-        else:
-            pytest.fail(f"FAIL: Unexpected error: {e}")
-    except Exception as e:
-        pytest.fail(f"FAIL: Unexpected error type during ModuleNotFoundError scenario: {e}")
-
-
-def test_attribute_error_scenario(clean_sys_modules, caplog_for_test):
-    """
-    Test scenario: Simulate incomplete pykms (missing PixelFormat) and verify behaviour.
-    """
-    # Ensure picamera2 is available, skip if not
-    pytest.importorskip("picamera2")
-
-    logger.info("Testing pykms import workaround (AttributeError scenario)...")
-    logger.info("=" * 60)
-
-    # Test 2: Simulate incomplete pykms (has module but missing PixelFormat)
-    logger.info("\n[Test 2] AttributeError scenario (incomplete pykms)")
-    logger.info("-" * 60)
-
-    # Create incomplete pykms mock (missing PixelFormat)
-    incomplete_pykms = types.ModuleType("pykms")
-    incomplete_kms = types.ModuleType("kms")
-    sys.modules["pykms"] = incomplete_pykms
-    sys.modules["kms"] = incomplete_kms
-
-    logger.info("✓ Incomplete pykms module created (no PixelFormat attribute)")
-
-    # This should trigger AttributeError which the workaround should catch
-    try:
-        # Force reimport by removing picamera2 from cache
-        if "picamera2" in sys.modules:
-            del sys.modules["picamera2"]
-        # Ensure any submodules are also cleared if they've been loaded
-        for module_name in list(sys.modules.keys()):
-            if module_name.startswith("picamera2"):
-                del sys.modules[module_name]
-
-        picamera2_module = importlib.import_module("picamera2")
-        # Attempt to access Picamera2 which might trigger the underlying PixelFormat issue
-        _ = picamera2_module.Picamera2
-        logger.warning(
-            "⚠️  Note: picamera2 imported without error (may have internal fallback). This is acceptable for this test."
-        )
-        assert (
-            True
-        )  # If picamera2 handles it internally, this scenario might not strictly fail import.
-    except AttributeError as attr_error:
-        if "PixelFormat" in str(attr_error):
-            logger.info("✓ Expected AttributeError caught: %s", attr_error)
-            logger.info("✓ This error would be caught by the enhanced workaround in main.py")
-            assert True  # Expected behavior
-        else:
-            pytest.fail(f"FAIL: Unexpected AttributeError: {attr_error}")
-    except Exception as e:
-        pytest.fail(f"FAIL: Unexpected error in Test 2: {e}")
-
-    logger.info("\n✅ SUCCESS: All pykms import workaround tests completed.")
+    with pytest.raises(ModuleNotFoundError, match="pykms"):
+        import_camera_components(allow_pykms_mock=False)

@@ -10,7 +10,7 @@ from typing import Any, Dict, Tuple
 from flask import Flask, current_app, jsonify, request
 
 from .config_validator import validate_settings_patch
-from .runtime_config import get_effective_settings_payload, parse_resolution
+from .runtime_config import get_effective_settings_payload, parse_resolution, _load_camera_config
 from .settings_schema import SettingsSchema
 
 
@@ -201,19 +201,20 @@ def register_settings_routes(app: Flask) -> None:
                 except (TypeError, ValueError):
                     return default
 
+            camera_env_config = _load_camera_config()
             try:
                 width, height = parse_resolution(os.environ.get("RESOLUTION", "640x480"))
                 resolution = f"{width}x{height}"
             except ValueError:
-                resolution = "640x480"
+                resolution = f"{camera_env_config['resolution'][0]}x{camera_env_config['resolution'][1]}"
 
             env_defaults = {
                 "camera": {
                     "resolution": resolution,
-                    "fps": safe_int_env("FPS", 0),
-                    "jpeg_quality": safe_int_env("JPEG_QUALITY", 85),
-                    "max_stream_connections": safe_int_env("MAX_STREAM_CONNECTIONS", 2),
-                    "max_frame_age_seconds": safe_float_env("MAX_FRAME_AGE_SECONDS", 10),
+                    "fps": safe_int_env("FPS", camera_env_config["fps"]),
+                    "jpeg_quality": safe_int_env("JPEG_QUALITY", camera_env_config["jpeg_quality"]),
+                    "max_stream_connections": safe_int_env("MAX_STREAM_CONNECTIONS", camera_env_config["max_stream_connections"]),
+                    "max_frame_age_seconds": safe_float_env("MAX_FRAME_AGE_SECONDS", camera_env_config["max_frame_age_seconds"]),
                 },
                 "logging": {
                     "log_level": os.environ.get("LOG_LEVEL", "INFO"),

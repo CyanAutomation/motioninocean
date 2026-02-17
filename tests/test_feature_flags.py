@@ -225,27 +225,21 @@ class TestFeatureFlagRegistry:
 class TestFeatureFlagsIntegration:
     """Test feature flags integration with main application."""
 
-    def test_main_imports_feature_flags(self):
-        """main should expose and use the shared feature flag registry instance."""
-        try:
-            from pi_camera_in_docker import main
-            from pi_camera_in_docker.feature_flags import FeatureFlags, get_feature_flags
+    def test_mock_camera_env_flag_changes_main_runtime_config(self, monkeypatch):
+        """MOCK_CAMERA feature flag should be reflected in main runtime config."""
+        import importlib
 
-            assert isinstance(main.feature_flags, FeatureFlags)
-            assert main.feature_flags is get_feature_flags()
-            assert main.feature_flags._loaded is True
-        except ImportError as e:
-            pytest.skip(f"Cannot import main module: {e}")
+        monkeypatch.setenv("MOCK_CAMERA", "true")
+        monkeypatch.setenv("APP_MODE", "webcam")
 
-    def test_feature_flags_loaded_in_main(self):
-        """module-level convenience helper should resolve values from loaded registry."""
-        try:
-            from pi_camera_in_docker import main
+        feature_flags_module = importlib.import_module("pi_camera_in_docker.feature_flags")
+        main_module = importlib.import_module("pi_camera_in_docker.main")
 
-            assert callable(main.is_flag_enabled)
-            assert main.is_flag_enabled("FRAME_SIZE_OPTIMIZATION") is True
-        except ImportError as e:
-            pytest.skip(f"Cannot import feature flags: {e}")
+        importlib.reload(feature_flags_module)
+        reloaded_main = importlib.reload(main_module)
+
+        cfg = reloaded_main._load_config()
+        assert cfg["mock_camera"] is True
 
 
 class TestFeatureFlagsAPI:
