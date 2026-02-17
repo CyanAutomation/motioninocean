@@ -1198,7 +1198,7 @@ def register_management_routes(
 
     @app.route("/api/discovery/announce", methods=["POST"])
     @_maybe_limit("10/minute")
-    def announce_node():
+    def announce_webcam():
         """Receive webcam self-registration announcement (discovery protocol).
 
         Creates or updates a webcam registration from a remote node's self-advertisement.

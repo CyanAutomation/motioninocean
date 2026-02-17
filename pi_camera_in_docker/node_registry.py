@@ -193,7 +193,7 @@ class WebcamRegistry(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def upsert_node(
+    def upsert_webcam(
         self,
         webcam_id: str,
         create_value: Dict[str, Any],
@@ -202,7 +202,7 @@ class WebcamRegistry(ABC):
         """Create webcam if not exists, else update with patch.
 
         Args:
-            webcam_id: Node ID to upsert.
+            webcam_id: Webcam ID to upsert.
             create_value: Data for webcam creation (if new).
             patch_value: Data for webcam update (if exists).
 
@@ -582,7 +582,7 @@ class FileWebcamRegistry(WebcamRegistry):
                 return merged
             raise KeyError(webcam_id)
 
-    def upsert_node(
+    def upsert_webcam(
         self,
         webcam_id: str,
         create_value: Dict[str, Any],
@@ -592,10 +592,10 @@ class FileWebcamRegistry(WebcamRegistry):
 
         If webcam exists: merges patch_value and validates merged result.
         If webcam not exists: creates with create_value.
-        Returns dict with 'node' and 'upserted' (\"created\"/\"updated\") keys.
+        Returns dict with 'node' and 'upserted' ("created"/"updated") keys.
 
         Args:
-            webcam_id: Node ID to upsert.
+            webcam_id: Webcam ID to upsert.
             create_value: Data for webcam creation (if new).
             patch_value: Data for webcam update (if exists).
 
