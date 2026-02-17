@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.15.3] - 2026-02-17
+
+- No changes to log.
+
 ## [1.15.2] - 2026-02-16
 
 - feat: add Sentry DSN configuration for error tracking in management and webcam services
