@@ -38,6 +38,16 @@ class SettingsValidationError(ValueError):
     """Raised when settings validation fails."""
 
 
+def _permission_guidance(path: Path, operation: str) -> str:
+    """Build actionable guidance for permission-denied settings operations."""
+    return (
+        f"Permission denied while {operation} at '{path}'. "
+        "Check /data mount ownership and write permissions for the container user, "
+        "or set APPLICATION_SETTINGS_PATH to a writable location "
+        "(for example, ./data/application-settings.json)."
+    )
+
+
 class ApplicationSettings:
     """
     Manages persistent application settings stored in JSON file.
@@ -89,10 +99,13 @@ class ApplicationSettings:
         self.path = Path(path)
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
-        except (PermissionError, OSError) as e:
+        except PermissionError as exc:
+            message = _permission_guidance(self.path.parent, "creating settings directory")
+            logger.error(message)
+            raise SettingsValidationError(message) from exc
+        except OSError as e:
             # In test environments or restricted permissions, directory creation may fail
             # This is non-fatal - we'll just log and continue
-            logger = logging.getLogger(__name__)
             logger.debug(f"Could not create settings directory {self.path.parent}: {e}")
 
     def load(self) -> Dict[str, Any]:
@@ -108,6 +121,8 @@ class ApplicationSettings:
         try:
             with self._exclusive_lock():
                 return self._load_unlocked()
+        except SettingsValidationError:
+            raise
         except Exception as exc:
             logger.error(f"Failed to load settings: {exc}")
             message = f"Failed to load settings: {exc}"
@@ -121,6 +136,10 @@ class ApplicationSettings:
         try:
             try:
                 content = self.path.read_text(encoding="utf-8").strip()
+            except PermissionError as exc:
+                message = _permission_guidance(self.path, "reading settings file")
+                logger.error(message)
+                raise SettingsValidationError(message) from exc
             except (FileNotFoundError, OSError):
                 # File may be removed/replaced after the existence check during
                 # concurrent reset/write operations; treat this as "no settings".
@@ -350,7 +369,12 @@ class ApplicationSettings:
         """
         with self._exclusive_lock():
             if self.path.exists():
-                self.path.unlink()
+                try:
+                    self.path.unlink()
+                except PermissionError as exc:
+                    message = _permission_guidance(self.path, "resetting settings file")
+                    logger.error(message)
+                    raise SettingsValidationError(message) from exc
             logger.info(f"Settings reset to defaults by {modified_by}")
 
     def get_changes_from_env(self, env_defaults: Dict[str, Any]) -> Dict[str, Any]:
@@ -431,44 +455,54 @@ class ApplicationSettings:
 
     def _save_atomic(self, data: Dict[str, Any]) -> None:
         """Save data to file atomically using temp file + rename."""
-        with tempfile.NamedTemporaryFile(
-            "w", delete=False, dir=self.path.parent, encoding="utf-8", suffix=".tmp"
-        ) as temp:
-            json.dump(data, temp, indent=2)
-            temp.flush()
-            os.fsync(temp.fileno())
-            temp_path = temp.name
-        Path(temp_path).replace(self.path)
+        try:
+            with tempfile.NamedTemporaryFile(
+                "w", delete=False, dir=self.path.parent, encoding="utf-8", suffix=".tmp"
+            ) as temp:
+                json.dump(data, temp, indent=2)
+                temp.flush()
+                os.fsync(temp.fileno())
+                temp_path = temp.name
+            Path(temp_path).replace(self.path)
+        except PermissionError as exc:
+            message = _permission_guidance(self.path, "writing settings file")
+            logger.error(message)
+            raise SettingsValidationError(message) from exc
 
     @contextmanager
     def _exclusive_lock(self):
         """Context manager for exclusive file-based locking."""
         lock_path = self.path.parent / f"{self.path.name}.lock"
-        with lock_path.open("a+b") as lock_file:
-            if fcntl is not None:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
-                try:
-                    yield
-                finally:
-                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-                return
+        try:
+            with lock_path.open("a+b") as lock_file:
+                if fcntl is not None:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                    try:
+                        yield
+                    finally:
+                        fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                    return
 
-            if msvcrt is not None:
-                file_size = lock_file.seek(0, 2)
-                if file_size == 0:
-                    lock_file.write(b"\0")
-                    lock_file.flush()
-                lock_file.seek(0)
-                msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
-                try:
-                    yield
-                finally:
+                if msvcrt is not None:
+                    file_size = lock_file.seek(0, 2)
+                    if file_size == 0:
+                        lock_file.write(b"\0")
+                        lock_file.flush()
                     lock_file.seek(0)
-                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
-                return
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+                    try:
+                        yield
+                    finally:
+                        lock_file.seek(0)
+                        msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                    return
 
-            message = "No supported file-lock backend available for this platform"
-            raise RuntimeError(message)
+                message = "No supported file-lock backend available for this platform"
+                raise RuntimeError(message)
+        except PermissionError as exc:
+            message = _permission_guidance(lock_path, "acquiring settings lock")
+            logger.error(message)
+            raise SettingsValidationError(message) from exc
 
         message = "No supported file-lock backend available for this platform"
         raise RuntimeError(message)

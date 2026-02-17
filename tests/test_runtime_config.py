@@ -125,3 +125,27 @@ def test_create_app_from_env_honors_application_settings_path(monkeypatch, tmp_p
     app = main.create_app_from_env()
 
     assert str(app.application_settings.path) == str(settings_path)
+
+
+def test_merge_config_with_settings_logs_actionable_permission_warning(caplog):
+    """Warning should preserve actionable guidance from settings permission errors."""
+
+    class DeniedSettingsStore:
+        def load(self):
+            message = (
+                "Permission denied while writing settings file at '/data/application-settings.json'. "
+                "Check /data mount ownership and write permissions for the container user, "
+                "or set APPLICATION_SETTINGS_PATH to a writable location "
+                "(for example, ./data/application-settings.json)."
+            )
+            raise runtime_config.SettingsValidationError(message)
+
+    env_config = {"application_settings_path": "/data/application-settings.json", "fps": 24}
+
+    with caplog.at_level("WARNING"):
+        merged = runtime_config.merge_config_with_settings(env_config, DeniedSettingsStore())
+
+    assert merged == env_config
+    assert "Could not load persisted settings:" in caplog.text
+    assert "Check /data mount ownership" in caplog.text
+    assert "APPLICATION_SETTINGS_PATH" in caplog.text
