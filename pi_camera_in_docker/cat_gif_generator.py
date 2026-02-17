@@ -190,10 +190,18 @@ class CatGifGenerator:
             self._frames = frames
             self._fetch_time = time.time()
             self._refresh_requested = False
-            self._consecutive_failures = 0
-            self._next_retry_time = 0.0
+            self._record_fetch_success_locked()
 
         return True
+
+    def _record_fetch_success_locked(self) -> None:
+        """Reset retry state after a successful fetch.
+
+        Notes:
+            Caller must hold ``self._lock`` before invoking this helper.
+        """
+        self._consecutive_failures = 0
+        self._next_retry_time = 0.0
 
     def _record_fetch_failure(self) -> None:
         """Record a failed fetch and schedule the next retry window."""
@@ -222,11 +230,12 @@ class CatGifGenerator:
 
         while True:
             should_fetch = False
+            current_time = time.time()
             with self._lock:
                 cache_expired = self._is_cache_expired()
                 frame_count = len(self._frames)
                 fetch_requested = self._refresh_requested or cache_expired or frame_count == 0
-                should_fetch = fetch_requested and time.time() >= self._next_retry_time
+                should_fetch = fetch_requested and current_time >= self._next_retry_time
 
             if should_fetch:
                 if self._fetch_and_cache_gif():
@@ -243,7 +252,6 @@ class CatGifGenerator:
 
             yield jpeg_bytes
 
-            # Advance frame index and loop
             # Advance frame index and loop
             with self._lock:
                 if self._frames:
