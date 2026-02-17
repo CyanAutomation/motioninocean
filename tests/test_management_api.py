@@ -1155,9 +1155,7 @@ def test_management_routes_require_authentication(monkeypatch, tmp_path):
 
 
 def test_node_status_maps_invalid_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
-    from pi_camera_in_docker import management_api
-
-    client, _ = _new_management_client(monkeypatch, tmp_path)
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-invalid-status",
@@ -1250,9 +1248,7 @@ def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch
 
 
 def test_node_action_maps_invalid_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
-    from pi_camera_in_docker import management_api
-
-    client, _ = _new_management_client(monkeypatch, tmp_path)
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
         "id": "node-invalid-action",

@@ -148,7 +148,9 @@ def test_shared_health_endpoints_exist():
     """Verify shared /health and /ready endpoints are registered in the Flask app's URL map."""
     from pi_camera_in_docker import main
 
-    app = main.create_webcam_app() # Use webcam app as it has all shared routes
+    cfg = main._load_config()
+    cfg["mock_camera"] = True
+    app = main.create_webcam_app(cfg)  # Use webcam app as it has all shared routes
 
     # Check for /health and /ready
     assert "/health" in [str(rule) for rule in app.url_map.iter_rules()]
@@ -159,8 +161,9 @@ def test_shared_metrics_endpoint_exists():
     """Verify shared /metrics endpoint is registered in the Flask app's URL map."""
     from pi_camera_in_docker import main
 
-    app = main.create_webcam_app() # Use webcam app as it has all shared routes
+    cfg = main._load_config()
+    cfg["mock_camera"] = True
+    app = main.create_webcam_app(cfg)  # Use webcam app as it has all shared routes
 
     # Check for /metrics
     assert "/metrics" in [str(rule) for rule in app.url_map.iter_rules()]
-
