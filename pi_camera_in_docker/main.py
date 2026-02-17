@@ -1084,7 +1084,7 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
                     management_url=cfg["discovery_management_url"],
                     token=cfg["discovery_token"],
                     interval_seconds=cfg["discovery_interval_seconds"],
-                    node_id=payload["node_id"],
+                    webcam_id=payload["node_id"],
                     payload=payload,
                     shutdown_event=state["shutdown_requested"],
                 )

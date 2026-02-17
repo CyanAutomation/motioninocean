@@ -197,8 +197,6 @@ class ApplicationSettings:
             raise SettingsValidationError(message) from exc
         else:
             return schema
-            message = f"Corrupted settings file: {exc}"
-            raise SettingsValidationError(message) from exc
 
     def save(self, settings: Dict[str, Any], modified_by: str = "system") -> None:
         """
