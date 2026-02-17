@@ -39,7 +39,7 @@ def test_load_config_discovery_overrides(monkeypatch, workspace_root):
         monkeypatch.setenv("DISCOVERY_MANAGEMENT_URL", "http://192.168.1.100:8001")
         monkeypatch.setenv("DISCOVERY_TOKEN", "top-secret")
         monkeypatch.setenv("DISCOVERY_INTERVAL_SECONDS", "12")
-        monkeypatch.setenv("DISCOVERY_NODE_ID", "node-override")
+        monkeypatch.setenv("DISCOVERY_WEBCAM_ID", "node-override")
         monkeypatch.setenv("BASE_URL", "http://camera.local:8000")
 
         cfg = main._load_config()
@@ -48,7 +48,7 @@ def test_load_config_discovery_overrides(monkeypatch, workspace_root):
         assert cfg["discovery_management_url"] == "http://192.168.1.100:8001"
         assert cfg["discovery_token"] == "top-secret"
         assert cfg["discovery_interval_seconds"] == 12.0
-        assert cfg["discovery_node_id"] == "node-override"
+        assert cfg["discovery_webcam_id"] == "node-override"
         assert cfg["base_url"] == "http://camera.local:8000"
     finally:
         sys.path = original_path
@@ -93,7 +93,7 @@ def test_build_discovery_payload_requires_base_url():
     from discovery import build_discovery_payload
 
     with pytest.raises(ValueError, match="discovery_base_url is required"):
-        build_discovery_payload({"discovery_node_id": "node-explicit"})
+        build_discovery_payload({"discovery_webcam_id": "node-explicit"})
 
 
 def test_discovery_announcer_log_url_redacts_query_and_credentials():

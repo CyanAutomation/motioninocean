@@ -49,7 +49,7 @@ def full_config(tmp_app_settings_path):
         "discovery_management_url": "http://localhost:8001",
         "discovery_token": "test-token",
         "discovery_interval_seconds": 60,
-        "discovery_node_id": "test-node",
+        "discovery_webcam_id": "test-node",
         "log_level": "INFO",
         "log_format": "text",
         "log_include_identifiers": False,

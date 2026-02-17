@@ -56,7 +56,7 @@ referenced in the codebase. Previously, only **23 variables were documented**, l
 - `DISCOVERY_MANAGEMENT_URL` ✓
 - `DISCOVERY_TOKEN` ✓
 - `DISCOVERY_INTERVAL_SECONDS` ✓
-- `DISCOVERY_NODE_ID` ✓
+- `DISCOVERY_WEBCAM_ID` ✓
 - `BASE_URL` ✓ (NEW - critical for remote discovery)
 
 **Logging Configuration** (NEW)

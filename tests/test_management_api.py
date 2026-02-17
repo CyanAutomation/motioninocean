@@ -423,7 +423,7 @@ def test_node_crud_and_overview(monkeypatch, tmp_path):
 
     listed = client.get("/api/webcams", headers=_auth_headers())
     assert listed.status_code == 200
-    assert len(listed.json["nodes"]) == 1
+    assert len(listed.json["webcams"]) == 1
 
     updated = client.put(
         "/api/webcams/node-1", json={"name": "Front Door Cam"}, headers=_auth_headers()
@@ -437,9 +437,9 @@ def test_node_crud_and_overview(monkeypatch, tmp_path):
 
     overview = client.get("/api/management/overview", headers=_auth_headers())
     assert overview.status_code == 200
-    assert overview.json["summary"]["total_nodes"] == 1
-    assert overview.json["summary"]["unavailable_nodes"] == 1
-    assert overview.json["summary"]["healthy_nodes"] == 0
+    assert overview.json["summary"]["total_webcams"] == 1
+    assert overview.json["summary"]["unavailable_webcams"] == 1
+    assert overview.json["summary"]["healthy_webcams"] == 0
 
     deleted = client.delete("/api/webcams/node-1", headers=_auth_headers())
     assert deleted.status_code == 204
@@ -678,12 +678,12 @@ def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
 def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch, tmp_path):
     from pi_camera_in_docker import management_api
 
-    original_update_webcam = management_api.FileWebcamRegistry.update_node
+    original_update_webcam = management_api.FileWebcamRegistry.update_webcam
 
     def flaky_update_node(self, webcam_id, patch):
         if webcam_id == "node-race":
             raise KeyError(webcam_id)
-        return original_update_node(self, webcam_id, patch)
+        return original_update_webcam(self, webcam_id, patch)
 
     monkeypatch.setattr(management_api.FileWebcamRegistry, "update_node", flaky_update_node)
     client, _ = _new_management_client(monkeypatch, tmp_path)
@@ -1012,7 +1012,7 @@ def test_node_status_returns_node_unauthorized_when_upstream_rejects_token(monke
 
     overview = client.get("/api/management/overview", headers=_auth_headers())
     assert overview.status_code == 200
-    assert overview.json["nodes"][0]["error"]["code"] == "WEBCAM_UNAUTHORIZED"
+    assert overview.json["webcams"][0]["error"]["code"] == "WEBCAM_UNAUTHORIZED"
 
 
 def test_node_status_succeeds_when_upstream_token_is_accepted(monkeypatch, tmp_path):
@@ -1102,8 +1102,8 @@ def test_node_status_maps_503_payload_without_error_envelope(monkeypatch, tmp_pa
 
     overview = client.get("/api/management/overview", headers=_auth_headers())
     assert overview.status_code == 200
-    assert overview.json["summary"]["unavailable_nodes"] == 0
-    assert overview.json["summary"]["healthy_nodes"] == 0
+    assert overview.json["summary"]["unavailable_webcams"] == 0
+    assert overview.json["summary"]["healthy_webcams"] == 0
 
 
 def test_management_routes_require_authentication(monkeypatch, tmp_path):
@@ -1182,7 +1182,7 @@ def test_node_status_maps_invalid_upstream_payload_to_controlled_error(monkeypat
 
     overview = client.get("/api/management/overview", headers=_auth_headers())
     assert overview.status_code == 200
-    assert overview.json["nodes"][0]["error"]["code"] == "WEBCAM_INVALID_RESPONSE"
+    assert overview.json["webcams"][0]["error"]["code"] == "WEBCAM_INVALID_RESPONSE"
 
 
 def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch, tmp_path):

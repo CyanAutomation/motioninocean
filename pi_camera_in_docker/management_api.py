@@ -1500,7 +1500,7 @@ def register_management_routes(
                 unavailable_nodes += 1
                 statuses.append(
                     {
-                        "webcam_id": node["id"],
+                        "webcam_id": webcam["id"],
                         "status": "error",
                         "stream_available": False,
                         "error": {
@@ -1523,7 +1523,7 @@ def register_management_routes(
         summary = {
             "total_webcams": len(nodes),
             "unavailable_webcams": unavailable_nodes,
-            "healthy_nodes": healthy_nodes,
-            "stream_available_nodes": stream_available_count,
+            "healthy_webcams": healthy_nodes,
+            "stream_available_webcams": stream_available_count,
         }
         return jsonify({"summary": summary, "webcams": statuses}), 200

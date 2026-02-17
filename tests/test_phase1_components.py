@@ -144,9 +144,9 @@ class TestRateLimiting:
         )
 
         applied = dict(limiter.applied_limits)
-        assert applied.get("announce_node") == "10/minute"
-        assert applied.get("list_nodes") == "1000/minute"
-        assert applied.get("node_status") == "1000/minute"
+        assert applied.get("announce_webcam") == "10/minute"
+        assert applied.get("list_webcams") == "1000/minute"
+        assert applied.get("webcam_status") == "1000/minute"
         assert "100/minute" in applied.values()
         assert len(limiter.applied_limits) >= 8
 

@@ -132,7 +132,7 @@ DISCOVERY_MANAGEMENT_URL=http://<management-host>:8001
 DISCOVERY_TOKEN=<same-token-as-NODE_DISCOVERY_SHARED_SECRET>
 DISCOVERY_INTERVAL_SECONDS=30
 # Optional explicit id:
-# DISCOVERY_NODE_ID=node-kitchen-cam
+# DISCOVERY_WEBCAM_ID=node-kitchen-cam
 ```
 
 **Security implications:**

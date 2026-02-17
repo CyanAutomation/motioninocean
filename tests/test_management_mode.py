@@ -15,7 +15,8 @@ sys.path.insert(0, str(workspace_root))
 def test_management_mode_boots_without_camera(monkeypatch):
     # Set NODE_REGISTRY_PATH to a temp directory to avoid permission issues
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("WEBCAM_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
         monkeypatch.setenv("APP_MODE", "management")
         monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "false")
 
@@ -57,7 +58,8 @@ def test_management_mode_boots_without_camera(monkeypatch):
 
 def test_webcam_mode_env_validation_and_startup(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("WEBCAM_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
         monkeypatch.setenv("APP_MODE", "management")
         monkeypatch.setenv("MOCK_CAMERA", "true")
         monkeypatch.setenv("RESOLUTION", "0x5000")
@@ -87,7 +89,8 @@ def test_webcam_mode_env_validation_and_startup(monkeypatch):
 
 def test_root_serves_management_template_in_management_mode(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("WEBCAM_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
         monkeypatch.setenv("APP_MODE", "management")
 
         sys.modules.pop("pi_camera_in_docker.main", None)
@@ -103,7 +106,8 @@ def test_root_serves_management_template_in_management_mode(monkeypatch):
 
 def test_root_serves_stream_template_in_webcam_mode(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("WEBCAM_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
         monkeypatch.setenv("APP_MODE", "management")
         monkeypatch.setenv("MOCK_CAMERA", "true")
 
@@ -124,7 +128,8 @@ def test_root_serves_stream_template_in_webcam_mode(monkeypatch):
 
 def test_api_config_returns_render_config_shape_in_management_mode(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("WEBCAM_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
         monkeypatch.setenv("APP_MODE", "management")
         monkeypatch.setenv("MOTION_IN_OCEAN_CORS_ORIGINS", "https://example.test")
         monkeypatch.setenv("MOCK_CAMERA", "false")
@@ -182,7 +187,8 @@ def test_api_config_returns_webcam_connection_counts(monkeypatch):
 
 def test_api_config_webcam_includes_render_config_keys_and_defaulted_values(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("WEBCAM_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
         monkeypatch.setenv("APP_MODE", "management")
         monkeypatch.setenv("MOCK_CAMERA", "true")
         monkeypatch.setenv("RESOLUTION", "invalid")
@@ -221,7 +227,8 @@ def test_api_config_webcam_includes_render_config_keys_and_defaulted_values(monk
 
 def test_api_config_management_includes_render_config_keys_and_defaulted_values(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("WEBCAM_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
         monkeypatch.setenv("APP_MODE", "management")
         monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "false")
         monkeypatch.setenv("RESOLUTION", "invalid")
@@ -258,7 +265,8 @@ def test_api_config_management_includes_render_config_keys_and_defaulted_values(
 
 def test_request_logging_levels(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("WEBCAM_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
         monkeypatch.setenv("APP_MODE", "management")
 
         sys.modules.pop("pi_camera_in_docker.main", None)
@@ -299,10 +307,15 @@ def test_request_logging_levels(monkeypatch):
     assert health_level == main.logging.DEBUG
     assert metrics_level == main.logging.INFO
 
+    assert "correlation_id=none method=GET path=/health status=200 latency_ms=" in health_record
+    assert "correlation_id=none method=GET path=/metrics status=200 latency_ms=" in metrics_record
+    assert health_level == main.logging.DEBUG
+    assert metrics_level == main.logging.INFO
+
 
 def _new_webcam_client(monkeypatch, token: str):
     tmpdir = tempfile.mkdtemp()
-    monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", f"{tmpdir}/registry.json")
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("MOCK_CAMERA", "true")
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", token)

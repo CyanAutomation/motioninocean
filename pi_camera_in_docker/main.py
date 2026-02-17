@@ -1078,7 +1078,7 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
         else:
             try:
                 discovery_cfg = {
-                    "discovery_node_id": cfg["discovery_node_id"],
+                    "discovery_webcam_id": cfg["discovery_webcam_id"],
                     "discovery_base_url": cfg["base_url"],
                 }
                 payload = build_discovery_payload(discovery_cfg)

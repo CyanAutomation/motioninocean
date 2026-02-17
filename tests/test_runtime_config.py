@@ -21,7 +21,7 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
         "discovery_management_url": "http://127.0.0.1:8001",
         "discovery_token": "",
         "discovery_interval_seconds": 30.0,
-        "discovery_node_id": "",
+        "discovery_webcam_id": "",
         "log_level": "INFO",
         "log_format": "text",
         "log_include_identifiers": False,
@@ -119,7 +119,7 @@ def test_create_app_from_env_honors_application_settings_path(monkeypatch, tmp_p
     settings_path = tmp_path / "custom" / "app-settings.json"
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("MOCK_CAMERA", "true")
-    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("APPLICATION_SETTINGS_PATH", str(settings_path))
 
     app = main.create_app_from_env()

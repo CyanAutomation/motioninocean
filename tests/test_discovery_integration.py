@@ -22,7 +22,7 @@ class TestDiscoveryAnnounceIntegration:
 
         shutdown_event = threading.Event()
         payload = {
-            "node_id": "node-test-1",
+            "webcam_id": "node-test-1",
             "name": "test-camera",
             "base_url": "http://192.168.1.100:8000",
             "transport": "http",
@@ -40,7 +40,7 @@ class TestDiscoveryAnnounceIntegration:
                 management_url="http://management.local:8001",
                 token="test-token",
                 interval_seconds=30,
-                node_id=payload["node_id"],
+                webcam_id=payload["webcam_id"],
                 payload=payload,
                 shutdown_event=shutdown_event,
             )
@@ -62,7 +62,7 @@ class TestDiscoveryAnnounceIntegration:
         from discovery import DiscoveryAnnouncer
 
         shutdown_event = threading.Event()
-        payload = {"node_id": "node-test-2"}
+        payload = {"webcam_id": "node-test-2"}
 
         mock_response = MagicMock()
         mock_response.code = 401
@@ -76,7 +76,7 @@ class TestDiscoveryAnnounceIntegration:
                 management_url="http://management.local:8001",
                 token="invalid-token",
                 interval_seconds=30,
-                node_id=payload["node_id"],
+                webcam_id=payload["webcam_id"],
                 payload=payload,
                 shutdown_event=shutdown_event,
             )
@@ -91,7 +91,7 @@ class TestDiscoveryAnnounceIntegration:
         from discovery import DiscoveryAnnouncer
 
         shutdown_event = threading.Event()
-        payload = {"node_id": "node-test-3"}
+        payload = {"webcam_id": "node-test-3"}
 
         with patch("urllib.request.urlopen") as mock_urlopen:
             mock_urlopen.side_effect = TimeoutError("Connection timeout")
@@ -100,7 +100,7 @@ class TestDiscoveryAnnounceIntegration:
                 management_url="http://management.local:8001",
                 token="test-token",
                 interval_seconds=30,
-                node_id=payload["node_id"],
+                webcam_id=payload["webcam_id"],
                 payload=payload,
                 shutdown_event=shutdown_event,
             )
@@ -116,7 +116,7 @@ class TestDiscoveryAnnounceIntegration:
         from discovery import DiscoveryAnnouncer
 
         shutdown_event = threading.Event()
-        payload = {"node_id": "node-test-4"}
+        payload = {"webcam_id": "node-test-4"}
 
         with patch("urllib.request.urlopen") as mock_urlopen:
             # Fail first, then succeed later
@@ -135,7 +135,7 @@ class TestDiscoveryAnnounceIntegration:
                 management_url="http://management.local:8001",
                 token="test-token",
                 interval_seconds=0.01,  # Very short interval for testing
-                node_id=payload["node_id"],
+                webcam_id=payload["webcam_id"],
                 payload=payload,
                 shutdown_event=shutdown_event,
             )
@@ -244,9 +244,9 @@ class TestDiscoveryEndToEnd:
                 assert approved_node["discovery"]["approved"] is True
 
                 # Step 3: Verify node is now in approved state in list
-                list_response = client.get("/api/nodes")
+                list_response = client.get("/api/webcams")
                 assert list_response.status_code == 200
-                nodes = list_response.json["nodes"]
+                nodes = list_response.json["webcams"]
                 approved_nodes = [n for n in nodes if n["id"] == "node-webcam-1"]
                 assert len(approved_nodes) == 1
                 assert approved_nodes[0]["discovery"]["approved"] is True
@@ -332,7 +332,7 @@ class TestDiscoveryEndToEnd:
 
         payload = build_discovery_payload(
             {
-                "discovery_node_id": "node-kitchen",
+                "discovery_webcam_id": "node-kitchen",
                 "discovery_base_url": "http://192.168.1.50:8000",
             }
         )
@@ -404,9 +404,9 @@ class TestDiscoveryEndToEnd:
                     assert response.status_code == 201, response.json
 
                 # Verify all three cameras registered
-                list_response = client.get("/api/nodes")
+                list_response = client.get("/api/webcams")
                 assert list_response.status_code == 200
-                nodes = list_response.json["nodes"]
+                nodes = list_response.json["webcams"]
                 node_ids = {n["id"] for n in nodes}
                 assert "node-kitchen" in node_ids
                 assert "node-bedroom" in node_ids

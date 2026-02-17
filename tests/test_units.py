@@ -183,7 +183,8 @@ def test_management_app_registers_core_routes(monkeypatch, tmp_path):
 
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("MOCK_CAMERA", "true")
-    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("APPLICATION_SETTINGS_PATH", str(tmp_path / "application-settings.json"))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "")
 
     app = main.create_management_app()

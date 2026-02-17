@@ -103,11 +103,11 @@ def migrate_legacy_auth(auth: Any, webcam_id: str = "unknown") -> Dict[str, Any]
         elif isinstance(encoded, str) and encoded.lower().startswith("bearer "):
             bearer_token = encoded[7:].strip()
             if not bearer_token:
-                raise _node_auth_error(webcam_id, "auth.encoded has an empty bearer token")
+                raise _webcam_auth_error(webcam_id, "auth.encoded has an empty bearer token")
             migrated["type"] = "bearer"
             migrated["token"] = bearer_token
         else:
-            raise _node_auth_error(
+            raise _webcam_auth_error(
                 webcam_id,
                 "auth.type='basic' cannot be auto-migrated without an API token",
             )
@@ -124,7 +124,7 @@ def migrate_legacy_auth(auth: Any, webcam_id: str = "unknown") -> Dict[str, Any]
             for key in legacy_keys:
                 migrated.pop(key, None)
         else:
-            raise _node_auth_error(
+            raise _webcam_auth_error(
                 webcam_id,
                 f"legacy keys present ({', '.join(f'auth.{key}' for key in legacy_keys)})",
             )
