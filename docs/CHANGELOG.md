@@ -11,6 +11,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.15.5] - 2026-02-17
+
+- [docs] Update README and .env.example files for configuration clarity and runtime settings management
+- [ui] Enhance tab functionality and accessibility for settings panel
+- Various updates to dependencies and package-lock.json
+- [config] Update deployment configurations and package dependencies
+
 ## [1.15.4] - 2026-02-17
 
 - Release v1.15.3
