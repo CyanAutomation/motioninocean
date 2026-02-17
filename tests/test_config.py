@@ -160,9 +160,18 @@ def test_create_app_registers_expected_routes_for_management_and_webcam_modes(
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "")
     management_app = main.create_app_from_env()
     management_routes = {rule.rule for rule in management_app.url_map.iter_rules()}
-    assert {"/", "/health", "/ready", "/metrics", "/api/config", "/api/webcams", "/api/feature-flags", "/api/management/overview", "/api/settings", "/api/discovery/announce"}.issubset(
-        management_routes
-    )
+    assert {
+        "/",
+        "/health",
+        "/ready",
+        "/metrics",
+        "/api/config",
+        "/api/webcams",
+        "/api/feature-flags",
+        "/api/management/overview",
+        "/api/settings",
+        "/api/discovery/announce",
+    }.issubset(management_routes)
 
     monkeypatch.setenv("APP_MODE", "webcam")
     monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry-webcam.json"))
@@ -197,7 +206,9 @@ def test_create_app_from_env_defaults_invalid_resolution_to_safe_fallback(monkey
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("MOCK_CAMERA", "true")
     monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry-invalid-resolution.json"))
-    monkeypatch.setenv("APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-invalid-resolution.json"))
+    monkeypatch.setenv(
+        "APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-invalid-resolution.json")
+    )
     monkeypatch.setenv("RESOLUTION", "invalid-resolution")
     monkeypatch.setenv("FPS", "24")
 
@@ -358,11 +369,6 @@ print(json.dumps({
     )
 
     if process.returncode != 0:
-
-
-
-
-
         raise subprocess.CalledProcessError(
             process.returncode, process.args, output=process.stdout, stderr=process.stderr
         )

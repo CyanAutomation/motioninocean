@@ -1482,7 +1482,12 @@ def register_management_routes(
                 details={"action": action, "status_code": status_code},
             )
         return jsonify(
-            {"webcam_id": webcam_id, "action": action, "status_code": status_code, "response": response}
+            {
+                "webcam_id": webcam_id,
+                "action": action,
+                "status_code": status_code,
+                "response": response,
+            }
         ), status_code
 
     @app.route("/api/management/overview", methods=["GET"])

@@ -238,7 +238,7 @@ class CatGifGenerator:
                 should_fetch = fetch_requested and current_time >= self._next_retry_time
 
             if should_fetch and self._fetch_and_cache_gif():
-                    frame_idx = 0
+                frame_idx = 0
 
             with self._lock:
                 if self._frames:

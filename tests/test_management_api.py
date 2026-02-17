@@ -480,7 +480,9 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
         "capabilities": ["stream"],
         "transport": "docker",
     }
-    invalid_create = client.post("/api/webcams", json=invalid_docker_create, headers=_auth_headers())
+    invalid_create = client.post(
+        "/api/webcams", json=invalid_docker_create, headers=_auth_headers()
+    )
     assert invalid_create.status_code == 400
     assert invalid_create.json["error"]["code"] == "VALIDATION_ERROR"
     assert "docker URL must include port" in invalid_create.json["error"]["message"]
@@ -978,7 +980,9 @@ def test_build_headers_for_bearer_auth_without_token_returns_empty_headers():
 def test_build_headers_for_non_bearer_auth_returns_empty_headers():
     from pi_camera_in_docker import management_api
 
-    webcam = {"auth": {"type": "basic", "encoded": "abc", "username": "camera", "password": "secret"}}
+    webcam = {
+        "auth": {"type": "basic", "encoded": "abc", "username": "camera", "password": "secret"}
+    }
 
     headers = management_api._build_headers(webcam)
     assert headers == {}
