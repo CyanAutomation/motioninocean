@@ -519,6 +519,7 @@ def test_shutdown_updates_ready_metrics_and_api_status_immediately():
             "cors_enabled": False,
             "allow_pykms_mock": False,
             "node_registry_path": "/tmp/node-registry.json",
+            "application_settings_path": "/tmp/application-settings.json",
             "management_auth_token": "",
         }
     )
@@ -675,6 +676,7 @@ def _build_base_app_config(cors_enabled=False, cors_origins="disabled"):
         "cors_origins": cors_origins,
         "allow_pykms_mock": False,
         "node_registry_path": "/tmp/node-registry.json",
+        "application_settings_path": "/tmp/application-settings.json",
         "management_auth_token": "",
     }
 

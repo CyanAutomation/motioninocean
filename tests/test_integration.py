@@ -22,6 +22,7 @@ def _build_webcam_status_app(main_module, stream_status_payload):
         "cors_origins": "",
         "allow_pykms_mock": False,
         "node_registry_path": "/tmp/node-registry.json",
+        "application_settings_path": "/tmp/application-settings.json",
         "management_auth_token": "",
     }
     app, _limiter, state = main_module._create_base_app(cfg)
