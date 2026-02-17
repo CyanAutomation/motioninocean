@@ -68,7 +68,7 @@ def full_config(tmp_app_settings_path):
         "pi3_profile_enabled": False,
         "mock_camera": True,
         "allow_pykms_mock": False,
-        "node_registry_path": "/tmp/node-registry.json",
+        "webcam_registry_path": "/tmp/node-registry.json",
         "application_settings_path": str(tmp_app_settings_path),
         "management_auth_token": "",
     }
