@@ -21,6 +21,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3-pip \
         python3-dev \
         python3-numpy \
+        ca-certificates \
         gnupg \
         curl \
         gcc && \
@@ -116,6 +117,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     set -e && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
+        ca-certificates \
         gnupg \
         curl && \
     rm -rf /var/lib/apt/lists/*

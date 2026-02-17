@@ -5,6 +5,9 @@
 # Prerequisites:
 #   - MOCK_CAMERA must be enabled
 #   - Network access to https://cataas.com/cat.gif
+#   - Outbound HTTPS must be allowed from the container host/network
+#   - Container image must include a valid CA certificate bundle
+#     (Debian package: ca-certificates) for TLS verification
 #
 # Usage (Option 1 - Environment Variables):
 #   MOCK_CAMERA=true CAT_GIF=true docker compose \
