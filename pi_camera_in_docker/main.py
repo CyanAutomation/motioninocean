@@ -523,10 +523,10 @@ def _register_middleware(app: Flask, config: Dict[str, Any]) -> None:
 
         cors_options: Dict[str, Any] = {
             "resources": {r"/*": {"origins": cors_origins}},
-            "send_wildcard": False  # Default to False
+            "send_wildcard": False,  # Default to False
         }
         if cors_origins == "*":
-            cors_options["send_wildcard"] = True # Update to True if needed
+            cors_options["send_wildcard"] = True  # Update to True if needed
 
         CORS(app, **cors_options)
 
