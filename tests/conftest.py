@@ -28,6 +28,52 @@ def workspace_root():
     """Return the absolute path to the workspace root."""
     return WORKSPACE_ROOT
 
+@pytest.fixture
+def tmp_app_settings_path(tmp_path):
+    """Return path to temporary application settings file."""
+    return tmp_path / "application-settings.json"
+
+
+@pytest.fixture
+def full_config(tmp_app_settings_path):
+    """Return complete config dict with all 33 required keys."""
+    return {
+        "app_mode": "webcam",
+        "resolution": (640, 480),
+        "fps": 24,
+        "target_fps": 24,
+        "jpeg_quality": 90,
+        "max_frame_age_seconds": 10.0,
+        "max_stream_connections": 10,
+        "api_test_mode_enabled": False,
+        "api_test_cycle_interval_seconds": 1.0,
+        "cat_gif_enabled": False,
+        "cataas_api_url": "https://cataas.com/cat.gif",
+        "cat_gif_cache_ttl_seconds": 300,
+        "cat_gif_retry_base_seconds": 1.0,
+        "cat_gif_retry_max_seconds": 30.0,
+        "discovery_enabled": False,
+        "discovery_management_url": "http://localhost:8001",
+        "discovery_token": "test-token",
+        "discovery_interval_seconds": 60,
+        "discovery_webcam_id": "test-node",
+        "log_level": "INFO",
+        "log_format": "text",
+        "log_include_identifiers": False,
+        "cors_enabled": False,
+        "cors_origins": "",
+        "bind_host": "127.0.0.1",
+        "bind_port": 8000,
+        "base_url": "http://localhost:8000",
+        "pi3_profile_enabled": False,
+        "mock_camera": True,
+        "allow_pykms_mock": False,
+        "node_registry_path": "/tmp/node-registry.json",
+        "application_settings_path": str(tmp_app_settings_path),
+        "management_auth_token": "",
+    }
+
+
 
 @pytest.fixture
 def tmp_app_settings_path(tmp_path):
