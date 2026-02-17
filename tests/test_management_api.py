@@ -24,7 +24,7 @@ def _new_management_client(monkeypatch, tmp_path):
     )
 
     monkeypatch.setenv("APP_MODE", "management")
-    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
 
     original_sys_path = sys.path.copy()
@@ -415,23 +415,23 @@ def test_node_crud_and_overview(monkeypatch, tmp_path):
         "transport": "http",
     }
 
-    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert created.status_code == 201
     assert created.json["id"] == "node-1"
     assert created.json["discovery"]["source"] == "manual"
     assert created.json["discovery"]["approved"] is True
 
-    listed = client.get("/api/nodes", headers=_auth_headers())
+    listed = client.get("/api/webcams", headers=_auth_headers())
     assert listed.status_code == 200
     assert len(listed.json["nodes"]) == 1
 
     updated = client.put(
-        "/api/nodes/node-1", json={"name": "Front Door Cam"}, headers=_auth_headers()
+        "/api/webcams/node-1", json={"name": "Front Door Cam"}, headers=_auth_headers()
     )
     assert updated.status_code == 200
     assert updated.json["name"] == "Front Door Cam"
 
-    status = client.get("/api/nodes/node-1/status", headers=_auth_headers())
+    status = client.get("/api/webcams/node-1/status", headers=_auth_headers())
     assert status.status_code == 503
     assert status.json["error"]["code"] == "SSRF_BLOCKED"
 
@@ -441,14 +441,14 @@ def test_node_crud_and_overview(monkeypatch, tmp_path):
     assert overview.json["summary"]["unavailable_nodes"] == 1
     assert overview.json["summary"]["healthy_nodes"] == 0
 
-    deleted = client.delete("/api/nodes/node-1", headers=_auth_headers())
+    deleted = client.delete("/api/webcams/node-1", headers=_auth_headers())
     assert deleted.status_code == 204
 
 
 def test_validation_and_transport_errors(monkeypatch, tmp_path):
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
-    invalid = client.post("/api/nodes", json={"id": "only-id"}, headers=_auth_headers())
+    invalid = client.post("/api/webcams", json={"id": "only-id"}, headers=_auth_headers())
     assert invalid.status_code == 400
     assert invalid.json["error"]["code"] == "VALIDATION_ERROR"
 
@@ -464,7 +464,7 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
     }
     assert (
         client.post(
-            "/api/nodes",
+            "/api/webcams",
             json=payload,
             headers={"Authorization": "Bearer test-token"},
         ).status_code
@@ -481,13 +481,13 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
         "capabilities": ["stream"],
         "transport": "docker",
     }
-    invalid_create = client.post("/api/nodes", json=invalid_docker_create, headers=_auth_headers())
+    invalid_create = client.post("/api/webcams", json=invalid_docker_create, headers=_auth_headers())
     assert invalid_create.status_code == 400
     assert invalid_create.json["error"]["code"] == "VALIDATION_ERROR"
     assert "docker URL must include port" in invalid_create.json["error"]["message"]
 
     invalid_update = client.put(
-        "/api/nodes/node-2",
+        "/api/webcams/node-2",
         json={"base_url": "docker://proxy:2375"},
         headers=_auth_headers(),
     )
@@ -495,7 +495,7 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
     assert invalid_update.json["error"]["code"] == "VALIDATION_ERROR"
     assert "docker URL must include container ID" in invalid_update.json["error"]["message"]
 
-    action = client.post("/api/nodes/node-2/actions/restart", json={}, headers=_auth_headers())
+    action = client.post("/api/webcams/node-2/actions/restart", json={}, headers=_auth_headers())
     assert action.status_code == 400
     assert action.json["error"]["code"] == "TRANSPORT_UNSUPPORTED"
 
@@ -514,7 +514,7 @@ def test_create_node_rejects_unmigratable_legacy_basic_auth(monkeypatch, tmp_pat
         "transport": "http",
     }
 
-    response = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    response = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert response.status_code == 400
     assert response.json["error"]["code"] == "VALIDATION_ERROR"
     assert (
@@ -538,14 +538,14 @@ def test_ssrf_protection_blocks_local_targets(monkeypatch, tmp_path):
     }
     assert (
         client.post(
-            "/api/nodes",
+            "/api/webcams",
             json=payload,
             headers={"Authorization": "Bearer test-token"},
         ).status_code
         == 201
     )
 
-    status = client.get("/api/nodes/node-3/status", headers=_auth_headers())
+    status = client.get("/api/webcams/node-3/status", headers=_auth_headers())
     assert status.status_code == 503
     assert status.json["error"]["code"] == "SSRF_BLOCKED"
     assert "SSRF protection" in status.json["error"]["details"]["reason"]
@@ -557,7 +557,7 @@ def test_corrupted_registry_file_returns_500_error_payload(monkeypatch, tmp_path
     registry_path.write_text("{invalid json", encoding="utf-8")
 
     monkeypatch.setenv("APP_MODE", "management")
-    monkeypatch.setenv("NODE_REGISTRY_PATH", str(registry_path))
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(registry_path))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
     original_sys_path = sys.path.copy()
     sys.path.insert(
@@ -571,7 +571,7 @@ def test_corrupted_registry_file_returns_500_error_payload(monkeypatch, tmp_path
     finally:
         sys.path = original_sys_path
 
-    listed = client.get("/api/nodes", headers=_auth_headers())
+    listed = client.get("/api/webcams", headers=_auth_headers())
     assert listed.status_code == 500
     assert listed.json["error"]["code"] == "REGISTRY_CORRUPTED"
     assert listed.json["error"]["details"]["reason"] == "invalid registry json"
@@ -596,14 +596,14 @@ def test_ssrf_protection_blocks_ipv6_mapped_loopback(monkeypatch, tmp_path):
     }
     assert (
         client.post(
-            "/api/nodes",
+            "/api/webcams",
             json=payload,
             headers={"Authorization": "Bearer test-token"},
         ).status_code
         == 201
     )
 
-    status = client.get("/api/nodes/node-4/status", headers=_auth_headers())
+    status = client.get("/api/webcams/node-4/status", headers=_auth_headers())
     assert status.status_code == 503
     assert status.json["error"]["code"] == "SSRF_BLOCKED"
     assert "SSRF protection" in status.json["error"]["details"]["reason"]
@@ -625,14 +625,14 @@ def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
     }
     assert (
         client.post(
-            "/api/nodes",
+            "/api/webcams",
             json=payload,
             headers={"Authorization": "Bearer test-token"},
         ).status_code
         == 201
     )
 
-    status = client.get("/api/nodes/node-5/status", headers=_auth_headers())
+    status = client.get("/api/webcams/node-5/status", headers=_auth_headers())
     assert status.status_code == 503
     assert status.json["error"]["code"] == "SSRF_BLOCKED"
     assert "SSRF protection" in status.json["error"]["details"]["reason"]
@@ -654,12 +654,12 @@ def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
         "transport": "docker",
     }
 
-    unauthorized = client.post("/api/nodes", json=payload)
+    unauthorized = client.post("/api/webcams", json=payload)
     assert unauthorized.status_code == 401
     assert unauthorized.json["error"]["code"] == "UNAUTHORIZED"
 
     invalid_token = client.post(
-        "/api/nodes",
+        "/api/webcams",
         json=payload,
         headers={"Authorization": "Bearer invalid-token"},
     )
@@ -667,7 +667,7 @@ def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
     assert invalid_token.json["error"]["code"] == "UNAUTHORIZED"
 
     authorized = client.post(
-        "/api/nodes",
+        "/api/webcams",
         json=payload,
         headers={"Authorization": "Bearer test-token"},
     )
@@ -678,12 +678,12 @@ def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
 def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch, tmp_path):
     from pi_camera_in_docker import management_api
 
-    original_update_node = management_api.FileNodeRegistry.update_node
+    original_update_webcam = management_api.FileNodeRegistry.update_node
 
-    def flaky_update_node(self, node_id, patch):
-        if node_id == "node-race":
-            raise KeyError(node_id)
-        return original_update_node(self, node_id, patch)
+    def flaky_update_node(self, webcam_id, patch):
+        if webcam_id == "node-race":
+            raise KeyError(webcam_id)
+        return original_update_node(self, webcam_id, patch)
 
     monkeypatch.setattr(management_api.FileNodeRegistry, "update_node", flaky_update_node)
     client, _ = _new_management_client(monkeypatch, tmp_path)
@@ -699,22 +699,22 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
         "transport": "http",
     }
 
-    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert created.status_code == 201
 
     response = client.put(
-        "/api/nodes/node-race", json={"name": "Updated Name"}, headers=_auth_headers()
+        "/api/webcams/node-race", json={"name": "Updated Name"}, headers=_auth_headers()
     )
     assert response.status_code == 404
-    assert response.json["error"]["code"] == "NODE_NOT_FOUND"
+    assert response.json["error"]["code"] == "WEBCAM_NOT_FOUND"
 
 
 def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
-    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     create_payload = {
-        "node_id": "node-discovery-1",
+        "webcam_id": "node-discovery-1",
         "name": "Discovery Node",
         "base_url": "http://example.com",
         "transport": "http",
@@ -754,11 +754,11 @@ def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
 
 
 def test_discovery_announce_parallel_requests_do_not_duplicate_error(monkeypatch, tmp_path):
-    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
-        "node_id": "node-discovery-parallel",
+        "webcam_id": "node-discovery-parallel",
         "name": "Discovery Parallel",
         "base_url": "http://example.com",
         "transport": "http",
@@ -792,11 +792,11 @@ def test_discovery_announce_parallel_requests_do_not_duplicate_error(monkeypatch
 
 
 def test_discovery_announce_requires_bearer_token(monkeypatch, tmp_path):
-    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
-        "node_id": "node-discovery-2",
+        "webcam_id": "node-discovery-2",
         "name": "Discovery Node",
         "base_url": "http://example.com",
         "transport": "http",
@@ -817,12 +817,12 @@ def test_discovery_announce_requires_bearer_token(monkeypatch, tmp_path):
 
 
 def test_discovery_announce_blocks_private_ip_without_opt_in(monkeypatch, tmp_path):
-    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
     monkeypatch.delenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", raising=False)
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
-        "node_id": "node-discovery-private-blocked",
+        "webcam_id": "node-discovery-private-blocked",
         "name": "Discovery Node Private",
         "base_url": "http://192.168.1.50:8000",
         "transport": "http",
@@ -844,12 +844,12 @@ def test_discovery_announce_blocks_private_ip_without_opt_in(monkeypatch, tmp_pa
 
 
 def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path):
-    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
     monkeypatch.setenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "true")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
-        "node_id": "node-discovery-private-allowed",
+        "webcam_id": "node-discovery-private-allowed",
         "name": "Discovery Node Private Allowed",
         "base_url": "http://192.168.1.51:8000",
         "transport": "http",
@@ -867,12 +867,12 @@ def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path)
 
 
 def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
-    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     invalid = client.post(
         "/api/discovery/announce",
-        json={"node_id": "node-discovery-3"},
+        json={"webcam_id": "node-discovery-3"},
         headers={"Authorization": "Bearer discovery-secret"},
     )
     assert invalid.status_code == 400
@@ -880,11 +880,11 @@ def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
 
 
 def test_discovery_approval_endpoint(monkeypatch, tmp_path):
-    monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("WEBCAM_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     announce_payload = {
-        "node_id": "node-discovery-approval",
+        "webcam_id": "node-discovery-approval",
         "name": "Discovery Pending",
         "base_url": "http://example.com",
         "transport": "http",
@@ -900,14 +900,14 @@ def test_discovery_approval_endpoint(monkeypatch, tmp_path):
     assert created.json["node"]["discovery"]["approved"] is False
 
     approved = client.post(
-        "/api/nodes/node-discovery-approval/discovery/approve",
+        "/api/webcams/node-discovery-approval/discovery/approve",
         headers=_auth_headers(),
     )
     assert approved.status_code == 200
     assert approved.json["node"]["discovery"]["approved"] is True
 
     rejected = client.post(
-        "/api/nodes/node-discovery-approval/discovery/reject",
+        "/api/webcams/node-discovery-approval/discovery/reject",
         headers=_auth_headers(),
     )
     assert rejected.status_code == 200
@@ -917,7 +917,7 @@ def test_discovery_approval_endpoint(monkeypatch, tmp_path):
 def test_build_headers_for_bearer_auth_with_token():
     from pi_camera_in_docker import management_api
 
-    node = {"auth": {"type": "bearer", "token": "node-token"}}
+    webcam = {"auth": {"type": "bearer", "token": "node-token"}}
 
     headers = management_api._build_headers(node)
     assert headers == {"Authorization": "Bearer node-token"}
@@ -960,7 +960,7 @@ def test_request_json_sends_bearer_auth_header_for_node_probes(monkeypatch):
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
     monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
 
-    node = {"base_url": "http://example.com", "auth": {"type": "bearer", "token": "node-token"}}
+    webcam = {"base_url": "http://example.com", "auth": {"type": "bearer", "token": "node-token"}}
     status_code, _ = management_api._request_json(node, "GET", "/api/status")
     assert status_code == 200
 
@@ -970,7 +970,7 @@ def test_request_json_sends_bearer_auth_header_for_node_probes(monkeypatch):
 def test_build_headers_for_bearer_auth_without_token_returns_empty_headers():
     from pi_camera_in_docker import management_api
 
-    node = {"auth": {"type": "bearer"}}
+    webcam = {"auth": {"type": "bearer"}}
 
     headers = management_api._build_headers(node)
     assert headers == {}
@@ -979,7 +979,7 @@ def test_build_headers_for_bearer_auth_without_token_returns_empty_headers():
 def test_build_headers_for_non_bearer_auth_returns_empty_headers():
     from pi_camera_in_docker import management_api
 
-    node = {"auth": {"type": "basic", "encoded": "abc", "username": "camera", "password": "secret"}}
+    webcam = {"auth": {"type": "basic", "encoded": "abc", "username": "camera", "password": "secret"}}
 
     headers = management_api._build_headers(node)
     assert headers == {}
@@ -997,7 +997,7 @@ def test_node_status_returns_node_unauthorized_when_upstream_rejects_token(monke
         "capabilities": ["stream"],
         "transport": "http",
     }
-    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert created.status_code == 201
 
     def fake_request_json(node, method, path, body=None):
@@ -1006,13 +1006,13 @@ def test_node_status_returns_node_unauthorized_when_upstream_rejects_token(monke
 
     monkeypatch.setattr(management_api, "_request_json", fake_request_json)
 
-    status = client.get("/api/nodes/node-auth-fail/status", headers=_auth_headers())
+    status = client.get("/api/webcams/node-auth-fail/status", headers=_auth_headers())
     assert status.status_code == 401
-    assert status.json["error"]["code"] == "NODE_UNAUTHORIZED"
+    assert status.json["error"]["code"] == "WEBCAM_UNAUTHORIZED"
 
     overview = client.get("/api/management/overview", headers=_auth_headers())
     assert overview.status_code == 200
-    assert overview.json["nodes"][0]["error"]["code"] == "NODE_UNAUTHORIZED"
+    assert overview.json["nodes"][0]["error"]["code"] == "WEBCAM_UNAUTHORIZED"
 
 
 def test_node_status_succeeds_when_upstream_token_is_accepted(monkeypatch, tmp_path):
@@ -1027,7 +1027,7 @@ def test_node_status_succeeds_when_upstream_token_is_accepted(monkeypatch, tmp_p
         "capabilities": ["stream"],
         "transport": "http",
     }
-    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert created.status_code == 201
 
     def fake_request_json(node, method, path, body=None):
@@ -1036,7 +1036,7 @@ def test_node_status_succeeds_when_upstream_token_is_accepted(monkeypatch, tmp_p
 
     monkeypatch.setattr(management_api, "_request_json", fake_request_json)
 
-    status = client.get("/api/nodes/node-auth-ok/status", headers=_auth_headers())
+    status = client.get("/api/webcams/node-auth-ok/status", headers=_auth_headers())
     assert status.status_code == 200
     assert status.json["stream_available"] is True
     assert status.json["status"] == "healthy"
@@ -1055,7 +1055,7 @@ def test_node_status_returns_node_api_mismatch_when_status_endpoint_missing(monk
         "capabilities": ["stream"],
         "transport": "http",
     }
-    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert created.status_code == 201
 
     def fake_request_json(node, method, path, body=None):
@@ -1064,9 +1064,9 @@ def test_node_status_returns_node_api_mismatch_when_status_endpoint_missing(monk
 
     monkeypatch.setattr(management_api, "_request_json", fake_request_json)
 
-    status = client.get("/api/nodes/node-api-mismatch/status", headers=_auth_headers())
+    status = client.get("/api/webcams/node-api-mismatch/status", headers=_auth_headers())
     assert status.status_code == 502
-    assert status.json["error"]["code"] == "NODE_API_MISMATCH"
+    assert status.json["error"]["code"] == "WEBCAM_API_MISMATCH"
     assert status.json["error"]["details"] == {
         "expected_endpoint": "/api/status",
         "received_status_code": 404,
@@ -1085,7 +1085,7 @@ def test_node_status_maps_503_payload_without_error_envelope(monkeypatch, tmp_pa
         "capabilities": ["stream"],
         "transport": "http",
     }
-    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert created.status_code == 201
 
     def fake_request_json(node, method, path, body=None):
@@ -1094,9 +1094,9 @@ def test_node_status_maps_503_payload_without_error_envelope(monkeypatch, tmp_pa
 
     monkeypatch.setattr(management_api, "_request_json", fake_request_json)
 
-    status = client.get("/api/nodes/node-unhealthy/status", headers=_auth_headers())
+    status = client.get("/api/webcams/node-unhealthy/status", headers=_auth_headers())
     assert status.status_code == 200
-    assert status.json["node_id"] == "node-unhealthy"
+    assert status.json["webcam_id"] == "node-unhealthy"
     assert status.json["status"] == "unhealthy"
     assert status.json["stream_available"] is False
 
@@ -1120,17 +1120,17 @@ def test_management_routes_require_authentication(monkeypatch, tmp_path):
         "transport": "http",
     }
 
-    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert created.status_code == 201
 
     endpoints = [
-        ("get", "/api/nodes", None),
-        ("post", "/api/nodes", payload),
-        ("get", "/api/nodes/node-authz", None),
-        ("put", "/api/nodes/node-authz", {"name": "renamed"}),
-        ("delete", "/api/nodes/node-authz", None),
-        ("get", "/api/nodes/node-authz/status", None),
-        ("post", "/api/nodes/node-authz/actions/restart", {}),
+        ("get", "/api/webcams", None),
+        ("post", "/api/webcams", payload),
+        ("get", "/api/webcams/node-authz", None),
+        ("put", "/api/webcams/node-authz", {"name": "renamed"}),
+        ("delete", "/api/webcams/node-authz", None),
+        ("get", "/api/webcams/node-authz/status", None),
+        ("post", "/api/webcams/node-authz/actions/restart", {}),
         ("get", "/api/management/overview", None),
     ]
 
@@ -1167,22 +1167,22 @@ def test_node_status_maps_invalid_upstream_payload_to_controlled_error(monkeypat
         "transport": "http",
     }
 
-    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert created.status_code == 201
 
     def raise_invalid_response(node, method, path, body=None):
-        raise management_api.NodeInvalidResponseError("node returned malformed JSON")
+        raise management_api.NodeInvalidResponseError("webcam returned malformed JSON")
 
     monkeypatch.setattr(management_api, "_request_json", raise_invalid_response)
 
-    response = client.get("/api/nodes/node-invalid-status/status", headers=_auth_headers())
+    response = client.get("/api/webcams/node-invalid-status/status", headers=_auth_headers())
     assert response.status_code == 502
-    assert response.json["error"]["code"] == "NODE_INVALID_RESPONSE"
+    assert response.json["error"]["code"] == "WEBCAM_INVALID_RESPONSE"
     assert response.json["error"]["details"]["reason"] == "malformed json"
 
     overview = client.get("/api/management/overview", headers=_auth_headers())
     assert overview.status_code == 200
-    assert overview.json["nodes"][0]["error"]["code"] == "NODE_INVALID_RESPONSE"
+    assert overview.json["nodes"][0]["error"]["code"] == "WEBCAM_INVALID_RESPONSE"
 
 
 def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch, tmp_path):
@@ -1199,7 +1199,7 @@ def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch
         "transport": "http",
     }
 
-    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert created.status_code == 201
 
     def fake_request_json(node, method, path, body=None):
@@ -1226,7 +1226,7 @@ def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch
     monkeypatch.setattr(management_api, "_request_json", fake_request_json)
 
     restart = client.post(
-        "/api/nodes/node-action-contract/actions/restart",
+        "/api/webcams/node-action-contract/actions/restart",
         json={},
         headers=_auth_headers(),
     )
@@ -1236,7 +1236,7 @@ def test_node_action_forwards_restart_and_unsupported_action_payload(monkeypatch
     assert restart.json["response"]["error"]["code"] == "ACTION_NOT_IMPLEMENTED"
 
     unsupported = client.post(
-        "/api/nodes/node-action-contract/actions/refresh",
+        "/api/webcams/node-action-contract/actions/refresh",
         json={},
         headers=_auth_headers(),
     )
@@ -1262,21 +1262,21 @@ def test_node_action_maps_invalid_upstream_payload_to_controlled_error(monkeypat
         "transport": "http",
     }
 
-    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert created.status_code == 201
 
     def raise_invalid_response(node, method, path, body=None):
-        raise management_api.NodeInvalidResponseError("node returned malformed JSON")
+        raise management_api.NodeInvalidResponseError("webcam returned malformed JSON")
 
     monkeypatch.setattr(management_api, "_request_json", raise_invalid_response)
 
     response = client.post(
-        "/api/nodes/node-invalid-action/actions/restart",
+        "/api/webcams/node-invalid-action/actions/restart",
         json={},
         headers=_auth_headers(),
     )
     assert response.status_code == 502
-    assert response.json["error"]["code"] == "NODE_INVALID_RESPONSE"
+    assert response.json["error"]["code"] == "WEBCAM_INVALID_RESPONSE"
     assert response.json["error"]["details"]["reason"] == "malformed json"
     assert response.json["error"]["details"]["action"] == "restart"
 
@@ -1300,7 +1300,7 @@ def test_create_node_migrates_legacy_auth_with_token(monkeypatch, tmp_path):
         "transport": "http",
     }
 
-    response = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    response = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert response.status_code == 201
     assert response.json["auth"] == {"type": "bearer", "token": "api-token"}
 
@@ -1426,7 +1426,7 @@ def test_request_json_maps_name_resolution_failure_to_dns_category(monkeypatch):
 
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
 
-    node = {"base_url": "http://example.com", "auth": {"type": "none"}}
+    webcam = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
         management_api._request_json(node, "GET", "/api/status")
         raise AssertionError("expected NodeConnectivityError")
@@ -1446,12 +1446,12 @@ def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
 
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
 
-    node = {"base_url": "http://example.com", "auth": {"type": "none"}}
+    webcam = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
         management_api._request_json(node, "GET", "/api/status")
         raise AssertionError("expected NodeRequestError")
     except management_api.NodeRequestError as exc:
-        assert str(exc) == "node target is not allowed"
+        assert str(exc) == "webcam target is not allowed"
 
 
 def test_request_json_maps_timeout_failure(monkeypatch):
@@ -1479,7 +1479,7 @@ def test_request_json_maps_timeout_failure(monkeypatch):
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
     monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
 
-    node = {"base_url": "http://example.com", "auth": {"type": "none"}}
+    webcam = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
         management_api._request_json(node, "GET", "/api/status")
         raise AssertionError("expected NodeConnectivityError")
@@ -1511,7 +1511,7 @@ def test_request_json_maps_connection_refused_or_reset(monkeypatch):
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
     monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
 
-    node = {"base_url": "http://example.com", "auth": {"type": "none"}}
+    webcam = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
         management_api._request_json(node, "GET", "/api/status")
         raise AssertionError("expected NodeConnectivityError")
@@ -1544,7 +1544,7 @@ def test_request_json_maps_tls_failure(monkeypatch):
     monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
     monkeypatch.setattr(management_api, "_PinnedHTTPSConnection", FakeHTTPSConnection)
 
-    node = {"base_url": "https://example.com", "auth": {"type": "none"}}
+    webcam = {"base_url": "https://example.com", "auth": {"type": "none"}}
     try:
         management_api._request_json(node, "GET", "/api/status")
         raise AssertionError("expected NodeConnectivityError")
@@ -1624,7 +1624,7 @@ def test_node_status_reports_connectivity_details(monkeypatch, tmp_path):
         "capabilities": ["stream"],
         "transport": "http",
     }
-    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert created.status_code == 201
 
     def raise_timeout(node, method, path, body=None):
@@ -1637,7 +1637,7 @@ def test_node_status_reports_connectivity_details(monkeypatch, tmp_path):
 
     monkeypatch.setattr(management_api, "_request_json", raise_timeout)
 
-    status = client.get("/api/nodes/node-timeout/status", headers=_auth_headers())
+    status = client.get("/api/webcams/node-timeout/status", headers=_auth_headers())
     assert status.status_code == 503
     assert status.json["error"]["code"] == "NETWORK_UNREACHABLE"
     assert status.json["error"]["details"]["reason"] == "request timed out"
@@ -1691,7 +1691,7 @@ def test_node_action_passthrough_for_api_test_management_actions(monkeypatch, tm
         "transport": "http",
     }
 
-    created = client.post("/api/nodes", json=payload, headers=_auth_headers())
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
     assert created.status_code == 201
 
     captured_calls = []
@@ -1785,12 +1785,12 @@ def test_node_action_passthrough_for_api_test_management_actions(monkeypatch, tm
 
     for action_name, body, expected_api_test in action_requests:
         response = client.post(
-            f"/api/nodes/node-api-test-actions/actions/{action_name}",
+            f"/api/webcams/node-api-test-actions/actions/{action_name}",
             json=body,
             headers=_auth_headers(),
         )
         assert response.status_code == 200
-        assert response.json["node_id"] == "node-api-test-actions"
+        assert response.json["webcam_id"] == "node-api-test-actions"
         assert response.json["action"] == action_name
         assert response.json["status_code"] == 200
         assert response.json["response"]["ok"] is True
@@ -1816,7 +1816,7 @@ def test_node_action_passthrough_for_api_test_management_actions(monkeypatch, tm
 def test_diagnose_includes_structured_status_and_codes(monkeypatch):
     management_api = importlib.import_module("pi_camera_in_docker.management_api")
 
-    node = {"id": "node-diag", "base_url": "http://example.invalid:8000", "transport": "http"}
+    webcam = {"id": "node-diag", "base_url": "http://example.invalid:8000", "transport": "http"}
 
     def _fake_getaddrinfo(*_args, **_kwargs):
         return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("8.8.8.8", 8000))]
@@ -1851,7 +1851,7 @@ def test_diagnose_includes_structured_status_and_codes(monkeypatch):
 def test_diagnose_recommendations_keep_backward_compatible_guidance(monkeypatch):
     management_api = importlib.import_module("pi_camera_in_docker.management_api")
 
-    node = {"id": "node-diag", "base_url": "http://example.invalid:8000", "transport": "http"}
+    webcam = {"id": "node-diag", "base_url": "http://example.invalid:8000", "transport": "http"}
 
     def _raise_timeout(*_args, **_kwargs):
         raise management_api.NodeConnectivityError(

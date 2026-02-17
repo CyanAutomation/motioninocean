@@ -210,7 +210,7 @@ def _load_stream_config() -> Dict[str, Any]:
 
 
 def _load_discovery_config() -> Dict[str, Any]:
-    """Load node discovery/registration configuration from environment variables.
+    """Load webcam discovery/registration configuration from environment variables.
 
     Parses discovery protocol settings for webcam self-registration to management hub.
 
@@ -219,11 +219,11 @@ def _load_discovery_config() -> Dict[str, Any]:
     - DISCOVERY_MANAGEMENT_URL (default: http://127.0.0.1:8001)
     - DISCOVERY_TOKEN (bearer token for announcement authentication)
     - DISCOVERY_INTERVAL_SECONDS (default: 30.0, minimum: >0)
-    - DISCOVERY_NODE_ID (optional, for identifying this node)
+    - DISCOVERY_WEBCAM_ID (optional, for identifying this node)
 
     Returns:
         Dict with keys: discovery_enabled, discovery_management_url, discovery_token,
-        discovery_interval_seconds, discovery_node_id.
+        discovery_interval_seconds, discovery_webcam_id.
     """
     discovery_enabled = os.environ.get("DISCOVERY_ENABLED", "false").lower() in (
         "1",
@@ -238,14 +238,14 @@ def _load_discovery_config() -> Dict[str, Any]:
         discovery_interval_seconds = 30.0
     if discovery_interval_seconds <= 0:
         discovery_interval_seconds = 30.0
-    discovery_node_id = os.environ.get("DISCOVERY_NODE_ID", "").strip()
+    discovery_webcam_id = os.environ.get("DISCOVERY_WEBCAM_ID", "").strip()
 
     return {
         "discovery_enabled": discovery_enabled,
         "discovery_management_url": discovery_management_url,
         "discovery_token": discovery_token,
         "discovery_interval_seconds": discovery_interval_seconds,
-        "discovery_node_id": discovery_node_id,
+        "discovery_webcam_id": discovery_webcam_id,
     }
 
 
@@ -316,13 +316,13 @@ def _load_advanced_config() -> Dict[str, Any]:
     - MOTION_IN_OCEAN_PI3_PROFILE or PI3_PROFILE (default: false)
     - MOCK_CAMERA (feature flag, default: false)
     - ALLOW_PYKMS_MOCK (default: false)
-    - NODE_REGISTRY_PATH (default: /data/node-registry.json)
+    - WEBCAM_REGISTRY_PATH (default: /data/node-registry.json)
     - APPLICATION_SETTINGS_PATH (default: /data/application-settings.json)
     - MANAGEMENT_AUTH_TOKEN (bearer token for management mode auth)
 
     Returns:
         Dict with keys: pi3_profile_enabled, mock_camera, allow_pykms_mock,
-        node_registry_path, application_settings_path, management_auth_token.
+        webcam_registry_path, application_settings_path, management_auth_token.
     """
     pi3_profile_raw = os.environ.get(
         "MOTION_IN_OCEAN_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false")
@@ -333,7 +333,7 @@ def _load_advanced_config() -> Dict[str, Any]:
         "mock_camera": is_flag_enabled("MOCK_CAMERA"),
         "allow_pykms_mock": os.environ.get("ALLOW_PYKMS_MOCK", "false").lower()
         in ("1", "true", "yes"),
-        "node_registry_path": os.environ.get("NODE_REGISTRY_PATH", "/data/node-registry.json"),
+        "webcam_registry_path": os.environ.get("WEBCAM_REGISTRY_PATH", "/data/node-registry.json"),
         "application_settings_path": os.environ.get(
             "APPLICATION_SETTINGS_PATH", "/data/application-settings.json"
         ),

@@ -3,9 +3,9 @@ import threading
 from pi_camera_in_docker.node_registry import FileNodeRegistry, NodeValidationError
 
 
-def _node(node_id: str, name: str) -> dict:
+def _webcam(webcam_id: str, name: str) -> dict:
     return {
-        "id": node_id,
+        "id": webcam_id,
         "name": name,
         "base_url": "http://example.com",
         "auth": {"type": "none"},
@@ -36,12 +36,12 @@ def test_update_node_detects_id_collision(tmp_path):
         registry.update_node("node-1", {"id": "node-2"})
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
-        assert str(exc) == "node node-2 already exists"
+        assert str(exc) == "webcam node-2 already exists"
 
 
 def test_create_node_rejects_basic_auth_without_convertible_token(tmp_path):
     registry = FileNodeRegistry(str(tmp_path / "registry.json"))
-    node = _node("node-1", "One")
+    webcam = _node("node-1", "One")
     node["auth"] = {"type": "basic", "username": "camera", "password": "secret"}
 
     try:
@@ -53,7 +53,7 @@ def test_create_node_rejects_basic_auth_without_convertible_token(tmp_path):
 
 def test_create_node_migrates_legacy_auth_with_token(tmp_path):
     registry = FileNodeRegistry(str(tmp_path / "registry.json"))
-    node = _node("node-1", "One")
+    webcam = _node("node-1", "One")
     node["auth"] = {
         "type": "basic",
         "token": "new-api-token",
@@ -67,7 +67,7 @@ def test_create_node_migrates_legacy_auth_with_token(tmp_path):
 
 def test_create_node_requires_bearer_token(tmp_path):
     registry = FileNodeRegistry(str(tmp_path / "registry.json"))
-    node = _node("node-1", "One")
+    webcam = _node("node-1", "One")
     node["auth"] = {"type": "bearer"}
 
     try:
@@ -151,7 +151,7 @@ def test_load_raises_validation_error_for_corrupted_registry_json(tmp_path):
         registry.list_nodes()
         assert False, "Expected NodeValidationError"
     except NodeValidationError as exc:
-        assert "node registry file is corrupted and cannot be parsed" in str(exc)
+        assert "webcam registry file is corrupted and cannot be parsed" in str(exc)
 
 
 def test_upsert_node_is_atomic_for_concurrent_creates(tmp_path):

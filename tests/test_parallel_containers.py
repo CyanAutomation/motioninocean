@@ -119,7 +119,7 @@ def check_management_health() -> SmokeResult:
     return result
 
 
-def check_management_list_nodes() -> SmokeResult:
+def check_management_list_webcams() -> SmokeResult:
     """Test management container /api/nodes list."""
     result = SmokeResult("Management /api/nodes list")
     code, data = http_get("http://localhost:8001/api/nodes")
@@ -129,7 +129,7 @@ def check_management_list_nodes() -> SmokeResult:
     return result
 
 
-def check_management_register_node() -> SmokeResult:
+def check_management_register_webcam() -> SmokeResult:
     """Test management node registration."""
     result = SmokeResult("Management node registration")
 
@@ -151,7 +151,7 @@ def check_management_register_node() -> SmokeResult:
     return result
 
 
-def check_management_query_node_ssrf_protection() -> SmokeResult:
+def check_management_query_webcam_ssrf_protection() -> SmokeResult:
     """Test that SSRF protection blocks private node IPs (expected behavior)."""
     result = SmokeResult("Management node query (SSRF protection block)")
 
@@ -180,7 +180,7 @@ def check_management_overview() -> SmokeResult:
 
     result.passed = code == 200 and "summary" in data
     summary = data.get("summary", {})
-    result.message = f"Status: {code}, total_nodes: {summary.get('total_nodes')}, unavailable: {summary.get('unavailable_nodes')}"
+    result.message = f"Status: {code}, total_webcams: {summary.get('total_webcams')}, unavailable: {summary.get('unavailable_webcams')}"
     result.details = summary
     return result
 
@@ -192,9 +192,9 @@ def run_all_tests() -> Tuple[list, int, int]:
         check_webcam_ready,
         check_webcam_metrics,
         check_management_health,
-        check_management_list_nodes,
-        check_management_register_node,
-        check_management_query_node_ssrf_protection,
+        check_management_list_webcams,
+        check_management_register_webcam,
+        check_management_query_webcam_ssrf_protection,
         check_management_overview,
     ]
 

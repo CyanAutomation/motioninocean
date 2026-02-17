@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="motion-in-ocean - Node Management" />
-    <title>motion-in-ocean - Node Management</title>
+    <meta name="description" content="motion-in-ocean - Webcam Management" />
+    <title>motion-in-ocean - Webcam Management</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}" />
@@ -12,8 +12,8 @@
   </head>
   <body>
     <header class="management-header">
-      <h1>Node Management</h1>
-      <p class="subtitle">Manage webcam nodes and monitor node health.</p>
+      <h1>Webcam Management</h1>
+      <p class="subtitle">Manage webcam hosts and monitor webcam health.</p>
       <div class="management-token-control">
         <label for="management-api-token">Management API Bearer Token (optional)</label>
         <input
@@ -31,29 +31,29 @@
     </header>
 
     <main id="management-layout" class="management-layout">
-      <section id="node-form-panel-container" class="node-form-panel ui-card">
+      <section id="webcam-form-panel-container" class="webcam-form-panel ui-card">
         <div class="panel-header ui-panel-header">
-          <h2 id="form-title">Add node</h2>
+          <h2 id="form-title">Add webcam host</h2>
           <button
-            id="toggle-node-form-panel-btn"
+            id="toggle-webcam-form-panel-btn"
             class="ui-btn ui-btn--secondary"
             type="button"
-            aria-label="Collapse node form panel"
+            aria-label="Collapse webcam form panel"
             aria-expanded="true"
-            aria-controls="node-form-content"
+            aria-controls="webcam-form-content"
           >
             Collapse
           </button>
         </div>
-        <div id="node-form-content">
-          <div id="node-form-content-wrapper">
-            <form id="node-form">
-              <input type="hidden" id="editing-node-id" value="" />
+        <div id="webcam-form-content">
+          <div id="webcam-form-content-wrapper">
+            <form id="webcam-form">
+              <input type="hidden" id="editing-webcam-id" value="" />
 
               <div class="ui-form-control">
-                <label for="node-id">Node ID</label>
+                <label for="webcam-id">Webcam ID</label>
                 <input
-                  id="node-id"
+                  id="webcam-id"
                   name="id"
                   pattern="[a-zA-Z0-9_-]+"
                   maxlength="64"
@@ -63,53 +63,53 @@
               </div>
 
               <div class="ui-form-control">
-                <label for="node-name">Name</label>
-                <input id="node-name" name="name" maxlength="128" required />
+                <label for="webcam-name">Name</label>
+                <input id="webcam-name" name="name" maxlength="128" required />
               </div>
 
               <div class="ui-form-control">
-                <label for="node-base-url">Base URL</label>
-                <input id="node-base-url" name="base_url" placeholder="" required />
+                <label for="webcam-base-url">Base URL</label>
+                <input id="webcam-base-url" name="base_url" placeholder="" required />
               </div>
 
               <div class="ui-form-control">
-                <label for="node-transport">Transport</label>
-                <select id="node-transport" name="transport">
+                <label for="webcam-transport">Transport</label>
+                <select id="webcam-transport" name="transport">
                   <option value="http" selected>http</option>
                   <option value="docker">docker</option>
                 </select>
               </div>
 
               <div class="ui-form-control">
-                <label for="node-auth-type">Auth Type</label>
-                <select id="node-auth-type" name="auth_type">
+                <label for="webcam-auth-type">Auth Type</label>
+                <select id="webcam-auth-type" name="auth_type">
                   <option value="none" selected>none</option>
                   <option value="bearer">bearer</option>
                 </select>
               </div>
 
               <div class="ui-form-control">
-                <label for="node-auth-token">Remote Node Token (optional)</label>
+                <label for="webcam-auth-token">Remote Node Token (optional)</label>
                 <input
-                  id="node-auth-token"
+                  id="webcam-auth-token"
                   name="auth_token"
-                  placeholder="Set to the remote node MANAGEMENT_AUTH_TOKEN"
+                  placeholder="Set to the remote webcam MANAGEMENT_AUTH_TOKEN"
                 />
                 <small>
-                  For webcam nodes, use the same token configured in that node's `.env`
+                  For webcam hosts, use the same token configureded in that node's `.env`
                   (`MANAGEMENT_AUTH_TOKEN`).
                 </small>
               </div>
 
               <div class="ui-form-control">
-                <label for="node-capabilities">Capabilities (comma-separated)</label>
-                <input id="node-capabilities" name="capabilities" placeholder="stream, snapshot" />
+                <label for="webcam-capabilities">Capabilities (comma-separated)</label>
+                <input id="webcam-capabilities" name="capabilities" placeholder="stream, snapshot" />
               </div>
 
               <div class="ui-form-control">
-                <label for="node-labels">Labels JSON (optional)</label>
+                <label for="webcam-labels">Labels JSON (optional)</label>
                 <textarea
-                  id="node-labels"
+                  id="webcam-labels"
                   name="labels"
                   rows="4"
                   placeholder='{"location":"lab"}'
@@ -130,14 +130,14 @@
         </div>
       </section>
 
-      <section class="node-list-panel ui-card">
+      <section class="webcam-list-panel ui-card">
         <div class="table-header ui-panel-header">
-          <h2>Registered nodes</h2>
-          <button id="refresh-nodes-btn" class="ui-btn ui-btn--secondary">Refresh</button>
+          <h2>Registered webcams</h2>
+          <button id="refresh-webcams-btn" class="ui-btn ui-btn--secondary">Refresh</button>
         </div>
 
-        <div class="node-table-wrap">
-          <table class="node-table" aria-label="Registered node list">
+        <div class="webcam-table-wrap">
+          <table class="webcam-table" aria-label="Registered webcam list">
             <thead>
               <tr>
                 <th>Node</th>
@@ -150,9 +150,9 @@
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody id="nodes-table-body">
+            <tbody id="webcams-table-body">
               <tr>
-                <td colspan="8" class="empty">No nodes registered.</td>
+                <td colspan="8" class="empty">No webcams registered.</td>
               </tr>
             </tbody>
           </table>
@@ -172,7 +172,7 @@
           id="diagnostic-panel"
           class="diagnostic-panel"
           aria-live="polite"
-          aria-label="Node diagnostics panel"
+          aria-label="Webcam diagnostics panel"
           tabindex="-1"
         >
           <div id="diagnostic-panel-content" hidden>
@@ -189,7 +189,7 @@
             </div>
 
             <div class="diagnostic-meta-row" id="diagnostic-meta-row">
-              <span>Node: <strong id="diagnostic-node-id">—</strong></span>
+              <span>Webcam: <strong id="diagnostic-webcam-id">—</strong></span>
               <span>Context: <strong id="diagnostic-context">No report loaded</strong></span>
               <span>
                 Summary:
@@ -209,12 +209,12 @@
                 <strong id="diagnostic-summary-cta">Run diagnostics</strong>
               </div>
               <p id="diagnostic-summary-interpretation">
-                Run Diagnose on a node to generate remediation guidance.
+                Run Diagnose on a webcam to generate remediation guidance.
               </p>
             </div>
 
             <div id="diagnostic-checks-grid" class="diagnostic-checks-grid">
-              <p class="diagnostic-empty">Run Diagnose on a node to view structured checks.</p>
+              <p class="diagnostic-empty">Run Diagnose on a webcam to view structured checks.</p>
             </div>
 
             <div class="diagnostic-recommendations" id="diagnostic-recommendations">

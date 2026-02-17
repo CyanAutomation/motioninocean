@@ -1,7 +1,7 @@
-"""Management API for Motion In Ocean: node registry, discovery, and status aggregation.
+"""Management API for Motion In Ocean: webcam registry, discovery, and status aggregation.
 
 Provides REST endpoints for registering remote camera nodes, approving/rejecting
-discovered nodes, querying node status, and executing actions on remote nodes.
+discovered nodes, querying webcam status, and executing actions on remote nodes.
 Includes comprehensive SSRF protection, DNS pinning, and secure HTTP request handling.
 """
 
@@ -32,20 +32,20 @@ ALLOW_PRIVATE_IPS = os.environ.get("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "").lowe
     "yes",
 }
 
-# Request timeout used for proxied node HTTP calls.
+# Request timeout used for proxied webcam HTTP calls.
 REQUEST_TIMEOUT_SECONDS = 5.0
 
 
 class NodeRequestError(RuntimeError):
-    """Raised when a proxied node request cannot be completed safely."""
+    """Raised when a proxied webcam request cannot be completed safely."""
 
 
 class NodeInvalidResponseError(NodeRequestError):
-    """Raised when a proxied node responds with malformed JSON payload."""
+    """Raised when a proxied webcam responds with malformed JSON payload."""
 
 
 class NodeConnectivityError(ConnectionError):
-    """Raised when a proxied node request fails due to network-level connectivity issues."""
+    """Raised when a proxied webcam request fails due to network-level connectivity issues."""
 
     def __init__(self, message: str, reason: str, category: str, raw_error: str = ""):
         super().__init__(message)
@@ -87,7 +87,7 @@ def _extract_bearer_token() -> Optional[str]:
 
 
 def _validate_node_base_url(base_url: str) -> None:
-    """Validate node base URL for basic format and blocked hosts.
+    """Validate webcam base URL for basic format and blocked hosts.
 
     Args:
         base_url: Node base URL to validate.
@@ -98,12 +98,12 @@ def _validate_node_base_url(base_url: str) -> None:
     parsed = urlparse(base_url)
     hostname = parsed.hostname
     if parsed.scheme not in {"http", "https"} or not hostname:
-        message = "node target is invalid"
+        message = "webcam target is invalid"
         raise NodeRequestError(message)
 
     blocked_hosts = {"localhost", "metadata.google.internal", "metadata", "169.254.169.254"}
     if hostname.lower() in blocked_hosts:
-        message = "node target is not allowed"
+        message = "webcam target is not allowed"
         raise NodeRequestError(message)
 
 
@@ -156,7 +156,7 @@ def _vet_resolved_addresses(addresses: Tuple[str, ...]) -> Tuple[str, ...]:
     vetted: list[str] = []
     for address in addresses:
         if _is_blocked_address(address):
-            message = "node target is not allowed"
+            message = "webcam target is not allowed"
             raise NodeRequestError(message)
         if address not in vetted:
             vetted.append(address)
@@ -173,7 +173,7 @@ def _discovery_private_ip_block_response(base_url: str, blocked_target: str):
             "blocked_target": blocked_target,
             "reason": "private IP announcements require an explicit opt-in",
             "remediation": (
-                "Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true on the management node "
+                "Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true on the management webcam "
                 "to allow LAN/private-IP discovery registrations. Enable only on trusted internal networks."
             ),
             "required_setting": "MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true",
@@ -240,7 +240,7 @@ def _error_response(
     code: str,
     message: str,
     status_code: int,
-    node_id: Optional[str] = None,
+    webcam_id: Optional[str] = None,
     details: Optional[Dict[str, Any]] = None,
 ):
     """Build standardized error response JSON.
@@ -249,7 +249,7 @@ def _error_response(
         code: Error code (e.g., 'DISCOVERY_PRIVATE_IP_BLOCKED').
         message: Error message.
         status_code: HTTP status code.
-        node_id: Optional node ID for context.
+        webcam_id: Optional webcam ID for context.
         details: Optional error details dict.
 
     Returns:
@@ -263,13 +263,13 @@ def _error_response(
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     }
-    if node_id:
-        payload["error"]["node_id"] = node_id
+    if webcam_id:
+        payload["error"]["webcam_id"] = webcam_id
     return jsonify(payload), status_code
 
 
 def _is_registry_corruption_error(exc: NodeValidationError) -> bool:
-    return "node registry file is corrupted and cannot be parsed" in str(exc)
+    return "webcam registry file is corrupted and cannot be parsed" in str(exc)
 
 
 def _registry_corruption_response(exc: NodeValidationError):
@@ -365,7 +365,7 @@ def _classify_url_error(reason: Any) -> Tuple[str, str]:
 
 
 def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[dict] = None):  # type: ignore
-    """Proxy HTTP request to remote node with DNS pinning and SSRF protection.
+    """Proxy HTTP request to remote webcam with DNS pinning and SSRF protection.
 
     Performs DNS resolution, validates resolved IPs against SSRF rules, then
     establishes HTTPS/HTTP connection with DNS pinning to prevent response spoofing.
@@ -373,7 +373,7 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
     Args:
         node: Node dict with 'base_url' and optional 'auth' fields.
         method: HTTP method (GET, POST, etc.).
-        path: URL path relative to node base_url.
+        path: URL path relative to webcam base_url.
         body: Optional request body dict (will be JSON-encoded).
 
     Returns:
@@ -382,19 +382,19 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
     Raises:
         NodeRequestError: On URL validation or SSRF blocking.
         NodeConnectivityError: On network errors (DNS, connection, TLS).
-        NodeInvalidResponseError: If node returns invalid JSON.
+        NodeInvalidResponseError: If webcam returns invalid JSON.
     """
     base_url = node["base_url"].rstrip("/")
     _validate_node_base_url(base_url)
 
-    # Set Sentry context for this node request
-    node_id = node.get("id", "unknown")
+    # Set Sentry context for this webcam request
+    webcam_id = node.get("id", "unknown")
     sentry_sdk.set_tag("component", "management")
-    sentry_sdk.set_tag("node_id", node_id)
+    sentry_sdk.set_tag("webcam_id", webcam_id)
     sentry_sdk.set_context(
         "node_request",
         {
-            "node_id": node_id,
+            "webcam_id": webcam_id,
             "method": method,
             "path": path,
             "base_url": node.get("base_url", "unknown"),
@@ -405,7 +405,7 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
     parsed_url = urlparse(url)
     hostname = parsed_url.hostname
     if not hostname:
-        message = "node target is invalid"
+        message = "webcam target is invalid"
         raise NodeRequestError(message)
 
     port = parsed_url.port
@@ -413,7 +413,7 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
     hostname_str = str(hostname)
     try:
         if _is_blocked_address(hostname_str):
-            message = "node target is not allowed"
+            message = "webcam target is not allowed"
             raise NodeRequestError(message)
         resolved_addresses = (hostname_str,)
     except ValueError:
@@ -473,7 +473,7 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
             try:
                 body_json = json.loads(body_text)
             except json.JSONDecodeError as exc:
-                message = "node returned malformed JSON"
+                message = "webcam returned malformed JSON"
                 raise NodeInvalidResponseError(message) from exc
             return response.status, body_json
         except NodeInvalidResponseError:
@@ -592,7 +592,7 @@ def _get_docker_container_status(
 def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
     """Perform comprehensive diagnostic checks on a registered node.
 
-    Validates node registration, URL formatting, DNS resolution, network connectivity,
+    Validates webcam registration, URL formatting, DNS resolution, network connectivity,
     and API endpoint accessibility. Returns detailed results and remediation guidance.
 
     Args:
@@ -601,11 +601,11 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dict with diagnostics results, status checks, and troubleshooting guidance.
     """
-    node_id = node["id"]
+    webcam_id = node["id"]
     base_url = node.get("base_url", "")
     transport = node.get("transport", "http")
     results = {
-        "node_id": node_id,
+        "webcam_id": webcam_id,
         "diagnostics": {
             "registration": {"valid": False, "status": "fail"},
             "url_validation": {"blocked": False, "status": "pass"},
@@ -762,7 +762,7 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
                 _add_recommendation(
                     "Private IP (192.168.x.x, 10.x.x.x, 172.16.x.x) blocked by SSRF protection. "
                     "Option 1: Use docker network hostname (e.g., 'motion-in-ocean-webcam:8000'). "
-                    "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management node environment.",
+                    "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management webcam environment.",
                     "fail",
                     "SSRF_BLOCKED",
                 )
@@ -797,7 +797,7 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
                     _add_recommendation(
                         f"Hostname '{hostname}' resolves to private IP {ip}, blocked by SSRF protection. "
                         "Option 1: Use a public IP or docker network hostname. "
-                        "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management node environment.",
+                        "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management webcam environment.",
                         "fail",
                         "SSRF_BLOCKED",
                     )
@@ -893,9 +893,9 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
 
         guidance_map = {
             "dns": "DNS Resolution: Unable to resolve hostname. Check spelling and network DNS.",
-            "timeout": f"Network Timeout: Node took longer than {REQUEST_TIMEOUT_SECONDS}s to respond. Check node health, network latency, and camera processing load.",
-            "tls": "TLS Error: SSL/TLS handshake failed. Check node certificate or use http://.",
-            "connection_refused_or_reset": "Connection Error: Node refused connection. Ensure node is running on correct port.",
+            "timeout": f"Network Timeout: Node took longer than {REQUEST_TIMEOUT_SECONDS}s to respond. Check webcam health, network latency, and camera processing load.",
+            "tls": "TLS Error: SSL/TLS handshake failed. Check webcam certificate or use http://.",
+            "connection_refused_or_reset": "Connection Error: Node refused connection. Ensure webcam is running on correct port.",
             "network": "Network Error: Unable to reach node. Check network connectivity and firewall rules.",
         }
         _add_recommendation(
@@ -913,7 +913,7 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
             }
         )
         _add_recommendation(
-            "Connection: Unable to connect to node. Check node is running and network is accessible.",
+            "Connection: Unable to connect to node. Check webcam is running and network is accessible.",
             "fail",
             "NETWORK_CONNECTIVITY_ERROR",
         )
@@ -922,9 +922,9 @@ def _diagnose_node(node: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tuple]]:
-    """Fetch current status from a remote node via HTTP or Docker API.
+    """Fetch current status from a remote webcam via HTTP or Docker API.
 
-    Handles both HTTP and Docker transports. Returns node status dict or error tuple.
+    Handles both HTTP and Docker transports. Returns webcam status dict or error tuple.
 
     Args:
         node: Node dict with id, base_url, transport, auth, etc.
@@ -932,9 +932,9 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
     Returns:
         Tuple of (status_dict, error_tuple_or_none).
         If successful: (status_dict, None).
-        If failed: ({}, (error_code, message, status_code, node_id, details)).
+        If failed: ({}, (error_code, message, status_code, webcam_id, details)).
     """
-    node_id = node["id"]
+    webcam_id = node["id"]
     transport = node.get("transport", "http")
     base_url = node.get("base_url", "")
 
@@ -945,9 +945,9 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
         except ValueError as exc:
             return {}, (
                 "INVALID_DOCKER_URL",
-                f"node {node_id} has an invalid docker URL",
+                f"webcam {webcam_id} has an invalid docker URL",
                 400,
-                node_id,
+                webcam_id,
                 {
                     "reason": str(exc),
                     "expected_format": "docker://proxy-hostname:port/container-id",
@@ -963,7 +963,7 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
 
             if status_code == 200:
                 return {
-                    "node_id": node_id,
+                    "webcam_id": webcam_id,
                     "status": status_payload.get("status", "ok"),
                     "stream_available": bool(status_payload.get("stream_available", False)),
                     "status_probe": {"status_code": status_code, "payload": status_payload},
@@ -973,14 +973,14 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
                     "DOCKER_CONTAINER_NOT_FOUND",
                     f"container {container_id} not found on docker proxy {proxy_host}:{proxy_port}",
                     502,
-                    node_id,
+                    webcam_id,
                     {"container_id": container_id, "proxy": f"{proxy_host}:{proxy_port}"},
                 )
             return {}, (
                 "DOCKER_API_ERROR",
                 f"docker proxy returned unexpected status {status_code}",
                 502,
-                node_id,
+                webcam_id,
                 {"status_code": status_code, "proxy": f"{proxy_host}:{proxy_port}"},
             )
         except NodeConnectivityError as exc:
@@ -988,7 +988,7 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
                 "DOCKER_PROXY_UNREACHABLE",
                 f"cannot reach docker proxy at {proxy_host}:{proxy_port}",
                 503,
-                node_id,
+                webcam_id,
                 {
                     "reason": exc.reason,
                     "category": exc.category,
@@ -1000,7 +1000,7 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
     # Handle HTTP transport (original logic)
     if transport != "http":
         return {
-            "node_id": node_id,
+            "webcam_id": webcam_id,
             "transport": transport,
             "status": "unknown",
             "stream_available": False,
@@ -1014,10 +1014,10 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
         status_code, status_payload = _request_json(node, "GET", "/api/status")
     except NodeInvalidResponseError:
         return {}, (
-            "NODE_INVALID_RESPONSE",
-            f"node {node_id} returned an invalid response",
+            "WEBCAM_INVALID_RESPONSE",
+            f"webcam {webcam_id} returned an invalid response",
             502,
-            node_id,
+            webcam_id,
             {"reason": "malformed json"},
         )
     except NodeRequestError as exc:
@@ -1026,13 +1026,13 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
         if "not allowed" in error_msg or "blocked" in error_msg:
             guidance = (
                 "Use docker network hostname (e.g., 'motion-in-ocean-webcam:8000') "
-                "or set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management node (internal networks only)"
+                "or set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management webcam (internal networks only)"
             )
             return {}, (
                 "SSRF_BLOCKED",
-                f"node {node_id} target is blocked by SSRF protection",
+                f"webcam {webcam_id} target is blocked by SSRF protection",
                 503,
-                node_id,
+                webcam_id,
                 {
                     "reason": "SSRF protection blocks private IPs",
                     "category": "ssrf_blocked",
@@ -1040,10 +1040,10 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
                 },
             )
         return {}, (
-            "NODE_UNREACHABLE",
-            f"node {node_id} is unreachable",
+            "WEBCAM_UNREACHABLE",
+            f"webcam {webcam_id} is unreachable",
             503,
-            node_id,
+            webcam_id,
             {
                 "reason": "target validation failed",
                 "category": "invalid_target",
@@ -1053,9 +1053,9 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
     except NodeConnectivityError as exc:
         return {}, (
             "NETWORK_UNREACHABLE",
-            f"node {node_id} is unreachable",
+            f"webcam {webcam_id} is unreachable",
             503,
-            node_id,
+            webcam_id,
             {
                 "reason": exc.reason,
                 "category": exc.category,
@@ -1065,9 +1065,9 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
     except ConnectionError as exc:
         return {}, (
             "NETWORK_UNREACHABLE",
-            f"node {node_id} is unreachable",
+            f"webcam {webcam_id} is unreachable",
             503,
-            node_id,
+            webcam_id,
             {
                 "reason": "connection failed",
                 "category": "network",
@@ -1077,19 +1077,19 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
 
     if status_code in {401, 403}:
         return {}, (
-            "NODE_UNAUTHORIZED",
-            f"node {node_id} rejected credentials",
+            "WEBCAM_UNAUTHORIZED",
+            f"webcam {webcam_id} rejected credentials",
             401,
-            node_id,
+            webcam_id,
             {"status_code": status_code},
         )
 
     if status_code == 404:
         return {}, (
-            "NODE_API_MISMATCH",
-            f"node {node_id} status probe endpoint was not found",
+            "WEBCAM_API_MISMATCH",
+            f"webcam {webcam_id} status probe endpoint was not found",
             502,
-            node_id,
+            webcam_id,
             {
                 "expected_endpoint": "/api/status",
                 "received_status_code": status_code,
@@ -1098,7 +1098,7 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
 
     if status_code == 200:
         return {
-            "node_id": node_id,
+            "webcam_id": webcam_id,
             "status": status_payload.get("status", "healthy"),
             "stream_available": bool(status_payload.get("stream_available", False)),
             "status_probe": {"status_code": status_code, "payload": status_payload},
@@ -1106,7 +1106,7 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
 
     if status_code == 503:
         return {
-            "node_id": node_id,
+            "webcam_id": webcam_id,
             "status": status_payload.get("status", "unhealthy"),
             "stream_available": bool(status_payload.get("stream_available", False)),
             "status_probe": {"status_code": status_code, "payload": status_payload},
@@ -1114,9 +1114,9 @@ def _status_for_node(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tup
 
     return {}, (
         "NODE_STATUS_ERROR",
-        f"node {node_id} returned unexpected status response",
+        f"webcam {webcam_id} returned unexpected status response",
         502,
-        node_id,
+        webcam_id,
         {"status_code": status_code, "path": "/api/status"},
     )
 
@@ -1130,13 +1130,13 @@ def register_management_routes(
 ) -> None:
     """Register all management API endpoints to Flask app.
 
-    Registers routes for node CRUD, discovery announcements, node status queries,
+    Registers routes for webcam CRUD, discovery announcements, webcam status queries,
     diagnostics, and action proxying. Includes bearer token authentication,
     rate limiting, and SSRF protection.
 
     Args:
         app: Flask application instance.
-        registry_path: Path to persistent node registry JSON file.
+        registry_path: Path to persistent webcam registry JSON file.
         auth_token: Optional bearer token for API authentication. If None, auth disabled.
         node_discovery_shared_secret: Optional token for discovery announcements.
         limiter: Optional Flask-Limiter instance for rate limiting.
@@ -1174,19 +1174,19 @@ def register_management_routes(
     def _management_auth_guard() -> Optional[Tuple[Any, int]]:
         if (
             request.path == "/api/management/overview"
-            or request.path.startswith("/api/nodes/")
-            or request.path == "/api/nodes"
+            or request.path.startswith("/api/webcams/")
+            or request.path == "/api/webcams"
         ):
             return _enforce_management_auth()
         return None
 
-    @app.route("/api/nodes", methods=["GET"])
+    @app.route("/api/webcams", methods=["GET"])
     @_maybe_limit("1000/minute")
     def list_nodes():
         """List all registered nodes.
 
         Returns:
-            JSON list of all node dicts from registry.
+            JSON list of all webcam dicts from registry.
         """
         try:
             nodes = registry.list_nodes()
@@ -1194,18 +1194,18 @@ def register_management_routes(
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
             raise
-        return jsonify({"nodes": nodes}), 200
+        return jsonify({"webcams": nodes}), 200
 
     @app.route("/api/discovery/announce", methods=["POST"])
     @_maybe_limit("10/minute")
     def announce_node():
-        """Receive node self-registration announcement (discovery protocol).
+        """Receive webcam self-registration announcement (discovery protocol).
 
-        Creates or updates a node registration from a remote node's self-advertisement.
+        Creates or updates a webcam registration from a remote node's self-advertisement.
         Validates node, checks SSRF rules, and marks as discovered (not approved by default).
 
         Returns:
-            JSON response with node data and approval status.
+            JSON response with webcam data and approval status.
         """
         unauthorized = _enforce_discovery_auth()
         if unauthorized:
@@ -1213,10 +1213,10 @@ def register_management_routes(
 
         payload = request.get_json(silent=True)
         if not isinstance(payload, dict):
-            return _error_response("VALIDATION_ERROR", "node payload must be an object", 400)
+            return _error_response("VALIDATION_ERROR", "webcam payload must be an object", 400)
 
         candidate = {
-            "id": payload.get("node_id"),
+            "id": payload.get("webcam_id"),
             "name": payload.get("name"),
             "base_url": payload.get("base_url"),
             "transport": payload.get("transport"),
@@ -1253,12 +1253,12 @@ def register_management_routes(
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
-            return _error_response("VALIDATION_ERROR", str(exc), 400, node_id=validated["id"])
+            return _error_response("VALIDATION_ERROR", str(exc), 400, webcam_id=validated["id"])
 
         status_code = 201 if upserted["upserted"] == "created" else 200
         return jsonify(upserted), status_code
 
-    @app.route("/api/nodes", methods=["POST"])
+    @app.route("/api/webcams", methods=["POST"])
     @_maybe_limit("100/minute")
     def create_node():
         payload = request.get_json(silent=True) or {}
@@ -1272,28 +1272,28 @@ def register_management_routes(
             return _error_response("VALIDATION_ERROR", str(exc), 400)
         return jsonify(created), 201
 
-    @app.route("/api/nodes/<node_id>", methods=["GET"])
+    @app.route("/api/webcams/<webcam_id>", methods=["GET"])
     @_maybe_limit("1000/minute")
-    def get_node(node_id: str):
+    def get_node(webcam_id: str):
         try:
-            node = registry.get_node(node_id)
+            webcam = registry.get_node(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
             raise
-        if node is None:
+        if webcam is None:
             return _error_response(
-                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
         return jsonify(node), 200
 
-    @app.route("/api/nodes/<node_id>", methods=["PUT"])
+    @app.route("/api/webcams/<webcam_id>", methods=["PUT"])
     @_maybe_limit("100/minute")
-    def update_node(node_id: str):
+    def update_node(webcam_id: str):
         payload = request.get_json(silent=True) or {}
 
         try:
-            existing = registry.get_node(node_id)
+            existing = registry.get_node(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
@@ -1301,86 +1301,86 @@ def register_management_routes(
         if existing and "discovery" not in payload:
             payload["discovery"] = _manual_discovery_defaults(existing)
         try:
-            updated = registry.update_node(node_id, payload)
+            updated = registry.update_node(webcam_id, payload)
         except KeyError:
             return _error_response(
-                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
-            return _error_response("VALIDATION_ERROR", str(exc), 400, node_id=node_id)
+            return _error_response("VALIDATION_ERROR", str(exc), 400, webcam_id=webcam_id)
         return jsonify(updated), 200
 
-    @app.route("/api/nodes/<node_id>/discovery/<decision>", methods=["POST"])
+    @app.route("/api/webcams/<webcam_id>/discovery/<decision>", methods=["POST"])
     @_maybe_limit("100/minute")
-    def set_node_discovery_approval(node_id: str, decision: str):
+    def set_node_discovery_approval(webcam_id: str, decision: str):
         if decision not in {"approve", "reject"}:
             return _error_response(
-                "VALIDATION_ERROR", "decision must be approve or reject", 400, node_id=node_id
+                "VALIDATION_ERROR", "decision must be approve or reject", 400, webcam_id=webcam_id
             )
 
         try:
-            node = registry.get_node(node_id)
+            webcam = registry.get_node(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
             raise
 
-        if node is None:
+        if webcam is None:
             return _error_response(
-                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
 
         discovery = node.get("discovery", _manual_discovery_defaults(node))
         discovery["approved"] = decision == "approve"
 
         try:
-            updated = registry.update_node(node_id, {"discovery": discovery})
+            updated = registry.update_node(webcam_id, {"discovery": discovery})
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
-            return _error_response("VALIDATION_ERROR", str(exc), 400, node_id=node_id)
+            return _error_response("VALIDATION_ERROR", str(exc), 400, webcam_id=webcam_id)
 
         return jsonify({"node": updated, "decision": decision}), 200
 
-    @app.route("/api/nodes/<node_id>", methods=["DELETE"])
+    @app.route("/api/webcams/<webcam_id>", methods=["DELETE"])
     @_maybe_limit("100/minute")
-    def delete_node(node_id: str):
+    def delete_node(webcam_id: str):
         try:
-            deleted = registry.delete_node(node_id)
+            deleted = registry.delete_node(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
             raise
         if not deleted:
             return _error_response(
-                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
         return "", 204
 
-    @app.route("/api/nodes/<node_id>/status", methods=["GET"])
+    @app.route("/api/webcams/<webcam_id>/status", methods=["GET"])
     @_maybe_limit("1000/minute")
-    def node_status(node_id: str):
+    def node_status(webcam_id: str):
         """Get current status of a registered node.
 
-        Queries the node for its stream status, camera state, and connectivity.
+        Queries the webcam for its stream status, camera state, and connectivity.
 
         Args:
-            node_id: Unique node identifier.
+            webcam_id: Unique webcam identifier.
 
         Returns:
             JSON status dict with stream_available, camera_active, fps, connections, etc.
         """
         try:
-            node = registry.get_node(node_id)
+            webcam = registry.get_node(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
             raise
-        if node is None:
+        if webcam is None:
             return _error_response(
-                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
 
         result, error = _status_for_node(node)
@@ -1388,18 +1388,18 @@ def register_management_routes(
             return _error_response(*error)
         return jsonify(result), 200
 
-    @app.route("/api/nodes/<node_id>/diagnose", methods=["GET"])
+    @app.route("/api/webcams/<webcam_id>/diagnose", methods=["GET"])
     @_maybe_limit("100/minute")
-    def diagnose_node(node_id: str):
+    def diagnose_node(webcam_id: str):
         """
-        Perform detailed diagnostics on node connectivity and configuration.
+        Perform detailed diagnostics on webcam connectivity and configuration.
         Returns structured diagnostic information and actionable guidance.
 
         Endpoints:
-        - /api/nodes/{node_id}/diagnose - comprehensive connectivity diagnostics
+        - /api/webcams/{webcam_id}/diagnose - comprehensive connectivity diagnostics
 
         Response:
-        - node_id: ID of the node
+        - webcam_id: ID of the node
         - diagnostics: nested object with test results
           - registration: URL validation
           - url_validation: SSRF protection screening
@@ -1409,38 +1409,38 @@ def register_management_routes(
         - guidance: list of human-readable recommendations
         """
         try:
-            node = registry.get_node(node_id)
+            webcam = registry.get_node(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
             raise
-        if node is None:
+        if webcam is None:
             return _error_response(
-                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
 
         results = _diagnose_node(node)
         return jsonify(results), 200
 
-    @app.route("/api/nodes/<node_id>/actions/<action>", methods=["POST"])
+    @app.route("/api/webcams/<webcam_id>/actions/<action>", methods=["POST"])
     @_maybe_limit("100/minute")
-    def node_action(node_id: str, action: str):
+    def node_action(webcam_id: str, action: str):
         try:
-            node = registry.get_node(node_id)
+            webcam = registry.get_node(webcam_id)
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
             raise
-        if node is None:
+        if webcam is None:
             return _error_response(
-                "NODE_NOT_FOUND", f"node {node_id} not found", 404, node_id=node_id
+                "NODE_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
         if node.get("transport") != "http":
             return _error_response(
                 "TRANSPORT_UNSUPPORTED",
                 "actions currently support http transport only",
                 400,
-                node_id=node_id,
+                webcam_id=webcam_id,
             )
 
         payload = request.get_json(silent=True) or {}
@@ -1448,39 +1448,39 @@ def register_management_routes(
             status_code, response = _request_json(node, "POST", f"/api/actions/{action}", payload)
         except NodeInvalidResponseError:
             return _error_response(
-                "NODE_INVALID_RESPONSE",
-                f"node {node_id} returned an invalid response",
+                "WEBCAM_INVALID_RESPONSE",
+                f"webcam {webcam_id} returned an invalid response",
                 502,
-                node_id=node_id,
+                webcam_id=webcam_id,
                 details={"reason": "malformed json", "action": action},
             )
         except NodeRequestError:
             return _error_response(
-                "NODE_UNREACHABLE",
-                f"node {node_id} is unreachable",
+                "WEBCAM_UNREACHABLE",
+                f"webcam {webcam_id} is unreachable",
                 503,
-                node_id=node_id,
+                webcam_id=webcam_id,
                 details={"reason": "target is blocked", "action": action},
             )
         except ConnectionError:
             return _error_response(
-                "NODE_UNREACHABLE",
-                f"node {node_id} is unreachable",
+                "WEBCAM_UNREACHABLE",
+                f"webcam {webcam_id} is unreachable",
                 503,
-                node_id=node_id,
+                webcam_id=webcam_id,
                 details={"reason": "connection failed", "action": action},
             )
 
         if status_code in {401, 403}:
             return _error_response(
-                "NODE_UNAUTHORIZED",
-                f"node {node_id} rejected credentials",
+                "WEBCAM_UNAUTHORIZED",
+                f"webcam {webcam_id} rejected credentials",
                 401,
-                node_id=node_id,
+                webcam_id=webcam_id,
                 details={"action": action, "status_code": status_code},
             )
         return jsonify(
-            {"node_id": node_id, "action": action, "status_code": status_code, "response": response}
+            {"webcam_id": webcam_id, "action": action, "status_code": status_code, "response": response}
         ), status_code
 
     @app.route("/api/management/overview", methods=["GET"])
@@ -1494,13 +1494,13 @@ def register_management_routes(
             raise
         statuses = []
         unavailable_nodes = 0
-        for node in nodes:
+        for webcam in nodes:
             result, error = _status_for_node(node)
             if error:
                 unavailable_nodes += 1
                 statuses.append(
                     {
-                        "node_id": node["id"],
+                        "webcam_id": node["id"],
                         "status": "error",
                         "stream_available": False,
                         "error": {
@@ -1521,9 +1521,9 @@ def register_management_routes(
             and str(status.get("status", "")).lower() in {"ok", "healthy", "ready"}
         )
         summary = {
-            "total_nodes": len(nodes),
-            "unavailable_nodes": unavailable_nodes,
+            "total_webcams": len(nodes),
+            "unavailable_webcams": unavailable_nodes,
             "healthy_nodes": healthy_nodes,
             "stream_available_nodes": stream_available_count,
         }
-        return jsonify({"summary": summary, "nodes": statuses}), 200
+        return jsonify({"summary": summary, "webcams": statuses}), 200

@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 # Node registry schema and validation constants
-REQUIRED_NODE_FIELDS = {
+REQUIRED_WEBCAM_FIELDS = {
     "id",
     "name",
     "base_url",
@@ -41,18 +41,18 @@ ALLOWED_DISCOVERY_SOURCES = {"manual", "discovered"}
 ALLOWED_TRANSPORTS = {"http", "docker"}
 
 
-class NodeValidationError(ValueError):
-    """Exception raised for node validation or registry operation errors.
+class WebcamValidationError(ValueError):
+    """Exception raised for webcam validation or registry operation errors.
 
     Used to wrap validation failures, permission issues, or file corruption errors.
     """
 
 
-def _node_auth_error(node_id: str, reason: str) -> NodeValidationError:
+def _webcam_auth_error(webcam_id: str, reason: str) -> NodeValidationError:
     """Create NodeValidationError for deprecated auth field usage.
 
     Args:
-        node_id: ID of node with deprecated auth.
+        webcam_id: ID of webcam with deprecated auth.
         reason: Human-readable reason (e.g., "legacy keys present").
 
     Returns:
@@ -61,7 +61,7 @@ def _node_auth_error(node_id: str, reason: str) -> NodeValidationError:
     return NodeValidationError(
         " ".join(
             [
-                f"node '{node_id}' uses deprecated auth fields: {reason}.",
+                f"webcam '{webcam_id}' uses deprecated auth fields: {reason}.",
                 "Replace auth with {'type': 'bearer', 'token': '<api_token>'} and remove",
                 "legacy auth.username/auth.password/auth.encoded fields.",
             ]
@@ -69,7 +69,7 @@ def _node_auth_error(node_id: str, reason: str) -> NodeValidationError:
     )
 
 
-def migrate_legacy_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
+def migrate_legacy_auth(auth: Any, webcam_id: str = "unknown") -> Dict[str, Any]:
     """Migrate legacy basic auth fields to modern bearer token format.
 
     Handles backward compatibility for nodes using deprecated auth fields:
@@ -78,7 +78,7 @@ def migrate_legacy_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
 
     Args:
         auth: Auth dictionary potentially containing legacy fields.
-        node_id: Node ID for error context (default: "unknown").
+        webcam_id: Node ID for error context (default: "unknown").
 
     Returns:
         Migrated auth dict with type="bearer" and token field.
@@ -103,12 +103,12 @@ def migrate_legacy_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
         elif isinstance(encoded, str) and encoded.lower().startswith("bearer "):
             bearer_token = encoded[7:].strip()
             if not bearer_token:
-                raise _node_auth_error(node_id, "auth.encoded has an empty bearer token")
+                raise _node_auth_error(webcam_id, "auth.encoded has an empty bearer token")
             migrated["type"] = "bearer"
             migrated["token"] = bearer_token
         else:
             raise _node_auth_error(
-                node_id,
+                webcam_id,
                 "auth.type='basic' cannot be auto-migrated without an API token",
             )
 
@@ -125,35 +125,35 @@ def migrate_legacy_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
                 migrated.pop(key, None)
         else:
             raise _node_auth_error(
-                node_id,
+                webcam_id,
                 f"legacy keys present ({', '.join(f'auth.{key}' for key in legacy_keys)})",
             )
 
     return migrated
 
 
-class NodeRegistry(ABC):
-    """Abstract base class for node registry implementations.
+class WebcamRegistry(ABC):
+    """Abstract base class for webcam registry implementations.
 
-    Defines interface for persistent node storage operations: CRUD, listing, upsert.
+    Defines interface for persistent webcam storage operations: CRUD, listing, upsert.
     Implementations must handle validation, file locking, and error recovery.
     """
 
     @abstractmethod
-    def list_nodes(self) -> List[Dict[str, Any]]:
+    def list_webcams(self) -> List[Dict[str, Any]]:
         """List all registered nodes.
 
         Returns:
-            List of node dictionaries.
+            List of webcam dictionaries.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_node(self, node_id: str) -> Optional[Dict[str, Any]]:
-        """Get node by ID.
+    def get_webcam(self, webcam_id: str) -> Optional[Dict[str, Any]]:
+        """Get webcam by ID.
 
         Args:
-            node_id: Unique node identifier.
+            webcam_id: Unique webcam identifier.
 
         Returns:
             Node dictionary or None if not found.
@@ -161,33 +161,33 @@ class NodeRegistry(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def create_node(self, node: Dict[str, Any]) -> Dict[str, Any]:
+    def create_webcam(self, node: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new node.
 
         Args:
             node: Node data with required fields (id, name, base_url, auth, etc.).
 
         Returns:
-            Created node dictionary.
+            Created webcam dictionary.
 
         Raises:
-            NodeValidationError: If validation fails or node ID already exists.
+            NodeValidationError: If validation fails or webcam ID already exists.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def update_node(self, node_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
-        """Update existing node with partial data.
+    def update_webcam(self, webcam_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
+        """Update existing webcam with partial data.
 
         Args:
-            node_id: ID of node to update.
-            patch: Partial node data to merge (any fields).
+            webcam_id: ID of webcam to update.
+            patch: Partial webcam data to merge (any fields).
 
         Returns:
-            Updated node dictionary.
+            Updated webcam dictionary.
 
         Raises:
-            KeyError: If node not found.
+            KeyError: If webcam not found.
             NodeValidationError: If validation fails.
         """
         raise NotImplementedError
@@ -195,16 +195,16 @@ class NodeRegistry(ABC):
     @abstractmethod
     def upsert_node(
         self,
-        node_id: str,
+        webcam_id: str,
         create_value: Dict[str, Any],
         patch_value: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Create node if not exists, else update with patch.
+        """Create webcam if not exists, else update with patch.
 
         Args:
-            node_id: Node ID to upsert.
-            create_value: Data for node creation (if new).
-            patch_value: Data for node update (if exists).
+            webcam_id: Node ID to upsert.
+            create_value: Data for webcam creation (if new).
+            patch_value: Data for webcam update (if exists).
 
         Returns:
             Dict with 'node' and 'upserted' keys ("created" or "updated").
@@ -215,11 +215,11 @@ class NodeRegistry(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def delete_node(self, node_id: str) -> bool:
-        """Delete node by ID.
+    def delete_webcam(self, webcam_id: str) -> bool:
+        """Delete webcam by ID.
 
         Args:
-            node_id: ID of node to delete.
+            webcam_id: ID of webcam to delete.
 
         Returns:
             True if deleted, False if not found.
@@ -227,7 +227,7 @@ class NodeRegistry(ABC):
         raise NotImplementedError
 
 
-def _validate_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
+def _validate_auth(auth: Any, webcam_id: str = "unknown") -> Dict[str, Any]:
     """Validate and normalize auth configuration.
 
     Runs migrate_legacy_auth(), ensures no legacy keys remain, validates type/token.
@@ -235,7 +235,7 @@ def _validate_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
 
     Args:
         auth: Auth dictionary to validate.
-        node_id: Node ID for error context (default: "unknown").
+        webcam_id: Node ID for error context (default: "unknown").
 
     Returns:
         Validated auth dictionary.
@@ -243,7 +243,7 @@ def _validate_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
     Raises:
         NodeValidationError: If auth.type invalid, legacy keys present, or token missing.
     """
-    auth = migrate_legacy_auth(auth, node_id=node_id)
+    auth = migrate_legacy_auth(auth, webcam_id=webcam_id)
 
     auth_type = auth.get("type", "none")
     if auth_type not in {"none", "bearer"}:
@@ -264,8 +264,8 @@ def _validate_auth(auth: Any, node_id: str = "unknown") -> Dict[str, Any]:
     return auth
 
 
-def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]:
-    """Validate and normalize node data.
+def validate_webcam(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]:
+    """Validate and normalize webcam data.
 
     Validates required fields (unless partial=True), type-checks all fields,
     validates auth, discovery, transport, base_url format.
@@ -276,24 +276,24 @@ def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]
         partial: If True, only provided fields required (for PATCH operations).
 
     Returns:
-        Validated and normalized node dictionary.
+        Validated and normalized webcam dictionary.
 
     Raises:
         NodeValidationError: If validation fails for any field.
     """
     if not isinstance(node, dict):
-        message = "node payload must be an object"
+        message = "webcam payload must be an object"
         raise NodeValidationError(message)
 
     if not partial:
-        missing = REQUIRED_NODE_FIELDS.difference(node.keys())
+        missing = REQUIRED_WEBCAM_FIELDS.difference(node.keys())
         if missing:
             missing_fields = ", ".join(sorted(missing))
             message = f"missing required fields: {missing_fields}"
             raise NodeValidationError(message)
 
     validated: Dict[str, Any] = {}
-    fields = REQUIRED_NODE_FIELDS.intersection(node.keys())
+    fields = REQUIRED_WEBCAM_FIELDS.intersection(node.keys())
 
     for field in fields:
         value = node[field]
@@ -313,7 +313,7 @@ def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]
                 raise NodeValidationError(message)
             validated[field] = value
         elif field == "auth":
-            validated_auth = _validate_auth(value, node_id=str(node.get("id", "unknown")))
+            validated_auth = _validate_auth(value, webcam_id=str(node.get("id", "unknown")))
             validated[field] = validated_auth
 
     if "transport" in validated and validated["transport"] not in ALLOWED_TRANSPORTS:
@@ -374,8 +374,8 @@ def validate_node(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]
     return validated
 
 
-class FileNodeRegistry(NodeRegistry):
-    """File-based node registry with POSIX/Windows file locking.
+class FileWebcamRegistry(WebcamRegistry):
+    """File-based webcam registry with POSIX/Windows file locking.
 
     Stores nodes in JSON file with exclusive locking to prevent concurrent mutations.
     Auto-creates parent directory and handles legacy auth migration on load.
@@ -408,17 +408,17 @@ class FileNodeRegistry(NodeRegistry):
         Validates all nodes during load, applies migration to legacy auth fields.
 
         Returns:
-            Dict with "nodes" key containing list of validated node dicts.
+            Dict with "nodes" key containing list of validated webcam dicts.
 
         Raises:
-            NodeValidationError: If file corrupted or node validation fails.
+            NodeValidationError: If file corrupted or webcam validation fails.
         """
         if not self.path.exists():
             return {"nodes": []}
         try:
             raw = json.loads(self.path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
-            message = f"node registry file is corrupted and cannot be parsed: {self.path}"
+            message = f"webcam registry file is corrupted and cannot be parsed: {self.path}"
             raise NodeValidationError(message) from exc
         if not isinstance(raw, dict):
             return {"nodes": []}
@@ -427,9 +427,9 @@ class FileNodeRegistry(NodeRegistry):
             nodes = []
 
         migrated_nodes: List[Dict[str, Any]] = []
-        for index, node in enumerate(nodes):
+        for index, webcam in enumerate(nodes):
             if not isinstance(node, dict):
-                message = f"node at index {index} must be an object"
+                message = f"webcam at index {index} must be an object"
                 raise NodeValidationError(message)
 
             migrated = dict(node)
@@ -494,30 +494,30 @@ class FileNodeRegistry(NodeRegistry):
             message = "No supported file-lock backend available for this platform"
             raise RuntimeError(message)
 
-    def list_nodes(self) -> List[Dict[str, Any]]:
+    def list_webcams(self) -> List[Dict[str, Any]]:
         """List all registered nodes.
 
         Returns:
-            List of node dictionaries.
+            List of webcam dictionaries.
         """
         return self._load()["nodes"]
 
-    def get_node(self, node_id: str) -> Optional[Dict[str, Any]]:
-        """Get node by ID.
+    def get_webcam(self, webcam_id: str) -> Optional[Dict[str, Any]]:
+        """Get webcam by ID.
 
         Args:
-            node_id: Unique node identifier.
+            webcam_id: Unique webcam identifier.
 
         Returns:
             Node dictionary or None if not found.
         """
-        for node in self.list_nodes():
-            if node.get("id") == node_id:
+        for webcam in self.list_webcams():
+            if node.get("id") == webcam_id:
                 return node
         return None
 
-    def create_node(self, node: Dict[str, Any]) -> Dict[str, Any]:
-        """Create new node with exclusive lock.
+    def create_webcam(self, node: Dict[str, Any]) -> Dict[str, Any]:
+        """Create new webcam with exclusive lock.
 
         Validates node, checks ID uniqueness, appends to registry.
 
@@ -525,7 +525,7 @@ class FileNodeRegistry(NodeRegistry):
             node: Node data with required fields.
 
         Returns:
-            Created node dictionary.
+            Created webcam dictionary.
 
         Raises:
             NodeValidationError: If validation fails or ID already exists.
@@ -535,27 +535,27 @@ class FileNodeRegistry(NodeRegistry):
         with self._exclusive_lock():
             data = self._load()
             if any(existing.get("id") == candidate["id"] for existing in data["nodes"]):
-                message = f"node {candidate['id']} already exists"
+                message = f"webcam {candidate['id']} already exists"
                 raise NodeValidationError(message)
             data["nodes"].append(candidate)
             self._save(data)
             return candidate
 
-    def update_node(self, node_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
-        """Update existing node by merging patch data.
+    def update_webcam(self, webcam_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
+        """Update existing webcam by merging patch data.
 
-        Validates patch, merges with existing node (deep-merges discovery), re-validates merged.
+        Validates patch, merges with existing webcam (deep-merges discovery), re-validates merged.
         Checks ID uniqueness after merge.
 
         Args:
-            node_id: ID of node to update.
-            patch: Partial node data to merge.
+            webcam_id: ID of webcam to update.
+            patch: Partial webcam data to merge.
 
         Returns:
-            Updated node dictionary.
+            Updated webcam dictionary.
 
         Raises:
-            KeyError: If node_id not found.
+            KeyError: If webcam_id not found.
             NodeValidationError: If validation or ID uniqueness check fails.
         """
         validated_patch = validate_node(patch, partial=True)
@@ -563,7 +563,7 @@ class FileNodeRegistry(NodeRegistry):
         with self._exclusive_lock():
             data = self._load()
             for index, existing in enumerate(data["nodes"]):
-                if existing.get("id") != node_id:
+                if existing.get("id") != webcam_id:
                     continue
                 merged = {**existing, **validated_patch}
                 if isinstance(existing.get("discovery"), dict) and isinstance(
@@ -575,29 +575,29 @@ class FileNodeRegistry(NodeRegistry):
                     other_index != index and other.get("id") == merged["id"]
                     for other_index, other in enumerate(data["nodes"])
                 ):
-                    message = f"node {merged['id']} already exists"
+                    message = f"webcam {merged['id']} already exists"
                     raise NodeValidationError(message)
                 data["nodes"][index] = merged
                 self._save(data)
                 return merged
-            raise KeyError(node_id)
+            raise KeyError(webcam_id)
 
     def upsert_node(
         self,
-        node_id: str,
+        webcam_id: str,
         create_value: Dict[str, Any],
         patch_value: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Create or update node with exclusive lock.
+        """Create or update webcam with exclusive lock.
 
-        If node exists: merges patch_value and validates merged result.
-        If node not exists: creates with create_value.
+        If webcam exists: merges patch_value and validates merged result.
+        If webcam not exists: creates with create_value.
         Returns dict with 'node' and 'upserted' (\"created\"/\"updated\") keys.
 
         Args:
-            node_id: Node ID to upsert.
-            create_value: Data for node creation (if new).
-            patch_value: Data for node update (if exists).
+            webcam_id: Node ID to upsert.
+            create_value: Data for webcam creation (if new).
+            patch_value: Data for webcam update (if exists).
 
         Returns:
             Dict with keys: 'node' (the node), 'upserted' (\"created\" or \"updated\").
@@ -611,7 +611,7 @@ class FileNodeRegistry(NodeRegistry):
         with self._exclusive_lock():
             data = self._load()
             for index, existing in enumerate(data["nodes"]):
-                if existing.get("id") != node_id:
+                if existing.get("id") != webcam_id:
                     continue
 
                 merged = {**existing, **validated_patch}
@@ -624,24 +624,24 @@ class FileNodeRegistry(NodeRegistry):
                     other_index != index and other.get("id") == merged["id"]
                     for other_index, other in enumerate(data["nodes"])
                 ):
-                    message = f"node {merged['id']} already exists"
+                    message = f"webcam {merged['id']} already exists"
                     raise NodeValidationError(message)
                 data["nodes"][index] = merged
                 self._save(data)
                 return {"node": merged, "upserted": "updated"}
 
             if any(existing.get("id") == candidate["id"] for existing in data["nodes"]):
-                message = f"node {candidate['id']} already exists"
+                message = f"webcam {candidate['id']} already exists"
                 raise NodeValidationError(message)
             data["nodes"].append(candidate)
             self._save(data)
             return {"node": candidate, "upserted": "created"}
 
-    def delete_node(self, node_id: str) -> bool:
-        """Delete node by ID with exclusive lock.
+    def delete_webcam(self, webcam_id: str) -> bool:
+        """Delete webcam by ID with exclusive lock.
 
         Args:
-            node_id: ID of node to delete.
+            webcam_id: ID of webcam to delete.
 
         Returns:
             True if deleted, False if not found.
@@ -649,7 +649,7 @@ class FileNodeRegistry(NodeRegistry):
         with self._exclusive_lock():
             data = self._load()
             previous_count = len(data["nodes"])
-            data["nodes"] = [node for node in data["nodes"] if node.get("id") != node_id]
+            data["nodes"] = [webcam for webcam in data["nodes"] if node.get("id") != webcam_id]
             if previous_count == len(data["nodes"]):
                 return False
             self._save(data)

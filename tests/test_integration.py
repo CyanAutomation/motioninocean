@@ -21,7 +21,7 @@ def _build_webcam_status_app(main_module, stream_status_payload):
         "cors_enabled": False,
         "cors_origins": "",
         "allow_pykms_mock": False,
-        "node_registry_path": "/tmp/node-registry.json",
+        "webcam_registry_path": "/tmp/node-registry.json",
         "application_settings_path": "/tmp/application-settings.json",
         "management_auth_token": "",
     }
@@ -36,7 +36,7 @@ def test_management_endpoints_return_contract_payloads(monkeypatch, tmp_path):
 
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("MOCK_CAMERA", "true")
-    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "")
 
     app = main.create_management_app()
@@ -190,7 +190,7 @@ def test_setup_generate_includes_v4l_subdev_when_detected(monkeypatch, tmp_path)
 
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("MOCK_CAMERA", "true")
-    monkeypatch.setenv("NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "")
 
     app = main.create_management_app()

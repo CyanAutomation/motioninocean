@@ -2,23 +2,23 @@
  * Motion In Ocean Management Dashboard
  *
  * BUI for managing remote camera nodes, including registration, discovery, status monitoring,
- * diagnostics, and remote action execution. Implements node CRUD operations, bearer token
+ * diagnostics, and remote action execution. Implements webcam CRUD operations, bearer token
  * authentication, and real-time status polling.
  */
 
 const tableBody = document.getElementById("nodes-table-body");
-const nodeForm = document.getElementById("node-form");
+const webcamForm = document.getElementById("node-form");
 const feedback = document.getElementById("form-feedback");
 const formTitle = document.getElementById("form-title");
 const cancelEditBtn = document.getElementById("cancel-edit-btn");
 const refreshBtn = document.getElementById("refresh-nodes-btn");
-const toggleNodeFormPanelBtn = document.getElementById("toggle-node-form-panel-btn");
+const toggleWebcamFormPanelBtn = document.getElementById("toggle-node-form-panel-btn");
 const managementLayout = document.getElementById("management-layout");
-const nodeFormPanelContainer = document.getElementById("node-form-panel-container");
-const nodeFormContentWrapper = document.getElementById("node-form-content-wrapper");
-const nodeFormContent = document.getElementById("node-form-content");
-const editingNodeIdInput = document.getElementById("editing-node-id");
-const diagnosticNodeId = document.getElementById("diagnostic-node-id");
+const webcamFormPanelContainer = document.getElementById("node-form-panel-container");
+const webcamFormContentWrapper = document.getElementById("node-form-content-wrapper");
+const webcamFormContent = document.getElementById("node-form-content");
+const editingWebcamIdInput = document.getElementById("editing-node-id");
+const diagnosticWebcamId = document.getElementById("diagnostic-node-id");
 const diagnosticContext = document.getElementById("diagnostic-context");
 const diagnosticSummaryBadge = document.getElementById("diagnostic-summary-badge");
 const diagnosticOverallStatePill = document.getElementById("diagnostic-overall-state-pill");
@@ -35,9 +35,9 @@ const diagnosticPanelContent = document.getElementById("diagnostic-panel-content
 const diagnosticsAdvancedCheckbox = advancedDiagnosticsToggle;
 const diagnosticsCollapsibleContainer = diagnosticPanelContent;
 
-let nodes = [];
-let nodeStatusMap = new Map();
-let nodeStatusAggregationMap = new Map();
+let webcams = [];
+let webcamStatusMap = new Map();
+let webcamStatusAggregationMap = new Map();
 let statusRefreshInFlight = false;
 let statusRefreshPending = false;
 let statusRefreshPendingManual = false;
@@ -49,7 +49,7 @@ const API_AUTH_HINT =
 
 const DOCKER_BASE_URL_PATTERN = String.raw`docker://[^\s/:]+:\d+/[^\s/]+`;
 const DOCKER_BASE_URL_HINT = "Use format: docker://proxy-hostname:port/container-id";
-const NODE_FORM_COLLAPSED_STORAGE_KEY = "management.nodeFormCollapsed";
+const NODE_FORM_COLLAPSED_STORAGE_KEY = "management.webcamFormCollapsed";
 
 function setDiagnosticPanelExpanded(isExpanded) {
   if (
@@ -120,7 +120,7 @@ function formatDateTime(isoString) {
   return parsed.toLocaleString();
 }
 
-function getDiscoveryInfo(node = {}) {
+function getDiscoveryInfo(webcam = {}) {
   const discovery = node.discovery || {};
   const source = discovery.source || "manual";
   const firstSeen = discovery.first_seen || node.last_seen || null;
@@ -137,8 +137,8 @@ function describeApiError(errorPayload = {}) {
     return `Discovery registration blocked by private-IP policy. ${details.remediation || "Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true only for trusted internal networks."}`;
   }
 
-  if (code === "NODE_UNAUTHORIZED") {
-    return "Token/auth mismatch: the remote node rejected credentials. Update this node's bearer token to match MANAGEMENT_AUTH_TOKEN on the webcam node.";
+  if (code === "WEBCAM_UNAUTHORIZED") {
+    return "Token/auth mismatch: the remote webcam rejected credentials. Update this node's bearer token to match MANAGEMENT_AUTH_TOKEN on the webcam node.";
   }
 
   if (code === "SSRF_BLOCKED") {
@@ -166,7 +166,7 @@ function getManagementBearerToken() {
  * Fetch from management API with bearer token authentication.
  *
  * @async
- * @param {string} path - API endpoint path (e.g., "/api/nodes").
+ * @param {string} path - API endpoint path (e.g., "/api/webcams").
  * @param {Object} [options={}] - Fetch options (method, body, headers, etc.).
  * @returns {Promise<Response>} Fetch response.
  * @throws {Error} If response is 401, shows authentication error hint.
@@ -209,7 +209,7 @@ function getParsedLabels() {
   return JSON.parse(raw);
 }
 
-function buildNodePayload({ preserveLastSeen = false } = {}) {
+function buildWebcamPayload({ preserveLastSeen = false } = {}) {
   const nowIso = new Date().toISOString();
   const capabilities = document
     .getElementById("node-capabilities")
@@ -229,7 +229,7 @@ function buildNodePayload({ preserveLastSeen = false } = {}) {
   };
 
   if (preserveLastSeen) {
-    const existing = nodes.find((node) => node.id === editingNodeIdInput.value);
+    const existing = nodes.find((node) => node.id === editingWebcamIdInput.value);
     if (existing?.last_seen) {
       payload.last_seen = existing.last_seen;
     }
@@ -257,7 +257,7 @@ const STATUS_SUBTYPE_CONFIG = {
   },
   unauthorized: {
     label: "Unauthorized",
-    helpText: "Credentials were rejected by the node API.",
+    helpText: "Credentials were rejected by the webcam API.",
     statusClass: "ui-status-pill--error",
   },
   no_response: {
@@ -282,7 +282,7 @@ const STATUS_SUBTYPE_CONFIG = {
   },
 };
 
-function normalizeNodeStatusError(error = {}) {
+function normalizeWebcamStatusError(error = {}) {
   return {
     status: "error",
     stream_available: false,
@@ -301,8 +301,8 @@ function isFailureStatus(status = {}) {
   return ["error", "failed", "down", "unhealthy", "unauthorized"].includes(normalized);
 }
 
-function enrichStatusWithAggregation(nodeId, status = {}) {
-  const existing = nodeStatusAggregationMap.get(nodeId) || {
+function enrichStatusWithAggregation(webcamId, status = {}) {
+  const existing = webcamStatusAggregationMap.get(nodeId) || {
     last_success_at: null,
     first_failure_at: null,
     consecutive_failures: 0,
@@ -327,7 +327,7 @@ function enrichStatusWithAggregation(nodeId, status = {}) {
     next.consecutive_failures = 0;
   }
 
-  nodeStatusAggregationMap.set(nodeId, next);
+  webcamStatusAggregationMap.set(nodeId, next);
   return { ...status, ...next };
 }
 
@@ -353,12 +353,12 @@ function getStatusReason(status = {}) {
   const code = status.error_code;
   const knownReasons = {
     SSRF_BLOCKED: {
-      title: "Private-IP policy blocked this node target.",
+      title: "Private-IP policy blocked this webcam target.",
       hint: "Use a docker network hostname (e.g., 'motion-in-ocean-webcam:8000') or explicitly set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true on management for trusted internal networks. Click Diagnose for details.",
     },
     NETWORK_UNREACHABLE: {
       title: "Node is unreachable on the network.",
-      hint: "Check node is running, network connectivity, and firewall rules. Click Diagnose for details.",
+      hint: "Check webcam is running, network connectivity, and firewall rules. Click Diagnose for details.",
     },
     DOCKER_PROXY_UNREACHABLE: {
       title: "Docker proxy is unreachable.",
@@ -376,25 +376,25 @@ function getStatusReason(status = {}) {
       title: "Docker URL is invalid.",
       hint: "Use format: docker://proxy-hostname:port/container-id",
     },
-    NODE_UNREACHABLE: {
+    WEBCAM_UNREACHABLE: {
       title: "Node is unreachable.",
-      hint: "Check the node base URL, networking, and that the node service is running.",
+      hint: "Check the webcam base URL, networking, and that the webcam service is running.",
     },
-    NODE_UNAUTHORIZED: {
+    WEBCAM_UNAUTHORIZED: {
       title: "Token/auth mismatch with remote node.",
-      hint: "Set this node bearer token to match the webcam node MANAGEMENT_AUTH_TOKEN, then refresh.",
+      hint: "Set this webcam bearer token to match the webcam webcam MANAGEMENT_AUTH_TOKEN, then refresh.",
     },
-    NODE_INVALID_RESPONSE: {
+    WEBCAM_INVALID_RESPONSE: {
       title: "Node returned an invalid response.",
-      hint: "Verify the node API version and status endpoint compatibility.",
+      hint: "Verify the webcam API version and status endpoint compatibility.",
     },
     TRANSPORT_UNSUPPORTED: {
       title: "Configured transport is unsupported.",
       hint: "Switch to a supported transport for this node.",
     },
-    NODE_API_MISMATCH: {
+    WEBCAM_API_MISMATCH: {
       title: "Node API does not match expected management endpoints.",
-      hint: "Confirm the node is running the compatible management service and exposes /api/status.",
+      hint: "Confirm the webcam is running the compatible management service and exposes /api/status.",
     },
   };
 
@@ -410,7 +410,7 @@ function getStatusReason(status = {}) {
   return "No additional details available.";
 }
 
-function normalizeNodeStatusForUi(status = {}) {
+function normalizeWebcamStatusForUi(status = {}) {
   const statusText = String(status.status || "unknown").toLowerCase();
   const errorCode = String(status.error_code || "").toUpperCase();
   const isReady = status.ready === true;
@@ -419,9 +419,9 @@ function normalizeNodeStatusForUi(status = {}) {
 
   if (errorCode === "TRANSPORT_UNSUPPORTED") {
     subtype = "unsupported_transport";
-  } else if (errorCode === "NODE_API_MISMATCH") {
+  } else if (errorCode === "WEBCAM_API_MISMATCH") {
     subtype = "no_response";
-  } else if (errorCode === "NODE_UNAUTHORIZED" || statusText === "unauthorized") {
+  } else if (errorCode === "WEBCAM_UNAUTHORIZED" || statusText === "unauthorized") {
     subtype = "unauthorized";
   } else if (statusText === "ok" || statusText === "healthy" || statusText === "ready") {
     subtype = isReady ? "healthy" : "partial_probe";
@@ -471,10 +471,10 @@ function renderRows() {
 
   tableBody.innerHTML = nodes
     .map((node) => {
-      const status = nodeStatusMap.get(node.id) || { status: "unknown", stream_available: false };
-      const normalizedStatus = normalizeNodeStatusForUi(status);
+      const status = webcamStatusMap.get(node.id) || { status: "unknown", stream_available: false };
+      const normalizedStatus = normalizeWebcamStatusForUi(status);
       const streamText = status.stream_available ? "Available" : "Unavailable";
-      const discovery = getDiscoveryInfo(node);
+      const discovery = getDiscoveryInfo(webcam);
       const aggregateDetails = formatAggregationDetails(status);
       const detailsTooltip = [normalizedStatus.helpText, status.error_details]
         .filter(Boolean)
@@ -525,19 +525,19 @@ function renderRows() {
  * @async
  * @returns {Promise<void>}
  */
-async function fetchNodes() {
+async function fetchWebcams() {
   try {
-    const response = await managementFetch("/api/nodes");
+    const response = await managementFetch("/api/webcams");
     if (!response.ok) {
       throw new Error("Failed to load nodes");
     }
     const payload = await response.json();
     nodes = payload.nodes || [];
     const activeNodeIds = new Set(nodes.map((node) => node.id));
-    for (const nodeId of nodeStatusMap.keys()) {
+    for (const nodeId of webcamStatusMap.keys()) {
       if (!activeNodeIds.has(nodeId)) {
-        nodeStatusMap.delete(nodeId);
-        nodeStatusAggregationMap.delete(nodeId);
+        webcamStatusMap.delete(nodeId);
+        webcamStatusAggregationMap.delete(nodeId);
       }
     }
     renderRows();
@@ -592,7 +592,7 @@ async function refreshStatuses({ fromInterval = false } = {}) {
         nodes.map(async (node) => {
           try {
             const response = await managementFetch(
-              `/api/nodes/${encodeURIComponent(node.id)}/status`,
+              `/api/webcams/${encodeURIComponent(node.id)}/status`,
             );
             if (!response.ok) {
               let errorPayload = {};
@@ -604,7 +604,7 @@ async function refreshStatuses({ fromInterval = false } = {}) {
               }
               nextStatusMap.set(
                 node.id,
-                enrichStatusWithAggregation(node.id, normalizeNodeStatusError(errorPayload)),
+                enrichStatusWithAggregation(node.id, normalizeWebcamStatusError(errorPayload)),
               );
               return;
             }
@@ -619,8 +619,8 @@ async function refreshStatuses({ fromInterval = false } = {}) {
               node.id,
               enrichStatusWithAggregation(
                 node.id,
-                normalizeNodeStatusError({
-                  message: error?.message || "Failed to refresh node status.",
+                normalizeWebcamStatusError({
+                  message: error?.message || "Failed to refresh webcam status.",
                 }),
               ),
             );
@@ -629,7 +629,7 @@ async function refreshStatuses({ fromInterval = false } = {}) {
       );
 
       if (currentToken === statusRefreshToken) {
-        nodeStatusMap = nextStatusMap;
+        webcamStatusMap = nextStatusMap;
         renderRows();
       }
     } while (statusRefreshPending);
@@ -639,9 +639,9 @@ async function refreshStatuses({ fromInterval = false } = {}) {
 }
 
 function resetForm() {
-  nodeForm.reset();
+  webcamForm.reset();
   updateBaseUrlValidation(document.getElementById("node-transport").value);
-  editingNodeIdInput.value = "";
+  editingWebcamIdInput.value = "";
   formTitle.textContent = "Add node";
   document.getElementById("node-id").disabled = false;
   cancelEditBtn.classList.add("hidden");
@@ -651,8 +651,8 @@ function setNodeFormPanelCollapsed(isCollapsed) {
   const isExpanded = !isCollapsed;
 
   if (
-    !(toggleNodeFormPanelBtn instanceof HTMLButtonElement) ||
-    !(nodeFormContent instanceof HTMLElement)
+    !(toggleWebcamFormPanelBtn instanceof HTMLButtonElement) ||
+    !(webcamFormContent instanceof HTMLElement)
   ) {
     return;
   }
@@ -661,21 +661,21 @@ function setNodeFormPanelCollapsed(isCollapsed) {
     managementLayout.classList.toggle("is-form-collapsed", isCollapsed);
   }
 
-  if (nodeFormPanelContainer instanceof HTMLElement) {
-    nodeFormPanelContainer.classList.toggle("is-form-collapsed", isCollapsed);
+  if (webcamFormPanelContainer instanceof HTMLElement) {
+    webcamFormPanelContainer.classList.toggle("is-form-collapsed", isCollapsed);
   }
 
-  if (nodeFormContentWrapper instanceof HTMLElement) {
-    nodeFormContentWrapper.classList.toggle("hidden", isCollapsed);
+  if (webcamFormContentWrapper instanceof HTMLElement) {
+    webcamFormContentWrapper.classList.toggle("hidden", isCollapsed);
   }
 
-  nodeFormContent.classList.toggle("hidden", isCollapsed);
-  toggleNodeFormPanelBtn.setAttribute("aria-expanded", String(isExpanded));
-  toggleNodeFormPanelBtn.textContent = isExpanded ? "«" : "»";
-  toggleNodeFormPanelBtn.title = isExpanded ? "Collapse node form panel" : "Expand node form panel";
-  toggleNodeFormPanelBtn.setAttribute(
+  webcamFormContent.classList.toggle("hidden", isCollapsed);
+  toggleWebcamFormPanelBtn.setAttribute("aria-expanded", String(isExpanded));
+  toggleWebcamFormPanelBtn.textContent = isExpanded ? "«" : "»";
+  toggleWebcamFormPanelBtn.title = isExpanded ? "Collapse webcam form panel" : "Expand webcam form panel";
+  toggleWebcamFormPanelBtn.setAttribute(
     "aria-label",
-    isExpanded ? "Collapse node form panel" : "Expand node form panel",
+    isExpanded ? "Collapse webcam form panel" : "Expand webcam form panel",
   );
 
   try {
@@ -686,11 +686,11 @@ function setNodeFormPanelCollapsed(isCollapsed) {
 }
 
 function toggleNodeFormPanel() {
-  if (!(toggleNodeFormPanelBtn instanceof HTMLButtonElement)) {
+  if (!(toggleWebcamFormPanelBtn instanceof HTMLButtonElement)) {
     return;
   }
 
-  const isExpanded = toggleNodeFormPanelBtn.getAttribute("aria-expanded") === "true";
+  const isExpanded = toggleWebcamFormPanelBtn.getAttribute("aria-expanded") === "true";
   setNodeFormPanelCollapsed(isExpanded);
 }
 
@@ -703,7 +703,7 @@ function getStoredNodeFormCollapsedPreference() {
 }
 
 /**
- * Submit node form (create or update).
+ * Submit webcam form (create or update).
  *
  * @async
  * @param {Event} event - Form submission event.
@@ -713,18 +713,18 @@ async function submitNodeForm(event) {
   event.preventDefault();
   showFeedback("");
 
-  const editingNodeId = editingNodeIdInput.value;
+  const editingNodeId = editingWebcamIdInput.value;
   const isEdit = Boolean(editingNodeId);
 
   let payload;
   try {
-    payload = buildNodePayload({ preserveLastSeen: isEdit });
+    payload = buildWebcamPayload({ preserveLastSeen: isEdit });
   } catch {
     showFeedback("Labels must be valid JSON.", true);
     return;
   }
 
-  const endpoint = isEdit ? `/api/nodes/${encodeURIComponent(editingNodeId)}` : "/api/nodes";
+  const endpoint = isEdit ? `/api/webcams/${encodeURIComponent(editingNodeId)}` : "/api/webcams";
   const method = isEdit ? "PUT" : "POST";
 
   try {
@@ -742,7 +742,7 @@ async function submitNodeForm(event) {
 
     showFeedback(isEdit ? "Node updated." : "Node added.");
     resetForm();
-    await fetchNodes();
+    await fetchWebcams();
     await refreshStatuses();
   } catch (error) {
     if (error?.isUnauthorized) {
@@ -754,19 +754,19 @@ async function submitNodeForm(event) {
 }
 
 /**
- * Begin editing a node by loading it into the form.
+ * Begin editing a webcam by loading it into the form.
  *
  * @param {string} nodeId - Node to edit.
  * @returns {void}
  */
 function beginEditNode(nodeId) {
-  const node = nodes.find((entry) => entry.id === nodeId);
+  const webcam = nodes.find((entry) => entry.id === nodeId);
   if (!node) {
     return;
   }
 
-  editingNodeIdInput.value = node.id;
-  formTitle.textContent = `Edit node: ${node.id}`;
+  editingWebcamIdInput.value = node.id;
+  formTitle.textContent = `Edit webcam: ${node.id}`;
   document.getElementById("node-id").value = node.id;
   document.getElementById("node-id").disabled = true;
   document.getElementById("node-name").value = node.name || "";
@@ -789,7 +789,7 @@ function beginEditNode(nodeId) {
  */
 async function diagnoseNode(nodeId) {
   try {
-    const response = await managementFetch(`/api/nodes/${encodeURIComponent(nodeId)}/diagnose`);
+    const response = await managementFetch(`/api/webcams/${encodeURIComponent(nodeId)}/diagnose`);
     if (!response.ok) {
       const errorPayload = await response.json().catch(() => ({}));
       showFeedback(errorPayload?.error?.message || "Diagnostic request failed", true);
@@ -919,9 +919,9 @@ function getConnectivityRemediation(category, diagnostics = {}) {
   const codeText = code ? ` (${code})` : "";
   const categoryMap = {
     timeout: `Node connection timed out${codeText}. Retry in 30s while the service finishes startup.`,
-    tls: `TLS handshake failed${codeText}. Verify certificates or switch the node base URL to http:// if TLS is not configured.`,
-    dns: `Hostname could not be resolved${codeText}. Check the node base URL hostname and DNS configuration.`,
-    connection_refused_or_reset: `Connection was refused${codeText}. Confirm the node process is running and listening on the configured port.`,
+    tls: `TLS handshake failed${codeText}. Verify certificates or switch the webcam base URL to http:// if TLS is not configured.`,
+    dns: `Hostname could not be resolved${codeText}. Check the webcam base URL hostname and DNS configuration.`,
+    connection_refused_or_reset: `Connection was refused${codeText}. Confirm the webcam process is running and listening on the configured port.`,
     network: `Network path is blocked${codeText}. Check firewall, routing, and container network settings.`,
     ssrf_blocked: `SSRF protection blocked this target${codeText}. Use an allowed hostname or update private-IP policy for trusted networks.`,
   };
@@ -931,7 +931,7 @@ function getConnectivityRemediation(category, diagnostics = {}) {
   }
 
   if (code === "SSRF_BLOCKED") {
-    return `SSRF protection blocked this target${codeText}. Update node base URL to an allowed address or relax policy for trusted private networks.`;
+    return `SSRF protection blocked this target${codeText}. Update webcam base URL to an allowed address or relax policy for trusted private networks.`;
   }
 
   return "Review check details below to resolve connectivity issues.";
@@ -940,7 +940,7 @@ function getConnectivityRemediation(category, diagnostics = {}) {
 function getDiagnosticSummaryBanner(summary, checkRows = [], diagnostics = {}) {
   if (summary.state === "pass") {
     return {
-      interpretation: "All diagnostic checks passed; this node appears healthy and reachable.",
+      interpretation: "All diagnostic checks passed; this webcam appears healthy and reachable.",
       cta: "No action needed",
     };
   }
@@ -948,7 +948,7 @@ function getDiagnosticSummaryBanner(summary, checkRows = [], diagnostics = {}) {
   const apiWarning = checkRows.find((row) => row.key === "API endpoint" && row.state === "warn");
   if (summary.state === "warn" && apiWarning) {
     return {
-      interpretation: "Connectivity looks good, but the node API is still warming up.",
+      interpretation: "Connectivity looks good, but the webcam API is still warming up.",
       cta: "Retry in 30s",
     };
   }
@@ -956,7 +956,7 @@ function getDiagnosticSummaryBanner(summary, checkRows = [], diagnostics = {}) {
   if (diagnostics.url_validation?.code === "SSRF_BLOCKED") {
     return {
       interpretation: getConnectivityRemediation("ssrf_blocked", diagnostics),
-      cta: "Update node base URL",
+      cta: "Update webcam base URL",
     };
   }
 
@@ -975,11 +975,11 @@ function getDiagnosticSummaryBanner(summary, checkRows = [], diagnostics = {}) {
       cta:
         diagnostics.network_connectivity.category === "timeout"
           ? "Retry in 30s"
-          : "Update node base URL",
+          : "Update webcam base URL",
     };
   }
 
-  if (diagnostics.registration?.code === "NODE_UNAUTHORIZED") {
+  if (diagnostics.registration?.code === "WEBCAM_UNAUTHORIZED") {
     return {
       interpretation:
         "Node authentication failed. The configured token does not match the node's expected credentials.",
@@ -989,7 +989,7 @@ function getDiagnosticSummaryBanner(summary, checkRows = [], diagnostics = {}) {
 
   return {
     interpretation:
-      "One or more checks need remediation before this node can be considered healthy.",
+      "One or more checks need remediation before this webcam can be considered healthy.",
     cta: "Review recommendations",
   };
 }
@@ -1056,7 +1056,7 @@ function showDiagnosticResults(diagnosticResult) {
   const summary = getDiagnosticSummaryState(checkRows);
   const banner = getDiagnosticSummaryBanner(summary, checkRows, diagnostics);
 
-  diagnosticNodeId.textContent = nodeId;
+  diagnosticWebcamId.textContent = nodeId;
   diagnosticContext.textContent = `Generated at ${new Date().toLocaleString()}`;
   diagnosticSummaryBadge.className = `diagnostic-pill ${summary.className}`;
   diagnosticSummaryBadge.textContent = summary.label;
@@ -1114,7 +1114,7 @@ function showDiagnosticResults(diagnosticResult) {
 async function setDiscoveryApproval(nodeId, decision) {
   try {
     const response = await managementFetch(
-      `/api/nodes/${encodeURIComponent(nodeId)}/discovery/${decision}`,
+      `/api/webcams/${encodeURIComponent(nodeId)}/discovery/${decision}`,
       {
         method: "POST",
       },
@@ -1127,7 +1127,7 @@ async function setDiscoveryApproval(nodeId, decision) {
     }
 
     showFeedback(`Node ${nodeId} ${decision}d.`);
-    await fetchNodes();
+    await fetchWebcams();
     await refreshStatuses();
   } catch (error) {
     if (error?.isUnauthorized) {
@@ -1139,12 +1139,12 @@ async function setDiscoveryApproval(nodeId, decision) {
 }
 
 async function removeNode(nodeId) {
-  if (!window.confirm(`Delete node ${nodeId}?`)) {
+  if (!window.confirm(`Delete webcam ${nodeId}?`)) {
     return;
   }
 
   try {
-    const response = await managementFetch(`/api/nodes/${encodeURIComponent(nodeId)}`, {
+    const response = await managementFetch(`/api/webcams/${encodeURIComponent(nodeId)}`, {
       method: "DELETE",
     });
     if (!response.ok) {
@@ -1154,10 +1154,10 @@ async function removeNode(nodeId) {
     }
 
     showFeedback(`Node ${nodeId} removed.`);
-    if (editingNodeIdInput.value === nodeId) {
+    if (editingWebcamIdInput.value === nodeId) {
       resetForm();
     }
-    await fetchNodes();
+    await fetchWebcams();
     await refreshStatuses();
   } catch (error) {
     if (error?.isUnauthorized) {
@@ -1194,7 +1194,7 @@ function onTableClick(event) {
 }
 
 async function init() {
-  nodeForm.addEventListener("submit", submitNodeForm);
+  webcamForm.addEventListener("submit", submitNodeForm);
   cancelEditBtn.addEventListener("click", () => {
     resetForm();
     showFeedback("");
@@ -1202,7 +1202,7 @@ async function init() {
   refreshBtn.addEventListener("click", async () => {
     stopStatusRefreshInterval();
     try {
-      await fetchNodes();
+      await fetchWebcams();
       await refreshStatuses();
       showFeedback("Node list refreshed.");
     } finally {
@@ -1210,11 +1210,11 @@ async function init() {
     }
   });
   if (
-    toggleNodeFormPanelBtn instanceof HTMLButtonElement &&
-    nodeFormContent instanceof HTMLElement
+    toggleWebcamFormPanelBtn instanceof HTMLButtonElement &&
+    webcamFormContent instanceof HTMLElement
   ) {
     setNodeFormPanelCollapsed(getStoredNodeFormCollapsedPreference());
-    toggleNodeFormPanelBtn.addEventListener("click", toggleNodeFormPanel);
+    toggleWebcamFormPanelBtn.addEventListener("click", toggleNodeFormPanel);
   }
   tableBody.addEventListener("click", onTableClick);
   document.getElementById("node-transport").addEventListener("change", (event) => {
@@ -1254,7 +1254,7 @@ async function init() {
     }
   });
 
-  await fetchNodes();
+  await fetchWebcams();
   await refreshStatuses();
   startStatusRefreshInterval();
 }
