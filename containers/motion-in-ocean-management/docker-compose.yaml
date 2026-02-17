@@ -40,13 +40,13 @@ services:
       TZ: ${TZ:-Europe/London}
       APP_MODE: management
 
-      # Management mode ignores camera configuration
+      # Infrastructure / Deployment Configuration (NOT UI-configurable)
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
-
-      # SSRF Protection: Allow private IP ranges for node discovery
-      # Only enable for internal networks. See .env for security notes
       MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS: ${MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS:-false}
       APPLICATION_SETTINGS_PATH: ${APPLICATION_SETTINGS_PATH:-/data/application-settings.json}
+      MANAGEMENT_AUTH_TOKEN: ${MANAGEMENT_AUTH_TOKEN:-}
+      NODE_DISCOVERY_SHARED_SECRET: ${NODE_DISCOVERY_SHARED_SECRET:-}
+      NODE_REGISTRY_PATH: ${NODE_REGISTRY_PATH:-/data/node-registry.json}
 
       # Error tracking (optional)
       SENTRY_DSN: ${SENTRY_DSN:-}

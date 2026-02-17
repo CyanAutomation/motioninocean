@@ -39,21 +39,13 @@ services:
       TZ: ${TZ:-Europe/London}
       APP_MODE: webcam
 
-      # Camera configuration
-      RESOLUTION: ${MOTION_IN_OCEAN_RESOLUTION}
-      FPS: ${MOTION_IN_OCEAN_FPS}
-      TARGET_FPS: ${MOTION_IN_OCEAN_TARGET_FPS:-}
-      JPEG_QUALITY: ${MOTION_IN_OCEAN_JPEG_QUALITY}
-      MAX_STREAM_CONNECTIONS: ${MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS:-2}
+      # Infrastructure / Deployment Configuration (NOT UI-configurable)
       MOTION_IN_OCEAN_PI3_PROFILE: ${MOTION_IN_OCEAN_PI3_PROFILE:-false}
-
-      # Shared settings
       MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
       CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
       CAT_GIF: ${CAT_GIF:-false}
       CATAAS_API_URL: ${CATAAS_API_URL:-https://cataas.com/cat.gif}
-      CAT_GIF_CACHE_TTL_SECONDS: ${CAT_GIF_CACHE_TTL_SECONDS:-60}
       APPLICATION_SETTINGS_PATH: ${APPLICATION_SETTINGS_PATH:-/data/application-settings.json}
 
       # Error tracking (optional)
