@@ -407,7 +407,7 @@ class TestDiscoveryEndToEnd:
                 list_response = client.get("/api/webcams")
                 assert list_response.status_code == 200
                 nodes = list_response.json["webcams"]
-                node_ids = {n["webcam_id"] for n in nodes}
+                node_ids = {n["id"] for n in nodes}
                 assert "node-kitchen" in node_ids
                 assert "node-bedroom" in node_ids
                 assert "node-porch" in node_ids
