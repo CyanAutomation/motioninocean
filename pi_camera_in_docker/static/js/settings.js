@@ -55,8 +55,8 @@ const SettingsUI = (() => {
   /**
    * Handle settings tab click.
    *
-   * Switches to settings panel, loads schema and current settings if not loaded,
-   * then renders form.
+   * Switches to settings panel via central switchTab() handler, then loads
+   * schema and current settings if not already loaded, then renders form.
    *
    * @async
    * @param {Event} e - Click event.
@@ -65,17 +65,8 @@ const SettingsUI = (() => {
   const onTabClick = async (e) => {
     e.preventDefault();
 
-    // Switch to settings tab
-    document.querySelectorAll('[role="tabpanel"]').forEach((panel) => {
-      panel.classList.add("hidden");
-    });
-    settingsPanel().classList.remove("hidden");
-
-    // Update tab buttons
-    document.querySelectorAll(".tab-btn").forEach((btn) => {
-      btn.classList.remove("active");
-    });
-    settingsTab().classList.add("active");
+    // Switch to settings tab using central handler
+    switchTab("settings");
 
     // Load data if not already loaded
     if (!schema || !currentSettings) {

@@ -68,6 +68,7 @@ function cacheElements() {
   state.elements.videoStream = document.getElementById("video-stream");
   state.elements.statsPanel = document.getElementById("stats-panel");
   state.elements.configPanel = document.getElementById("config-panel");
+  state.elements.settingsPanel = document.getElementById("settings-panel");
   state.elements.setupPanel = document.getElementById("setup-panel");
   state.elements.toggleStatsBtn = document.getElementById("toggle-stats-btn");
   state.elements.refreshBtn = document.getElementById("refresh-btn");
@@ -657,12 +658,14 @@ function switchTab(tabName) {
   const mainSection = document.querySelector(".video-section");
   const statsPanel = state.elements.statsPanel;
   const configPanel = state.elements.configPanel;
+  const settingsPanel = state.elements.settingsPanel;
   const setupPanel = state.elements.setupPanel;
 
   if (tabName === "main") {
     if (mainSection) mainSection.classList.remove("hidden");
     if (statsPanel) statsPanel.classList.remove("hidden");
     if (configPanel) configPanel.classList.add("hidden");
+    if (settingsPanel) settingsPanel.classList.add("hidden");
     if (setupPanel) setupPanel.classList.add("hidden");
 
     // Resume stats updates and stop config refresh updates
@@ -675,6 +678,7 @@ function switchTab(tabName) {
     if (mainSection) mainSection.classList.add("hidden");
     if (statsPanel) statsPanel.classList.add("hidden");
     if (configPanel) configPanel.classList.remove("hidden");
+    if (settingsPanel) settingsPanel.classList.add("hidden");
     if (setupPanel) setupPanel.classList.add("hidden");
 
     // Stop stats updates and start config refresh/timestamp updates
@@ -685,10 +689,21 @@ function switchTab(tabName) {
       updateConfig().catch((error) => console.error("Config update failed:", error));
       startConfigPolling();
     }
+  } else if (tabName === "settings") {
+    if (mainSection) mainSection.classList.add("hidden");
+    if (statsPanel) statsPanel.classList.add("hidden");
+    if (configPanel) configPanel.classList.add("hidden");
+    if (settingsPanel) settingsPanel.classList.remove("hidden");
+    if (setupPanel) setupPanel.classList.add("hidden");
+
+    // Stop all polling
+    stopStatsUpdate();
+    stopConfigPolling();
   } else if (tabName === "setup") {
     if (mainSection) mainSection.classList.add("hidden");
     if (statsPanel) statsPanel.classList.add("hidden");
     if (configPanel) configPanel.classList.add("hidden");
+    if (settingsPanel) settingsPanel.classList.add("hidden");
     if (setupPanel) setupPanel.classList.remove("hidden");
 
     // Stop all polling
