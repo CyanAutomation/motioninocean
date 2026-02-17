@@ -11,6 +11,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.15.7] - 2026-02-17
+
+- refactor: Add temporary application settings fixture and complete config dictionary for testing
+- refactor: Simplify mock_path_exists function in unit tests for clarity
+- refactor: Simplify mock_path_is_dir function in unit tests for clarity
+- refactor: Add type ignore comments for type checking in Sentry initialization
+- [refactor] Simplify return type casting in _vet_resolved_addresses and _request_json functions
+- [refactor] Update variable name from "node_id" to "webcam_id" in create_webcam_app function
+- [refactor] Improve code formatting and readability across multiple files
+- [refactor] Update test to use "id" instead of "webcam_id" for webcam list response
+- [refactor] Update API endpoint for node approval to use "webcams" instead of "nodes"
+
 ## [1.15.6] - 2026-02-17
 
 - [refactor] Update environment variable references from "WEBCAM_DISCOVERY_SHARED_SECRET" to "NODE_DISCOVERY_SHARED_SECRET" in test cases
