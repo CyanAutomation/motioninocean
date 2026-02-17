@@ -119,7 +119,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get install -y --no-install-recommends \
         ca-certificates \
         gnupg \
-        curl && \
+        curl \
+        gosu && \
     rm -rf /var/lib/apt/lists/*
 
 # ---- Layer 2: Raspberry Pi Repository & Camera Packages (Stable) ----
@@ -197,7 +198,9 @@ COPY --from=builder /usr/local/lib/python3.11/dist-packages /usr/local/lib/pytho
 COPY pi_camera_in_docker/ /app/pi_camera_in_docker/
 COPY VERSION /app/
 COPY scripts/healthcheck.py /app/healthcheck.py
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /app/healthcheck.py
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Validate required Python modules and picamera2 camera-info contract in the final image
 # Known-good baseline: Raspberry Pi Bookworm repo package for python3-picamera2 (archive.raspberrypi.org/debian)
@@ -227,8 +230,8 @@ STOPSIGNAL SIGTERM
 # Set PYTHONPATH to ensure package discovery for module execution
 ENV PYTHONPATH=/app
 
-# Switch to non-root user for runtime
-USER app
+# Set startup entrypoint to validate/fix /data permissions and then drop to app user.
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
-# Set the entry point using module execution (-m) for relative imports to work
+# Set the command using module execution (-m) for relative imports to work
 CMD ["python3", "-m", "pi_camera_in_docker.main"]

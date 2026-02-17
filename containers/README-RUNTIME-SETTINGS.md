@@ -177,6 +177,17 @@ volumes:
   - data:/data # Persists application-settings.json
 ```
 
+### Ownership & Permissions at Startup
+
+- The container entrypoint checks whether `/data` is writable during startup and logs the effective UID used for that check.
+- When the container starts as `root` (default image behavior), it attempts `chown -R 10001:10001 /data` before launching the Python app as the `app` user (`uid=10001`).
+- If you override the container to run as non-root only (for example, `user: "10001:10001"`), pre-create and chown the host volume path first:
+
+```bash
+mkdir -p ./motion-in-ocean-data
+sudo chown -R 10001:10001 ./motion-in-ocean-data
+```
+
 ## Reference: .env Annotations
 
 Look for `[UI MANAGEABLE]` comments in `.env.example` files to identify which settings can be changed via the UI without restarting.
