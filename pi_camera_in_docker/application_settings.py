@@ -504,5 +504,5 @@ class ApplicationSettings:
             logger.error(message)
             raise SettingsValidationError(message) from exc
 
-        message = "No supported file-lock backend available for this platform"
-        raise RuntimeError(message)
+        # If we reach here, no file lock backend is available
+        raise RuntimeError("No supported file-lock backend available for this platform")
