@@ -153,7 +153,7 @@ class TestDiscoveryAnnounceIntegration:
         from discovery import DiscoveryAnnouncer
 
         shutdown_event = threading.Event()
-        payload = {"node_id": "node-test-5"}
+        payload = {"webcam_id": "node-test-5"}
 
         with patch("urllib.request.urlopen") as mock_urlopen:
             mock_response = MagicMock()
@@ -166,7 +166,7 @@ class TestDiscoveryAnnounceIntegration:
                 management_url="http://management.local:8001",
                 token="test-token",
                 interval_seconds=0.05,  # Very short interval
-                node_id=payload["node_id"],
+                webcam_id=payload["webcam_id"],
                 payload=payload,
                 shutdown_event=shutdown_event,
             )
@@ -211,7 +211,7 @@ class TestDiscoveryEndToEnd:
 
                 # Step 1: Webcam announces itself
                 announce_payload = {
-                    "node_id": "node-webcam-1",
+                    "webcam_id": "node-webcam-1",
                     "name": "kitchen-camera",
                     "base_url": "http://192.168.1.100:8000",
                     "transport": "http",
@@ -227,7 +227,7 @@ class TestDiscoveryEndToEnd:
 
                 assert response.status_code == 201, response.json
                 node_data = response.json["node"]
-                assert node_data["id"] == "node-webcam-1"
+                assert node_data["webcam_id"] == "node-webcam-1"
                 assert node_data["discovery"]["source"] == "discovered"
                 assert node_data["discovery"]["approved"] is False, (
                     "New discovery should start unapproved"
@@ -235,7 +235,7 @@ class TestDiscoveryEndToEnd:
 
                 # Step 2: Admin approves the discovered node
                 approval_response = client.post(
-                    f"/api/nodes/{node_data['id']}/discovery/approve",
+                    f"/api/nodes/{node_data['webcam_id']}/discovery/approve",
                     headers={"Authorization": "Bearer "},  # No auth needed if no token set
                 )
 
@@ -247,7 +247,7 @@ class TestDiscoveryEndToEnd:
                 list_response = client.get("/api/webcams")
                 assert list_response.status_code == 200
                 nodes = list_response.json["webcams"]
-                approved_nodes = [n for n in nodes if n["id"] == "node-webcam-1"]
+                approved_nodes = [n for n in nodes if n["webcam_id"] == "node-webcam-1"]
                 assert len(approved_nodes) == 1
                 assert approved_nodes[0]["discovery"]["approved"] is True
 
@@ -272,7 +272,7 @@ class TestDiscoveryEndToEnd:
 
             # Try to announce with private IP
             payload = {
-                "node_id": "node-private-1",
+                "webcam_id": "node-private-1",
                 "name": "private-camera",
                 "base_url": "http://192.168.1.100:8000",  # Private IP
                 "transport": "http",
@@ -310,7 +310,7 @@ class TestDiscoveryEndToEnd:
 
                 # Announce with private IP - should succeed
                 payload = {
-                    "node_id": "node-private-allowed",
+                    "webcam_id": "node-private-allowed",
                     "name": "private-camera",
                     "base_url": "http://192.168.1.100:8000",  # Private IP
                     "transport": "http",
@@ -338,7 +338,7 @@ class TestDiscoveryEndToEnd:
         )
 
         # Verify all required fields
-        required_fields = ["node_id", "name", "base_url", "transport", "capabilities", "labels"]
+        required_fields = ["webcam_id", "name", "base_url", "transport", "capabilities", "labels"]
         for field in required_fields:
             assert field in payload, f"Missing required field: {field}"
 
@@ -374,17 +374,17 @@ class TestDiscoveryEndToEnd:
                 # Announce three different webcams
                 cameras = [
                     {
-                        "node_id": "node-kitchen",
+                        "webcam_id": "node-kitchen",
                         "name": "kitchen-cam",
                         "base_url": "http://192.168.1.50:8000",
                     },
                     {
-                        "node_id": "node-bedroom",
+                        "webcam_id": "node-bedroom",
                         "name": "bedroom-cam",
                         "base_url": "http://192.168.1.51:8000",
                     },
                     {
-                        "node_id": "node-porch",
+                        "webcam_id": "node-porch",
                         "name": "porch-cam",
                         "base_url": "http://192.168.1.52:8000",
                     },
@@ -407,7 +407,7 @@ class TestDiscoveryEndToEnd:
                 list_response = client.get("/api/webcams")
                 assert list_response.status_code == 200
                 nodes = list_response.json["webcams"]
-                node_ids = {n["id"] for n in nodes}
+                node_ids = {n["webcam_id"] for n in nodes}
                 assert "node-kitchen" in node_ids
                 assert "node-bedroom" in node_ids
                 assert "node-porch" in node_ids
@@ -432,7 +432,7 @@ class TestDiscoveryEndToEnd:
             client = app.test_client()
 
             payload = {
-                "node_id": "node-test",
+                "webcam_id": "node-test",
                 "name": "test-cam",
                 "base_url": "http://192.168.1.100:8000",
                 "transport": "http",
@@ -470,7 +470,7 @@ class TestDiscoveryEndToEnd:
                 client = app.test_client()
 
                 payload = {
-                    "node_id": "node-update-test",
+                    "webcam_id": "node-update-test",
                     "name": "update-cam",
                     "base_url": "http://192.168.1.100:8000",
                     "transport": "http",

@@ -919,7 +919,7 @@ def test_build_headers_for_bearer_auth_with_token():
 
     webcam = {"auth": {"type": "bearer", "token": "node-token"}}
 
-    headers = management_api._build_headers(node)
+    headers = management_api._build_headers(webcam)
     assert headers == {"Authorization": "Bearer node-token"}
 
 
@@ -961,7 +961,7 @@ def test_request_json_sends_bearer_auth_header_for_node_probes(monkeypatch):
     monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
 
     webcam = {"base_url": "http://example.com", "auth": {"type": "bearer", "token": "node-token"}}
-    status_code, _ = management_api._request_json(node, "GET", "/api/status")
+    status_code, _ = management_api._request_json(webcam, "GET", "/api/status")
     assert status_code == 200
 
     assert captured["headers"] == ["Bearer node-token"]
@@ -972,7 +972,7 @@ def test_build_headers_for_bearer_auth_without_token_returns_empty_headers():
 
     webcam = {"auth": {"type": "bearer"}}
 
-    headers = management_api._build_headers(node)
+    headers = management_api._build_headers(webcam)
     assert headers == {}
 
 
@@ -981,7 +981,7 @@ def test_build_headers_for_non_bearer_auth_returns_empty_headers():
 
     webcam = {"auth": {"type": "basic", "encoded": "abc", "username": "camera", "password": "secret"}}
 
-    headers = management_api._build_headers(node)
+    headers = management_api._build_headers(webcam)
     assert headers == {}
 
 
@@ -1428,7 +1428,7 @@ def test_request_json_maps_name_resolution_failure_to_dns_category(monkeypatch):
 
     webcam = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
-        management_api._request_json(node, "GET", "/api/status")
+        management_api._request_json(webcam, "GET", "/api/status")
         raise AssertionError("expected NodeConnectivityError")
     except management_api.NodeConnectivityError as exc:
         assert exc.reason == "dns resolution failed"
@@ -1448,7 +1448,7 @@ def test_request_json_rejects_blocked_ip_in_resolved_set(monkeypatch):
 
     webcam = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
-        management_api._request_json(node, "GET", "/api/status")
+        management_api._request_json(webcam, "GET", "/api/status")
         raise AssertionError("expected NodeRequestError")
     except management_api.NodeRequestError as exc:
         assert str(exc) == "webcam target is not allowed"
@@ -1481,7 +1481,7 @@ def test_request_json_maps_timeout_failure(monkeypatch):
 
     webcam = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
-        management_api._request_json(node, "GET", "/api/status")
+        management_api._request_json(webcam, "GET", "/api/status")
         raise AssertionError("expected NodeConnectivityError")
     except management_api.NodeConnectivityError as exc:
         assert captured["timeout"] == management_api.REQUEST_TIMEOUT_SECONDS
@@ -1513,7 +1513,7 @@ def test_request_json_maps_connection_refused_or_reset(monkeypatch):
 
     webcam = {"base_url": "http://example.com", "auth": {"type": "none"}}
     try:
-        management_api._request_json(node, "GET", "/api/status")
+        management_api._request_json(webcam, "GET", "/api/status")
         raise AssertionError("expected NodeConnectivityError")
     except management_api.NodeConnectivityError as exc:
         assert exc.reason == "connection refused or reset"
@@ -1546,7 +1546,7 @@ def test_request_json_maps_tls_failure(monkeypatch):
 
     webcam = {"base_url": "https://example.com", "auth": {"type": "none"}}
     try:
-        management_api._request_json(node, "GET", "/api/status")
+        management_api._request_json(webcam, "GET", "/api/status")
         raise AssertionError("expected NodeConnectivityError")
     except management_api.NodeConnectivityError as exc:
         assert exc.reason == "tls handshake failed"

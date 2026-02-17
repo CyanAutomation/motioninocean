@@ -196,7 +196,7 @@ def test_management_app_registers_core_routes(monkeypatch, tmp_path):
         "/ready",
         "/metrics",
         "/api/config",
-        "/api/nodes",
+        "/api/webcams",
         "/api/management/overview",
     }
     assert expected_routes.issubset(registered_routes), (

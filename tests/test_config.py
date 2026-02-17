@@ -160,7 +160,7 @@ def test_create_app_registers_expected_routes_for_management_and_webcam_modes(
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "")
     management_app = main.create_app_from_env()
     management_routes = {rule.rule for rule in management_app.url_map.iter_rules()}
-    assert {"/", "/health", "/ready", "/metrics", "/api/config", "/api/nodes"}.issubset(
+    assert {"/", "/health", "/ready", "/metrics", "/api/config", "/api/webcams", "/api/feature-flags", "/api/management/overview", "/api/settings", "/api/discovery/announce"}.issubset(
         management_routes
     )
 

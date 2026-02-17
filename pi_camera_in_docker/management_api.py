@@ -1342,7 +1342,7 @@ def register_management_routes(
                 return _registry_corruption_response(exc)
             return _error_response("VALIDATION_ERROR", str(exc), 400, webcam_id=webcam_id)
 
-        return jsonify({"node": updated, "decision": decision}), 200
+        return jsonify({"webcam": updated, "decision": decision}), 200
 
     @app.route("/api/webcams/<webcam_id>", methods=["DELETE"])
     @_maybe_limit("100/minute")

@@ -761,22 +761,22 @@ async function submitNodeForm(event) {
  */
 function beginEditNode(nodeId) {
   const webcam = nodes.find((entry) => entry.id === nodeId);
-  if (!node) {
+  if (!webcam) {
     return;
   }
 
-  editingWebcamIdInput.value = node.id;
-  formTitle.textContent = `Edit webcam: ${node.id}`;
-  document.getElementById("node-id").value = node.id;
+  editingWebcamIdInput.value = webcam.id;
+  formTitle.textContent = `Edit webcam: ${webcam.id}`;
+  document.getElementById("node-id").value = webcam.id;
   document.getElementById("node-id").disabled = true;
-  document.getElementById("node-name").value = node.name || "";
-  document.getElementById("node-base-url").value = node.base_url || "";
-  document.getElementById("node-transport").value = node.transport || "http";
+  document.getElementById("node-name").value = webcam.name || "";
+  document.getElementById("node-base-url").value = webcam.base_url || "";
+  document.getElementById("node-transport").value = webcam.transport || "http";
   updateBaseUrlValidation(document.getElementById("node-transport").value);
-  document.getElementById("node-auth-type").value = node.auth?.type || "none";
-  document.getElementById("node-auth-token").value = node.auth?.token || "";
-  document.getElementById("node-capabilities").value = (node.capabilities || []).join(", ");
-  document.getElementById("node-labels").value = JSON.stringify(node.labels || {}, null, 2);
+  document.getElementById("node-auth-type").value = webcam.auth?.type || "none";
+  document.getElementById("node-auth-token").value = webcam.auth?.token || "";
+  document.getElementById("node-capabilities").value = (webcam.capabilities || []).join(", ");
+  document.getElementById("node-labels").value = JSON.stringify(webcam.labels || {}, null, 2);
   cancelEditBtn.classList.remove("hidden");
 }
 

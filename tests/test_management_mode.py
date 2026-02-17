@@ -100,7 +100,7 @@ def test_root_serves_management_template_in_management_mode(monkeypatch):
         response = client.get("/")
         assert response.status_code == 200
         html = response.get_data(as_text=True)
-        assert "Node Management" in html
+        assert "Webcam Management" in html
         assert "/static/js/management.js" in html
 
 

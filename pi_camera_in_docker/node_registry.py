@@ -649,7 +649,7 @@ class FileWebcamRegistry(WebcamRegistry):
         with self._exclusive_lock():
             data = self._load()
             previous_count = len(data["nodes"])
-            data["nodes"] = [webcam for webcam in data["nodes"] if node.get("id") != webcam_id]
+            data["nodes"] = [webcam for webcam in data["nodes"] if webcam.get("id") != webcam_id]
             if previous_count == len(data["nodes"]):
                 return False
             self._save(data)
