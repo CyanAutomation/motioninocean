@@ -235,7 +235,7 @@ class TestDiscoveryEndToEnd:
 
                 # Step 2: Admin approves the discovered node
                 approval_response = client.post(
-                    f"/api/nodes/{node_data['webcam_id']}/discovery/approve",
+                    f"/api/webcams/{node_data['id']}/discovery/approve",
                     headers={"Authorization": "Bearer "},  # No auth needed if no token set
                 )
 
