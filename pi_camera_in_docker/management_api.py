@@ -368,6 +368,32 @@ def _classify_url_error(reason: Any) -> Tuple[str, str]:
     return "connection failed", "network"
 
 
+def _netloc_has_explicit_port(netloc: str) -> bool:
+    """Return True when URL netloc explicitly includes a port segment."""
+    host_port = netloc.rsplit("@", 1)[-1]
+    if host_port.startswith("["):
+        closing_bracket = host_port.find("]")
+        if closing_bracket == -1:
+            return False
+        return host_port[closing_bracket + 1 :].startswith(":")
+    return ":" in host_port
+
+
+def _build_host_header(parsed_url) -> str:
+    """Construct RFC-safe Host header without credentials from parsed URL."""
+    hostname = parsed_url.hostname
+    if not hostname:
+        message = "webcam target is invalid"
+        raise NodeRequestError(message)
+
+    host = f"[{hostname}]" if ":" in hostname else hostname
+    default_port = 443 if parsed_url.scheme == "https" else 80
+    explicit_port = _netloc_has_explicit_port(parsed_url.netloc)
+    if parsed_url.port is not None and (parsed_url.port != default_port or explicit_port):
+        return f"{host}:{parsed_url.port}"
+    return host
+
+
 def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[dict] = None):  # type: ignore
     """Proxy HTTP request to remote webcam with DNS pinning and SSRF protection.
 
@@ -442,7 +468,7 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
         raise ConnectionError(message)
 
     headers = {"Content-Type": "application/json", **_build_headers(node)}
-    headers.setdefault("Host", parsed_url.netloc)
+    headers.setdefault("Host", _build_host_header(parsed_url))
     data = json.dumps(body).encode("utf-8") if body is not None else None
     request_target = (
         urlunparse(("", "", parsed_url.path, parsed_url.params, parsed_url.query, "")) or "/"

@@ -1628,6 +1628,142 @@ def test_request_json_https_uses_hostname_for_tls_and_pins_vetted_ip(monkeypatch
     assert captured["has_context"] is True
 
 
+def test_request_json_host_header_omits_userinfo_and_default_http_port(monkeypatch):
+    from pi_camera_in_docker import management_api
+
+    class FakeResponse:
+        status = 200
+
+        def read(self):
+            return b'{"ok": true}'
+
+    captured = {}
+
+    def fake_getaddrinfo(host, port, proto):
+        captured["getaddrinfo"] = (host, port, proto)
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))
+        ]
+
+    class FakeHTTPConnection:
+        def __init__(self, host, port, connect_host, timeout):
+            _ = (host, port, connect_host, timeout)
+
+        def request(self, method, target, body=None, headers=None):
+            captured["host_header"] = headers.get("Host")
+            _ = (method, target, body)
+
+        def getresponse(self):
+            return FakeResponse()
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+    monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
+
+    status_code, payload = management_api._request_json(
+        {"base_url": "http://user:pass@example.com:80", "auth": {"type": "none"}},
+        "GET",
+        "/api/status",
+    )
+
+    assert status_code == 200
+    assert payload == {"ok": True}
+    assert captured["getaddrinfo"] == ("example.com", 80, socket.IPPROTO_TCP)
+    assert captured["host_header"] == "example.com:80"
+
+
+def test_request_json_host_header_formats_ipv6_and_omits_userinfo(monkeypatch):
+    from pi_camera_in_docker import management_api
+
+    class FakeResponse:
+        status = 200
+
+        def read(self):
+            return b'{"ok": true}'
+
+    captured = {}
+
+    class FakeHTTPConnection:
+        def __init__(self, host, port, connect_host, timeout):
+            captured["connect"] = (host, port, connect_host, timeout)
+
+        def request(self, method, target, body=None, headers=None):
+            captured["host_header"] = headers.get("Host")
+            _ = (method, target, body)
+
+        def getresponse(self):
+            return FakeResponse()
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(
+        management_api.socket,
+        "getaddrinfo",
+        lambda host, port, proto: [
+            (socket.AF_INET6, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("2001:db8::1", 8443, 0, 0))
+        ],
+    )
+    monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
+
+    status_code, payload = management_api._request_json(
+        {"base_url": "http://user:pass@[2001:db8::1]:8443", "auth": {"type": "none"}},
+        "GET",
+        "/api/status",
+    )
+
+    assert status_code == 200
+    assert payload == {"ok": True}
+    assert captured["host_header"] == "[2001:db8::1]:8443"
+
+
+def test_request_json_host_header_omits_default_https_port_without_explicit_port(monkeypatch):
+    from pi_camera_in_docker import management_api
+
+    class FakeResponse:
+        status = 200
+
+        def read(self):
+            return b'{"ok": true}'
+
+    captured = {}
+
+    class FakeHTTPSConnection:
+        def __init__(self, host, port, connect_host, timeout, context):
+            _ = (host, port, connect_host, timeout, context)
+
+        def request(self, method, target, body=None, headers=None):
+            captured["host_header"] = headers.get("Host")
+            _ = (method, target, body)
+
+        def getresponse(self):
+            return FakeResponse()
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(
+        management_api.socket,
+        "getaddrinfo",
+        lambda host, port, proto: [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 443))
+        ],
+    )
+    monkeypatch.setattr(management_api, "_PinnedHTTPSConnection", FakeHTTPSConnection)
+
+    status_code, payload = management_api._request_json(
+        {"base_url": "https://example.com", "auth": {"type": "none"}},
+        "GET",
+        "/api/status",
+    )
+
+    assert status_code == 200
+    assert payload == {"ok": True}
+    assert captured["host_header"] == "example.com"
+
+
 def test_node_status_reports_connectivity_details(monkeypatch, tmp_path):
     client, management_api = _new_management_client(monkeypatch, tmp_path)
 
