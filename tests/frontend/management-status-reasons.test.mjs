@@ -12,22 +12,22 @@ function slice(source, startToken, endToken) {
   return source.slice(start, end).trim();
 }
 
-test("management status UI maps NODE_API_MISMATCH to failure subtype with actionable reason", () => {
+test("management status UI maps WEBCAM_API_MISMATCH to failure subtype with actionable reason", () => {
   const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
   const statusClassFn = slice(managementJs, "function statusClass", "const STATUS_SUBTYPE_CONFIG");
   const subtypeConfig = slice(
     managementJs,
     "const STATUS_SUBTYPE_CONFIG",
-    "function normalizeNodeStatusError",
+    "function normalizeWebcamStatusError",
   );
   const reasonFn = slice(
     managementJs,
     "function getStatusReason",
-    "function normalizeNodeStatusForUi",
+    "function normalizeWebcamStatusForUi",
   );
   const normalizeFn = slice(
     managementJs,
-    "function normalizeNodeStatusForUi",
+    "function normalizeWebcamStatusForUi",
     "function renderRows",
   );
 
@@ -36,15 +36,15 @@ test("management status UI maps NODE_API_MISMATCH to failure subtype with action
 
   const status = {
     status: "error",
-    error_code: "NODE_API_MISMATCH",
-    error_message: "node foo status probe endpoint was not found",
+    error_code: "WEBCAM_API_MISMATCH",
+    error_message: "webcam foo status probe endpoint was not found",
     error_details: {
       expected_endpoint: "/api/status",
       received_status_code: 404,
     },
   };
 
-  const normalized = context.normalizeNodeStatusForUi(status);
+  const normalized = context.normalizeWebcamStatusForUi(status);
   assert.equal(normalized.subtype, "no_response");
   assert.equal(normalized.label, "No response");
   assert.equal(normalized.statusClass, "ui-status-pill--error");

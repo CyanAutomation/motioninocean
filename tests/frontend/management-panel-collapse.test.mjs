@@ -37,7 +37,7 @@ function createClassList() {
   };
 }
 
-test("node form panel toggle defaults expanded and flips collapsed state with storage persistence", async () => {
+test("webcam form panel toggle defaults expanded and flips collapsed state with storage persistence", async () => {
   const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
 
   const setNodeFormPanelCollapsedFn = extractFunction(
@@ -53,7 +53,7 @@ test("node form panel toggle defaults expanded and flips collapsed state with st
   const getStoredNodeFormCollapsedPreferenceFn = extractFunction(
     managementJs,
     "function getStoredNodeFormCollapsedPreference",
-    "\n\nasync function submitNodeForm",
+    "\n\n/**\n * Submit webcam form (create or update).",
   );
   const initFn = extractInit(managementJs);
 
@@ -88,24 +88,27 @@ test("node form panel toggle defaults expanded and flips collapsed state with st
     }
   }
 
+  class MockHTMLInputElement extends MockHTMLElement {}
+
   const localStorageReads = [];
   const localStorageWrites = [];
 
-  const toggleNodeFormPanelBtn = new MockHTMLButtonElement();
+  const toggleWebcamFormPanelBtn = new MockHTMLButtonElement();
   const managementLayout = new MockHTMLElement();
-  const nodeFormPanelContainer = new MockHTMLElement();
-  const nodeFormContentWrapper = new MockHTMLElement();
-  const nodeFormContent = new MockHTMLElement();
+  const webcamFormPanelContainer = new MockHTMLElement();
+  const webcamFormContentWrapper = new MockHTMLElement();
+  const webcamFormContent = new MockHTMLElement();
 
   const context = {
     HTMLButtonElement: MockHTMLButtonElement,
+    HTMLInputElement: MockHTMLInputElement,
     HTMLElement: MockHTMLElement,
-    NODE_FORM_COLLAPSED_STORAGE_KEY: "management.nodeFormCollapsed",
-    toggleNodeFormPanelBtn,
+    NODE_FORM_COLLAPSED_STORAGE_KEY: "management.webcamFormCollapsed",
+    toggleWebcamFormPanelBtn,
     managementLayout,
-    nodeFormPanelContainer,
-    nodeFormContentWrapper,
-    nodeFormContent,
+    webcamFormPanelContainer,
+    webcamFormContentWrapper,
+    webcamFormContent,
     globalThis: {
       localStorage: {
         getItem: (key) => {
@@ -117,25 +120,35 @@ test("node form panel toggle defaults expanded and flips collapsed state with st
         },
       },
     },
-    nodeForm: { addEventListener: () => {} },
+    webcamForm: { addEventListener: () => {} },
+    formTitle: { textContent: "" },
+    editingWebcamIdInput: { value: "" },
     cancelEditBtn: { addEventListener: () => {} },
     refreshBtn: { addEventListener: () => {} },
     tableBody: { addEventListener: () => {} },
+    diagnosticsAdvancedCheckbox: null,
+    diagnosticsCollapsibleContainer: null,
     copyDiagnosticReportBtn: { addEventListener: () => {} },
+    getMissingRequiredElementIds: () => [],
     submitNodeForm: () => {},
     resetForm: () => {},
     showFeedback: () => {},
     stopStatusRefreshInterval: () => {},
-    fetchNodes: async () => {},
+    fetchWebcams: async () => {},
     refreshStatuses: async () => {},
     startStatusRefreshInterval: () => {},
     onTableClick: () => {},
     updateBaseUrlValidation: () => {},
     buildDiagnosticTextReport: () => "",
+    setNodeFormPanelCollapsed: undefined,
+    toggleNodeFormPanel: undefined,
+    getStoredNodeFormCollapsedPreference: undefined,
+    console: { error: () => {} },
     document: {
       getElementById: () => ({
         addEventListener: () => {},
         value: "http",
+        disabled: false,
       }),
     },
   };
@@ -147,38 +160,38 @@ test("node form panel toggle defaults expanded and flips collapsed state with st
 
   await context.init();
 
-  assert.deepEqual(localStorageReads, ["management.nodeFormCollapsed"]);
-  assert.equal(toggleNodeFormPanelBtn.getAttribute("aria-expanded"), "true");
-  assert.equal(toggleNodeFormPanelBtn.textContent, "«");
-  assert.equal(toggleNodeFormPanelBtn.title, "Collapse node form panel");
+  assert.deepEqual(localStorageReads, ["management.webcamFormCollapsed"]);
+  assert.equal(toggleWebcamFormPanelBtn.getAttribute("aria-expanded"), "true");
+  assert.equal(toggleWebcamFormPanelBtn.textContent, "«");
+  assert.equal(toggleWebcamFormPanelBtn.title, "Collapse webcam form panel");
   assert.equal(managementLayout.classList.contains("is-form-collapsed"), false);
-  assert.equal(nodeFormPanelContainer.classList.contains("is-form-collapsed"), false);
-  assert.equal(nodeFormContent.classList.contains("hidden"), false);
+  assert.equal(webcamFormPanelContainer.classList.contains("is-form-collapsed"), false);
+  assert.equal(webcamFormContent.classList.contains("hidden"), false);
 
-  const toggleHandler = toggleNodeFormPanelBtn.listeners.get("click")?.[0];
+  const toggleHandler = toggleWebcamFormPanelBtn.listeners.get("click")?.[0];
   assert.equal(typeof toggleHandler, "function");
 
   toggleHandler();
 
   assert.equal(managementLayout.classList.contains("is-form-collapsed"), true);
-  assert.equal(nodeFormPanelContainer.classList.contains("is-form-collapsed"), true);
-  assert.equal(nodeFormContent.classList.contains("hidden"), true);
-  assert.equal(toggleNodeFormPanelBtn.getAttribute("aria-expanded"), "false");
-  assert.equal(toggleNodeFormPanelBtn.textContent, "»");
-  assert.equal(toggleNodeFormPanelBtn.title, "Expand node form panel");
+  assert.equal(webcamFormPanelContainer.classList.contains("is-form-collapsed"), true);
+  assert.equal(webcamFormContent.classList.contains("hidden"), true);
+  assert.equal(toggleWebcamFormPanelBtn.getAttribute("aria-expanded"), "false");
+  assert.equal(toggleWebcamFormPanelBtn.textContent, "»");
+  assert.equal(toggleWebcamFormPanelBtn.title, "Expand webcam form panel");
 
   toggleHandler();
 
   assert.equal(managementLayout.classList.contains("is-form-collapsed"), false);
-  assert.equal(nodeFormPanelContainer.classList.contains("is-form-collapsed"), false);
-  assert.equal(nodeFormContent.classList.contains("hidden"), false);
-  assert.equal(toggleNodeFormPanelBtn.getAttribute("aria-expanded"), "true");
-  assert.equal(toggleNodeFormPanelBtn.textContent, "«");
-  assert.equal(toggleNodeFormPanelBtn.title, "Collapse node form panel");
+  assert.equal(webcamFormPanelContainer.classList.contains("is-form-collapsed"), false);
+  assert.equal(webcamFormContent.classList.contains("hidden"), false);
+  assert.equal(toggleWebcamFormPanelBtn.getAttribute("aria-expanded"), "true");
+  assert.equal(toggleWebcamFormPanelBtn.textContent, "«");
+  assert.equal(toggleWebcamFormPanelBtn.title, "Collapse webcam form panel");
 
   assert.deepEqual(localStorageWrites, [
-    ["management.nodeFormCollapsed", "false"],
-    ["management.nodeFormCollapsed", "true"],
-    ["management.nodeFormCollapsed", "false"],
+    ["management.webcamFormCollapsed", "false"],
+    ["management.webcamFormCollapsed", "true"],
+    ["management.webcamFormCollapsed", "false"],
   ]);
 });

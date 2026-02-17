@@ -1,7 +1,7 @@
 # Makefile for motion-in-ocean development tasks
 # Provides convenient shortcuts for common operations
 
-.PHONY: help install install-dev install-node test lint format type-check security clean run-mock docker-build docker-run pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
+.PHONY: help install install-dev install-node test test-frontend lint format type-check security clean run-mock docker-build docker-run pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
 help:
@@ -36,6 +36,7 @@ help:
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test             Run all tests with coverage"
+	@echo "  make test-frontend    Run frontend JavaScript unit tests"
 	@echo "  make test-unit        Run unit tests only"
 	@echo "  make test-integration Run integration tests only"
 	@echo "  make coverage         Generate coverage report"
@@ -208,7 +209,12 @@ audit-ui-interactive:
 # Testing targets
 test:
 	@echo "Running all tests with coverage..."
+	$(MAKE) test-frontend
 	pytest tests/ --cov=pi_camera_in_docker --cov-report=term-missing --cov-report=html --cov-report=xml -v
+
+test-frontend:
+	@echo "Running frontend JavaScript tests..."
+	node --test tests/frontend/*.test.mjs
 
 test-unit:
 	@echo "Running unit tests..."

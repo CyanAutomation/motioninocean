@@ -17,14 +17,19 @@ test("refresh button always restarts status interval even when refresh fails", a
   const initFn = extractInit(managementJs);
 
   let refreshClickHandler;
-  let fetchNodesCalls = 0;
+  let fetchWebcamsCalls = 0;
   let startIntervalCalls = 0;
   let stopIntervalCalls = 0;
   let refreshStatusesCalls = 0;
   const feedbackCalls = [];
 
   const context = {
-    nodeForm: { addEventListener: () => {} },
+    HTMLButtonElement: class {},
+    HTMLElement: class {},
+    HTMLInputElement: class {},
+    webcamForm: { addEventListener: () => {} },
+    formTitle: { textContent: "" },
+    editingWebcamIdInput: { value: "" },
     cancelEditBtn: { addEventListener: () => {}, classList: { add: () => {} } },
     refreshBtn: {
       addEventListener: (event, handler) => {
@@ -33,7 +38,13 @@ test("refresh button always restarts status interval even when refresh fails", a
         }
       },
     },
+    toggleWebcamFormPanelBtn: null,
+    webcamFormContent: null,
     tableBody: { addEventListener: () => {} },
+    diagnosticsAdvancedCheckbox: null,
+    diagnosticsCollapsibleContainer: null,
+    copyDiagnosticReportBtn: { addEventListener: () => {} },
+    getMissingRequiredElementIds: () => [],
     resetForm: () => {},
     submitNodeForm: () => {},
     showFeedback: (...args) => feedbackCalls.push(args),
@@ -43,16 +54,24 @@ test("refresh button always restarts status interval even when refresh fails", a
     startStatusRefreshInterval: () => {
       startIntervalCalls += 1;
     },
-    fetchNodes: async () => {
-      fetchNodesCalls += 1;
-      if (fetchNodesCalls === 2) {
+    fetchWebcams: async () => {
+      fetchWebcamsCalls += 1;
+      if (fetchWebcamsCalls === 2) {
         throw new Error("offline");
       }
     },
     refreshStatuses: async () => {
       refreshStatusesCalls += 1;
     },
+    updateBaseUrlValidation: () => {},
     onTableClick: () => {},
+    console: { error: () => {} },
+    document: {
+      getElementById: () => ({
+        addEventListener: () => {},
+        value: "http",
+      }),
+    },
   };
 
   vm.runInNewContext(`${initFn};`, context);

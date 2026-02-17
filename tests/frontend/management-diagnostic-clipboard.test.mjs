@@ -102,7 +102,7 @@ function buildUiContext() {
     HTMLElement: MockHTMLElement,
     escapeHtml: (value) => String(value),
     latestDiagnosticResult: null,
-    diagnosticNodeId: { textContent: "" },
+    diagnosticWebcamId: { textContent: "" },
     diagnosticContext: { textContent: "" },
     diagnosticSummaryBadge: { className: "", textContent: "" },
     diagnosticOverallStatePill: { className: "", textContent: "" },
@@ -173,7 +173,7 @@ test("showDiagnosticResults populates panel, rows, recommendations, and focuses 
     guidance: [],
   });
 
-  assert.equal(context.diagnosticNodeId.textContent, "node-1");
+  assert.equal(context.diagnosticWebcamId.textContent, "node-1");
   assert.match(context.diagnosticContext.textContent, /Generated at/);
   assert.match(context.diagnosticChecksGrid.innerHTML, /Registration/);
   assert.match(context.diagnosticChecksGrid.innerHTML, /diagnostic-pill--pass/);
@@ -235,7 +235,7 @@ test("init defaults diagnostics to collapsed state", () => {
   const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
   assert.match(
     managementJs,
-    /if \(diagnosticsAdvancedCheckbox instanceof HTMLInputElement && diagnosticsCollapsibleContainer instanceof HTMLElement\) \{\s*setDiagnosticPanelExpanded\(false\);/,
+    /if \(\s*diagnosticsAdvancedCheckbox instanceof HTMLInputElement &&\s*diagnosticsCollapsibleContainer instanceof HTMLElement\s*\) \{\s*setDiagnosticPanelExpanded\(false\);/,
   );
 });
 

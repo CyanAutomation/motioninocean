@@ -27,8 +27,8 @@ test("refreshStatuses schedules a second pass for overlapping timer+manual calls
   };
 
   const context = {
-    nodes: [{ id: "node-a" }],
-    nodeStatusMap: new Map(),
+    webcams: [{ id: "node-a" }],
+    webcamStatusMap: new Map(),
     statusRefreshInFlight: false,
     statusRefreshPending: false,
     statusRefreshPendingManual: false,
@@ -36,14 +36,14 @@ test("refreshStatuses schedules a second pass for overlapping timer+manual calls
     API_AUTH_HINT: "hint",
     renderRows: () => {},
     showFeedback: (...args) => feedbackCalls.push(args),
-    normalizeNodeStatusError: (error = {}) => ({
+    normalizeWebcamStatusError: (error = {}) => ({
       status: "error",
       stream_available: false,
       error_code: error.code || "UNKNOWN_ERROR",
-      error_message: error.message || "Node status request failed.",
+      error_message: error.message || "Webcam status request failed.",
       error_details: error.details || null,
     }),
-    enrichStatusWithAggregation: (_nodeId, status) => status,
+    enrichStatusWithAggregation: (_webcamId, status) => status,
     fetch: () => {
       fetchCount += 1;
       if (fetchCount === 1) {

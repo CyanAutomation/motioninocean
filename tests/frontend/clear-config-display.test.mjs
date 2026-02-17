@@ -20,8 +20,16 @@ test("clearConfigDisplay only resets dedicated config value nodes", () => {
   }
   const clearConfigDisplayFn = extractClearConfigDisplay(appJs);
 
-  const targetValueA = { textContent: "Enabled", className: "config-value config-badge enabled" };
-  const targetValueB = { textContent: "42", className: "config-value highlight" };
+  const targetValueA = {
+    textContent: "Enabled",
+    className: "config-value config-badge enabled",
+    removeAttribute: () => {},
+  };
+  const targetValueB = {
+    textContent: "42",
+    className: "config-value highlight",
+    removeAttribute: () => {},
+  };
 
   const structuralNodes = {
     loading: {
