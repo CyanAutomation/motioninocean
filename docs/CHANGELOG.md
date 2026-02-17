@@ -11,6 +11,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.15.9] - 2026-02-17
+
+- Various fixes to management frontend
+- [discovery] Preserve IPv6 netloc formatting in announce URL (#322)
+- [management] Sanitize proxied Host header construction (#321)
+- Small update to management.js
+- refactor: Simplify concurrency tests and enhance feature flag API tests
+- Various updates to tests
+- refactor: Organize imports and enhance test assertions for settings changes
+- refactor: Update environment variable handling in tests and improve validation for settings
+- refactor: Enhance settings management and update test cases for improved validation
+
 ## [1.15.8] - 2026-02-17
 
 - [discovery] Make announcer start/stop thread-safe (#320)
