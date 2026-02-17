@@ -1,7 +1,9 @@
 /**
  * Settings Management UI Handler
  * Manages the Settings tab: loads schema, renders forms, handles saves, etc.
+ * @global switchTab - Central tab switcher from app.js
  */
+/* global switchTab */
 
 const SettingsUI = (() => {
   // State
@@ -12,7 +14,6 @@ const SettingsUI = (() => {
 
   // DOM Elements
   const settingsTab = () => document.getElementById("settings-tab-btn");
-  const settingsPanel = () => document.getElementById("settings-panel");
   const settingsLoading = () => document.getElementById("settings-loading");
   const saveBtn = () => document.getElementById("settings-save-btn");
   const resetBtn = () => document.getElementById("settings-reset-btn");
