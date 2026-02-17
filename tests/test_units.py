@@ -32,13 +32,11 @@ def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch
     # Mock Path.is_dir() and Path.exists() for specific paths
     # (these are instance methods, so we need to patch the class)
     def mock_path_is_dir(self):
-        if str(self) == "/dev/dma_heap":
-            return True
-        return False
+        return str(self) == "/dev/dma_heap"
 
     def mock_path_exists(self):
         # We also need to mock specific device paths to exist
-        if str(self) in [
+        return str(self) in [
             "/dev/vchiq",
             "/dev/video0",
             "/dev/video1",
@@ -47,9 +45,7 @@ def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch
             "/dev/dri",
             "/dev/dma_heap/linux,cma",
             "/dev/dma_heap/system",
-        ]:
-            return True
-        return False
+        ]
 
     monkeypatch.setattr(Path, "glob", fake_glob)
     monkeypatch.setattr(Path, "is_dir", mock_path_is_dir)
@@ -85,9 +81,7 @@ def test_check_device_availability_does_not_warn_when_video_nodes_exist(monkeypa
         return matches.get(pattern, [])
 
     def mock_path_is_dir(self):
-        if str(self) == "/dev/dma_heap":
-            return True
-        return False
+        return str(self) == "/dev/dma_heap"
 
     def mock_path_exists(self):
         if str(self) in ["/dev/vchiq", "/dev/video0", "/dev/media0", "/dev/dma_heap/system"]:
@@ -126,9 +120,7 @@ def test_check_device_availability_warns_when_video_nodes_missing(monkeypatch):
         return matches.get(pattern, [])
 
     def mock_path_is_dir(self):
-        if str(self) == "/dev/dma_heap":
-            return True
-        return False
+        return str(self) == "/dev/dma_heap"
 
     def mock_path_exists(self):
         if str(self) in ["/dev/vchiq", "/dev/media0", "/dev/v4l-subdev0", "/dev/dma_heap/system"]:

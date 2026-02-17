@@ -429,9 +429,9 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
             ) from exc
         resolved_addresses = tuple(cast("str", record[4][0]) for record in records)
 
-    vetted_addresses: Tuple[str, ...] = _vet_resolved_addresses(  # type: ignore[assignment]
-        cast("Tuple[str, ...]", resolved_addresses)
-    )
+    # mypy false positive: type system confusion with generator expression
+    vetted_addresses: Tuple[str, ...]
+    vetted_addresses = _vet_resolved_addresses(tuple(resolved_addresses))  # type: ignore
     if not vetted_addresses:
         message = "name resolution returned no addresses"
         raise ConnectionError(message)
