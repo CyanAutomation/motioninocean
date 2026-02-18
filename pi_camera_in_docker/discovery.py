@@ -115,6 +115,7 @@ class DiscoveryAnnouncer:
         with self._thread_lock:
             if self._thread and self._thread.is_alive():
                 return
+            self.shutdown_event.clear()
             self._thread = Thread(target=self._run_loop, name="discovery-announcer", daemon=True)
             self._thread.start()
 
@@ -128,6 +129,8 @@ class DiscoveryAnnouncer:
             self.shutdown_event.set()
             if self._thread and self._thread.is_alive():
                 self._thread.join(timeout=timeout_seconds)
+            if self._thread and not self._thread.is_alive():
+                self._thread = None
 
     def _announce_once(self) -> bool:
         """Attempt a single announcement to management hub.
