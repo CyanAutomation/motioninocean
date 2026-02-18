@@ -544,6 +544,350 @@ def _init_app_state(config: Dict[str, Any]) -> dict:
     }
 
 
+def _indicator(state_value: str, label: str, details: str) -> Dict[str, str]:
+    """Build a health check indicator dictionary.
+
+    Constructs a structured status indicator for health check reporting with
+    state value (ok/fail/warn/unknown), descriptive label, and detailed message.
+
+    Args:
+        state_value: Status state as string (ok, fail, warn, unknown).
+        label: Human-readable label for the indicator.
+        details: Detailed description of the indicator state.
+
+    Returns:
+        Dictionary with state, label, and details keys.
+    """
+    return {
+        "state": state_value,
+        "label": label,
+        "details": details,
+    }
+
+
+class HealthCheckBuilder:
+    """Encapsulates health check state machine for application endpoints.
+
+    Builds indicators for camera pipeline, stream freshness, connection capacity,
+    and mock mode based on runtime state and configuration.
+    """
+
+    def __init__(self, config: Dict[str, Any], state: dict, app: Flask) -> None:
+        """Initialize HealthCheckBuilder with config, state, and app context.
+
+        Args:
+            config: Application configuration dictionary.
+            state: Application runtime state dictionary.
+            app: Flask application instance.
+        """
+        self.config = config
+        self.state = state
+        self.app = app
+
+    def build_camera_pipeline_indicator(self, camera_is_active: bool) -> Dict[str, str]:
+        """Build camera pipeline status indicator.
+
+        Evaluates whether camera recording pipeline is active and returns
+        appropriate indicator based on app mode and activity status.
+
+        Args:
+            camera_is_active: Whether camera is currently active.
+
+        Returns:
+            Indicator dictionary with state, label, and details.
+        """
+        if camera_is_active:
+            return _indicator(
+                "ok",
+                "Camera pipeline active",
+                "Camera recording pipeline is active.",
+            )
+        if self.state.get("app_mode") == "management":
+            return _indicator(
+                "unknown",
+                "Camera pipeline not required",
+                "Management mode does not require an active camera pipeline.",
+            )
+        return _indicator(
+            "fail",
+            "Camera pipeline inactive",
+            "Camera recording pipeline is not active.",
+        )
+
+    def build_stream_freshness_indicator(self, stream_status: Dict[str, Any]) -> Dict[str, str]:
+        """Build stream freshness status indicator.
+
+        Evaluates last frame age against configured threshold and returns
+        indicator reflecting freshness of stream data.
+
+        Args:
+            stream_status: Stream status dict with last_frame_age_seconds.
+
+        Returns:
+            Indicator dictionary with state, label, and details.
+        """
+        last_frame_age_seconds = stream_status.get("last_frame_age_seconds")
+        max_age_seconds = self.state.get(
+            "max_frame_age_seconds", self.config["max_frame_age_seconds"]
+        )
+
+        if last_frame_age_seconds is None:
+            return _indicator(
+                "unknown",
+                "Stream freshness unavailable",
+                "No frame age is currently available to evaluate freshness.",
+            )
+        if last_frame_age_seconds <= max_age_seconds:
+            return _indicator(
+                "ok",
+                "Stream is fresh",
+                f"Last frame age {last_frame_age_seconds:.2f}s is within the {max_age_seconds:.2f}s threshold.",
+            )
+        return _indicator(
+            "fail",
+            "Stream is stale",
+            f"Last frame age {last_frame_age_seconds:.2f}s exceeds the {max_age_seconds:.2f}s threshold.",
+        )
+
+    def build_connection_capacity_indicator(
+        self,
+        current_connections_count: int,
+        max_connections_count: int,
+    ) -> Dict[str, str]:
+        """Build connection capacity status indicator.
+
+        Evaluates current connection count against maximum and returns
+        indicator reflecting capacity health (ok/warn/fail).
+
+        Args:
+            current_connections_count: Number of active stream connections.
+            max_connections_count: Maximum allowed stream connections.
+
+        Returns:
+            Indicator dictionary with state, label, and details.
+        """
+        connection_ratio = (
+            current_connections_count / max_connections_count if max_connections_count > 0 else 0.0
+        )
+        if max_connections_count <= 0:
+            return _indicator(
+                "unknown",
+                "Connection capacity unavailable",
+                "Maximum stream connections is not configured.",
+            )
+        if connection_ratio >= 1.0:
+            return _indicator(
+                "fail",
+                "Connection capacity reached",
+                f"{current_connections_count}/{max_connections_count} stream connections are in use.",
+            )
+        if connection_ratio >= 0.8:
+            return _indicator(
+                "warn",
+                "Connection capacity nearing limit",
+                f"{current_connections_count}/{max_connections_count} stream connections are in use.",
+            )
+        return _indicator(
+            "ok",
+            "Connection capacity healthy",
+            f"{current_connections_count}/{max_connections_count} stream connections are in use.",
+        )
+
+    def build_mock_mode_indicator(self) -> Dict[str, str]:
+        """Build mock camera mode status indicator.
+
+        Evaluates whether mock camera is enabled and returns indicator
+        reflecting mode appropriateness for app mode.
+
+        Returns:
+            Indicator dictionary with state, label, and details.
+        """
+        expected_real_camera = self.state.get("app_mode") == "webcam"
+        if self.config["mock_camera"] and expected_real_camera:
+            return _indicator(
+                "warn",
+                "Mock camera enabled",
+                "Mock camera is enabled while webcam mode is active.",
+            )
+        if self.config["mock_camera"]:
+            return _indicator(
+                "ok",
+                "Mock camera enabled",
+                "Mock camera is enabled for a non-webcam mode.",
+            )
+        return _indicator(
+            "ok",
+            "Real camera mode",
+            "Mock camera is disabled.",
+        )
+
+    def build(
+        self,
+        camera_is_active: bool,
+        stream_status: Dict[str, Any],
+        current_connections_count: int,
+        max_connections_count: int,
+    ) -> Dict[str, Dict[str, str]]:
+        """Build complete health check with all indicators.
+
+        Calls all indicator builders and returns combined health check dict
+        with camera_pipeline, stream_freshness, connection_capacity, and
+        mock_mode indicators.
+
+        Args:
+            camera_is_active: Whether camera is currently active.
+            stream_status: Stream status dict with last_frame_age_seconds.
+            current_connections_count: Number of active stream connections.
+            max_connections_count: Maximum allowed stream connections.
+
+        Returns:
+            Dictionary with all health check indicators.
+        """
+        return {
+            "camera_pipeline": self.build_camera_pipeline_indicator(camera_is_active),
+            "stream_freshness": self.build_stream_freshness_indicator(stream_status),
+            "connection_capacity": self.build_connection_capacity_indicator(
+                current_connections_count, max_connections_count
+            ),
+            "mock_mode": self.build_mock_mode_indicator(),
+        }
+
+
+class ConfigResponseBuilder:
+    """Encapsulates building /api/config response with state collection.
+
+    Collects runtime state from webcam or management mode and builds
+    comprehensive configuration response JSON.
+    """
+
+    def __init__(self, config: Dict[str, Any], state: dict, app: Flask) -> None:
+        """Initialize ConfigResponseBuilder with config, state, and app context.
+
+        Args:
+            config: Application configuration dictionary.
+            state: Application runtime state dictionary.
+            app: Flask application instance.
+        """
+        self.config = config
+        self.state = state
+        self.app = app
+
+    def build_webcam_state(
+        self,
+    ) -> Tuple[int, bool, Dict[str, Any], Optional[float]]:
+        """Collect and build webcam mode runtime state.
+
+        Extracts connection tracker, recording start event, and stream stats
+        from state dict and calculates derived values like camera_active and
+        uptime_seconds.
+
+        Returns:
+            Tuple of (current_connections, camera_active, stream_status, uptime_seconds).
+        """
+        tracker = self.state.get("connection_tracker")
+        recording_started = self.state.get("recording_started")
+        stream_stats = self.state.get("stream_stats")
+
+        current_connections = tracker.get_count() if isinstance(tracker, ConnectionTracker) else 0
+        camera_active = isinstance(recording_started, Event) and recording_started.is_set()
+        stream_status = (
+            get_stream_status(stream_stats, self.config["resolution"])
+            if isinstance(stream_stats, StreamStats)
+            else {"last_frame_age_seconds": None}
+        )
+        uptime_seconds = round(
+            max(
+                0.0,
+                time.monotonic() - getattr(self.app, "start_time_monotonic", 0.0),
+            ),
+            2,
+        )
+
+        return current_connections, camera_active, stream_status, uptime_seconds
+
+    def build_management_state(
+        self,
+    ) -> Tuple[int, bool, Dict[str, Any], Optional[float]]:
+        """Build management mode runtime state (defaults).
+
+        Management mode does not require camera or stream tracking.
+        Returns sensible defaults for all state values.
+
+        Returns:
+            Tuple of (0, False, {"last_frame_age_seconds": None}, None).
+        """
+        return 0, False, {"last_frame_age_seconds": None}, None
+
+    def collect_state(
+        self,
+    ) -> Tuple[int, bool, Dict[str, Any], Optional[float]]:
+        """Collect runtime state based on app mode.
+
+        Dispatches to build_webcam_state() or build_management_state()
+        depending on current app mode.
+
+        Returns:
+            Tuple of (current_connections, camera_active, stream_status, uptime_seconds).
+        """
+        if self.state.get("app_mode") == "webcam":
+            return self.build_webcam_state()
+        return self.build_management_state()
+
+    def build(self) -> Tuple[Dict[str, Any], int]:
+        """Build complete /api/config response.
+
+        Collects runtime state using collect_state(), builds health check
+        using HealthCheckBuilder, and returns complete JSON response dict
+        with camera settings, stream control, runtime, health check info,
+        timestamp, and app mode.
+
+        Returns:
+            Tuple of (response_dict, status_code=200).
+        """
+        current_connections, camera_active, stream_status, uptime_seconds = self.collect_state()
+
+        max_connections = self.state.get(
+            "max_stream_connections", self.config["max_stream_connections"]
+        )
+
+        health_check_builder = HealthCheckBuilder(self.config, self.state, self.app)
+        health_check = health_check_builder.build(
+            camera_active,
+            stream_status,
+            current_connections,
+            max_connections,
+        )
+
+        response_dict = {
+            "camera_settings": {
+                "resolution": list(self.config["resolution"]),
+                "fps": self.config["fps"],
+                "target_fps": self.config["target_fps"],
+                "jpeg_quality": self.config["jpeg_quality"],
+            },
+            "stream_control": {
+                "max_stream_connections": self.state.get(
+                    "max_stream_connections", self.config["max_stream_connections"]
+                ),
+                "current_stream_connections": current_connections,
+                "max_frame_age_seconds": self.state.get(
+                    "max_frame_age_seconds", self.config["max_frame_age_seconds"]
+                ),
+                "cors_origins": self.config["cors_origins"],
+            },
+            "runtime": {
+                "camera_active": camera_active,
+                "mock_camera": self.config["mock_camera"],
+                "uptime_seconds": uptime_seconds,
+            },
+            "health_check": health_check,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "app_mode": self.config["app_mode"],
+        }
+
+        return response_dict, 200
+
+
 def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
     """Create base Flask application with middleware, state, and shared routes.
 
@@ -588,181 +932,9 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
         Returns:
             JSON object with camera settings, stream control info, runtime status, and health checks.
         """
-
-        def _indicator(state_value: str, label: str, details: str) -> Dict[str, str]:
-            return {
-                "state": state_value,
-                "label": label,
-                "details": details,
-            }
-
-        def _build_health_check(
-            camera_is_active: bool,
-            stream_status: Dict[str, Any],
-            current_connections_count: int,
-            max_connections_count: int,
-        ) -> Dict[str, Dict[str, str]]:
-            last_frame_age_seconds = stream_status.get("last_frame_age_seconds")
-            max_age_seconds = state.get("max_frame_age_seconds", config["max_frame_age_seconds"])
-
-            if camera_is_active:
-                camera_pipeline = _indicator(
-                    "ok",
-                    "Camera pipeline active",
-                    "Camera recording pipeline is active.",
-                )
-            elif state.get("app_mode") == "management":
-                camera_pipeline = _indicator(
-                    "unknown",
-                    "Camera pipeline not required",
-                    "Management mode does not require an active camera pipeline.",
-                )
-            else:
-                camera_pipeline = _indicator(
-                    "fail",
-                    "Camera pipeline inactive",
-                    "Camera recording pipeline is not active.",
-                )
-
-            if last_frame_age_seconds is None:
-                stream_freshness = _indicator(
-                    "unknown",
-                    "Stream freshness unavailable",
-                    "No frame age is currently available to evaluate freshness.",
-                )
-            elif last_frame_age_seconds <= max_age_seconds:
-                stream_freshness = _indicator(
-                    "ok",
-                    "Stream is fresh",
-                    f"Last frame age {last_frame_age_seconds:.2f}s is within the {max_age_seconds:.2f}s threshold.",
-                )
-            else:
-                stream_freshness = _indicator(
-                    "fail",
-                    "Stream is stale",
-                    f"Last frame age {last_frame_age_seconds:.2f}s exceeds the {max_age_seconds:.2f}s threshold.",
-                )
-
-            connection_ratio = (
-                current_connections_count / max_connections_count
-                if max_connections_count > 0
-                else 0.0
-            )
-            if max_connections_count <= 0:
-                connection_capacity = _indicator(
-                    "unknown",
-                    "Connection capacity unavailable",
-                    "Maximum stream connections is not configured.",
-                )
-            elif connection_ratio >= 1.0:
-                connection_capacity = _indicator(
-                    "fail",
-                    "Connection capacity reached",
-                    f"{current_connections_count}/{max_connections_count} stream connections are in use.",
-                )
-            elif connection_ratio >= 0.8:
-                connection_capacity = _indicator(
-                    "warn",
-                    "Connection capacity nearing limit",
-                    f"{current_connections_count}/{max_connections_count} stream connections are in use.",
-                )
-            else:
-                connection_capacity = _indicator(
-                    "ok",
-                    "Connection capacity healthy",
-                    f"{current_connections_count}/{max_connections_count} stream connections are in use.",
-                )
-
-            expected_real_camera = state.get("app_mode") == "webcam"
-            if config["mock_camera"] and expected_real_camera:
-                mock_mode = _indicator(
-                    "warn",
-                    "Mock camera enabled",
-                    "Mock camera is enabled while webcam mode is active.",
-                )
-            elif config["mock_camera"]:
-                mock_mode = _indicator(
-                    "ok",
-                    "Mock camera enabled",
-                    "Mock camera is enabled for a non-webcam mode.",
-                )
-            else:
-                mock_mode = _indicator(
-                    "ok",
-                    "Real camera mode",
-                    "Mock camera is disabled.",
-                )
-
-            return {
-                "camera_pipeline": camera_pipeline,
-                "stream_freshness": stream_freshness,
-                "connection_capacity": connection_capacity,
-                "mock_mode": mock_mode,
-            }
-
-        if state.get("app_mode") == "webcam":
-            tracker = state.get("connection_tracker")
-            recording_started = state.get("recording_started")
-            stream_stats = state.get("stream_stats")
-
-            current_connections = (
-                tracker.get_count() if isinstance(tracker, ConnectionTracker) else 0
-            )
-            camera_active = isinstance(recording_started, Event) and recording_started.is_set()
-            stream_status = (
-                get_stream_status(stream_stats, config["resolution"])
-                if isinstance(stream_stats, StreamStats)
-                else {"last_frame_age_seconds": None}
-            )
-            uptime_seconds = round(
-                max(
-                    0.0,
-                    time.monotonic() - getattr(app, "start_time_monotonic", 0.0),
-                ),
-                2,
-            )
-        else:
-            current_connections = 0
-            camera_active = False
-            stream_status = {"last_frame_age_seconds": None}
-            uptime_seconds = None
-
-        max_connections = state.get("max_stream_connections", config["max_stream_connections"])
-        health_check = _build_health_check(
-            camera_active,
-            stream_status,
-            current_connections,
-            max_connections,
-        )
-
-        return jsonify(
-            {
-                "camera_settings": {
-                    "resolution": list(config["resolution"]),
-                    "fps": config["fps"],
-                    "target_fps": config["target_fps"],
-                    "jpeg_quality": config["jpeg_quality"],
-                },
-                "stream_control": {
-                    "max_stream_connections": state.get(
-                        "max_stream_connections", config["max_stream_connections"]
-                    ),
-                    "current_stream_connections": current_connections,
-                    "max_frame_age_seconds": state.get(
-                        "max_frame_age_seconds", config["max_frame_age_seconds"]
-                    ),
-                    "cors_origins": config["cors_origins"],
-                },
-                "runtime": {
-                    "camera_active": camera_active,
-                    "mock_camera": config["mock_camera"],
-                    "uptime_seconds": uptime_seconds,
-                },
-                "health_check": health_check,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "app_mode": config["app_mode"],
-            }
-        ), 200
+        builder = ConfigResponseBuilder(config, state, app)
+        response_dict, status_code = builder.build()
+        return jsonify(response_dict), status_code
 
     @app.route("/api/feature-flags")
     def api_flags():

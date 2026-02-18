@@ -685,22 +685,17 @@ def _get_docker_container_status(
         ) from exc
 
 
-def _diagnose_webcam(node: Dict[str, Any]) -> Dict[str, Any]:
-    """Perform comprehensive diagnostic checks on a registered webcam.
-
-    Validates webcam registration, URL formatting, DNS resolution, network connectivity,
-    and API endpoint accessibility. Returns detailed results and remediation guidance.
+def _build_diagnostics_result(webcam_id: str) -> Dict[str, Any]:
+    """Create initial diagnostics result structure for a webcam.
 
     Args:
-        node: Webcam dict with id, base_url, transport, etc.
+        webcam_id: Unique identifier for the webcam node.
 
     Returns:
-        Dict with diagnostics results, status checks, and troubleshooting guidance.
+        Dict with initialized diagnostics structure including registration, URL validation,
+        DNS resolution, network connectivity, and API endpoint sections.
     """
-    webcam_id = node["id"]
-    base_url = node.get("base_url", "")
-    transport = node.get("transport", "http")
-    results = {
+    return {
         "webcam_id": webcam_id,
         "diagnostics": {
             "registration": {"valid": False, "status": "fail"},
@@ -713,265 +708,168 @@ def _diagnose_webcam(node: Dict[str, Any]) -> Dict[str, Any]:
         "recommendations": [],
     }
 
-    def _add_recommendation(message: str, status: str, code: Optional[str] = None) -> None:
-        results["guidance"].append(message)
-        recommendation = {"message": message, "status": status}
-        if code:
-            recommendation["code"] = code
-        results["recommendations"].append(recommendation)
 
-    # Handle docker transport separately
-    if transport == "docker":
-        try:
-            proxy_host, proxy_port, container_id = _parse_docker_url(base_url)
-            results["diagnostics"]["registration"].update({"valid": True, "status": "pass"})
-            results["diagnostics"]["url_validation"].update({"blocked": False, "status": "pass"})
-        except ValueError as exc:
-            results["diagnostics"]["registration"].update(
-                {"valid": False, "status": "fail", "error": str(exc), "code": "INVALID_DOCKER_URL"}
-            )
-            _add_recommendation(
-                f"Fix: Invalid docker URL format. Expected: docker://proxy-host:port/container-id. Error: {exc!s}",
-                "fail",
-                "INVALID_DOCKER_URL",
-            )
-            return results
+def _check_dns_resolution(hostname: str, port: Optional[int]) -> Tuple[bool, list, Optional[str]]:
+    """Resolve hostname to list of IP addresses using DNS.
 
-        try:
-            records = socket.getaddrinfo(proxy_host, proxy_port, proto=socket.IPPROTO_TCP)
-            resolved_ips = list({record[4][0] for record in records})
-            results["diagnostics"]["dns_resolution"].update(
-                {"resolves": True, "status": "pass", "resolved_ips": resolved_ips}
-            )
-        except socket.gaierror as exc:
-            results["diagnostics"]["dns_resolution"].update(
-                {
-                    "resolves": False,
-                    "status": "fail",
-                    "error": str(exc),
-                    "code": "DNS_RESOLUTION_FAILED",
-                }
-            )
-            _add_recommendation(
-                f"Network Issue: DNS failed for docker proxy '{proxy_host}'. Check hostname and network DNS.",
-                "fail",
-                "DNS_RESOLUTION_FAILED",
-            )
-            return results
+    Args:
+        hostname: DNS hostname to resolve.
+        port: Optional port number for socket resolution.
 
-        auth_headers = _build_headers(node)
-        try:
-            status_code, status_payload = _get_docker_container_status(
-                proxy_host, proxy_port, container_id, auth_headers
-            )
-            results["diagnostics"]["network_connectivity"].update(
-                {"reachable": True, "status": "pass"}
-            )
-            results["diagnostics"]["api_endpoint"].update(
-                {
-                    "accessible": status_code in {200, 404},
-                    "status_code": status_code,
-                    "healthy": status_code == 200,
-                    "status": "pass" if status_code == 200 else "fail",
-                }
-            )
+    Returns:
+        Tuple of (success: bool, resolved_ips: list, error: Optional[str]).
+        On success, resolved_ips contains unique IP addresses; on failure, error_string is set.
 
-            if status_code == 200:
-                _add_recommendation(
-                    "Docker proxy reachable and container found with status: "
-                    + status_payload.get("status", "ok"),
-                    "pass",
-                )
-            elif status_code == 404:
-                results["diagnostics"]["api_endpoint"]["code"] = "DOCKER_CONTAINER_NOT_FOUND"
-                _add_recommendation(
-                    f"Container '{container_id}' not found on docker proxy {proxy_host}:{proxy_port}. Check container name.",
-                    "fail",
-                    "DOCKER_CONTAINER_NOT_FOUND",
-                )
-            else:
-                results["diagnostics"]["api_endpoint"]["code"] = "UNEXPECTED_STATUS"
-                _add_recommendation(
-                    f"Docker proxy returned unexpected status {status_code}.",
-                    "warn",
-                    "UNEXPECTED_STATUS",
-                )
-        except NodeConnectivityError as exc:
-            results["diagnostics"]["network_connectivity"].update(
-                {
-                    "reachable": exc.category != "timeout",
-                    "status": "warn" if exc.category != "timeout" else "fail",
-                    "error": exc.reason,
-                    "category": exc.category,
-                    "code": "NETWORK_CONNECTIVITY_ERROR",
-                }
-            )
-            if exc.raw_error:
-                results["diagnostics"]["network_connectivity"]["raw_error"] = _sanitize_error_text(
-                    exc.raw_error
-                )
-
-            guidance_map = {
-                "timeout": f"Network Timeout: Docker proxy took longer than {REQUEST_TIMEOUT_SECONDS}s to respond. Check docker proxy service and network latency.",
-                "connection_refused_or_reset": "Connection Error: Docker proxy refused connection. Ensure docker-socket-proxy is running on correct port.",
-                "network": "Network Error: Unable to reach docker proxy. Check network connectivity and firewall rules.",
-            }
-            _add_recommendation(
-                guidance_map.get(exc.category, f"Docker proxy error: {exc.reason}"),
-                "fail",
-                "NETWORK_CONNECTIVITY_ERROR",
-            )
-
-        return results
-
+    Raises:
+        socket.gaierror: Re-raised from socket.getaddrinfo if DNS lookup fails.
+    """
     try:
-        _validate_node_base_url(base_url)
-        results["diagnostics"]["registration"].update({"valid": True, "status": "pass"})
-    except NodeRequestError as exc:
-        results["diagnostics"]["registration"].update(
-            {"valid": False, "status": "fail", "error": str(exc), "code": "INVALID_BASE_URL"}
-        )
-        _add_recommendation(
-            "Fix: Ensure base_url is valid (http:// or https://)", "fail", "INVALID_BASE_URL"
-        )
-        return results
+        records = socket.getaddrinfo(hostname, port, proto=socket.IPPROTO_TCP)
+        resolved_ips = list({record[4][0] for record in records})
+        return True, resolved_ips, None
+    except socket.gaierror as exc:
+        return False, [], str(exc)
 
+
+def _check_ssrf_blocking(base_url: str, resolved_ips: list) -> Tuple[bool, str]:
+    """Check if URL hostname or resolved IPs are blocked by SSRF protection.
+
+    Args:
+        base_url: Full HTTP/HTTPS URL to check.
+        resolved_ips: List of IP addresses resolved from hostname.
+
+    Returns:
+        Tuple of (is_blocked: bool, reason: str).
+    """
     parsed = urlparse(base_url)
     hostname = parsed.hostname
+
     try:
-        if _is_blocked_address(hostname):
-            results["diagnostics"]["url_validation"].update(
-                {
-                    "blocked": True,
-                    "status": "fail",
-                    "blocked_reason": "private IP or reserved address",
-                    "code": "SSRF_BLOCKED",
-                }
-            )
-            if ALLOW_PRIVATE_IPS:
-                _add_recommendation(
-                    "Code detected SSRF block despite ALLOW_PRIVATE_IPS=true. This is unexpected.",
-                    "warn",
-                    "SSRF_BLOCKED_UNEXPECTED",
-                )
-            else:
-                _add_recommendation(
-                    "Private IP (192.168.x.x, 10.x.x.x, 172.16.x.x) blocked by SSRF protection. "
-                    "Option 1: Use docker network hostname (e.g., 'motion-in-ocean-webcam:8000'). "
-                    "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management webcam environment.",
-                    "fail",
-                    "SSRF_BLOCKED",
-                )
-            return results
+        if hostname and _is_blocked_address(hostname):
+            return True, "private IP or reserved address"
     except ValueError:
-        pass
+        pass  # hostname is not an IP address, which is fine
 
+    for ip in resolved_ips:
+        if _is_blocked_address(ip):
+            return True, f"resolved to private IP {ip}"
+
+    return False, ""
+
+
+def _check_api_endpoint(
+    node: Dict[str, Any],
+) -> Tuple[int, Optional[Dict[str, Any]], Optional[Exception]]:
+    """Call the /api/status endpoint on a remote webcam node.
+
+    Args:
+        node: Webcam node dict with authentication and config.
+
+    Returns:
+        Tuple of (status_code: int, response_payload: Optional[dict], exception: Optional[Exception]).
+        On success, response_payload contains the JSON response.
+        On exception, exception field contains the error.
+    """
     try:
-        records = socket.getaddrinfo(hostname, parsed.port or None, proto=socket.IPPROTO_TCP)
-        resolved_ips = list({record[4][0] for record in records})
-        results["diagnostics"]["dns_resolution"].update(
-            {"resolves": True, "status": "pass", "resolved_ips": resolved_ips}
-        )
+        status_code, payload = _request_json(node, "GET", "/api/status")
+        return status_code, payload, None
+    except Exception as exc:
+        return 0, None, exc
 
-        for ip in resolved_ips:
-            if _is_blocked_address(ip):
-                results["diagnostics"]["url_validation"].update(
-                    {
-                        "blocked": True,
-                        "status": "fail",
-                        "blocked_reason": f"resolved to private IP {ip}",
-                        "code": "SSRF_BLOCKED",
-                    }
-                )
-                if ALLOW_PRIVATE_IPS:
-                    _add_recommendation(
-                        f"Hostname '{hostname}' resolves to a non-private address type that is blocked ({ip}).",
-                        "warn",
-                        "SSRF_BLOCKED_UNEXPECTED",
-                    )
-                else:
-                    _add_recommendation(
-                        f"Hostname '{hostname}' resolves to private IP {ip}, blocked by SSRF protection. "
-                        "Option 1: Use a public IP or docker network hostname. "
-                        "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management webcam environment.",
-                        "fail",
-                        "SSRF_BLOCKED",
-                    )
-                return results
-    except socket.gaierror as exc:
+
+def _diagnose_docker_transport(
+    node: Dict[str, Any],
+    base_url: str,
+    results: Dict[str, Any],
+    add_recommendation: Any,
+) -> Dict[str, Any]:
+    """Diagnose Docker transport connectivity for a webcam node.
+
+    Validates docker URL format, resolves proxy hostname, checks docker socket proxy,
+    and tests container status.
+
+    Args:
+        node: Webcam node dict with id, base_url, transport, auth token.
+        base_url: Docker URL (docker://proxy-host:port/container-id).
+        results: Diagnostics results dict to update.
+        add_recommendation: Callable to add diagnostic guidance messages.
+
+    Returns:
+        Updated results dict with docker-specific diagnostics.
+    """
+    try:
+        proxy_host, proxy_port, container_id = _parse_docker_url(base_url)
+        results["diagnostics"]["registration"].update({"valid": True, "status": "pass"})
+        results["diagnostics"]["url_validation"].update({"blocked": False, "status": "pass"})
+    except ValueError as exc:
+        results["diagnostics"]["registration"].update(
+            {"valid": False, "status": "fail", "error": str(exc), "code": "INVALID_DOCKER_URL"}
+        )
+        add_recommendation(
+            f"Fix: Invalid docker URL format. Expected: docker://proxy-host:port/container-id. Error: {exc!s}",
+            "fail",
+            "INVALID_DOCKER_URL",
+        )
+        return results
+
+    # DNS resolution
+    dns_success, resolved_ips, dns_error = _check_dns_resolution(proxy_host, proxy_port)
+    if not dns_success:
         results["diagnostics"]["dns_resolution"].update(
             {
                 "resolves": False,
                 "status": "fail",
-                "error": str(exc),
+                "error": dns_error,
                 "code": "DNS_RESOLUTION_FAILED",
             }
         )
-        _add_recommendation(
-            f"Network Issue: DNS failed for '{hostname}'. Check hostname spelling and network connectivity.",
+        add_recommendation(
+            f"Network Issue: DNS failed for docker proxy '{proxy_host}'. Check hostname and network DNS.",
             "fail",
             "DNS_RESOLUTION_FAILED",
         )
         return results
 
+    results["diagnostics"]["dns_resolution"].update(
+        {"resolves": True, "status": "pass", "resolved_ips": resolved_ips}
+    )
+
+    # Docker container status check
+    auth_headers = _build_headers(node)
     try:
-        status_code, _status_payload = _request_json(node, "GET", "/api/status")
+        status_code, status_payload = _get_docker_container_status(
+            proxy_host, proxy_port, container_id, auth_headers
+        )
         results["diagnostics"]["network_connectivity"].update({"reachable": True, "status": "pass"})
         results["diagnostics"]["api_endpoint"].update(
             {
-                "accessible": status_code in {200, 503},
+                "accessible": status_code in {200, 404},
                 "status_code": status_code,
                 "healthy": status_code == 200,
-                "status": "pass"
-                if status_code == 200
-                else "warn"
-                if status_code == 503
-                else "fail",
+                "status": "pass" if status_code == 200 else "fail",
             }
         )
 
         if status_code == 200:
-            _add_recommendation(
-                "Node is reachable and responsive. Status check successful.", "pass"
+            add_recommendation(
+                "Docker proxy reachable and container found with status: "
+                + status_payload.get("status", "ok"),
+                "pass",
             )
-        elif status_code == 503:
-            results["diagnostics"]["api_endpoint"]["code"] = "API_STATUS_503"
-            _add_recommendation(
-                "Node is reachable but reported 503 Service Unavailable. Camera may still be initializing.",
-                "warn",
-                "API_STATUS_503",
+        elif status_code == 404:
+            results["diagnostics"]["api_endpoint"]["code"] = "DOCKER_CONTAINER_NOT_FOUND"
+            add_recommendation(
+                f"Container '{container_id}' not found on docker proxy {proxy_host}:{proxy_port}. Check container name.",
+                "fail",
+                "DOCKER_CONTAINER_NOT_FOUND",
             )
         else:
             results["diagnostics"]["api_endpoint"]["code"] = "UNEXPECTED_STATUS"
-            _add_recommendation(
-                f"Node returned unexpected status {status_code}.",
+            add_recommendation(
+                f"Docker proxy returned unexpected status {status_code}.",
                 "warn",
                 "UNEXPECTED_STATUS",
             )
-    except NodeInvalidResponseError:
-        results["diagnostics"]["network_connectivity"].update({"reachable": True, "status": "pass"})
-        results["diagnostics"]["api_endpoint"].update(
-            {
-                "accessible": False,
-                "status": "fail",
-                "error": "malformed json response",
-                "code": "INVALID_JSON_RESPONSE",
-            }
-        )
-        _add_recommendation(
-            "API Error: Node responded but with invalid JSON. Node may be misconfigured or wrong version.",
-            "fail",
-            "INVALID_JSON_RESPONSE",
-        )
-    except NodeRequestError as exc:
-        results["diagnostics"]["url_validation"].update(
-            {"blocked": True, "status": "fail", "blocked_reason": str(exc), "code": "SSRF_BLOCKED"}
-        )
-        _add_recommendation(
-            "URL Validation: Node target is blocked by SSRF protection policy.",
-            "fail",
-            "SSRF_BLOCKED",
-        )
     except NodeConnectivityError as exc:
         results["diagnostics"]["network_connectivity"].update(
             {
@@ -988,33 +886,274 @@ def _diagnose_webcam(node: Dict[str, Any]) -> Dict[str, Any]:
             )
 
         guidance_map = {
+            "timeout": f"Network Timeout: Docker proxy took longer than {REQUEST_TIMEOUT_SECONDS}s to respond. Check docker proxy service and network latency.",
+            "connection_refused_or_reset": "Connection Error: Docker proxy refused connection. Ensure docker-socket-proxy is running on correct port.",
+            "network": "Network Error: Unable to reach docker proxy. Check network connectivity and firewall rules.",
+        }
+        add_recommendation(
+            guidance_map.get(exc.category, f"Docker proxy error: {exc.reason}"),
+            "fail",
+            "NETWORK_CONNECTIVITY_ERROR",
+        )
+
+    return results
+
+
+def _diagnose_http_transport(
+    node: Dict[str, Any],
+    base_url: str,
+    results: Dict[str, Any],
+    add_recommendation: Any,
+) -> Dict[str, Any]:
+    """Diagnose HTTP transport connectivity for a webcam node.
+
+    Validates HTTP URL, checks SSRF blocking, resolves hostname, and tests API endpoint.
+
+    Args:
+        node: Webcam node dict with id, base_url, transport, auth token.
+        base_url: HTTP or HTTPS URL.
+        results: Diagnostics results dict to update.
+        add_recommendation: Callable to add diagnostic guidance messages.
+
+    Returns:
+        Updated results dict with HTTP-specific diagnostics.
+    """
+    # Validate URL format
+    try:
+        _validate_node_base_url(base_url)
+        results["diagnostics"]["registration"].update({"valid": True, "status": "pass"})
+    except NodeRequestError as exc:
+        results["diagnostics"]["registration"].update(
+            {"valid": False, "status": "fail", "error": str(exc), "code": "INVALID_BASE_URL"}
+        )
+        add_recommendation(
+            "Fix: Ensure base_url is valid (http:// or https://)", "fail", "INVALID_BASE_URL"
+        )
+        return results
+
+    # Check SSRF blocking on hostname
+    parsed = urlparse(base_url)
+    hostname = parsed.hostname
+    try:
+        if _is_blocked_address(hostname):
+            results["diagnostics"]["url_validation"].update(
+                {
+                    "blocked": True,
+                    "status": "fail",
+                    "blocked_reason": "private IP or reserved address",
+                    "code": "SSRF_BLOCKED",
+                }
+            )
+            if ALLOW_PRIVATE_IPS:
+                add_recommendation(
+                    "Code detected SSRF block despite ALLOW_PRIVATE_IPS=true. This is unexpected.",
+                    "warn",
+                    "SSRF_BLOCKED_UNEXPECTED",
+                )
+            else:
+                add_recommendation(
+                    "Private IP (192.168.x.x, 10.x.x.x, 172.16.x.x) blocked by SSRF protection. "
+                    "Option 1: Use docker network hostname (e.g., 'motion-in-ocean-webcam:8000'). "
+                    "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management webcam environment.",
+                    "fail",
+                    "SSRF_BLOCKED",
+                )
+            return results
+    except ValueError:
+        pass
+
+    # DNS resolution
+    dns_success, resolved_ips, dns_error = _check_dns_resolution(hostname, parsed.port or None)
+    if not dns_success:
+        results["diagnostics"]["dns_resolution"].update(
+            {
+                "resolves": False,
+                "status": "fail",
+                "error": dns_error,
+                "code": "DNS_RESOLUTION_FAILED",
+            }
+        )
+        add_recommendation(
+            f"Network Issue: DNS failed for '{hostname}'. Check hostname spelling and network connectivity.",
+            "fail",
+            "DNS_RESOLUTION_FAILED",
+        )
+        return results
+
+    results["diagnostics"]["dns_resolution"].update(
+        {"resolves": True, "status": "pass", "resolved_ips": resolved_ips}
+    )
+
+    # Check SSRF blocking on resolved IPs
+    ssrf_blocked, ssrf_reason = _check_ssrf_blocking(base_url, resolved_ips)
+    if ssrf_blocked:
+        results["diagnostics"]["url_validation"].update(
+            {
+                "blocked": True,
+                "status": "fail",
+                "blocked_reason": ssrf_reason,
+                "code": "SSRF_BLOCKED",
+            }
+        )
+        if ALLOW_PRIVATE_IPS:
+            add_recommendation(
+                f"Hostname '{hostname}' resolves to a non-private address type that is blocked ({ssrf_reason}).",
+                "warn",
+                "SSRF_BLOCKED_UNEXPECTED",
+            )
+        else:
+            add_recommendation(
+                f"Hostname '{hostname}' resolves to private IP, blocked by SSRF protection. "
+                "Option 1: Use a public IP or docker network hostname. "
+                "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management webcam environment.",
+                "fail",
+                "SSRF_BLOCKED",
+            )
+        return results
+
+    # Call API endpoint
+    status_code, _status_payload, api_exception = _check_api_endpoint(node)
+
+    if api_exception is None:
+        # Successful API call
+        results["diagnostics"]["network_connectivity"].update({"reachable": True, "status": "pass"})
+        results["diagnostics"]["api_endpoint"].update(
+            {
+                "accessible": status_code in {200, 503},
+                "status_code": status_code,
+                "healthy": status_code == 200,
+                "status": "pass"
+                if status_code == 200
+                else "warn"
+                if status_code == 503
+                else "fail",
+            }
+        )
+
+        if status_code == 200:
+            add_recommendation("Node is reachable and responsive. Status check successful.", "pass")
+        elif status_code == 503:
+            results["diagnostics"]["api_endpoint"]["code"] = "API_STATUS_503"
+            add_recommendation(
+                "Node is reachable but reported 503 Service Unavailable. Camera may still be initializing.",
+                "warn",
+                "API_STATUS_503",
+            )
+        else:
+            results["diagnostics"]["api_endpoint"]["code"] = "UNEXPECTED_STATUS"
+            add_recommendation(
+                f"Node returned unexpected status {status_code}.",
+                "warn",
+                "UNEXPECTED_STATUS",
+            )
+        return results
+
+    # Handle exceptions from API call
+    if isinstance(api_exception, NodeInvalidResponseError):
+        results["diagnostics"]["network_connectivity"].update({"reachable": True, "status": "pass"})
+        results["diagnostics"]["api_endpoint"].update(
+            {
+                "accessible": False,
+                "status": "fail",
+                "error": "malformed json response",
+                "code": "INVALID_JSON_RESPONSE",
+            }
+        )
+        add_recommendation(
+            "API Error: Node responded but with invalid JSON. Node may be misconfigured or wrong version.",
+            "fail",
+            "INVALID_JSON_RESPONSE",
+        )
+    elif isinstance(api_exception, NodeRequestError):
+        results["diagnostics"]["url_validation"].update(
+            {
+                "blocked": True,
+                "status": "fail",
+                "blocked_reason": str(api_exception),
+                "code": "SSRF_BLOCKED",
+            }
+        )
+        add_recommendation(
+            "URL Validation: Node target is blocked by SSRF protection policy.",
+            "fail",
+            "SSRF_BLOCKED",
+        )
+    elif isinstance(api_exception, NodeConnectivityError):
+        results["diagnostics"]["network_connectivity"].update(
+            {
+                "reachable": api_exception.category != "timeout",
+                "status": "warn" if api_exception.category != "timeout" else "fail",
+                "error": api_exception.reason,
+                "category": api_exception.category,
+                "code": "NETWORK_CONNECTIVITY_ERROR",
+            }
+        )
+        if api_exception.raw_error:
+            results["diagnostics"]["network_connectivity"]["raw_error"] = _sanitize_error_text(
+                api_exception.raw_error
+            )
+
+        guidance_map = {
             "dns": "DNS Resolution: Unable to resolve hostname. Check spelling and network DNS.",
             "timeout": f"Network Timeout: Node took longer than {REQUEST_TIMEOUT_SECONDS}s to respond. Check webcam health, network latency, and camera processing load.",
             "tls": "TLS Error: SSL/TLS handshake failed. Check webcam certificate or use http://.",
             "connection_refused_or_reset": "Connection Error: Node refused connection. Ensure webcam is running on correct port.",
             "network": "Network Error: Unable to reach node. Check network connectivity and firewall rules.",
         }
-        _add_recommendation(
-            guidance_map.get(exc.category, f"Network error: {exc.reason}"),
+        add_recommendation(
+            guidance_map.get(api_exception.category, f"Network error: {api_exception.reason}"),
             "fail",
             "NETWORK_CONNECTIVITY_ERROR",
         )
-    except ConnectionError as exc:
+    elif isinstance(api_exception, ConnectionError):
         results["diagnostics"]["network_connectivity"].update(
             {
                 "reachable": False,
                 "status": "fail",
-                "error": str(exc),
+                "error": str(api_exception),
                 "code": "NETWORK_CONNECTIVITY_ERROR",
             }
         )
-        _add_recommendation(
+        add_recommendation(
             "Connection: Unable to connect to node. Check webcam is running and network is accessible.",
             "fail",
             "NETWORK_CONNECTIVITY_ERROR",
         )
 
     return results
+
+
+def _diagnose_webcam(node: Dict[str, Any]) -> Dict[str, Any]:
+    """Perform comprehensive diagnostic checks on a registered webcam.
+
+    Validates webcam registration, URL formatting, DNS resolution, network connectivity,
+    and API endpoint accessibility. Returns detailed results and remediation guidance.
+
+    Args:
+        node: Webcam dict with id, base_url, transport, etc.
+
+    Returns:
+        Dict with diagnostics results, status checks, and troubleshooting guidance.
+    """
+    webcam_id = node["id"]
+    base_url = node.get("base_url", "")
+    transport = node.get("transport", "http")
+
+    # Initialize results structure
+    results = _build_diagnostics_result(webcam_id)
+
+    # Create closure for adding recommendations
+    def _add_recommendation(message: str, status: str, code: Optional[str] = None) -> None:
+        results["guidance"].append(message)
+        recommendation = {"message": message, "status": status}
+        if code:
+            recommendation["code"] = code
+        results["recommendations"].append(recommendation)
+
+    # Route to appropriate transport handler
+    if transport == "docker":
+        return _diagnose_docker_transport(node, base_url, results, _add_recommendation)
+    return _diagnose_http_transport(node, base_url, results, _add_recommendation)
 
 
 def _get_docker_status(

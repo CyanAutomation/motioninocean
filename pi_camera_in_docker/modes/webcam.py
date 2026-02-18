@@ -246,148 +246,320 @@ def get_stream_status(stats: StreamStats, resolution: Tuple[int, int]) -> Dict[s
     }
 
 
-def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[str], bool]) -> None:
-    """Register webcam mode Flask routes for MJPEG streaming.
+# Module-level constants for webcam routes
+_SUPPORTED_ACTIONS = [
+    "restart",
+    "api-test-start",
+    "api-test-stop",
+    "api-test-reset",
+    "api-test-step",
+]
 
-    Registers /stream.mjpg and /webcam endpoints that serve MJPEG video stream
-    from the frame buffer with connection tracking and max connection limits.
+_DEFAULT_API_TEST_SCENARIOS = [
+    {
+        "status": "ok",
+        "stream_available": True,
+        "camera_active": True,
+        "fps": 24.0,
+        "connections": {"current": 1, "max": 10},
+    },
+    {
+        "status": "degraded",
+        "stream_available": False,
+        "camera_active": True,
+        "fps": 0.0,
+        "connections": {"current": 0, "max": 10},
+    },
+    {
+        "status": "degraded",
+        "stream_available": False,
+        "camera_active": False,
+        "fps": 0.0,
+        "connections": {"current": 0, "max": 10},
+    },
+]
+
+
+def _build_json_error(code: str, message: str, status_code: int) -> tuple[Response, int]:
+    """Build a JSON error response with supported actions context.
 
     Args:
-        app: Flask application instance.
-        state: Application state dict with frame buffer, tracker, stream stats, etc.
-        is_flag_enabled: Feature flag check function.
+        code: Error code (e.g., 'ACTION_INVALID_BODY').
+        message: Human-readable error message.
+        status_code: HTTP status code.
+
+    Returns:
+        Tuple of (Response, int) with JSON error and status code.
     """
-    output = state["output"]
-    tracker = state["connection_tracker"]
-
-    supported_actions = [
-        "restart",
-        "api-test-start",
-        "api-test-stop",
-        "api-test-reset",
-        "api-test-step",
-    ]
-
-    default_api_test_scenarios = [
-        {
-            "status": "ok",
-            "stream_available": True,
-            "camera_active": True,
-            "fps": 24.0,
-            "connections": {"current": 1, "max": 10},
-        },
-        {
-            "status": "degraded",
-            "stream_available": False,
-            "camera_active": True,
-            "fps": 0.0,
-            "connections": {"current": 0, "max": 10},
-        },
-        {
-            "status": "degraded",
-            "stream_available": False,
-            "camera_active": False,
-            "fps": 0.0,
-            "connections": {"current": 0, "max": 10},
-        },
-    ]
-
-    def _json_error(code: str, message: str, status_code: int) -> tuple[Response, int]:  # type: ignore
-        return (
-            jsonify(
-                {
-                    "error": {
-                        "code": code,
-                        "message": message,
-                        "details": {"supported_actions": supported_actions},
-                    }
+    return (
+        jsonify(
+            {
+                "error": {
+                    "code": code,
+                    "message": message,
+                    "details": {"supported_actions": _SUPPORTED_ACTIONS},
                 }
+            }
+        ),
+        status_code,
+    )  # type: ignore[return-value]
+
+
+def _parse_action_body() -> tuple[Optional[dict], Optional[tuple[Response, int]]]:
+    """Parse and validate JSON action body from request.
+
+    Checks that body is a valid JSON object with no unsupported keys.
+    Allowed keys: interval_seconds, scenario_order.
+
+    Returns:
+        Tuple of (body_dict, error_response).
+        If error, body_dict is None.
+        If no error, error_response is None.
+    """
+    if not request.data:
+        return None, None
+
+    try:
+        body = request.get_json(silent=False)
+    except BadRequest:
+        return None, _build_json_error(
+            "ACTION_INVALID_BODY", "request body must be valid JSON", 400
+        )
+
+    if not isinstance(body, dict):
+        return None, _build_json_error(
+            "ACTION_INVALID_BODY", "request body must be a JSON object", 400
+        )
+
+    allowed_keys = {"interval_seconds", "scenario_order"}
+    unknown_keys = sorted(set(body.keys()) - allowed_keys)
+    if unknown_keys:
+        return None, _build_json_error(
+            "ACTION_INVALID_BODY",
+            f"request body contains unsupported keys: {', '.join(unknown_keys)}",
+            400,
+        )
+
+    return body, None
+
+
+def _build_api_test_scenario_list(
+    existing_scenarios: list[dict], scenario_order: Optional[list[int]]
+) -> tuple[Optional[list[dict]], Optional[tuple[Response, int]]]:
+    """Build scenario list with optional reordering.
+
+    If scenario_order is provided, validates it and returns reordered scenarios.
+    Validates that scenario_order is a list of unique integers with each scenario
+    exactly once.
+
+    Args:
+        existing_scenarios: Current list of scenario dicts.
+        scenario_order: Optional list of scenario indexes to reorder.
+
+    Returns:
+        Tuple of (scenario_list, error_response).
+        If error, scenario_list is None.
+        If no error, error_response is None.
+    """
+    if scenario_order is None:
+        return existing_scenarios, None
+
+    if not isinstance(scenario_order, list) or not scenario_order:
+        return None, _build_json_error(
+            "ACTION_INVALID_BODY", "scenario_order must be a non-empty array", 400
+        )
+
+    if not all(isinstance(index, int) for index in scenario_order):
+        return None, _build_json_error(
+            "ACTION_INVALID_BODY", "scenario_order must contain only integer indexes", 400
+        )
+
+    unique_indexes = set(scenario_order)
+    max_index = len(existing_scenarios) - 1
+    if unique_indexes != set(range(len(existing_scenarios))):
+        return None, _build_json_error(
+            "ACTION_INVALID_BODY",
+            f"scenario_order must contain each scenario index exactly once from 0 to {max_index}",
+            400,
+        )
+
+    return [existing_scenarios[index] for index in scenario_order], None
+
+
+def _get_api_test_runtime_info(api_test_state: dict, scenario_list: list[dict]) -> dict:
+    """Build API test runtime information dict.
+
+    Extracts current state, scenario index, and calculates seconds until
+    next transition based on cycle interval and elapsed time.
+
+    Args:
+        api_test_state: API test state dict with active, cycle_interval_seconds, etc.
+        scenario_list: List of scenario dicts for cycling.
+
+    Returns:
+        Dict with enabled, active, state_index, state_name, next_transition_seconds.
+
+    Raises:
+        ValueError: If scenario_list is empty.
+    """
+    if not scenario_list:
+        error_message = "scenario_list cannot be empty"
+        raise ValueError(error_message)
+
+    state_index = api_test_state.get("current_state_index", 0) % len(scenario_list)
+    state_name = scenario_list[state_index].get("status", f"state-{state_index}")
+    interval = api_test_state.get("cycle_interval_seconds", 5.0)
+    next_transition_seconds = None
+
+    if api_test_state.get("active") and isinstance(interval, (int, float)) and interval > 0:
+        last_transition = api_test_state.get("last_transition_monotonic", time.monotonic())
+        elapsed = max(0.0, time.monotonic() - last_transition)
+        next_transition_seconds = round(max(0.0, interval - elapsed), 3)
+
+    return {
+        "enabled": bool(api_test_state.get("enabled", False)),
+        "active": bool(api_test_state.get("active", False)),
+        "state_index": state_index,
+        "state_name": state_name,
+        "next_transition_seconds": next_transition_seconds,
+    }
+
+
+def _is_api_test_enabled(state: dict) -> bool:
+    """Check if API test mode is available.
+
+    Verifies that the api_test state dict exists in application state
+    and has a lock available for synchronization.
+
+    Args:
+        state: Application state dict.
+
+    Returns:
+        True if api_test state is available with lock, False otherwise.
+    """
+    api_test_state = state.get("api_test")
+    return bool(api_test_state and api_test_state.get("lock"))
+
+
+def _validate_interval_seconds_param(
+    interval_seconds: Any,
+) -> tuple[Optional[tuple[Response, int]], Optional[float]]:
+    """Validate the interval_seconds parameter from request body.
+
+    Type checks that interval_seconds is a numeric type (int or float, but
+    not bool). Range checks that the value is positive (> 0).
+
+    Args:
+        interval_seconds: Raw value from request body to validate.
+
+    Returns:
+        Tuple of (error_response, None) if validation fails,
+        or (None, float_value) if validation succeeds.
+        Error response is formatted as JSON with code ACTION_INVALID_BODY.
+    """
+    if not isinstance(interval_seconds, (int, float)) or isinstance(interval_seconds, bool):
+        return (
+            _build_json_error(
+                "ACTION_INVALID_BODY",
+                "interval_seconds must be a positive number",
+                400,
             ),
-            status_code,
-        )  # type: ignore[return-value]
-
-    def _parse_optional_action_body() -> tuple[Optional[dict], Optional[tuple[Response, int]]]:
-        if not request.data:
-            return None, None
-
-        try:
-            body = request.get_json(silent=False)
-        except BadRequest:
-            return None, _json_error("ACTION_INVALID_BODY", "request body must be valid JSON", 400)
-
-        if not isinstance(body, dict):
-            return None, _json_error(
-                "ACTION_INVALID_BODY", "request body must be a JSON object", 400
-            )
-
-        allowed_keys = {"interval_seconds", "scenario_order"}
-        unknown_keys = sorted(set(body.keys()) - allowed_keys)
-        if unknown_keys:
-            return None, _json_error(
+            None,
+        )
+    if interval_seconds <= 0:
+        return (
+            _build_json_error(
                 "ACTION_INVALID_BODY",
-                f"request body contains unsupported keys: {', '.join(unknown_keys)}",
+                "interval_seconds must be greater than 0",
                 400,
-            )
+            ),
+            None,
+        )
+    return None, float(interval_seconds)
 
-        return body, None
 
-    def _api_test_runtime_info(api_test_state: dict, scenario_list: list[dict]) -> dict:
-        if not scenario_list:
-            error_message = "scenario_list cannot be empty"
-            raise ValueError(error_message)
-        state_index = api_test_state.get("current_state_index", 0) % len(scenario_list)
-        state_name = scenario_list[state_index].get("status", f"state-{state_index}")
-        interval = api_test_state.get("cycle_interval_seconds", 5.0)
-        next_transition_seconds = None
+def _execute_api_test_action(
+    action: str,
+    api_test_state: dict,
+    scenario_list: list[dict],
+    interval_seconds: Optional[float],
+) -> None:
+    """Execute API test mode action and update state.
 
-        if api_test_state.get("active") and isinstance(interval, (int, float)) and interval > 0:
-            last_transition = api_test_state.get("last_transition_monotonic", time.monotonic())
-            elapsed = max(0.0, time.monotonic() - last_transition)
-            next_transition_seconds = round(max(0.0, interval - elapsed), 3)
+    Updates the api_test_state dict with new values based on the action type.
+    Action types:
+        - "api-test-start": Enable and activate test mode
+        - "api-test-stop": Enable but deactivate test mode
+        - "api-test-reset": Enable test mode, reset to first scenario
+        - "api-test-step": Enable test mode, advance to next scenario
 
-        return {
-            "enabled": bool(api_test_state.get("enabled", False)),
-            "active": bool(api_test_state.get("active", False)),
-            "state_index": state_index,
-            "state_name": state_name,
-            "next_transition_seconds": next_transition_seconds,
-        }
+    If interval_seconds is provided, also updates the cycle interval.
 
-    def _resolve_api_test_scenarios(
-        api_test_state: dict, body: Optional[dict]
-    ) -> tuple[Optional[list[dict]], Optional[tuple[Response, int]]]:
-        body = body or {}
-        existing_scenarios = api_test_state.get("scenario_list") or default_api_test_scenarios
-        if not isinstance(existing_scenarios, list) or not existing_scenarios:
-            existing_scenarios = default_api_test_scenarios
+    Args:
+        action: Normalized action string (one of api-test-*).
+        api_test_state: API test state dict to update (must have lock held).
+        scenario_list: List of scenario dicts for state cycling.
+        interval_seconds: Optional cycle interval in seconds (> 0).
+    """
+    api_test_state["scenario_list"] = scenario_list
+    if interval_seconds is not None:
+        api_test_state["cycle_interval_seconds"] = interval_seconds
 
-        scenario_order = body.get("scenario_order")
-        if scenario_order is None:
-            return existing_scenarios, None
-        if not isinstance(scenario_order, list) or not scenario_order:
-            return None, _json_error(
-                "ACTION_INVALID_BODY", "scenario_order must be a non-empty array", 400
-            )
-        if not all(isinstance(index, int) for index in scenario_order):
-            return None, _json_error(
-                "ACTION_INVALID_BODY", "scenario_order must contain only integer indexes", 400
-            )
+    if action == "api-test-start":
+        api_test_state["enabled"] = True
+        api_test_state["active"] = True
+        api_test_state["last_transition_monotonic"] = time.monotonic()
+    elif action == "api-test-stop":
+        api_test_state["enabled"] = True
+        api_test_state["active"] = False
+    elif action == "api-test-reset":
+        api_test_state["enabled"] = True
+        api_test_state["active"] = False
+        api_test_state["current_state_index"] = 0
+        api_test_state["last_transition_monotonic"] = time.monotonic()
+    elif action == "api-test-step":
+        api_test_state["enabled"] = True
+        api_test_state["active"] = False
+        api_test_state["current_state_index"] = (
+            api_test_state.get("current_state_index", 0) + 1
+        ) % len(scenario_list)
+        api_test_state["last_transition_monotonic"] = time.monotonic()
 
-        unique_indexes = set(scenario_order)
-        max_index = len(existing_scenarios) - 1
-        if unique_indexes != set(range(len(existing_scenarios))):
-            return None, _json_error(
-                "ACTION_INVALID_BODY",
-                f"scenario_order must contain each scenario index exactly once from 0 to {max_index}",
-                400,
-            )
 
-        return [existing_scenarios[index] for index in scenario_order], None
+class StreamResponseBuilder:
+    """Builder for MJPEG stream responses with connection tracking.
 
-    def _build_stream_response() -> Response:
-        if not state["recording_started"].is_set():
+    Encapsulates stream response generation with automatic connection slot
+    management. Tracks active stream connections and enforces maximum
+    connection limits.
+    """
+
+    def __init__(self, state: dict, tracker: Any, max_stream_connections: int) -> None:
+        """Initialize stream response builder.
+
+        Args:
+            state: Application state dict with recording_started, output buffer.
+            tracker: ConnectionTracker instance for slot management.
+            max_stream_connections: Maximum allowed concurrent connections.
+        """
+        self.state = state
+        self.tracker = tracker
+        self.max_stream_connections = max_stream_connections
+
+    def build(self) -> Response:
+        """Build and return MJPEG stream response.
+
+        Checks that camera is ready and tries to acquire a connection slot.
+        Yields MJPEG frames from output buffer with automatic slot release
+        on stream close via try/finally.
+
+        Returns:
+            Flask Response object with MJPEG stream or error.
+        """
+        if not self.state["recording_started"].is_set():
             return Response("Camera stream not ready.", status=503)
-        if not tracker.try_increment(state["max_stream_connections"]):
+
+        if not self.tracker.try_increment(self.max_stream_connections):
             return Response("Too many connections", status=429)
 
         slot_release_lock = Lock()
@@ -398,11 +570,12 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
             with slot_release_lock:
                 if slot_released:
                     return
-                tracker.decrement()
+                self.tracker.decrement()
                 slot_released = True
 
-        def gen_with_tracking():
+        def gen_with_tracking():  # type: ignore
             try:
+                output = self.state["output"]
                 while True:
                     with output.condition:
                         output.condition.wait(timeout=5)
@@ -419,25 +592,182 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
         response.call_on_close(release_stream_slot)
         return response
 
-    def _build_snapshot_response() -> Response:
-        if not state["recording_started"].is_set():
+
+class SnapshotResponseBuilder:
+    """Builder for JPEG snapshot responses.
+
+    Encapsulates snapshot response generation from the current frame buffer.
+    """
+
+    def __init__(self, state: dict) -> None:
+        """Initialize snapshot response builder.
+
+        Args:
+            state: Application state dict with output buffer and recording_started.
+        """
+        self.state = state
+
+    def build(self) -> Response:
+        """Build and return JPEG snapshot response.
+
+        Gets current frame from output buffer. Returns 503 if camera not ready
+        or if no frame available yet.
+
+        Returns:
+            Flask Response object with JPEG image or error.
+        """
+        if not self.state["recording_started"].is_set():
             return Response("Camera is not ready yet.", status=503)
+
+        output = self.state["output"]
         with output.condition:
             frame = output.frame
+
         if frame is None:
             return Response("No camera frame available yet.", status=503)
+
         return Response(frame, mimetype="image/jpeg")
+
+
+class WebcamActionHandler:
+    """Handler for webcam control plane actions.
+
+    Processes action requests for restart, API test mode, etc.
+    with validation and error handling.
+    """
+
+    def __init__(self, state: dict) -> None:
+        """Initialize action handler.
+
+        Args:
+            state: Application state dict with api_test state.
+        """
+        self.state = state
+
+    def handle_action(self, action: str) -> Response | Tuple[Response, int]:
+        """Handle webcam action request.
+
+        Processes normalized action with request body parsing, validation,
+        and API test state management.
+
+        Args:
+            action: Action name from URL path (e.g., 'restart', 'api-test-start').
+
+        Returns:
+            Flask response (Response or tuple of Response and status code).
+        """
+        normalized_action = action.strip().lower()
+        body, body_error = _parse_action_body()
+        if body_error is not None:
+            return body_error  # type: ignore[return-value]
+
+        if normalized_action == "restart":
+            return _build_json_error(
+                "ACTION_NOT_IMPLEMENTED",
+                "action 'restart' is recognized but not implemented",
+                501,
+            )
+
+        if normalized_action in {
+            "api-test-start",
+            "api-test-stop",
+            "api-test-reset",
+            "api-test-step",
+        }:
+            if not _is_api_test_enabled(self.state):
+                return _build_json_error(
+                    "ACTION_UNSUPPORTED",
+                    f"action '{normalized_action}' is not supported",
+                    400,
+                )
+
+            interval_seconds = body.get("interval_seconds") if body else None
+            if interval_seconds is not None:
+                error, validated_interval = _validate_interval_seconds_param(interval_seconds)
+                if error is not None:
+                    return error  # type: ignore[return-value]
+                interval_seconds = validated_interval
+
+            api_test_state = self.state.get("api_test")
+            with api_test_state["lock"]:  # type: ignore[index]
+                existing_scenarios = (
+                    api_test_state.get("scenario_list") or _DEFAULT_API_TEST_SCENARIOS
+                )
+                if not isinstance(existing_scenarios, list) or not existing_scenarios:
+                    existing_scenarios = _DEFAULT_API_TEST_SCENARIOS
+
+                scenario_order = body.get("scenario_order") if body else None
+                scenario_list, scenario_error = _build_api_test_scenario_list(
+                    existing_scenarios, scenario_order
+                )
+                if scenario_error is not None:
+                    return scenario_error
+
+                _execute_api_test_action(
+                    normalized_action, api_test_state, scenario_list, interval_seconds
+                )  # type: ignore[arg-type]
+
+                return jsonify(
+                    {
+                        "ok": True,
+                        "action": normalized_action,
+                        "api_test": _get_api_test_runtime_info(api_test_state, scenario_list),  # type: ignore[arg-type]
+                    }
+                )
+
+        return _build_json_error(
+            "ACTION_UNSUPPORTED",
+            f"action '{normalized_action or action}' is not supported",
+            400,
+        )
+
+
+def _register_stream_routes(app: Flask, builder: StreamResponseBuilder) -> None:
+    """Register MJPEG stream and snapshot endpoints.
+
+    Args:
+        app: Flask application instance.
+        builder: StreamResponseBuilder instance for stream generation.
+    """
 
     @app.route("/stream.mjpg")
     def video_feed() -> Response:
-        return _build_stream_response()
+        return builder.build()
 
     @app.route("/snapshot.jpg")
     def snapshot() -> Response:
-        return _build_snapshot_response()
+        builder_snapshot = SnapshotResponseBuilder(builder.state)
+        return builder_snapshot.build()
+
+
+def _register_action_routes(app: Flask, handler: WebcamActionHandler) -> None:
+    """Register control plane action endpoint.
+
+    Args:
+        app: Flask application instance.
+        handler: WebcamActionHandler instance for action processing.
+    """
+
+    @app.route("/api/actions/<action>", methods=["POST"])
+    def webcam_action(action: str) -> Response | Tuple[Response, int]:
+        """Handle webcam mode control plane actions."""
+        return handler.handle_action(action)
+
+
+def _register_compat_routes(
+    app: Flask, builder: StreamResponseBuilder, is_flag_enabled: Callable[[str], bool]
+) -> None:
+    """Register OctoPrint compatibility routes.
+
+    Args:
+        app: Flask application instance.
+        builder: StreamResponseBuilder instance for stream generation.
+        is_flag_enabled: Feature flag check function.
+    """
 
     @app.route("/api/cat-gif/refresh", methods=["POST"])
     def refresh_cat_gif() -> Response | Tuple[Response, int]:
+        state = builder.state
         cat_generator = state.get("cat_gif_generator")
         if cat_generator is None:
             return jsonify(
@@ -463,176 +793,40 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
         # Normalize malformed action values: strip anything after ? or & to handle legacy cache busters
         action = action.split("?")[0].split("&")[0]
         if action == "stream":
-            return _build_stream_response()
+            return builder.build()
         if action == "snapshot":
-            return _build_snapshot_response()
+            builder_snapshot = SnapshotResponseBuilder(builder.state)
+            return builder_snapshot.build()
         return Response("Unsupported action", status=400)
 
-    def _is_api_test_enabled() -> bool:
-        """Check if API test mode is available.
 
-        Verifies that the api_test state dict exists in application state
-        and has a lock available for synchronization.
+def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[str], bool]) -> None:
+    """Register webcam mode Flask routes for MJPEG streaming.
 
-        Returns:
-            True if api_test state is available with lock, False otherwise.
-        """
-        api_test_state = state.get("api_test")
-        return bool(api_test_state and api_test_state.get("lock"))
+    Registers /stream.mjpg, /snapshot.jpg, /api/actions/<action>, and
+    OctoPrint compatibility endpoints (/webcam, /api/cat-gif/refresh) that
+    serve MJPEG video stream from the frame buffer with connection tracking
+    and max connection limits.
 
-    def _validate_interval_seconds_param(
-        interval_seconds: Any,
-    ) -> tuple[Optional[tuple[Response, int]], Optional[float]]:
-        """Validate the interval_seconds parameter from request body.
+    Uses builder pattern to encapsulate stream/snapshot logic and handler
+    pattern for action processing.
 
-        Type checks that interval_seconds is a numeric type (int or float, but
-        not bool). Range checks that the value is positive (> 0).
+    Args:
+        app: Flask application instance.
+        state: Application state dict with frame buffer, tracker, stream stats, etc.
+        is_flag_enabled: Feature flag check function.
+    """
+    tracker = state["connection_tracker"]
+    max_stream_connections = state["max_stream_connections"]
 
-        Args:
-            interval_seconds: Raw value from request body to validate.
+    # Initialize builders
+    stream_builder = StreamResponseBuilder(state, tracker, max_stream_connections)
+    action_handler = WebcamActionHandler(state)
 
-        Returns:
-            Tuple of (error_response, None) if validation fails,
-            or (None, float_value) if validation succeeds.
-            Error response is formatted as JSON with code ACTION_INVALID_BODY.
-        """
-        if not isinstance(interval_seconds, (int, float)) or isinstance(interval_seconds, bool):
-            return (
-                _json_error(
-                    "ACTION_INVALID_BODY",
-                    "interval_seconds must be a positive number",
-                    400,
-                ),
-                None,
-            )
-        if interval_seconds <= 0:
-            return (
-                _json_error(
-                    "ACTION_INVALID_BODY",
-                    "interval_seconds must be greater than 0",
-                    400,
-                ),
-                None,
-            )
-        return None, float(interval_seconds)
-
-    def _execute_api_test_action(
-        action: str,
-        api_test_state: dict,
-        scenario_list: list[dict],
-        interval_seconds: Optional[float],
-    ) -> None:
-        """Execute API test mode action and update state.
-
-        Updates the api_test_state dict with new values based on the action type.
-        Action types:
-            - "api-test-start": Enable and activate test mode
-            - "api-test-stop": Enable but deactivate test mode
-            - "api-test-reset": Enable test mode, reset to first scenario
-            - "api-test-step": Enable test mode, advance to next scenario
-
-        If interval_seconds is provided, also updates the cycle interval.
-
-        Args:
-            action: Normalized action string (one of api-test-*).
-            api_test_state: API test state dict to update (must have lock held).
-            scenario_list: List of scenario dicts for state cycling.
-            interval_seconds: Optional cycle interval in seconds (> 0).
-        """
-        api_test_state["scenario_list"] = scenario_list
-        if interval_seconds is not None:
-            api_test_state["cycle_interval_seconds"] = interval_seconds
-
-        if action == "api-test-start":
-            api_test_state["enabled"] = True
-            api_test_state["active"] = True
-            api_test_state["last_transition_monotonic"] = time.monotonic()
-        elif action == "api-test-stop":
-            api_test_state["enabled"] = True
-            api_test_state["active"] = False
-        elif action == "api-test-reset":
-            api_test_state["enabled"] = True
-            api_test_state["active"] = False
-            api_test_state["current_state_index"] = 0
-            api_test_state["last_transition_monotonic"] = time.monotonic()
-        elif action == "api-test-step":
-            api_test_state["enabled"] = True
-            api_test_state["active"] = False
-            api_test_state["current_state_index"] = (
-                api_test_state.get("current_state_index", 0) + 1
-            ) % len(scenario_list)
-            api_test_state["last_transition_monotonic"] = time.monotonic()
-
-    @app.route("/api/actions/<action>", methods=["POST"])
-    def webcam_action(action: str) -> Response | Tuple[Response, int]:
-        """Handle webcam mode control plane actions.
-
-        Supports the following actions:
-            - "restart": Not implemented (501)
-            - "api-test-start", "api-test-stop", "api-test-reset", "api-test-step":
-              Manage API test mode state transitions
-
-        Args:
-            action: Action name from URL path.
-
-        Returns:
-            Flask response tuple with status code, or Response object.
-        """
-        normalized_action = action.strip().lower()
-        body, body_error = _parse_optional_action_body()
-        if body_error is not None:
-            return body_error  # type: ignore[return-value]
-
-        if normalized_action == "restart":
-            return _json_error(
-                "ACTION_NOT_IMPLEMENTED",
-                "action 'restart' is recognized but not implemented",
-                501,
-            )
-
-        if normalized_action in {
-            "api-test-start",
-            "api-test-stop",
-            "api-test-reset",
-            "api-test-step",
-        }:
-            if not _is_api_test_enabled():
-                return _json_error(
-                    "ACTION_UNSUPPORTED",
-                    f"action '{normalized_action}' is not supported",
-                    400,
-                )
-
-            interval_seconds = body.get("interval_seconds") if body else None
-            if interval_seconds is not None:
-                error, validated_interval = _validate_interval_seconds_param(interval_seconds)
-                if error is not None:
-                    return error  # type: ignore[return-value]
-                interval_seconds = validated_interval
-
-            api_test_state = state.get("api_test")
-            with api_test_state["lock"]:  # type: ignore[index]
-                scenario_list, scenario_error = _resolve_api_test_scenarios(api_test_state, body)
-                if scenario_error is not None:
-                    return scenario_error
-
-                _execute_api_test_action(
-                    normalized_action, api_test_state, scenario_list, interval_seconds
-                )  # type: ignore[arg-type]
-
-                return jsonify(
-                    {
-                        "ok": True,
-                        "action": normalized_action,
-                        "api_test": _api_test_runtime_info(api_test_state, scenario_list),  # type: ignore[arg-type]
-                    }
-                )
-
-        return _json_error(
-            "ACTION_UNSUPPORTED",
-            f"action '{normalized_action or action}' is not supported",
-            400,
-        )
+    # Register all endpoint groups
+    _register_stream_routes(app, stream_builder)
+    _register_action_routes(app, action_handler)
+    _register_compat_routes(app, stream_builder, is_flag_enabled)
 
 
 def register_management_camera_error_routes(app: Flask) -> None:
