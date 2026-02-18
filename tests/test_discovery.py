@@ -205,7 +205,11 @@ def test_discovery_announcer_can_restart_after_stop(monkeypatch):
 
     def counting_start() -> None:
         start_counter["value"] += 1
-        original_start()
+        with announcer._thread_lock:
+            if announcer._thread and announcer._thread.is_alive():
+                return
+            announcer._thread = threading.Thread(target=announcer._run_loop, name="discovery-announcer", daemon=True)
+            announcer._thread.start()
 
     monkeypatch.setattr(announcer, "start", counting_start)
     monkeypatch.setattr(announcer, "_announce_once", fake_announce_once)
