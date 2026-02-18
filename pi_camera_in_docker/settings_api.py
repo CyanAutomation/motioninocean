@@ -98,9 +98,40 @@ def register_settings_routes(app: Flask) -> None:
             - 500: Server error
         """
         try:
-            patch_data = request.get_json()
+            patch_data = request.get_json(silent=True)
+
+            if patch_data is None:
+                return (
+                    jsonify(
+                        {
+                            "error": "INVALID_JSON",
+                            "message": "Request body must be valid JSON.",
+                        }
+                    ),
+                    400,
+                )
+
+            if not isinstance(patch_data, dict):
+                return (
+                    jsonify(
+                        {
+                            "error": "INVALID_PAYLOAD",
+                            "message": "Request body must be a JSON object.",
+                        }
+                    ),
+                    400,
+                )
+
             if not patch_data:
-                return jsonify({"error": "Empty request body"}), 400
+                return (
+                    jsonify(
+                        {
+                            "error": "INVALID_PAYLOAD",
+                            "message": "Request body must not be empty.",
+                        }
+                    ),
+                    400,
+                )
 
             # Validate patch
             validation_errors = validate_settings_patch(patch_data)

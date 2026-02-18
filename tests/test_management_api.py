@@ -240,6 +240,22 @@ def test_settings_changes_endpoint_handles_invalid_numeric_env(monkeypatch, tmp_
     assert by_key[("discovery", "discovery_interval_seconds")]["env_value"] == 30
 
 
+def test_settings_patch_rejects_malformed_json(monkeypatch, tmp_path):
+    client, _ = _new_management_client(monkeypatch, tmp_path)
+
+    response = client.patch(
+        "/api/settings",
+        data='{"camera": {"fps": 30',
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "INVALID_JSON",
+        "message": "Request body must be valid JSON.",
+    }
+
+
 def test_settings_patch_response_reflects_persisted_state(monkeypatch, tmp_path):
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
