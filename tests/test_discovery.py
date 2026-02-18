@@ -176,3 +176,55 @@ def test_discovery_announcer_start_is_thread_safe_and_idempotent():
 
         assert shutdown_event.is_set()
         assert not thread_ref.is_alive()
+
+
+def test_create_webcam_app_initializes_discovery_with_webcam_id(full_config, monkeypatch):
+    from pi_camera_in_docker import main
+
+    captured = {}
+
+    class FakeAnnouncer:
+        def __init__(
+            self,
+            management_url,
+            token,
+            interval_seconds,
+            webcam_id,
+            payload,
+            shutdown_event,
+        ):
+            captured["management_url"] = management_url
+            captured["token"] = token
+            captured["interval_seconds"] = interval_seconds
+            captured["webcam_id"] = webcam_id
+            captured["payload"] = payload
+            captured["shutdown_event"] = shutdown_event
+            captured["started"] = False
+
+        def start(self):
+            captured["started"] = True
+
+    payload = {
+        "webcam_id": "webcam-test-1",
+        "base_url": "http://localhost:8000",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    monkeypatch.setattr(main, "DiscoveryAnnouncer", FakeAnnouncer)
+    monkeypatch.setattr(main, "build_discovery_payload", lambda _cfg: payload)
+
+    cfg = dict(full_config)
+    cfg["discovery_enabled"] = True
+    cfg["discovery_management_url"] = "http://management.local:8001"
+    cfg["discovery_token"] = "secret-token"
+    cfg["discovery_interval_seconds"] = 15.0
+    cfg["base_url"] = "http://localhost:8000"
+    cfg["mock_camera"] = True
+
+    app = main.create_webcam_app(cfg)
+
+    assert app.motion_state["discovery_announcer"] is not None
+    assert captured["started"] is True
+    assert captured["webcam_id"] == payload["webcam_id"]
+    assert captured["payload"] == payload

@@ -1084,15 +1084,15 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
                     management_url=cfg["discovery_management_url"],
                     token=cfg["discovery_token"],
                     interval_seconds=cfg["discovery_interval_seconds"],
-                    webcam_id=payload["node_id"],
+                    webcam_id=payload["webcam_id"],
                     payload=payload,
                     shutdown_event=state["shutdown_requested"],
                 )
                 announcer.start()
                 state["discovery_announcer"] = announcer
                 logger.info(
-                    "discovery_announcer_started: node_id=%s management_url=%s interval_seconds=%.1f",
-                    payload["node_id"],
+                    "discovery_announcer_started: webcam_id=%s management_url=%s interval_seconds=%.1f",
+                    payload["webcam_id"],
                     _redacted_url_for_logs(cfg["discovery_management_url"]),
                     cfg["discovery_interval_seconds"],
                 )
