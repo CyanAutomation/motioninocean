@@ -14,7 +14,7 @@ from flask import Flask
 workspace_root = Path(__file__).parent.parent
 
 
-def _new_management_client(monkeypatch, tmp_path):
+def _new_management_client(monkeypatch, tmp_path, management_token="test-token", webcam_token=""):
     # SET THIS FIRST - before any other monkeypatches to ensure ApplicationSettings reads from tmp_path
     monkeypatch.setenv(
         "APPLICATION_SETTINGS_PATH",
@@ -23,7 +23,8 @@ def _new_management_client(monkeypatch, tmp_path):
 
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
-    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
+    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", management_token)
+    monkeypatch.setenv("WEBCAM_CONTROL_PLANE_AUTH_TOKEN", webcam_token)
     monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
 
     original_sys_path = sys.path.copy()
@@ -238,6 +239,22 @@ def test_settings_changes_endpoint_handles_invalid_numeric_env(monkeypatch, tmp_
 
     assert by_key[("discovery", "discovery_interval_seconds")]["value"] == 22.5
     assert by_key[("discovery", "discovery_interval_seconds")]["env_value"] == 30
+
+
+def test_settings_patch_rejects_malformed_json(monkeypatch, tmp_path):
+    client, _ = _new_management_client(monkeypatch, tmp_path)
+
+    response = client.patch(
+        "/api/settings",
+        data='{"camera": {"fps": 30',
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "INVALID_JSON",
+        "message": "Request body must be valid JSON.",
+    }
 
 
 def test_settings_patch_response_reflects_persisted_state(monkeypatch, tmp_path):
@@ -626,6 +643,20 @@ def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
     assert status.json["error"]["code"] == "SSRF_BLOCKED"
     assert "SSRF protection" in status.json["error"]["details"]["reason"]
     assert status.json["error"]["details"]["category"] == "ssrf_blocked"
+
+
+def test_management_endpoints_do_not_accept_webcam_control_plane_token(monkeypatch, tmp_path):
+    client, _ = _new_management_client(
+        monkeypatch,
+        tmp_path,
+        management_token="management-only-token",
+        webcam_token="webcam-only-token",
+    )
+
+    response = client.get("/api/webcams", headers={"Authorization": "Bearer webcam-only-token"})
+
+    assert response.status_code == 401
+    assert response.json["error"]["code"] == "UNAUTHORIZED"
 
 
 def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
@@ -1073,6 +1104,46 @@ def test_node_status_maps_503_payload_without_error_envelope(monkeypatch, tmp_pa
     assert overview.status_code == 200
     assert overview.json["summary"]["unavailable_webcams"] == 0
     assert overview.json["summary"]["healthy_webcams"] == 0
+
+
+
+
+def test_management_overview_counts_unsupported_transport_as_unavailable(monkeypatch, tmp_path):
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-non-http",
+        "name": "Docker Node",
+        "base_url": "docker://proxy:2375/container-id",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "docker",
+    }
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+
+    def fake_get_docker_container_status(proxy_host, proxy_port, container_id, auth_headers):
+        raise management_api.NodeConnectivityError(
+            "cannot connect",
+            reason="connection refused",
+            category="connection_refused_or_reset",
+            raw_error="connection refused",
+        )
+
+    monkeypatch.setattr(
+        management_api,
+        "_get_docker_container_status",
+        fake_get_docker_container_status,
+    )
+
+    overview = client.get("/api/management/overview", headers=_auth_headers())
+    assert overview.status_code == 200
+    assert overview.json["summary"]["total_webcams"] == 1
+    assert overview.json["summary"]["unavailable_webcams"] == 1
+    assert overview.json["summary"]["healthy_webcams"] == 0
+    assert overview.json["webcams"][0]["error"]["code"] == "DOCKER_PROXY_UNREACHABLE"
 
 
 def test_management_routes_require_authentication(monkeypatch, tmp_path):

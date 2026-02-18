@@ -22,6 +22,7 @@ def _build_webcam_status_app(main_module, stream_status_payload):
         "webcam_registry_path": "/tmp/node-registry.json",
         "application_settings_path": "/tmp/application-settings.json",
         "management_auth_token": "",
+        "webcam_control_plane_auth_token": "",
     }
     app, _limiter, state = main_module._create_base_app(cfg)
     register_shared_routes(app, state, get_stream_status=lambda: dict(stream_status_payload))

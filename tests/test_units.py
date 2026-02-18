@@ -452,6 +452,7 @@ def test_shutdown_updates_ready_metrics_and_api_status_immediately():
             "webcam_registry_path": "/tmp/node-registry.json",
             "application_settings_path": "/tmp/application-settings.json",
             "management_auth_token": "",
+            "webcam_control_plane_auth_token": "",
         }
     )
 
@@ -609,6 +610,7 @@ def _build_base_app_config(cors_enabled=False, cors_origins="disabled"):
         "webcam_registry_path": "/tmp/node-registry.json",
         "application_settings_path": "/tmp/application-settings.json",
         "management_auth_token": "",
+        "webcam_control_plane_auth_token": "",
     }
 
 

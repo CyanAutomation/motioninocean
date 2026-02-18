@@ -1060,7 +1060,7 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     register_settings_routes(app)  # Add settings management API
     register_webcam_control_plane_auth(
         app,
-        cfg["management_auth_token"],
+        cfg["webcam_control_plane_auth_token"],
         app_mode_provider=lambda: state["app_mode"],
     )
     # Routes registered by register_webcam_routes:

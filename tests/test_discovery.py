@@ -228,3 +228,50 @@ def test_create_webcam_app_initializes_discovery_with_webcam_id(full_config, mon
     assert captured["started"] is True
     assert captured["webcam_id"] == payload["webcam_id"]
     assert captured["payload"] == payload
+def test_discovery_announcer_can_restart_after_stop(monkeypatch):
+    from discovery import DiscoveryAnnouncer
+
+    shutdown_event = threading.Event()
+    announcer = DiscoveryAnnouncer(
+        management_url="http://127.0.0.1:8001",
+        token="token",
+        interval_seconds=1,
+        webcam_id="node-1",
+        payload={"webcam_id": "node-1"},
+        shutdown_event=shutdown_event,
+    )
+
+    announce_calls = []
+    second_start_announced = threading.Event()
+    start_counter = {"value": 0}
+
+    def fake_announce_once() -> bool:
+        announce_calls.append(True)
+        if start_counter["value"] >= 2:
+            second_start_announced.set()
+        return True
+
+    original_start = announcer.start
+
+    def counting_start() -> None:
+        start_counter["value"] += 1
+        with announcer._thread_lock:
+            if announcer._thread and announcer._thread.is_alive():
+                return
+            announcer._thread = threading.Thread(target=announcer._run_loop, name="discovery-announcer", daemon=True)
+            announcer._thread.start()
+
+    monkeypatch.setattr(announcer, "start", counting_start)
+    monkeypatch.setattr(announcer, "_announce_once", fake_announce_once)
+
+    announcer.start()
+    assert len(announce_calls) > 0
+
+    announcer.stop(timeout_seconds=1.0)
+    assert shutdown_event.is_set()
+
+    announcer.start()
+    assert second_start_announced.wait(timeout=2.0)
+    assert len(announce_calls) >= 2
+
+    announcer.stop(timeout_seconds=1.0)

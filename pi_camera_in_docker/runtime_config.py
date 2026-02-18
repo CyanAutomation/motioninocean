@@ -319,10 +319,12 @@ def _load_advanced_config() -> Dict[str, Any]:
     - WEBCAM_REGISTRY_PATH (default: /data/node-registry.json)
     - APPLICATION_SETTINGS_PATH (default: /data/application-settings.json)
     - MANAGEMENT_AUTH_TOKEN (bearer token for management mode auth)
+    - WEBCAM_CONTROL_PLANE_AUTH_TOKEN (bearer token for webcam control-plane auth)
 
     Returns:
         Dict with keys: pi3_profile_enabled, mock_camera, allow_pykms_mock,
-        webcam_registry_path, application_settings_path, management_auth_token.
+        webcam_registry_path, application_settings_path, management_auth_token,
+        webcam_control_plane_auth_token.
     """
     pi3_profile_raw = os.environ.get(
         "MOTION_IN_OCEAN_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false")
@@ -338,6 +340,9 @@ def _load_advanced_config() -> Dict[str, Any]:
             "APPLICATION_SETTINGS_PATH", "/data/application-settings.json"
         ),
         "management_auth_token": os.environ.get("MANAGEMENT_AUTH_TOKEN", ""),
+        "webcam_control_plane_auth_token": os.environ.get(
+            "WEBCAM_CONTROL_PLANE_AUTH_TOKEN", ""
+        ),
     }
 
 
