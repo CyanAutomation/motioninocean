@@ -115,7 +115,7 @@ class DiscoveryAnnouncer:
         with self._thread_lock:
             if self._thread and self._thread.is_alive():
                 return
-            self.shutdown_event.clear()
+            # shutdown_event is owned by caller, should not be cleared here
             self._thread = Thread(target=self._run_loop, name="discovery-announcer", daemon=True)
             self._thread.start()
 
