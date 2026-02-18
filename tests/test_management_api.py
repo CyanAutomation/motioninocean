@@ -14,7 +14,7 @@ from flask import Flask
 workspace_root = Path(__file__).parent.parent
 
 
-def _new_management_client(monkeypatch, tmp_path):
+def _new_management_client(monkeypatch, tmp_path, management_token="test-token", webcam_token=""):
     # SET THIS FIRST - before any other monkeypatches to ensure ApplicationSettings reads from tmp_path
     monkeypatch.setenv(
         "APPLICATION_SETTINGS_PATH",
@@ -23,7 +23,8 @@ def _new_management_client(monkeypatch, tmp_path):
 
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
-    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "test-token")
+    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", management_token)
+    monkeypatch.setenv("WEBCAM_CONTROL_PLANE_AUTH_TOKEN", webcam_token)
     monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
 
     original_sys_path = sys.path.copy()
@@ -642,6 +643,20 @@ def test_ssrf_protection_blocks_metadata_ip_literal(monkeypatch, tmp_path):
     assert status.json["error"]["code"] == "SSRF_BLOCKED"
     assert "SSRF protection" in status.json["error"]["details"]["reason"]
     assert status.json["error"]["details"]["category"] == "ssrf_blocked"
+
+
+def test_management_endpoints_do_not_accept_webcam_control_plane_token(monkeypatch, tmp_path):
+    client, _ = _new_management_client(
+        monkeypatch,
+        tmp_path,
+        management_token="management-only-token",
+        webcam_token="webcam-only-token",
+    )
+
+    response = client.get("/api/webcams", headers={"Authorization": "Bearer webcam-only-token"})
+
+    assert response.status_code == 401
+    assert response.json["error"]["code"] == "UNAUTHORIZED"
 
 
 def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):

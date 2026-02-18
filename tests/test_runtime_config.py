@@ -35,6 +35,7 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
         "node_registry_path": "/data/node-registry.json",
         "application_settings_path": "/data/application-settings.json",
         "management_auth_token": "",
+        "webcam_control_plane_auth_token": "",
     }
 
     monkeypatch.setattr(runtime_config, "load_env_config", lambda: env_config)
@@ -87,6 +88,15 @@ def test_load_env_config_supports_application_settings_path(monkeypatch):
     cfg = runtime_config.load_env_config()
 
     assert cfg["application_settings_path"] == "/tmp/custom-settings.json"
+
+
+def test_load_env_config_supports_webcam_control_plane_auth_token(monkeypatch):
+    """WEBCAM_CONTROL_PLANE_AUTH_TOKEN should be exposed in runtime configuration."""
+    monkeypatch.setenv("WEBCAM_CONTROL_PLANE_AUTH_TOKEN", "webcam-token")
+
+    cfg = runtime_config.load_env_config()
+
+    assert cfg["webcam_control_plane_auth_token"] == "webcam-token"
 
 
 def test_merge_config_with_settings_uses_application_settings_path(monkeypatch, tmp_path):

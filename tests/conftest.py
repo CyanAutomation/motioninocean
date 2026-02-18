@@ -72,6 +72,7 @@ def full_config(tmp_app_settings_path):
         "node_registry_path": "/tmp/node-registry.json",
         "application_settings_path": str(tmp_app_settings_path),
         "management_auth_token": "",
+        "webcam_control_plane_auth_token": "",
     }
 
 
