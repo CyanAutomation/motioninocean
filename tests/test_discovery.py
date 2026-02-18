@@ -228,6 +228,8 @@ def test_create_webcam_app_initializes_discovery_with_webcam_id(full_config, mon
     assert captured["started"] is True
     assert captured["webcam_id"] == payload["webcam_id"]
     assert captured["payload"] == payload
+
+
 def test_discovery_announcer_can_restart_after_stop(monkeypatch):
     from discovery import DiscoveryAnnouncer
 
@@ -258,7 +260,9 @@ def test_discovery_announcer_can_restart_after_stop(monkeypatch):
         with announcer._thread_lock:
             if announcer._thread and announcer._thread.is_alive():
                 return
-            announcer._thread = threading.Thread(target=announcer._run_loop, name="discovery-announcer", daemon=True)
+            announcer._thread = threading.Thread(
+                target=announcer._run_loop, name="discovery-announcer", daemon=True
+            )
             announcer._thread.start()
 
     monkeypatch.setattr(announcer, "start", counting_start)

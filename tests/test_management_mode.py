@@ -399,9 +399,7 @@ def test_webcam_control_plane_does_not_accept_management_token(monkeypatch):
     monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "management-only-token")
     client = _new_webcam_client(monkeypatch, "webcam-only-token")
 
-    response = client.get(
-        "/api/status", headers={"Authorization": "Bearer management-only-token"}
-    )
+    response = client.get("/api/status", headers={"Authorization": "Bearer management-only-token"})
 
     assert response.status_code == 401
     assert response.json["error"]["code"] == "UNAUTHORIZED"

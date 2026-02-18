@@ -340,9 +340,7 @@ def _load_advanced_config() -> Dict[str, Any]:
             "APPLICATION_SETTINGS_PATH", "/data/application-settings.json"
         ),
         "management_auth_token": os.environ.get("MANAGEMENT_AUTH_TOKEN", ""),
-        "webcam_control_plane_auth_token": os.environ.get(
-            "WEBCAM_CONTROL_PLANE_AUTH_TOKEN", ""
-        ),
+        "webcam_control_plane_auth_token": os.environ.get("WEBCAM_CONTROL_PLANE_AUTH_TOKEN", ""),
     }
 
 

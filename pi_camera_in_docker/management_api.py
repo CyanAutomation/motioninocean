@@ -427,9 +427,7 @@ def _resolve_and_vet_addresses(hostname_str: str, port: Optional[int]) -> Tuple[
             ) from exc
         resolved_addresses = tuple(cast("str", record[4][0]) for record in records)
 
-    vetted_addresses: Tuple[str, ...] = _vet_resolved_addresses(
-        tuple(resolved_addresses)
-    )  # type: ignore
+    vetted_addresses: Tuple[str, ...] = _vet_resolved_addresses(tuple(resolved_addresses))  # type: ignore
     if not vetted_addresses:
         message = "name resolution returned no addresses"
         raise ConnectionError(message)

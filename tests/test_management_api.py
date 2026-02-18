@@ -1106,8 +1106,6 @@ def test_node_status_maps_503_payload_without_error_envelope(monkeypatch, tmp_pa
     assert overview.json["summary"]["healthy_webcams"] == 0
 
 
-
-
 def test_management_overview_counts_unsupported_transport_as_unavailable(monkeypatch, tmp_path):
     client, management_api = _new_management_client(monkeypatch, tmp_path)
 

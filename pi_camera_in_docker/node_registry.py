@@ -264,6 +264,150 @@ def _validate_auth(auth: Any, webcam_id: str = "unknown") -> Dict[str, Any]:
     return auth
 
 
+def _validate_required_fields_present(node: Dict[str, Any], partial: bool) -> None:
+    """Validate that all required webcam fields are present.
+
+    Checks that all fields in REQUIRED_WEBCAM_FIELDS are present in node.
+    Only enforced if partial=False (full validation).
+
+    Args:
+        node: Node data dictionary.
+        partial: If True, required field check is skipped.
+
+    Raises:
+        NodeValidationError: If required fields are missing and partial=False.
+    """
+    if not partial:
+        missing = REQUIRED_WEBCAM_FIELDS.difference(node.keys())
+        if missing:
+            missing_fields = ", ".join(sorted(missing))
+            message = f"missing required fields: {missing_fields}"
+            raise NodeValidationError(message)
+
+
+def _validate_and_normalize_string_fields(node: Dict[str, Any], fields: set) -> Dict[str, str]:
+    """Validate and normalize string fields.
+
+    Validates that string fields (id, name, base_url, last_seen, transport) are
+    non-empty strings and returns normalized (stripped) versions.
+
+    Args:
+        node: Node data dictionary.
+        fields: Set of field names to validate (intersection with REQUIRED_WEBCAM_FIELDS).
+
+    Returns:
+        Dictionary of validated string fields with whitespace stripped.
+
+    Raises:
+        NodeValidationError: If any field is not a non-empty string.
+    """
+    validated: Dict[str, str] = {}
+    string_fields = {"id", "name", "base_url", "last_seen", "transport"}
+
+    for field in string_fields:
+        if field not in fields:
+            continue
+        value = node[field]
+        if not isinstance(value, str) or not value.strip():
+            message = f"{field} must be a non-empty string"
+            raise NodeValidationError(message)
+        validated[field] = value.strip()
+
+    return validated
+
+
+def _validate_labels(value: Any) -> Dict[str, Any]:
+    """Validate labels field.
+
+    Ensures labels is a dictionary.
+
+    Args:
+        value: Labels value to validate.
+
+    Returns:
+        Validated labels dictionary.
+
+    Raises:
+        NodeValidationError: If labels is not a dictionary.
+    """
+    if not isinstance(value, dict):
+        message = "labels must be an object"
+        raise NodeValidationError(message)
+    return value
+
+
+def _validate_capabilities(value: Any) -> List[str]:
+    """Validate capabilities field.
+
+    Ensures capabilities is a list of strings.
+
+    Args:
+        value: Capabilities value to validate.
+
+    Returns:
+        Validated capabilities list.
+
+    Raises:
+        NodeValidationError: If capabilities is not a list or contains non-strings.
+    """
+    if not isinstance(value, list) or any(not isinstance(v, str) for v in value):
+        message = "capabilities must be an array of strings"
+        raise NodeValidationError(message)
+    return value
+
+
+def _validate_discovery_object(discovery: Any) -> Dict[str, Any]:
+    """Validate discovery configuration object.
+
+    Validates all discovery fields (source, first_seen, last_announce_at, approved)
+    and rejects any unknown fields. Returns a validated discovery dictionary.
+
+    Args:
+        discovery: Discovery object to validate.
+
+    Returns:
+        Validated discovery dictionary.
+
+    Raises:
+        NodeValidationError: If discovery is not a dict, contains unsupported fields,
+            or any field fails validation.
+    """
+    if not isinstance(discovery, dict):
+        message = "discovery must be an object"
+        raise NodeValidationError(message)
+
+    unknown = set(discovery.keys()).difference(DISCOVERY_FIELDS)
+    if unknown:
+        message = f"discovery contains unsupported fields: {', '.join(sorted(unknown))}"
+        raise NodeValidationError(message)
+
+    validated_discovery: Dict[str, Any] = {}
+
+    if "source" in discovery:
+        source = discovery["source"]
+        if not isinstance(source, str) or source not in ALLOWED_DISCOVERY_SOURCES:
+            message = "discovery.source must be one of: manual, discovered"
+            raise NodeValidationError(message)
+        validated_discovery["source"] = source
+
+    for timestamp_field in ("first_seen", "last_announce_at"):
+        if timestamp_field in discovery:
+            value = discovery[timestamp_field]
+            if value is not None and (not isinstance(value, str) or not value.strip()):
+                message = f"discovery.{timestamp_field} must be a non-empty string or null"
+                raise NodeValidationError(message)
+            validated_discovery[timestamp_field] = value.strip() if isinstance(value, str) else None
+
+    if "approved" in discovery:
+        approved = discovery["approved"]
+        if not isinstance(approved, bool):
+            message = "discovery.approved must be a boolean"
+            raise NodeValidationError(message)
+        validated_discovery["approved"] = approved
+
+    return validated_discovery
+
+
 def validate_webcam(node: Dict[str, Any], partial: bool = False) -> Dict[str, Any]:
     """Validate and normalize webcam data.
 
@@ -285,36 +429,22 @@ def validate_webcam(node: Dict[str, Any], partial: bool = False) -> Dict[str, An
         message = "webcam payload must be an object"
         raise NodeValidationError(message)
 
-    if not partial:
-        missing = REQUIRED_WEBCAM_FIELDS.difference(node.keys())
-        if missing:
-            missing_fields = ", ".join(sorted(missing))
-            message = f"missing required fields: {missing_fields}"
-            raise NodeValidationError(message)
+    _validate_required_fields_present(node, partial)
 
     validated: Dict[str, Any] = {}
     fields = REQUIRED_WEBCAM_FIELDS.intersection(node.keys())
 
-    for field in fields:
-        value = node[field]
-        if field in {"id", "name", "base_url", "last_seen", "transport"}:
-            if not isinstance(value, str) or not value.strip():
-                message = f"{field} must be a non-empty string"
-                raise NodeValidationError(message)
-            validated[field] = value.strip()
-        elif field == "labels":
-            if not isinstance(value, dict):
-                message = "labels must be an object"
-                raise NodeValidationError(message)
-            validated[field] = value
-        elif field == "capabilities":
-            if not isinstance(value, list) or any(not isinstance(v, str) for v in value):
-                message = "capabilities must be an array of strings"
-                raise NodeValidationError(message)
-            validated[field] = value
-        elif field == "auth":
-            validated_auth = _validate_auth(value, webcam_id=str(node.get("id", "unknown")))
-            validated[field] = validated_auth
+    string_fields = _validate_and_normalize_string_fields(node, fields)
+    validated.update(string_fields)
+
+    if "labels" in fields:
+        validated["labels"] = _validate_labels(node["labels"])
+
+    if "capabilities" in fields:
+        validated["capabilities"] = _validate_capabilities(node["capabilities"])
+
+    if "auth" in fields:
+        validated["auth"] = _validate_auth(node["auth"], webcam_id=str(node.get("id", "unknown")))
 
     if "transport" in validated and validated["transport"] not in ALLOWED_TRANSPORTS:
         message = "transport must be one of: http, docker"
@@ -334,42 +464,7 @@ def validate_webcam(node: Dict[str, Any], partial: bool = False) -> Dict[str, An
         validated["last_seen"] = datetime.now(timezone.utc).isoformat()
 
     if "discovery" in node:
-        discovery = node["discovery"]
-        if not isinstance(discovery, dict):
-            message = "discovery must be an object"
-            raise NodeValidationError(message)
-
-        unknown = set(discovery.keys()).difference(DISCOVERY_FIELDS)
-        if unknown:
-            message = f"discovery contains unsupported fields: {', '.join(sorted(unknown))}"
-            raise NodeValidationError(message)
-
-        validated_discovery: Dict[str, Any] = {}
-        if "source" in discovery:
-            source = discovery["source"]
-            if not isinstance(source, str) or source not in ALLOWED_DISCOVERY_SOURCES:
-                message = "discovery.source must be one of: manual, discovered"
-                raise NodeValidationError(message)
-            validated_discovery["source"] = source
-
-        for timestamp_field in ("first_seen", "last_announce_at"):
-            if timestamp_field in discovery:
-                value = discovery[timestamp_field]
-                if value is not None and (not isinstance(value, str) or not value.strip()):
-                    message = f"discovery.{timestamp_field} must be a non-empty string or null"
-                    raise NodeValidationError(message)
-                validated_discovery[timestamp_field] = (
-                    value.strip() if isinstance(value, str) else None
-                )
-
-        if "approved" in discovery:
-            approved = discovery["approved"]
-            if not isinstance(approved, bool):
-                message = "discovery.approved must be a boolean"
-                raise NodeValidationError(message)
-            validated_discovery["approved"] = approved
-
-        validated["discovery"] = validated_discovery
+        validated["discovery"] = _validate_discovery_object(node["discovery"])
 
     return validated
 
