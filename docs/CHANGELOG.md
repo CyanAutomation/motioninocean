@@ -11,6 +11,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-02-18
+
+- [webcam] Align discovery startup with webcam_id payload (#328)
+- [auth] Separate webcam control-plane token from management token (#327)
+- [settings] Harden JSON parsing in PATCH /api/settings (#326)
+- Codex-generated pull request (#325)
+- [management] Normalize overview availability for unsupported transports (#324)
+- chore: automated code quality fixes [nightly] (#323)
+- Fix a single test
+
 ## [1.15.9] - 2026-02-17
 
 - Various fixes to management frontend
