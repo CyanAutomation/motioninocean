@@ -1641,9 +1641,7 @@ def test_request_json_host_header_omits_userinfo_and_default_http_port(monkeypat
 
     def fake_getaddrinfo(host, port, proto):
         captured["getaddrinfo"] = (host, port, proto)
-        return [
-            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))
-        ]
+        return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))]
 
     class FakeHTTPConnection:
         def __init__(self, host, port, connect_host, timeout):
@@ -1676,6 +1674,7 @@ def test_request_json_host_header_omits_userinfo_and_default_http_port(monkeypat
 
 def test_request_json_host_header_formats_ipv6_and_omits_userinfo(monkeypatch):
     from pi_camera_in_docker import management_api
+
     ipv6_host = "2606:2800:220:1:248:1893:25c8:1946"
 
     class FakeResponse:

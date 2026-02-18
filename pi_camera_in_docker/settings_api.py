@@ -210,15 +210,21 @@ def register_settings_routes(app: Flask) -> None:
                 width, height = parse_resolution(os.environ.get("RESOLUTION", "640x480"))
                 resolution = f"{width}x{height}"
             except ValueError:
-                resolution = f"{camera_env_config['resolution'][0]}x{camera_env_config['resolution'][1]}"
+                resolution = (
+                    f"{camera_env_config['resolution'][0]}x{camera_env_config['resolution'][1]}"
+                )
 
             env_defaults = {
                 "camera": {
                     "resolution": resolution,
                     "fps": safe_int_env("FPS", camera_env_config["fps"]),
                     "jpeg_quality": safe_int_env("JPEG_QUALITY", camera_env_config["jpeg_quality"]),
-                    "max_stream_connections": safe_int_env("MAX_STREAM_CONNECTIONS", camera_env_config["max_stream_connections"]),
-                    "max_frame_age_seconds": safe_float_env("MAX_FRAME_AGE_SECONDS", camera_env_config["max_frame_age_seconds"]),
+                    "max_stream_connections": safe_int_env(
+                        "MAX_STREAM_CONNECTIONS", camera_env_config["max_stream_connections"]
+                    ),
+                    "max_frame_age_seconds": safe_float_env(
+                        "MAX_FRAME_AGE_SECONDS", camera_env_config["max_frame_age_seconds"]
+                    ),
                 },
                 "logging": {
                     "log_level": os.environ.get("LOG_LEVEL", "INFO"),
