@@ -1032,16 +1032,13 @@ def _status_for_webcam(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[T
 
     # Handle HTTP transport (original logic)
     if transport != "http":
-        return {
-            "webcam_id": webcam_id,
-            "transport": transport,
-            "status": "unknown",
-            "stream_available": False,
-            "error": {
-                "code": "TRANSPORT_UNSUPPORTED",
-                "message": f"transport '{transport}' is not supported",
-            },
-        }, None
+        return {}, (
+            "TRANSPORT_UNSUPPORTED",
+            f"transport '{transport}' is not supported",
+            400,
+            webcam_id,
+            {"transport": transport},
+        )
 
     try:
         status_code, status_payload = _request_json(node, "GET", "/api/status")
