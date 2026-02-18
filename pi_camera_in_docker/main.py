@@ -192,7 +192,7 @@ def _detect_camera_devices() -> Dict[str, Any]:
             or result["vchiq_device"]
         )
     except Exception as e:
-        logger.warning(f"Device detection encountered error: {e}")
+        logger.warning("Device detection encountered error: %s", e)
 
     return result
 
@@ -826,7 +826,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
             is_valid, errors = _validate_setup_config(data)
             if not is_valid:
                 error_msg = "; ".join(errors)
-                logger.warning(f"Setup generation validation failed: {error_msg}")
+                logger.warning("Setup generation validation failed: %s", error_msg)
                 return jsonify({"error": f"Configuration invalid: {error_msg}"}), 400
 
             # Detect devices
@@ -1371,7 +1371,7 @@ def _init_real_camera(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
                 )
                 message = "No cameras detected. Check device mappings and camera hardware."
                 raise RuntimeError(message)
-            logger.info(f"Detected {len(camera_info)} camera(s) available")
+            logger.info("Detected %s camera(s) available", len(camera_info))
         except IndexError as e:  # except IndexError marker for camera detection
             message = (
                 "Camera enumeration failed. Verify device mappings and permissions. "

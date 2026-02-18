@@ -38,10 +38,10 @@ def fetch_cat_gif(api_url: str, timeout: float = REQUEST_TIMEOUT_SECONDS) -> Opt
         with urllib.request.urlopen(api_url, timeout=timeout) as response:
             return response.read()
     except (urllib.error.URLError, urllib.error.HTTPError) as e:
-        logger.warning(f"Failed to fetch cat GIF from {api_url}: {e}")
+        logger.warning("Failed to fetch cat GIF from %s: %s", api_url, e)
         return None
     except Exception as e:
-        logger.error(f"Unexpected error fetching cat GIF: {e}")
+        logger.error("Unexpected error fetching cat GIF: %s", e)
         return None
 
 
@@ -73,7 +73,7 @@ def extract_gif_frames(
             try:
                 gif_image.seek(frame_idx)
             except EOFError:
-                logger.warning(f"Failed to seek to frame {frame_idx}")
+                logger.warning("Failed to seek to frame %s", frame_idx)
                 break
 
             # Get frame duration in milliseconds, default to 100ms
@@ -93,9 +93,9 @@ def extract_gif_frames(
 
             frames.append((jpeg_bytes, duration_seconds))
 
-        logger.info(f"Extracted {len(frames)} frames from cat GIF")
+        logger.info("Extracted %s frames from cat GIF", len(frames))
     except Exception as e:
-        logger.error(f"Failed to extract frames from GIF: {e}")
+        logger.error("Failed to extract frames from GIF: %s", e)
         return []
     else:
         return frames
@@ -173,7 +173,7 @@ class CatGifGenerator:
         Returns:
             True if successful, False on error (frames fall back to black)
         """
-        logger.info(f"Fetching new cat GIF from {self.api_url}")
+        logger.info("Fetching new cat GIF from %s", self.api_url)
         gif_bytes = fetch_cat_gif(self.api_url)
         if gif_bytes is None:
             logger.warning("Failed to fetch cat GIF; using fallback frame")

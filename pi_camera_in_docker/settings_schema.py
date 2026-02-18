@@ -319,12 +319,12 @@ class SettingsSchema:
         return properties.get(property_name)
 
     @staticmethod
-    def _validate_boolean(value: Any, schema: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+    def _validate_boolean(value: Any, _schema: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """Validate boolean value.
 
         Args:
             value: Value to validate
-            schema: Property schema (unused for boolean)
+            _schema: Property schema (unused for boolean)
 
         Returns:
             Tuple of (is_valid, error_message)

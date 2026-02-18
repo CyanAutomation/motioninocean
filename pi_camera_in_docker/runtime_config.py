@@ -508,7 +508,7 @@ def merge_config_with_settings(
         persisted = settings_store.load()
         return merge_config_with_persisted_settings(env_config, persisted)
     except SettingsValidationError as exc:
-        logger.warning(f"Could not load persisted settings: {exc}. Using env config only.")
+        logger.warning("Could not load persisted settings: %s. Using env config only.", exc)
     except Exception as exc:
         logger.warning(
             f"Unexpected error loading persisted settings: {exc}. Using env config only."
@@ -534,11 +534,11 @@ def get_effective_settings_payload(app_settings: ApplicationSettings) -> Dict[st
     try:
         persisted = app_settings.load()
     except SettingsValidationError as exc:
-        logger.warning(f"Could not load persisted settings: {exc}. Using env config only.")
+        logger.warning("Could not load persisted settings: %s. Using env config only.", exc)
         persisted = {}
     except Exception as exc:
         logger.warning(
-            f"Unexpected error loading persisted settings: {exc}. Using env config only."
+            "Unexpected error loading persisted settings: %s. Using env config only.", exc
         )
         persisted = {}
 

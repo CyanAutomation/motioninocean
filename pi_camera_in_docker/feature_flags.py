@@ -343,7 +343,9 @@ class FeatureFlags:
                     value = os.environ.get(legacy_var)
                     if value is not None:
                         logger.debug(
-                            f"Feature flag '{flag_name}' loaded from legacy variable '{legacy_var}'"
+                            "Feature flag '%s' loaded from legacy variable '%s'",
+                            flag_name,
+                            legacy_var,
                         )
                         break
 
@@ -374,9 +376,12 @@ class FeatureFlags:
         if value_lower in ("false", "0", "f", "no", "off"):
             return False
         logger.warning(
-            f"Invalid boolean value '{value}' for feature flag '{flag_name}'. "
-            f"Valid values: true, 1, t, yes, on, false, 0, f, no, off. "
-            f"Using default {self._flags[flag_name].default}"
+            "Invalid boolean value '%s' for feature flag '%s'. "
+            "Valid values: true, 1, t, yes, on, false, 0, f, no, off. "
+            "Using default %s",
+            value,
+            flag_name,
+            self._flags[flag_name].default,
         )
         return self._flags[flag_name].default
 
@@ -455,7 +460,11 @@ class FeatureFlags:
                     f"{name}={enabled}" for name, enabled in sorted(flags_in_category.items())
                 )
                 logger.debug(
-                    f"  {category.value}: ({enabled_count}/{len(flags_in_category)} enabled) | {status}"
+                    "  %s: (%s/%s enabled) | %s",
+                    category.value,
+                    enabled_count,
+                    len(flags_in_category),
+                    status,
                 )
 
     def get_summary(self) -> Dict[str, Any]:
