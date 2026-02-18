@@ -92,7 +92,7 @@ line-ending = "auto"
 # Ignore specific rules in test files
 "test_*.py" = ["ARG", "PLR2004", "S101", "PT006", "PTH123", "PLC0415", "EM", "TRY003"]
 "tests/*.py" = ["ARG", "PLR2004", "S101", "PT006", "PTH123", "PLC0415", "PT017", "PT015", "B011", "EM", "TRY003", "PLR0913", "F841"]
-"pi_camera_in_docker/management_api.py" = ["PLR0915", "PLR0911"]
+"pi_camera_in_docker/management_api.py" = ["PLR0915", "PLR0911", "PLR0913", "TRY300"]
 "pi_camera_in_docker/cat_gif_generator.py" = ["PLR0913"]
 "pi_camera_in_docker/discovery.py" = ["PLR0913"]
 "pi_camera_in_docker/modes/webcam.py" = ["PLC0415"]

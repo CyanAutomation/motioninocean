@@ -511,7 +511,7 @@ def merge_config_with_settings(
         logger.warning("Could not load persisted settings: %s. Using env config only.", exc)
     except Exception as exc:
         logger.warning(
-            f"Unexpected error loading persisted settings: {exc}. Using env config only."
+            "Unexpected error loading persisted settings: %s. Using env config only.", exc
         )
     return dict(env_config)
 

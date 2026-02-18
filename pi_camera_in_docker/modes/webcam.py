@@ -468,8 +468,116 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
             return _build_snapshot_response()
         return Response("Unsupported action", status=400)
 
+    def _is_api_test_enabled() -> bool:
+        """Check if API test mode is available.
+
+        Verifies that the api_test state dict exists in application state
+        and has a lock available for synchronization.
+
+        Returns:
+            True if api_test state is available with lock, False otherwise.
+        """
+        api_test_state = state.get("api_test")
+        return bool(api_test_state and api_test_state.get("lock"))
+
+    def _validate_interval_seconds_param(
+        interval_seconds: Any,
+    ) -> tuple[Optional[tuple[Response, int]], Optional[float]]:
+        """Validate the interval_seconds parameter from request body.
+
+        Type checks that interval_seconds is a numeric type (int or float, but
+        not bool). Range checks that the value is positive (> 0).
+
+        Args:
+            interval_seconds: Raw value from request body to validate.
+
+        Returns:
+            Tuple of (error_response, None) if validation fails,
+            or (None, float_value) if validation succeeds.
+            Error response is formatted as JSON with code ACTION_INVALID_BODY.
+        """
+        if not isinstance(interval_seconds, (int, float)) or isinstance(interval_seconds, bool):
+            return (
+                _json_error(
+                    "ACTION_INVALID_BODY",
+                    "interval_seconds must be a positive number",
+                    400,
+                ),
+                None,
+            )
+        if interval_seconds <= 0:
+            return (
+                _json_error(
+                    "ACTION_INVALID_BODY",
+                    "interval_seconds must be greater than 0",
+                    400,
+                ),
+                None,
+            )
+        return None, float(interval_seconds)
+
+    def _execute_api_test_action(
+        action: str,
+        api_test_state: dict,
+        scenario_list: list[dict],
+        interval_seconds: Optional[float],
+    ) -> None:
+        """Execute API test mode action and update state.
+
+        Updates the api_test_state dict with new values based on the action type.
+        Action types:
+            - "api-test-start": Enable and activate test mode
+            - "api-test-stop": Enable but deactivate test mode
+            - "api-test-reset": Enable test mode, reset to first scenario
+            - "api-test-step": Enable test mode, advance to next scenario
+
+        If interval_seconds is provided, also updates the cycle interval.
+
+        Args:
+            action: Normalized action string (one of api-test-*).
+            api_test_state: API test state dict to update (must have lock held).
+            scenario_list: List of scenario dicts for state cycling.
+            interval_seconds: Optional cycle interval in seconds (> 0).
+        """
+        api_test_state["scenario_list"] = scenario_list
+        if interval_seconds is not None:
+            api_test_state["cycle_interval_seconds"] = interval_seconds
+
+        if action == "api-test-start":
+            api_test_state["enabled"] = True
+            api_test_state["active"] = True
+            api_test_state["last_transition_monotonic"] = time.monotonic()
+        elif action == "api-test-stop":
+            api_test_state["enabled"] = True
+            api_test_state["active"] = False
+        elif action == "api-test-reset":
+            api_test_state["enabled"] = True
+            api_test_state["active"] = False
+            api_test_state["current_state_index"] = 0
+            api_test_state["last_transition_monotonic"] = time.monotonic()
+        elif action == "api-test-step":
+            api_test_state["enabled"] = True
+            api_test_state["active"] = False
+            api_test_state["current_state_index"] = (
+                api_test_state.get("current_state_index", 0) + 1
+            ) % len(scenario_list)
+            api_test_state["last_transition_monotonic"] = time.monotonic()
+
     @app.route("/api/actions/<action>", methods=["POST"])
     def webcam_action(action: str) -> Response | Tuple[Response, int]:
+        """Handle webcam mode control plane actions.
+
+        Supports the following actions:
+            - "restart": Not implemented (501)
+            - "api-test-start", "api-test-stop", "api-test-reset", "api-test-step":
+              Manage API test mode state transitions
+
+        Args:
+            action: Action name from URL path.
+
+        Returns:
+            Flask response tuple with status code, or Response object.
+        """
         normalized_action = action.strip().lower()
         body, body_error = _parse_optional_action_body()
         if body_error is not None:
@@ -488,8 +596,7 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
             "api-test-reset",
             "api-test-step",
         }:
-            api_test_state = state.get("api_test")
-            if not api_test_state or not api_test_state.get("lock"):
+            if not _is_api_test_enabled():
                 return _json_error(
                     "ACTION_UNSUPPORTED",
                     f"action '{normalized_action}' is not supported",
@@ -498,55 +605,26 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
 
             interval_seconds = body.get("interval_seconds") if body else None
             if interval_seconds is not None:
-                if not isinstance(interval_seconds, (int, float)) or isinstance(
-                    interval_seconds, bool
-                ):
-                    return _json_error(
-                        "ACTION_INVALID_BODY",
-                        "interval_seconds must be a positive number",
-                        400,
-                    )
-                if interval_seconds <= 0:
-                    return _json_error(
-                        "ACTION_INVALID_BODY",
-                        "interval_seconds must be greater than 0",
-                        400,
-                    )
+                error, validated_interval = _validate_interval_seconds_param(interval_seconds)
+                if error is not None:
+                    return error  # type: ignore[return-value]
+                interval_seconds = validated_interval
 
-            with api_test_state["lock"]:
+            api_test_state = state.get("api_test")
+            with api_test_state["lock"]:  # type: ignore[index]
                 scenario_list, scenario_error = _resolve_api_test_scenarios(api_test_state, body)
                 if scenario_error is not None:
                     return scenario_error
 
-                api_test_state["scenario_list"] = scenario_list
-                if interval_seconds is not None:
-                    api_test_state["cycle_interval_seconds"] = float(interval_seconds)
-
-                if normalized_action == "api-test-start":
-                    api_test_state["enabled"] = True
-                    api_test_state["active"] = True
-                    api_test_state["last_transition_monotonic"] = time.monotonic()
-                elif normalized_action == "api-test-stop":
-                    api_test_state["enabled"] = True
-                    api_test_state["active"] = False
-                elif normalized_action == "api-test-reset":
-                    api_test_state["enabled"] = True
-                    api_test_state["active"] = False
-                    api_test_state["current_state_index"] = 0
-                    api_test_state["last_transition_monotonic"] = time.monotonic()
-                elif normalized_action == "api-test-step":
-                    api_test_state["enabled"] = True
-                    api_test_state["active"] = False
-                    api_test_state["current_state_index"] = (
-                        api_test_state.get("current_state_index", 0) + 1
-                    ) % len(scenario_list)
-                    api_test_state["last_transition_monotonic"] = time.monotonic()
+                _execute_api_test_action(
+                    normalized_action, api_test_state, scenario_list, interval_seconds
+                )  # type: ignore[arg-type]
 
                 return jsonify(
                     {
                         "ok": True,
                         "action": normalized_action,
-                        "api_test": _api_test_runtime_info(api_test_state, scenario_list),
+                        "api_test": _api_test_runtime_info(api_test_state, scenario_list),  # type: ignore[arg-type]
                     }
                 )
 
