@@ -1075,6 +1075,46 @@ def test_node_status_maps_503_payload_without_error_envelope(monkeypatch, tmp_pa
     assert overview.json["summary"]["healthy_webcams"] == 0
 
 
+
+
+def test_management_overview_counts_unsupported_transport_as_unavailable(monkeypatch, tmp_path):
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-non-http",
+        "name": "Docker Node",
+        "base_url": "docker://proxy:2375/container-id",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "docker",
+    }
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+
+    def fake_get_docker_container_status(proxy_host, proxy_port, container_id, auth_headers):
+        raise management_api.NodeConnectivityError(
+            "cannot connect",
+            reason="connection refused",
+            category="connection_refused_or_reset",
+            raw_error="connection refused",
+        )
+
+    monkeypatch.setattr(
+        management_api,
+        "_get_docker_container_status",
+        fake_get_docker_container_status,
+    )
+
+    overview = client.get("/api/management/overview", headers=_auth_headers())
+    assert overview.status_code == 200
+    assert overview.json["summary"]["total_webcams"] == 1
+    assert overview.json["summary"]["unavailable_webcams"] == 1
+    assert overview.json["summary"]["healthy_webcams"] == 0
+    assert overview.json["webcams"][0]["error"]["code"] == "DOCKER_PROXY_UNREACHABLE"
+
+
 def test_management_routes_require_authentication(monkeypatch, tmp_path):
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
