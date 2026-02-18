@@ -255,6 +255,7 @@ class TestConcurrentStreamAccess:
         # Final connection count should be 0 (all cleaned up)
         assert active_connections == 0, "Connection leak detected"
 
+
 class TestSignalHandling:
     """Test signal handling for graceful shutdown."""
 
@@ -392,6 +393,7 @@ class TestMonotonicTiming:
             age = time.monotonic() - last_frame_time
             assert age >= 0.1
             assert age < 1.0
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

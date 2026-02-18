@@ -52,7 +52,9 @@ def test_import_components_mocks_pykms_when_allowed(monkeypatch):
 
     monkeypatch.setattr(builtins, "__import__", fake_import)
 
-    picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(allow_pykms_mock=True)
+    picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(
+        allow_pykms_mock=True
+    )
 
     assert picamera2_cls is expected_picamera2
     assert jpeg_encoder_cls is expected_encoder

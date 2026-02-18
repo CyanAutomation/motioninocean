@@ -28,6 +28,7 @@ def workspace_root():
     """Return the absolute path to the workspace root."""
     return WORKSPACE_ROOT
 
+
 @pytest.fixture
 def tmp_app_settings_path(tmp_path):
     """Return path to temporary application settings file."""
@@ -72,9 +73,6 @@ def full_config(tmp_app_settings_path):
         "application_settings_path": str(tmp_app_settings_path),
         "management_auth_token": "",
     }
-
-
-
 
 
 def pytest_collection_modifyitems(config, items):
