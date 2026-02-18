@@ -310,12 +310,12 @@ def test_request_logging_levels(monkeypatch):
     assert metrics_level == main.logging.INFO
 
 
-def _new_webcam_client(monkeypatch, token: str):
+def _new_webcam_client(monkeypatch, webcam_token: str):
     tmpdir = tempfile.mkdtemp()
     monkeypatch.setenv("WEBCAM_REGISTRY_PATH", f"{tmpdir}/registry.json")
     monkeypatch.setenv("APP_MODE", "management")
     monkeypatch.setenv("MOCK_CAMERA", "true")
-    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", token)
+    monkeypatch.setenv("WEBCAM_CONTROL_PLANE_AUTH_TOKEN", webcam_token)
 
     # Monkeypatch ApplicationSettings to use tmpdir
     original_app_settings_init = ApplicationSettings.__init__
@@ -393,6 +393,18 @@ def test_webcam_control_plane_endpoints_require_valid_bearer_when_token_set(monk
     assert authorized_ready.status_code in (200, 503)
     assert authorized_metrics.status_code == 200
     assert authorized_status.status_code == 200
+
+
+def test_webcam_control_plane_does_not_accept_management_token(monkeypatch):
+    monkeypatch.setenv("MANAGEMENT_AUTH_TOKEN", "management-only-token")
+    client = _new_webcam_client(monkeypatch, "webcam-only-token")
+
+    response = client.get(
+        "/api/status", headers={"Authorization": "Bearer management-only-token"}
+    )
+
+    assert response.status_code == 401
+    assert response.json["error"]["code"] == "UNAUTHORIZED"
 
 
 def _assert_render_config_contract(payload: dict):
