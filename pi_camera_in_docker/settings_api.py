@@ -18,6 +18,88 @@ from .runtime_config import (
 from .settings_schema import SettingsSchema
 
 
+def _safe_int_env(name: str, default: int) -> int:
+    """Load integer from environment variable with fallback.
+
+    Args:
+        name: Environment variable name.
+        default: Default value if not set or invalid.
+
+    Returns:
+        Integer value from env or default.
+    """
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_float_env(name: str, default: float) -> float:
+    """Load float from environment variable with fallback.
+
+    Args:
+        name: Environment variable name.
+        default: Default value if not set or invalid.
+
+    Returns:
+        Float value from env or default.
+    """
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _load_env_settings_defaults() -> Dict[str, Dict[str, Any]]:
+    """Load settings defaults from environment variables.
+
+    Returns:
+        Dict with structure { category: { property: value } }.
+    """
+    camera_env_config = _load_camera_config()
+    try:
+        width, height = parse_resolution(os.environ.get("RESOLUTION", "640x480"))
+        resolution = f"{width}x{height}"
+    except ValueError:
+        resolution = f"{camera_env_config['resolution'][0]}x{camera_env_config['resolution'][1]}"
+
+    return {
+        "camera": {
+            "resolution": resolution,
+            "fps": _safe_int_env("FPS", camera_env_config["fps"]),
+            "jpeg_quality": _safe_int_env("JPEG_QUALITY", camera_env_config["jpeg_quality"]),
+            "max_stream_connections": _safe_int_env(
+                "MAX_STREAM_CONNECTIONS", camera_env_config["max_stream_connections"]
+            ),
+            "max_frame_age_seconds": _safe_float_env(
+                "MAX_FRAME_AGE_SECONDS", camera_env_config["max_frame_age_seconds"]
+            ),
+        },
+        "logging": {
+            "log_level": os.environ.get("LOG_LEVEL", "INFO"),
+            "log_format": os.environ.get("LOG_FORMAT", "text"),
+            "log_include_identifiers": os.environ.get("LOG_INCLUDE_IDENTIFIERS", "false").lower()
+            in ("1", "true", "yes"),
+        },
+        "discovery": {
+            "discovery_enabled": os.environ.get("DISCOVERY_ENABLED", "false").lower()
+            in ("1", "true", "yes"),
+            "discovery_management_url": os.environ.get(
+                "DISCOVERY_MANAGEMENT_URL", "http://127.0.0.1:8001"
+            ),
+            "discovery_token": os.environ.get("DISCOVERY_TOKEN", ""),
+            "discovery_interval_seconds": _safe_float_env("DISCOVERY_INTERVAL_SECONDS", 30),
+        },
+        "feature_flags": {},  # Would need to iterate through all flags
+    }
+
+
 def register_settings_routes(app: Flask) -> None:
     """
     Register all settings management API routes.
@@ -217,66 +299,7 @@ def register_settings_routes(app: Flask) -> None:
             JSON with 'overridden' list of { category, key, value, env_value } objects
         """
         try:
-            # Collect environment defaults
-            def safe_int_env(name: str, default: int) -> int:
-                value = os.environ.get(name)
-                if value is None:
-                    return default
-                try:
-                    return int(value)
-                except (TypeError, ValueError):
-                    return default
-
-            def safe_float_env(name: str, default: float) -> float:
-                value = os.environ.get(name)
-                if value is None:
-                    return default
-                try:
-                    return float(value)
-                except (TypeError, ValueError):
-                    return default
-
-            camera_env_config = _load_camera_config()
-            try:
-                width, height = parse_resolution(os.environ.get("RESOLUTION", "640x480"))
-                resolution = f"{width}x{height}"
-            except ValueError:
-                resolution = (
-                    f"{camera_env_config['resolution'][0]}x{camera_env_config['resolution'][1]}"
-                )
-
-            env_defaults = {
-                "camera": {
-                    "resolution": resolution,
-                    "fps": safe_int_env("FPS", camera_env_config["fps"]),
-                    "jpeg_quality": safe_int_env("JPEG_QUALITY", camera_env_config["jpeg_quality"]),
-                    "max_stream_connections": safe_int_env(
-                        "MAX_STREAM_CONNECTIONS", camera_env_config["max_stream_connections"]
-                    ),
-                    "max_frame_age_seconds": safe_float_env(
-                        "MAX_FRAME_AGE_SECONDS", camera_env_config["max_frame_age_seconds"]
-                    ),
-                },
-                "logging": {
-                    "log_level": os.environ.get("LOG_LEVEL", "INFO"),
-                    "log_format": os.environ.get("LOG_FORMAT", "text"),
-                    "log_include_identifiers": os.environ.get(
-                        "LOG_INCLUDE_IDENTIFIERS", "false"
-                    ).lower()
-                    in ("1", "true", "yes"),
-                },
-                "discovery": {
-                    "discovery_enabled": os.environ.get("DISCOVERY_ENABLED", "false").lower()
-                    in ("1", "true", "yes"),
-                    "discovery_management_url": os.environ.get(
-                        "DISCOVERY_MANAGEMENT_URL", "http://127.0.0.1:8001"
-                    ),
-                    "discovery_token": os.environ.get("DISCOVERY_TOKEN", ""),
-                    "discovery_interval_seconds": safe_float_env("DISCOVERY_INTERVAL_SECONDS", 30),
-                },
-                "feature_flags": {},  # Would need to iterate through all flags
-            }
-
+            env_defaults = _load_env_settings_defaults()
             changes = current_app.application_settings.get_changes_from_env(env_defaults)
             return jsonify(changes), 200
         except Exception as exc:

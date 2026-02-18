@@ -394,6 +394,115 @@ def _build_host_header(parsed_url) -> str:
     return host
 
 
+def _resolve_and_vet_addresses(hostname_str: str, port: Optional[int]) -> Tuple[str, ...]:
+    """Resolve hostname and vet resulting IP addresses against SSRF rules.
+
+    Args:
+        hostname_str: Hostname to resolve (already validated for blocked addresses).
+        port: Optional port number for getaddrinfo.
+
+    Returns:
+        Tuple of vetted IP addresses.
+
+    Raises:
+        NodeRequestError: If hostname is blocked by SSRF.
+        NodeConnectivityError: If DNS resolution fails.
+        ConnectionError: If no addresses pass vetting.
+    """
+    try:
+        if _is_blocked_address(hostname_str):
+            message = "webcam target is not allowed"
+            raise NodeRequestError(message)
+        resolved_addresses = (hostname_str,)
+    except ValueError:
+        try:
+            records = socket.getaddrinfo(hostname_str, port or None, proto=socket.IPPROTO_TCP)
+        except socket.gaierror as exc:
+            error_message = "dns resolution failed"
+            raise NodeConnectivityError(
+                error_message,
+                reason="dns resolution failed",
+                category="dns",
+                raw_error=str(exc),
+            ) from exc
+        resolved_addresses = tuple(cast("str", record[4][0]) for record in records)
+
+    vetted_addresses: Tuple[str, ...] = _vet_resolved_addresses(
+        tuple(resolved_addresses)
+    )  # type: ignore
+    if not vetted_addresses:
+        message = "name resolution returned no addresses"
+        raise ConnectionError(message)
+
+    return vetted_addresses
+
+
+def _attempt_pinned_connection(
+    is_https: bool,
+    hostname: str,
+    port: Optional[int],
+    address: str,
+    request_target: str,
+    headers: Dict[str, str],
+    data: Optional[bytes],
+    method: str,
+    tls_context: Optional[ssl.SSLContext],
+) -> Tuple[int, dict]:
+    """Attempt single DNS-pinned HTTP(S) connection to address.
+
+    Args:
+        is_https: Whether to use HTTPS.
+        hostname: Hostname for Host header.
+        port: Port number.
+        address: IP address to connect to (DNS pinning).
+        request_target: HTTP request target path.
+        headers: HTTP headers dict.
+        data: Request body bytes.
+        method: HTTP method.
+        tls_context: SSL context (for HTTPS).
+
+    Returns:
+        Tuple of (http_status_code, response_json_dict).
+
+    Raises:
+        urllib.error.URLError, OSError, ssl.SSLError: Connection errors.
+        NodeInvalidResponseError: If response JSON is malformed.
+    """
+    actual_connection: _PinnedHTTPConnection | _PinnedHTTPSConnection | None = None
+    try:
+        if is_https:
+            actual_connection = _PinnedHTTPSConnection(
+                host=hostname,
+                port=port,
+                connect_host=address,
+                timeout=REQUEST_TIMEOUT_SECONDS,
+                context=tls_context,
+            )
+        else:
+            actual_connection = _PinnedHTTPConnection(
+                host=hostname,
+                port=port,
+                connect_host=address,
+                timeout=REQUEST_TIMEOUT_SECONDS,
+            )
+
+        actual_connection.request(method, request_target, body=data, headers=headers)
+        response = actual_connection.getresponse()
+        body_text = response.read().decode("utf-8")
+        if not body_text:
+            return response.status, {}
+        try:
+            body_json = json.loads(body_text)
+        except json.JSONDecodeError as exc:
+            message = "webcam returned malformed JSON"
+            raise NodeInvalidResponseError(message) from exc
+        else:
+            return response.status, body_json
+    finally:
+        if actual_connection is not None:
+            actual_connection.close()
+
+
 def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[dict] = None):  # type: ignore
     """Proxy HTTP request to remote webcam with DNS pinning and SSRF protection.
 
@@ -441,31 +550,9 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
     port = parsed_url.port
     # Explicitly cast hostname to str to help MyPy inference
     hostname_str = str(hostname)
-    resolved_addresses: Tuple[str, ...]
-    try:
-        if _is_blocked_address(hostname_str):
-            message = "webcam target is not allowed"
-            raise NodeRequestError(message)
-        resolved_addresses = (hostname_str,)
-    except ValueError:
-        try:
-            records = socket.getaddrinfo(hostname_str, port or None, proto=socket.IPPROTO_TCP)
-        except socket.gaierror as exc:
-            error_message = "dns resolution failed"
-            raise NodeConnectivityError(
-                error_message,
-                reason="dns resolution failed",
-                category="dns",
-                raw_error=str(exc),
-            ) from exc
-        resolved_addresses = tuple(cast("str", record[4][0]) for record in records)
 
-    # mypy false positive: type system confusion with generator expression
-    vetted_addresses: Tuple[str, ...]
-    vetted_addresses = _vet_resolved_addresses(tuple(resolved_addresses))  # type: ignore
-    if not vetted_addresses:
-        message = "name resolution returned no addresses"
-        raise ConnectionError(message)
+    # Resolve and vet addresses
+    vetted_addresses = _resolve_and_vet_addresses(hostname_str, port)
 
     headers = {"Content-Type": "application/json", **_build_headers(node)}
     headers.setdefault("Host", _build_host_header(parsed_url))
@@ -478,36 +565,18 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
 
     connection_errors = []
     for address in vetted_addresses:
-        actual_connection: _PinnedHTTPConnection | _PinnedHTTPSConnection | None = None
         try:
-            if is_https:
-                actual_connection = _PinnedHTTPSConnection(
-                    host=hostname,
-                    port=port,
-                    connect_host=address,
-                    timeout=REQUEST_TIMEOUT_SECONDS,
-                    context=tls_context,
-                )
-            else:
-                actual_connection = _PinnedHTTPConnection(
-                    host=hostname,
-                    port=port,
-                    connect_host=address,
-                    timeout=REQUEST_TIMEOUT_SECONDS,
-                )
-
-            actual_connection.request(method, request_target, body=data, headers=headers)
-            response = actual_connection.getresponse()
-            body_text = response.read().decode("utf-8")
-            if not body_text:
-                return response.status, {}
-            try:
-                body_json = json.loads(body_text)
-            except json.JSONDecodeError as exc:
-                message = "webcam returned malformed JSON"
-                raise NodeInvalidResponseError(message) from exc
-            else:
-                return response.status, body_json
+            return _attempt_pinned_connection(
+                is_https=is_https,
+                hostname=hostname_str,
+                port=port,
+                address=address,
+                request_target=request_target,
+                headers=headers,
+                data=data,
+                method=method,
+                tls_context=tls_context,
+            )
         except NodeInvalidResponseError:
             raise
         except (urllib.error.URLError, OSError, ssl.SSLError, ssl.CertificateError) as exc:
@@ -521,9 +590,6 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
                     raw_error=str(reason_source),
                 )
             )
-        finally:
-            if actual_connection is not None:
-                actual_connection.close()
 
     if connection_errors:
         if len(connection_errors) == 1:
@@ -953,84 +1019,92 @@ def _diagnose_webcam(node: Dict[str, Any]) -> Dict[str, Any]:
     return results
 
 
-def _status_for_webcam(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tuple]]:
-    """Fetch current status from a remote webcam via HTTP or Docker API.
-
-    Handles both HTTP and Docker transports. Returns webcam status dict or error tuple.
+def _get_docker_status(
+    node: Dict[str, Any],
+) -> Tuple[Dict[str, Any], Optional[Tuple]]:
+    """Fetch status from webcam via Docker API proxy.
 
     Args:
-        node: Webcam dict with id, base_url, transport, auth, etc.
+        node: Webcam dict with docker transport URL and auth.
 
     Returns:
         Tuple of (status_dict, error_tuple_or_none).
-        If successful: (status_dict, None).
-        If failed: ({}, (error_code, message, status_code, webcam_id, details)).
+    """
+    webcam_id = node["id"]
+    base_url = node.get("base_url", "")
+
+    try:
+        proxy_host, proxy_port, container_id = _parse_docker_url(base_url)
+    except ValueError as exc:
+        return {}, (
+            "INVALID_DOCKER_URL",
+            f"webcam {webcam_id} has an invalid docker URL",
+            400,
+            webcam_id,
+            {
+                "reason": str(exc),
+                "expected_format": "docker://proxy-hostname:port/container-id",
+                "example": "docker://docker-proxy:2375/motion-in-ocean-webcam",
+            },
+        )
+
+    auth_headers = _build_headers(node)
+    try:
+        status_code, status_payload = _get_docker_container_status(
+            proxy_host, proxy_port, container_id, auth_headers
+        )
+
+        if status_code == 200:
+            return {
+                "webcam_id": webcam_id,
+                "status": status_payload.get("status", "ok"),
+                "stream_available": bool(status_payload.get("stream_available", False)),
+                "status_probe": {"status_code": status_code, "payload": status_payload},
+            }, None
+        if status_code == 404:
+            return {}, (
+                "DOCKER_CONTAINER_NOT_FOUND",
+                f"container {container_id} not found on docker proxy {proxy_host}:{proxy_port}",
+                502,
+                webcam_id,
+                {"container_id": container_id, "proxy": f"{proxy_host}:{proxy_port}"},
+            )
+        return {}, (
+            "DOCKER_API_ERROR",
+            f"docker proxy returned unexpected status {status_code}",
+            502,
+            webcam_id,
+            {"status_code": status_code, "proxy": f"{proxy_host}:{proxy_port}"},
+        )
+    except NodeConnectivityError as exc:
+        return {}, (
+            "DOCKER_PROXY_UNREACHABLE",
+            f"cannot reach docker proxy at {proxy_host}:{proxy_port}",
+            503,
+            webcam_id,
+            {
+                "reason": exc.reason,
+                "category": exc.category,
+                "raw_error": _sanitize_error_text(exc.raw_error),
+                "proxy": f"{proxy_host}:{proxy_port}",
+            },
+        )
+
+
+def _get_http_status(
+    node: Dict[str, Any],
+) -> Tuple[Dict[str, Any], Optional[Tuple]]:
+    """Fetch status from webcam via HTTP API.
+
+    Args:
+        node: Webcam dict with http transport URL and auth.
+
+    Returns:
+        Tuple of (status_dict, error_tuple_or_none).
     """
     webcam_id = node["id"]
     transport = node.get("transport", "http")
-    base_url = node.get("base_url", "")
 
-    # Handle docker transport
-    if transport == "docker":
-        try:
-            proxy_host, proxy_port, container_id = _parse_docker_url(base_url)
-        except ValueError as exc:
-            return {}, (
-                "INVALID_DOCKER_URL",
-                f"webcam {webcam_id} has an invalid docker URL",
-                400,
-                webcam_id,
-                {
-                    "reason": str(exc),
-                    "expected_format": "docker://proxy-hostname:port/container-id",
-                    "example": "docker://docker-proxy:2375/motion-in-ocean-webcam",
-                },
-            )
-
-        auth_headers = _build_headers(node)
-        try:
-            status_code, status_payload = _get_docker_container_status(
-                proxy_host, proxy_port, container_id, auth_headers
-            )
-
-            if status_code == 200:
-                return {
-                    "webcam_id": webcam_id,
-                    "status": status_payload.get("status", "ok"),
-                    "stream_available": bool(status_payload.get("stream_available", False)),
-                    "status_probe": {"status_code": status_code, "payload": status_payload},
-                }, None
-            if status_code == 404:
-                return {}, (
-                    "DOCKER_CONTAINER_NOT_FOUND",
-                    f"container {container_id} not found on docker proxy {proxy_host}:{proxy_port}",
-                    502,
-                    webcam_id,
-                    {"container_id": container_id, "proxy": f"{proxy_host}:{proxy_port}"},
-                )
-        except NodeConnectivityError as exc:
-            return {}, (
-                "DOCKER_PROXY_UNREACHABLE",
-                f"cannot reach docker proxy at {proxy_host}:{proxy_port}",
-                503,
-                webcam_id,
-                {
-                    "reason": exc.reason,
-                    "category": exc.category,
-                    "raw_error": _sanitize_error_text(exc.raw_error),
-                    "proxy": f"{proxy_host}:{proxy_port}",
-                },
-            )
-        else:
-            return {}, (
-                "DOCKER_API_ERROR",
-                f"docker proxy returned unexpected status {status_code}",
-                502,
-                webcam_id,
-                {"status_code": status_code, "proxy": f"{proxy_host}:{proxy_port}"},
-            )
-
-    # Handle HTTP transport (original logic)
     if transport != "http":
         return {}, (
             "TRANSPORT_UNSUPPORTED",
@@ -1149,6 +1223,27 @@ def _status_for_webcam(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[T
         webcam_id,
         {"status_code": status_code, "path": "/api/status"},
     )
+
+
+def _status_for_webcam(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[Tuple]]:
+    """Fetch current status from a remote webcam via HTTP or Docker API.
+
+    Dispatches to transport-specific handlers. Returns webcam status dict or error tuple.
+
+    Args:
+        node: Webcam dict with id, base_url, transport, auth, etc.
+
+    Returns:
+        Tuple of (status_dict, error_tuple_or_none).
+        If successful: (status_dict, None).
+        If failed: ({}, (error_code, message, status_code, webcam_id, details)).
+    """
+    transport = node.get("transport", "http")
+
+    if transport == "docker":
+        return _get_docker_status(node)
+
+    return _get_http_status(node)
 
 
 def register_management_routes(

@@ -318,12 +318,88 @@ class SettingsSchema:
         properties = category_schema.get("properties", {})
         return properties.get(property_name)
 
+    @staticmethod
+    def _validate_boolean(value: Any, schema: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+        """Validate boolean value.
+
+        Args:
+            value: Value to validate
+            schema: Property schema (unused for boolean)
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if not isinstance(value, bool):
+            return False, f"Expected boolean, got {type(value).__name__}"
+        return True, None
+
+    @staticmethod
+    def _validate_integer(value: Any, schema: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+        """Validate integer value with min/max constraints.
+
+        Args:
+            value: Value to validate
+            schema: Property schema with optional 'minimum' and 'maximum'
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if not isinstance(value, int) or isinstance(value, bool):
+            return False, f"Expected integer, got {type(value).__name__}"
+        minimum = schema.get("minimum")
+        maximum = schema.get("maximum")
+        if minimum is not None and value < minimum:
+            return False, f"Value {value} is less than minimum {minimum}"
+        if maximum is not None and value > maximum:
+            return False, f"Value {value} is greater than maximum {maximum}"
+        return True, None
+
+    @staticmethod
+    def _validate_number(value: Any, schema: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+        """Validate number (int/float) value with constraints.
+
+        Args:
+            value: Value to validate
+            schema: Property schema with optional 'minimum' and 'maximum'
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            return False, f"Expected number, got {type(value).__name__}"
+        minimum = schema.get("minimum")
+        maximum = schema.get("maximum")
+        if minimum is not None and value < minimum:
+            return False, f"Value {value} is less than minimum {minimum}"
+        if maximum is not None and value > maximum:
+            return False, f"Value {value} is greater than maximum {maximum}"
+        return True, None
+
+    @staticmethod
+    def _validate_string(value: Any, schema: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+        """Validate string value with optional enum constraint.
+
+        Args:
+            value: Value to validate
+            schema: Property schema with optional 'enum' list
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if not isinstance(value, str):
+            return False, f"Expected string, got {type(value).__name__}"
+        enum = schema.get("enum")
+        if enum and value not in enum:
+            return False, f"Value must be one of: {', '.join(enum)}"
+        return True, None
+
     @classmethod
     def validate_value(
         cls, category: str, property_name: str, value: Any
     ) -> Tuple[bool, Optional[str]]:
-        """
-        Validate a value against schema constraints.
+        """Validate a value against schema constraints.
+
+        Dispatches to type-specific validators based on schema type.
 
         Args:
             category: Category name
@@ -338,35 +414,16 @@ class SettingsSchema:
             return False, f"Unknown property: {category}.{property_name}"
 
         prop_type = prop_schema.get("type")
+        validators = {
+            "boolean": cls._validate_boolean,
+            "integer": cls._validate_integer,
+            "number": cls._validate_number,
+            "string": cls._validate_string,
+        }
 
-        # Type checking
-        if prop_type == "boolean":
-            if not isinstance(value, bool):
-                return False, f"Expected boolean, got {type(value).__name__}"
-        elif prop_type == "integer":
-            if not isinstance(value, int) or isinstance(value, bool):
-                return False, f"Expected integer, got {type(value).__name__}"
-            minimum = prop_schema.get("minimum")
-            maximum = prop_schema.get("maximum")
-            if minimum is not None and value < minimum:
-                return False, f"Value {value} is less than minimum {minimum}"
-            if maximum is not None and value > maximum:
-                return False, f"Value {value} is greater than maximum {maximum}"
-        elif prop_type == "number":
-            if not isinstance(value, (int, float)) or isinstance(value, bool):
-                return False, f"Expected number, got {type(value).__name__}"
-            minimum = prop_schema.get("minimum")
-            maximum = prop_schema.get("maximum")
-            if minimum is not None and value < minimum:
-                return False, f"Value {value} is less than minimum {minimum}"
-            if maximum is not None and value > maximum:
-                return False, f"Value {value} is greater than maximum {maximum}"
-        elif prop_type == "string":
-            if not isinstance(value, str):
-                return False, f"Expected string, got {type(value).__name__}"
-            enum = prop_schema.get("enum")
-            if enum and value not in enum:
-                return False, f"Value must be one of: {', '.join(enum)}"
+        validator = validators.get(prop_type)
+        if validator:
+            return validator(value, prop_schema)
 
         return True, None
 
