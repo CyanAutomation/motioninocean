@@ -350,10 +350,10 @@ class FeatureFlags:
             # Parse the value
             if value is not None:
                 flag.enabled = self._parse_bool(value, flag.name)
-                logger.debug(f"Feature flag '{flag_name}' = {flag.enabled} (from environment)")
+                logger.debug("Feature flag '%s' = %s (from environment)", flag_name, flag.enabled)
             else:
                 flag.enabled = flag.default
-                logger.debug(f"Feature flag '{flag_name}' = {flag.enabled} (default)")
+                logger.debug("Feature flag '%s' = %s (default)", flag_name, flag.enabled)
 
         self._loaded = True
         self._log_summary()

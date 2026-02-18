@@ -62,17 +62,12 @@ select = [
 # Ignore specific rules that conflict with the project's style
 ignore = [
     "E501",    # Line too long (handled by formatter)
-    "TRY003",  # Avoid specifying long messages outside exception class
-    "PLR0913", # Too many arguments
     "ISC001",  # Implicit string concatenation (conflicts with formatter)
-    "G004",    # f-strings in logging (common practice)
-    "DTZ005",  # datetime without timezone (not needed for this use case)
     "E402",    # Module level import not at top (needed for pykms workaround)
     "PLR2004", # Magic value used in comparison (config values are self-documenting)
     "UP006",   # Use lowercase for type annotations (keeping Tuple/Dict for Python 3.9 compat)
     "UP035",   # typing.X deprecated (keeping for Python 3.9 compat)
     "TRY400",  # Use logging.exception (explicit error logging is clearer in this context)
-    "G201",    # Logging .error with exc_info (explicit is better)
     "RUF001",  # Ambiguous unicode character (intentional emoji for log levels)
     "TRY301",  # Abstract `raise` to an inner function (unnecessary complexity)
     "PLR0915", # Too many statements

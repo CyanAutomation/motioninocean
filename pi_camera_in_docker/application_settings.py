@@ -102,7 +102,7 @@ class ApplicationSettings:
         except OSError as e:
             # In test environments or restricted permissions, directory creation may fail.
             # This is non-fatal; subsequent operations will raise actionable errors as needed.
-            logger.debug(f"Could not create settings directory {self.path.parent}: {e}")
+            logger.debug("Could not create settings directory %s: %s", self.path.parent, e)
 
     def load(self) -> Dict[str, Any]:
         """
@@ -120,7 +120,7 @@ class ApplicationSettings:
         except SettingsValidationError:
             raise
         except Exception as exc:
-            logger.error(f"Failed to load settings: {exc}")
+            logger.error("Failed to load settings: %s", exc)
             message = f"Failed to load settings: {exc}"
             raise SettingsValidationError(message) from exc
 
@@ -192,7 +192,7 @@ class ApplicationSettings:
                 schema["modified_by"] = raw["modified_by"]
 
         except json.JSONDecodeError as exc:
-            logger.error(f"Corrupted settings file {self.path}: {exc}")
+            logger.error("Corrupted settings file %s: %s", self.path, exc)
             message = f"Corrupted settings file: {exc}"
             raise SettingsValidationError(message) from exc
         else:
@@ -227,13 +227,13 @@ class ApplicationSettings:
         try:
             self._validate_settings_structure(data)
         except Exception as exc:
-            logger.error(f"Settings validation failed: {exc}")
+            logger.error("Settings validation failed: %s", exc)
             message = f"Invalid settings structure: {exc}"
             raise SettingsValidationError(message) from exc
 
         with self._exclusive_lock():
             self._save_atomic(data)
-            logger.info(f"Settings saved by {modified_by}")
+            logger.info("Settings saved by %s", modified_by)
 
     def get(self, category: str, key: str, default: Any = None) -> Any:
         """
@@ -373,7 +373,7 @@ class ApplicationSettings:
                     message = _permission_guidance(self.path, "resetting settings file")
                     logger.error(message)
                     raise SettingsValidationError(message) from exc
-            logger.info(f"Settings reset to defaults by {modified_by}")
+            logger.info("Settings reset to defaults by %s", modified_by)
 
     def get_changes_from_env(self, env_defaults: Dict[str, Any]) -> Dict[str, Any]:
         """

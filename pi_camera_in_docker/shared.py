@@ -284,7 +284,7 @@ def register_shared_routes(
         return jsonify(
             {
                 "status": "healthy",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "app_mode": state["app_mode"],
             }
         ), 200
@@ -297,7 +297,7 @@ def register_shared_routes(
                     "status": "ready",
                     "reason": "no_camera_required",
                     "app_mode": state["app_mode"],
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             ), 200
 
@@ -329,7 +329,7 @@ def register_shared_routes(
                 "max_frame_age_seconds": state["max_frame_age_seconds"],
                 "uptime_seconds": round(time.monotonic() - app.start_time_monotonic, 2),
                 **status,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         ), 200
 
