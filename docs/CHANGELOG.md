@@ -11,6 +11,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.16.1] - 2026-02-18
+
+- Refactor webcam route handling with builder and handler patterns
+- Implement API test mode functionality in webcam routes; validate interval parameter and manage state transitions
+- Refactor logging statements across multiple modules to use parameterized formatting for improved performance and consistency
+- Refactor validation functions in node_registry.py for improved clarity and modularity; streamline webcam validation logic in validate_webcam function
+- Refactor logging statements to use parameterized formatting and ensure UTC timestamps in shared routes
+- [api] Enhance management API with address resolution and vetting, add environment variable loading for settings
+
 ## [1.16.0] - 2026-02-18
 
 - [webcam] Align discovery startup with webcam_id payload (#328)
