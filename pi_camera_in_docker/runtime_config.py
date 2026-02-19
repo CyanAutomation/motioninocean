@@ -287,7 +287,7 @@ def _load_networking_config() -> Dict[str, Any]:
     """
     cors_enabled = is_flag_enabled("CORS_SUPPORT")
     cors_origins_raw = os.environ.get("MOTION_IN_OCEAN_CORS_ORIGINS", "").strip()
-    cors_origins = cors_origins_raw or "*" if cors_enabled else "disabled"
+    cors_origins = (cors_origins_raw or "*") if cors_enabled else "disabled"
 
     bind_host = os.environ.get("MOTION_IN_OCEAN_BIND_HOST", "127.0.0.1").strip()
     try:
