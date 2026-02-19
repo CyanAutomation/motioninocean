@@ -161,6 +161,38 @@ def test_merge_config_with_settings_logs_actionable_permission_warning(caplog):
     assert "APPLICATION_SETTINGS_PATH" in caplog.text
 
 
+
+def test_load_networking_config_returns_disabled_origins_when_cors_disabled(monkeypatch):
+    """CORS origins should be disabled when CORS feature flag is off."""
+    monkeypatch.setenv("MOTION_IN_OCEAN_CORS_ORIGINS", "https://example.com")
+    monkeypatch.setattr(runtime_config, "is_flag_enabled", lambda flag_name: False)
+
+    cfg = runtime_config._load_networking_config()
+
+    assert cfg["cors_enabled"] is False
+    assert cfg["cors_origins"] == "disabled"
+
+
+def test_load_networking_config_defaults_origins_to_wildcard_when_enabled(monkeypatch):
+    """CORS origins should default to wildcard when enabled and unset."""
+    monkeypatch.delenv("MOTION_IN_OCEAN_CORS_ORIGINS", raising=False)
+    monkeypatch.setattr(runtime_config, "is_flag_enabled", lambda flag_name: True)
+
+    cfg = runtime_config._load_networking_config()
+
+    assert cfg["cors_enabled"] is True
+    assert cfg["cors_origins"] == "*"
+
+
+def test_load_networking_config_uses_configured_origins_when_enabled(monkeypatch):
+    """CORS origins should use explicit environment value when enabled."""
+    monkeypatch.setenv("MOTION_IN_OCEAN_CORS_ORIGINS", "https://example.com")
+    monkeypatch.setattr(runtime_config, "is_flag_enabled", lambda flag_name: True)
+
+    cfg = runtime_config._load_networking_config()
+
+    assert cfg["cors_enabled"] is True
+    assert cfg["cors_origins"] == "https://example.com"
 def test_camera_fps_default_matches_settings_schema(monkeypatch):
     """Runtime FPS fallback should match camera.fps schema default."""
     from pi_camera_in_docker.settings_schema import SettingsSchema
