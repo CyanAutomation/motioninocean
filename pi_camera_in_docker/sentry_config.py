@@ -89,7 +89,8 @@ def init_sentry(sentry_dsn: Optional[str], app_mode: str) -> None:
 
     Only initializes if SENTRY_DSN is provided (makes Sentry optional).
     Configures Flask integration, redaction, async transport, and sampling
-    to minimize impact on Raspberry Pi resources.
+    to minimize impact on Raspberry Pi resources, then applies runtime tags
+    via the scope API.
 
     Args:
         sentry_dsn: Sentry DSN URL (from environment). If None or empty,
@@ -125,12 +126,10 @@ def init_sentry(sentry_dsn: Optional[str], app_mode: str) -> None:
         before_send=_redact_auth_data,  # type: ignore[arg-type]
         # Breadcrumb filter to skip noisy endpoints
         before_breadcrumb=_breadcrumb_filter,
-        # Set app_mode as default tag for all events
-        tags={
-            "app_mode": app_mode,
-        },
         # Don't send default PII (browser, IPs, email, etc.)
         send_default_pii=False,
         # Environment detection from app_mode
         environment="production" if app_mode == "management" else "edge",
     )
+
+    sentry_sdk.set_tag("app_mode", app_mode)
