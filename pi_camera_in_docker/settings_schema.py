@@ -1,8 +1,11 @@
-"""
-Settings Schema Generator
+"""Settings schema generator.
+
 Generates JSON schema for all runtime-editable settings.
 Used by /api/settings/schema endpoint to provide UI with metadata.
 """
+
+import re
+from urllib.parse import urlparse
 
 from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
@@ -377,20 +380,31 @@ class SettingsSchema:
 
     @staticmethod
     def _validate_string(value: Any, schema: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
-        """Validate string value with optional enum constraint.
+        """Validate string value with optional enum, pattern, and format constraints.
 
         Args:
             value: Value to validate
-            schema: Property schema with optional 'enum' list
+            schema: Property schema with optional ``enum``, ``pattern``, and ``format`` metadata
 
         Returns:
             Tuple of (is_valid, error_message)
         """
         if not isinstance(value, str):
             return False, f"Expected string, got {type(value).__name__}"
+
         enum = schema.get("enum")
         if enum and value not in enum:
             return False, f"Value must be one of: {', '.join(enum)}"
+
+        pattern = schema.get("pattern")
+        if pattern and not re.fullmatch(pattern, value):
+            return False, f"Value must match pattern: {pattern}"
+
+        if schema.get("format") == "uri":
+            parsed = urlparse(value)
+            if not parsed.scheme or not parsed.netloc:
+                return False, "Value must be a valid URI"
+
         return True, None
 
     @classmethod
