@@ -89,7 +89,8 @@ def init_sentry(sentry_dsn: Optional[str], app_mode: str) -> None:
 
     Only initializes if SENTRY_DSN is provided (makes Sentry optional).
     Configures Flask integration, redaction, async transport, and sampling
-    to minimize impact on Raspberry Pi resources.
+    to minimize impact on Raspberry Pi resources, then applies runtime tags
+    via the scope API.
 
     Args:
         sentry_dsn: Sentry DSN URL (from environment). If None or empty,
