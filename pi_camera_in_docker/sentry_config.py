@@ -132,4 +132,5 @@ def init_sentry(sentry_dsn: Optional[str], app_mode: str) -> None:
         environment="production" if app_mode == "management" else "edge",
     )
 
+    # Tag events with current application mode for easier filtering.
     sentry_sdk.set_tag("app_mode", app_mode)
