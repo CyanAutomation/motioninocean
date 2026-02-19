@@ -92,11 +92,26 @@ class TestConfigValidator:
 
     def test_validate_settings_patch_reports_valid_and_invalid_values(self):
         """validate_settings_patch should accept valid values and report invalid ones."""
-        valid_errors = validate_settings_patch({"camera": {"fps": 30}})
+        valid_errors = validate_settings_patch(
+            {
+                "camera": {"fps": 30, "resolution": "1280x720"},
+                "discovery": {"discovery_management_url": "http://management.local:8001"},
+            }
+        )
         assert valid_errors == {}
 
         invalid_errors = validate_settings_patch({"camera": {"fps": "invalid"}})
         assert "camera.fps" in invalid_errors
+
+        invalid_resolution_errors = validate_settings_patch(
+            {"camera": {"resolution": "1280-by-720"}}
+        )
+        assert "camera.resolution" in invalid_resolution_errors
+
+        invalid_uri_errors = validate_settings_patch(
+            {"discovery": {"discovery_management_url": "not-a-uri"}}
+        )
+        assert "discovery.discovery_management_url" in invalid_uri_errors
 
     def test_validate_all_config_discovery_enabled_missing_token_raises(self):
         """validate_all_config should reject discovery enabled config missing discovery token."""

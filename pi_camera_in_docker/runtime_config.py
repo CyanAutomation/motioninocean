@@ -44,7 +44,7 @@ def _load_camera_config() -> Dict[str, Any]:
 
     Parses and validates camera settings with fallback defaults:
     - RESOLUTION (default: 640x480)
-    - FPS (default: 0, auto-detect)
+    - FPS (default: 24)
     - TARGET_FPS (default: matches FPS)
     - JPEG_QUALITY (1-100, default: 90)
     - MAX_FRAME_AGE_SECONDS (default: 10)
@@ -62,9 +62,9 @@ def _load_camera_config() -> Dict[str, Any]:
         resolution = (640, 480)
 
     try:
-        fps = int(os.environ.get("FPS", "0"))
+        fps = int(os.environ.get("FPS", "24"))
     except ValueError:
-        fps = 0
+        fps = 24
 
     try:
         target_fps = int(os.environ.get("TARGET_FPS", str(fps)))

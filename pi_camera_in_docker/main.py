@@ -208,9 +208,9 @@ def _collect_current_config() -> Dict[str, Any]:
         resolution = (640, 480)
 
     try:
-        fps = int(os.environ.get("FPS", "0"))
+        fps = int(os.environ.get("FPS", "24"))
     except ValueError:
-        fps = 0
+        fps = 24
 
     try:
         target_fps_str = os.environ.get("TARGET_FPS", "")

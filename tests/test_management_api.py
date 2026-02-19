@@ -224,7 +224,7 @@ def test_settings_changes_endpoint_handles_invalid_numeric_env(monkeypatch, tmp_
     by_key = {(item["category"], item["key"]): item for item in overridden}
 
     assert by_key[("camera", "fps")]["value"] == 12
-    assert by_key[("camera", "fps")]["env_value"] == 0
+    assert by_key[("camera", "fps")]["env_value"] == 24
 
     assert by_key[("camera", "jpeg_quality")]["value"] == 77
     assert isinstance(by_key[("camera", "jpeg_quality")]["env_value"], int)
