@@ -159,3 +159,28 @@ def test_merge_config_with_settings_logs_actionable_permission_warning(caplog):
     assert "Could not load persisted settings:" in caplog.text
     assert "Check /data mount ownership" in caplog.text
     assert "APPLICATION_SETTINGS_PATH" in caplog.text
+
+
+def test_camera_fps_default_matches_settings_schema(monkeypatch):
+    """Runtime FPS fallback should match camera.fps schema default."""
+    from pi_camera_in_docker.settings_schema import SettingsSchema
+
+    monkeypatch.delenv("FPS", raising=False)
+
+    camera_config = runtime_config._load_camera_config()
+    schema_default = SettingsSchema.get_defaults()["camera"]["fps"]
+
+    assert camera_config["fps"] == schema_default
+    assert camera_config["target_fps"] == schema_default
+
+
+def test_settings_api_env_defaults_use_runtime_fps_default(monkeypatch):
+    """API env-default payload should expose the same FPS default as runtime config."""
+    from pi_camera_in_docker.settings_api import _load_env_settings_defaults
+
+    monkeypatch.delenv("FPS", raising=False)
+
+    runtime_default = runtime_config._load_camera_config()["fps"]
+    env_defaults = _load_env_settings_defaults()
+
+    assert env_defaults["camera"]["fps"] == runtime_default

@@ -74,8 +74,8 @@ def test_webcam_mode_env_validation_and_startup(monkeypatch):
 
         cfg = main._load_config()
         assert cfg["resolution"] == (640, 480)
-        assert cfg["fps"] == 0
-        assert cfg["target_fps"] == 0
+        assert cfg["fps"] == 24
+        assert cfg["target_fps"] == 24
         assert cfg["jpeg_quality"] == 90
         assert cfg["max_frame_age_seconds"] == 10.0
         assert cfg["max_stream_connections"] == 10
@@ -146,8 +146,8 @@ def test_api_config_returns_render_config_shape_in_management_mode(monkeypatch):
 
         assert body["camera_settings"] == {
             "resolution": [640, 480],
-            "fps": 0,
-            "target_fps": 0,
+            "fps": 24,
+            "target_fps": 24,
             "jpeg_quality": 90,
         }
         assert body["stream_control"]["max_stream_connections"] == 10
@@ -213,8 +213,8 @@ def test_api_config_webcam_includes_render_config_keys_and_defaulted_values(monk
         _assert_render_config_contract(body)
         assert body["camera_settings"] == {
             "resolution": [640, 480],
-            "fps": 0,
-            "target_fps": 0,
+            "fps": 24,
+            "target_fps": 24,
             "jpeg_quality": 90,
         }
         assert body["stream_control"]["max_stream_connections"] == 10
@@ -250,8 +250,8 @@ def test_api_config_management_includes_render_config_keys_and_defaulted_values(
         _assert_render_config_contract(body)
         assert body["camera_settings"] == {
             "resolution": [640, 480],
-            "fps": 0,
-            "target_fps": 0,
+            "fps": 24,
+            "target_fps": 24,
             "jpeg_quality": 90,
         }
         assert body["stream_control"]["max_stream_connections"] == 10
