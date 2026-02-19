@@ -33,7 +33,7 @@ class SettingsSchema:
                     "type": "integer",
                     "title": "Frames Per Second",
                     "description": "Capture frame rate (0 = camera default, 1-60 typical range)",
-                    "default": 30,
+                    "default": 24,
                     "minimum": 0,
                     "maximum": 120,
                     "restartable": True,

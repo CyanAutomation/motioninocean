@@ -193,7 +193,7 @@ def test_create_app_from_env_defaults_invalid_fps_to_safe_fallback(monkeypatch, 
 
     app = main.create_app_from_env()
     assert app.motion_config["resolution"] == (800, 600)
-    assert app.motion_config["fps"] == 0
+    assert app.motion_config["fps"] == 24
 
 
 def test_real_camera_startup_failure_reports_clear_runtime_error(monkeypatch, tmp_path):
