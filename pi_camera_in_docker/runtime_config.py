@@ -320,14 +320,21 @@ def _load_advanced_config() -> Dict[str, Any]:
     - APPLICATION_SETTINGS_PATH (default: /data/application-settings.json)
     - MANAGEMENT_AUTH_TOKEN (bearer token for management mode auth)
     - WEBCAM_CONTROL_PLANE_AUTH_TOKEN (bearer token for webcam control-plane auth)
+    - MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR (default: false)
+    - MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED (legacy alias; default: false)
 
     Returns:
         Dict with keys: pi3_profile_enabled, mock_camera, allow_pykms_mock,
         webcam_registry_path, application_settings_path, management_auth_token,
-        webcam_control_plane_auth_token.
+        webcam_control_plane_auth_token, fail_on_camera_init_error.
     """
     pi3_profile_raw = os.environ.get(
         "MOTION_IN_OCEAN_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false")
+    )
+
+    fail_on_camera_init_error_raw = os.environ.get(
+        "MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR",
+        os.environ.get("MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED", "false"),
     )
 
     return {
@@ -341,6 +348,7 @@ def _load_advanced_config() -> Dict[str, Any]:
         ),
         "management_auth_token": os.environ.get("MANAGEMENT_AUTH_TOKEN", ""),
         "webcam_control_plane_auth_token": os.environ.get("WEBCAM_CONTROL_PLANE_AUTH_TOKEN", ""),
+        "fail_on_camera_init_error": fail_on_camera_init_error_raw.lower() in ("1", "true", "yes"),
     }
 
 

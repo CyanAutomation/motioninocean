@@ -217,3 +217,33 @@ def test_settings_api_env_defaults_use_runtime_fps_default(monkeypatch):
     env_defaults = _load_env_settings_defaults()
 
     assert env_defaults["camera"]["fps"] == runtime_default
+
+
+def test_load_env_config_defaults_camera_init_failure_to_graceful(monkeypatch):
+    """Camera init failure handling should default to graceful startup."""
+    monkeypatch.delenv("MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR", raising=False)
+    monkeypatch.delenv("MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED", raising=False)
+
+    cfg = runtime_config.load_env_config()
+
+    assert cfg["fail_on_camera_init_error"] is False
+
+
+def test_load_env_config_enables_strict_camera_init_failure_mode(monkeypatch):
+    """Strict startup mode should be enabled via the primary env var."""
+    monkeypatch.setenv("MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR", "true")
+    monkeypatch.delenv("MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED", raising=False)
+
+    cfg = runtime_config.load_env_config()
+
+    assert cfg["fail_on_camera_init_error"] is True
+
+
+def test_load_env_config_supports_legacy_camera_init_required_alias(monkeypatch):
+    """Legacy camera init strictness env var alias should still be honored."""
+    monkeypatch.delenv("MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR", raising=False)
+    monkeypatch.setenv("MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED", "yes")
+
+    cfg = runtime_config.load_env_config()
+
+    assert cfg["fail_on_camera_init_error"] is True

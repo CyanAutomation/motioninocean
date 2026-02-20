@@ -733,6 +733,8 @@ curl http://192.168.1.101:8000/ready
 
 - Wait 30-60 seconds for camera initialization
 - Check `docker logs motion-in-ocean` for device errors
+- Default behavior is graceful startup (service remains up in degraded mode) when camera init fails.
+- Set `MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR=true` (or legacy alias `MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED=true`) if you want startup to fail fast on camera init errors.
 - See [pi-camera-troubleshooting skill](/.github/skills/pi-camera-troubleshooting/SKILL.md) for detailed camera diagnostics
 
 ### Docker Socket Proxy Permission Denied
