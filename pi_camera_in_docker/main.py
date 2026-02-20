@@ -1603,6 +1603,9 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     Args:
         state: Application state dict to populate with camera instances.
         cfg: Configuration dict with camera settings and feature flags.
+
+    Raises:
+        RuntimeError: If camera initialization fails and strict mode is enabled.
     """
     # Picamera2() / create_video_configuration / start_recording markers are intentionally preserved.
 
@@ -1611,8 +1614,18 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
 
     if cfg["mock_camera"]:
         _init_mock_camera_frames(state, cfg)
-    else:
+        return
+
+    try:
         _init_real_camera(state, cfg)
+    except Exception:
+        if cfg.get("fail_on_camera_init_error", False):
+            raise
+        logger.warning(
+            "Camera initialization failed; continuing startup in degraded mode because "
+            "MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR is disabled.",
+            exc_info=True,
+        )
 
 
 def handle_shutdown(app: Flask, signum: int, _frame: Optional[object]) -> None:

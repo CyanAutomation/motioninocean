@@ -686,3 +686,91 @@ def test_register_middleware_generates_correlation_id_when_missing():
     assert response.status_code == 200
     assert generated_correlation_id
     assert uuid.UUID(generated_correlation_id)
+
+
+def test_run_webcam_mode_raises_on_camera_init_failure_in_strict_mode(monkeypatch):
+    """Strict camera init mode should preserve raise-and-exit startup behavior."""
+    from threading import Event, RLock
+
+    from modes.webcam import ConnectionTracker, FrameBuffer, StreamStats
+
+    from pi_camera_in_docker import main
+
+    cfg = {
+        "mock_camera": False,
+        "fail_on_camera_init_error": True,
+        "target_fps": 0,
+        "max_stream_connections": 10,
+    }
+
+    stream_stats = StreamStats()
+    output = FrameBuffer(stream_stats, target_fps=cfg["target_fps"])
+    state = {
+        "recording_started": Event(),
+        "shutdown_requested": Event(),
+        "camera_lock": RLock(),
+        "output": output,
+        "stream_stats": stream_stats,
+        "connection_tracker": ConnectionTracker(),
+        "max_stream_connections": cfg["max_stream_connections"],
+        "picam2_instance": None,
+    }
+
+    monkeypatch.setattr(main, "_check_device_availability", lambda _cfg: None)
+
+    def raise_runtime_error(_state, _cfg):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(main, "_init_real_camera", raise_runtime_error)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        main._run_webcam_mode(state, cfg)
+
+
+def test_run_webcam_mode_boots_degraded_on_camera_init_failure_when_not_strict(monkeypatch):
+    """Non-strict camera init mode should continue startup in degraded state."""
+    from threading import Event, RLock
+
+    from modes.webcam import ConnectionTracker, FrameBuffer, StreamStats
+
+    from pi_camera_in_docker import main
+
+    cfg = {
+        "mock_camera": False,
+        "fail_on_camera_init_error": False,
+        "target_fps": 0,
+        "max_stream_connections": 10,
+    }
+
+    stream_stats = StreamStats()
+    output = FrameBuffer(stream_stats, target_fps=cfg["target_fps"])
+    state = {
+        "recording_started": Event(),
+        "shutdown_requested": Event(),
+        "camera_lock": RLock(),
+        "output": output,
+        "stream_stats": stream_stats,
+        "connection_tracker": ConnectionTracker(),
+        "max_stream_connections": cfg["max_stream_connections"],
+        "picam2_instance": None,
+    }
+
+    warnings = []
+
+    monkeypatch.setattr(main, "_check_device_availability", lambda _cfg: None)
+
+    def raise_runtime_error(_state, _cfg):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(main, "_init_real_camera", raise_runtime_error)
+    monkeypatch.setattr(
+        main.logger,
+        "warning",
+        lambda message, *args, **kwargs: warnings.append((message, kwargs)),
+    )
+
+    main._run_webcam_mode(state, cfg)
+
+    assert state["recording_started"].is_set() is False
+    assert warnings
+    assert "continuing startup in degraded mode" in warnings[0][0]
