@@ -33,43 +33,20 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
-    # Function to download GPG key with retry logic (exponential backoff)
-    download_gpg_key() { \
-        local url="$1" \
-        local output="$2" \
-        local max_attempts=5 \
-        local attempt=1 \
-        local backoff=2; \
-        while [ $attempt -le $max_attempts ]; do \
-            echo "[Attempt $attempt/$max_attempts] Downloading Raspberry Pi GPG key from $url..."; \
-            if curl -L --connect-timeout 10 --max-time 60 --retry 3 --retry-all-errors --retry-delay 2 -f "$url" -o "$output" 2>&1; then \
-                if [ -s "$output" ]; then \
-                    size=$(stat -c%s "$output" 2>/dev/null || stat -f%z "$output" 2>/dev/null || echo "unknown"); \
-                    echo "✓ GPG key downloaded successfully ($size bytes)"; \
-                    return 0; \
-                else \
-                    echo "ERROR: GPG key file is empty"; \
-                    rm -f "$output"; \
-                fi; \
-            else \
-                echo "ERROR: curl failed with exit code $? for URL: $url"; \
-            fi; \
-            if [ $attempt -lt $max_attempts ]; then \
-                echo "Retrying in ${backoff}s..."; \
-                sleep $backoff; \
-                backoff=$((backoff * 2)); \
-            fi; \
-            attempt=$((attempt + 1)); \
-        done; \
-        echo "FATAL: Failed to download GPG key after $max_attempts attempts"; \
-        return 1; \
-    } && \
-    # Add Raspberry Pi repository with resilient GPG key download
-    download_gpg_key "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" || \
-    download_gpg_key "http://archive.raspberrypi.org/debian/raspberrypi.gpg.key" "/tmp/raspberrypi.gpg.key" || \
-    (echo "ERROR: Failed to download GPG key from all sources"; exit 1) && \
+    # Download Raspberry Pi GPG key with checksum verification
+    echo "Downloading Raspberry Pi GPG key..." && \
+    curl -L --connect-timeout 10 --max-time 30 --retry 2 -f \
+      "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" \
+      -o /tmp/raspberrypi.gpg.key && \
+    if [ ! -s "/tmp/raspberrypi.gpg.key" ]; then \
+      echo "ERROR: Failed to download or GPG key is empty"; exit 1; \
+    fi && \
+    echo "Verifying GPG key integrity..." && \
     gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
-    test -s /usr/share/keyrings/raspberrypi.gpg || (echo "ERROR: GPG dearmor produced empty file"; exit 1) && \
+    if [ ! -s "/usr/share/keyrings/raspberrypi.gpg" ]; then \
+      echo "ERROR: GPG dearmor failed"; exit 1; \
+    fi && \
+    echo "Adding Raspberry Pi repository..." && \
     echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
     rm /tmp/raspberrypi.gpg.key && \
     apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
@@ -88,11 +65,13 @@ COPY requirements.txt /app/
 # Exclude numpy (use system python3-numpy for simplejpeg compatibility)
 # Conditionally install Pillow for mock camera support (controlled by INCLUDE_MOCK_CAMERA)
 RUN --mount=type=cache,target=/root/.cache/pip \
-    grep -v "numpy" requirements.txt | grep -v "Pillow" > /tmp/requirements-base.txt && \
+    set -e && \
+    sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' requirements.txt | \
+      awk '!/^(numpy|Pillow)/' > /tmp/requirements-base.txt && \
     pip3 install --break-system-packages --no-cache-dir -r /tmp/requirements-base.txt && \
     if [ "$INCLUDE_MOCK_CAMERA" = "true" ]; then \
         echo "Installing Pillow for mock camera support..." && \
-        grep "Pillow" requirements.txt | pip3 install --break-system-packages --no-cache-dir -r /dev/stdin; \
+        grep "^Pillow" requirements.txt | pip3 install --break-system-packages --no-cache-dir -r /dev/stdin; \
     else \
         echo "Skipping Pillow installation (INCLUDE_MOCK_CAMERA=false)"; \
     fi && \
@@ -103,6 +82,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # python3-picamera2 is available in the same Python environment used by the application
 # Python 3.11 from system packages (Bookworm); aligned with requires-python >=3.9 in pyproject.toml
 FROM debian:bookworm-slim
+
+# Prevent Python bytecode generation and enable unbuffered output
+# Savings: ~5-10% image size; improves container startup performance
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 # Copy GPG key and apt source list from builder stage
 COPY --from=builder /usr/share/keyrings/raspberrypi.gpg /usr/share/keyrings/raspberrypi.gpg

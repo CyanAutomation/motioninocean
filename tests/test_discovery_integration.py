@@ -179,10 +179,10 @@ class TestDiscoveryAnnounceIntegration:
             assert announcer._thread is not None
             assert announcer._thread.is_alive()
 
-            # Stop and verify thread is dead
+            # Stop and verify thread is cleaned up
             announcer.stop()
             time.sleep(0.2)  # Give thread time to exit
-            assert not announcer._thread.is_alive()
+            assert announcer._thread is None
 
 
 class TestDiscoveryEndToEnd:
