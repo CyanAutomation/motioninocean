@@ -11,6 +11,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.16.3] - 2026-02-20
+
+- Add favicon and apple touch icons for improved branding
+- [webcam] Degrade gracefully when no camera is available (#342)
+- [webcam] Add configurable camera init failure strictness (#340)
+- [webcam] Expose camera startup failure metadata in status endpoints (#339)
+- [webcam] Generate correlation IDs when header is missing (#338)
+
 ## [1.16.2] - 2026-02-20
 
 - [tests] Align Sentry init test with set_tag behavior (#337)
