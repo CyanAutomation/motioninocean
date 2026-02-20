@@ -16,13 +16,16 @@ class TestSentryIntegration:
             mock_init.assert_not_called()
 
     def test_sentry_initializes_with_valid_dsn(self):
-        """Sentry should initialize with supported SDK init fields."""
+        """Sentry should initialize SDK and tag app mode after init."""
         from pi_camera_in_docker.sentry_config import init_sentry
 
         # Mock DSN (not real, but valid format)
         test_dsn = "https://test-key@o0.ingest.sentry.io/0"
 
-        with mock.patch("sentry_sdk.init") as mock_init:
+        with (
+            mock.patch("sentry_sdk.init") as mock_init,
+            mock.patch("sentry_sdk.set_tag") as mock_set_tag,
+        ):
             init_sentry(test_dsn, "webcam")
 
             # Verify init was called with expected parameters
@@ -35,20 +38,6 @@ class TestSentryIntegration:
             assert "environment" in call_kwargs
             assert "traces_sample_rate" in call_kwargs
             assert "send_default_pii" in call_kwargs
-
-    def test_sentry_sets_app_mode_tag(self):
-        """Sentry should assign app_mode tag via tag API after initialization."""
-        from pi_camera_in_docker.sentry_config import init_sentry
-
-        test_dsn = "https://test-key@o0.ingest.sentry.io/0"
-
-        with (
-            mock.patch("sentry_sdk.init") as mock_init,
-            mock.patch("sentry_sdk.set_tag") as mock_set_tag,
-        ):
-            init_sentry(test_dsn, "webcam")
-
-            mock_init.assert_called_once()
             mock_set_tag.assert_called_once_with("app_mode", "webcam")
 
     def test_sentry_captures_auth_token_redaction(self):
