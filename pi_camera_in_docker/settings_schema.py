@@ -5,9 +5,8 @@ Used by /api/settings/schema endpoint to provide UI with metadata.
 """
 
 import re
-from urllib.parse import urlparse
-
 from typing import Any, ClassVar, Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
 
 class SettingsSchema:
