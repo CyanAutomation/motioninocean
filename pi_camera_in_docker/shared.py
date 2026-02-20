@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, timezone
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from flask import Flask, jsonify, request
 
@@ -207,7 +207,7 @@ def _build_webcam_status_payload(
     current_connections = tracker.get_count() if tracker else 0
 
     overall_status = "ok" if stream_available else "degraded"
-    return {
+    payload = {
         "status": overall_status,
         "app_mode": state["app_mode"],
         "stream_available": stream_available,
@@ -219,6 +219,23 @@ def _build_webcam_status_payload(
             "max": max_connections,
         },
         "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    startup_error = state.get("camera_startup_error")
+    if startup_error:
+        payload["camera_error"] = startup_error
+    return payload
+
+
+def _build_not_ready_reason(state: dict) -> dict[str, Any]:
+    """Build optional reason payload for webcam not-ready responses."""
+    startup_error = state.get("camera_startup_error")
+    if not startup_error:
+        return {"reason": "initializing"}
+
+    reason = startup_error.get("reason") if isinstance(startup_error, dict) else None
+    return {
+        "reason": reason or "camera_unavailable",
+        "camera_error": startup_error,
     }
 
 
@@ -308,7 +325,10 @@ def register_shared_routes(
         stale = last_frame_age_seconds is not None and last_frame_age_seconds > max_age
         if is_recording and last_frame_age_seconds is not None and not stale:
             return jsonify({"status": "ready", "app_mode": state["app_mode"], **status}), 200
-        return jsonify({"status": "not_ready", "app_mode": state["app_mode"], **status}), 503
+        reason_payload = _build_not_ready_reason(state)
+        return jsonify(
+            {"status": "not_ready", "app_mode": state["app_mode"], **reason_payload, **status}
+        ), 503
 
     @app.route("/metrics")
     def metrics():
