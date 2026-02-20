@@ -315,7 +315,7 @@ def test_get_camera_info_falls_back_to_class_method(monkeypatch):
 
 
 def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypatch):
-    """No-camera RuntimeError path should log detailed detected device inventory."""
+    """No-camera startup should degrade gracefully and log detected device inventory."""
     from threading import Event, RLock
 
     pytest.importorskip("flask")
@@ -381,10 +381,7 @@ def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypa
     monkeypatch.setattr(main, "_get_camera_info", lambda _cls: ([], "test.path"))
     monkeypatch.setattr(main.logger, "error", fake_error)
 
-    with pytest.raises(
-        RuntimeError, match=r"No cameras detected\. Check device mappings and camera hardware\."
-    ):
-        main._run_webcam_mode(state, cfg)
+    main._run_webcam_mode(state, cfg)
 
     assert error_calls
     assert error_calls[0][0] == "No cameras detected by picamera2 enumeration"
@@ -397,6 +394,9 @@ def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypa
         "dma_heap_devices": ["/dev/dma_heap/system"],
         "vchiq_exists": True,
     }
+    assert state["camera_startup_error"]["code"] == "CAMERA_UNAVAILABLE"
+    assert "No cameras detected" in state["camera_startup_error"]["message"]
+    assert state["recording_started"].is_set() is False
 
 
 def test_shutdown_camera_clears_recording_started_for_real_camera_path():

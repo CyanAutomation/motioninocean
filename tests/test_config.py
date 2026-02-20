@@ -196,8 +196,8 @@ def test_create_app_from_env_defaults_invalid_fps_to_safe_fallback(monkeypatch, 
     assert app.motion_config["fps"] == 24
 
 
-def test_real_camera_startup_failure_reports_clear_runtime_error(monkeypatch, tmp_path):
-    """When real camera enumeration yields no cameras, startup should fail with actionable RuntimeError."""
+def test_real_camera_startup_failure_records_degraded_state(monkeypatch, tmp_path):
+    """When real camera enumeration yields no cameras, startup should record degraded state."""
     from pi_camera_in_docker import main
 
     monkeypatch.setenv("APP_MODE", "webcam")
@@ -235,8 +235,12 @@ def test_real_camera_startup_failure_reports_clear_runtime_error(monkeypatch, tm
     )
     monkeypatch.setattr(main, "_get_camera_info", lambda _cls: ([], "test.path"))
 
-    with pytest.raises(RuntimeError, match="No cameras detected"):
-        main.create_webcam_app()
+    app = main.create_webcam_app()
+
+    assert app.motion_state["camera_startup_error"] is not None
+    assert app.motion_state["camera_startup_error"]["code"] == "CAMERA_UNAVAILABLE"
+    assert "No cameras detected" in app.motion_state["camera_startup_error"]["message"]
+    assert app.motion_state["recording_started"].is_set() is False
 
 
 def test_env_example_contains_required_runtime_variables_with_nonempty_defaults(workspace_root):

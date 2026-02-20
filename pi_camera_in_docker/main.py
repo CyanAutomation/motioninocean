@@ -541,6 +541,7 @@ def _init_app_state(config: Dict[str, Any]) -> dict:
         "max_frame_age_seconds": config["max_frame_age_seconds"],
         "picam2_instance": None,
         "cat_gif_generator": None,
+        "camera_startup_error": None,
     }
 
 
@@ -1518,6 +1519,7 @@ def _init_real_camera(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(
         cfg["allow_pykms_mock"]
     )
+    camera_startup_context: Dict[str, Any] = {}
     try:
         # Detect available cameras before initialization
         try:
@@ -1532,6 +1534,10 @@ def _init_real_camera(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
             camera_info, detection_path = _get_camera_info(
                 picamera2_cls
             )  # global_camera_info() marker
+            camera_startup_context = {
+                "camera_info_detection_path": detection_path,
+                "camera_device_inventory": camera_inventory,
+            }
             logger.info("Camera inventory detection path: %s", detection_path)
             if not camera_info:
                 logger.error(
@@ -1566,23 +1572,32 @@ def _init_real_camera(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
                 jpeg_encoder_cls(q=cfg["jpeg_quality"]), file_output_cls(output)
             )  # start_recording marker
         recording_started.set()
+        state["camera_startup_error"] = None
     except PermissionError as e:  # except PermissionError marker
         _shutdown_camera(state)
+        state["camera_startup_error"] = {
+            "code": "CAMERA_PERMISSION_DENIED",
+            "message": str(e),
+            "context": camera_startup_context,
+        }
         logger.error(
             "Permission denied accessing camera device. Check device mappings in "
             "docker-compose.yaml and run ./detect-devices.sh on the host for guidance.",
             exc_info=e,
         )
-        raise
     except RuntimeError as e:  # except RuntimeError marker
         _shutdown_camera(state)
+        state["camera_startup_error"] = {
+            "code": "CAMERA_UNAVAILABLE",
+            "message": str(e),
+            "context": camera_startup_context,
+        }
         logger.error(
             "Camera initialization failed. This may indicate missing device mappings, "
             "insufficient permissions, or unavailable hardware. "
             "See ./detect-devices.sh and docker-compose.yaml for troubleshooting.",
             exc_info=e,
         )
-        raise
     except Exception as e:  # except Exception marker
         _shutdown_camera(state)
         logger.error(
