@@ -487,6 +487,50 @@ def test_shutdown_updates_ready_metrics_and_api_status_immediately():
     assert api_status.get_json()["stream_available"] is False
 
 
+def test_ready_reports_initializing_reason_when_camera_startup_error_absent():
+    """Webcam /ready should distinguish normal startup wait from startup failure states."""
+    from pi_camera_in_docker import main
+    from pi_camera_in_docker.shared import register_shared_routes
+
+    app, _limiter, state = main._create_base_app(
+        {
+            "app_mode": "webcam",
+            "resolution": (640, 480),
+            "fps": 0,
+            "target_fps": 0,
+            "jpeg_quality": 90,
+            "max_frame_age_seconds": 10.0,
+            "max_stream_connections": 5,
+            "pi3_profile_enabled": False,
+            "mock_camera": True,
+            "cors_enabled": False,
+            "allow_pykms_mock": False,
+            "webcam_registry_path": "/tmp/node-registry.json",
+            "application_settings_path": "/tmp/application-settings.json",
+            "management_auth_token": "",
+            "webcam_control_plane_auth_token": "",
+        }
+    )
+
+    register_shared_routes(
+        app,
+        state,
+        get_stream_status=lambda: {
+            "frames_captured": 0,
+            "current_fps": 0.0,
+            "last_frame_age_seconds": None,
+        },
+    )
+
+    response = app.test_client().get("/ready")
+
+    assert response.status_code == 503
+    payload = response.get_json()
+    assert payload["status"] == "not_ready"
+    assert payload["reason"] == "initializing"
+    assert "camera_error" not in payload
+
+
 def test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes(monkeypatch):
     """Both camera-info discovery modes should reach camera setup without ImportError."""
     import importlib

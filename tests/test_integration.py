@@ -110,6 +110,42 @@ def test_webcam_ready_reports_not_ready_for_stale_stream():
     assert payload["last_frame_age_seconds"] == 12.0
 
 
+def test_webcam_not_ready_surfaces_camera_startup_failure_metadata():
+    """Webcam /ready and /api/status should expose startup error context when camera init fails."""
+    from pi_camera_in_docker import main
+
+    app, state = _build_webcam_status_app(
+        main,
+        {
+            "frames_captured": 0,
+            "current_fps": 0.0,
+            "last_frame_age_seconds": None,
+        },
+    )
+    state["camera_startup_error"] = {
+        "code": "CAMERA_UNAVAILABLE",
+        "message": "No cameras detected. Check device mappings and camera hardware.",
+        "reason": "camera_unavailable",
+        "detection_path": "picamera2.global_camera_info",
+    }
+    client = app.test_client()
+
+    ready = client.get("/ready")
+    status = client.get("/api/status")
+
+    assert ready.status_code == 503
+    ready_payload = ready.get_json()
+    assert ready_payload["status"] == "not_ready"
+    assert ready_payload["reason"] == "camera_unavailable"
+    assert ready_payload["camera_error"]["code"] == "CAMERA_UNAVAILABLE"
+    assert ready_payload["camera_error"]["detection_path"] == "picamera2.global_camera_info"
+
+    assert status.status_code == 200
+    status_payload = status.get_json()
+    assert status_payload["status"] == "degraded"
+    assert status_payload["camera_error"]["message"].startswith("No cameras detected")
+
+
 def test_webcam_metrics_and_status_reflect_stream_activity():
     """Webcam /metrics and /api/status should map recording/freshness to semantic status fields."""
     from pi_camera_in_docker import main
