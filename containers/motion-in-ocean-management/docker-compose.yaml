@@ -114,12 +114,13 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:2375/version || exit 1"]
-      interval: 2m
+      test: ["CMD-SHELL", "python3 -c \"import socket; socket.create_connection(('localhost', 8000), timeout=3)\" 2>/dev/null || exit 1"]
+      interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 30s
 
 volumes:
   motion-in-ocean-data:
