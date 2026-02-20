@@ -15,6 +15,7 @@ from pathlib import Path  # Moved here
 from threading import Event, RLock, Thread
 from typing import Any, Dict, Optional, Tuple, cast
 from urllib.parse import urlsplit, urlunsplit
+from uuid import uuid4
 
 from flask import Flask, g, jsonify, render_template, request
 from flask_cors import CORS
@@ -487,10 +488,9 @@ def _register_middleware(app: Flask, config: Dict[str, Any]) -> None:
     # Add correlation ID middleware
     @app.before_request
     def _add_correlation_id() -> None:
-        g.correlation_id = (
-            request.headers.get("X-Correlation-ID", request.headers.get("x-correlation-id", ""))
-            or None
-        )
+        g.correlation_id = request.headers.get(
+            "X-Correlation-ID", request.headers.get("x-correlation-id", "")
+        ) or str(uuid4())
 
     # Ensure correlation ID is returned in response
     @app.after_request
@@ -1049,7 +1049,7 @@ def _register_request_logging(app: Flask) -> None:
         if request_started is not None:
             latency_ms = (time.monotonic() - request_started) * 1000
 
-        correlation_id = getattr(g, "correlation_id", None) or "none"
+        correlation_id = getattr(g, "correlation_id", "") or str(uuid4())
         level = logging.DEBUG if request.path in health_endpoints else logging.INFO
         logger.log(
             level,

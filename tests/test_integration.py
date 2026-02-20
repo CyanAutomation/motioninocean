@@ -201,3 +201,36 @@ def test_settings_changes_reports_no_override_for_defaults(monkeypatch, tmp_path
     # Optionally, also check that the total number of overridden settings is as expected (e.g., 0 if only these were set)
     # This might need adjustment if other settings are intentionally overridden by default in tests
     # For now, a specific check that these two are not present is sufficient.
+
+
+def test_request_logging_uses_non_empty_correlation_id(monkeypatch):
+    """Request logs should always include a non-empty correlation ID."""
+    from pi_camera_in_docker import main
+
+    logged_messages = []
+
+    def _capture(level, message, *args):
+        if args:
+            message = message % args
+        logged_messages.append((level, message))
+
+    monkeypatch.setattr(main.logger, "log", _capture)
+
+    app, _state = _build_webcam_status_app(
+        main,
+        {
+            "frames_captured": 1,
+            "current_fps": 1.0,
+            "last_frame_age_seconds": 0.1,
+        },
+    )
+    response = app.test_client().get("/api/status")
+
+    assert response.status_code == 200
+    request_logs = [
+        message
+        for _level, message in logged_messages
+        if message.startswith("request correlation_id=")
+    ]
+    assert request_logs
+    assert "correlation_id=none" not in request_logs[-1]
