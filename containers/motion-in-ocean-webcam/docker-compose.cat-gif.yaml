@@ -4,7 +4,7 @@
 #
 # Prerequisites:
 #   - MOCK_CAMERA must be enabled
-#   - Network access to https://cataas.com/cat.gif
+#   - Network access to https://cataas.com/cat/gif
 #   - Outbound HTTPS must be allowed from the container host/network
 #   - Container image must include a valid CA certificate bundle
 #     (Debian package: ca-certificates) for TLS verification
@@ -23,7 +23,7 @@
 #   4. Run: docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
 #
 # Features:
-#   - Streams real animated GIFs from https://cataas.com (free API!)
+#   - Streams real animated GIFs from https://cataas.com/cat/gif (free API!)
 #   - Each refresh fetches a new cat
 #   - Full animation loop playback
 #   - Graceful fallback to black frame if API is unavailable
@@ -49,7 +49,7 @@ services:
       # Enable mock camera with cat GIFs
       MOCK_CAMERA: "true"
       CAT_GIF: "true"
-      CATAAS_API_URL: "https://cataas.com/cat.gif"
+      CATAAS_API_URL: "https://cataas.com/cat/gif"
 
       # How long to cache each cat GIF before fetching a new one (seconds)
       # 60 = fetch new cat every minute

@@ -49,7 +49,7 @@ def full_config(tmp_app_settings_path):
         "api_test_mode_enabled": False,
         "api_test_cycle_interval_seconds": 1.0,
         "cat_gif_enabled": False,
-        "cataas_api_url": "https://cataas.com/cat.gif",
+        "cataas_api_url": "https://cataas.com/cat/gif",
         "cat_gif_cache_ttl_seconds": 300,
         "cat_gif_retry_base_seconds": 1.0,
         "cat_gif_retry_max_seconds": 30.0,

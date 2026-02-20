@@ -175,7 +175,7 @@ def _load_stream_config() -> Dict[str, Any]:
         api_test_cycle_interval_seconds = 5.0
 
     cat_gif_enabled = is_flag_enabled("CAT_GIF")
-    cataas_api_url = os.environ.get("CATAAS_API_URL", "https://cataas.com/cat.gif").strip()
+    cataas_api_url = os.environ.get("CATAAS_API_URL", "https://cataas.com/cat/gif").strip()
     try:
         cat_gif_cache_ttl_seconds = float(os.environ.get("CAT_GIF_CACHE_TTL_SECONDS", "60"))
     except ValueError:
