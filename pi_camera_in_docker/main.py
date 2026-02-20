@@ -1519,6 +1519,20 @@ def _init_real_camera(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(
         cfg["allow_pykms_mock"]
     )
+    def _set_startup_error(
+        *,
+        code: str,
+        message: str,
+        reason: str = "camera_unavailable",
+        context: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        state["camera_startup_error"] = {
+            "code": code,
+            "message": message,
+            "reason": reason,
+            "context": context or {},
+        }
+
     try:
         # Detect available cameras before initialization
         try:
@@ -1543,12 +1557,14 @@ def _init_real_camera(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
                     },
                 )
                 message = "No cameras detected. Check device mappings and camera hardware."
-                state["camera_startup_error"] = {
-                    "code": "CAMERA_UNAVAILABLE",
-                    "message": message,
-                    "reason": "camera_unavailable",
-                    "detection_path": detection_path,
-                }
+                _set_startup_error(
+                    code="CAMERA_UNAVAILABLE",
+                    message=message,
+                    context={
+                        "detection_path": detection_path,
+                        "camera_device_inventory": camera_inventory,
+                    },
+                )
                 raise RuntimeError(message)
             logger.info("Detected %s camera(s) available", len(camera_info))
         except IndexError as e:  # except IndexError marker for camera detection
@@ -1576,42 +1592,43 @@ def _init_real_camera(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
         state["camera_startup_error"] = None
     except PermissionError as e:  # except PermissionError marker
         _shutdown_camera(state)
-        state["camera_startup_error"] = {
-            "code": "CAMERA_PERMISSION_DENIED",
-            "message": "Permission denied while accessing camera device.",
-            "reason": "camera_unavailable",
-            "detection_path": None,
-        }
+        recording_started.clear()
+        _set_startup_error(
+            code="CAMERA_PERMISSION_DENIED",
+            message="Permission denied while accessing camera device.",
+            context={"exception_type": type(e).__name__},
+        )
         logger.error(
             "Permission denied accessing camera device. Check device mappings in "
             "docker-compose.yaml and run ./detect-devices.sh on the host for guidance.",
             exc_info=e,
         )
-        raise
+        return
     except RuntimeError as e:  # except RuntimeError marker
         _shutdown_camera(state)
+        recording_started.clear()
         if not state.get("camera_startup_error"):
-            state["camera_startup_error"] = {
-                "code": "CAMERA_STARTUP_FAILED",
-                "message": str(e),
-                "reason": "camera_unavailable",
-                "detection_path": None,
-            }
+            _set_startup_error(
+                code="CAMERA_STARTUP_FAILED",
+                message=str(e),
+                context={"exception_type": type(e).__name__},
+            )
         logger.error(
             "Camera initialization failed. This may indicate missing device mappings, "
             "insufficient permissions, or unavailable hardware. "
             "See ./detect-devices.sh and docker-compose.yaml for troubleshooting.",
             exc_info=e,
         )
-        raise
+        return
     except Exception as e:  # except Exception marker
         _shutdown_camera(state)
-        state["camera_startup_error"] = {
-            "code": "CAMERA_STARTUP_EXCEPTION",
-            "message": "Unexpected error during camera initialization.",
-            "reason": "camera_unavailable",
-            "detection_path": None,
-        }
+        recording_started.clear()
+        _set_startup_error(
+            code="CAMERA_STARTUP_EXCEPTION",
+            message="Unexpected error during camera initialization.",
+            reason="camera_exception",
+            context={"exception_type": type(e).__name__},
+        )
         logger.error(
             "Unexpected error during camera initialization. "
             "Check device availability and permissions.",
@@ -1646,7 +1663,12 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     try:
         _init_real_camera(state, cfg)
     except Exception:
-        if cfg.get("fail_on_camera_init_error", False):
+        startup_error = state.get("camera_startup_error")
+        is_unexpected_exception = (
+            isinstance(startup_error, dict)
+            and startup_error.get("reason") == "camera_exception"
+        )
+        if cfg.get("fail_on_camera_init_error", False) or is_unexpected_exception:
             raise
         logger.warning(
             "Camera initialization failed; continuing startup in degraded mode because "

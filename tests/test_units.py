@@ -315,7 +315,7 @@ def test_get_camera_info_falls_back_to_class_method(monkeypatch):
 
 
 def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypatch):
-    """No-camera RuntimeError path should log detailed detected device inventory."""
+    """No-camera startup should log inventory and keep webcam mode degraded without raising."""
     from threading import Event, RLock
 
     pytest.importorskip("flask")
@@ -345,6 +345,7 @@ def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypa
         "connection_tracker": ConnectionTracker(),
         "max_stream_connections": cfg["max_stream_connections"],
         "picam2_instance": None,
+        "camera_startup_error": None,
     }
 
     class FakePicamera2:
@@ -381,10 +382,13 @@ def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypa
     monkeypatch.setattr(main, "_get_camera_info", lambda _cls: ([], "test.path"))
     monkeypatch.setattr(main.logger, "error", fake_error)
 
-    with pytest.raises(
-        RuntimeError, match=r"No cameras detected\. Check device mappings and camera hardware\."
-    ):
-        main._run_webcam_mode(state, cfg)
+    main._run_webcam_mode(state, cfg)
+
+    assert state["recording_started"].is_set() is False
+    startup_error = state["camera_startup_error"]
+    assert startup_error is not None
+    assert startup_error["code"] == "CAMERA_UNAVAILABLE"
+    assert startup_error["reason"] == "camera_unavailable"
 
     assert error_calls
     assert error_calls[0][0] == "No cameras detected by picamera2 enumeration"
@@ -818,3 +822,43 @@ def test_run_webcam_mode_boots_degraded_on_camera_init_failure_when_not_strict(m
     assert state["recording_started"].is_set() is False
     assert warnings
     assert "continuing startup in degraded mode" in warnings[0][0]
+
+
+def test_run_webcam_mode_raises_unexpected_camera_exception_even_when_not_strict(monkeypatch):
+    """Unexpected camera init exceptions should propagate even when strict mode is disabled."""
+    from threading import Event, RLock
+
+    from modes.webcam import ConnectionTracker, FrameBuffer, StreamStats
+
+    from pi_camera_in_docker import main
+
+    cfg = {
+        "mock_camera": False,
+        "fail_on_camera_init_error": False,
+        "target_fps": 0,
+        "max_stream_connections": 10,
+    }
+
+    stream_stats = StreamStats()
+    output = FrameBuffer(stream_stats, target_fps=cfg["target_fps"])
+    state = {
+        "recording_started": Event(),
+        "shutdown_requested": Event(),
+        "camera_lock": RLock(),
+        "output": output,
+        "stream_stats": stream_stats,
+        "connection_tracker": ConnectionTracker(),
+        "max_stream_connections": cfg["max_stream_connections"],
+        "picam2_instance": None,
+        "camera_startup_error": {"reason": "camera_exception"},
+    }
+
+    monkeypatch.setattr(main, "_check_device_availability", lambda _cfg: None)
+
+    def raise_value_error(_state, _cfg):
+        raise ValueError("bad programming error")
+
+    monkeypatch.setattr(main, "_init_real_camera", raise_value_error)
+
+    with pytest.raises(ValueError, match="bad programming error"):
+        main._run_webcam_mode(state, cfg)
