@@ -11,6 +11,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.16.2] - 2026-02-20
+
+- [tests] Align Sentry init test with set_tag behavior (#337)
+- chore(deps): bump flask in the pip group across 1 directory (#335)
+- chore: automated code quality fixes [nightly] (#336)
+- [runtime-config] Clarify CORS origins grouping and add networking tests (#334)
+- [settings] Validate string pattern and URI formats (#333)
+- [discovery] Make announcer restart-safe after stop (#332)
+- [config] Align canonical camera FPS defaults across runtime/schema/api (#331)
+- [observability] Set app_mode tag via Sentry scope API (#330)
+- [tests] Update Sentry init assertions and app_mode tag coverage (#329)
+
 ## [1.16.1] - 2026-02-18
 
 - Refactor webcam route handling with builder and handler patterns
