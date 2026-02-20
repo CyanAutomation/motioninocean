@@ -11,6 +11,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.16.4] - 2026-02-20
+
+- Refactor healthcheck command to use Python socket connection for improved reliability
+- Update CATAAS_API_URL to use the correct endpoint for cat GIFs
+- Update comment formatting in .env.example
+
 ## [1.16.3] - 2026-02-20
 
 - Add favicon and apple touch icons for improved branding
