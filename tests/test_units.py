@@ -4,6 +4,7 @@ Tests without requiring camera hardware.
 """
 
 import sys
+import uuid
 from pathlib import Path
 
 import pytest
@@ -658,3 +659,30 @@ def test_register_middleware_applies_explicit_cors_origins_from_config():
     assert allowed.headers.get("Access-Control-Allow-Origin") == "https://one.example"
     assert blocked.status_code == 200
     assert "Access-Control-Allow-Origin" not in blocked.headers
+
+
+def test_register_middleware_preserves_inbound_correlation_id():
+    """Middleware should preserve inbound X-Correlation-ID values."""
+    from pi_camera_in_docker import main
+
+    app, _limiter, _state = main._create_base_app(_build_base_app_config())
+    correlation_id = "cid-from-client"
+
+    response = app.test_client().get("/api/config", headers={"X-Correlation-ID": correlation_id})
+
+    assert response.status_code == 200
+    assert response.headers.get("X-Correlation-ID") == correlation_id
+
+
+def test_register_middleware_generates_correlation_id_when_missing():
+    """Middleware should generate a UUID correlation ID when request header is absent."""
+    from pi_camera_in_docker import main
+
+    app, _limiter, _state = main._create_base_app(_build_base_app_config())
+
+    response = app.test_client().get("/api/config")
+    generated_correlation_id = response.headers.get("X-Correlation-ID")
+
+    assert response.status_code == 200
+    assert generated_correlation_id
+    assert uuid.UUID(generated_correlation_id)
