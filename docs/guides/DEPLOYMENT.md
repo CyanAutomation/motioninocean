@@ -737,6 +737,54 @@ curl http://192.168.1.101:8000/ready
 - Set `MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR=true` (or legacy alias `MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED=true`) if you want startup to fail fast on camera init errors.
 - See [pi-camera-troubleshooting skill](/.github/skills/pi-camera-troubleshooting/SKILL.md) for detailed camera diagnostics
 
+### Camera Enumerates as Zero Devices
+
+**Symptom**:
+
+```
+RuntimeError: No cameras detected. Check device mappings and camera hardware.
+```
+
+**Cause**:
+
+The container's libcamera stack does not match the Raspberry Pi OS Bookworm
+pipeline/IPA build on the host. This usually manifests as missing or incompatible
+IPA modules and pipeline handlers, resulting in libcamera returning zero cameras
+without a hard failure.
+
+**Diagnosis**:
+
+1. Validate libcamera binary and version:
+
+   ```bash
+   libcamera-hello --version
+   ```
+
+2. Verify Raspberry Pi pipeline/IPA directories exist:
+
+   ```bash
+   ls -la /usr/share/libcamera/pipeline/rpi/vc4
+   ls -la /usr/share/libcamera/ipa/rpi/vc4
+   ```
+
+3. Enable libcamera debug logs to confirm pipeline handler loading:
+
+   ```bash
+   LIBCAMERA_LOG_LEVELS=*:DEBUG libcamera-hello
+   ```
+
+**Solution**:
+
+- Ensure the container installs Raspberry Pi OS Bookworm libcamera packages
+  from the Raspberry Pi repository and does not mount host `/usr/lib` or
+  `/usr/share/libcamera` paths.
+- Rebuild with a clean cache and restart:
+
+  ```bash
+  docker compose build --no-cache
+  docker compose up -d
+  ```
+
 ### Docker Socket Proxy Permission Denied
 
 **Symptom**:
