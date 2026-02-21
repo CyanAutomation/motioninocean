@@ -1,17 +1,23 @@
 # ---- Build Arguments ----
+# DEBIAN_SUITE: Debian suite used for builder/final stages (locked to bookworm by default)
+# RPI_SUITE: Raspberry Pi apt suite used for camera packages (locked to bookworm by default)
 # INCLUDE_MOCK_CAMERA: Include Pillow for mock camera test frames (default: true)
 #   Set to false for production builds (excludes ffmpeg, scipy dependencies)
 #
 # Note: Motion In Ocean is locked to Debian Bookworm (stable distro rigidity for appliance containers).
 # No suite overrides are supported. For alternative distros, fork and modify the Dockerfile.
+ARG DEBIAN_SUITE=bookworm
+ARG RPI_SUITE=bookworm
 ARG INCLUDE_MOCK_CAMERA=true
 
 # ---- Builder Stage ----
 # Minimal Python packaging stage: installs build tools and creates isolated venv.
 # Camera packages are NOT needed here; they are installed only in the final stage.
-FROM debian:bookworm-slim AS builder
+FROM debian:${DEBIAN_SUITE}-slim AS builder
 
 # Re-declare build args for this stage
+ARG DEBIAN_SUITE
+ARG RPI_SUITE
 ARG INCLUDE_MOCK_CAMERA
 
 # ---- Layer 1: System Build Tools (Stable) ----
@@ -70,9 +76,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # The final image uses debian:bookworm-slim with system Python for apt-installed
 # python3-picamera2 and libcamera libraries alongside isolated pip dependencies in /opt/venv
 # Venv approach prevents conflicts between system and pip-managed package versions
-FROM debian:bookworm-slim
+FROM debian:${DEBIAN_SUITE}-slim
 
 # Re-declare build args for this stage
+ARG DEBIAN_SUITE
+ARG RPI_SUITE
 ARG INCLUDE_MOCK_CAMERA
 
 # Prevent Python bytecode generation and enable unbuffered output
@@ -186,8 +194,8 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # Enables camera stack provenance logging at startup (version info, build details, etc.)
 RUN mkdir -p /app && \
     ( \
-        echo "DEBIAN_SUITE=bookworm"; \
-        echo "RPI_SUITE=bookworm"; \
+        echo "DEBIAN_SUITE=${DEBIAN_SUITE}"; \
+        echo "RPI_SUITE=${RPI_SUITE}"; \
         echo "INCLUDE_MOCK_CAMERA=${INCLUDE_MOCK_CAMERA}"; \
         echo "BUILD_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"; \
     ) > /app/BUILD_METADATA && \

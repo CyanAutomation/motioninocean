@@ -8,7 +8,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import picamera2
+
+try:
+    import picamera2  # type: ignore[import-not-found]
+except (ModuleNotFoundError, ImportError):
+    picamera2 = None  # type: ignore[assignment]
 
 
 DEFAULT_LOG_LEVEL = "INFO"
@@ -162,10 +166,9 @@ def log_provenance_info() -> None:
     picamera2_version = "unknown"
     picamera2_path = "unknown"
     try:
-        # import picamera2
-
-        picamera2_path = picamera2.__file__
-        picamera2_version = getattr(picamera2, "__version__", "unknown")
+        if picamera2 is not None:
+            picamera2_path = picamera2.__file__
+            picamera2_version = getattr(picamera2, "__version__", "unknown")
     except Exception as e:
         logger.debug("Could not import picamera2: %s", e)
 
