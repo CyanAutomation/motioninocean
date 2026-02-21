@@ -46,6 +46,30 @@ docker build \
   -t motion-in-ocean:local .
 ```
 
+## Building for Raspberry Pi (ARM64)
+
+**Important:** Local `docker build` defaults to your host's CPU architecture:
+- On ARM64 hosts (Linux ARM, Raspberry Pi itself) → builds ARM64 ✅
+- On x86_64 hosts (Intel/AMD Mac, Linux x86) → builds x86, **won't work on Raspberry Pi** ❌
+
+Raspberry Pi-specific camera packages (libcamera, picamera2) are ARM-only. If building on non-ARM hardware for Raspberry Pi deployment, explicitly target ARM64:
+
+**Using Makefile (recommended):**
+```bash
+make docker-build-arm64       # Dev image with mock camera
+make docker-build-prod-arm64  # Production image
+```
+
+**Using docker buildx directly:**
+```bash
+docker buildx build --platform linux/arm64 \
+  --build-arg DEBIAN_SUITE=trixie \
+  --build-arg RPI_SUITE=bookworm \
+  -t motion-in-ocean:local .
+```
+
+**Note:** Multi-arch images (used in releases) are published with both `linux/arm64` and `linux/amd64` via CI automation; local builds default to your host architecture.
+
 ## Full Documentation
 
 - Documentation hub: [docs/README.md](docs/README.md)
