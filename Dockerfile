@@ -205,11 +205,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH=/opt/venv/bin:$PATH
 
-# Copy GPG key and apt source list from builder stage
-COPY --from=builder /usr/share/keyrings/raspberrypi.gpg /usr/share/keyrings/raspberrypi.gpg
-COPY --from=builder /etc/apt/sources.list.d/raspi.list /etc/apt/sources.list.d/raspi.list
-COPY --from=builder /etc/apt/preferences.d/rpi-camera.preferences /etc/apt/preferences.d/rpi-camera.preferences
-
 # ---- OCI Labels (Metadata - no cache impact) ----
 # Image metadata with build-time arguments for provenance tracking
 LABEL org.opencontainers.image.source="https://github.com/CyanAutomation/motioninocean"
@@ -221,7 +216,8 @@ LABEL org.opencontainers.image.build.rpi-suite="${RPI_SUITE}"
 LABEL org.opencontainers.image.build.include-mock-camera="${INCLUDE_MOCK_CAMERA}"
 
 # ---- Layer 1: System Dependencies (Stable) ----
-# Install base system packages. Mirrored from builder stage (required for both image construction and runtime)
+# Install base system packages from Debian repositories only.
+# Keep Raspberry Pi apt source/pinning out of this layer so apt-get update does not depend on archive.raspberrypi.org.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
@@ -233,7 +229,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 
 
-# ---- Layer 2: Raspberry Pi Camera Packages (Stable) ----
+# ---- Layer 2: Raspberry Pi Repository Setup + Camera Packages (Stable) ----
+# Copy Raspberry Pi keyring/repository/pinning from builder immediately before camera package installation.
+# This keeps Layer 1 independent of archive.raspberrypi.org while preserving consistent repository config.
+COPY --from=builder /usr/share/keyrings/raspberrypi.gpg /usr/share/keyrings/raspberrypi.gpg
+COPY --from=builder /etc/apt/sources.list.d/raspi.list /etc/apt/sources.list.d/raspi.list
+COPY --from=builder /etc/apt/preferences.d/rpi-camera.preferences /etc/apt/preferences.d/rpi-camera.preferences
+
 # Install Raspberry Pi camera runtime packages using the copied repository setup
 # Note: libcamera-dev excluded from final stage (header files not needed at runtime, saves ~30-50MB)
 #
