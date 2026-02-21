@@ -259,7 +259,7 @@ class TestDiscoveryEndToEnd:
 
         with tempfile.TemporaryDirectory() as registry_dir:
             registry_path = f"{registry_dir}/registry.json"
-            monkeypatch.setenv("NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+            monkeypatch.setenv("MOTION_IN_OCEAN_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
             # Do NOT set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS
 
             app = Flask(__name__)

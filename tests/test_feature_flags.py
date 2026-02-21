@@ -68,12 +68,12 @@ class TestFeatureFlagRegistry:
         """Test backward compatibility with legacy MOCK_CAMERA env var."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
-        with mock.patch.dict(os.environ, {"MOCK_CAMERA": "true"}, clear=True):
+        with mock.patch.dict(os.environ, {"MOTION_IN_OCEAN_MOCK_CAMERA": "true"}, clear=True):
             flags = FeatureFlags()
             flags.load()
             assert flags.is_enabled("MOCK_CAMERA") is True
 
-        with mock.patch.dict(os.environ, {"MOCK_CAMERA": "false"}, clear=True):
+        with mock.patch.dict(os.environ, {"MOTION_IN_OCEAN_MOCK_CAMERA": "false"}, clear=True):
             flags = FeatureFlags()
             flags.load()
             assert flags.is_enabled("MOCK_CAMERA") is False
@@ -236,8 +236,8 @@ class TestFeatureFlagsIntegration:
         """MOCK_CAMERA feature flag should be reflected in main runtime config."""
         import importlib
 
-        monkeypatch.setenv("MOCK_CAMERA", "true")
-        monkeypatch.setenv("APP_MODE", "webcam")
+        monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
+        monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "webcam")
 
         feature_flags_module = importlib.import_module("pi_camera_in_docker.feature_flags")
         main_module = importlib.import_module("pi_camera_in_docker.main")

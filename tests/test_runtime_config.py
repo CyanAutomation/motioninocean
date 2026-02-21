@@ -83,7 +83,7 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
 
 def test_load_env_config_supports_application_settings_path(monkeypatch):
     """APPLICATION_SETTINGS_PATH should be exposed in runtime configuration."""
-    monkeypatch.setenv("APPLICATION_SETTINGS_PATH", "/tmp/custom-settings.json")
+    monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", "/tmp/custom-settings.json")
 
     cfg = runtime_config.load_env_config()
 
@@ -127,10 +127,10 @@ def test_create_app_from_env_honors_application_settings_path(monkeypatch, tmp_p
     from pi_camera_in_docker import main
 
     settings_path = tmp_path / "custom" / "app-settings.json"
-    monkeypatch.setenv("APP_MODE", "management")
-    monkeypatch.setenv("MOCK_CAMERA", "true")
-    monkeypatch.setenv("WEBCAM_REGISTRY_PATH", str(tmp_path / "registry.json"))
-    monkeypatch.setenv("APPLICATION_SETTINGS_PATH", str(settings_path))
+    monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
+    monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", str(settings_path))
 
     app = main.create_app_from_env()
 

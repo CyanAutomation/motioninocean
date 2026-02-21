@@ -36,11 +36,11 @@ def test_load_config_discovery_overrides(monkeypatch, workspace_root):
     try:
         from pi_camera_in_docker import main
 
-        monkeypatch.setenv("DISCOVERY_ENABLED", "true")
-        monkeypatch.setenv("DISCOVERY_MANAGEMENT_URL", "http://192.168.1.100:8001")
-        monkeypatch.setenv("DISCOVERY_TOKEN", "top-secret")
-        monkeypatch.setenv("DISCOVERY_INTERVAL_SECONDS", "12")
-        monkeypatch.setenv("DISCOVERY_WEBCAM_ID", "node-override")
+        monkeypatch.setenv("MOTION_IN_OCEAN_DISCOVERY_ENABLED", "true")
+        monkeypatch.setenv("MOTION_IN_OCEAN_DISCOVERY_MANAGEMENT_URL", "http://192.168.1.100:8001")
+        monkeypatch.setenv("MOTION_IN_OCEAN_DISCOVERY_TOKEN", "top-secret")
+        monkeypatch.setenv("MOTION_IN_OCEAN_DISCOVERY_INTERVAL_SECONDS", "12")
+        monkeypatch.setenv("MOTION_IN_OCEAN_DISCOVERY_WEBCAM_ID", "node-override")
         monkeypatch.setenv("BASE_URL", "http://camera.local:8000")
 
         cfg = main._load_config()
