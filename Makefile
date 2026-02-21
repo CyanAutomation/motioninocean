@@ -1,7 +1,7 @@
 # Makefile for motion-in-ocean development tasks
 # Provides convenient shortcuts for common operations
 
-.PHONY: help install install-dev install-node test test-frontend lint format type-check security clean run-mock docker-build docker-build-prod docker-build-bookworm docker-build-bookworm-prod docker-build-arm64 docker-build-prod-arm64 docker-build-bookworm-arm64 docker-build-bookworm-prod-arm64 docker-build-both docker-run docker-stop docker-clean pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
+.PHONY: help install install-dev install-node test test-frontend lint format type-check security clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
 help:
@@ -45,17 +45,27 @@ help:
 	@echo "  make run-mock         Run Flask app with mock camera"
 	@echo "  make clean            Clean build artifacts and cache files"
 	@echo ""
-	@echo "Docker:"
-	@echo "  make docker-build              Build default image (with mock camera)"
-	@echo "  make docker-build-prod         Build production image (without mock camera)"
-	@echo "  make docker-build-arm64        Build ARM64 image (explicit for Raspberry Pi)"
-	@echo "  make docker-build-prod-arm64   Build ARM64 production image"
-	@echo "  make docker-build-bookworm     Build Bookworm image variant"
-	@echo "  make docker-build-bookworm-prod  Build Bookworm production variant"
-	@echo "  make docker-build-bookworm-arm64  Build ARM64 Bookworm image"
-	@echo "  make docker-build-bookworm-prod-arm64 Build ARM64 Bookworm production"
-	@echo "  make docker-run            Run Docker container"
-	@echo "  make docker-stop           Stop Docker container"
+	@echo "Docker Build (Debian Bookworm, appliance-model, locked to RPi CSI camera):"
+	@echo "  Single-Platform Builds (host architecture):"
+	@echo "    make docker-build              Build dev image (with mock camera)"
+	@echo "    make docker-build-prod         Build production image (without mock camera)"
+	@echo ""
+	@echo "  Cross-Platform Builds (explicit architecture):"
+	@echo "    make docker-build-arm64        Build ARM64 dev image (RPi deployment)"
+	@echo "    make docker-build-prod-arm64   Build ARM64 production image"
+	@echo "    make docker-build-amd64        Build AMD64 dev image (mock camera required)"
+	@echo "    make docker-build-prod-amd64   Build AMD64 production image (mock camera required)"
+	@echo ""
+	@echo "  Multi-Architecture Convenience (sequential arm64 + amd64):"
+	@echo "    make docker-build-all          Build both ARM64 and AMD64 dev images"
+	@echo "    make docker-build-prod-all     Build both ARM64 and AMD64 prod images"
+	@echo ""
+	@echo "  Options:"
+	@echo "    DOCKER_PUSH=1 REGISTRY=ghcr.io/myorg make docker-build-amd64  (auto-push to registry)"
+	@echo ""
+	@echo "Docker Runtime:"
+	@echo "  make docker-run                Run Docker container"
+	@echo "  make docker-stop               Stop Docker container"
 	@echo ""
 	@echo "CI/CD:"
 	@echo "  make ci               Run all CI checks (lint, type-check, test)"
@@ -281,37 +291,46 @@ docker-build-prod:
 		-t motion-in-ocean:dev-prod .
 
 # ARM64-explicit targets (use for Raspberry Pi deployment or when building on non-ARM hosts)
-# Note: arm64 can use real camera (INCLUDE_MOCK_CAMERA=false) or mock camera (true)
+# arm64 can use real camera (INCLUDE_MOCK_CAMERA=false) or mock camera (true) per Dockerfile design
 docker-build-arm64:
 	@echo "Building ARM64 Docker image (Debian bookworm, with mock camera)..."
 	docker buildx build --platform linux/arm64 \
 		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-true} \
 		-t motion-in-ocean:dev .
 
-# Note: amd64 REQUIRES INCLUDE_MOCK_CAMERA=true (no hardware camera on non-ARM64)
 docker-build-prod-arm64:
 	@echo "Building ARM64 production Docker image (Debian bookworm, without mock camera)..."
 	docker buildx build --platform linux/arm64 \
 		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-false} \
 		-t motion-in-ocean:dev-prod .
 
-# amd64-explicit targets (for Intel/AMD hosts; MUST have mock camera enabled)
+# AMD64-explicit targets (for Intel/AMD hosts)
+# CONSTRAINT: INCLUDE_MOCK_CAMERA=true is hardcoded (non-negotiable, enforced by Dockerfile Layer 6).
+# Rationale: No hardware camera support on amd64; mock camera fallback ensures functional image.
+# To enable auto-push to registry: DOCKER_PUSH=1 make docker-build-amd64
 docker-build-amd64:
 	@echo "Building AMD64 Docker image (Debian bookworm, with mock camera support)..."
-	@echo "Note: amd64 builds require INCLUDE_MOCK_CAMERA=true (no hardware camera support)"
+	@echo "Note: amd64 requires mock camera (Dockerfile Layer 6 guard prevents real camera on amd64)"
 	docker buildx build --platform linux/amd64 \
 		--build-arg INCLUDE_MOCK_CAMERA=true \
-		-t motion-in-ocean:dev .
+		-t motion-in-ocean:dev \
+		$${DOCKER_PUSH:+--push} .
 
 docker-build-prod-amd64:
 	@echo "Building AMD64 production Docker image (Debian bookworm, with mock camera support)..."
-	@echo "Note: amd64 production requires INCLUDE_MOCK_CAMERA=true (no hardware camera support)"
+	@echo "Note: amd64 production requires mock camera (Dockerfile Layer 6 guard prevents real camera on amd64)"
 	docker buildx build --platform linux/amd64 \
 		--build-arg INCLUDE_MOCK_CAMERA=true \
-		-t motion-in-ocean:dev-prod .
+		-t motion-in-ocean:dev-prod \
+		$${DOCKER_PUSH:+--push} .
 
-# Legacy target for backward compatibility
-docker-build-both: docker-build docker-build-prod
+# Multi-architecture convenience targets
+# Used for building both arm64 and amd64 sequentially
+docker-build-all: docker-build-arm64 docker-build-amd64
+	@echo "✓ Both ARM64 and AMD64 dev images built successfully"
+
+docker-build-prod-all: docker-build-prod-arm64 docker-build-prod-amd64
+	@echo "✓ Both ARM64 and AMD64 production images built successfully"
 
 docker-run:
 	@echo "Running Docker container..."

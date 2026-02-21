@@ -6,7 +6,7 @@
       "id": "bi8Au",
       "x": 0,
       "y": 0,
-      "name": "Management - Overview - Light Desktop",
+      "name": "Webcam - Stream - Light Desktop",
       "clip": true,
       "width": 1440,
       "height": 920,
@@ -691,7 +691,7 @@
                   "y": 18,
                   "name": "homeTitle",
                   "fill": "#1F2430",
-                  "content": "Dashboard",
+                  "content": "Stream",
                   "fontFamily": "Inter",
                   "fontSize": 26,
                   "fontWeight": "700"
@@ -714,7 +714,7 @@
                       "id": "nZx01",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Refresh Dashboard ↻",
+                      "content": "Refresh Stream \u21bb",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -786,7 +786,7 @@
                   "id": "q2etg",
                   "x": 0,
                   "y": 0,
-                  "name": "Hero Health Strip",
+                  "name": "Connection Status Strip",
                   "width": 1310,
                   "height": 128,
                   "fill": "#EEF1F5",
@@ -799,7 +799,7 @@
                       "x": 28,
                       "y": 24,
                       "fill": "#1E40AF",
-                      "content": "Webcam Devices",
+                      "content": "Stream",
                       "fontFamily": "Inter",
                       "fontSize": 28,
                       "fontWeight": "700"
@@ -810,7 +810,7 @@
                       "x": 28,
                       "y": 62,
                       "fill": "#1D4ED8",
-                      "content": "Live overview of your cameras",
+                      "content": "Camera Live Stream",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -833,7 +833,7 @@
                           "x": 22,
                           "y": 10,
                           "fill": "#1F2430",
-                          "content": "Total 12",
+                          "content": "Stream Statistics",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -858,7 +858,7 @@
                           "x": 18,
                           "y": 10,
                           "fill": "#1E40AF",
-                          "content": "Online 9",
+                          "content": "Stream Connected",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -883,7 +883,7 @@
                           "x": 28,
                           "y": 10,
                           "fill": "#E11D48",
-                          "content": "Offline 2",
+                          "content": "Stale stream",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -908,7 +908,7 @@
                           "x": 22,
                           "y": 10,
                           "fill": "#1E40AF",
-                          "content": "Streaming 10",
+                          "content": "Current FPS",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -922,7 +922,7 @@
                   "id": "2Ki6o",
                   "x": 0,
                   "y": 152,
-                  "name": "Timeline Board",
+                  "name": "Stream Surface",
                   "width": 900,
                   "height": 628,
                   "fill": "#FFFFFF",
@@ -935,7 +935,7 @@
                       "x": 24,
                       "y": 20,
                       "fill": "#1F2430",
-                      "content": "Recent Activity",
+                      "content": "Camera Live Stream",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -970,7 +970,7 @@
                           "x": 44,
                           "y": 22,
                           "fill": "#E11D48",
-                          "content": "07:12 webcam-lab-02 timeout · NETWORK_UNREACHABLE",
+                          "content": "Loading camera stream...",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -993,7 +993,7 @@
                           "x": 44,
                           "y": 76,
                           "fill": "#1E40AF",
-                          "content": "08:03 webcam-door-01 recovered",
+                          "content": "Stream Connected",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -1016,7 +1016,7 @@
                           "x": 44,
                           "y": 130,
                           "fill": "#F59E0B",
-                          "content": "08:45 webcam-garage-03 unauthorized",
+                          "content": "Use Refresh if stream appears stale",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -1030,7 +1030,7 @@
                   "id": "hakrb",
                   "x": 924,
                   "y": 152,
-                  "name": "Risk Rail",
+                  "name": "Stream Status Panel",
                   "width": 386,
                   "height": 628,
                   "fill": "#FFFFFF",
@@ -1043,7 +1043,7 @@
                       "x": 24,
                       "y": 20,
                       "fill": "#1F2430",
-                      "content": "Action Sidebar",
+                      "content": "Video Controls",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -1066,7 +1066,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#1F2430",
-                          "content": "Auth remediation needed on 5 nodes",
+                          "content": "Camera inactive",
                           "fontFamily": "Inter",
                           "fontSize": 14,
                           "fontWeight": "600"
@@ -1091,7 +1091,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#1F2430",
-                          "content": "2 new devices ready to review",
+                          "content": "Refresh \u00b7 Fullscreen",
                           "fontFamily": "Inter",
                           "fontSize": 14,
                           "fontWeight": "600"
@@ -1116,7 +1116,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#1F2430",
-                          "content": "1 device blocked by safety rules",
+                          "content": "Connecting...",
                           "fontFamily": "Inter",
                           "fontSize": 14,
                           "fontWeight": "600"
@@ -1136,7 +1136,7 @@
       "id": "Al22H",
       "x": 1580,
       "y": 0,
-      "name": "Management - Overview - Dark Desktop",
+      "name": "Webcam - Stream - Dark Desktop",
       "clip": true,
       "width": 1440,
       "height": 920,
@@ -1821,7 +1821,7 @@
                   "y": 18,
                   "name": "homeTitle",
                   "fill": "#E7ECF6",
-                  "content": "Dashboard",
+                  "content": "Stream",
                   "fontFamily": "Inter",
                   "fontSize": 26,
                   "fontWeight": "700"
@@ -1844,7 +1844,7 @@
                       "id": "cEThr",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Refresh Dashboard ↻",
+                      "content": "Refresh Stream \u21bb",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -1916,7 +1916,7 @@
                   "id": "V88wg",
                   "x": 0,
                   "y": 0,
-                  "name": "Hero Health Strip",
+                  "name": "Connection Status Strip",
                   "width": 1310,
                   "height": 128,
                   "fill": "#1E40AF",
@@ -1929,7 +1929,7 @@
                       "x": 28,
                       "y": 24,
                       "fill": "#EEF1F5",
-                      "content": "Webcam Devices",
+                      "content": "Stream",
                       "fontFamily": "Inter",
                       "fontSize": 28,
                       "fontWeight": "700"
@@ -1940,7 +1940,7 @@
                       "x": 28,
                       "y": 62,
                       "fill": "#2D67EB",
-                      "content": "Live overview of your cameras",
+                      "content": "Camera Live Stream",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -1963,7 +1963,7 @@
                           "x": 22,
                           "y": 10,
                           "fill": "#E7ECF6",
-                          "content": "Total 12",
+                          "content": "Stream Statistics",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -1988,7 +1988,7 @@
                           "x": 18,
                           "y": 10,
                           "fill": "#EEF1F5",
-                          "content": "Online 9",
+                          "content": "Stream Connected",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -2013,7 +2013,7 @@
                           "x": 28,
                           "y": 10,
                           "fill": "#EEF1F5",
-                          "content": "Offline 2",
+                          "content": "Stale stream",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -2038,7 +2038,7 @@
                           "x": 22,
                           "y": 10,
                           "fill": "#EEF1F5",
-                          "content": "Streaming 10",
+                          "content": "Current FPS",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -2052,7 +2052,7 @@
                   "id": "jl7Du",
                   "x": 0,
                   "y": 152,
-                  "name": "Timeline Board",
+                  "name": "Stream Surface",
                   "width": 900,
                   "height": 628,
                   "fill": "#111A2E",
@@ -2065,7 +2065,7 @@
                       "x": 24,
                       "y": 20,
                       "fill": "#E7ECF6",
-                      "content": "Recent Activity",
+                      "content": "Camera Live Stream",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -2100,7 +2100,7 @@
                           "x": 44,
                           "y": 22,
                           "fill": "#FF746F",
-                          "content": "07:12 webcam-lab-02 timeout · NETWORK_UNREACHABLE",
+                          "content": "Loading camera stream...",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -2123,7 +2123,7 @@
                           "x": 44,
                           "y": 76,
                           "fill": "#2D67EB",
-                          "content": "08:03 webcam-door-01 recovered",
+                          "content": "Stream Connected",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -2146,7 +2146,7 @@
                           "x": 44,
                           "y": 130,
                           "fill": "#F59E0B",
-                          "content": "08:45 webcam-garage-03 unauthorized",
+                          "content": "Use Refresh if stream appears stale",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -2160,7 +2160,7 @@
                   "id": "ogdyw",
                   "x": 924,
                   "y": 152,
-                  "name": "Risk Rail",
+                  "name": "Stream Status Panel",
                   "width": 386,
                   "height": 628,
                   "fill": "#111A2E",
@@ -2173,7 +2173,7 @@
                       "x": 24,
                       "y": 20,
                       "fill": "#E7ECF6",
-                      "content": "Action Sidebar",
+                      "content": "Video Controls",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -2196,7 +2196,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#E7ECF6",
-                          "content": "Auth remediation needed on 5 nodes",
+                          "content": "Camera inactive",
                           "fontFamily": "Inter",
                           "fontSize": 14,
                           "fontWeight": "600"
@@ -2221,7 +2221,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#E7ECF6",
-                          "content": "2 new devices ready to review",
+                          "content": "Refresh \u00b7 Fullscreen",
                           "fontFamily": "Inter",
                           "fontSize": 14,
                           "fontWeight": "600"
@@ -2246,7 +2246,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#E7ECF6",
-                          "content": "1 device blocked by safety rules",
+                          "content": "Connecting...",
                           "fontFamily": "Inter",
                           "fontSize": 14,
                           "fontWeight": "600"
@@ -2266,7 +2266,7 @@
       "id": "6JpI1",
       "x": 0,
       "y": 1040,
-      "name": "Management - Overview - Light Mobile",
+      "name": "Webcam - Stream - Light Mobile",
       "clip": true,
       "width": 390,
       "height": 1980,
@@ -2852,7 +2852,7 @@
                   "y": 0,
                   "name": "homeTitle",
                   "fill": "#1F2430",
-                  "content": "Dashboard",
+                  "content": "Stream",
                   "fontFamily": "Inter",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -2875,7 +2875,7 @@
                       "id": "gaGHX",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Refresh Home ↻",
+                      "content": "Refresh Stream \u21bb",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -2960,7 +2960,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#1E40AF",
-                      "content": "Webcam Devices",
+                      "content": "Stream",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -2972,7 +2972,7 @@
                       "y": 54,
                       "name": "ovLmAgg",
                       "fill": "#1D4ED8",
-                      "content": "Live overview of your cameras",
+                      "content": "Camera Live Stream",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -2997,7 +2997,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#1F2430",
-                      "content": "Recent Activity",
+                      "content": "Camera Live Stream",
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
@@ -3009,7 +3009,7 @@
                       "y": 54,
                       "name": "ovLmPending",
                       "fill": "#6B7280",
-                      "content": "2 new devices ready to review",
+                      "content": "Refresh \u00b7 Fullscreen",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -3021,7 +3021,7 @@
                   "id": "rscve",
                   "x": 0,
                   "y": 862,
-                  "name": "Risk Rail",
+                  "name": "Stream Status Panel",
                   "width": 342,
                   "height": 894,
                   "fill": "#FFFFFF",
@@ -3034,7 +3034,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#1F2430",
-                      "content": "Action Sidebar",
+                      "content": "Video Controls",
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
@@ -3046,7 +3046,7 @@
                       "y": 54,
                       "name": "ovLmSSRF",
                       "fill": "#6B7280",
-                      "content": "1 device blocked by safety rules",
+                      "content": "Connecting...",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -3064,7 +3064,7 @@
       "id": "xP1lh",
       "x": 510,
       "y": 1040,
-      "name": "Management - Overview - Dark Mobile",
+      "name": "Webcam - Stream - Dark Mobile",
       "clip": true,
       "width": 390,
       "height": 1980,
@@ -3650,7 +3650,7 @@
                   "y": 0,
                   "name": "homeTitle",
                   "fill": "#E7ECF6",
-                  "content": "Dashboard",
+                  "content": "Stream",
                   "fontFamily": "Inter",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -3673,7 +3673,7 @@
                       "id": "FQUrV",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Refresh Home ↻",
+                      "content": "Refresh Stream \u21bb",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -3758,7 +3758,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#EEF1F5",
-                      "content": "Webcam Devices",
+                      "content": "Stream",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -3770,7 +3770,7 @@
                       "y": 54,
                       "name": "ovDmAgg",
                       "fill": "#2D67EB",
-                      "content": "Live overview of your cameras",
+                      "content": "Camera Live Stream",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -3795,7 +3795,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#E7ECF6",
-                      "content": "Recent Activity",
+                      "content": "Camera Live Stream",
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
@@ -3807,7 +3807,7 @@
                       "y": 54,
                       "name": "ovDmPending",
                       "fill": "#B3BED3",
-                      "content": "2 new devices ready to review",
+                      "content": "Refresh \u00b7 Fullscreen",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -3819,7 +3819,7 @@
                   "id": "AtAN9",
                   "x": 0,
                   "y": 862,
-                  "name": "Risk Rail",
+                  "name": "Stream Status Panel",
                   "width": 342,
                   "height": 894,
                   "fill": "#111A2E",
@@ -3832,7 +3832,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#E7ECF6",
-                      "content": "Action Sidebar",
+                      "content": "Video Controls",
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
@@ -3844,7 +3844,7 @@
                       "y": 54,
                       "name": "ovDmSSRF",
                       "fill": "#B3BED3",
-                      "content": "1 device blocked by safety rules",
+                      "content": "Connecting...",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -3862,7 +3862,7 @@
       "id": "qOUtZ",
       "x": 3120,
       "y": 0,
-      "name": "Management - Devices - Light Desktop",
+      "name": "Webcam - Configuration - Light Desktop",
       "clip": true,
       "width": 1440,
       "height": 920,
@@ -4547,7 +4547,7 @@
                   "y": 18,
                   "name": "homeTitle",
                   "fill": "#1F2430",
-                  "content": "Webcams",
+                  "content": "Configuration",
                   "fontFamily": "Inter",
                   "fontSize": 26,
                   "fontWeight": "700"
@@ -4570,7 +4570,7 @@
                       "id": "3l8kd",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Refresh Devices ↻",
+                      "content": "Refresh Config \u21bb",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -4642,7 +4642,7 @@
                   "id": "w8xny",
                   "x": 0,
                   "y": 0,
-                  "name": "Registry Sidecar",
+                  "name": "Configuration Panel",
                   "width": 360,
                   "height": 780,
                   "fill": "#EEF1F5",
@@ -4655,7 +4655,7 @@
                       "x": 24,
                       "y": 22,
                       "fill": "#1E40AF",
-                      "content": "Device Setup",
+                      "content": "Camera Settings",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -4666,7 +4666,7 @@
                       "x": 24,
                       "y": 54,
                       "fill": "#1D4ED8",
-                      "content": "Add or update devices",
+                      "content": "Resolution, FPS, and JPEG tuning",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -4689,7 +4689,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#6B7280",
-                          "content": "Device Name",
+                          "content": "Resolution",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -4714,7 +4714,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#6B7280",
-                          "content": "Device Address",
+                          "content": "Frame Rate (FPS)",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -4739,7 +4739,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#6B7280",
-                          "content": "Connection",
+                          "content": "JPEG Quality",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -4763,7 +4763,7 @@
                           "type": "text",
                           "id": "73OGg",
                           "fill": "#FFFFFF",
-                          "content": "Save Device",
+                          "content": "Refresh",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -4777,7 +4777,7 @@
                   "id": "m3bMW",
                   "x": 376,
                   "y": 0,
-                  "name": "Operations Surface",
+                  "name": "Runtime Config Surface",
                   "width": 934,
                   "height": 540,
                   "fill": "#FFFFFF",
@@ -4790,7 +4790,7 @@
                       "x": 24,
                       "y": 22,
                       "fill": "#1F2430",
-                      "content": "Device List",
+                      "content": "Stream Control",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -4801,7 +4801,7 @@
                       "x": 24,
                       "y": 54,
                       "fill": "#6B7280",
-                      "content": "Your saved devices and quick actions",
+                      "content": "Configuration auto-updates every 5 seconds",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -4824,7 +4824,7 @@
                           "x": 14,
                           "y": 14,
                           "fill": "#6B7280",
-                          "content": "Device | Address | Status | Actions",
+                          "content": "Max Connections \u00b7 Current Connections \u00b7 Max Frame Age (Timeout) \u00b7 CORS Origins",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -4849,7 +4849,7 @@
                           "x": 14,
                           "y": 26,
                           "fill": "#1F2430",
-                          "content": "webcam-lab-01 · Online · Edit Check Remove",
+                          "content": "Max Connections \u00b7 Current Connections",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -4874,7 +4874,7 @@
                           "x": 14,
                           "y": 26,
                           "fill": "#1F2430",
-                          "content": "webcam-garage-03 · Needs login · Edit Check Remove",
+                          "content": "Max Frame Age (Timeout) \u00b7 CORS Origins",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -4888,7 +4888,7 @@
                   "id": "UqLhV",
                   "x": 376,
                   "y": 556,
-                  "name": "Diagnostic Dock",
+                  "name": "Health & Runtime Surface",
                   "width": 934,
                   "height": 224,
                   "fill": "#EEF1F5",
@@ -4901,7 +4901,7 @@
                       "x": 24,
                       "y": 20,
                       "fill": "#E11D48",
-                      "content": "Connection Check",
+                      "content": "Health Check",
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
@@ -4924,7 +4924,7 @@
                           "x": 14,
                           "y": 20,
                           "fill": "#1F2430",
-                          "content": "Setup OK · Address blocked by safety rule · Name lookup OK · Network offline",
+                          "content": "Overall Status \u00b7 Camera Pipeline \u00b7 Stream Freshness \u00b7 Connection Capacity \u00b7 Mock Mode",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -4944,7 +4944,7 @@
       "id": "t18Jl",
       "x": 4660,
       "y": 0,
-      "name": "Management - Discovered - Light Desktop",
+      "name": "Webcam - Set-Up - Light Desktop",
       "clip": true,
       "width": 1440,
       "height": 920,
@@ -5629,7 +5629,7 @@
                   "y": 18,
                   "name": "homeTitle",
                   "fill": "#1F2430",
-                  "content": "Found Devices",
+                  "content": "Set-Up",
                   "fontFamily": "Inter",
                   "fontSize": 26,
                   "fontWeight": "700"
@@ -5652,7 +5652,7 @@
                       "id": "wrtm9",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Scan Again ↻",
+                      "content": "Set-Up",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -5737,7 +5737,7 @@
                       "x": 24,
                       "y": 22,
                       "fill": "#1F2430",
-                      "content": "New Devices Waiting",
+                      "content": "Guided Setup",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -5760,7 +5760,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#F59E0B",
-                          "content": "webcam-yard-04 · found 5m ago · waiting",
+                          "content": "Environment \u00b7 Preset \u00b7 Review \u00b7 Generate",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -5785,7 +5785,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#1F2430",
-                          "content": "webcam-gate-02 · announced 16m ago · pending",
+                          "content": "Pi profile and mock camera options",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -5812,7 +5812,7 @@
                       "x": 24,
                       "y": 22,
                       "fill": "#1F2430",
-                      "content": "Quick Actions",
+                      "content": "Generate",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -5834,7 +5834,7 @@
                           "type": "text",
                           "id": "DWJBj",
                           "fill": "#FFFFFF",
-                          "content": "Add Device",
+                          "content": "Previous",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -5858,7 +5858,7 @@
                           "type": "text",
                           "id": "lMcAF",
                           "fill": "#FFFFFF",
-                          "content": "Ignore Device",
+                          "content": "Next",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -5882,7 +5882,7 @@
                           "type": "text",
                           "id": "ixunt",
                           "fill": "#FFFFFF",
-                          "content": "Maybe Later",
+                          "content": "Generate Files",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -5909,7 +5909,7 @@
                       "x": 24,
                       "y": 22,
                       "fill": "#0F172A",
-                      "content": "Connection Notes",
+                      "content": "Next Steps",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -5932,7 +5932,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#1F2430",
-                          "content": "Blocked by local safety rule",
+                          "content": "Choose values for your hardware profile",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -5957,7 +5957,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#1F2430",
-                          "content": "Can’t connect: login key does not match",
+                          "content": "docker-compose.yaml",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -5982,7 +5982,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#1F2430",
-                          "content": "Can’t connect: device is offline or unreachable",
+                          "content": ".env",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -6002,7 +6002,7 @@
       "id": "ggnsE",
       "x": 6200,
       "y": 0,
-      "name": "Management - Settings - Light Desktop",
+      "name": "Webcam - Runtime Settings - Light Desktop",
       "clip": true,
       "width": 1440,
       "height": 920,
@@ -6687,7 +6687,7 @@
                   "y": 18,
                   "name": "homeTitle",
                   "fill": "#1F2430",
-                  "content": "Preferences",
+                  "content": "Runtime Settings",
                   "fontFamily": "Inter",
                   "fontSize": 26,
                   "fontWeight": "700"
@@ -6710,7 +6710,7 @@
                       "id": "0Ghnu",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Save Changes ✓",
+                      "content": "Save Changes \u2713",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -6817,7 +6817,7 @@
                           "type": "text",
                           "id": "TcNj4",
                           "fill": "#FFFFFF",
-                          "content": "Authentication",
+                          "content": "Camera Configuration",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -6841,7 +6841,7 @@
                           "type": "text",
                           "id": "Q5lBW",
                           "fill": "#6B7280",
-                          "content": "Discovery",
+                          "content": "Logging Configuration",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -6865,7 +6865,7 @@
                           "type": "text",
                           "id": "J4HSG",
                           "fill": "#6B7280",
-                          "content": "Runtime Settings",
+                          "content": "Node Discovery",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -6892,7 +6892,7 @@
                       "x": 24,
                       "y": 20,
                       "fill": "#1F2430",
-                      "content": "Management API auth",
+                      "content": "Camera Configuration",
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
@@ -6915,7 +6915,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#6B7280",
-                          "content": "MANAGEMENT_AUTH_TOKEN",
+                          "content": "Resolution \u00b7 Frame Rate (FPS) \u00b7 JPEG Quality",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -6942,7 +6942,7 @@
                       "x": 24,
                       "y": 20,
                       "fill": "#1F2430",
-                      "content": "Discovery settings",
+                      "content": "Logging Configuration",
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
@@ -6965,7 +6965,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#6B7280",
-                          "content": "DISCOVERY_INTERVAL_SECONDS",
+                          "content": "Log Level \u00b7 Log Format",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -6992,7 +6992,7 @@
                       "x": 24,
                       "y": 20,
                       "fill": "#1F2430",
-                      "content": "Runtime governance",
+                      "content": "Node Discovery",
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
@@ -7040,7 +7040,7 @@
                           "x": 12,
                           "y": 12,
                           "fill": "#1F2430",
-                          "content": "Validation summary",
+                          "content": "Feature Flags",
                           "fontFamily": "Inter",
                           "fontSize": 14,
                           "fontWeight": "normal"
@@ -7065,7 +7065,7 @@
                           "x": 12,
                           "y": 12,
                           "fill": "#1F2430",
-                          "content": "Requires restart (422)",
+                          "content": "Some changes require a server restart to take effect.",
                           "fontFamily": "Inter",
                           "fontSize": 14,
                           "fontWeight": "normal"
@@ -7138,7 +7138,7 @@
                           "type": "text",
                           "id": "KCf9x",
                           "fill": "#1F2430",
-                          "content": "Reset",
+                          "content": "Reset to Defaults",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -7158,7 +7158,7 @@
       "id": "XDIGi",
       "x": 7740,
       "y": 0,
-      "name": "Management - Devices - Dark Desktop",
+      "name": "Webcam - Configuration - Dark Desktop",
       "clip": true,
       "width": 1440,
       "height": 920,
@@ -7843,7 +7843,7 @@
                   "y": 18,
                   "name": "homeTitle",
                   "fill": "#E7ECF6",
-                  "content": "Webcams",
+                  "content": "Configuration",
                   "fontFamily": "Inter",
                   "fontSize": 26,
                   "fontWeight": "700"
@@ -7866,7 +7866,7 @@
                       "id": "7o6Gh",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Refresh Devices ↻",
+                      "content": "Refresh Config \u21bb",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -7938,7 +7938,7 @@
                   "id": "9mPrc",
                   "x": 0,
                   "y": 0,
-                  "name": "Registry Sidecar",
+                  "name": "Configuration Panel",
                   "width": 360,
                   "height": 780,
                   "fill": "#1E40AF",
@@ -7951,7 +7951,7 @@
                       "x": 24,
                       "y": 22,
                       "fill": "#2D67EB",
-                      "content": "Device Setup",
+                      "content": "Camera Settings",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -7974,7 +7974,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#B3BED3",
-                          "content": "Device Name",
+                          "content": "Resolution",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -7999,7 +7999,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#B3BED3",
-                          "content": "Device Address",
+                          "content": "Frame Rate (FPS)",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -8024,7 +8024,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#B3BED3",
-                          "content": "Connection",
+                          "content": "JPEG Quality",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -8048,7 +8048,7 @@
                           "type": "text",
                           "id": "EVTjs",
                           "fill": "#FFFFFF",
-                          "content": "Save Device",
+                          "content": "Refresh",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -8062,7 +8062,7 @@
                       "y": 54,
                       "name": "dDeskRegSub",
                       "fill": "#2D67EB",
-                      "content": "Add or update devices",
+                      "content": "Resolution, FPS, and JPEG tuning",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -8074,7 +8074,7 @@
                   "id": "Z7HEx",
                   "x": 376,
                   "y": 0,
-                  "name": "Operations Surface",
+                  "name": "Runtime Config Surface",
                   "width": 934,
                   "height": 540,
                   "fill": "#111A2E",
@@ -8087,7 +8087,7 @@
                       "x": 24,
                       "y": 22,
                       "fill": "#E7ECF6",
-                      "content": "Device List",
+                      "content": "Stream Control",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -8110,7 +8110,7 @@
                           "x": 14,
                           "y": 14,
                           "fill": "#B3BED3",
-                          "content": "Device | Address | Status | Actions",
+                          "content": "Max Connections \u00b7 Current Connections \u00b7 Max Frame Age (Timeout) \u00b7 CORS Origins",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -8135,7 +8135,7 @@
                           "x": 14,
                           "y": 26,
                           "fill": "#E7ECF6",
-                          "content": "webcam-lab-01 · Online · Edit Check Remove",
+                          "content": "Max Connections \u00b7 Current Connections",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -8160,7 +8160,7 @@
                           "x": 14,
                           "y": 26,
                           "fill": "#E7ECF6",
-                          "content": "webcam-garage-03 · Needs login · Edit Check Remove",
+                          "content": "Max Frame Age (Timeout) \u00b7 CORS Origins",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -8174,7 +8174,7 @@
                       "y": 54,
                       "name": "dDeskOpsSub",
                       "fill": "#B3BED3",
-                      "content": "Your saved devices and quick actions",
+                      "content": "Configuration auto-updates every 5 seconds",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -8186,7 +8186,7 @@
                   "id": "jItHO",
                   "x": 376,
                   "y": 556,
-                  "name": "Diagnostic Dock",
+                  "name": "Health & Runtime Surface",
                   "width": 934,
                   "height": 224,
                   "fill": "#E11D48",
@@ -8199,7 +8199,7 @@
                       "x": 24,
                       "y": 20,
                       "fill": "#FF746F",
-                      "content": "Connection Check",
+                      "content": "Health Check",
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
@@ -8222,7 +8222,7 @@
                           "x": 14,
                           "y": 20,
                           "fill": "#9AA3B2",
-                          "content": "Setup OK · Address blocked by safety rule · Name lookup OK · Network offline",
+                          "content": "Overall Status \u00b7 Camera Pipeline \u00b7 Stream Freshness \u00b7 Connection Capacity \u00b7 Mock Mode",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -8242,7 +8242,7 @@
       "id": "4y5GB",
       "x": 9280,
       "y": 0,
-      "name": "Management - Discovered - Dark Desktop",
+      "name": "Webcam - Set-Up - Dark Desktop",
       "clip": true,
       "width": 1440,
       "height": 920,
@@ -8927,7 +8927,7 @@
                   "y": 18,
                   "name": "homeTitle",
                   "fill": "#E7ECF6",
-                  "content": "Found Devices",
+                  "content": "Set-Up",
                   "fontFamily": "Inter",
                   "fontSize": 26,
                   "fontWeight": "700"
@@ -8950,7 +8950,7 @@
                       "id": "P8oA8",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Scan Again ↻",
+                      "content": "Set-Up",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -9035,7 +9035,7 @@
                       "x": 24,
                       "y": 22,
                       "fill": "#E7ECF6",
-                      "content": "New Devices Waiting",
+                      "content": "Guided Setup",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -9058,7 +9058,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#EEF1F5",
-                          "content": "webcam-yard-04 · found 5m ago · waiting",
+                          "content": "Environment \u00b7 Preset \u00b7 Review \u00b7 Generate",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -9083,7 +9083,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#E7ECF6",
-                          "content": "webcam-gate-02 · announced 16m ago · pending",
+                          "content": "Pi profile and mock camera options",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -9110,7 +9110,7 @@
                       "x": 24,
                       "y": 22,
                       "fill": "#E7ECF6",
-                      "content": "Quick Actions",
+                      "content": "Generate",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -9132,7 +9132,7 @@
                           "type": "text",
                           "id": "O3KjT",
                           "fill": "#FFFFFF",
-                          "content": "Add Device",
+                          "content": "Previous",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -9156,7 +9156,7 @@
                           "type": "text",
                           "id": "NpkHW",
                           "fill": "#FFFFFF",
-                          "content": "Maybe Later",
+                          "content": "Generate Files",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -9180,7 +9180,7 @@
                           "type": "text",
                           "id": "KmmWR",
                           "fill": "#FFFFFF",
-                          "content": "Ignore Device",
+                          "content": "Next",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -9207,7 +9207,7 @@
                       "x": 24,
                       "y": 22,
                       "fill": "#E7ECF6",
-                      "content": "Connection Notes",
+                      "content": "Next Steps",
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
@@ -9230,7 +9230,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#E7ECF6",
-                          "content": "Blocked by local safety rule",
+                          "content": "Choose values for your hardware profile",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -9255,7 +9255,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#E7ECF6",
-                          "content": "Can’t connect: login key does not match",
+                          "content": "docker-compose.yaml",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -9280,7 +9280,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#E7ECF6",
-                          "content": "Can’t connect: device is offline or unreachable",
+                          "content": ".env",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -9300,7 +9300,7 @@
       "id": "FoxXg",
       "x": 10820,
       "y": 0,
-      "name": "Management - Settings - Dark Desktop",
+      "name": "Webcam - Runtime Settings - Dark Desktop",
       "clip": true,
       "width": 1440,
       "height": 920,
@@ -9985,7 +9985,7 @@
                   "y": 18,
                   "name": "homeTitle",
                   "fill": "#E7ECF6",
-                  "content": "Preferences",
+                  "content": "Runtime Settings",
                   "fontFamily": "Inter",
                   "fontSize": 26,
                   "fontWeight": "700"
@@ -10008,7 +10008,7 @@
                       "id": "JpxoW",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Save Changes ✓",
+                      "content": "Save Changes \u2713",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -10115,7 +10115,7 @@
                           "type": "text",
                           "id": "1xRnT",
                           "fill": "#FFFFFF",
-                          "content": "Authentication",
+                          "content": "Camera Configuration",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -10139,7 +10139,7 @@
                           "type": "text",
                           "id": "OT3Z2",
                           "fill": "#9AA3B2",
-                          "content": "Discovery",
+                          "content": "Logging Configuration",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -10163,7 +10163,7 @@
                           "type": "text",
                           "id": "Ql266",
                           "fill": "#9AA3B2",
-                          "content": "Runtime Settings",
+                          "content": "Node Discovery",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -10190,7 +10190,7 @@
                       "x": 24,
                       "y": 20,
                       "fill": "#E7ECF6",
-                      "content": "Management API auth",
+                      "content": "Camera Configuration",
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
@@ -10213,7 +10213,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#B3BED3",
-                          "content": "MANAGEMENT_AUTH_TOKEN",
+                          "content": "Resolution \u00b7 Frame Rate (FPS) \u00b7 JPEG Quality",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -10240,7 +10240,7 @@
                       "x": 24,
                       "y": 20,
                       "fill": "#E7ECF6",
-                      "content": "Discovery settings",
+                      "content": "Logging Configuration",
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
@@ -10263,7 +10263,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#B3BED3",
-                          "content": "DISCOVERY_INTERVAL_SECONDS",
+                          "content": "Log Level \u00b7 Log Format",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -10290,7 +10290,7 @@
                       "x": 24,
                       "y": 20,
                       "fill": "#E7ECF6",
-                      "content": "Runtime governance",
+                      "content": "Node Discovery",
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
@@ -10338,7 +10338,7 @@
                           "x": 12,
                           "y": 12,
                           "fill": "#E7ECF6",
-                          "content": "Requires restart (422)",
+                          "content": "Some changes require a server restart to take effect.",
                           "fontFamily": "Inter",
                           "fontSize": 14,
                           "fontWeight": "normal"
@@ -10363,7 +10363,7 @@
                           "x": 12,
                           "y": 12,
                           "fill": "#E7ECF6",
-                          "content": "Validation summary",
+                          "content": "Feature Flags",
                           "fontFamily": "Inter",
                           "fontSize": 14,
                           "fontWeight": "normal"
@@ -10412,7 +10412,7 @@
                           "type": "text",
                           "id": "SGLly",
                           "fill": "#1F2430",
-                          "content": "Reset",
+                          "content": "Reset to Defaults",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -10456,7 +10456,7 @@
       "id": "g0C9s",
       "x": 980,
       "y": 1040,
-      "name": "Management - Devices - Light Mobile",
+      "name": "Webcam - Configuration - Light Mobile",
       "clip": true,
       "width": 390,
       "height": 1980,
@@ -11042,7 +11042,7 @@
                   "y": 0,
                   "name": "homeTitle",
                   "fill": "#1F2430",
-                  "content": "Webcams",
+                  "content": "Configuration",
                   "fontFamily": "Inter",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -11065,7 +11065,7 @@
                       "id": "J7rPy",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Refresh List ↻",
+                      "content": "Refresh Config \u21bb",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -11137,7 +11137,7 @@
                   "id": "HUpSh",
                   "x": 0,
                   "y": 0,
-                  "name": "Registry Sidecar",
+                  "name": "Configuration Panel",
                   "width": 342,
                   "height": 430,
                   "fill": "#EEF1F5",
@@ -11150,7 +11150,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#1E40AF",
-                      "content": "Device Setup",
+                      "content": "Camera Settings",
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
@@ -11162,7 +11162,7 @@
                       "y": 54,
                       "name": "devLmRegSub",
                       "fill": "#1D4ED8",
-                      "content": "Add or update devices",
+                      "content": "Resolution, FPS, and JPEG tuning",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -11174,7 +11174,7 @@
                   "id": "E9b3H",
                   "x": 0,
                   "y": 446,
-                  "name": "Operations Surface",
+                  "name": "Runtime Config Surface",
                   "width": 342,
                   "height": 620,
                   "fill": "#FFFFFF",
@@ -11187,7 +11187,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#1F2430",
-                      "content": "Device List",
+                      "content": "Stream Control",
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
@@ -11199,7 +11199,7 @@
                       "y": 54,
                       "name": "devLmOpsSub",
                       "fill": "#6B7280",
-                      "content": "Your saved devices and quick actions",
+                      "content": "Configuration auto-updates every 5 seconds",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -11211,7 +11211,7 @@
                   "id": "F0HCb",
                   "x": 0,
                   "y": 1082,
-                  "name": "Diagnostic Dock",
+                  "name": "Health & Runtime Surface",
                   "width": 342,
                   "height": 650,
                   "fill": "#EEF1F5",
@@ -11224,7 +11224,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#E11D48",
-                      "content": "Connection Check",
+                      "content": "Health Check",
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
@@ -11236,7 +11236,7 @@
                       "y": 54,
                       "name": "devLmDiagSub",
                       "fill": "#E11D48",
-                      "content": "Setup OK · Address blocked by safety rule",
+                      "content": "Health: OK = normal \u00b7 Warn = attention \u00b7 Fail = action needed",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -11254,7 +11254,7 @@
       "id": "trmqY",
       "x": 1450,
       "y": 1040,
-      "name": "Management - Discovered - Light Mobile",
+      "name": "Webcam - Set-Up - Light Mobile",
       "clip": true,
       "width": 390,
       "height": 1980,
@@ -11840,7 +11840,7 @@
                   "y": 0,
                   "name": "homeTitle",
                   "fill": "#1F2430",
-                  "content": "Found Devices",
+                  "content": "Set-Up",
                   "fontFamily": "Inter",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -11863,7 +11863,7 @@
                       "id": "Tc1Ub",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Scan Again ↻",
+                      "content": "Set-Up",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -11948,7 +11948,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#1F2430",
-                      "content": "New Devices Waiting",
+                      "content": "Guided Setup",
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
@@ -11960,7 +11960,7 @@
                       "y": 54,
                       "name": "discLmQueueMeta",
                       "fill": "#6B7280",
-                      "content": "webcam-yard-04 · found 5m ago · waiting",
+                      "content": "Environment \u00b7 Preset \u00b7 Review \u00b7 Generate",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -11985,7 +11985,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#1F2430",
-                      "content": "Quick Actions",
+                      "content": "Generate",
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
@@ -11997,7 +11997,7 @@
                       "y": 54,
                       "name": "discLmDecisionMeta",
                       "fill": "#6B7280",
-                      "content": "Approve as registered · Reject discovery",
+                      "content": "Restart: docker compose restart motion-in-ocean",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -12022,7 +12022,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#0F172A",
-                      "content": "Connection Notes",
+                      "content": "Next Steps",
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
@@ -12034,7 +12034,7 @@
                       "y": 54,
                       "name": "discLmPolicyMeta",
                       "fill": "#9AA3B2",
-                      "content": "Blocked by local safety rule",
+                      "content": "Choose values for your hardware profile",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -12052,7 +12052,7 @@
       "id": "pCb6s",
       "x": 1920,
       "y": 1040,
-      "name": "Management - Settings - Light Mobile",
+      "name": "Webcam - Runtime Settings - Light Mobile",
       "clip": true,
       "width": 390,
       "height": 1980,
@@ -12638,7 +12638,7 @@
                   "y": 0,
                   "name": "homeTitle",
                   "fill": "#1F2430",
-                  "content": "Preferences",
+                  "content": "Runtime Settings",
                   "fontFamily": "Inter",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -12661,7 +12661,7 @@
                       "id": "gPlhE",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Save Changes ✓",
+                      "content": "Save Changes \u2713",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -12733,7 +12733,7 @@
                   "id": "ouaOM",
                   "x": 0,
                   "y": 0,
-                  "name": "Header Tabs",
+                  "name": "Settings Header",
                   "width": 342,
                   "height": 96,
                   "fill": "#FFFFFF",
@@ -12770,7 +12770,7 @@
                   "id": "UvWkQ",
                   "x": 0,
                   "y": 112,
-                  "name": "Panels",
+                  "name": "Settings Sections",
                   "width": 342,
                   "height": 1200,
                   "fill": "#FFFFFF",
@@ -12783,7 +12783,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#1F2430",
-                      "content": "Security, discovery, and runtime options",
+                      "content": "Edit these settings to customize your camera streaming experience.",
                       "fontFamily": "Inter",
                       "fontSize": 14,
                       "fontWeight": "normal"
@@ -12795,7 +12795,7 @@
                       "y": 46,
                       "name": "setLmPanelsMeta",
                       "fill": "#6B7280",
-                      "content": "Security · Discovery · Runtime",
+                      "content": "Camera \u00b7 Logging \u00b7 Node Discovery \u00b7 Feature Flags",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -12820,7 +12820,7 @@
                       "x": 20,
                       "y": 24,
                       "fill": "#E7ECF6",
-                      "content": "Check, Save, Reset",
+                      "content": "Summary of Changes",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "700"
@@ -12832,7 +12832,7 @@
                       "y": 54,
                       "name": "setLmFooterMeta",
                       "fill": "#B3BED3",
-                      "content": "Check before saving. Reset restores defaults.",
+                      "content": "Some changes require a server restart to take effect.",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -12850,7 +12850,7 @@
       "id": "AAvOe",
       "x": 2390,
       "y": 1040,
-      "name": "Management - Devices - Dark Mobile",
+      "name": "Webcam - Configuration - Dark Mobile",
       "clip": true,
       "width": 390,
       "height": 1980,
@@ -13436,7 +13436,7 @@
                   "y": 0,
                   "name": "homeTitle",
                   "fill": "#E7ECF6",
-                  "content": "Webcams",
+                  "content": "Configuration",
                   "fontFamily": "Inter",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -13459,7 +13459,7 @@
                       "id": "UBTih",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Refresh List ↻",
+                      "content": "Refresh Config \u21bb",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -13531,7 +13531,7 @@
                   "id": "0gOzg",
                   "x": 0,
                   "y": 0,
-                  "name": "Registry Sidecar",
+                  "name": "Configuration Panel",
                   "width": 342,
                   "height": 430,
                   "fill": "#1E40AF",
@@ -13544,7 +13544,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#2D67EB",
-                      "content": "Device Setup",
+                      "content": "Camera Settings",
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
@@ -13556,7 +13556,7 @@
                       "y": 54,
                       "name": "devDmRegSub",
                       "fill": "#2D67EB",
-                      "content": "Add or update devices",
+                      "content": "Resolution, FPS, and JPEG tuning",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -13568,7 +13568,7 @@
                   "id": "dIrU1",
                   "x": 0,
                   "y": 446,
-                  "name": "Operations Surface",
+                  "name": "Runtime Config Surface",
                   "width": 342,
                   "height": 620,
                   "fill": "#111A2E",
@@ -13581,7 +13581,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#E7ECF6",
-                      "content": "Device List",
+                      "content": "Stream Control",
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
@@ -13593,7 +13593,7 @@
                       "y": 54,
                       "name": "devDmOpsSub",
                       "fill": "#B3BED3",
-                      "content": "Your saved devices and quick actions",
+                      "content": "Configuration auto-updates every 5 seconds",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -13605,7 +13605,7 @@
                   "id": "zh8Pl",
                   "x": 0,
                   "y": 1082,
-                  "name": "Diagnostic Dock",
+                  "name": "Health & Runtime Surface",
                   "width": 342,
                   "height": 650,
                   "fill": "#E11D48",
@@ -13618,7 +13618,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#FF746F",
-                      "content": "Connection Check",
+                      "content": "Health Check",
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
@@ -13630,7 +13630,7 @@
                       "y": 54,
                       "name": "devDmDiagSub",
                       "fill": "#FF746F",
-                      "content": "Setup OK · Address blocked by safety rule",
+                      "content": "Health: OK = normal \u00b7 Warn = attention \u00b7 Fail = action needed",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -13648,7 +13648,7 @@
       "id": "WaPlf",
       "x": 2860,
       "y": 1040,
-      "name": "Management - Discovered - Dark Mobile",
+      "name": "Webcam - Set-Up - Dark Mobile",
       "clip": true,
       "width": 390,
       "height": 1980,
@@ -14234,7 +14234,7 @@
                   "y": 0,
                   "name": "homeTitle",
                   "fill": "#E7ECF6",
-                  "content": "Found Devices",
+                  "content": "Set-Up",
                   "fontFamily": "Inter",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -14257,7 +14257,7 @@
                       "id": "aHYMu",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Scan Again ↻",
+                      "content": "Set-Up",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -14342,7 +14342,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#E7ECF6",
-                      "content": "New Devices Waiting",
+                      "content": "Guided Setup",
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
@@ -14354,7 +14354,7 @@
                       "y": 54,
                       "name": "discDmQueueMeta",
                       "fill": "#B3BED3",
-                      "content": "webcam-yard-04 · found 5m ago · waiting",
+                      "content": "Environment \u00b7 Preset \u00b7 Review \u00b7 Generate",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -14379,7 +14379,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#E7ECF6",
-                      "content": "Quick Actions",
+                      "content": "Generate",
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
@@ -14391,7 +14391,7 @@
                       "y": 54,
                       "name": "discDmDecisionMeta",
                       "fill": "#B3BED3",
-                      "content": "Approve as registered · Reject discovery",
+                      "content": "Restart: docker compose restart motion-in-ocean",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -14416,7 +14416,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#E7ECF6",
-                      "content": "Connection Notes",
+                      "content": "Next Steps",
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
@@ -14428,7 +14428,7 @@
                       "y": 54,
                       "name": "discDmPolicyMeta",
                       "fill": "#B3BED3",
-                      "content": "Blocked by local safety rule",
+                      "content": "Choose values for your hardware profile",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -14446,7 +14446,7 @@
       "id": "cgays",
       "x": 3330,
       "y": 1040,
-      "name": "Management - Settings - Dark Mobile",
+      "name": "Webcam - Runtime Settings - Dark Mobile",
       "clip": true,
       "width": 390,
       "height": 1980,
@@ -15032,7 +15032,7 @@
                   "y": 0,
                   "name": "homeTitle",
                   "fill": "#E7ECF6",
-                  "content": "Preferences",
+                  "content": "Runtime Settings",
                   "fontFamily": "Inter",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -15055,7 +15055,7 @@
                       "id": "0DAyb",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Save Changes ✓",
+                      "content": "Save Changes \u2713",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -15127,7 +15127,7 @@
                   "id": "KuMNm",
                   "x": 0,
                   "y": 0,
-                  "name": "Header Tabs",
+                  "name": "Settings Header",
                   "width": 342,
                   "height": 96,
                   "fill": "#111A2E",
@@ -15164,7 +15164,7 @@
                   "id": "G86Pm",
                   "x": 0,
                   "y": 112,
-                  "name": "Panels",
+                  "name": "Settings Sections",
                   "width": 342,
                   "height": 1200,
                   "fill": "#111A2E",
@@ -15177,7 +15177,7 @@
                       "x": 20,
                       "y": 20,
                       "fill": "#9AA3B2",
-                      "content": "Security, discovery, and runtime options",
+                      "content": "Edit these settings to customize your camera streaming experience.",
                       "fontFamily": "Inter",
                       "fontSize": 14,
                       "fontWeight": "normal"
@@ -15189,7 +15189,7 @@
                       "y": 46,
                       "name": "setDmPanelsMeta",
                       "fill": "#B3BED3",
-                      "content": "Security · Discovery · Runtime",
+                      "content": "Camera \u00b7 Logging \u00b7 Node Discovery \u00b7 Feature Flags",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -15214,7 +15214,7 @@
                       "x": 20,
                       "y": 24,
                       "fill": "#E7ECF6",
-                      "content": "Check, Save, Reset",
+                      "content": "Summary of Changes",
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "700"
@@ -15226,7 +15226,7 @@
                       "y": 54,
                       "name": "setDmFooterMeta",
                       "fill": "#B3BED3",
-                      "content": "Check before saving. Reset restores defaults.",
+                      "content": "Some changes require a server restart to take effect.",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
