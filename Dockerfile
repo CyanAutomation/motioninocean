@@ -82,6 +82,7 @@ FROM debian:${DEBIAN_SUITE}-slim
 ARG DEBIAN_SUITE
 ARG RPI_SUITE
 ARG INCLUDE_MOCK_CAMERA
+ARG TARGETARCH
 
 # Prevent Python bytecode generation and enable unbuffered output
 # Savings: ~5-10% image size; improves container startup performance
@@ -186,8 +187,10 @@ COPY pi_camera_in_docker/ /app/pi_camera_in_docker/
 COPY VERSION /app/
 COPY scripts/healthcheck.py /app/healthcheck.py
 COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY scripts/validate-stack.py /usr/local/bin/validate-stack.py
 RUN chmod +x /app/healthcheck.py
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/validate-stack.py
 
 # ---- Layer 5: Build Metadata & Provenance ----
 # Write build metadata to /app/BUILD_METADATA for runtime access by logging system
@@ -201,33 +204,30 @@ RUN mkdir -p /app && \
     ) > /app/BUILD_METADATA && \
     cat /app/BUILD_METADATA
 
-# ---- Layer 6: Validate Python Modules & Camera Contract ----
-# Validate required Python modules and picamera2 camera-info contract in the final image
-# Known-good baseline: Raspberry Pi Bookworm repo package for python3-picamera2 (archive.raspberrypi.org/debian)
-RUN python3 - <<'PY'
-import numpy
-import flask
-import flask_cors
-import picamera2
+# ---- Layer 6: Enforce INCLUDE_MOCK_CAMERA for non-ARM64 Builds ----
+# Architecture-aware enforcement:
+# - amd64 (mock camera only): MUST have INCLUDE_MOCK_CAMERA=true to prevent runtime failures
+# - arm64 (Raspberry Pi): Can use real camera (INCLUDE_MOCK_CAMERA=false) or mock (true)
+RUN if [ "$TARGETARCH" != "arm64" ] && [ "$INCLUDE_MOCK_CAMERA" != "true" ]; then \
+    echo "ERROR: amd64 builds require INCLUDE_MOCK_CAMERA=true (no hardware camera support on non-ARM64)"; \
+    exit 1; \
+    fi
 
-module_fn = getattr(picamera2, "global_camera_info", None)
-picamera2_class = getattr(picamera2, "Picamera2", None)
-class_fn = getattr(picamera2_class, "global_camera_info", None) if picamera2_class is not None else None
+# ---- Layer 7: Validate Python Modules & Camera Contract (Architecture-Aware) ----
+# Conditional validation based on architecture:
+# - arm64: Validates full camera stack (numpy, flask, flask_cors, picamera2, libcamera)
+# - amd64: Validates Python stack only (numpy, flask, flask_cors; no picamera2 or libcamera)
+# This ensures explicit behavior: arm64 fails if camera unavailable, amd64 fails if core Python unavailable
+RUN /usr/local/bin/validate-stack.py
 
-if callable(module_fn):
-    print("All required modules imported successfully; camera-info API via picamera2.global_camera_info")
-elif callable(class_fn):
-    print("All required modules imported successfully; camera-info API via Picamera2.global_camera_info")
-else:
-    raise SystemExit(
-        "Incompatible python3-picamera2 package revision: expected picamera2.global_camera_info or picamera2.Picamera2.global_camera_info"
-    )
-PY
-
-# Validate libcamera install and Raspberry Pi pipeline/IPA locations
-RUN libcamera-hello --version
-RUN test -d /usr/share/libcamera/pipeline/rpi/vc4
-RUN test -d /usr/share/libcamera/ipa/rpi/vc4
+# Validate libcamera install and Raspberry Pi pipeline/IPA locations (arm64 only)
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+    libcamera-hello --version && \
+    test -d /usr/share/libcamera/pipeline/rpi/vc4 && \
+    test -d /usr/share/libcamera/ipa/rpi/vc4; \
+    else \
+    echo "Skipping libcamera validation on amd64 (mock camera build)"; \
+    fi
 
 # Explicitly set STOPSIGNAL to SIGTERM for graceful shutdown handling
 STOPSIGNAL SIGTERM

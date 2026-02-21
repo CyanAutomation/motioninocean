@@ -281,16 +281,33 @@ docker-build-prod:
 		-t motion-in-ocean:dev-prod .
 
 # ARM64-explicit targets (use for Raspberry Pi deployment or when building on non-ARM hosts)
+# Note: arm64 can use real camera (INCLUDE_MOCK_CAMERA=false) or mock camera (true)
 docker-build-arm64:
 	@echo "Building ARM64 Docker image (Debian bookworm, with mock camera)..."
 	docker buildx build --platform linux/arm64 \
 		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-true} \
 		-t motion-in-ocean:dev .
 
+# Note: amd64 REQUIRES INCLUDE_MOCK_CAMERA=true (no hardware camera on non-ARM64)
 docker-build-prod-arm64:
 	@echo "Building ARM64 production Docker image (Debian bookworm, without mock camera)..."
 	docker buildx build --platform linux/arm64 \
 		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-false} \
+		-t motion-in-ocean:dev-prod .
+
+# amd64-explicit targets (for Intel/AMD hosts; MUST have mock camera enabled)
+docker-build-amd64:
+	@echo "Building AMD64 Docker image (Debian bookworm, with mock camera support)..."
+	@echo "Note: amd64 builds require INCLUDE_MOCK_CAMERA=true (no hardware camera support)"
+	docker buildx build --platform linux/amd64 \
+		--build-arg INCLUDE_MOCK_CAMERA=true \
+		-t motion-in-ocean:dev .
+
+docker-build-prod-amd64:
+	@echo "Building AMD64 production Docker image (Debian bookworm, with mock camera support)..."
+	@echo "Note: amd64 production requires INCLUDE_MOCK_CAMERA=true (no hardware camera support)"
+	docker buildx build --platform linux/amd64 \
+		--build-arg INCLUDE_MOCK_CAMERA=true \
 		-t motion-in-ocean:dev-prod .
 
 # Legacy target for backward compatibility
