@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.17.5] - 2026-02-21
+
+- [test] Update Dockerfile tests to reflect Debian Bookworm as primary suite
+- [docker] Update Docker build configuration to use Debian Bookworm as primary suite
+
 ## [1.17.4] - 2026-02-21
 
 - [docker] Fix active suite provenance metadata after fallback (#352)
