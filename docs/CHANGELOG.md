@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.17.6] - 2026-02-21
+
+- Enhance management UI with new navigation buttons and utility panel; update token handling description
+
 ## [1.17.5] - 2026-02-21
 
 - [test] Update Dockerfile tests to reflect Debian Bookworm as primary suite
