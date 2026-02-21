@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.16.7] - 2026-02-21
+
+- Refactor code structure for improved readability and maintainability
+
 ## [1.16.6] - 2026-02-21
 
 - docs: add troubleshooting section for camera detection issues in deployment guide
