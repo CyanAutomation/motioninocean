@@ -11,6 +11,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-02-21
+
+- Implement feature X to enhance user experience and fix bug Y in module Z
+- refactor: Update feature flag prefix from MOTION_IN_OCEAN to MIO for consistency
+- Refactor environment variable prefixes from MOTION_IN_OCEAN to MIO
+- Refactor environment variable names from MOTION_IN_OCEAN to MIO
+
 ## [1.16.9] - 2026-02-21
 
 - Refactor test_env_example_contains_required_runtime_variables to remove unnecessary variables
