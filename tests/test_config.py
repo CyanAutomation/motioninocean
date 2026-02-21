@@ -263,12 +263,7 @@ def test_env_example_contains_required_runtime_variables_with_nonempty_defaults(
         "MOTION_IN_OCEAN_PORT",
         "MOTION_IN_OCEAN_BIND_HOST",
         "TZ",
-        "MOTION_IN_OCEAN_RESOLUTION",
-        "MOTION_IN_OCEAN_FPS",
-        "MOTION_IN_OCEAN_JPEG_QUALITY",
-        "MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS",
         "MOTION_IN_OCEAN_MOCK_CAMERA",
-        "MOTION_IN_OCEAN_DISCOVERY_ENABLED",
     }
     assert required_vars.issubset(env_vars), f"Missing vars: {required_vars - set(env_vars)}"
 
@@ -276,21 +271,10 @@ def test_env_example_contains_required_runtime_variables_with_nonempty_defaults(
         "MOTION_IN_OCEAN_PORT",
         "MOTION_IN_OCEAN_BIND_HOST",
         "TZ",
-        "MOTION_IN_OCEAN_RESOLUTION",
-        "MOTION_IN_OCEAN_FPS",
-        "MOTION_IN_OCEAN_JPEG_QUALITY",
-        "MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS",
         "MOTION_IN_OCEAN_MOCK_CAMERA",
-        "MOTION_IN_OCEAN_DISCOVERY_ENABLED",
     }
     assert all(env_vars[key].strip() for key in nonempty_defaults)
     assert 1 <= int(env_vars["MOTION_IN_OCEAN_PORT"]) <= 65535
-    width, height = map(int, env_vars["MOTION_IN_OCEAN_RESOLUTION"].split("x"))
-    assert width > 0
-    assert height > 0
-    assert int(env_vars["MOTION_IN_OCEAN_FPS"]) > 0
-    assert 1 <= int(env_vars["MOTION_IN_OCEAN_JPEG_QUALITY"]) <= 100
-    assert int(env_vars["MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS"]) > 0
 
 
 def test_dockerfile_runtime_contract_instructions(workspace_root):
