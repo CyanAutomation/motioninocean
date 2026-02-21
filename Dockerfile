@@ -105,7 +105,7 @@ Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
       echo "[ERROR][signature-policy] apt-get update failed for suite ${ACTIVE_RPI_SUITE}. Repository metadata/signature policy verification may have failed."; \
       if [ "${ALLOW_BOOKWORM_FALLBACK}" = "true" ] && [ "${ACTIVE_RPI_SUITE}" != "bookworm" ]; then \
         echo "[Layer 2] ALLOW_BOOKWORM_FALLBACK=true: switching Raspberry Pi repository to suite bookworm and retrying apt-get update"; \
-        ACTIVE_RPI_SUITE="bookworm"; \
+        export ACTIVE_RPI_SUITE="bookworm"; \
         echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ ${ACTIVE_RPI_SUITE} main" > /etc/apt/sources.list.d/raspi.list; \
         if apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60; then \
           echo "[Layer 2] apt-get update succeeded for fallback suite ${ACTIVE_RPI_SUITE}"; \
