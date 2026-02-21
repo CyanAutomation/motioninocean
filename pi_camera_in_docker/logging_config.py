@@ -173,7 +173,7 @@ def log_provenance_info() -> None:
         logger.debug("Could not import picamera2: %s", e)
 
     # Get dpkg info for camera packages
-    dpkg_info: Dict[str, str] = {}
+    dpkg_info: Dict[str, Dict[str, str]] = {}
     try:
         result = subprocess.run(
             [

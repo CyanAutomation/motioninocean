@@ -413,7 +413,7 @@ def _resolve_and_vet_addresses(hostname_str: str, port: Optional[int]) -> Tuple[
         if _is_blocked_address(hostname_str):
             message = "webcam target is not allowed"
             raise NodeRequestError(message)
-        resolved_addresses = (hostname_str,)
+        resolved_addresses: Tuple[str, ...] = (hostname_str,)
     except ValueError:
         try:
             records = socket.getaddrinfo(hostname_str, port or None, proto=socket.IPPROTO_TCP)
@@ -427,7 +427,7 @@ def _resolve_and_vet_addresses(hostname_str: str, port: Optional[int]) -> Tuple[
             ) from exc
         resolved_addresses = tuple(cast("str", record[4][0]) for record in records)
 
-    vetted_addresses: Tuple[str, ...] = _vet_resolved_addresses(tuple(resolved_addresses))  # type: ignore
+    vetted_addresses: Tuple[str, ...] = _vet_resolved_addresses(tuple(resolved_addresses))
     if not vetted_addresses:
         message = "name resolution returned no addresses"
         raise ConnectionError(message)
