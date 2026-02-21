@@ -57,36 +57,36 @@ def _load_camera_config() -> Dict[str, Any]:
         max_frame_age_seconds, max_stream_connections.
     """
     try:
-        resolution = parse_resolution(os.environ.get("MOTION_IN_OCEAN_RESOLUTION", "640x480"))
+        resolution = parse_resolution(os.environ.get("MIO_RESOLUTION", "640x480"))
     except ValueError:
         resolution = (640, 480)
 
     try:
-        fps = int(os.environ.get("MOTION_IN_OCEAN_FPS", "24"))
+        fps = int(os.environ.get("MIO_FPS", "24"))
     except ValueError:
         fps = 24
 
     try:
-        target_fps = int(os.environ.get("MOTION_IN_OCEAN_TARGET_FPS", str(fps)))
+        target_fps = int(os.environ.get("MIO_TARGET_FPS", str(fps)))
     except ValueError:
         target_fps = fps
 
     try:
-        jpeg_quality = int(os.environ.get("MOTION_IN_OCEAN_JPEG_QUALITY", "90"))
+        jpeg_quality = int(os.environ.get("MIO_JPEG_QUALITY", "90"))
         if not 1 <= jpeg_quality <= 100:
             jpeg_quality = 90
     except ValueError:
         jpeg_quality = 90
 
     try:
-        max_frame_age = float(os.environ.get("MOTION_IN_OCEAN_MAX_FRAME_AGE_SECONDS", "10"))
+        max_frame_age = float(os.environ.get("MIO_MAX_FRAME_AGE_SECONDS", "10"))
     except ValueError:
         max_frame_age = 10.0
     if max_frame_age <= 0:
         max_frame_age = 10.0
 
     try:
-        max_stream_connections = int(os.environ.get("MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS", "10"))
+        max_stream_connections = int(os.environ.get("MIO_MAX_STREAM_CONNECTIONS", "10"))
     except ValueError:
         max_stream_connections = 10
     if not 1 <= max_stream_connections <= 100:
@@ -124,11 +124,11 @@ def _apply_pi3_profile_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
     if not config.get("pi3_profile_enabled", False):
         return config
 
-    has_resolution = "MOTION_IN_OCEAN_RESOLUTION" in os.environ
-    has_fps = "MOTION_IN_OCEAN_FPS" in os.environ
-    has_target_fps = "MOTION_IN_OCEAN_TARGET_FPS" in os.environ
-    has_jpeg_quality = "MOTION_IN_OCEAN_JPEG_QUALITY" in os.environ
-    has_max_stream_connections = "MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS" in os.environ
+    has_resolution = "MIO_RESOLUTION" in os.environ
+    has_fps = "MIO_FPS" in os.environ
+    has_target_fps = "MIO_TARGET_FPS" in os.environ
+    has_jpeg_quality = "MIO_JPEG_QUALITY" in os.environ
+    has_max_stream_connections = "MIO_MAX_STREAM_CONNECTIONS" in os.environ
 
     if not has_resolution:
         config["resolution"] = (640, 480)
@@ -160,14 +160,14 @@ def _load_stream_config() -> Dict[str, Any]:
         Dict with keys: api_test_mode_enabled, api_test_cycle_interval_seconds,
         cat_gif_enabled, cataas_api_url, cat_gif_cache_ttl_seconds.
     """
-    api_test_mode_enabled = os.environ.get("MOTION_IN_OCEAN_API_TEST_MODE_ENABLED", "false").lower() in (
+    api_test_mode_enabled = os.environ.get("MIO_API_TEST_MODE_ENABLED", "false").lower() in (
         "1",
         "true",
         "yes",
     )
     try:
         api_test_cycle_interval_seconds = float(
-            os.environ.get("MOTION_IN_OCEAN_API_TEST_CYCLE_INTERVAL_SECONDS", "5")
+            os.environ.get("MIO_API_TEST_CYCLE_INTERVAL_SECONDS", "5")
         )
     except ValueError:
         api_test_cycle_interval_seconds = 5.0
@@ -175,23 +175,23 @@ def _load_stream_config() -> Dict[str, Any]:
         api_test_cycle_interval_seconds = 5.0
 
     cat_gif_enabled = is_flag_enabled("CAT_GIF")
-    cataas_api_url = os.environ.get("MOTION_IN_OCEAN_CATAAS_API_URL", "https://cataas.com/cat/gif").strip()
+    cataas_api_url = os.environ.get("MIO_CATAAS_API_URL", "https://cataas.com/cat/gif").strip()
     try:
-        cat_gif_cache_ttl_seconds = float(os.environ.get("MOTION_IN_OCEAN_CAT_GIF_CACHE_TTL_SECONDS", "60"))
+        cat_gif_cache_ttl_seconds = float(os.environ.get("MIO_CAT_GIF_CACHE_TTL_SECONDS", "60"))
     except ValueError:
         cat_gif_cache_ttl_seconds = 60.0
     if cat_gif_cache_ttl_seconds <= 0:
         cat_gif_cache_ttl_seconds = 60.0
 
     try:
-        cat_gif_retry_base_seconds = float(os.environ.get("MOTION_IN_OCEAN_CAT_GIF_RETRY_BASE_SECONDS", "1"))
+        cat_gif_retry_base_seconds = float(os.environ.get("MIO_CAT_GIF_RETRY_BASE_SECONDS", "1"))
     except ValueError:
         cat_gif_retry_base_seconds = 1.0
     if cat_gif_retry_base_seconds <= 0:
         cat_gif_retry_base_seconds = 1.0
 
     try:
-        cat_gif_retry_max_seconds = float(os.environ.get("MOTION_IN_OCEAN_CAT_GIF_RETRY_MAX_SECONDS", "60"))
+        cat_gif_retry_max_seconds = float(os.environ.get("MIO_CAT_GIF_RETRY_MAX_SECONDS", "60"))
     except ValueError:
         cat_gif_retry_max_seconds = 60.0
     if cat_gif_retry_max_seconds <= 0:
@@ -225,20 +225,20 @@ def _load_discovery_config() -> Dict[str, Any]:
         Dict with keys: discovery_enabled, discovery_management_url, discovery_token,
         discovery_interval_seconds, discovery_webcam_id.
     """
-    discovery_enabled = os.environ.get("MOTION_IN_OCEAN_DISCOVERY_ENABLED", "false").lower() in (
+    discovery_enabled = os.environ.get("MIO_DISCOVERY_ENABLED", "false").lower() in (
         "1",
         "true",
         "yes",
     )
-    discovery_management_url = os.environ.get("MOTION_IN_OCEAN_DISCOVERY_MANAGEMENT_URL", "http://127.0.0.1:8001")
-    discovery_token = os.environ.get("MOTION_IN_OCEAN_DISCOVERY_TOKEN", "")
+    discovery_management_url = os.environ.get("MIO_DISCOVERY_MANAGEMENT_URL", "http://127.0.0.1:8001")
+    discovery_token = os.environ.get("MIO_DISCOVERY_TOKEN", "")
     try:
-        discovery_interval_seconds = float(os.environ.get("MOTION_IN_OCEAN_DISCOVERY_INTERVAL_SECONDS", "30"))
+        discovery_interval_seconds = float(os.environ.get("MIO_DISCOVERY_INTERVAL_SECONDS", "30"))
     except ValueError:
         discovery_interval_seconds = 30.0
     if discovery_interval_seconds <= 0:
         discovery_interval_seconds = 30.0
-    discovery_webcam_id = os.environ.get("MOTION_IN_OCEAN_DISCOVERY_WEBCAM_ID", "").strip()
+    discovery_webcam_id = os.environ.get("MIO_DISCOVERY_WEBCAM_ID", "").strip()
 
     return {
         "discovery_enabled": discovery_enabled,
@@ -261,9 +261,9 @@ def _load_logging_config() -> Dict[str, Any]:
         Dict with keys: log_level, log_format, log_include_identifiers.
     """
     return {
-        "log_level": os.environ.get("MOTION_IN_OCEAN_LOG_LEVEL", "INFO"),
-        "log_format": os.environ.get("MOTION_IN_OCEAN_LOG_FORMAT", "text"),
-        "log_include_identifiers": os.environ.get("MOTION_IN_OCEAN_LOG_INCLUDE_IDENTIFIERS", "false").lower()
+        "log_level": os.environ.get("MIO_LOG_LEVEL", "INFO"),
+        "log_format": os.environ.get("MIO_LOG_FORMAT", "text"),
+        "log_include_identifiers": os.environ.get("MIO_LOG_INCLUDE_IDENTIFIERS", "false").lower()
         in (
             "1",
             "true",
@@ -276,29 +276,29 @@ def _load_networking_config() -> Dict[str, Any]:
     """Load network binding and CORS configuration from environment variables.
 
     Env vars:
-    - MOTION_IN_OCEAN_BIND_HOST (default: 127.0.0.1)
-    - MOTION_IN_OCEAN_PORT (1-65535, default: 8000)
-    - BASE_URL (default: http://hostname:8000)
+    - MIO_BIND_HOST (default: 127.0.0.1)
+    - MIO_PORT (1-65535, default: 8000)
+    - MIO_BASE_URL (default: http://hostname:8000)
     - CORS_SUPPORT (feature flag, default: false)
-    - MOTION_IN_OCEAN_CORS_ORIGINS (default: * if enabled, else disabled)
+    - MIO_CORS_ORIGINS (default: * if enabled, else disabled)
 
     Returns:
         Dict with keys: cors_enabled, cors_origins, bind_host, bind_port, base_url.
     """
     cors_enabled = is_flag_enabled("CORS_SUPPORT")
-    cors_origins_raw = os.environ.get("MOTION_IN_OCEAN_CORS_ORIGINS", "").strip()
+    cors_origins_raw = os.environ.get("MIO_CORS_ORIGINS", "").strip()
     cors_origins = (cors_origins_raw or "*") if cors_enabled else "disabled"
 
-    bind_host = os.environ.get("MOTION_IN_OCEAN_BIND_HOST", "127.0.0.1").strip()
+    bind_host = os.environ.get("MIO_BIND_HOST", "127.0.0.1").strip()
     try:
-        bind_port = int(os.environ.get("MOTION_IN_OCEAN_PORT", "8000"))
+        bind_port = int(os.environ.get("MIO_PORT", "8000"))
     except ValueError:
         bind_port = 8000
     if not 1 <= bind_port <= 65535:
         bind_port = 8000
 
     default_base_url = f"http://{socket.gethostname()}:8000"
-    base_url = os.environ.get("MOTION_IN_OCEAN_BASE_URL", default_base_url).strip() or default_base_url
+    base_url = os.environ.get("MIO_BASE_URL", default_base_url).strip() or default_base_url
 
     return {
         "cors_enabled": cors_enabled,
@@ -313,15 +313,14 @@ def _load_advanced_config() -> Dict[str, Any]:
     """Load advanced/internal configuration from environment variables.
 
     Env vars:
-    - MOTION_IN_OCEAN_PI3_PROFILE or PI3_PROFILE (default: false)
+    - MIO_PI3_PROFILE or PI3_PROFILE (default: false)
     - MOCK_CAMERA (feature flag, default: false)
-    - ALLOW_PYKMS_MOCK (default: false)
-    - WEBCAM_REGISTRY_PATH (default: /data/node-registry.json)
-    - APPLICATION_SETTINGS_PATH (default: /data/application-settings.json)
-    - MANAGEMENT_AUTH_TOKEN (bearer token for management mode auth)
-    - WEBCAM_CONTROL_PLANE_AUTH_TOKEN (bearer token for webcam control-plane auth)
-    - MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR (default: false)
-    - MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED (legacy alias; default: false)
+    - MIO_ALLOW_PYKMS_MOCK (default: false)
+    - MIO_NODE_REGISTRY_PATH (default: /data/node-registry.json)
+    - MIO_APPLICATION_SETTINGS_PATH (default: /data/application-settings.json)
+    - MIO_MANAGEMENT_AUTH_TOKEN (bearer token for management mode auth)
+    - MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN (bearer token for webcam control-plane auth)
+    - MIO_FAIL_ON_CAMERA_INIT_ERROR (default: false)
 
     Returns:
         Dict with keys: pi3_profile_enabled, mock_camera, allow_pykms_mock,
@@ -329,26 +328,26 @@ def _load_advanced_config() -> Dict[str, Any]:
         webcam_control_plane_auth_token, fail_on_camera_init_error.
     """
     pi3_profile_raw = os.environ.get(
-        "MOTION_IN_OCEAN_PI3_PROFILE",
+        "MIO_PI3_PROFILE",
         os.environ.get("PI3_PROFILE", "false")
     )
 
     fail_on_camera_init_error_raw = os.environ.get(
-        "MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR",
+        "MIO_FAIL_ON_CAMERA_INIT_ERROR",
         "false",
     )
 
     return {
         "pi3_profile_enabled": pi3_profile_raw.lower() in ("1", "true", "yes"),
         "mock_camera": is_flag_enabled("MOCK_CAMERA"),
-        "allow_pykms_mock": os.environ.get("MOTION_IN_OCEAN_ALLOW_PYKMS_MOCK", "false").lower()
+        "allow_pykms_mock": os.environ.get("MIO_ALLOW_PYKMS_MOCK", "false").lower()
         in ("1", "true", "yes"),
-        "webcam_registry_path": os.environ.get("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", "/data/node-registry.json"),
+        "webcam_registry_path": os.environ.get("MIO_NODE_REGISTRY_PATH", "/data/node-registry.json"),
         "application_settings_path": os.environ.get(
-            "MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", "/data/application-settings.json"
+            "MIO_APPLICATION_SETTINGS_PATH", "/data/application-settings.json"
         ),
-        "management_auth_token": os.environ.get("MOTION_IN_OCEAN_MANAGEMENT_AUTH_TOKEN", ""),
-        "webcam_control_plane_auth_token": os.environ.get("MOTION_IN_OCEAN_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", ""),
+        "management_auth_token": os.environ.get("MIO_MANAGEMENT_AUTH_TOKEN", ""),
+        "webcam_control_plane_auth_token": os.environ.get("MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", ""),
         "fail_on_camera_init_error": fail_on_camera_init_error_raw.lower() in ("1", "true", "yes"),
     }
 
@@ -371,7 +370,7 @@ def load_env_config() -> Dict[str, Any]:
     Raises:
         ValueError: If APP_MODE is invalid.
     """
-    app_mode = os.environ.get("MOTION_IN_OCEAN_APP_MODE", DEFAULT_APP_MODE).strip().lower()
+    app_mode = os.environ.get("MIO_APP_MODE", DEFAULT_APP_MODE).strip().lower()
     if app_mode not in ALLOWED_APP_MODES:
         message = f"Invalid APP_MODE {app_mode}"
         raise ValueError(message)

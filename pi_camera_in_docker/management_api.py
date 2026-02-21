@@ -25,8 +25,8 @@ from .transport_url_validation import parse_docker_url
 
 
 # SSRF Protection Configuration
-# Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true to disable private IP blocking (use only in internal networks)
-ALLOW_PRIVATE_IPS = os.environ.get("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "").lower() in {
+# Set MIO_ALLOW_PRIVATE_IPS=true to disable private IP blocking (use only in internal networks)
+ALLOW_PRIVATE_IPS = os.environ.get("MIO_ALLOW_PRIVATE_IPS", "").lower() in {
     "true",
     "1",
     "yes",
@@ -111,7 +111,7 @@ def _is_blocked_address(raw: Any) -> bool:
     """Check if an IP address is blocked for SSRF protection.
 
     Blocks: loopback, link-local, multicast, reserved, unspecified.
-    Private IPs are blocked unless MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true.
+    Private IPs are blocked unless MIO_ALLOW_PRIVATE_IPS=true.
 
     Args:
         raw: IP address string or ipaddress object.
@@ -177,10 +177,10 @@ def _discovery_private_ip_block_response(base_url: str, blocked_target: str):
             "blocked_target": blocked_target,
             "reason": "private IP announcements require an explicit opt-in",
             "remediation": (
-                "Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true on the management webcam "
+                "Set MIO_ALLOW_PRIVATE_IPS=true on the management webcam "
                 "to allow LAN/private-IP discovery registrations. Enable only on trusted internal networks."
             ),
-            "required_setting": "MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true",
+            "required_setting": "MIO_ALLOW_PRIVATE_IPS=true",
         },
     )
 
@@ -954,7 +954,7 @@ def _diagnose_http_transport(
                 add_recommendation(
                     "Private IP (192.168.x.x, 10.x.x.x, 172.16.x.x) blocked by SSRF protection. "
                     "Option 1: Use docker network hostname (e.g., 'motion-in-ocean-webcam:8000'). "
-                    "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management webcam environment.",
+                    "Option 2 (internal networks only): Set MIO_ALLOW_PRIVATE_IPS=true in management webcam environment.",
                     "fail",
                     "SSRF_BLOCKED",
                 )
@@ -1005,7 +1005,7 @@ def _diagnose_http_transport(
             add_recommendation(
                 f"Hostname '{hostname}' resolves to private IP, blocked by SSRF protection. "
                 "Option 1: Use a public IP or docker network hostname. "
-                "Option 2 (internal networks only): Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management webcam environment.",
+                "Option 2 (internal networks only): Set MIO_ALLOW_PRIVATE_IPS=true in management webcam environment.",
                 "fail",
                 "SSRF_BLOCKED",
             )
@@ -1267,7 +1267,7 @@ def _get_http_status(
         if "not allowed" in error_msg or "blocked" in error_msg:
             guidance = (
                 "Use docker network hostname (e.g., 'motion-in-ocean-webcam:8000') "
-                "or set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true in management webcam (internal networks only)"
+                "or set MIO_ALLOW_PRIVATE_IPS=true in management webcam (internal networks only)"
             )
             return {}, (
                 "SSRF_BLOCKED",
@@ -1406,7 +1406,7 @@ def register_management_routes(
     registry = FileWebcamRegistry(registry_path)
     discovery_secret = node_discovery_shared_secret
     if discovery_secret is None:
-        discovery_secret = os.environ.get("MOTION_IN_OCEAN_NODE_DISCOVERY_SHARED_SECRET", "")
+        discovery_secret = os.environ.get("MIO_NODE_DISCOVERY_SHARED_SECRET", "")
 
     # Helper: Apply rate limit decorator if limiter is available
     def _maybe_limit(limit_str: str):

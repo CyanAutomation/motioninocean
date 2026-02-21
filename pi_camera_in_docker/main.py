@@ -205,45 +205,45 @@ def _collect_current_config() -> Dict[str, Any]:
     Returns a simplified config dict for the setup API.
     """
     try:
-        resolution = _parse_resolution(os.environ.get("MOTION_IN_OCEAN_RESOLUTION", "640x480"))
+        resolution = _parse_resolution(os.environ.get("MIO_RESOLUTION", "640x480"))
     except ValueError:
         resolution = (640, 480)
 
     try:
-        fps = int(os.environ.get("MOTION_IN_OCEAN_FPS", "24"))
+        fps = int(os.environ.get("MIO_FPS", "24"))
     except ValueError:
         fps = 24
 
     try:
-        target_fps_str = os.environ.get("MOTION_IN_OCEAN_TARGET_FPS", "")
+        target_fps_str = os.environ.get("MIO_TARGET_FPS", "")
         target_fps = int(target_fps_str) if target_fps_str else None
     except ValueError:
         target_fps = None
 
     try:
-        jpeg_quality = int(os.environ.get("MOTION_IN_OCEAN_JPEG_QUALITY", "90"))
+        jpeg_quality = int(os.environ.get("MIO_JPEG_QUALITY", "90"))
         if not 1 <= jpeg_quality <= 100:
             jpeg_quality = 90
     except ValueError:
         jpeg_quality = 90
 
     try:
-        max_stream_connections = int(os.environ.get("MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS", "10"))
+        max_stream_connections = int(os.environ.get("MIO_MAX_STREAM_CONNECTIONS", "10"))
         if not 1 <= max_stream_connections <= 100:
             max_stream_connections = 10
     except ValueError:
         max_stream_connections = 10
 
     pi3_profile = os.environ.get(
-        "MOTION_IN_OCEAN_PI3_PROFILE", "false"
+        "MIO_PI3_PROFILE", "false"
     ).lower() in (
         "1",
         "true",
         "yes",
     )
     mock_camera = is_flag_enabled("MOCK_CAMERA")
-    cors_origins = os.environ.get("MOTION_IN_OCEAN_CORS_ORIGINS", "")
-    auth_token = os.environ.get("MOTION_IN_OCEAN_MANAGEMENT_AUTH_TOKEN", "")
+    cors_origins = os.environ.get("MIO_CORS_ORIGINS", "")
+    auth_token = os.environ.get("MIO_MANAGEMENT_AUTH_TOKEN", "")
 
     return {
         "resolution": f"{resolution[0]}x{resolution[1]}",
@@ -396,20 +396,20 @@ services:
     container_name: motion-in-ocean
     environment:
       TZ: ${TZ}
-      APP_MODE: ${MOTION_IN_OCEAN_MODE:-webcam}
-      RESOLUTION: ${MOTION_IN_OCEAN_RESOLUTION}
-      FPS: ${MOTION_IN_OCEAN_FPS}
-      TARGET_FPS: ${MOTION_IN_OCEAN_TARGET_FPS:-}
-      JPEG_QUALITY: ${MOTION_IN_OCEAN_JPEG_QUALITY}
-      MAX_STREAM_CONNECTIONS: ${MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS:-2}
+      APP_MODE: ${MIO_APP_MODE:-webcam}
+      RESOLUTION: ${MIO_RESOLUTION}
+      FPS: ${MIO_FPS}
+      TARGET_FPS: ${MIO_TARGET_FPS:-}
+      JPEG_QUALITY: ${MIO_JPEG_QUALITY}
+      MAX_STREAM_CONNECTIONS: ${MIO_MAX_STREAM_CONNECTIONS:-2}
       # Canonical Pi 3 profile toggle consumed by runtime config loading.
-      MOTION_IN_OCEAN_PI3_PROFILE: ${MOTION_IN_OCEAN_PI3_PROFILE:-false}
-      MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY: ${MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY:-false}
-      CORS_ORIGINS: ${MOTION_IN_OCEAN_CORS_ORIGINS}
+      MIO_PI3_PROFILE: ${MIO_PI3_PROFILE:-false}
+      MIO_OCTOPRINT_COMPATIBILITY: ${MIO_OCTOPRINT_COMPATIBILITY:-false}
+      MIO_CORS_ORIGINS: ${MIO_CORS_ORIGINS}
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
-      HEALTHCHECK_READY: ${MOTION_IN_OCEAN_HEALTHCHECK_READY:-true}
+      MIO_HEALTHCHECK_READY: ${MIO_HEALTHCHECK_READY:-true}
     ports:
-      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT:-8000}:8000"
+      - "${MIO_BIND_HOST:-127.0.0.1}:${MIO_PORT:-8000}:8000"
     volumes:
       - motion-in-ocean-data:/data
     healthcheck:
@@ -438,27 +438,27 @@ def _generate_env_content(config: Dict[str, Any]) -> str:
         "TZ=UTC",
         "",
         "# Application Mode (webcam or management)",
-        "MOTION_IN_OCEAN_MODE=webcam",
+        "MIO_MODE=webcam",
         "",
         "# Camera Configuration",
-        f"MOTION_IN_OCEAN_RESOLUTION={config.get('resolution', '640x480')}",
-        f"MOTION_IN_OCEAN_FPS={config.get('fps', 0)}",
-        f"MOTION_IN_OCEAN_TARGET_FPS={config.get('target_fps', '') or ''}",
-        f"MOTION_IN_OCEAN_JPEG_QUALITY={config.get('jpeg_quality', 90)}",
-        f"MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS={config.get('max_connections', 10)}",
+        f"MIO_RESOLUTION={config.get('resolution', '640x480')}",
+        f"MIO_FPS={config.get('fps', 0)}",
+        f"MIO_TARGET_FPS={config.get('target_fps', '') or ''}",
+        f"MIO_JPEG_QUALITY={config.get('jpeg_quality', 90)}",
+        f"MIO_MAX_STREAM_CONNECTIONS={config.get('max_connections', 10)}",
         # Canonical Pi 3 profile env variable consumed by runtime config loading.
-        f"MOTION_IN_OCEAN_PI3_PROFILE={'true' if config.get('pi3_profile') else 'false'}",
+        f"MIO_PI3_PROFILE={'true' if config.get('pi3_profile') else 'false'}",
         "",
         "# Features and Integration",
-        "MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY=false",
-        f"MOTION_IN_OCEAN_CORS_ORIGINS={config.get('cors_origins', '')}",
+        "MIO_OCTOPRINT_COMPATIBILITY=false",
+        f"MIO_CORS_ORIGINS={config.get('cors_origins', '')}",
         f"MOCK_CAMERA={'true' if config.get('mock_camera') else 'false'}",
-        "MOTION_IN_OCEAN_HEALTHCHECK_READY=true",
+        "MIO_HEALTHCHECK_READY=true",
         "",
         "# Networking",
-        "MOTION_IN_OCEAN_BIND_HOST=127.0.0.1",
-        "MOTION_IN_OCEAN_PORT=8000",
-        "MOTION_IN_OCEAN_IMAGE_TAG=latest",
+        "MIO_BIND_HOST=127.0.0.1",
+        "MIO_PORT=8000",
+        "MIO_IMAGE_TAG=latest",
         "",
         "# Management/Security",
         f"MANAGEMENT_AUTH_TOKEN={config.get('auth_token', '')}",
@@ -477,7 +477,7 @@ def _init_flask_app(_config: Dict[str, Any]) -> Tuple[Flask, Limiter]:
         app=app,
         key_func=get_remote_address,
         default_limits=["100/minute"],
-        storage_uri=os.environ.get("MOTION_IN_OCEAN_LIMITER_STORAGE_URI", "memory://"),
+        storage_uri=os.environ.get("MIO_LIMITER_STORAGE_URI", "memory://"),
     )
 
     return app, limiter
@@ -1298,7 +1298,7 @@ def create_app_from_env() -> Flask:
         raise ValueError(error_msg) from e
 
     # Initialize Sentry error tracking if DSN is provided
-    sentry_dsn = os.environ.get("MOTION_IN_OCEAN_SENTRY_DSN")
+    sentry_dsn = os.environ.get("MIO_SENTRY_DSN")
     init_sentry(sentry_dsn, cfg["app_mode"])
 
     app = create_management_app(cfg) if cfg["app_mode"] == "management" else create_webcam_app(cfg)
@@ -1673,7 +1673,7 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
             raise
         logger.warning(
             "Camera initialization failed; continuing startup in degraded mode because "
-            "MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR is disabled.",
+            "MIO_FAIL_ON_CAMERA_INIT_ERROR is disabled.",
             exc_info=True,
         )
 

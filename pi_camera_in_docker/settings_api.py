@@ -64,7 +64,7 @@ def _load_env_settings_defaults() -> Dict[str, Dict[str, Any]]:
     """
     camera_env_config = _load_camera_config()
     try:
-        width, height = parse_resolution(os.environ.get("MOTION_IN_OCEAN_RESOLUTION", "640x480"))
+        width, height = parse_resolution(os.environ.get("MIO_RESOLUTION", "640x480"))
         resolution = f"{width}x{height}"
     except ValueError:
         resolution = f"{camera_env_config['resolution'][0]}x{camera_env_config['resolution'][1]}"
@@ -72,29 +72,29 @@ def _load_env_settings_defaults() -> Dict[str, Dict[str, Any]]:
     return {
         "camera": {
             "resolution": resolution,
-            "fps": _safe_int_env("MOTION_IN_OCEAN_FPS", camera_env_config["fps"]),
-            "jpeg_quality": _safe_int_env("MOTION_IN_OCEAN_JPEG_QUALITY", camera_env_config["jpeg_quality"]),
+            "fps": _safe_int_env("MIO_FPS", camera_env_config["fps"]),
+            "jpeg_quality": _safe_int_env("MIO_JPEG_QUALITY", camera_env_config["jpeg_quality"]),
             "max_stream_connections": _safe_int_env(
-                "MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS", camera_env_config["max_stream_connections"]
+                "MIO_MAX_STREAM_CONNECTIONS", camera_env_config["max_stream_connections"]
             ),
             "max_frame_age_seconds": _safe_float_env(
-                "MOTION_IN_OCEAN_MAX_FRAME_AGE_SECONDS", camera_env_config["max_frame_age_seconds"]
+                "MIO_MAX_FRAME_AGE_SECONDS", camera_env_config["max_frame_age_seconds"]
             ),
         },
         "logging": {
-            "log_level": os.environ.get("MOTION_IN_OCEAN_LOG_LEVEL", "INFO"),
-            "log_format": os.environ.get("MOTION_IN_OCEAN_LOG_FORMAT", "text"),
-            "log_include_identifiers": os.environ.get("MOTION_IN_OCEAN_LOG_INCLUDE_IDENTIFIERS", "false").lower()
+            "log_level": os.environ.get("MIO_LOG_LEVEL", "INFO"),
+            "log_format": os.environ.get("MIO_LOG_FORMAT", "text"),
+            "log_include_identifiers": os.environ.get("MIO_LOG_INCLUDE_IDENTIFIERS", "false").lower()
             in ("1", "true", "yes"),
         },
         "discovery": {
-            "discovery_enabled": os.environ.get("MOTION_IN_OCEAN_DISCOVERY_ENABLED", "false").lower()
+            "discovery_enabled": os.environ.get("MIO_DISCOVERY_ENABLED", "false").lower()
             in ("1", "true", "yes"),
             "discovery_management_url": os.environ.get(
-                "MOTION_IN_OCEAN_DISCOVERY_MANAGEMENT_URL", "http://127.0.0.1:8001"
+                "MIO_DISCOVERY_MANAGEMENT_URL", "http://127.0.0.1:8001"
             ),
-            "discovery_token": os.environ.get("MOTION_IN_OCEAN_DISCOVERY_TOKEN", ""),
-            "discovery_interval_seconds": _safe_float_env("MOTION_IN_OCEAN_DISCOVERY_INTERVAL_SECONDS", 30),
+            "discovery_token": os.environ.get("MIO_DISCOVERY_TOKEN", ""),
+            "discovery_interval_seconds": _safe_float_env("MIO_DISCOVERY_INTERVAL_SECONDS", 30),
         },
         "feature_flags": {},  # Would need to iterate through all flags
     }
