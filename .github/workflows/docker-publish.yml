@@ -56,7 +56,6 @@ jobs:
             DEBIAN_SUITE=trixie
             # Temporary compatibility pin: Raspberry Pi apt repo metadata can fail sqv/SHA1 policy checks on trixie.
             RPI_SUITE=bookworm
-            ALLOW_BOOKWORM_FALLBACK=true
             INCLUDE_MOCK_CAMERA=false
           cache-from: type=gha
           cache-to: type=gha,mode=max
