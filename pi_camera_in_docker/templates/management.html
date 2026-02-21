@@ -12,8 +12,33 @@
   </head>
   <body>
     <header class="management-header">
-      <h1>Webcam Management</h1>
-      <p class="subtitle">Manage webcam hosts and monitor webcam health.</p>
+      <div class="management-header-row">
+        <div>
+          <h1>Webcam Management</h1>
+          <p class="subtitle">Manage webcam hosts and monitor webcam health.</p>
+        </div>
+        <button id="theme-toggle-btn" class="ui-btn ui-btn--secondary" type="button">Theme</button>
+      </div>
+
+      <nav class="management-view-nav" aria-label="Management dashboard views">
+        <button id="view-overview-btn" class="ui-btn ui-btn--secondary management-view-btn" type="button">
+          Overview
+        </button>
+        <button id="view-devices-btn" class="ui-btn ui-btn--secondary management-view-btn" type="button">
+          Devices
+        </button>
+        <button
+          id="view-discovered-btn"
+          class="ui-btn ui-btn--secondary management-view-btn"
+          type="button"
+        >
+          Discovered
+        </button>
+        <button id="view-settings-btn" class="ui-btn ui-btn--secondary management-view-btn" type="button">
+          Settings
+        </button>
+      </nav>
+
       <div class="management-token-control">
         <label for="management-api-token">Management API Bearer Token (optional)</label>
         <input
@@ -30,205 +55,350 @@
       </div>
     </header>
 
-    <main id="management-layout" class="management-layout">
-      <section id="webcam-form-panel-container" class="webcam-form-panel ui-card">
-        <div class="panel-header ui-panel-header">
-          <h2 id="form-title">Add webcam host</h2>
-          <button
-            id="toggle-webcam-form-panel-btn"
-            class="ui-btn ui-btn--secondary"
-            type="button"
-            aria-label="Collapse webcam form panel"
-            aria-expanded="true"
-            aria-controls="webcam-form-content"
-          >
-            Collapse
+    <main id="management-main" class="management-main">
+      <section id="overview-view" class="management-view ui-card">
+        <div class="table-header ui-panel-header">
+          <h2>Dashboard</h2>
+          <button id="refresh-dashboard-btn" class="ui-btn ui-btn--secondary" type="button">
+            Refresh Dashboard
           </button>
         </div>
-        <div id="webcam-form-content">
-          <div id="webcam-form-content-wrapper">
-            <form id="webcam-form">
-              <input type="hidden" id="editing-webcam-id" value="" />
 
-              <div class="ui-form-control">
-                <label for="webcam-id">Webcam ID</label>
-                <input
-                  id="webcam-id"
-                  name="id"
-                  pattern="[a-zA-Z0-9_-]+"
-                  maxlength="64"
-                  title="Only alphanumeric characters, hyphens, and underscores allowed"
-                  required
-                />
-              </div>
+        <div class="overview-metrics">
+          <article class="overview-metric">
+            <h3>Total</h3>
+            <p id="overview-total-webcams">0</p>
+          </article>
+          <article class="overview-metric">
+            <h3>Online</h3>
+            <p id="overview-healthy-webcams">0</p>
+          </article>
+          <article class="overview-metric">
+            <h3>Offline</h3>
+            <p id="overview-unavailable-webcams">0</p>
+          </article>
+          <article class="overview-metric">
+            <h3>Streaming</h3>
+            <p id="overview-streaming-webcams">0</p>
+          </article>
+        </div>
 
-              <div class="ui-form-control">
-                <label for="webcam-name">Name</label>
-                <input id="webcam-name" name="name" maxlength="128" required />
-              </div>
-
-              <div class="ui-form-control">
-                <label for="webcam-base-url">Base URL</label>
-                <input id="webcam-base-url" name="base_url" placeholder="" required />
-              </div>
-
-              <div class="ui-form-control">
-                <label for="webcam-transport">Transport</label>
-                <select id="webcam-transport" name="transport">
-                  <option value="http" selected>http</option>
-                  <option value="docker">docker</option>
-                </select>
-              </div>
-
-              <div class="ui-form-control">
-                <label for="webcam-auth-type">Auth Type</label>
-                <select id="webcam-auth-type" name="auth_type">
-                  <option value="none" selected>none</option>
-                  <option value="bearer">bearer</option>
-                </select>
-              </div>
-
-              <div class="ui-form-control">
-                <label for="webcam-auth-token">Remote Node Token (optional)</label>
-                <input
-                  id="webcam-auth-token"
-                  name="auth_token"
-                  placeholder="Set to the remote webcam MANAGEMENT_AUTH_TOKEN"
-                />
-                <small>
-                  For webcam hosts, use the same token configureded in that node's `.env`
-                  (`MANAGEMENT_AUTH_TOKEN`).
-                </small>
-              </div>
-
-              <div class="ui-form-control">
-                <label for="webcam-capabilities">Capabilities (comma-separated)</label>
-                <input
-                  id="webcam-capabilities"
-                  name="capabilities"
-                  placeholder="stream, snapshot"
-                />
-              </div>
-
-              <div class="ui-form-control">
-                <label for="webcam-labels">Labels JSON (optional)</label>
-                <textarea
-                  id="webcam-labels"
-                  name="labels"
-                  rows="4"
-                  placeholder='{"location":"lab"}'
-                ></textarea>
-              </div>
-
-              <div class="actions">
-                <button type="submit" id="save-node-btn" class="ui-btn ui-btn--primary">
-                  Save node
-                </button>
-                <button type="button" id="cancel-edit-btn" class="ui-btn ui-btn--secondary hidden">
-                  Cancel edit
-                </button>
-              </div>
-            </form>
-            <p id="form-feedback" class="feedback" aria-live="polite"></p>
-          </div>
+        <div class="overview-grid">
+          <section class="overview-panel ui-card">
+            <h3>Recent Activity</h3>
+            <ul id="overview-activity-list" class="overview-list">
+              <li>No activity yet.</li>
+            </ul>
+          </section>
+          <section class="overview-panel ui-card">
+            <h3>Action Sidebar</h3>
+            <ul id="overview-action-list" class="overview-list">
+              <li>No action items.</li>
+            </ul>
+          </section>
         </div>
       </section>
 
-      <section class="webcam-list-panel ui-card">
-        <div class="table-header ui-panel-header">
-          <h2>Registered webcams</h2>
-          <button id="refresh-webcams-btn" class="ui-btn ui-btn--secondary">Refresh</button>
-        </div>
-
-        <div class="webcam-table-wrap">
-          <table class="webcam-table" aria-label="Registered webcam list">
-            <thead>
-              <tr>
-                <th>Node</th>
-                <th>Base URL</th>
-                <th>Transport</th>
-                <th>Discovery</th>
-                <th>Status</th>
-                <th>Details</th>
-                <th>Stream</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="webcams-table-body">
-              <tr>
-                <td colspan="8" class="empty">No webcams registered.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="ui-form-control diagnostic-advanced-toggle">
-          <input
-            id="advanced-diagnostics-toggle"
-            type="checkbox"
-            aria-controls="diagnostic-panel-content"
-            aria-controls="diagnostic-panel-content"
-          />
-          <label for="advanced-diagnostics-toggle">Advanced (show diagnostic report)</label>
-        </div>
-
-        <section
-          id="diagnostic-panel"
-          class="diagnostic-panel"
-          aria-live="polite"
-          aria-label="Webcam diagnostics panel"
-          tabindex="-1"
-        >
-          <div id="diagnostic-panel-content" hidden>
-            <div class="diagnostic-panel__header">
-              <h3>Diagnostic report</h3>
+      <section id="devices-view" class="management-view">
+        <div id="management-layout" class="management-layout">
+          <section id="webcam-form-panel-container" class="webcam-form-panel ui-card">
+            <div class="panel-header ui-panel-header">
+              <h2 id="form-title">Add webcam host</h2>
               <button
-                id="copy-diagnostic-report-btn"
+                id="toggle-webcam-form-panel-btn"
                 class="ui-btn ui-btn--secondary"
                 type="button"
-                disabled
+                aria-label="Collapse webcam form panel"
+                aria-expanded="true"
+                aria-controls="webcam-form-content"
               >
-                Copy report
+                Collapse
               </button>
             </div>
+            <div id="webcam-form-content">
+              <div id="webcam-form-content-wrapper">
+                <form id="webcam-form">
+                  <input type="hidden" id="editing-webcam-id" value="" />
 
-            <div class="diagnostic-meta-row" id="diagnostic-meta-row">
-              <span>Webcam: <strong id="diagnostic-webcam-id">—</strong></span>
-              <span>Context: <strong id="diagnostic-context">No report loaded</strong></span>
-              <span>
-                Summary:
-                <span id="diagnostic-summary-badge" class="diagnostic-pill diagnostic-pill--neutral"
-                  >Idle</span
-                >
-              </span>
-            </div>
+                  <div class="ui-form-control">
+                    <label for="webcam-id">Webcam ID</label>
+                    <input
+                      id="webcam-id"
+                      name="id"
+                      pattern="[a-zA-Z0-9_-]+"
+                      maxlength="64"
+                      title="Only alphanumeric characters, hyphens, and underscores allowed"
+                      required
+                    />
+                  </div>
 
-            <div class="diagnostic-summary-banner" id="diagnostic-summary-banner">
-              <div class="diagnostic-summary-banner__top">
-                <span
-                  id="diagnostic-overall-state-pill"
-                  class="diagnostic-pill diagnostic-pill--neutral"
-                  >Idle</span
-                >
-                <strong id="diagnostic-summary-cta">Run diagnostics</strong>
+                  <div class="ui-form-control">
+                    <label for="webcam-name">Name</label>
+                    <input id="webcam-name" name="name" maxlength="128" required />
+                  </div>
+
+                  <div class="ui-form-control">
+                    <label for="webcam-base-url">Base URL</label>
+                    <input id="webcam-base-url" name="base_url" placeholder="" required />
+                  </div>
+
+                  <div class="ui-form-control">
+                    <label for="webcam-transport">Transport</label>
+                    <select id="webcam-transport" name="transport">
+                      <option value="http" selected>http</option>
+                      <option value="docker">docker</option>
+                    </select>
+                  </div>
+
+                  <div class="ui-form-control">
+                    <label for="webcam-auth-type">Auth Type</label>
+                    <select id="webcam-auth-type" name="auth_type">
+                      <option value="none" selected>none</option>
+                      <option value="bearer">bearer</option>
+                    </select>
+                  </div>
+
+                  <div class="ui-form-control">
+                    <label for="webcam-auth-token">Remote Node Token (optional)</label>
+                    <input
+                      id="webcam-auth-token"
+                      name="auth_token"
+                      placeholder="Set to the remote webcam MANAGEMENT_AUTH_TOKEN"
+                    />
+                    <small>
+                      For webcam hosts, use the same token configured in that node's `.env`
+                      (`MANAGEMENT_AUTH_TOKEN`).
+                    </small>
+                  </div>
+
+                  <div class="ui-form-control">
+                    <label for="webcam-capabilities">Capabilities (comma-separated)</label>
+                    <input
+                      id="webcam-capabilities"
+                      name="capabilities"
+                      placeholder="stream, snapshot"
+                    />
+                  </div>
+
+                  <div class="ui-form-control">
+                    <label for="webcam-labels">Labels JSON (optional)</label>
+                    <textarea
+                      id="webcam-labels"
+                      name="labels"
+                      rows="4"
+                      placeholder='{"location":"lab"}'
+                    ></textarea>
+                  </div>
+
+                  <div class="actions">
+                    <button type="submit" id="save-node-btn" class="ui-btn ui-btn--primary">
+                      Save node
+                    </button>
+                    <button type="button" id="cancel-edit-btn" class="ui-btn ui-btn--secondary hidden">
+                      Cancel edit
+                    </button>
+                  </div>
+                </form>
+                <p id="form-feedback" class="feedback" aria-live="polite"></p>
               </div>
-              <p id="diagnostic-summary-interpretation">
-                Run Diagnose on a webcam to generate remediation guidance.
-              </p>
+            </div>
+          </section>
+
+          <section class="webcam-list-panel ui-card">
+            <div class="table-header ui-panel-header">
+              <h2>Registered webcams</h2>
+              <button id="refresh-webcams-btn" class="ui-btn ui-btn--secondary">Refresh</button>
             </div>
 
-            <div id="diagnostic-checks-grid" class="diagnostic-checks-grid">
-              <p class="diagnostic-empty">Run Diagnose on a webcam to view structured checks.</p>
+            <div class="webcam-table-wrap">
+              <table class="webcam-table" aria-label="Registered webcam list">
+                <thead>
+                  <tr>
+                    <th>Node</th>
+                    <th>Base URL</th>
+                    <th>Transport</th>
+                    <th>Discovery</th>
+                    <th>Status</th>
+                    <th>Details</th>
+                    <th>Stream</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="webcams-table-body">
+                  <tr>
+                    <td colspan="8" class="empty">No webcams registered.</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            <div class="diagnostic-recommendations" id="diagnostic-recommendations">
-              <h4>Recommendations</h4>
-              <ul>
-                <li>No recommendations yet.</li>
-              </ul>
+            <div class="ui-form-control diagnostic-advanced-toggle">
+              <input
+                id="advanced-diagnostics-toggle"
+                type="checkbox"
+                aria-controls="diagnostic-panel-content"
+              />
+              <label for="advanced-diagnostics-toggle">Advanced (show diagnostic report)</label>
             </div>
+
+            <section
+              id="diagnostic-panel"
+              class="diagnostic-panel"
+              aria-live="polite"
+              aria-label="Webcam diagnostics panel"
+              tabindex="-1"
+            >
+              <div id="diagnostic-panel-content" hidden>
+                <div class="diagnostic-panel__header">
+                  <h3>Diagnostic report</h3>
+                  <button
+                    id="copy-diagnostic-report-btn"
+                    class="ui-btn ui-btn--secondary"
+                    type="button"
+                    disabled
+                  >
+                    Copy report
+                  </button>
+                </div>
+
+                <div class="diagnostic-meta-row" id="diagnostic-meta-row">
+                  <span>Webcam: <strong id="diagnostic-webcam-id">—</strong></span>
+                  <span>Context: <strong id="diagnostic-context">No report loaded</strong></span>
+                  <span>
+                    Summary:
+                    <span id="diagnostic-summary-badge" class="diagnostic-pill diagnostic-pill--neutral"
+                      >Idle</span
+                    >
+                  </span>
+                </div>
+
+                <div class="diagnostic-summary-banner" id="diagnostic-summary-banner">
+                  <div class="diagnostic-summary-banner__top">
+                    <span
+                      id="diagnostic-overall-state-pill"
+                      class="diagnostic-pill diagnostic-pill--neutral"
+                      >Idle</span
+                    >
+                    <strong id="diagnostic-summary-cta">Run diagnostics</strong>
+                  </div>
+                  <p id="diagnostic-summary-interpretation">
+                    Run Diagnose on a webcam to generate remediation guidance.
+                  </p>
+                </div>
+
+                <div id="diagnostic-checks-grid" class="diagnostic-checks-grid">
+                  <p class="diagnostic-empty">Run Diagnose on a webcam to view structured checks.</p>
+                </div>
+
+                <div class="diagnostic-recommendations" id="diagnostic-recommendations">
+                  <h4>Recommendations</h4>
+                  <ul>
+                    <li>No recommendations yet.</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+          </section>
+        </div>
+      </section>
+
+      <section id="discovered-view" class="management-view ui-card hidden">
+        <div class="table-header ui-panel-header">
+          <h2>Found Devices</h2>
+          <button id="scan-discovered-btn" class="ui-btn ui-btn--secondary" type="button">
+            Scan Again
+          </button>
+        </div>
+        <div class="discovered-grid">
+          <section class="ui-card discovered-panel">
+            <h3>New Devices Waiting</h3>
+            <ul id="discovered-list" class="overview-list">
+              <li>No discovered devices pending approval.</li>
+            </ul>
+          </section>
+          <section class="ui-card discovered-panel">
+            <h3>Quick Actions</h3>
+            <div class="discovered-actions">
+              <button id="discovered-approve-btn" class="ui-btn ui-btn--primary" type="button">
+                Add Device
+              </button>
+              <button id="discovered-reject-btn" class="ui-btn ui-btn--danger" type="button">
+                Ignore Device
+              </button>
+              <button id="discovered-later-btn" class="ui-btn ui-btn--secondary" type="button">
+                Maybe Later
+              </button>
+            </div>
+            <p id="discovered-feedback" class="feedback" aria-live="polite"></p>
+          </section>
+          <section class="ui-card discovered-panel">
+            <h3>Connection Notes</h3>
+            <ul id="discovered-notes" class="overview-list">
+              <li>Blocked by local safety rule.</li>
+            </ul>
+          </section>
+        </div>
+      </section>
+
+      <section id="settings-view" class="management-view ui-card hidden">
+        <div class="table-header ui-panel-header">
+          <h2>Preferences</h2>
+          <button id="refresh-settings-btn" class="ui-btn ui-btn--secondary" type="button">
+            Refresh Settings
+          </button>
+        </div>
+        <div class="settings-tab-row">
+          <button class="ui-btn ui-btn--secondary settings-tab-btn" data-settings-tab="auth" type="button">
+            Authentication
+          </button>
+          <button
+            class="ui-btn ui-btn--secondary settings-tab-btn"
+            data-settings-tab="discovery"
+            type="button"
+          >
+            Discovery
+          </button>
+          <button class="ui-btn ui-btn--secondary settings-tab-btn" data-settings-tab="runtime" type="button">
+            Runtime Settings
+          </button>
+        </div>
+        <div id="settings-auth-panel" class="settings-panel">
+          <h3>Management API auth</h3>
+          <p>This dashboard token is client-side and used for authenticated management API requests.</p>
+          <small>Use the token field in the page header to update it.</small>
+        </div>
+        <div id="settings-discovery-panel" class="settings-panel hidden">
+          <h3>Discovery settings</h3>
+          <div class="ui-form-control">
+            <label for="settings-discovery-enabled">Enable discovery</label>
+            <input id="settings-discovery-enabled" type="checkbox" />
           </div>
-        </section>
+          <div class="ui-form-control">
+            <label for="settings-discovery-url">Discovery management URL</label>
+            <input id="settings-discovery-url" type="url" />
+          </div>
+          <div class="ui-form-control">
+            <label for="settings-discovery-token">Discovery token</label>
+            <input id="settings-discovery-token" type="password" />
+          </div>
+          <div class="ui-form-control">
+            <label for="settings-discovery-interval">DISCOVERY_INTERVAL_SECONDS</label>
+            <input id="settings-discovery-interval" type="number" step="1" min="5" max="3600" />
+          </div>
+        </div>
+        <div id="settings-runtime-panel" class="settings-panel hidden">
+          <h3>Runtime governance</h3>
+          <p id="settings-runtime-summary">Using custom values</p>
+          <p id="settings-validation-summary">Validation summary</p>
+          <ul id="settings-overrides-list" class="overview-list">
+            <li>No overrides.</li>
+          </ul>
+        </div>
+        <div class="settings-footer-actions">
+          <button id="settings-save-btn" class="ui-btn ui-btn--primary" type="button">Save Changes</button>
+          <button id="settings-reset-btn" class="ui-btn ui-btn--secondary" type="button">Reset</button>
+        </div>
+        <p id="settings-feedback" class="feedback" aria-live="polite"></p>
       </section>
     </main>
 

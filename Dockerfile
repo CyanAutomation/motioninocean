@@ -1,41 +1,18 @@
 # ---- Build Arguments ----
-# DEBIAN_SUITE: Base Debian release for builder and final stages (default: bookworm)
-# RPI_SUITE: Raspberry Pi repository suite (default: bookworm)
-# Canonical build example:
-#   docker build --build-arg DEBIAN_SUITE=bookworm --build-arg RPI_SUITE=bookworm .
-#
-# 🔴 DEBIAN 13 CRITICAL NOTICE (Feb 2026):
-# Debian 13 (Trixie) enforces strict GPG policy as of 2026-02-01: SHA1-based signatures are rejected.
-# The Raspberry Pi archive signing key uses SHA1 binding signatures, which Trixie rejects.
-# Therefore, Bookworm (Debian 12) is now the primary/default suite.
-# Trixie support remains available but experimental via ARG overrides.
-#
-# Intentional suite split:
-# - Primary build now uses Bookworm for both Debian base and RPi camera packages (stable, compatible).
-# - Trixie remains available for experimentation; set ARG DEBIAN_SUITE=trixie to opt in.
-# - Once Raspberry Pi issues updated GPG signatures, Trixie will become default again.
-#
 # INCLUDE_MOCK_CAMERA: Include Pillow for mock camera test frames (default: true)
-# ALLOW_BOOKWORM_FALLBACK: Allow fallback to Bookworm if primary suite fails (default: false)
-#   Set to true ONLY for compatibility builds where mixing suites is acceptable
-#   When false, build fails with clear message if primary suite packages unavailable
+#   Set to false for production builds (excludes ffmpeg, scipy dependencies)
 #
-# Important: build args referenced in FROM must be declared before the first FROM.
-ARG DEBIAN_SUITE=bookworm
-ARG RPI_SUITE=bookworm
+# Note: Motion In Ocean is locked to Debian Bookworm (stable distro rigidity for appliance containers).
+# No suite overrides are supported. For alternative distros, fork and modify the Dockerfile.
 ARG INCLUDE_MOCK_CAMERA=true
-ARG ALLOW_BOOKWORM_FALLBACK=false
 
 # ---- Builder Stage ----
-# This stage is responsible for adding the Raspberry Pi repository and building Python packages.
-# Using debian:${DEBIAN_SUITE}-slim with system Python to ensure compatibility with apt-installed python3-picamera2
-FROM debian:${DEBIAN_SUITE}-slim AS builder
+# Minimal Python packaging stage: installs build tools and creates isolated venv.
+# Camera packages are NOT needed here; they are installed only in the final stage.
+FROM debian:bookworm-slim AS builder
 
 # Re-declare build args for this stage
-ARG DEBIAN_SUITE
-ARG RPI_SUITE
 ARG INCLUDE_MOCK_CAMERA
-ARG ALLOW_BOOKWORM_FALLBACK
 
 # ---- Layer 1: System Build Tools (Stable) ----
 # Install base system dependencies and build toolchain
@@ -57,132 +34,17 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         gcc && \
     rm -rf /var/lib/apt/lists/*
 
-# ---- Layer 2: Raspberry Pi Repository & Camera Packages (Stable) ----
-# Configure Raspberry Pi repository and install picamera2 system packages
-# Both stages require this setup; duplication is necessary in multi-stage builds
-# 
-# Fallback behavior controlled by ALLOW_BOOKWORM_FALLBACK:
-# - false (default): fail build if primary RPI_SUITE packages unavailable (prevents silent mismatches)
-# - true: automatically fallback to Bookworm if primary suite fails (for compatibility builds)
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    set -e && \
-    # Download Raspberry Pi GPG key with checksum verification
-    echo "[Layer 2] Downloading Raspberry Pi GPG key..." && \
-    if ! curl -L --connect-timeout 10 --max-time 30 --retry 2 -f \
-      "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" \
-      -o /tmp/raspberrypi.gpg.key 2>&1; then \
-      echo "[ERROR] GPG key download failed"; exit 1; \
-    fi && \
-    if [ ! -s "/tmp/raspberrypi.gpg.key" ]; then \
-      echo "[ERROR] GPG key is empty after download"; exit 1; \
-    fi && \
-    echo "[Layer 2] GPG key size: $(stat -c%s /tmp/raspberrypi.gpg.key) bytes" && \
-    echo "[Layer 2] Verifying GPG key integrity..." && \
-    if ! gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key 2>&1; then \
-      echo "[ERROR] GPG dearmor failed"; exit 1; \
-    fi && \
-    if [ ! -s "/usr/share/keyrings/raspberrypi.gpg" ]; then \
-      echo "[ERROR] GPG binary keyring is empty after dearmor"; exit 1; \
-    fi && \
-    echo "[Layer 2] GPG keyring size: $(stat -c%s /usr/share/keyrings/raspberrypi.gpg) bytes" && \
-    echo "[Layer 2] Adding Raspberry Pi repository for suite: ${RPI_SUITE}..." && \
-    echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ ${RPI_SUITE} main" > /etc/apt/sources.list.d/raspi.list && \
-    rm /tmp/raspberrypi.gpg.key && \
-    \
-    # Create apt preferences file to pin camera packages to RPi repo, others to Debian
-    echo "[Layer 2] Setting apt pinning for camera packages..." && \
-    mkdir -p /etc/apt/preferences.d && \
-    printf "# Pin camera-related packages to Raspberry Pi repository (higher priority)\n\
-Package: libcamera* python3-libcamera python3-picamera2 rpicam*\n\
-Pin: origin archive.raspberrypi.org\n\
-Pin-Priority: 1001\n\
-\n\
-# Keep other packages at lower priority from RPi repo (prefer Debian versions)\n\
-Package: *\n\
-Pin: origin archive.raspberrypi.org\n\
-Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
-    REQUIRED_CAMERA_PACKAGES="libcamera-apps python3-libcamera python3-picamera2" && \
-    ACTIVE_RPI_SUITE="${RPI_SUITE}" && \
-    update_with_optional_fallback() { \
-      if apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60; then \
-        echo "[Layer 2] apt-get update succeeded for suite ${ACTIVE_RPI_SUITE}"; \
-        return 0; \
-      fi; \
-      echo "[ERROR][signature-policy] apt-get update failed for suite ${ACTIVE_RPI_SUITE}. Repository metadata/signature policy verification may have failed."; \
-      if [ "${ALLOW_BOOKWORM_FALLBACK}" = "true" ] && [ "${ACTIVE_RPI_SUITE}" != "bookworm" ]; then \
-        echo "[Layer 2] ALLOW_BOOKWORM_FALLBACK=true: switching Raspberry Pi repository to suite bookworm and retrying apt-get update"; \
-        export ACTIVE_RPI_SUITE="bookworm"; \
-        echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ ${ACTIVE_RPI_SUITE} main" > /etc/apt/sources.list.d/raspi.list; \
-        if apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60; then \
-          echo "[Layer 2] apt-get update succeeded for fallback suite ${ACTIVE_RPI_SUITE}"; \
-          return 0; \
-        fi; \
-        echo "[ERROR][signature-policy] apt-get update failed again after fallback to suite ${ACTIVE_RPI_SUITE}."; \
-        exit 1; \
-      fi; \
-      echo "[ERROR][fallback-disabled] ALLOW_BOOKWORM_FALLBACK=${ALLOW_BOOKWORM_FALLBACK}; cannot switch from suite ${ACTIVE_RPI_SUITE} to bookworm for retry."; \
-      exit 1; \
-    } && \
-    check_camera_preflight() { \
-      suite="$1"; \
-      missing_candidate_packages=""; \
-      missing_suite_packages=""; \
-      for pkg in $REQUIRED_CAMERA_PACKAGES; do \
-        echo "[Layer 2] Preflight: checking ${pkg} for suite ${suite}"; \
-        apt-cache policy "$pkg"; \
-        candidate="$(apt-cache policy "$pkg" | awk '/Candidate:/ {print $2; exit}')"; \
-        if [ -z "$candidate" ] || [ "$candidate" = "(none)" ]; then \
-          missing_candidate_packages="$missing_candidate_packages $pkg"; \
-          continue; \
-        fi; \
-        if ! apt-cache madison "$pkg" | awk -v suite="$suite" '$0 ~ /archive\.raspberrypi\.org\/debian/ && $0 ~ suite {found=1} END {exit found ? 0 : 1}'; then \
-          missing_suite_packages="$missing_suite_packages $pkg"; \
-        fi; \
-      done; \
-      missing_candidate_packages="$(echo "$missing_candidate_packages" | xargs)"; \
-      missing_suite_packages="$(echo "$missing_suite_packages" | xargs)"; \
-      if [ -n "$missing_candidate_packages" ]; then \
-        echo "[ERROR][missing-package-candidate] Preflight failed for suite ${suite}. No apt candidate for package(s): ${missing_candidate_packages}"; \
-        return 1; \
-      fi; \
-      if [ -n "$missing_suite_packages" ]; then \
-        echo "[ERROR][missing-package-candidate] Preflight failed for suite ${suite}. Candidate exists but not from archive.raspberrypi.org/${suite}: ${missing_suite_packages}"; \
-        return 1; \
-      fi; \
-      echo "[Layer 2] Preflight passed for suite ${suite}"; \
-      return 0; \
-    } && \
-    install_camera_packages() { \
-      apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
-        libcamera-apps \
-        libcamera-dev \
-        python3-libcamera \
-        python3-picamera2 \
-        v4l-utils; \
-    } && \
-    update_with_optional_fallback && \
-    check_camera_preflight "$ACTIVE_RPI_SUITE" && \
-    echo "[Layer 2] Attempting to install libcamera packages for ${ACTIVE_RPI_SUITE}..." && \
-    install_camera_packages && \
-    echo "[Layer 2] SUCCESS: libcamera packages installed from ${ACTIVE_RPI_SUITE}" && \
-    echo "[Layer 2] Package origin verification:" && \
-    apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
-    dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
-      libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true && \
-    rm -rf /var/lib/apt/lists/*
-
-# ---- Layer 3: Virtual Environment Setup (Volatile) ----
+# ---- Layer 2: Virtual Environment Setup ----
 # Create venv to isolate pip-managed packages from system Python
 # Using --system-site-packages to allow venv access to apt-installed picamera2 and libcamera
 # This prevents conflicts between apt-managed (system) and pip-managed (application) dependencies
-# while ensuring camera stack visibility (picamera2 is installed via apt, not pip)
+# while ensuring camera stack visibility (picamera2 is installed via apt in final stage, not pip)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     python3 -m venv --system-site-packages /opt/venv && \
     /opt/venv/bin/pip install --upgrade pip setuptools wheel
 
-# ---- Layer 4: Python Dependencies (Volatile) ----
+# ---- Layer 3: Python Dependencies (Volatile) ----
 # Prepare for pip install: copy requirements and install pip packages into venv
 # Separate layer enables fast cache hits when only requirements.txt changes
 WORKDIR /app
@@ -202,19 +64,21 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     else \
         echo "Skipping Pillow installation (INCLUDE_MOCK_CAMERA=false)"; \
     fi && \
+    rm -rf /tmp/requirements-base.txt /tmp/*\
+        grep "^Pillow" requirements.txt | /opt/venv/bin/pip install --no-cache-dir -r /dev/stdin; \
+    else \
+        echo "Skipping Pillow installation (INCLUDE_MOCK_CAMERA=false)"; \
+    fi && \
     rm -rf /tmp/requirements-base.txt /tmp/*
 
 # ---- Final Stage ----
-# The final image uses debian:${DEBIAN_SUITE}-slim with system Python to ensure apt-installed
-# python3-picamera2 is available alongside isolated pip dependencies in /opt/venv
+# The final image uses debian:bookworm-slim with system Python for apt-installed
+# python3-picamera2 and libcamera libraries alongside isolated pip dependencies in /opt/venv
 # Venv approach prevents conflicts between system and pip-managed package versions
-FROM debian:${DEBIAN_SUITE}-slim
+FROM debian:bookworm-slim
 
 # Re-declare build args for this stage
-ARG DEBIAN_SUITE
-ARG RPI_SUITE
 ARG INCLUDE_MOCK_CAMERA
-ARG ALLOW_BOOKWORM_FALLBACK
 
 # Prevent Python bytecode generation and enable unbuffered output
 # Savings: ~5-10% image size; improves container startup performance
@@ -224,15 +88,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH=/opt/venv/bin:$PATH
 
 # ---- OCI Labels (Metadata - no cache impact) ----
-# Image metadata with build-time arguments for provenance tracking
+# Image metadata for provenance tracking
 LABEL org.opencontainers.image.source="https://github.com/CyanAutomation/motioninocean"
 LABEL org.opencontainers.image.description="Raspberry Pi CSI camera streaming container (Picamera2/libcamera)"
 LABEL org.opencontainers.image.authors="CyanAutomation"
 LABEL org.opencontainers.image.vendor="CyanAutomation"
-LABEL org.opencontainers.image.build.debian-suite="${DEBIAN_SUITE}"
-LABEL org.opencontainers.image.build.rpi-suite="${RPI_SUITE}"
-LABEL org.opencontainers.image.build.requested-rpi-suite="${RPI_SUITE}"
-LABEL org.opencontainers.image.build.allow-bookworm-fallback="${ALLOW_BOOKWORM_FALLBACK}"
 LABEL org.opencontainers.image.build.include-mock-camera="${INCLUDE_MOCK_CAMERA}"
 
 # ---- Layer 1: System Dependencies (Stable) ----
@@ -249,89 +109,45 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 
 
-# ---- Layer 2: Raspberry Pi Repository Setup + Camera Packages (Stable) ----
-# Copy Raspberry Pi keyring/repository/pinning from builder immediately before camera package installation.
-# This keeps Layer 1 independent of archive.raspberrypi.org while preserving consistent repository config.
-COPY --from=builder /usr/share/keyrings/raspberrypi.gpg /usr/share/keyrings/raspberrypi.gpg
-COPY --from=builder /etc/apt/sources.list.d/raspi.list /etc/apt/sources.list.d/raspi.list
-COPY --from=builder /etc/apt/preferences.d/rpi-camera.preferences /etc/apt/preferences.d/rpi-camera.preferences
-
-# Install Raspberry Pi camera runtime packages using the copied repository setup
-# Note: libcamera-dev excluded from final stage (header files not needed at runtime, saves ~30-50MB)
-#
-# Fallback behavior controlled by ALLOW_BOOKWORM_FALLBACK:
-# - false (default): fail build if primary RPI_SUITE packages unavailable (prevents silent mismatches)
-# - true: automatically fallback to Bookworm if primary suite fails (for compatibility builds)
+# ---- Layer 2: Raspberry Pi Repository Setup & Camera Packages ----
+# Install Raspberry Pi camera runtime packages with strict GPG verification.
+# No fallback logic; build fails clearly if packages unavailable.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
-    REQUIRED_CAMERA_PACKAGES="libcamera-apps python3-libcamera python3-picamera2" && \
-    ACTIVE_RPI_SUITE="${RPI_SUITE}" && \
-    update_with_optional_fallback() { \
-      if apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60; then \
-        echo "[Final Stage Layer 2] apt-get update succeeded for suite ${ACTIVE_RPI_SUITE}"; \
-        return 0; \
-      fi; \
-      echo "[ERROR][signature-policy] apt-get update failed for suite ${ACTIVE_RPI_SUITE}. Repository metadata/signature policy verification may have failed."; \
-      if [ "${ALLOW_BOOKWORM_FALLBACK}" = "true" ] && [ "${ACTIVE_RPI_SUITE}" != "bookworm" ]; then \
-        echo "[Final Stage Layer 2] ALLOW_BOOKWORM_FALLBACK=true: switching Raspberry Pi repository to suite bookworm and retrying apt-get update"; \
-        export ACTIVE_RPI_SUITE="bookworm"; \
-        echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ ${ACTIVE_RPI_SUITE} main" > /etc/apt/sources.list.d/raspi.list; \
-        if apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60; then \
-          echo "[Final Stage Layer 2] apt-get update succeeded for fallback suite ${ACTIVE_RPI_SUITE}"; \
-          return 0; \
-        fi; \
-        echo "[ERROR][signature-policy] apt-get update failed again after fallback to suite ${ACTIVE_RPI_SUITE}."; \
-        exit 1; \
-      fi; \
-      echo "[ERROR][fallback-disabled] ALLOW_BOOKWORM_FALLBACK=${ALLOW_BOOKWORM_FALLBACK}; cannot switch from suite ${ACTIVE_RPI_SUITE} to bookworm for retry."; \
-      exit 1; \
-    } && \
-    check_camera_preflight() { \
-      suite="$1"; \
-      missing_candidate_packages=""; \
-      missing_suite_packages=""; \
-      for pkg in $REQUIRED_CAMERA_PACKAGES; do \
-        echo "[Final Stage Layer 2] Preflight: checking ${pkg} for suite ${suite}"; \
-        apt-cache policy "$pkg"; \
-        candidate="$(apt-cache policy "$pkg" | awk '/Candidate:/ {print $2; exit}')"; \
-        if [ -z "$candidate" ] || [ "$candidate" = "(none)" ]; then \
-          missing_candidate_packages="$missing_candidate_packages $pkg"; \
-          continue; \
-        fi; \
-        if ! apt-cache madison "$pkg" | awk -v suite="$suite" '$0 ~ /archive\.raspberrypi\.org\/debian/ && $0 ~ suite {found=1} END {exit found ? 0 : 1}'; then \
-          missing_suite_packages="$missing_suite_packages $pkg"; \
-        fi; \
-      done; \
-      missing_candidate_packages="$(echo "$missing_candidate_packages" | xargs)"; \
-      missing_suite_packages="$(echo "$missing_suite_packages" | xargs)"; \
-      if [ -n "$missing_candidate_packages" ]; then \
-        echo "[ERROR][missing-package-candidate] Preflight failed for suite ${suite}. No apt candidate for package(s): ${missing_candidate_packages}"; \
-        return 1; \
-      fi; \
-      if [ -n "$missing_suite_packages" ]; then \
-        echo "[ERROR][missing-package-candidate] Preflight failed for suite ${suite}. Candidate exists but not from archive.raspberrypi.org/${suite}: ${missing_suite_packages}"; \
-        return 1; \
-      fi; \
-      echo "[Final Stage Layer 2] Preflight passed for suite ${suite}"; \
-      return 0; \
-    } && \
-    install_camera_packages() { \
-      apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
-        libcamera-apps \
-        python3 \
-        python3-numpy \
-        python3-libcamera \
-        python3-picamera2 \
-        v4l-utils; \
-    } && \
-    update_with_optional_fallback && \
-    check_camera_preflight "$ACTIVE_RPI_SUITE" && \
-    printf '%s\n' "$ACTIVE_RPI_SUITE" > /tmp/active_rpi_suite && \
-    echo "[Final Stage Layer 2] Attempting to install libcamera packages from ${ACTIVE_RPI_SUITE}..." && \
-    install_camera_packages && \
-    echo "[Final Stage Layer 2] SUCCESS: libcamera packages installed from ${ACTIVE_RPI_SUITE}" && \
-    echo "[Final Stage Layer 2] Package origin verification:" && \
+    # Download and verify Raspberry Pi GPG key
+    echo "Downloading Raspberry Pi GPG key..." && \
+    curl -L --connect-timeout 10 --max-time 30 --retry 2 -f \
+      "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" \
+      -o /tmp/raspberrypi.gpg.key && \
+    echo "Verifying GPG key integrity..." && \
+    gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
+    rm /tmp/raspberrypi.gpg.key && \
+    # Add Raspberry Pi repository (pinned to bookworm, no suite switching)
+    echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
+    # Create apt preferences to prioritize camera packages from RPi repo
+    mkdir -p /etc/apt/preferences.d && \
+    printf "# Pin camera-related packages to Raspberry Pi repository\n\
+Package: libcamera* python3-libcamera python3-picamera2 rpicam*\n\
+Pin: origin archive.raspberrypi.org\n\
+Pin-Priority: 1001\n\
+\n\
+# Lower priority for other RPi packages (prefer Debian versions)\n\
+Package: *\n\
+Pin: origin archive.raspberrypi.org\n\
+Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
+    # Update and install camera packages
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+      libcamera-apps \
+      libcamera-dev \
+      python3-libcamera \
+      python3-picamera2 \
+      python3 \
+      python3-numpy \
+      v4l-utils && \
+    # Verify installation
+    echo "Camera packages installed successfully:" && \
     apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
     dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
       libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true && \
@@ -365,20 +181,19 @@ COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /app/healthcheck.py
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# ---- Layer 6: Build Metadata & Provenance ----
+# ---- Layer 5: Build Metadata & Provenance ----
 # Write build metadata to /app/BUILD_METADATA for runtime access by logging system
-# Enables camera stack provenance logging at startup (version info, build suite, etc.)
+# Enables camera stack provenance logging at startup (version info, build details, etc.)
 RUN mkdir -p /app && \
     ( \
-        echo "DEBIAN_SUITE=${DEBIAN_SUITE}"; \
-        echo "RPI_SUITE=${RPI_SUITE}"; \
-        if [ -f /tmp/active_rpi_suite ]; then echo "ACTIVE_RPI_SUITE=$(cat /tmp/active_rpi_suite)"; fi; \
+        echo "DEBIAN_SUITE=bookworm"; \
+        echo "RPI_SUITE=bookworm"; \
         echo "INCLUDE_MOCK_CAMERA=${INCLUDE_MOCK_CAMERA}"; \
         echo "BUILD_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"; \
     ) > /app/BUILD_METADATA && \
-    cat /app/BUILD_METADATA && \
-    rm -f /tmp/active_rpi_suite
+    cat /app/BUILD_METADATA
 
+# ---- Layer 6: Validate Python Modules & Camera Contract ----
 # Validate required Python modules and picamera2 camera-info contract in the final image
 # Known-good baseline: Raspberry Pi Bookworm repo package for python3-picamera2 (archive.raspberrypi.org/debian)
 RUN python3 - <<'PY'

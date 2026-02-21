@@ -34,6 +34,45 @@ const advancedDiagnosticsToggle = document.getElementById("advanced-diagnostics-
 const diagnosticPanelContent = document.getElementById("diagnostic-panel-content");
 const diagnosticsAdvancedCheckbox = advancedDiagnosticsToggle;
 const diagnosticsCollapsibleContainer = diagnosticPanelContent;
+const managementMain = document.getElementById("management-main");
+const overviewView = document.getElementById("overview-view");
+const devicesView = document.getElementById("devices-view");
+const discoveredView = document.getElementById("discovered-view");
+const settingsView = document.getElementById("settings-view");
+const overviewTotalWebcams = document.getElementById("overview-total-webcams");
+const overviewHealthyWebcams = document.getElementById("overview-healthy-webcams");
+const overviewUnavailableWebcams = document.getElementById("overview-unavailable-webcams");
+const overviewStreamingWebcams = document.getElementById("overview-streaming-webcams");
+const overviewActivityList = document.getElementById("overview-activity-list");
+const overviewActionList = document.getElementById("overview-action-list");
+const refreshDashboardBtn = document.getElementById("refresh-dashboard-btn");
+const scanDiscoveredBtn = document.getElementById("scan-discovered-btn");
+const discoveredList = document.getElementById("discovered-list");
+const discoveredNotes = document.getElementById("discovered-notes");
+const discoveredFeedback = document.getElementById("discovered-feedback");
+const discoveredApproveBtn = document.getElementById("discovered-approve-btn");
+const discoveredRejectBtn = document.getElementById("discovered-reject-btn");
+const discoveredLaterBtn = document.getElementById("discovered-later-btn");
+const viewOverviewBtn = document.getElementById("view-overview-btn");
+const viewDevicesBtn = document.getElementById("view-devices-btn");
+const viewDiscoveredBtn = document.getElementById("view-discovered-btn");
+const viewSettingsBtn = document.getElementById("view-settings-btn");
+const themeToggleBtn = document.getElementById("theme-toggle-btn");
+const refreshSettingsBtn = document.getElementById("refresh-settings-btn");
+const settingsSaveBtn = document.getElementById("settings-save-btn");
+const settingsResetBtn = document.getElementById("settings-reset-btn");
+const settingsFeedback = document.getElementById("settings-feedback");
+const settingsDiscoveryEnabled = document.getElementById("settings-discovery-enabled");
+const settingsDiscoveryUrl = document.getElementById("settings-discovery-url");
+const settingsDiscoveryToken = document.getElementById("settings-discovery-token");
+const settingsDiscoveryInterval = document.getElementById("settings-discovery-interval");
+const settingsRuntimeSummary = document.getElementById("settings-runtime-summary");
+const settingsValidationSummary = document.getElementById("settings-validation-summary");
+const settingsOverridesList = document.getElementById("settings-overrides-list");
+const settingsTabButtons = document.querySelectorAll("[data-settings-tab]");
+const settingsAuthPanel = document.getElementById("settings-auth-panel");
+const settingsDiscoveryPanel = document.getElementById("settings-discovery-panel");
+const settingsRuntimePanel = document.getElementById("settings-runtime-panel");
 
 let webcams = [];
 let webcamStatusMap = new Map();
@@ -44,12 +83,23 @@ let statusRefreshPendingManual = false;
 let statusRefreshToken = 0;
 let statusRefreshIntervalId;
 let latestDiagnosticResult = null;
+let overviewSnapshot = null;
+let currentView = "overview";
+let currentSettingsPayload = null;
+let selectedDiscoveredNodeId = "";
+let activityFeed = [];
+let previousStatusByNode = new Map();
+let discoveredSnoozedIds = new Set();
 const API_AUTH_HINT =
   "Management API request unauthorized. Provide a valid Management API Bearer Token, then click Refresh to retry.";
 
 const DOCKER_BASE_URL_PATTERN = String.raw`docker://[^\s/:]+:\d+/[^\s/]+`;
 const DOCKER_BASE_URL_HINT = "Use format: docker://proxy-hostname:port/container-id";
 const NODE_FORM_COLLAPSED_STORAGE_KEY = "management.webcamFormCollapsed";
+const VIEW_HASH_PREFIX = "#";
+const VIEWS = ["overview", "devices", "discovered", "settings"];
+const THEME_STORAGE_KEY = "management.theme";
+const SNOOZE_STORAGE_KEY = "management.discoveredSnoozedIds";
 
 function setDiagnosticPanelExpanded(isExpanded) {
   if (
@@ -78,6 +128,16 @@ function getMissingRequiredElementIds() {
     ["editing-webcam-id", editingWebcamIdInput],
     ["webcam-transport", document.getElementById("webcam-transport")],
     ["copy-diagnostic-report-btn", copyDiagnosticReportBtn],
+    ["management-main", managementMain],
+    ["overview-view", overviewView],
+    ["devices-view", devicesView],
+    ["discovered-view", discoveredView],
+    ["settings-view", settingsView],
+    ["view-overview-btn", viewOverviewBtn],
+    ["view-devices-btn", viewDevicesBtn],
+    ["view-discovered-btn", viewDiscoveredBtn],
+    ["view-settings-btn", viewSettingsBtn],
+    ["theme-toggle-btn", themeToggleBtn],
   ];
 
   return requiredElements.filter(([, element]) => element == null).map(([id]) => id);
@@ -485,6 +545,397 @@ function escapeHtml(value) {
   return div.innerHTML;
 }
 
+function setTextContent(element, text) {
+  if (element instanceof HTMLElement) {
+    element.textContent = text;
+  }
+}
+
+function getViewFromLocationHash() {
+  const rawHash = String(globalThis.location?.hash || "").replace(VIEW_HASH_PREFIX, "");
+  return VIEWS.includes(rawHash) ? rawHash : "overview";
+}
+
+function setActiveView(view) {
+  if (!VIEWS.includes(view)) {
+    return;
+  }
+  currentView = view;
+  const viewMap = {
+    overview: overviewView,
+    devices: devicesView,
+    discovered: discoveredView,
+    settings: settingsView,
+  };
+  for (const [name, element] of Object.entries(viewMap)) {
+    if (element instanceof HTMLElement) {
+      element.classList.toggle("hidden", name !== view);
+    }
+  }
+  const btnMap = {
+    overview: viewOverviewBtn,
+    devices: viewDevicesBtn,
+    discovered: viewDiscoveredBtn,
+    settings: viewSettingsBtn,
+  };
+  for (const [name, button] of Object.entries(btnMap)) {
+    if (button instanceof HTMLButtonElement) {
+      const active = name === view;
+      button.classList.toggle("management-view-btn--active", active);
+      button.setAttribute("aria-current", active ? "page" : "false");
+    }
+  }
+  if (globalThis.location?.hash !== `#${view}`) {
+    globalThis.history.replaceState(null, "", `#${view}`);
+  }
+}
+
+function applyTheme(theme) {
+  const resolvedTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", resolvedTheme);
+  setTextContent(themeToggleBtn, resolvedTheme === "dark" ? "Light Theme" : "Dark Theme");
+  try {
+    globalThis.localStorage?.setItem(THEME_STORAGE_KEY, resolvedTheme);
+  } catch {
+    // Ignore local storage failures.
+  }
+}
+
+function initializeTheme() {
+  let preferredTheme = "light";
+  try {
+    preferredTheme = globalThis.localStorage?.getItem(THEME_STORAGE_KEY) || "light";
+  } catch {
+    preferredTheme = "light";
+  }
+  applyTheme(preferredTheme);
+}
+
+function getDiscoveredNodes() {
+  return webcams.filter((node) => {
+    const discovery = getDiscoveryInfo(node);
+    return discovery.source === "discovered" && !discovery.approved;
+  });
+}
+
+function loadSnoozedDiscoveredIds() {
+  try {
+    const raw = globalThis.localStorage?.getItem(SNOOZE_STORAGE_KEY) || "[]";
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      discoveredSnoozedIds = new Set(parsed.filter((entry) => typeof entry === "string"));
+    }
+  } catch {
+    discoveredSnoozedIds = new Set();
+  }
+}
+
+function persistSnoozedDiscoveredIds() {
+  try {
+    globalThis.localStorage?.setItem(
+      SNOOZE_STORAGE_KEY,
+      JSON.stringify(Array.from(discoveredSnoozedIds)),
+    );
+  } catch {
+    // Ignore local storage failures.
+  }
+}
+
+function appendActivityFeed(message, level = "info") {
+  const timestamp = new Date().toISOString();
+  activityFeed.unshift({ timestamp, message, level });
+  if (activityFeed.length > 40) {
+    activityFeed = activityFeed.slice(0, 40);
+  }
+}
+
+function renderOverviewPanel() {
+  if (overviewSnapshot) {
+    setTextContent(overviewTotalWebcams, String(overviewSnapshot.total_webcams ?? 0));
+    setTextContent(overviewHealthyWebcams, String(overviewSnapshot.healthy_webcams ?? 0));
+    setTextContent(overviewUnavailableWebcams, String(overviewSnapshot.unavailable_webcams ?? 0));
+    setTextContent(
+      overviewStreamingWebcams,
+      String(overviewSnapshot.stream_available_webcams ?? 0),
+    );
+  }
+
+  if (overviewActivityList instanceof HTMLElement) {
+    if (!activityFeed.length) {
+      overviewActivityList.innerHTML = "<li>No activity yet.</li>";
+    } else {
+      overviewActivityList.innerHTML = activityFeed
+        .map(
+          (entry) =>
+            `<li><strong>${escapeHtml(new Date(entry.timestamp).toLocaleTimeString())}</strong> ${escapeHtml(entry.message)}</li>`,
+        )
+        .join("");
+    }
+  }
+
+  if (overviewActionList instanceof HTMLElement) {
+    const statusEntries = Array.from(webcamStatusMap.values());
+    const authIssues = statusEntries.filter(
+      (status) => String(status.error_code || "").toUpperCase() === "WEBCAM_UNAUTHORIZED",
+    ).length;
+    const privateIpBlocked = statusEntries.filter(
+      (status) => String(status.error_code || "").toUpperCase() === "SSRF_BLOCKED",
+    ).length;
+    const pendingDiscovered = getDiscoveredNodes().length;
+    const items = [];
+    if (authIssues > 0) {
+      items.push(`Auth remediation needed on ${authIssues} node(s).`);
+    }
+    if (pendingDiscovered > 0) {
+      items.push(`${pendingDiscovered} discovered device(s) waiting for review.`);
+    }
+    if (privateIpBlocked > 0) {
+      items.push(`${privateIpBlocked} node(s) blocked by safety rules.`);
+    }
+    overviewActionList.innerHTML = items.length
+      ? items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+      : "<li>No action items.</li>";
+  }
+}
+
+function renderDiscoveredPanel() {
+  const pendingNodes = getDiscoveredNodes().filter((node) => !discoveredSnoozedIds.has(node.id));
+  if (!selectedDiscoveredNodeId && pendingNodes.length > 0) {
+    selectedDiscoveredNodeId = pendingNodes[0].id;
+  }
+  if (!pendingNodes.some((node) => node.id === selectedDiscoveredNodeId)) {
+    selectedDiscoveredNodeId = pendingNodes[0]?.id || "";
+  }
+
+  if (discoveredList instanceof HTMLElement) {
+    if (!pendingNodes.length) {
+      discoveredList.innerHTML = "<li>No discovered devices pending approval.</li>";
+    } else {
+      discoveredList.innerHTML = pendingNodes
+        .map((node) => {
+          const selectedClass = node.id === selectedDiscoveredNodeId ? " discovered-item--selected" : "";
+          return `<li>
+            <button class="discovered-item${selectedClass}" data-discovered-id="${escapeHtml(node.id)}" type="button">
+              <strong>${escapeHtml(node.name || node.id)}</strong><br/>
+              <small>${escapeHtml(node.base_url || "Unknown URL")}</small>
+            </button>
+          </li>`;
+        })
+        .join("");
+    }
+  }
+
+  if (discoveredNotes instanceof HTMLElement) {
+    const activeStatus = selectedDiscoveredNodeId
+      ? webcamStatusMap.get(selectedDiscoveredNodeId)
+      : undefined;
+    const notes = [];
+    if (activeStatus?.error_message) {
+      notes.push(activeStatus.error_message);
+    }
+    if (activeStatus?.error_details) {
+      notes.push(String(activeStatus.error_details));
+    }
+    if (!notes.length) {
+      notes.push("Blocked by local safety rule.");
+    }
+    discoveredNotes.innerHTML = notes.map((note) => `<li>${escapeHtml(note)}</li>`).join("");
+  }
+
+  const actionDisabled = !selectedDiscoveredNodeId;
+  if (discoveredApproveBtn instanceof HTMLButtonElement) {
+    discoveredApproveBtn.disabled = actionDisabled;
+  }
+  if (discoveredRejectBtn instanceof HTMLButtonElement) {
+    discoveredRejectBtn.disabled = actionDisabled;
+  }
+  if (discoveredLaterBtn instanceof HTMLButtonElement) {
+    discoveredLaterBtn.disabled = actionDisabled;
+  }
+}
+
+async function fetchOverview() {
+  try {
+    const response = await managementFetch("/api/management/overview");
+    if (!response.ok) {
+      return;
+    }
+    const payload = await response.json();
+    overviewSnapshot = payload.summary || null;
+    renderOverviewPanel();
+  } catch {
+    // Non-fatal: overview panel can still render from current status maps.
+  }
+}
+
+function setDiscoveredFeedback(message, isError = false) {
+  if (!(discoveredFeedback instanceof HTMLElement)) {
+    return;
+  }
+  discoveredFeedback.textContent = message;
+  discoveredFeedback.style.color = isError ? "#b91c1c" : "#166534";
+}
+
+async function applyDiscoveredDecision(decision) {
+  if (!selectedDiscoveredNodeId) {
+    setDiscoveredFeedback("Select a discovered node first.", true);
+    return;
+  }
+  if (decision === "snooze") {
+    discoveredSnoozedIds.add(selectedDiscoveredNodeId);
+    persistSnoozedDiscoveredIds();
+    setDiscoveredFeedback(`Node ${selectedDiscoveredNodeId} snoozed for this browser session.`);
+    renderDiscoveredPanel();
+    return;
+  }
+  await setDiscoveryApproval(selectedDiscoveredNodeId, decision);
+  setDiscoveredFeedback(`Node ${selectedDiscoveredNodeId} ${decision}d.`);
+}
+
+function setSettingsFeedback(message, isError = false) {
+  if (!(settingsFeedback instanceof HTMLElement)) {
+    return;
+  }
+  settingsFeedback.textContent = message;
+  settingsFeedback.style.color = isError ? "#b91c1c" : "#166534";
+}
+
+function setSettingsTab(tabName) {
+  const panels = {
+    auth: settingsAuthPanel,
+    discovery: settingsDiscoveryPanel,
+    runtime: settingsRuntimePanel,
+  };
+  for (const [name, panel] of Object.entries(panels)) {
+    if (panel instanceof HTMLElement) {
+      panel.classList.toggle("hidden", name !== tabName);
+    }
+  }
+  settingsTabButtons.forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) {
+      return;
+    }
+    const active = button.dataset.settingsTab === tabName;
+    button.classList.toggle("management-view-btn--active", active);
+    button.setAttribute("aria-current", active ? "true" : "false");
+  });
+}
+
+function renderRuntimeSettingsChanges(changesPayload = {}) {
+  const overridden = Array.isArray(changesPayload.overridden) ? changesPayload.overridden : [];
+  if (settingsRuntimeSummary instanceof HTMLElement) {
+    settingsRuntimeSummary.textContent =
+      overridden.length > 0 ? "Using custom values" : "Using environment defaults";
+  }
+  if (settingsOverridesList instanceof HTMLElement) {
+    settingsOverridesList.innerHTML = overridden.length
+      ? overridden
+          .map(
+            (entry) =>
+              `<li>${escapeHtml(entry.category || "unknown")}.${escapeHtml(entry.key || "unknown")} = ${escapeHtml(JSON.stringify(entry.value))}</li>`,
+          )
+          .join("")
+      : "<li>No overrides.</li>";
+  }
+}
+
+async function fetchSettingsData() {
+  try {
+    const [settingsResponse, changesResponse] = await Promise.all([
+      managementFetch("/api/settings"),
+      managementFetch("/api/settings/changes"),
+    ]);
+    if (!settingsResponse.ok) {
+      throw new Error("Could not load settings.");
+    }
+    currentSettingsPayload = await settingsResponse.json();
+    const settingsDiscovery = currentSettingsPayload.discovery || {};
+    if (settingsDiscoveryEnabled instanceof HTMLInputElement) {
+      settingsDiscoveryEnabled.checked = Boolean(settingsDiscovery.discovery_enabled);
+    }
+    if (settingsDiscoveryUrl instanceof HTMLInputElement) {
+      settingsDiscoveryUrl.value = String(settingsDiscovery.discovery_management_url || "");
+    }
+    if (settingsDiscoveryToken instanceof HTMLInputElement) {
+      settingsDiscoveryToken.value = String(settingsDiscovery.discovery_token || "");
+    }
+    if (settingsDiscoveryInterval instanceof HTMLInputElement) {
+      settingsDiscoveryInterval.value = String(settingsDiscovery.discovery_interval_seconds ?? 30);
+    }
+    if (changesResponse.ok) {
+      const changesPayload = await changesResponse.json();
+      renderRuntimeSettingsChanges(changesPayload);
+    }
+    if (settingsValidationSummary instanceof HTMLElement) {
+      settingsValidationSummary.textContent = "Validation summary";
+    }
+  } catch (error) {
+    setSettingsFeedback(error?.message || "Failed to load settings.", true);
+  }
+}
+
+async function saveSettings() {
+  if (
+    !(settingsDiscoveryEnabled instanceof HTMLInputElement) ||
+    !(settingsDiscoveryUrl instanceof HTMLInputElement) ||
+    !(settingsDiscoveryToken instanceof HTMLInputElement) ||
+    !(settingsDiscoveryInterval instanceof HTMLInputElement)
+  ) {
+    return;
+  }
+  setSettingsFeedback("");
+  const patchPayload = {
+    discovery: {
+      discovery_enabled: settingsDiscoveryEnabled.checked,
+      discovery_management_url: settingsDiscoveryUrl.value.trim(),
+      discovery_token: settingsDiscoveryToken.value.trim(),
+      discovery_interval_seconds: Number(settingsDiscoveryInterval.value || "30"),
+    },
+  };
+  try {
+    const response = await managementFetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patchPayload),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (response.status === 422) {
+      setSettingsFeedback("Saved. Some changes require restart to take effect.");
+      if (settingsValidationSummary instanceof HTMLElement) {
+        settingsValidationSummary.textContent = `Requires restart (${(payload.modified_on_restart || []).length})`;
+      }
+      await fetchSettingsData();
+      return;
+    }
+    if (!response.ok) {
+      setSettingsFeedback(describeApiError(payload) || "Failed to save settings.", true);
+      return;
+    }
+    setSettingsFeedback("Settings saved.");
+    if (settingsValidationSummary instanceof HTMLElement) {
+      settingsValidationSummary.textContent = "Validation summary";
+    }
+    await fetchSettingsData();
+  } catch (error) {
+    setSettingsFeedback(error?.message || "Failed to save settings.", true);
+  }
+}
+
+async function resetSettings() {
+  setSettingsFeedback("");
+  try {
+    const response = await managementFetch("/api/settings/reset", { method: "POST" });
+    if (!response.ok) {
+      setSettingsFeedback("Reset failed.", true);
+      return;
+    }
+    setSettingsFeedback("Settings reset to defaults.");
+    await fetchSettingsData();
+  } catch (error) {
+    setSettingsFeedback(error?.message || "Reset failed.", true);
+  }
+}
+
 function renderRows() {
   if (!webcams.length) {
     tableBody.innerHTML = '<tr><td colspan="8" class="empty">No nodes registered.</td></tr>';
@@ -554,7 +1005,7 @@ async function fetchWebcams() {
       throw new Error("Failed to load nodes");
     }
     const payload = await response.json();
-    webcams = payload.nodes || [];
+    webcams = payload.webcams || payload.nodes || [];
     const activeNodeIds = new Set(webcams.map((node) => node.id));
     for (const nodeId of webcamStatusMap.keys()) {
       if (!activeNodeIds.has(nodeId)) {
@@ -563,6 +1014,8 @@ async function fetchWebcams() {
       }
     }
     renderRows();
+    renderDiscoveredPanel();
+    renderOverviewPanel();
   } catch (error) {
     if (error?.isUnauthorized) {
       showFeedback(API_AUTH_HINT, true);

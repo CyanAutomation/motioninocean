@@ -767,23 +767,15 @@ See [.github/workflows/docker-publish.yml](.github/workflows/docker-publish.yml)
 
 ### Multi-Architecture Builds
 
-The Dockerfile supports multi-arch via Docker Buildx. The **primary build targets Debian Bookworm** (stable, Feb 2026 compatible):
+Motion In Ocean is locked to **Debian Bookworm** (stable, rigid appliance model). The Dockerfile supports multi-arch via Docker Buildx without suite overrides:
 
 ```bash
-# Build primary Bookworm for arm64 (Raspberry Pi) and amd64 (Intel/AMD)
+# Build for arm64 (Raspberry Pi) and amd64 (Intel/AMD)
 docker buildx build --platform linux/arm64,linux/amd64 \
-  --build-arg DEBIAN_SUITE=bookworm \
-  --build-arg RPI_SUITE=bookworm \
   -t ghcr.io/cyanautomation/motioninocean:latest .
-
-# Experimental Trixie build (may fail due to GPG SHA1 policy as of 2026-02-01)
-docker buildx build --platform linux/arm64,linux/amd64 \
-  --build-arg DEBIAN_SUITE=trixie \
-  --build-arg RPI_SUITE=bookworm \
-  -t ghcr.io/cyanautomation/motioninocean:trixie-experimental .
 ```
 
-**Why Bookworm is now primary:** Debian 13 (Trixie) enforces strict GPG signature policy, rejecting SHA1 bindings. The Raspberry Pi repository's signing key uses SHA1, making it incompatible with Trixie. Use Bookworm until the Raspberry Pi project reissues their GPG key with modern algorithms.
+**Architecture & Philosophy:** Motion In Ocean is an appliance container designed for Raspberry Pi with CSI camera hardware. It locks to Bookworm distro and hardware assumptions for reliability, fail-fast semantics, and minimal operational complexity. If you need alternative distros, fork the Dockerfile and adapt the camera package sources.
 
 ---
 
