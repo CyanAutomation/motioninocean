@@ -1,8 +1,8 @@
 import logging
 import os
 import socket
-from typing import Any, Dict, Tuple
 from pathlib import Path
+from typing import Any, Dict, Tuple
 
 from .application_settings import ApplicationSettings, SettingsValidationError
 from .feature_flags import is_flag_enabled

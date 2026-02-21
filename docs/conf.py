@@ -4,10 +4,8 @@ Generates HTML/PDF documentation from Python docstrings (Google-style via napole
 and guides in docs/ directory.
 """
 
-import os
 import sys
 from pathlib import Path
-
 
 
 # Add source directory to path for autodoc

@@ -46,10 +46,14 @@ help:
 	@echo "  make clean            Clean build artifacts and cache files"
 	@echo ""
 	@echo "Docker:"
-	@echo "  make docker-build          Build default image (with mock camera)"
-	@echo "  make docker-build-prod     Build production image (without mock camera)"
-	@echo "  make docker-build-production  Build production image (opencv, no mock)"
-	@echo "  make docker-build-all      Build all image variants"
+	@echo "  make docker-build              Build default image (with mock camera)"
+	@echo "  make docker-build-prod         Build production image (without mock camera)"
+	@echo "  make docker-build-arm64        Build ARM64 image (explicit for Raspberry Pi)"
+	@echo "  make docker-build-prod-arm64   Build ARM64 production image"
+	@echo "  make docker-build-bookworm     Build Bookworm image variant"
+	@echo "  make docker-build-bookworm-prod  Build Bookworm production variant"
+	@echo "  make docker-build-bookworm-arm64  Build ARM64 Bookworm image"
+	@echo "  make docker-build-bookworm-prod-arm64 Build ARM64 Bookworm production"
 	@echo "  make docker-run            Run Docker container"
 	@echo "  make docker-stop           Stop Docker container"
 	@echo ""
@@ -251,8 +255,16 @@ clean:
 # Docker targets
 # Using BuildKit for enhanced caching and faster builds
 # Build args: DEBIAN_SUITE (default: trixie), RPI_SUITE (default: trixie), INCLUDE_MOCK_CAMERA (default: true)
+#
+# ARCHITECTURE NOTE:
+# Local `docker build` defaults to your host's CPU architecture (amd64 on Intel/Mac, arm64 on ARM hosts).
+# For Raspberry Pi deployment, use the -arm64 targets to explicitly build ARM64 images:
+#   make docker-build-arm64       (instead of make docker-build)
+#   make docker-build-prod-arm64  (instead of make docker-build-prod)
+# Or use plain `docker build` if building on an ARM64 host.
 docker-build:
 	@echo "Building default Docker image (trixie, with mock camera)..."
+	@echo "Note: This builds for your host architecture. For Raspberry Pi, use: make docker-build-arm64"
 	DOCKER_BUILDKIT=1 docker build \
 		--build-arg DEBIAN_SUITE=trixie \
 		--build-arg RPI_SUITE=trixie \
