@@ -95,27 +95,52 @@ Pin-Priority: 1001\n\
 Package: *\n\
 Pin: origin archive.raspberrypi.org\n\
 Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
-    echo "[Layer 2] Running apt-get update..." && \
-    apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
     REQUIRED_CAMERA_PACKAGES="libcamera-apps python3-libcamera python3-picamera2" && \
+    ACTIVE_RPI_SUITE="${RPI_SUITE}" && \
+    update_with_optional_fallback() { \
+      if apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60; then \
+        echo "[Layer 2] apt-get update succeeded for suite ${ACTIVE_RPI_SUITE}"; \
+        return 0; \
+      fi; \
+      echo "[ERROR][signature-policy] apt-get update failed for suite ${ACTIVE_RPI_SUITE}. Repository metadata/signature policy verification may have failed."; \
+      if [ "${ALLOW_BOOKWORM_FALLBACK}" = "true" ] && [ "${ACTIVE_RPI_SUITE}" != "bookworm" ]; then \
+        echo "[Layer 2] ALLOW_BOOKWORM_FALLBACK=true: switching Raspberry Pi repository to suite bookworm and retrying apt-get update"; \
+        export ACTIVE_RPI_SUITE="bookworm"; \
+        echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ ${ACTIVE_RPI_SUITE} main" > /etc/apt/sources.list.d/raspi.list; \
+        if apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60; then \
+          echo "[Layer 2] apt-get update succeeded for fallback suite ${ACTIVE_RPI_SUITE}"; \
+          return 0; \
+        fi; \
+        echo "[ERROR][signature-policy] apt-get update failed again after fallback to suite ${ACTIVE_RPI_SUITE}."; \
+        exit 1; \
+      fi; \
+      echo "[ERROR][fallback-disabled] ALLOW_BOOKWORM_FALLBACK=${ALLOW_BOOKWORM_FALLBACK}; cannot switch from suite ${ACTIVE_RPI_SUITE} to bookworm for retry."; \
+      exit 1; \
+    } && \
     check_camera_preflight() { \
       suite="$1"; \
-      missing_packages=""; \
+      missing_candidate_packages=""; \
+      missing_suite_packages=""; \
       for pkg in $REQUIRED_CAMERA_PACKAGES; do \
         echo "[Layer 2] Preflight: checking ${pkg} for suite ${suite}"; \
         apt-cache policy "$pkg"; \
         candidate="$(apt-cache policy "$pkg" | awk '/Candidate:/ {print $2; exit}')"; \
         if [ -z "$candidate" ] || [ "$candidate" = "(none)" ]; then \
-          missing_packages="$missing_packages $pkg"; \
+          missing_candidate_packages="$missing_candidate_packages $pkg"; \
           continue; \
         fi; \
         if ! apt-cache madison "$pkg" | awk -v suite="$suite" '$0 ~ /archive\.raspberrypi\.org\/debian/ && $0 ~ suite {found=1} END {exit found ? 0 : 1}'; then \
-          missing_packages="$missing_packages $pkg"; \
+          missing_suite_packages="$missing_suite_packages $pkg"; \
         fi; \
       done; \
-      missing_packages="$(echo "$missing_packages" | xargs)"; \
-      if [ -n "$missing_packages" ]; then \
-        echo "[ERROR] Preflight failed for suite ${suite}. Missing/unavailable package(s): ${missing_packages}"; \
+      missing_candidate_packages="$(echo "$missing_candidate_packages" | xargs)"; \
+      missing_suite_packages="$(echo "$missing_suite_packages" | xargs)"; \
+      if [ -n "$missing_candidate_packages" ]; then \
+        echo "[ERROR][missing-package-candidate] Preflight failed for suite ${suite}. No apt candidate for package(s): ${missing_candidate_packages}"; \
+        return 1; \
+      fi; \
+      if [ -n "$missing_suite_packages" ]; then \
+        echo "[ERROR][missing-package-candidate] Preflight failed for suite ${suite}. Candidate exists but not from archive.raspberrypi.org/${suite}: ${missing_suite_packages}"; \
         return 1; \
       fi; \
       echo "[Layer 2] Preflight passed for suite ${suite}"; \
@@ -129,22 +154,8 @@ Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
         python3-picamera2 \
         v4l-utils; \
     } && \
-    ACTIVE_RPI_SUITE="${RPI_SUITE}" && \
-    if ! check_camera_preflight "$ACTIVE_RPI_SUITE"; then \
-      if [ "${ALLOW_BOOKWORM_FALLBACK}" = "true" ] && [ "$ACTIVE_RPI_SUITE" != "bookworm" ]; then \
-        echo "[Layer 2] ALLOW_BOOKWORM_FALLBACK=true: switching Raspberry Pi repository to Bookworm for preflight retry..."; \
-        echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
-        apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
-        ACTIVE_RPI_SUITE="bookworm" && \
-        if ! check_camera_preflight "$ACTIVE_RPI_SUITE"; then \
-          echo "[ERROR] Preflight failed for both ${RPI_SUITE} and Bookworm fallback."; \
-          exit 1; \
-        fi; \
-      else \
-        echo "[ERROR] ALLOW_BOOKWORM_FALLBACK=${ALLOW_BOOKWORM_FALLBACK}. Failing fast after preflight check for suite ${ACTIVE_RPI_SUITE}."; \
-        exit 1; \
-      fi; \
-    fi && \
+    update_with_optional_fallback && \
+    check_camera_preflight "$ACTIVE_RPI_SUITE" && \
     echo "[Layer 2] Attempting to install libcamera packages for ${ACTIVE_RPI_SUITE}..." && \
     install_camera_packages && \
     echo "[Layer 2] SUCCESS: libcamera packages installed from ${ACTIVE_RPI_SUITE}" && \
@@ -213,6 +224,7 @@ LABEL org.opencontainers.image.authors="CyanAutomation"
 LABEL org.opencontainers.image.vendor="CyanAutomation"
 LABEL org.opencontainers.image.build.debian-suite="${DEBIAN_SUITE}"
 LABEL org.opencontainers.image.build.rpi-suite="${RPI_SUITE}"
+LABEL org.opencontainers.image.build.active-rpi-suite="${RPI_SUITE}"
 LABEL org.opencontainers.image.build.include-mock-camera="${INCLUDE_MOCK_CAMERA}"
 
 # ---- Layer 1: System Dependencies (Stable) ----
@@ -245,27 +257,52 @@ COPY --from=builder /etc/apt/preferences.d/rpi-camera.preferences /etc/apt/prefe
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
-    echo "[Final Stage Layer 2] Running apt-get update..." && \
-    apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
     REQUIRED_CAMERA_PACKAGES="libcamera-apps python3-libcamera python3-picamera2" && \
+    ACTIVE_RPI_SUITE="${RPI_SUITE}" && \
+    update_with_optional_fallback() { \
+      if apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60; then \
+        echo "[Final Stage Layer 2] apt-get update succeeded for suite ${ACTIVE_RPI_SUITE}"; \
+        return 0; \
+      fi; \
+      echo "[ERROR][signature-policy] apt-get update failed for suite ${ACTIVE_RPI_SUITE}. Repository metadata/signature policy verification may have failed."; \
+      if [ "${ALLOW_BOOKWORM_FALLBACK}" = "true" ] && [ "${ACTIVE_RPI_SUITE}" != "bookworm" ]; then \
+        echo "[Final Stage Layer 2] ALLOW_BOOKWORM_FALLBACK=true: switching Raspberry Pi repository to suite bookworm and retrying apt-get update"; \
+        export ACTIVE_RPI_SUITE="bookworm"; \
+        echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ ${ACTIVE_RPI_SUITE} main" > /etc/apt/sources.list.d/raspi.list; \
+        if apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60; then \
+          echo "[Final Stage Layer 2] apt-get update succeeded for fallback suite ${ACTIVE_RPI_SUITE}"; \
+          return 0; \
+        fi; \
+        echo "[ERROR][signature-policy] apt-get update failed again after fallback to suite ${ACTIVE_RPI_SUITE}."; \
+        exit 1; \
+      fi; \
+      echo "[ERROR][fallback-disabled] ALLOW_BOOKWORM_FALLBACK=${ALLOW_BOOKWORM_FALLBACK}; cannot switch from suite ${ACTIVE_RPI_SUITE} to bookworm for retry."; \
+      exit 1; \
+    } && \
     check_camera_preflight() { \
       suite="$1"; \
-      missing_packages=""; \
+      missing_candidate_packages=""; \
+      missing_suite_packages=""; \
       for pkg in $REQUIRED_CAMERA_PACKAGES; do \
         echo "[Final Stage Layer 2] Preflight: checking ${pkg} for suite ${suite}"; \
         apt-cache policy "$pkg"; \
         candidate="$(apt-cache policy "$pkg" | awk '/Candidate:/ {print $2; exit}')"; \
         if [ -z "$candidate" ] || [ "$candidate" = "(none)" ]; then \
-          missing_packages="$missing_packages $pkg"; \
+          missing_candidate_packages="$missing_candidate_packages $pkg"; \
           continue; \
         fi; \
         if ! apt-cache madison "$pkg" | awk -v suite="$suite" '$0 ~ /archive\.raspberrypi\.org\/debian/ && $0 ~ suite {found=1} END {exit found ? 0 : 1}'; then \
-          missing_packages="$missing_packages $pkg"; \
+          missing_suite_packages="$missing_suite_packages $pkg"; \
         fi; \
       done; \
-      missing_packages="$(echo "$missing_packages" | xargs)"; \
-      if [ -n "$missing_packages" ]; then \
-        echo "[ERROR] Preflight failed for suite ${suite}. Missing/unavailable package(s): ${missing_packages}"; \
+      missing_candidate_packages="$(echo "$missing_candidate_packages" | xargs)"; \
+      missing_suite_packages="$(echo "$missing_suite_packages" | xargs)"; \
+      if [ -n "$missing_candidate_packages" ]; then \
+        echo "[ERROR][missing-package-candidate] Preflight failed for suite ${suite}. No apt candidate for package(s): ${missing_candidate_packages}"; \
+        return 1; \
+      fi; \
+      if [ -n "$missing_suite_packages" ]; then \
+        echo "[ERROR][missing-package-candidate] Preflight failed for suite ${suite}. Candidate exists but not from archive.raspberrypi.org/${suite}: ${missing_suite_packages}"; \
         return 1; \
       fi; \
       echo "[Final Stage Layer 2] Preflight passed for suite ${suite}"; \
@@ -280,22 +317,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3-picamera2 \
         v4l-utils; \
     } && \
-    ACTIVE_RPI_SUITE="${RPI_SUITE}" && \
-    if ! check_camera_preflight "$ACTIVE_RPI_SUITE"; then \
-      if [ "${ALLOW_BOOKWORM_FALLBACK}" = "true" ] && [ "$ACTIVE_RPI_SUITE" != "bookworm" ]; then \
-        echo "[Final Stage Layer 2] ALLOW_BOOKWORM_FALLBACK=true: switching Raspberry Pi repository to Bookworm for preflight retry..."; \
-        echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
-        apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
-        ACTIVE_RPI_SUITE="bookworm" && \
-        if ! check_camera_preflight "$ACTIVE_RPI_SUITE"; then \
-          echo "[ERROR] Preflight failed for both ${RPI_SUITE} and Bookworm fallback."; \
-          exit 1; \
-        fi; \
-      else \
-        echo "[ERROR] ALLOW_BOOKWORM_FALLBACK=${ALLOW_BOOKWORM_FALLBACK}. Failing fast after preflight check for suite ${ACTIVE_RPI_SUITE}."; \
-        exit 1; \
-      fi; \
-    fi && \
+    update_with_optional_fallback && \
+    check_camera_preflight "$ACTIVE_RPI_SUITE" && \
     echo "[Final Stage Layer 2] Attempting to install libcamera packages from ${ACTIVE_RPI_SUITE}..." && \
     install_camera_packages && \
     echo "[Final Stage Layer 2] SUCCESS: libcamera packages installed from ${ACTIVE_RPI_SUITE}" && \
