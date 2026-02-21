@@ -15,10 +15,10 @@ sys.path.insert(0, str(workspace_root))
 def test_management_mode_boots_without_camera(monkeypatch):
     # Set NODE_REGISTRY_PATH to a temp directory to avoid permission issues
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "false")
+        monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
+        monkeypatch.setenv("MIO_APP_MODE", "management")
+        monkeypatch.setenv("MIO_MOCK_CAMERA", "false")
 
         sys.modules.pop("pi_camera_in_docker.main", None)
         sys.modules.pop("picamera2", None)
@@ -58,16 +58,16 @@ def test_management_mode_boots_without_camera(monkeypatch):
 
 def test_webcam_mode_env_validation_and_startup(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
-        monkeypatch.setenv("MOTION_IN_OCEAN_RESOLUTION", "0x5000")
-        monkeypatch.setenv("MOTION_IN_OCEAN_FPS", "bad")
-        monkeypatch.setenv("MOTION_IN_OCEAN_TARGET_FPS", "also_bad")
-        monkeypatch.setenv("MOTION_IN_OCEAN_JPEG_QUALITY", "1000")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MAX_FRAME_AGE_SECONDS", "-1")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS", "not_an_int")
+        monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
+        monkeypatch.setenv("MIO_APP_MODE", "management")
+        monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+        monkeypatch.setenv("MIO_RESOLUTION", "0x5000")
+        monkeypatch.setenv("MIO_FPS", "bad")
+        monkeypatch.setenv("MIO_TARGET_FPS", "also_bad")
+        monkeypatch.setenv("MIO_JPEG_QUALITY", "1000")
+        monkeypatch.setenv("MIO_MAX_FRAME_AGE_SECONDS", "-1")
+        monkeypatch.setenv("MIO_MAX_STREAM_CONNECTIONS", "not_an_int")
 
         sys.modules.pop("pi_camera_in_docker.main", None)
         main = importlib.import_module("pi_camera_in_docker.main")
@@ -89,9 +89,9 @@ def test_webcam_mode_env_validation_and_startup(monkeypatch):
 
 def test_root_serves_management_template_in_management_mode(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
+        monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
+        monkeypatch.setenv("MIO_APP_MODE", "management")
 
         sys.modules.pop("pi_camera_in_docker.main", None)
         main = importlib.import_module("pi_camera_in_docker.main")
@@ -106,10 +106,10 @@ def test_root_serves_management_template_in_management_mode(monkeypatch):
 
 def test_root_serves_stream_template_in_webcam_mode(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
+        monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
+        monkeypatch.setenv("MIO_APP_MODE", "management")
+        monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
 
         sys.modules.pop("pi_camera_in_docker.main", None)
         main = importlib.import_module("pi_camera_in_docker.main")
@@ -128,11 +128,11 @@ def test_root_serves_stream_template_in_webcam_mode(monkeypatch):
 
 def test_api_config_returns_render_config_shape_in_management_mode(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-        monkeypatch.setenv("MOTION_IN_OCEAN_CORS_ORIGINS", "https://example.test")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "false")
+        monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
+        monkeypatch.setenv("MIO_APP_MODE", "management")
+        monkeypatch.setenv("MIO_CORS_ORIGINS", "https://example.test")
+        monkeypatch.setenv("MIO_MOCK_CAMERA", "false")
 
         sys.modules.pop("pi_camera_in_docker.main", None)
         main = importlib.import_module("pi_camera_in_docker.main")
@@ -186,17 +186,17 @@ def test_api_config_returns_webcam_connection_counts(monkeypatch):
 
 def test_api_config_webcam_includes_render_config_keys_and_defaulted_values(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
-        monkeypatch.setenv("MOTION_IN_OCEAN_RESOLUTION", "invalid")
-        monkeypatch.setenv("MOTION_IN_OCEAN_FPS", "invalid")
-        monkeypatch.setenv("MOTION_IN_OCEAN_TARGET_FPS", "invalid")
-        monkeypatch.setenv("MOTION_IN_OCEAN_JPEG_QUALITY", "1000")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS", "invalid")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MAX_FRAME_AGE_SECONDS", "invalid")
-        monkeypatch.setenv("MOTION_IN_OCEAN_CORS_ORIGINS", "")
+        monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
+        monkeypatch.setenv("MIO_APP_MODE", "management")
+        monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+        monkeypatch.setenv("MIO_RESOLUTION", "invalid")
+        monkeypatch.setenv("MIO_FPS", "invalid")
+        monkeypatch.setenv("MIO_TARGET_FPS", "invalid")
+        monkeypatch.setenv("MIO_JPEG_QUALITY", "1000")
+        monkeypatch.setenv("MIO_MAX_STREAM_CONNECTIONS", "invalid")
+        monkeypatch.setenv("MIO_MAX_FRAME_AGE_SECONDS", "invalid")
+        monkeypatch.setenv("MIO_CORS_ORIGINS", "")
 
         sys.modules.pop("pi_camera_in_docker.main", None)
         main = importlib.import_module("pi_camera_in_docker.main")
@@ -226,17 +226,17 @@ def test_api_config_webcam_includes_render_config_keys_and_defaulted_values(monk
 
 def test_api_config_management_includes_render_config_keys_and_defaulted_values(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "false")
-        monkeypatch.setenv("MOTION_IN_OCEAN_RESOLUTION", "invalid")
-        monkeypatch.setenv("MOTION_IN_OCEAN_FPS", "invalid")
-        monkeypatch.setenv("MOTION_IN_OCEAN_TARGET_FPS", "invalid")
-        monkeypatch.setenv("MOTION_IN_OCEAN_JPEG_QUALITY", "1000")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS", "invalid")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MAX_FRAME_AGE_SECONDS", "invalid")
-        monkeypatch.setenv("MOTION_IN_OCEAN_CORS_ORIGINS", "")
+        monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
+        monkeypatch.setenv("MIO_APP_MODE", "management")
+        monkeypatch.setenv("MIO_MOCK_CAMERA", "false")
+        monkeypatch.setenv("MIO_RESOLUTION", "invalid")
+        monkeypatch.setenv("MIO_FPS", "invalid")
+        monkeypatch.setenv("MIO_TARGET_FPS", "invalid")
+        monkeypatch.setenv("MIO_JPEG_QUALITY", "1000")
+        monkeypatch.setenv("MIO_MAX_STREAM_CONNECTIONS", "invalid")
+        monkeypatch.setenv("MIO_MAX_FRAME_AGE_SECONDS", "invalid")
+        monkeypatch.setenv("MIO_CORS_ORIGINS", "")
 
         sys.modules.pop("pi_camera_in_docker.main", None)
         main = importlib.import_module("pi_camera_in_docker.main")
@@ -264,9 +264,9 @@ def test_api_config_management_includes_render_config_keys_and_defaulted_values(
 
 def test_request_logging_levels(monkeypatch):
     with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
+        monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
+        monkeypatch.setenv("MIO_APP_MODE", "management")
 
         sys.modules.pop("pi_camera_in_docker.main", None)
         main = importlib.import_module("pi_camera_in_docker.main")
@@ -311,10 +311,10 @@ def test_request_logging_levels(monkeypatch):
 
 def _new_webcam_client(monkeypatch, webcam_token: str):
     tmpdir = tempfile.mkdtemp()
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
-    monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-    monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
-    monkeypatch.setenv("MOTION_IN_OCEAN_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", webcam_token)
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", webcam_token)
 
     # Monkeypatch ApplicationSettings to use tmpdir
     original_app_settings_init = ApplicationSettings.__init__
@@ -395,7 +395,7 @@ def test_webcam_control_plane_endpoints_require_valid_bearer_when_token_set(monk
 
 
 def test_webcam_control_plane_does_not_accept_management_token(monkeypatch):
-    monkeypatch.setenv("MOTION_IN_OCEAN_MANAGEMENT_AUTH_TOKEN", "management-only-token")
+    monkeypatch.setenv("MIO_MANAGEMENT_AUTH_TOKEN", "management-only-token")
     client = _new_webcam_client(monkeypatch, "webcam-only-token")
 
     response = client.get("/api/status", headers={"Authorization": "Bearer management-only-token"})

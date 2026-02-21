@@ -68,23 +68,23 @@ class TestFeatureFlagRegistry:
         """Test backward compatibility with legacy MOCK_CAMERA env var."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
-        with mock.patch.dict(os.environ, {"MOTION_IN_OCEAN_MOCK_CAMERA": "true"}, clear=True):
+        with mock.patch.dict(os.environ, {"MIO_MOCK_CAMERA": "true"}, clear=True):
             flags = FeatureFlags()
             flags.load()
             assert flags.is_enabled("MOCK_CAMERA") is True
 
-        with mock.patch.dict(os.environ, {"MOTION_IN_OCEAN_MOCK_CAMERA": "false"}, clear=True):
+        with mock.patch.dict(os.environ, {"MIO_MOCK_CAMERA": "false"}, clear=True):
             flags = FeatureFlags()
             flags.load()
             assert flags.is_enabled("MOCK_CAMERA") is False
 
     def test_prefixed_env_vars_take_precedence(self):
-        """Test that MOTION_IN_OCEAN_ prefixed vars take precedence over legacy vars."""
+        """Test that MIO_ prefixed vars take precedence over legacy vars."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
         with mock.patch.dict(
             os.environ,
-            {"MOCK_CAMERA": "false", "MOTION_IN_OCEAN_MOCK_CAMERA": "true"},
+            {"MOCK_CAMERA": "false", "MIO_MOCK_CAMERA": "true"},
             clear=True,
         ):
             flags = FeatureFlags()
@@ -96,7 +96,7 @@ class TestFeatureFlagRegistry:
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
         with mock.patch.dict(
-            os.environ, {"MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY": "true"}, clear=True
+            os.environ, {"MIO_OCTOPRINT_COMPATIBILITY": "true"}, clear=True
         ):
             flags = FeatureFlags()
             flags.load()
@@ -115,7 +115,7 @@ class TestFeatureFlagRegistry:
             os.environ,
             {
                 "OCTOPRINT_COMPATIBILITY": "false",
-                "MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY": "true",
+                "MIO_OCTOPRINT_COMPATIBILITY": "true",
             },
             clear=True,
         ):
@@ -161,7 +161,7 @@ class TestFeatureFlagRegistry:
         ]
 
         for value, expected in test_cases:
-            with mock.patch.dict(os.environ, {"MOTION_IN_OCEAN_DEBUG_LOGGING": value}, clear=True):
+            with mock.patch.dict(os.environ, {"MIO_DEBUG_LOGGING": value}, clear=True):
                 flags = FeatureFlags()
                 flags.load()
                 assert flags.is_enabled("DEBUG_LOGGING") == expected, f"Failed for value: {value}"
@@ -212,7 +212,7 @@ class TestFeatureFlagRegistry:
         """Test the module-level is_flag_enabled convenience function."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
-        with mock.patch.dict(os.environ, {"MOTION_IN_OCEAN_DEBUG_LOGGING": "true"}, clear=True):
+        with mock.patch.dict(os.environ, {"MIO_DEBUG_LOGGING": "true"}, clear=True):
             # Create a new instance and load it
             flags = FeatureFlags()
             flags.load()
@@ -222,8 +222,8 @@ class TestFeatureFlagRegistry:
         """Test that CORS_SUPPORT doesn't have backward compat mapping (feature flag only)."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
-        # CORS_SUPPORT should only respect MOTION_IN_OCEAN_CORS_SUPPORT, not legacy CORS_ORIGINS
-        with mock.patch.dict(os.environ, {"MOTION_IN_OCEAN_CORS_SUPPORT": "false"}, clear=True):
+        # CORS_SUPPORT should only respect MIO_CORS_SUPPORT, not legacy CORS_ORIGINS
+        with mock.patch.dict(os.environ, {"MIO_CORS_SUPPORT": "false"}, clear=True):
             flags = FeatureFlags()
             flags.load()
             assert flags.is_enabled("CORS_SUPPORT") is False
@@ -236,8 +236,8 @@ class TestFeatureFlagsIntegration:
         """MOCK_CAMERA feature flag should be reflected in main runtime config."""
         import importlib
 
-        monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "webcam")
+        monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+        monkeypatch.setenv("MIO_APP_MODE", "webcam")
 
         feature_flags_module = importlib.import_module("pi_camera_in_docker.feature_flags")
         main_module = importlib.import_module("pi_camera_in_docker.main")

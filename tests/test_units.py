@@ -175,11 +175,11 @@ def test_management_app_registers_core_routes(monkeypatch, tmp_path):
     """Management app should expose core UI, health, and management API routes."""
     from pi_camera_in_docker import main
 
-    monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-    monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
-    monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", str(tmp_path / "application-settings.json"))
-    monkeypatch.setenv("MOTION_IN_OCEAN_MANAGEMENT_AUTH_TOKEN", "")
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "application-settings.json"))
+    monkeypatch.setenv("MIO_MANAGEMENT_AUTH_TOKEN", "")
 
     app = main.create_management_app()
     registered_routes = {rule.rule for rule in app.url_map.iter_rules()}
@@ -256,8 +256,8 @@ def test_get_camera_info_prefers_module_level_global_camera_info(monkeypatch):
 
     with tempfile.TemporaryDirectory() as tmpdir:
         monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
+        monkeypatch.setenv("MIO_APP_MODE", "management")
+        monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
 
         fake_module = types.ModuleType("picamera2")
 
@@ -289,8 +289,8 @@ def test_get_camera_info_falls_back_to_class_method(monkeypatch):
 
     with tempfile.TemporaryDirectory() as tmpdir:
         monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
+        monkeypatch.setenv("MIO_APP_MODE", "management")
+        monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
 
         fake_module = types.ModuleType("picamera2")
 
@@ -546,8 +546,8 @@ def test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes
 
     with tempfile.TemporaryDirectory() as tmpdir:
         monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
-        monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-        monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
+        monkeypatch.setenv("MIO_APP_MODE", "management")
+        monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
 
         sys.modules.pop("main", None)
         main = importlib.import_module("pi_camera_in_docker.main")

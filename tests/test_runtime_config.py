@@ -83,7 +83,7 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
 
 def test_load_env_config_supports_application_settings_path(monkeypatch):
     """APPLICATION_SETTINGS_PATH should be exposed in runtime configuration."""
-    monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", "/tmp/custom-settings.json")
+    monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", "/tmp/custom-settings.json")
 
     cfg = runtime_config.load_env_config()
 
@@ -92,7 +92,7 @@ def test_load_env_config_supports_application_settings_path(monkeypatch):
 
 def test_load_env_config_supports_webcam_control_plane_auth_token(monkeypatch):
     """WEBCAM_CONTROL_PLANE_AUTH_TOKEN should be exposed in runtime configuration."""
-    monkeypatch.setenv("MOTION_IN_OCEAN_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", "webcam-token")
+    monkeypatch.setenv("MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", "webcam-token")
 
     cfg = runtime_config.load_env_config()
 
@@ -127,10 +127,10 @@ def test_create_app_from_env_honors_application_settings_path(monkeypatch, tmp_p
     from pi_camera_in_docker import main
 
     settings_path = tmp_path / "custom" / "app-settings.json"
-    monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-    monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
-    monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", str(settings_path))
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", str(settings_path))
 
     app = main.create_app_from_env()
 
@@ -163,7 +163,7 @@ def test_merge_config_with_settings_logs_actionable_permission_warning(caplog):
 
 def test_load_networking_config_returns_disabled_origins_when_cors_disabled(monkeypatch):
     """CORS origins should be disabled when CORS feature flag is off."""
-    monkeypatch.setenv("MOTION_IN_OCEAN_CORS_ORIGINS", "https://example.com")
+    monkeypatch.setenv("MIO_CORS_ORIGINS", "https://example.com")
     monkeypatch.setattr(runtime_config, "is_flag_enabled", lambda flag_name: False)
 
     cfg = runtime_config._load_networking_config()
@@ -174,7 +174,7 @@ def test_load_networking_config_returns_disabled_origins_when_cors_disabled(monk
 
 def test_load_networking_config_defaults_origins_to_wildcard_when_enabled(monkeypatch):
     """CORS origins should default to wildcard when enabled and unset."""
-    monkeypatch.delenv("MOTION_IN_OCEAN_CORS_ORIGINS", raising=False)
+    monkeypatch.delenv("MIO_CORS_ORIGINS", raising=False)
     monkeypatch.setattr(runtime_config, "is_flag_enabled", lambda flag_name: True)
 
     cfg = runtime_config._load_networking_config()
@@ -185,7 +185,7 @@ def test_load_networking_config_defaults_origins_to_wildcard_when_enabled(monkey
 
 def test_load_networking_config_uses_configured_origins_when_enabled(monkeypatch):
     """CORS origins should use explicit environment value when enabled."""
-    monkeypatch.setenv("MOTION_IN_OCEAN_CORS_ORIGINS", "https://example.com")
+    monkeypatch.setenv("MIO_CORS_ORIGINS", "https://example.com")
     monkeypatch.setattr(runtime_config, "is_flag_enabled", lambda flag_name: True)
 
     cfg = runtime_config._load_networking_config()
@@ -221,8 +221,8 @@ def test_settings_api_env_defaults_use_runtime_fps_default(monkeypatch):
 
 def test_load_env_config_defaults_camera_init_failure_to_graceful(monkeypatch):
     """Camera init failure handling should default to graceful startup."""
-    monkeypatch.delenv("MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR", raising=False)
-    monkeypatch.delenv("MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED", raising=False)
+    monkeypatch.delenv("MIO_FAIL_ON_CAMERA_INIT_ERROR", raising=False)
+    monkeypatch.delenv("MIO_CAMERA_INIT_REQUIRED", raising=False)
 
     cfg = runtime_config.load_env_config()
 
@@ -231,8 +231,8 @@ def test_load_env_config_defaults_camera_init_failure_to_graceful(monkeypatch):
 
 def test_load_env_config_enables_strict_camera_init_failure_mode(monkeypatch):
     """Strict startup mode should be enabled via the primary env var."""
-    monkeypatch.setenv("MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR", "true")
-    monkeypatch.delenv("MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED", raising=False)
+    monkeypatch.setenv("MIO_FAIL_ON_CAMERA_INIT_ERROR", "true")
+    monkeypatch.delenv("MIO_CAMERA_INIT_REQUIRED", raising=False)
 
     cfg = runtime_config.load_env_config()
 
@@ -241,8 +241,8 @@ def test_load_env_config_enables_strict_camera_init_failure_mode(monkeypatch):
 
 def test_load_env_config_supports_legacy_camera_init_required_alias(monkeypatch):
     """Legacy camera init strictness env var alias should still be honored."""
-    monkeypatch.delenv("MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR", raising=False)
-    monkeypatch.setenv("MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED", "yes")
+    monkeypatch.delenv("MIO_FAIL_ON_CAMERA_INIT_ERROR", raising=False)
+    monkeypatch.setenv("MIO_CAMERA_INIT_REQUIRED", "yes")
 
     cfg = runtime_config.load_env_config()
 

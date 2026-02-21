@@ -17,15 +17,15 @@ workspace_root = Path(__file__).parent.parent
 def _new_management_client(monkeypatch, tmp_path, management_token="test-token", webcam_token=""):
     # SET THIS FIRST - before any other monkeypatches to ensure ApplicationSettings reads from tmp_path
     monkeypatch.setenv(
-        "MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH",
+        "MIO_APPLICATION_SETTINGS_PATH",
         str(tmp_path / "application-settings.json"),
     )
 
-    monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
-    monkeypatch.setenv("MOTION_IN_OCEAN_MANAGEMENT_AUTH_TOKEN", management_token)
-    monkeypatch.setenv("MOTION_IN_OCEAN_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", webcam_token)
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MIO_MANAGEMENT_AUTH_TOKEN", management_token)
+    monkeypatch.setenv("MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", webcam_token)
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
 
     original_sys_path = sys.path.copy()
     sys.path.insert(
@@ -150,7 +150,7 @@ def test_api_status_returns_current_api_test_scenario_when_inactive():
 
 
 def test_settings_changes_endpoint_compares_resolution_values(monkeypatch, tmp_path):
-    monkeypatch.setenv("MOTION_IN_OCEAN_RESOLUTION", "1280x720")
+    monkeypatch.setenv("MIO_RESOLUTION", "1280x720")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     save_response = client.patch(
@@ -172,7 +172,7 @@ def test_settings_changes_endpoint_compares_resolution_values(monkeypatch, tmp_p
 
 
 def test_settings_changes_endpoint_handles_invalid_resolution_env(monkeypatch, tmp_path):
-    monkeypatch.setenv("MOTION_IN_OCEAN_RESOLUTION", "invalid")
+    monkeypatch.setenv("MIO_RESOLUTION", "invalid")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     save_response = client.patch(
@@ -194,11 +194,11 @@ def test_settings_changes_endpoint_handles_invalid_resolution_env(monkeypatch, t
 
 
 def test_settings_changes_endpoint_handles_invalid_numeric_env(monkeypatch, tmp_path):
-    monkeypatch.setenv("MOTION_IN_OCEAN_FPS", "invalid-fps")
-    monkeypatch.setenv("MOTION_IN_OCEAN_JPEG_QUALITY", "invalid-jpeg")
-    monkeypatch.setenv("MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS", "invalid-connections")
-    monkeypatch.setenv("MOTION_IN_OCEAN_MAX_FRAME_AGE_SECONDS", "invalid-age")
-    monkeypatch.setenv("MOTION_IN_OCEAN_DISCOVERY_INTERVAL_SECONDS", "invalid-interval")
+    monkeypatch.setenv("MIO_FPS", "invalid-fps")
+    monkeypatch.setenv("MIO_JPEG_QUALITY", "invalid-jpeg")
+    monkeypatch.setenv("MIO_MAX_STREAM_CONNECTIONS", "invalid-connections")
+    monkeypatch.setenv("MIO_MAX_FRAME_AGE_SECONDS", "invalid-age")
+    monkeypatch.setenv("MIO_DISCOVERY_INTERVAL_SECONDS", "invalid-interval")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     save_response = client.patch(
@@ -308,18 +308,18 @@ def test_settings_patch_requires_restart_response_reflects_persisted_state(monke
 
 
 def test_settings_endpoint_returns_effective_runtime_values(monkeypatch, tmp_path):
-    monkeypatch.setenv("MOTION_IN_OCEAN_RESOLUTION", "1280x720")
-    monkeypatch.setenv("MOTION_IN_OCEAN_FPS", "24")
-    monkeypatch.setenv("MOTION_IN_OCEAN_JPEG_QUALITY", "88")
-    monkeypatch.setenv("MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS", "6")
-    monkeypatch.setenv("MOTION_IN_OCEAN_MAX_FRAME_AGE_SECONDS", "12")
-    monkeypatch.setenv("MOTION_IN_OCEAN_LOG_LEVEL", "WARNING")
-    monkeypatch.setenv("MOTION_IN_OCEAN_LOG_FORMAT", "json")
-    monkeypatch.setenv("MOTION_IN_OCEAN_LOG_INCLUDE_IDENTIFIERS", "false")
-    monkeypatch.setenv("MOTION_IN_OCEAN_DISCOVERY_ENABLED", "false")
-    monkeypatch.setenv("MOTION_IN_OCEAN_DISCOVERY_MANAGEMENT_URL", "http://env.example:8001")
-    monkeypatch.setenv("MOTION_IN_OCEAN_DISCOVERY_TOKEN", "env-token")
-    monkeypatch.setenv("MOTION_IN_OCEAN_DISCOVERY_INTERVAL_SECONDS", "45")
+    monkeypatch.setenv("MIO_RESOLUTION", "1280x720")
+    monkeypatch.setenv("MIO_FPS", "24")
+    monkeypatch.setenv("MIO_JPEG_QUALITY", "88")
+    monkeypatch.setenv("MIO_MAX_STREAM_CONNECTIONS", "6")
+    monkeypatch.setenv("MIO_MAX_FRAME_AGE_SECONDS", "12")
+    monkeypatch.setenv("MIO_LOG_LEVEL", "WARNING")
+    monkeypatch.setenv("MIO_LOG_FORMAT", "json")
+    monkeypatch.setenv("MIO_LOG_INCLUDE_IDENTIFIERS", "false")
+    monkeypatch.setenv("MIO_DISCOVERY_ENABLED", "false")
+    monkeypatch.setenv("MIO_DISCOVERY_MANAGEMENT_URL", "http://env.example:8001")
+    monkeypatch.setenv("MIO_DISCOVERY_TOKEN", "env-token")
+    monkeypatch.setenv("MIO_DISCOVERY_INTERVAL_SECONDS", "45")
 
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
@@ -562,9 +562,9 @@ def test_corrupted_registry_file_returns_500_error_payload(monkeypatch, tmp_path
     registry_path = tmp_path / "registry.json"
     registry_path.write_text("{invalid json", encoding="utf-8")
 
-    monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", str(registry_path))
-    monkeypatch.setenv("MOTION_IN_OCEAN_MANAGEMENT_AUTH_TOKEN", "test-token")
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(registry_path))
+    monkeypatch.setenv("MIO_MANAGEMENT_AUTH_TOKEN", "test-token")
     original_sys_path = sys.path.copy()
     sys.path.insert(
         0, str(workspace_root)
@@ -730,7 +730,7 @@ def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch,
 
 
 def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     create_payload = {
@@ -774,7 +774,7 @@ def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
 
 
 def test_discovery_announce_parallel_requests_do_not_duplicate_error(monkeypatch, tmp_path):
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
@@ -812,7 +812,7 @@ def test_discovery_announce_parallel_requests_do_not_duplicate_error(monkeypatch
 
 
 def test_discovery_announce_requires_bearer_token(monkeypatch, tmp_path):
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
@@ -837,8 +837,8 @@ def test_discovery_announce_requires_bearer_token(monkeypatch, tmp_path):
 
 
 def test_discovery_announce_blocks_private_ip_without_opt_in(monkeypatch, tmp_path):
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
-    monkeypatch.delenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", raising=False)
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.delenv("MIO_ALLOW_PRIVATE_IPS", raising=False)
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
@@ -859,13 +859,13 @@ def test_discovery_announce_blocks_private_ip_without_opt_in(monkeypatch, tmp_pa
     assert blocked.json["error"]["code"] == "DISCOVERY_PRIVATE_IP_BLOCKED"
     assert (
         blocked.json["error"]["details"]["required_setting"]
-        == "MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true"
+        == "MIO_ALLOW_PRIVATE_IPS=true"
     )
 
 
 def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path):
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
-    monkeypatch.setenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "true")
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("MIO_ALLOW_PRIVATE_IPS", "true")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
@@ -887,7 +887,7 @@ def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path)
 
 
 def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     invalid = client.post(
@@ -900,7 +900,7 @@ def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
 
 
 def test_discovery_approval_endpoint(monkeypatch, tmp_path):
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     announce_payload = {

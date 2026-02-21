@@ -17,12 +17,12 @@
 #   - Docker Transport: Register nodes with docker://proxy-host:port/container-id
 #     Requires docker-socket-proxy to be running on remote docker hosts
 #   - Private IPs: Blocked by default (SSRF protection)
-#     Use docker network hostnames instead, or enable MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS
+#     Use docker network hostnames instead, or enable MIO_ALLOW_PRIVATE_IPS
 
 services:
   motion-in-ocean:
     container_name: motion-in-ocean
-    image: ghcr.io/cyanautomation/motioninocean:${MOTION_IN_OCEAN_IMAGE_TAG:-latest}
+    image: ghcr.io/cyanautomation/motioninocean:${MIO_IMAGE_TAG:-latest}
     platform: linux/arm64
     restart: unless-stopped
     env_file: ./.env
@@ -38,25 +38,25 @@ services:
     # Management mode configuration
     environment:
       TZ: ${TZ:-Europe/London}
-      MOTION_IN_OCEAN_APP_MODE: ${MOTION_IN_OCEAN_APP_MODE:-management}
+      MIO_APP_MODE: ${MIO_APP_MODE:-management}
 
       # Infrastructure / Deployment Configuration (NOT UI-configurable)
-      MOTION_IN_OCEAN_MOCK_CAMERA: ${MOTION_IN_OCEAN_MOCK_CAMERA:-false}
-      MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS: ${MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS:-false}
-      MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH: ${MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH:-/data/application-settings.json}
-      MOTION_IN_OCEAN_MANAGEMENT_AUTH_TOKEN: ${MOTION_IN_OCEAN_MANAGEMENT_AUTH_TOKEN:-}
-      MOTION_IN_OCEAN_NODE_DISCOVERY_SHARED_SECRET: ${MOTION_IN_OCEAN_NODE_DISCOVERY_SHARED_SECRET:-}
-      MOTION_IN_OCEAN_NODE_REGISTRY_PATH: ${MOTION_IN_OCEAN_NODE_REGISTRY_PATH:-/data/node-registry.json}
+      MIO_MOCK_CAMERA: ${MIO_MOCK_CAMERA:-false}
+      MIO_ALLOW_PRIVATE_IPS: ${MIO_ALLOW_PRIVATE_IPS:-false}
+      MIO_APPLICATION_SETTINGS_PATH: ${MIO_APPLICATION_SETTINGS_PATH:-/data/application-settings.json}
+      MIO_MANAGEMENT_AUTH_TOKEN: ${MIO_MANAGEMENT_AUTH_TOKEN:-}
+      MIO_NODE_DISCOVERY_SHARED_SECRET: ${MIO_NODE_DISCOVERY_SHARED_SECRET:-}
+      MIO_NODE_REGISTRY_PATH: ${MIO_NODE_REGISTRY_PATH:-/data/node-registry.json}
 
       # System Configuration
-      MOTION_IN_OCEAN_LIMITER_STORAGE_URI: ${MOTION_IN_OCEAN_LIMITER_STORAGE_URI:-memory://}
-      MOTION_IN_OCEAN_ALLOW_PYKMS_MOCK: ${MOTION_IN_OCEAN_ALLOW_PYKMS_MOCK:-false}
+      MIO_LIMITER_STORAGE_URI: ${MIO_LIMITER_STORAGE_URI:-memory://}
+      MIO_ALLOW_PYKMS_MOCK: ${MIO_ALLOW_PYKMS_MOCK:-false}
 
       # Error tracking (optional)
-      MOTION_IN_OCEAN_SENTRY_DSN: ${MOTION_IN_OCEAN_SENTRY_DSN:-}
+      MIO_SENTRY_DSN: ${MIO_SENTRY_DSN:-}
 
     ports:
-      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_PORT:-8001}:8000"
+      - "${MIO_BIND_HOST:-127.0.0.1}:${MIO_PORT:-8001}:8000"
 
     volumes:
       # Persistent storage for node registry
@@ -80,14 +80,14 @@ services:
   # Then register remote nodes with:
   #   docker://your-management-host:2375/container-name
   docker-socket-proxy:
-    image: ghcr.io/tecnativa/docker-socket-proxy:${MOTION_IN_OCEAN_IMAGE_TAG:-latest}
+    image: ghcr.io/tecnativa/docker-socket-proxy:${MIO_IMAGE_TAG:-latest}
     container_name: docker-socket-proxy
     profiles: ["docker-socket-proxy"]
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     ports:
-      - "${MOTION_IN_OCEAN_BIND_HOST:-127.0.0.1}:${MOTION_IN_OCEAN_DOCKER_PROXY_PORT:-2375}:2375"
+      - "${MIO_BIND_HOST:-127.0.0.1}:${MIO_DOCKER_PROXY_PORT:-2375}:2375"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:

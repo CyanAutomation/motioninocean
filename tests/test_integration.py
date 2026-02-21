@@ -33,10 +33,10 @@ def test_management_endpoints_return_contract_payloads(monkeypatch, tmp_path):
     """Management mode should expose stable /health, /ready, and /metrics payload contracts."""
     from pi_camera_in_docker import main
 
-    monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-    monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
-    monkeypatch.setenv("MOTION_IN_OCEAN_MANAGEMENT_AUTH_TOKEN", "")
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MIO_MANAGEMENT_AUTH_TOKEN", "")
 
     app = main.create_management_app()
     client = app.test_client()
@@ -199,8 +199,8 @@ def test_settings_changes_reports_no_override_for_defaults(monkeypatch, tmp_path
 
     # Set up application settings path
     settings_path = tmp_path / "application-settings.json"
-    monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", str(settings_path))
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", str(settings_path))
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
 
     # Create the app in management mode
     monkeypatch.setenv("APP_MODE", "management")

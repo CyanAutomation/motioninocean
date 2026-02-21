@@ -115,11 +115,11 @@ def test_create_app_registers_expected_routes_for_management_and_webcam_modes(
     """App creation should register core management and webcam routes in their respective modes."""
     from pi_camera_in_docker import main
 
-    monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-    monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
-    monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings.json"))
-    monkeypatch.setenv("MOTION_IN_OCEAN_MANAGEMENT_AUTH_TOKEN", "")
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings.json"))
+    monkeypatch.setenv("MIO_MANAGEMENT_AUTH_TOKEN", "")
     management_app = main.create_app_from_env()
     management_routes = {rule.rule for rule in management_app.url_map.iter_rules()}
     assert {
@@ -135,8 +135,8 @@ def test_create_app_registers_expected_routes_for_management_and_webcam_modes(
         "/api/discovery/announce",
     }.issubset(management_routes)
 
-    monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "webcam")
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", str(tmp_path / "registry-webcam.json"))
+    monkeypatch.setenv("MIO_APP_MODE", "webcam")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry-webcam.json"))
     monkeypatch.setattr(main, "_run_webcam_mode", lambda _state, _cfg: None)
     webcam_app = main.create_app_from_env()
     webcam_routes = {rule.rule for rule in webcam_app.url_map.iter_rules()}
@@ -149,12 +149,12 @@ def test_create_app_from_env_applies_resolution_and_fps_env(monkeypatch, tmp_pat
     """Environment variables should drive runtime camera config values used by the app."""
     from pi_camera_in_docker import main
 
-    monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-    monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
-    monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings.json"))
-    monkeypatch.setenv("MOTION_IN_OCEAN_RESOLUTION", "1024x768")
-    monkeypatch.setenv("MOTION_IN_OCEAN_FPS", "20")
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings.json"))
+    monkeypatch.setenv("MIO_RESOLUTION", "1024x768")
+    monkeypatch.setenv("MIO_FPS", "20")
 
     app = main.create_app_from_env()
     assert app.motion_config["resolution"] == (1024, 768)
@@ -165,14 +165,14 @@ def test_create_app_from_env_defaults_invalid_resolution_to_safe_fallback(monkey
     """Invalid RESOLUTION env value should fall back to default tuple in app config."""
     from pi_camera_in_docker import main
 
-    monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-    monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", str(tmp_path / "registry-invalid-resolution.json"))
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry-invalid-resolution.json"))
     monkeypatch.setenv(
-        "MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-invalid-resolution.json")
+        "MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-invalid-resolution.json")
     )
-    monkeypatch.setenv("MOTION_IN_OCEAN_RESOLUTION", "invalid-resolution")
-    monkeypatch.setenv("MOTION_IN_OCEAN_FPS", "24")
+    monkeypatch.setenv("MIO_RESOLUTION", "invalid-resolution")
+    monkeypatch.setenv("MIO_FPS", "24")
 
     app = main.create_app_from_env()
     assert app.motion_config["resolution"] == (640, 480)
@@ -183,12 +183,12 @@ def test_create_app_from_env_defaults_invalid_fps_to_safe_fallback(monkeypatch, 
     """Invalid FPS env value should fall back to deterministic default in app config."""
     from pi_camera_in_docker import main
 
-    monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "management")
-    monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "true")
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", str(tmp_path / "registry-invalid-fps.json"))
-    monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-invalid-fps.json"))
-    monkeypatch.setenv("MOTION_IN_OCEAN_RESOLUTION", "800x600")
-    monkeypatch.setenv("MOTION_IN_OCEAN_FPS", "not-an-int")
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry-invalid-fps.json"))
+    monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-invalid-fps.json"))
+    monkeypatch.setenv("MIO_RESOLUTION", "800x600")
+    monkeypatch.setenv("MIO_FPS", "not-an-int")
 
     app = main.create_app_from_env()
     assert app.motion_config["resolution"] == (800, 600)
@@ -199,10 +199,10 @@ def test_real_camera_startup_failure_records_degraded_state_and_boots(monkeypatc
     """When real camera enumeration yields no cameras, app creation should continue in degraded mode."""
     from pi_camera_in_docker import main
 
-    monkeypatch.setenv("MOTION_IN_OCEAN_APP_MODE", "webcam")
-    monkeypatch.setenv("MOTION_IN_OCEAN_MOCK_CAMERA", "false")
-    monkeypatch.setenv("MOTION_IN_OCEAN_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
-    monkeypatch.setenv("MOTION_IN_OCEAN_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings.json"))
+    monkeypatch.setenv("MIO_APP_MODE", "webcam")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "false")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings.json"))
     monkeypatch.setattr(main, "_check_device_availability", lambda _cfg: None)
 
     class FakePicamera2:
@@ -260,21 +260,21 @@ def test_env_example_contains_required_runtime_variables_with_nonempty_defaults(
         env_vars[key] = value
 
     required_vars = {
-        "MOTION_IN_OCEAN_PORT",
-        "MOTION_IN_OCEAN_BIND_HOST",
+        "MIO_PORT",
+        "MIO_BIND_HOST",
         "TZ",
-        "MOTION_IN_OCEAN_MOCK_CAMERA",
+        "MIO_MOCK_CAMERA",
     }
     assert required_vars.issubset(env_vars), f"Missing vars: {required_vars - set(env_vars)}"
 
     nonempty_defaults = {
-        "MOTION_IN_OCEAN_PORT",
-        "MOTION_IN_OCEAN_BIND_HOST",
+        "MIO_PORT",
+        "MIO_BIND_HOST",
         "TZ",
-        "MOTION_IN_OCEAN_MOCK_CAMERA",
+        "MIO_MOCK_CAMERA",
     }
     assert all(env_vars[key].strip() for key in nonempty_defaults)
-    assert 1 <= int(env_vars["MOTION_IN_OCEAN_PORT"]) <= 65535
+    assert 1 <= int(env_vars["MIO_PORT"]) <= 65535
 
 
 def test_dockerfile_runtime_contract_instructions(workspace_root):
@@ -355,8 +355,8 @@ def test_pi3_profile_applies_defaults_when_explicit_env_absent(workspace_root):
         workspace_root,
         {
             "MOCK_CAMERA": "true",
-            "MOTION_IN_OCEAN_PI3_PROFILE": "true",
-            "MOTION_IN_OCEAN_PI3_OPTIMIZATION": "false",
+            "MIO_PI3_PROFILE": "true",
+            "MIO_PI3_OPTIMIZATION": "false",
         },
         unset_keys=["RESOLUTION", "FPS", "TARGET_FPS", "JPEG_QUALITY", "MAX_STREAM_CONNECTIONS"],
     )
@@ -374,14 +374,14 @@ def test_manual_env_values_override_pi3_profile_defaults(workspace_root):
     data = _load_main_config_with_env(
         workspace_root,
         {
-            "MOTION_IN_OCEAN_MOCK_CAMERA": "true",
-            "MOTION_IN_OCEAN_PI3_PROFILE": "true",
-            "MOTION_IN_OCEAN_PI3_OPTIMIZATION": "false",
-            "MOTION_IN_OCEAN_RESOLUTION": "1024x768",
-            "MOTION_IN_OCEAN_FPS": "20",
-            "MOTION_IN_OCEAN_TARGET_FPS": "8",
-            "MOTION_IN_OCEAN_JPEG_QUALITY": "88",
-            "MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS": "9",
+            "MIO_MOCK_CAMERA": "true",
+            "MIO_PI3_PROFILE": "true",
+            "MIO_PI3_OPTIMIZATION": "false",
+            "MIO_RESOLUTION": "1024x768",
+            "MIO_FPS": "20",
+            "MIO_TARGET_FPS": "8",
+            "MIO_JPEG_QUALITY": "88",
+            "MIO_MAX_STREAM_CONNECTIONS": "9",
         },
     )
 
@@ -398,12 +398,12 @@ def test_legacy_pi3_profile_env_var_is_still_supported(workspace_root):
     data = _load_main_config_with_env(
         workspace_root,
         {
-            "MOTION_IN_OCEAN_MOCK_CAMERA": "true",
+            "MIO_MOCK_CAMERA": "true",
             "PI3_PROFILE": "true",
-            "MOTION_IN_OCEAN_PI3_PROFILE": "false",
-            "MOTION_IN_OCEAN_PI3_OPTIMIZATION": "false",
+            "MIO_PI3_PROFILE": "false",
+            "MIO_PI3_OPTIMIZATION": "false",
         },
-        unset_keys=["MOTION_IN_OCEAN_RESOLUTION", "MOTION_IN_OCEAN_FPS", "MOTION_IN_OCEAN_TARGET_FPS", "MOTION_IN_OCEAN_JPEG_QUALITY", "MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS"],
+        unset_keys=["MIO_RESOLUTION", "MIO_FPS", "MIO_TARGET_FPS", "MIO_JPEG_QUALITY", "MIO_MAX_STREAM_CONNECTIONS"],
     )
 
     assert data["pi3_profile_enabled"] is False
@@ -411,11 +411,11 @@ def test_legacy_pi3_profile_env_var_is_still_supported(workspace_root):
     data = _load_main_config_with_env(
         workspace_root,
         {
-            "MOTION_IN_OCEAN_MOCK_CAMERA": "true",
+            "MIO_MOCK_CAMERA": "true",
             "PI3_PROFILE": "true",
-            "MOTION_IN_OCEAN_PI3_OPTIMIZATION": "false",
+            "MIO_PI3_OPTIMIZATION": "false",
         },
-        unset_keys=["MOTION_IN_OCEAN_RESOLUTION", "MOTION_IN_OCEAN_FPS", "MOTION_IN_OCEAN_TARGET_FPS", "MOTION_IN_OCEAN_JPEG_QUALITY", "MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS"],
+        unset_keys=["MIO_RESOLUTION", "MIO_FPS", "MIO_TARGET_FPS", "MIO_JPEG_QUALITY", "MIO_MAX_STREAM_CONNECTIONS"],
     )
 
     assert data["pi3_profile_enabled"] is True
@@ -451,8 +451,8 @@ print(json.dumps(metrics))
     env.update(
         {
             "MOCK_CAMERA": "true",
-            "MOTION_IN_OCEAN_PI3_PROFILE": "true",
-            "MOTION_IN_OCEAN_PI3_OPTIMIZATION": "false",
+            "MIO_PI3_PROFILE": "true",
+            "MIO_PI3_OPTIMIZATION": "false",
             "TARGET_FPS": "12",
         }
     )
