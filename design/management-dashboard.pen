@@ -706,16 +706,15 @@
                   "height": 44,
                   "fill": "#1F2430",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "nZx01",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Refresh Dashboard \u21bb",
+                      "content": "Refresh Dashboard ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -971,7 +970,7 @@
                           "x": 44,
                           "y": 22,
                           "fill": "#E11D48",
-                          "content": "07:12 webcam-lab-02 timeout \u00b7 NETWORK_UNREACHABLE",
+                          "content": "07:12 webcam-lab-02 timeout · NETWORK_UNREACHABLE",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -1837,16 +1836,15 @@
                   "height": 44,
                   "fill": "#DDE2EA",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "cEThr",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Refresh Dashboard \u21bb",
+                      "content": "Refresh Dashboard ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -2102,7 +2100,7 @@
                           "x": 44,
                           "y": 22,
                           "fill": "#FF746F",
-                          "content": "07:12 webcam-lab-02 timeout \u00b7 NETWORK_UNREACHABLE",
+                          "content": "07:12 webcam-lab-02 timeout · NETWORK_UNREACHABLE",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -2869,16 +2867,15 @@
                   "height": 44,
                   "fill": "#1F2430",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "gaGHX",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Refresh Home \u21bb",
+                      "content": "Refresh Home ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -3668,16 +3665,15 @@
                   "height": 44,
                   "fill": "#DDE2EA",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "FQUrV",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Refresh Home \u21bb",
+                      "content": "Refresh Home ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -4566,16 +4562,15 @@
                   "height": 44,
                   "fill": "#1F2430",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "3l8kd",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Refresh Devices \u21bb",
+                      "content": "Refresh Devices ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -4761,13 +4756,12 @@
                       "height": 42,
                       "fill": "#0F172A",
                       "cornerRadius": 10,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "73OGg",
-                          "x": 44,
-                          "y": 13,
                           "fill": "#FFFFFF",
                           "content": "Save Device",
                           "fontFamily": "Inter",
@@ -4855,7 +4849,7 @@
                           "x": 14,
                           "y": 26,
                           "fill": "#1F2430",
-                          "content": "webcam-lab-01 \u00b7 Online \u00b7 Edit Check Remove",
+                          "content": "webcam-lab-01 · Online · Edit Check Remove",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -4880,7 +4874,7 @@
                           "x": 14,
                           "y": 26,
                           "fill": "#1F2430",
-                          "content": "webcam-garage-03 \u00b7 Needs login \u00b7 Edit Check Remove",
+                          "content": "webcam-garage-03 · Needs login · Edit Check Remove",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -4930,7 +4924,7 @@
                           "x": 14,
                           "y": 20,
                           "fill": "#1F2430",
-                          "content": "Setup OK \u00b7 Address blocked by safety rule \u00b7 Name lookup OK \u00b7 Network offline",
+                          "content": "Setup OK · Address blocked by safety rule · Name lookup OK · Network offline",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -5650,16 +5644,15 @@
                   "height": 44,
                   "fill": "#1F2430",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "wrtm9",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Scan Again \u21bb",
+                      "content": "Scan Again ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -5767,7 +5760,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#F59E0B",
-                          "content": "webcam-yard-04 \u00b7 found 5m ago \u00b7 waiting",
+                          "content": "webcam-yard-04 · found 5m ago · waiting",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -5792,7 +5785,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#1F2430",
-                          "content": "webcam-gate-02 \u00b7 announced 16m ago \u00b7 pending",
+                          "content": "webcam-gate-02 · announced 16m ago · pending",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -5834,13 +5827,12 @@
                       "height": 48,
                       "fill": "#1E40AF",
                       "cornerRadius": 12,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "DWJBj",
-                          "x": 78,
-                          "y": 15,
                           "fill": "#FFFFFF",
                           "content": "Add Device",
                           "fontFamily": "Inter",
@@ -5859,13 +5851,12 @@
                       "height": 48,
                       "fill": "#E11D48",
                       "cornerRadius": 12,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "lMcAF",
-                          "x": 100,
-                          "y": 15,
                           "fill": "#FFFFFF",
                           "content": "Ignore Device",
                           "fontFamily": "Inter",
@@ -5884,13 +5875,12 @@
                       "height": 48,
                       "fill": "#6B7280",
                       "cornerRadius": 12,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "ixunt",
-                          "x": 110,
-                          "y": 15,
                           "fill": "#FFFFFF",
                           "content": "Maybe Later",
                           "fontFamily": "Inter",
@@ -5967,7 +5957,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#1F2430",
-                          "content": "Can\u2019t connect: login key does not match",
+                          "content": "Can’t connect: login key does not match",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -5992,7 +5982,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#1F2430",
-                          "content": "Can\u2019t connect: device is offline or unreachable",
+                          "content": "Can’t connect: device is offline or unreachable",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -6712,16 +6702,15 @@
                   "height": 44,
                   "fill": "#1F2430",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "0Ghnu",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Save Changes \u2713",
+                      "content": "Save Changes ✓",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -6821,13 +6810,12 @@
                       "height": 34,
                       "fill": "#1F2430",
                       "cornerRadius": 999,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "TcNj4",
-                          "x": 36,
-                          "y": 10,
                           "fill": "#FFFFFF",
                           "content": "Authentication",
                           "fontFamily": "Inter",
@@ -6846,13 +6834,12 @@
                       "height": 34,
                       "fill": "#EEF1F5",
                       "cornerRadius": 999,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "Q5lBW",
-                          "x": 42,
-                          "y": 10,
                           "fill": "#6B7280",
                           "content": "Discovery",
                           "fontFamily": "Inter",
@@ -6871,13 +6858,12 @@
                       "height": 34,
                       "fill": "#EEF1F5",
                       "cornerRadius": 999,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "J4HSG",
-                          "x": 48,
-                          "y": 10,
                           "fill": "#6B7280",
                           "content": "Runtime Settings",
                           "fontFamily": "Inter",
@@ -7121,13 +7107,12 @@
                       "height": 44,
                       "fill": "#2D67EB",
                       "cornerRadius": 10,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "jBk2B",
-                          "x": 42,
-                          "y": 14,
                           "fill": "#1E40AF",
                           "content": "Save Changes",
                           "fontFamily": "Inter",
@@ -7146,13 +7131,12 @@
                       "height": 44,
                       "fill": "#F59E0B",
                       "cornerRadius": 10,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "KCf9x",
-                          "x": 42,
-                          "y": 14,
                           "fill": "#1F2430",
                           "content": "Reset",
                           "fontFamily": "Inter",
@@ -7874,16 +7858,15 @@
                   "height": 44,
                   "fill": "#DDE2EA",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "7o6Gh",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Refresh Devices \u21bb",
+                      "content": "Refresh Devices ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -8058,13 +8041,12 @@
                       "height": 42,
                       "fill": "#2D67EB",
                       "cornerRadius": 10,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "EVTjs",
-                          "x": 44,
-                          "y": 13,
                           "fill": "#FFFFFF",
                           "content": "Save Device",
                           "fontFamily": "Inter",
@@ -8153,7 +8135,7 @@
                           "x": 14,
                           "y": 26,
                           "fill": "#E7ECF6",
-                          "content": "webcam-lab-01 \u00b7 Online \u00b7 Edit Check Remove",
+                          "content": "webcam-lab-01 · Online · Edit Check Remove",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -8178,7 +8160,7 @@
                           "x": 14,
                           "y": 26,
                           "fill": "#E7ECF6",
-                          "content": "webcam-garage-03 \u00b7 Needs login \u00b7 Edit Check Remove",
+                          "content": "webcam-garage-03 · Needs login · Edit Check Remove",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -8240,7 +8222,7 @@
                           "x": 14,
                           "y": 20,
                           "fill": "#9AA3B2",
-                          "content": "Setup OK \u00b7 Address blocked by safety rule \u00b7 Name lookup OK \u00b7 Network offline",
+                          "content": "Setup OK · Address blocked by safety rule · Name lookup OK · Network offline",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -8960,16 +8942,15 @@
                   "height": 44,
                   "fill": "#DDE2EA",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "P8oA8",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Scan Again \u21bb",
+                      "content": "Scan Again ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -9077,7 +9058,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#EEF1F5",
-                          "content": "webcam-yard-04 \u00b7 found 5m ago \u00b7 waiting",
+                          "content": "webcam-yard-04 · found 5m ago · waiting",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -9102,7 +9083,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#E7ECF6",
-                          "content": "webcam-gate-02 \u00b7 announced 16m ago \u00b7 pending",
+                          "content": "webcam-gate-02 · announced 16m ago · pending",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -9144,13 +9125,12 @@
                       "height": 48,
                       "fill": "#1E40AF",
                       "cornerRadius": 12,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "O3KjT",
-                          "x": 78,
-                          "y": 15,
                           "fill": "#FFFFFF",
                           "content": "Add Device",
                           "fontFamily": "Inter",
@@ -9169,13 +9149,12 @@
                       "height": 48,
                       "fill": "#6B7280",
                       "cornerRadius": 12,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "NpkHW",
-                          "x": 110,
-                          "y": 15,
                           "fill": "#FFFFFF",
                           "content": "Maybe Later",
                           "fontFamily": "Inter",
@@ -9194,13 +9173,12 @@
                       "height": 48,
                       "fill": "#E11D48",
                       "cornerRadius": 12,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "KmmWR",
-                          "x": 100,
-                          "y": 15,
                           "fill": "#FFFFFF",
                           "content": "Ignore Device",
                           "fontFamily": "Inter",
@@ -9277,7 +9255,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#E7ECF6",
-                          "content": "Can\u2019t connect: login key does not match",
+                          "content": "Can’t connect: login key does not match",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -9302,7 +9280,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#E7ECF6",
-                          "content": "Can\u2019t connect: device is offline or unreachable",
+                          "content": "Can’t connect: device is offline or unreachable",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -10022,16 +10000,15 @@
                   "height": 44,
                   "fill": "#DDE2EA",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "JpxoW",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Save Changes \u2713",
+                      "content": "Save Changes ✓",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -10131,13 +10108,12 @@
                       "height": 34,
                       "fill": "#1F2430",
                       "cornerRadius": 999,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "1xRnT",
-                          "x": 36,
-                          "y": 10,
                           "fill": "#FFFFFF",
                           "content": "Authentication",
                           "fontFamily": "Inter",
@@ -10156,13 +10132,12 @@
                       "height": 34,
                       "fill": "#0F172A",
                       "cornerRadius": 999,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "OT3Z2",
-                          "x": 42,
-                          "y": 10,
                           "fill": "#9AA3B2",
                           "content": "Discovery",
                           "fontFamily": "Inter",
@@ -10181,13 +10156,12 @@
                       "height": 34,
                       "fill": "#0F172A",
                       "cornerRadius": 999,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "Ql266",
-                          "x": 48,
-                          "y": 10,
                           "fill": "#9AA3B2",
                           "content": "Runtime Settings",
                           "fontFamily": "Inter",
@@ -10431,13 +10405,12 @@
                       "height": 44,
                       "fill": "#F59E0B",
                       "cornerRadius": 10,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "SGLly",
-                          "x": 42,
-                          "y": 14,
                           "fill": "#1F2430",
                           "content": "Reset",
                           "fontFamily": "Inter",
@@ -10456,13 +10429,12 @@
                       "height": 44,
                       "fill": "#2D67EB",
                       "cornerRadius": 10,
-                      "layout": "none",
+                      "justifyContent": "center",
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "text",
                           "id": "ifXrV",
-                          "x": 42,
-                          "y": 14,
                           "fill": "#1E40AF",
                           "content": "Save Changes",
                           "fontFamily": "Inter",
@@ -11085,16 +11057,15 @@
                   "height": 44,
                   "fill": "#1F2430",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "J7rPy",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Refresh List \u21bb",
+                      "content": "Refresh List ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -11265,7 +11236,7 @@
                       "y": 54,
                       "name": "devLmDiagSub",
                       "fill": "#E11D48",
-                      "content": "Setup OK \u00b7 Address blocked by safety rule",
+                      "content": "Setup OK · Address blocked by safety rule",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -11884,16 +11855,15 @@
                   "height": 44,
                   "fill": "#1F2430",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "Tc1Ub",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Scan Again \u21bb",
+                      "content": "Scan Again ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -11990,7 +11960,7 @@
                       "y": 54,
                       "name": "discLmQueueMeta",
                       "fill": "#6B7280",
-                      "content": "webcam-yard-04 \u00b7 found 5m ago \u00b7 waiting",
+                      "content": "webcam-yard-04 · found 5m ago · waiting",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -12027,7 +11997,7 @@
                       "y": 54,
                       "name": "discLmDecisionMeta",
                       "fill": "#6B7280",
-                      "content": "Approve as registered \u00b7 Reject discovery",
+                      "content": "Approve as registered · Reject discovery",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -12683,16 +12653,15 @@
                   "height": 44,
                   "fill": "#1F2430",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "gPlhE",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Save Changes \u2713",
+                      "content": "Save Changes ✓",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -12826,7 +12795,7 @@
                       "y": 46,
                       "name": "setLmPanelsMeta",
                       "fill": "#6B7280",
-                      "content": "Security \u00b7 Discovery \u00b7 Runtime",
+                      "content": "Security · Discovery · Runtime",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -13482,16 +13451,15 @@
                   "height": 44,
                   "fill": "#DDE2EA",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "UBTih",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Refresh List \u21bb",
+                      "content": "Refresh List ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -13662,7 +13630,7 @@
                       "y": 54,
                       "name": "devDmDiagSub",
                       "fill": "#FF746F",
-                      "content": "Setup OK \u00b7 Address blocked by safety rule",
+                      "content": "Setup OK · Address blocked by safety rule",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -14281,16 +14249,15 @@
                   "height": 44,
                   "fill": "#DDE2EA",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "aHYMu",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Scan Again \u21bb",
+                      "content": "Scan Again ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -14387,7 +14354,7 @@
                       "y": 54,
                       "name": "discDmQueueMeta",
                       "fill": "#B3BED3",
-                      "content": "webcam-yard-04 \u00b7 found 5m ago \u00b7 waiting",
+                      "content": "webcam-yard-04 · found 5m ago · waiting",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -14424,7 +14391,7 @@
                       "y": 54,
                       "name": "discDmDecisionMeta",
                       "fill": "#B3BED3",
-                      "content": "Approve as registered \u00b7 Reject discovery",
+                      "content": "Approve as registered · Reject discovery",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -15080,16 +15047,15 @@
                   "height": 44,
                   "fill": "#DDE2EA",
                   "cornerRadius": 12,
-                  "layout": "none",
+                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
                       "id": "0DAyb",
-                      "x": 28,
-                      "y": 12,
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Save Changes \u2713",
+                      "content": "Save Changes ✓",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -15223,7 +15189,7 @@
                       "y": 46,
                       "name": "setDmPanelsMeta",
                       "fill": "#B3BED3",
-                      "content": "Security \u00b7 Discovery \u00b7 Runtime",
+                      "content": "Security · Discovery · Runtime",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
