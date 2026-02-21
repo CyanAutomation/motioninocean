@@ -6,6 +6,8 @@ import os
 import subprocess
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
+from pathlib import Path
+import picamera2
 
 
 DEFAULT_LOG_LEVEL = "INFO"
@@ -117,9 +119,9 @@ def log_provenance_info() -> None:
     # Read VERSION file if available
     version_file = "/app/VERSION"
     app_version = "unknown"
-    if os.path.exists(version_file):
+    if Path(version_file).exists():
         try:
-            with open(version_file, encoding="utf-8") as f:
+            with Path(version_file).open(encoding="utf-8") as f:
                 app_version = f.read().strip()
         except Exception as e:
             logger.warning("Failed to read VERSION file: %s", e)
@@ -127,11 +129,11 @@ def log_provenance_info() -> None:
     # Read BUILD_METADATA if available
     build_metadata: Dict[str, str] = {}
     metadata_file = "/app/BUILD_METADATA"
-    if os.path.exists(metadata_file):
+    if Path(metadata_file).exists():
         try:
-            with open(metadata_file, encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
+            with Path(metadata_file).open(encoding="utf-8") as f:
+                for raw_line in f:
+                    line = raw_line.strip()
                     if line and "=" in line:
                         key, value = line.split("=", 1)
                         build_metadata[key] = value
@@ -146,6 +148,7 @@ def log_provenance_info() -> None:
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
         if result.returncode == 0:
             # Output format: "libcamera 0.6.0 ..."
@@ -158,7 +161,7 @@ def log_provenance_info() -> None:
     picamera2_version = "unknown"
     picamera2_path = "unknown"
     try:
-        import picamera2
+        # import picamera2
 
         picamera2_path = picamera2.__file__
         picamera2_version = getattr(picamera2, "__version__", "unknown")
@@ -180,6 +183,7 @@ def log_provenance_info() -> None:
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
         if result.returncode == 0:
             for line in result.stdout.strip().split("\n"):
@@ -197,9 +201,9 @@ def log_provenance_info() -> None:
     # Get apt preferences info
     apt_prefs_content = "not found"
     preferences_file = "/etc/apt/preferences.d/rpi-camera.preferences"
-    if os.path.exists(preferences_file):
+    if Path(preferences_file).exists():
         try:
-            with open(preferences_file, encoding="utf-8") as f:
+            with Path(preferences_file).open(encoding="utf-8") as f:
                 apt_prefs_content = f.read()
         except Exception as e:
             logger.debug("Could not read apt preferences: %s", e)

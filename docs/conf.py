@@ -6,10 +6,12 @@ and guides in docs/ directory.
 
 import os
 import sys
+from pathlib import Path
+
 
 
 # Add source directory to path for autodoc
-sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, str(Path("..").resolve()))
 
 # --- Project information ---
 
@@ -132,4 +134,4 @@ suppress_warnings = [
 todo_include_todos = True
 
 # Set documentation root (relative to this file)
-doc_root = os.path.dirname(__file__)
+doc_root = Path(__file__).parent
