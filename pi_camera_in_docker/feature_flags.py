@@ -32,7 +32,7 @@ class FeatureFlag:
     """Represents a single feature flag with metadata."""
 
     name: str
-    """The flag name (without MOTION_IN_OCEAN_ prefix)."""
+    """The flag name (without MIO_ prefix)."""
 
     default: bool
     """Default value if not set in environment."""
@@ -325,7 +325,7 @@ class FeatureFlags:
     def load(self) -> None:
         """Load all feature flags from environment variables.
 
-        Supports both MOTION_IN_OCEAN_ prefixed and legacy variable names for
+        Supports both MIO_ prefixed and legacy variable names for
         backward compatibility.
         """
         if self._loaded:
@@ -333,8 +333,8 @@ class FeatureFlags:
             return
 
         for flag_name, flag in self._flags.items():
-            # Try MOTION_IN_OCEAN_ prefixed name first
-            env_var = f"MOTION_IN_OCEAN_{flag_name}"
+            # Try MIO_ prefixed name first
+            env_var = f"MIO_{flag_name}"
             value = os.environ.get(env_var)
 
             # Fall back to backward compatibility names

@@ -54,7 +54,7 @@ class ApplicationSettings:
 
     Settings are organized by category:
     - camera: resolution, fps, jpeg_quality, max_stream_connections, max_frame_age_seconds
-    - feature_flags: MOTION_IN_OCEAN_* feature toggle flags
+    - feature_flags: MIO_* feature toggle flags
     - logging: log_level, log_format, log_include_identifiers
     - discovery: discovery_enabled, discovery_management_url, discovery_token, discovery_interval_seconds
 
