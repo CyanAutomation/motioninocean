@@ -23,37 +23,17 @@ docker compose up -d
 
 Open `http://localhost:8000`.
 
-## Docker Build (Canonical Args)
+## Docker Build
 
-### Primary Build (Stable)
+Motion In Ocean is locked to **Debian Bookworm**. No suite overrides are supported.
 
-When building manually, use the primary stable suite pairing:
-
-```bash
-docker build \
-  --build-arg DEBIAN_SUITE=bookworm \
-  --build-arg RPI_SUITE=bookworm \
-  -t motion-in-ocean:local .
-```
-
-This is the recommended build configuration for all deployments, as of February 2026.
-
-### Why Bookworm (Not Trixie)?
-
-Debian 13 (Trixie, released 2026-02-01) enforces strict GPG policy: it rejects SHA1-based signature bindings as cryptographically insecure. The Raspberry Pi repository's signing key uses SHA1 binding signatures, so **Trixie cannot verify the RPi repository metadata**.
-
-Bookworm (Debian 12) predates this policy change and remains compatible with the RPi repository. Once the Raspberry Pi project reissues their GPG key with modern signature algorithms, Trixie can be made the default again.
-
-### Experimental: Build with Trixie
-
-To test Trixie (may fail due to GPG policy):
+### Build Image
 
 ```bash
-make docker-build-trixie   # Experimental Trixie dev build
-make docker-build-trixie-prod  # Experimental Trixie production build
+docker build -t motion-in-ocean:local .
 ```
 
-## Building for Raspberry Pi (ARM64)
+### Build for Raspberry Pi (ARM64)
 
 **Important:** Local `docker build` defaults to your host's CPU architecture:
 - On ARM64 hosts (Linux ARM, Raspberry Pi itself) → builds ARM64 ✅
@@ -70,8 +50,6 @@ make docker-build-prod-arm64  # Production image
 **Using docker buildx directly:**
 ```bash
 docker buildx build --platform linux/arm64 \
-  --build-arg DEBIAN_SUITE=trixie \
-  --build-arg RPI_SUITE=bookworm \
   -t motion-in-ocean:local .
 ```
 

@@ -788,8 +788,12 @@ async function applyDiscoveredDecision(decision) {
     renderDiscoveredPanel();
     return;
   }
-  await setDiscoveryApproval(selectedDiscoveredNodeId, decision);
-  setDiscoveredFeedback(`Node ${selectedDiscoveredNodeId} ${decision}d.`);
+  const success = await setDiscoveryApproval(selectedDiscoveredNodeId, decision);
+  if (success) {
+    setDiscoveredFeedback(`Node ${selectedDiscoveredNodeId} ${decision}d.`);
+  } else {
+    setDiscoveredFeedback(`Could not ${decision} node ${selectedDiscoveredNodeId}.`, true);
+  }
 }
 
 function setSettingsFeedback(message, isError = false) {
@@ -1011,8 +1015,11 @@ async function fetchWebcams() {
       if (!activeNodeIds.has(nodeId)) {
         webcamStatusMap.delete(nodeId);
         webcamStatusAggregationMap.delete(nodeId);
+        previousStatusByNode.delete(nodeId);
+        discoveredSnoozedIds.delete(nodeId);
       }
     }
+    persistSnoozedDiscoveredIds();
     renderRows();
     renderDiscoveredPanel();
     renderOverviewPanel();
@@ -1104,8 +1111,33 @@ async function refreshStatuses({ fromInterval = false } = {}) {
       );
 
       if (currentToken === statusRefreshToken) {
+        for (const [nodeId, nextStatus] of nextStatusMap.entries()) {
+          const previous = previousStatusByNode.get(nodeId);
+          const nextCode = String(nextStatus.error_code || "").toUpperCase();
+          const nextState = String(nextStatus.status || "unknown").toLowerCase();
+          const prevCode = String(previous?.error_code || "").toUpperCase();
+          const prevState = String(previous?.status || "unknown").toLowerCase();
+
+          if (!previous) {
+            appendActivityFeed(`${nodeId} status initialized: ${nextState}.`);
+          } else if (
+            (prevCode !== nextCode && nextCode) ||
+            (prevState !== nextState && nextState !== "unknown")
+          ) {
+            const detail = nextCode || nextState;
+            appendActivityFeed(`${nodeId} status changed to ${detail}.`);
+          }
+
+          if (previous && String(previous.error_code || "").toUpperCase() && !nextCode) {
+            appendActivityFeed(`${nodeId} recovered.`, "success");
+          }
+          previousStatusByNode.set(nodeId, nextStatus);
+        }
+
         webcamStatusMap = nextStatusMap;
         renderRows();
+        renderDiscoveredPanel();
+        renderOverviewPanel();
       }
     } while (statusRefreshPending);
   } finally {
@@ -1221,6 +1253,7 @@ async function submitNodeForm(event) {
     resetForm();
     await fetchWebcams();
     await refreshStatuses();
+    await fetchOverview();
   } catch (error) {
     if (error?.isUnauthorized) {
       showFeedback(API_AUTH_HINT, true);
@@ -1600,18 +1633,23 @@ async function setDiscoveryApproval(nodeId, decision) {
     if (!response.ok) {
       const errorPayload = await response.json().catch(() => ({}));
       showFeedback(describeApiError(errorPayload), true);
-      return;
+      return false;
     }
 
+    discoveredSnoozedIds.delete(nodeId);
+    persistSnoozedDiscoveredIds();
     showFeedback(`Node ${nodeId} ${decision}d.`);
     await fetchWebcams();
     await refreshStatuses();
+    await fetchOverview();
+    return true;
   } catch (error) {
     if (error?.isUnauthorized) {
       showFeedback(API_AUTH_HINT, true);
-      return;
+      return false;
     }
     showFeedback(error.message || "Network error occurred.", true);
+    return false;
   }
 }
 
@@ -1636,6 +1674,7 @@ async function removeNode(nodeId) {
     }
     await fetchWebcams();
     await refreshStatuses();
+    await fetchOverview();
   } catch (error) {
     if (error?.isUnauthorized) {
       showFeedback(API_AUTH_HINT, true);
@@ -1684,16 +1723,115 @@ async function init() {
     resetForm();
     showFeedback("");
   });
+  initializeTheme();
+  loadSnoozedDiscoveredIds();
+
+  if (viewOverviewBtn instanceof HTMLButtonElement) {
+    viewOverviewBtn.addEventListener("click", () => setActiveView("overview"));
+  }
+  if (viewDevicesBtn instanceof HTMLButtonElement) {
+    viewDevicesBtn.addEventListener("click", () => setActiveView("devices"));
+  }
+  if (viewDiscoveredBtn instanceof HTMLButtonElement) {
+    viewDiscoveredBtn.addEventListener("click", () => setActiveView("discovered"));
+  }
+  if (viewSettingsBtn instanceof HTMLButtonElement) {
+    viewSettingsBtn.addEventListener("click", () => setActiveView("settings"));
+  }
+  if (themeToggleBtn instanceof HTMLButtonElement) {
+    themeToggleBtn.addEventListener("click", () => {
+      const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+      applyTheme(currentTheme === "dark" ? "light" : "dark");
+    });
+  }
+  globalThis.addEventListener("hashchange", () => {
+    setActiveView(getViewFromLocationHash());
+  });
+
   refreshBtn.addEventListener("click", async () => {
     stopStatusRefreshInterval();
     try {
       await fetchWebcams();
       await refreshStatuses();
+      await fetchOverview();
       showFeedback("Node list refreshed.");
     } finally {
       startStatusRefreshInterval();
     }
   });
+  if (refreshDashboardBtn instanceof HTMLButtonElement) {
+    refreshDashboardBtn.addEventListener("click", async () => {
+      await fetchWebcams();
+      await refreshStatuses();
+      await fetchOverview();
+      renderOverviewPanel();
+    });
+  }
+  if (scanDiscoveredBtn instanceof HTMLButtonElement) {
+    scanDiscoveredBtn.addEventListener("click", async () => {
+      await fetchWebcams();
+      await refreshStatuses();
+      await fetchOverview();
+      renderDiscoveredPanel();
+      setDiscoveredFeedback("Discovery queue refreshed.");
+    });
+  }
+  if (discoveredList instanceof HTMLElement) {
+    discoveredList.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      const button = target.closest("[data-discovered-id]");
+      if (!(button instanceof HTMLElement)) {
+        return;
+      }
+      const nodeId = button.dataset.discoveredId;
+      if (!nodeId) {
+        return;
+      }
+      selectedDiscoveredNodeId = nodeId;
+      renderDiscoveredPanel();
+    });
+  }
+  if (discoveredApproveBtn instanceof HTMLButtonElement) {
+    discoveredApproveBtn.addEventListener("click", async () => {
+      await applyDiscoveredDecision("approve");
+      await fetchOverview();
+    });
+  }
+  if (discoveredRejectBtn instanceof HTMLButtonElement) {
+    discoveredRejectBtn.addEventListener("click", async () => {
+      await applyDiscoveredDecision("reject");
+      await fetchOverview();
+    });
+  }
+  if (discoveredLaterBtn instanceof HTMLButtonElement) {
+    discoveredLaterBtn.addEventListener("click", async () => {
+      await applyDiscoveredDecision("snooze");
+      await fetchOverview();
+    });
+  }
+
+  settingsTabButtons.forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) {
+      return;
+    }
+    button.addEventListener("click", () => {
+      const nextTab = button.dataset.settingsTab || "auth";
+      setSettingsTab(nextTab);
+    });
+  });
+  if (settingsSaveBtn instanceof HTMLButtonElement) {
+    settingsSaveBtn.addEventListener("click", saveSettings);
+  }
+  if (settingsResetBtn instanceof HTMLButtonElement) {
+    settingsResetBtn.addEventListener("click", resetSettings);
+  }
+  if (refreshSettingsBtn instanceof HTMLButtonElement) {
+    refreshSettingsBtn.addEventListener("click", fetchSettingsData);
+  }
+
   if (
     toggleWebcamFormPanelBtn instanceof HTMLButtonElement &&
     webcamFormContent instanceof HTMLElement
@@ -1739,8 +1877,14 @@ async function init() {
     }
   });
 
+  setSettingsTab("auth");
+  setActiveView(getViewFromLocationHash());
   await fetchWebcams();
   await refreshStatuses();
+  await fetchOverview();
+  await fetchSettingsData();
+  renderDiscoveredPanel();
+  renderOverviewPanel();
   startStatusRefreshInterval();
 }
 

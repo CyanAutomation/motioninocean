@@ -64,11 +64,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     else \
         echo "Skipping Pillow installation (INCLUDE_MOCK_CAMERA=false)"; \
     fi && \
-    rm -rf /tmp/requirements-base.txt /tmp/*\
-        grep "^Pillow" requirements.txt | /opt/venv/bin/pip install --no-cache-dir -r /dev/stdin; \
-    else \
-        echo "Skipping Pillow installation (INCLUDE_MOCK_CAMERA=false)"; \
-    fi && \
     rm -rf /tmp/requirements-base.txt /tmp/*
 
 # ---- Final Stage ----
@@ -104,6 +99,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
+        curl \
+        gnupg \
         gosu && \
     rm -rf /var/lib/apt/lists/*
 
