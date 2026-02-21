@@ -63,43 +63,122 @@ Expected behavior:
 - If `MOTION_IN_OCEAN_HEALTHCHECK_READY=true`, healthcheck uses readiness semantics (`/ready`).
 - If `MOCK_CAMERA=true`, Picamera2 init is skipped and dummy frames are produced (useful off-Pi).
 
-## Device mapping verification (compose + detect-devices)
+## Device Node Reference (libcamera Requirements)
 
-### Host checks
+Raspberry Pi camera access via libcamera requires specific device nodes, each with distinct role:
+
+| Device | Purpose | Required? | Typical Permissions |
+|--------|---------|-----------|-------------------|
+| `/dev/dma_heap/*` | Memory allocation for video buffers (ISP, codec) | ✓ Yes | Character device (253:*) |
+| `/dev/vchiq` | VideoCore Host Interface for camera control and power management | ✓ Yes | Character device (511:*) |
+| `/dev/video*` | V4L2 video capture nodes (ISP output, codec output) | ✓ Yes | Character device (81:*) |
+| `/dev/media*` | Media controller API for sensor/pipeline control (libcamera discovery) | ✓ Yes | Character device (250:*) |
+| `/dev/v4l-subdev*` | V4L2 sub-device interface for sensor and processing chains | ✓ Yes | Character device (81:*) |
+| `/dev/dri/` | GPU/graphics rendering (optional, for pykms mock support) | ✗ No | Various character devices |
+
+**In containers:**
+- If using `privileged: true`: All devices are automatically exposed
+- If using hardened mode (recommended for production): Explicitly map detected devices using `detect-devices.sh` output
+
+---
+
+## Device Detection & Mapping (detect-devices.sh Workflow)
+
+### Why Device Mapping Matters
+
+When container cannot enumerate cameras, the root cause is typically **missing device nodes in container namespace**. The `detect-devices.sh` script safely discovers which devices exist on your Raspberry Pi host and generates mappings.
+
+### Host Detection (Raspberry Pi)
+
+**On your Raspberry Pi host (outside Docker):**
 
 ```bash
-./detect-devices.sh
+# 1. Run detection script from project root
+./scripts/detect-devices.sh
+
+# Expected output:
+# [INFO] /dev/dma_heap/system - DMA memory
+# [INFO] /dev/vchiq - VideoCore Host Interface
+# [INFO] /dev/media0
+# [INFO] /dev/video0
+# [INFO] /dev/v4l-subdev0
+# [INFO] rpicam-hello --list-cameras works (✓ success)
+```
+
+**If any devices are missing:**
+
+1. **Ensure camera is enabled:**
+   ```bash
+   raspi-config nonint get_camera
+   # Returns 0 if enabled, 1 if disabled
+   sudo raspi-config nonint do_camera 0  # Enable
+   sudo reboot
+   ```
+
+2. **Verify camera hardware:**
+   - Check CSI cable seating and orientation
+   - Test with: `rpicam-hello --list-cameras` (should list at least one camera)
+
+3. **If `/dev/vchiq` or `/dev/dma_heap` missing:**
+   - Indicates kernel/firmware issue
+   - Update kernel: `sudo apt update && sudo apt upgrade && sudo reboot`
+
+### Generate Docker Compose Device Mappings
+
+**After verifying host devices, generate docker-compose.override.yaml:**
+
+```bash
+# Generate override file with detected devices
+./scripts/detect-devices.sh containers/motion-in-ocean-webcam/
+
+# Creates: containers/motion-in-ocean-webcam/docker-compose.override.yaml
+```
+
+**Start container with detected mappings:**
+
+```bash
+cd containers/motion-in-ocean-webcam/
+
+# Using default (privileged mode):
+docker compose up -d
+
+# Using hardened mode (explicit device access):
+docker compose -f docker-compose.yml -f docker-compose.hardened.yml up -d
+
+# Using generated override (recommended):
+docker compose -f docker-compose.yml -f docker-compose.override.yaml up -d
+```
+
+### Validate Container Device Access
+
+**After container starts:**
+
+```bash
+# Check that devices are mounted in container
+docker exec motion-in-ocean ls -la /dev/dma_heap /dev/vchiq /dev/video* /dev/media* 2>/dev/null
+
+# Expected output: device nodes should be accessible
+# If any are missing: device mapping did not transfer correctly
+```
+
+### Compose Configuration Verification
+
+```bash
+# View resolved compose config (merged from all -f files)
+docker compose config | sed -n '/devices:/,/group_add:/p'
 ```
 
 Good signals:
 
-- Required core devices exist (`/dev/dma_heap/*`, `/dev/vchiq`).
-- At least one `/dev/media*` and `/dev/video*` is detected.
-- `rpicam-hello --list-cameras` succeeds.
+- `devices:` lists absolute host paths matching detected nodes (e.g., `/dev/video0:/dev/video0`)
+- `/run/udev:/run/udev:ro` is mounted (udev rules propagated into container)
+- `group_add: [video, render]` is present for group-based permissions
 
 Bad signals:
 
-- Missing `/dev/media*` or `/dev/video*`.
-- Missing `/dev/vchiq` or `/dev/dma_heap/*`.
-- Camera list command fails.
-
-### Compose checks
-
-```bash
-sed -n '/devices:/,/group_add:/p' docker-compose.yaml
-```
-
-Good signals:
-
-- `devices:` includes host paths for dma heap, vchiq, media, and video nodes that actually exist on host.
-- `/run/udev:/run/udev:ro` is mounted.
-- `group_add: [video]` (or equivalent) is present.
-
-Bad signals:
-
-- Stale/static device entries that do not exist on current host.
-- Missing udev mount.
-- Missing video group access.
+- Stale/hardcoded device entries that do not exist on host
+- Missing udev mount
+- No group assignments
 
 ## Health/readiness diagnostics
 

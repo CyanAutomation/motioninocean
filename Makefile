@@ -1,7 +1,7 @@
 # Makefile for motion-in-ocean development tasks
 # Provides convenient shortcuts for common operations
 
-.PHONY: help install install-dev install-node test test-frontend lint format type-check security clean run-mock docker-build docker-run pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
+.PHONY: help install install-dev install-node test test-frontend lint format type-check security clean run-mock docker-build docker-build-prod docker-build-bookworm docker-build-bookworm-prod docker-build-arm64 docker-build-prod-arm64 docker-build-bookworm-arm64 docker-build-bookworm-prod-arm64 docker-build-both docker-run docker-stop docker-clean pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
 help:

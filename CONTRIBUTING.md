@@ -112,10 +112,18 @@ make validate          # Run all validation checks including security
 
 ### Local build & run
 
+**Via Docker Compose:**
 ```bash
 docker compose build
 docker compose up
 ```
+
+**Building for Raspberry Pi (ARM64 hosts):**
+If you're building on non-ARM hardware (Intel Mac, x86_64 Linux) for deployment to Raspberry Pi, use the explicit ARM64 targets:
+```bash
+make docker-build-arm64
+```
+This ensures Raspberry Pi-specific camera packages are correctly resolved. See [README.md#building-for-raspberry-pi-arm64](README.md#building-for-raspberry-pi-arm64) for details.
 
 ### Mock camera mode (non-Raspberry Pi)
 
