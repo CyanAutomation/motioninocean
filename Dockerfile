@@ -253,6 +253,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     rm -rf /var/lib/apt/lists/*
 
 # ---- Layer 3: Non-Root User Setup (Runtime Security) ----
+# Ensure common device-access groups exist (Debian slim may not ship them)
+RUN groupadd -f video && \
+    groupadd -f render || true
+
 # Create non-root app user for runtime security
 # Even with privileged: true in docker-compose, reduces blast radius if process is compromised
 RUN groupadd -g 10001 app && \

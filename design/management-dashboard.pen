@@ -724,7 +724,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "k8JCx",
+                  "id": "MT8bE",
                   "x": 1068,
                   "y": 14,
                   "name": "Theme Toggle",
@@ -736,58 +736,36 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "qZSsb",
-                      "x": 16,
-                      "y": 16,
-                      "name": "icon-sun-core",
-                      "width": 12,
-                      "height": 12,
+                      "id": "gY4lr",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
                       "fill": "#111827",
                       "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "CuvZK",
-                      "x": 21,
-                      "y": 8,
-                      "name": "icon-sun-ray-t",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "id": "njuGx",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E5E7EB",
+                      "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "UTWgG",
-                      "x": 31,
-                      "y": 21,
-                      "name": "icon-sun-ray-r",
-                      "width": 5,
-                      "height": 2,
+                      "id": "aTitc",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
                       "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "IAwbN",
-                      "x": 21,
-                      "y": 31,
-                      "name": "icon-sun-ray-b",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "hKplr",
-                      "x": 8,
-                      "y": 21,
-                      "name": "icon-sun-ray-l",
-                      "width": 5,
-                      "height": 2,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "cornerRadius": 999
                     }
                   ]
                 }
@@ -2909,7 +2887,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "yCeXy",
+                  "id": "3JaAN",
                   "x": 130,
                   "y": 0,
                   "name": "Theme Toggle",
@@ -2921,58 +2899,36 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "wpFRd",
-                      "x": 16,
-                      "y": 16,
-                      "name": "icon-sun-core",
-                      "width": 12,
-                      "height": 12,
+                      "id": "tBxGr",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
                       "fill": "#111827",
                       "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "dYqKf",
-                      "x": 21,
-                      "y": 8,
-                      "name": "icon-sun-ray-t",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "id": "avCtO",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E5E7EB",
+                      "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "H7Sd4",
-                      "x": 31,
-                      "y": 21,
-                      "name": "icon-sun-ray-r",
-                      "width": 5,
-                      "height": 2,
+                      "id": "f5MHV",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
                       "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "19qA7",
-                      "x": 21,
-                      "y": 31,
-                      "name": "icon-sun-ray-b",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "dYrtV",
-                      "x": 8,
-                      "y": 21,
-                      "name": "icon-sun-ray-l",
-                      "width": 5,
-                      "height": 2,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "cornerRadius": 999
                     }
                   ]
                 }
@@ -4556,7 +4512,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "6DxOJ",
+                  "id": "T6xmY",
                   "x": 1068,
                   "y": 14,
                   "name": "Theme Toggle",
@@ -4568,58 +4524,36 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "qLOZp",
-                      "x": 16,
-                      "y": 16,
-                      "name": "icon-sun-core",
-                      "width": 12,
-                      "height": 12,
+                      "id": "VYWO9",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
                       "fill": "#111827",
                       "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "Ai6BD",
-                      "x": 21,
-                      "y": 8,
-                      "name": "icon-sun-ray-t",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "id": "2A04r",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E5E7EB",
+                      "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "BX3n7",
-                      "x": 31,
-                      "y": 21,
-                      "name": "icon-sun-ray-r",
-                      "width": 5,
-                      "height": 2,
+                      "id": "LAzmT",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
                       "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "0na02",
-                      "x": 21,
-                      "y": 31,
-                      "name": "icon-sun-ray-b",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "Zfw0S",
-                      "x": 8,
-                      "y": 21,
-                      "name": "icon-sun-ray-l",
-                      "width": 5,
-                      "height": 2,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "cornerRadius": 999
                     }
                   ]
                 }
@@ -5662,7 +5596,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "YQHLS",
+                  "id": "NdMlM",
                   "x": 1068,
                   "y": 14,
                   "name": "Theme Toggle",
@@ -5674,58 +5608,36 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "GN1EI",
-                      "x": 16,
-                      "y": 16,
-                      "name": "icon-sun-core",
-                      "width": 12,
-                      "height": 12,
+                      "id": "0anns",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
                       "fill": "#111827",
                       "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "7VJwT",
-                      "x": 21,
-                      "y": 8,
-                      "name": "icon-sun-ray-t",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "id": "apbgI",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E5E7EB",
+                      "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "GpjHy",
-                      "x": 31,
-                      "y": 21,
-                      "name": "icon-sun-ray-r",
-                      "width": 5,
-                      "height": 2,
+                      "id": "1quWZ",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
                       "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "uDesg",
-                      "x": 21,
-                      "y": 31,
-                      "name": "icon-sun-ray-b",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "j0nUE",
-                      "x": 8,
-                      "y": 21,
-                      "name": "icon-sun-ray-l",
-                      "width": 5,
-                      "height": 2,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "cornerRadius": 999
                     }
                   ]
                 }
@@ -6746,7 +6658,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "I5hUN",
+                  "id": "lQE4z",
                   "x": 1068,
                   "y": 14,
                   "name": "Theme Toggle",
@@ -6758,58 +6670,36 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "UAWs0",
-                      "x": 16,
-                      "y": 16,
-                      "name": "icon-sun-core",
-                      "width": 12,
-                      "height": 12,
+                      "id": "EdFdI",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
                       "fill": "#111827",
                       "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "02Ufa",
-                      "x": 21,
-                      "y": 8,
-                      "name": "icon-sun-ray-t",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "id": "BGKqg",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E5E7EB",
+                      "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "Jtfu0",
-                      "x": 31,
-                      "y": 21,
-                      "name": "icon-sun-ray-r",
-                      "width": 5,
-                      "height": 2,
+                      "id": "pQZLW",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
                       "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "HH4nb",
-                      "x": 21,
-                      "y": 31,
-                      "name": "icon-sun-ray-b",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "BnRTz",
-                      "x": 8,
-                      "y": 21,
-                      "name": "icon-sun-ray-l",
-                      "width": 5,
-                      "height": 2,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "cornerRadius": 999
                     }
                   ]
                 }
@@ -11117,7 +11007,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "p7hvr",
+                  "id": "EqPiO",
                   "x": 130,
                   "y": 0,
                   "name": "Theme Toggle",
@@ -11129,58 +11019,36 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "reT51",
-                      "x": 16,
-                      "y": 16,
-                      "name": "icon-sun-core",
-                      "width": 12,
-                      "height": 12,
+                      "id": "RdugK",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
                       "fill": "#111827",
                       "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "wHsA8",
-                      "x": 21,
-                      "y": 8,
-                      "name": "icon-sun-ray-t",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "id": "5o0f2",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E5E7EB",
+                      "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "BrDuE",
-                      "x": 31,
-                      "y": 21,
-                      "name": "icon-sun-ray-r",
-                      "width": 5,
-                      "height": 2,
+                      "id": "sU5qX",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
                       "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "6yfLb",
-                      "x": 21,
-                      "y": 31,
-                      "name": "icon-sun-ray-b",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "uxKaM",
-                      "x": 8,
-                      "y": 21,
-                      "name": "icon-sun-ray-l",
-                      "width": 5,
-                      "height": 2,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "cornerRadius": 999
                     }
                   ]
                 }
@@ -11902,7 +11770,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "JoISB",
+                  "id": "HfNKd",
                   "x": 130,
                   "y": 0,
                   "name": "Theme Toggle",
@@ -11914,58 +11782,36 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "Pfon3",
-                      "x": 16,
-                      "y": 16,
-                      "name": "icon-sun-core",
-                      "width": 12,
-                      "height": 12,
+                      "id": "lNSTv",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
                       "fill": "#111827",
                       "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "mLjaw",
-                      "x": 21,
-                      "y": 8,
-                      "name": "icon-sun-ray-t",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "id": "2W444",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E5E7EB",
+                      "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "3mSxX",
-                      "x": 31,
-                      "y": 21,
-                      "name": "icon-sun-ray-r",
-                      "width": 5,
-                      "height": 2,
+                      "id": "tpHjG",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
                       "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "gjoWy",
-                      "x": 21,
-                      "y": 31,
-                      "name": "icon-sun-ray-b",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "dc5C0",
-                      "x": 8,
-                      "y": 21,
-                      "name": "icon-sun-ray-l",
-                      "width": 5,
-                      "height": 2,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "cornerRadius": 999
                     }
                   ]
                 }
@@ -12687,7 +12533,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "1Gf62",
+                  "id": "w2SqX",
                   "x": 130,
                   "y": 0,
                   "name": "Theme Toggle",
@@ -12699,58 +12545,36 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "8TVxI",
-                      "x": 16,
-                      "y": 16,
-                      "name": "icon-sun-core",
-                      "width": 12,
-                      "height": 12,
+                      "id": "JUGtm",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
                       "fill": "#111827",
                       "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "NQAbt",
-                      "x": 21,
-                      "y": 8,
-                      "name": "icon-sun-ray-t",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "id": "Ic9di",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E5E7EB",
+                      "cornerRadius": 999
                     },
                     {
                       "type": "frame",
-                      "id": "3GRAZ",
-                      "x": 31,
-                      "y": 21,
-                      "name": "icon-sun-ray-r",
-                      "width": 5,
-                      "height": 2,
+                      "id": "nat2b",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
                       "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "iF5TN",
-                      "x": 21,
-                      "y": 31,
-                      "name": "icon-sun-ray-b",
-                      "width": 2,
-                      "height": 5,
-                      "fill": "#111827",
-                      "cornerRadius": 1
-                    },
-                    {
-                      "type": "frame",
-                      "id": "muS0M",
-                      "x": 8,
-                      "y": 21,
-                      "name": "icon-sun-ray-l",
-                      "width": 5,
-                      "height": 2,
-                      "fill": "#111827",
-                      "cornerRadius": 1
+                      "cornerRadius": 999
                     }
                   ]
                 }

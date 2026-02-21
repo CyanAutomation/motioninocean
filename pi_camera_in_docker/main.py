@@ -205,37 +205,37 @@ def _collect_current_config() -> Dict[str, Any]:
     Returns a simplified config dict for the setup API.
     """
     try:
-        resolution = _parse_resolution(os.environ.get("RESOLUTION", "640x480"))
+        resolution = _parse_resolution(os.environ.get("MOTION_IN_OCEAN_RESOLUTION", "640x480"))
     except ValueError:
         resolution = (640, 480)
 
     try:
-        fps = int(os.environ.get("FPS", "24"))
+        fps = int(os.environ.get("MOTION_IN_OCEAN_FPS", "24"))
     except ValueError:
         fps = 24
 
     try:
-        target_fps_str = os.environ.get("TARGET_FPS", "")
+        target_fps_str = os.environ.get("MOTION_IN_OCEAN_TARGET_FPS", "")
         target_fps = int(target_fps_str) if target_fps_str else None
     except ValueError:
         target_fps = None
 
     try:
-        jpeg_quality = int(os.environ.get("JPEG_QUALITY", "90"))
+        jpeg_quality = int(os.environ.get("MOTION_IN_OCEAN_JPEG_QUALITY", "90"))
         if not 1 <= jpeg_quality <= 100:
             jpeg_quality = 90
     except ValueError:
         jpeg_quality = 90
 
     try:
-        max_stream_connections = int(os.environ.get("MAX_STREAM_CONNECTIONS", "10"))
+        max_stream_connections = int(os.environ.get("MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS", "10"))
         if not 1 <= max_stream_connections <= 100:
             max_stream_connections = 10
     except ValueError:
         max_stream_connections = 10
 
     pi3_profile = os.environ.get(
-        "MOTION_IN_OCEAN_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false")
+        "MOTION_IN_OCEAN_PI3_PROFILE", "false"
     ).lower() in (
         "1",
         "true",
@@ -243,7 +243,7 @@ def _collect_current_config() -> Dict[str, Any]:
     )
     mock_camera = is_flag_enabled("MOCK_CAMERA")
     cors_origins = os.environ.get("MOTION_IN_OCEAN_CORS_ORIGINS", "")
-    auth_token = os.environ.get("MANAGEMENT_AUTH_TOKEN", "")
+    auth_token = os.environ.get("MOTION_IN_OCEAN_MANAGEMENT_AUTH_TOKEN", "")
 
     return {
         "resolution": f"{resolution[0]}x{resolution[1]}",
@@ -477,7 +477,7 @@ def _init_flask_app(_config: Dict[str, Any]) -> Tuple[Flask, Limiter]:
         app=app,
         key_func=get_remote_address,
         default_limits=["100/minute"],
-        storage_uri=os.environ.get("LIMITER_STORAGE_URI", "memory://"),
+        storage_uri=os.environ.get("MOTION_IN_OCEAN_LIMITER_STORAGE_URI", "memory://"),
     )
 
     return app, limiter
@@ -1298,7 +1298,7 @@ def create_app_from_env() -> Flask:
         raise ValueError(error_msg) from e
 
     # Initialize Sentry error tracking if DSN is provided
-    sentry_dsn = os.environ.get("SENTRY_DSN")
+    sentry_dsn = os.environ.get("MOTION_IN_OCEAN_SENTRY_DSN")
     init_sentry(sentry_dsn, cfg["app_mode"])
 
     app = create_management_app(cfg) if cfg["app_mode"] == "management" else create_webcam_app(cfg)

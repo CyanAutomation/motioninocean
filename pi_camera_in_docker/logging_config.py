@@ -68,16 +68,16 @@ def configure_logging() -> None:
     """Configure root logging from environment variables.
 
     Supported env vars:
-    - LOG_LEVEL: Python logging level (default: INFO)
-    - LOG_FORMAT: text|json (default: text)
-    - LOG_INCLUDE_IDENTIFIERS: true/false for process/thread ids (default: false)
+    - MOTION_IN_OCEAN_LOG_LEVEL: Python logging level (default: INFO)
+    - MOTION_IN_OCEAN_LOG_FORMAT: text|json (default: text)
+    - MOTION_IN_OCEAN_LOG_INCLUDE_IDENTIFIERS: true/false for process/thread ids (default: false)
     """
 
-    raw_level = (os.environ.get("LOG_LEVEL") or DEFAULT_LOG_LEVEL).strip().upper()
+    raw_level = (os.environ.get("MOTION_IN_OCEAN_LOG_LEVEL") or DEFAULT_LOG_LEVEL).strip().upper()
     level = getattr(logging, raw_level, logging.INFO)
 
-    log_format = (os.environ.get("LOG_FORMAT") or DEFAULT_LOG_FORMAT).strip().lower()
-    include_identifiers = _parse_bool(os.environ.get("LOG_INCLUDE_IDENTIFIERS", "false"))
+    log_format = (os.environ.get("MOTION_IN_OCEAN_LOG_FORMAT") or DEFAULT_LOG_FORMAT).strip().lower()
+    include_identifiers = _parse_bool(os.environ.get("MOTION_IN_OCEAN_LOG_INCLUDE_IDENTIFIERS", "false"))
 
     if log_format == "json":
         formatter: logging.Formatter = JSONFormatter(include_identifiers=include_identifiers)

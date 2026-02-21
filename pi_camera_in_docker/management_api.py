@@ -1406,7 +1406,7 @@ def register_management_routes(
     registry = FileWebcamRegistry(registry_path)
     discovery_secret = node_discovery_shared_secret
     if discovery_secret is None:
-        discovery_secret = os.environ.get("NODE_DISCOVERY_SHARED_SECRET", "")
+        discovery_secret = os.environ.get("MOTION_IN_OCEAN_NODE_DISCOVERY_SHARED_SECRET", "")
 
     # Helper: Apply rate limit decorator if limiter is available
     def _maybe_limit(limit_str: str):
