@@ -57,11 +57,24 @@ const viewOverviewBtn = document.getElementById("view-overview-btn");
 const viewDevicesBtn = document.getElementById("view-devices-btn");
 const viewDiscoveredBtn = document.getElementById("view-discovered-btn");
 const viewSettingsBtn = document.getElementById("view-settings-btn");
+const railOverviewBtn = document.getElementById("rail-overview-btn");
+const railDevicesBtn = document.getElementById("rail-devices-btn");
+const railDiscoveredBtn = document.getElementById("rail-discovered-btn");
+const railSettingsBtn = document.getElementById("rail-settings-btn");
+const railExportBtn = document.getElementById("rail-export-btn");
+const railHelpBtn = document.getElementById("rail-help-btn");
+const mobileOverviewBtn = document.getElementById("mobile-overview-btn");
+const mobileDevicesBtn = document.getElementById("mobile-devices-btn");
+const mobileDiscoveredBtn = document.getElementById("mobile-discovered-btn");
+const mobileSettingsBtn = document.getElementById("mobile-settings-btn");
+const mobileExportBtn = document.getElementById("mobile-export-btn");
+const mobileHelpBtn = document.getElementById("mobile-help-btn");
 const themeToggleBtn = document.getElementById("theme-toggle-btn");
 const refreshSettingsBtn = document.getElementById("refresh-settings-btn");
 const settingsSaveBtn = document.getElementById("settings-save-btn");
 const settingsResetBtn = document.getElementById("settings-reset-btn");
 const settingsFeedback = document.getElementById("settings-feedback");
+const settingsManagementApiToken = document.getElementById("settings-management-api-token");
 const settingsDiscoveryEnabled = document.getElementById("settings-discovery-enabled");
 const settingsDiscoveryUrl = document.getElementById("settings-discovery-url");
 const settingsDiscoveryToken = document.getElementById("settings-discovery-token");
@@ -73,6 +86,11 @@ const settingsTabButtons = document.querySelectorAll("[data-settings-tab]");
 const settingsAuthPanel = document.getElementById("settings-auth-panel");
 const settingsDiscoveryPanel = document.getElementById("settings-discovery-panel");
 const settingsRuntimePanel = document.getElementById("settings-runtime-panel");
+const utilityPanel = document.getElementById("utility-panel");
+const utilityPanelTitle = document.getElementById("utility-panel-title");
+const utilityPanelContent = document.getElementById("utility-panel-content");
+const utilityPanelCloseBtn = document.getElementById("utility-panel-close-btn");
+const managementApiTokenInput = document.getElementById("management-api-token");
 
 let webcams = [];
 let webcamStatusMap = new Map();
@@ -89,6 +107,7 @@ let selectedDiscoveredNodeId = "";
 let activityFeed = [];
 let previousStatusByNode = new Map();
 let discoveredSnoozedIds = new Set();
+let managementApiBearerToken = "";
 const API_AUTH_HINT =
   "Management API request unauthorized. Provide a valid Management API Bearer Token, then click Refresh to retry.";
 
@@ -98,6 +117,7 @@ const NODE_FORM_COLLAPSED_STORAGE_KEY = "management.webcamFormCollapsed";
 const VIEW_HASH_PREFIX = "#";
 const VIEWS = ["overview", "devices", "discovered", "settings"];
 const THEME_STORAGE_KEY = "management.theme";
+const API_TOKEN_STORAGE_KEY = "management.apiToken";
 const SNOOZE_STORAGE_KEY = "management.discoveredSnoozedIds";
 
 function setDiagnosticPanelExpanded(isExpanded) {
@@ -235,12 +255,103 @@ function showFeedback(message, isError = false) {
 }
 
 function getManagementBearerToken() {
-  const tokenInput = document.getElementById("management-api-token");
-  if (!(tokenInput instanceof HTMLInputElement)) {
-    return "";
+  return managementApiBearerToken;
+}
+
+function syncManagementTokenInputs(token) {
+  if (managementApiTokenInput instanceof HTMLInputElement) {
+    managementApiTokenInput.value = token;
+  }
+  if (settingsManagementApiToken instanceof HTMLInputElement) {
+    settingsManagementApiToken.value = token;
+  }
+}
+
+function setManagementBearerToken(token, { persist = true } = {}) {
+  const normalized = String(token || "").trim();
+  managementApiBearerToken = normalized;
+  syncManagementTokenInputs(normalized);
+
+  if (!persist) {
+    return;
   }
 
-  return tokenInput.value.trim();
+  try {
+    if (normalized) {
+      globalThis.localStorage?.setItem(API_TOKEN_STORAGE_KEY, normalized);
+    } else {
+      globalThis.localStorage?.removeItem(API_TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore local storage failures.
+  }
+}
+
+function initializeManagementBearerToken() {
+  let storedToken = "";
+  try {
+    storedToken = globalThis.localStorage?.getItem(API_TOKEN_STORAGE_KEY) || "";
+  } catch {
+    // Ignore local storage failures.
+  }
+
+  const fallbackInputToken =
+    managementApiTokenInput instanceof HTMLInputElement ? managementApiTokenInput.value.trim() : "";
+  setManagementBearerToken(storedToken || fallbackInputToken, { persist: false });
+}
+
+function openUtilityPanel(title, htmlContent) {
+  if (
+    !(utilityPanel instanceof HTMLElement) ||
+    !(utilityPanelTitle instanceof HTMLElement) ||
+    !(utilityPanelContent instanceof HTMLElement)
+  ) {
+    return;
+  }
+
+  utilityPanelTitle.textContent = title;
+  utilityPanelContent.innerHTML = htmlContent;
+  utilityPanel.classList.remove("hidden");
+}
+
+function closeUtilityPanel() {
+  if (!(utilityPanel instanceof HTMLElement)) {
+    return;
+  }
+  utilityPanel.classList.add("hidden");
+}
+
+function openHelpPanel() {
+  openUtilityPanel(
+    "Connection Help",
+    `
+      <ul class="overview-list">
+        <li>Use the dashboard token to authenticate management API requests.</li>
+        <li>Use Diagnose on a node to inspect DNS, network, and API endpoint health.</li>
+        <li>Discovery approvals activate announced nodes; reject keeps them pending.</li>
+        <li>Private-IP and SSRF protections can block unsafe targets by policy.</li>
+      </ul>
+    `,
+  );
+}
+
+function openExportPanel() {
+  if (!latestDiagnosticResult) {
+    openUtilityPanel(
+      "Export Diagnostic Report",
+      "<p>No diagnostic report is available yet. Run <strong>Diagnose</strong> for any node first.</p>",
+    );
+    return;
+  }
+
+  const report = buildDiagnosticTextReport(latestDiagnosticResult);
+  openUtilityPanel(
+    "Export Diagnostic Report",
+    `
+      <p>Most recent diagnostic report is available below.</p>
+      <pre class="utility-panel__report">${escapeHtml(report)}</pre>
+    `,
+  );
 }
 
 /**
@@ -583,6 +694,22 @@ function setActiveView(view) {
       button.setAttribute("aria-current", active ? "page" : "false");
     }
   }
+  const railBtnMap = {
+    overview: [railOverviewBtn, mobileOverviewBtn],
+    devices: [railDevicesBtn, mobileDevicesBtn],
+    discovered: [railDiscoveredBtn, mobileDiscoveredBtn],
+    settings: [railSettingsBtn, mobileSettingsBtn],
+  };
+  for (const [name, buttons] of Object.entries(railBtnMap)) {
+    const active = name === view;
+    for (const button of buttons) {
+      if (button instanceof HTMLButtonElement) {
+        button.classList.toggle("rail-btn--active", active);
+        button.classList.toggle("mobile-rail-btn--active", active);
+        button.setAttribute("aria-current", active ? "page" : "false");
+      }
+    }
+  }
   if (globalThis.location?.hash !== `#${view}`) {
     globalThis.history.replaceState(null, "", `#${view}`);
   }
@@ -877,6 +1004,10 @@ async function fetchSettingsData() {
 }
 
 async function saveSettings() {
+  if (settingsManagementApiToken instanceof HTMLInputElement) {
+    setManagementBearerToken(settingsManagementApiToken.value);
+  }
+
   if (
     !(settingsDiscoveryEnabled instanceof HTMLInputElement) ||
     !(settingsDiscoveryUrl instanceof HTMLInputElement) ||
@@ -1047,6 +1178,11 @@ function stopStatusRefreshInterval() {
 }
 
 async function refreshStatuses({ fromInterval = false } = {}) {
+  const statusHistoryMap =
+    typeof previousStatusByNode !== "undefined" && previousStatusByNode instanceof Map
+      ? previousStatusByNode
+      : new Map();
+
   if (statusRefreshInFlight) {
     statusRefreshPending = true;
     if (!fromInterval) {
@@ -1110,32 +1246,44 @@ async function refreshStatuses({ fromInterval = false } = {}) {
 
       if (currentToken === statusRefreshToken) {
         for (const [nodeId, nextStatus] of nextStatusMap.entries()) {
-          const previous = previousStatusByNode.get(nodeId);
+          const previous = statusHistoryMap.get(nodeId);
           const nextCode = String(nextStatus.error_code || "").toUpperCase();
           const nextState = String(nextStatus.status || "unknown").toLowerCase();
           const prevCode = String(previous?.error_code || "").toUpperCase();
           const prevState = String(previous?.status || "unknown").toLowerCase();
 
           if (!previous) {
-            appendActivityFeed(`${nodeId} status initialized: ${nextState}.`);
+            if (typeof appendActivityFeed === "function") {
+              appendActivityFeed(`${nodeId} status initialized: ${nextState}.`);
+            }
           } else if (
             (prevCode !== nextCode && nextCode) ||
             (prevState !== nextState && nextState !== "unknown")
           ) {
             const detail = nextCode || nextState;
-            appendActivityFeed(`${nodeId} status changed to ${detail}.`);
+            if (typeof appendActivityFeed === "function") {
+              appendActivityFeed(`${nodeId} status changed to ${detail}.`);
+            }
           }
 
           if (previous && String(previous.error_code || "").toUpperCase() && !nextCode) {
-            appendActivityFeed(`${nodeId} recovered.`, "success");
+            if (typeof appendActivityFeed === "function") {
+              appendActivityFeed(`${nodeId} recovered.`, "success");
+            }
           }
-          previousStatusByNode.set(nodeId, nextStatus);
+          statusHistoryMap.set(nodeId, nextStatus);
         }
 
         webcamStatusMap = nextStatusMap;
-        renderRows();
-        renderDiscoveredPanel();
-        renderOverviewPanel();
+        if (typeof renderRows === "function") {
+          renderRows();
+        }
+        if (typeof renderDiscoveredPanel === "function") {
+          renderDiscoveredPanel();
+        }
+        if (typeof renderOverviewPanel === "function") {
+          renderOverviewPanel();
+        }
       }
     } while (statusRefreshPending);
   } finally {
@@ -1721,30 +1869,115 @@ async function init() {
     resetForm();
     showFeedback("");
   });
-  initializeTheme();
-  loadSnoozedDiscoveredIds();
+  if (typeof initializeTheme === "function") {
+    initializeTheme();
+  }
+  if (typeof initializeManagementBearerToken === "function") {
+    initializeManagementBearerToken();
+  }
+  if (typeof loadSnoozedDiscoveredIds === "function") {
+    loadSnoozedDiscoveredIds();
+  }
 
-  if (viewOverviewBtn instanceof HTMLButtonElement) {
+  if (
+    typeof managementApiTokenInput !== "undefined" &&
+    managementApiTokenInput instanceof HTMLInputElement
+  ) {
+    managementApiTokenInput.addEventListener("input", () => {
+      setManagementBearerToken(managementApiTokenInput.value);
+    });
+  }
+  if (
+    typeof settingsManagementApiToken !== "undefined" &&
+    settingsManagementApiToken instanceof HTMLInputElement
+  ) {
+    settingsManagementApiToken.addEventListener("input", () => {
+      setManagementBearerToken(settingsManagementApiToken.value);
+    });
+  }
+
+  if (typeof viewOverviewBtn !== "undefined" && viewOverviewBtn instanceof HTMLButtonElement) {
     viewOverviewBtn.addEventListener("click", () => setActiveView("overview"));
   }
-  if (viewDevicesBtn instanceof HTMLButtonElement) {
+  if (typeof viewDevicesBtn !== "undefined" && viewDevicesBtn instanceof HTMLButtonElement) {
     viewDevicesBtn.addEventListener("click", () => setActiveView("devices"));
   }
-  if (viewDiscoveredBtn instanceof HTMLButtonElement) {
+  if (
+    typeof viewDiscoveredBtn !== "undefined" &&
+    viewDiscoveredBtn instanceof HTMLButtonElement
+  ) {
     viewDiscoveredBtn.addEventListener("click", () => setActiveView("discovered"));
   }
-  if (viewSettingsBtn instanceof HTMLButtonElement) {
+  if (typeof viewSettingsBtn !== "undefined" && viewSettingsBtn instanceof HTMLButtonElement) {
     viewSettingsBtn.addEventListener("click", () => setActiveView("settings"));
   }
-  if (themeToggleBtn instanceof HTMLButtonElement) {
+  if (typeof railOverviewBtn !== "undefined" && railOverviewBtn instanceof HTMLButtonElement) {
+    railOverviewBtn.addEventListener("click", () => setActiveView("overview"));
+  }
+  if (typeof railDevicesBtn !== "undefined" && railDevicesBtn instanceof HTMLButtonElement) {
+    railDevicesBtn.addEventListener("click", () => setActiveView("devices"));
+  }
+  if (
+    typeof railDiscoveredBtn !== "undefined" &&
+    railDiscoveredBtn instanceof HTMLButtonElement
+  ) {
+    railDiscoveredBtn.addEventListener("click", () => setActiveView("discovered"));
+  }
+  if (typeof railSettingsBtn !== "undefined" && railSettingsBtn instanceof HTMLButtonElement) {
+    railSettingsBtn.addEventListener("click", () => setActiveView("settings"));
+  }
+  if (
+    typeof mobileOverviewBtn !== "undefined" &&
+    mobileOverviewBtn instanceof HTMLButtonElement
+  ) {
+    mobileOverviewBtn.addEventListener("click", () => setActiveView("overview"));
+  }
+  if (typeof mobileDevicesBtn !== "undefined" && mobileDevicesBtn instanceof HTMLButtonElement) {
+    mobileDevicesBtn.addEventListener("click", () => setActiveView("devices"));
+  }
+  if (
+    typeof mobileDiscoveredBtn !== "undefined" &&
+    mobileDiscoveredBtn instanceof HTMLButtonElement
+  ) {
+    mobileDiscoveredBtn.addEventListener("click", () => setActiveView("discovered"));
+  }
+  if (
+    typeof mobileSettingsBtn !== "undefined" &&
+    mobileSettingsBtn instanceof HTMLButtonElement
+  ) {
+    mobileSettingsBtn.addEventListener("click", () => setActiveView("settings"));
+  }
+  if (typeof railHelpBtn !== "undefined" && railHelpBtn instanceof HTMLButtonElement) {
+    railHelpBtn.addEventListener("click", openHelpPanel);
+  }
+  if (typeof mobileHelpBtn !== "undefined" && mobileHelpBtn instanceof HTMLButtonElement) {
+    mobileHelpBtn.addEventListener("click", openHelpPanel);
+  }
+  if (typeof railExportBtn !== "undefined" && railExportBtn instanceof HTMLButtonElement) {
+    railExportBtn.addEventListener("click", openExportPanel);
+  }
+  if (typeof mobileExportBtn !== "undefined" && mobileExportBtn instanceof HTMLButtonElement) {
+    mobileExportBtn.addEventListener("click", openExportPanel);
+  }
+  if (
+    typeof utilityPanelCloseBtn !== "undefined" &&
+    utilityPanelCloseBtn instanceof HTMLButtonElement
+  ) {
+    utilityPanelCloseBtn.addEventListener("click", closeUtilityPanel);
+  }
+  if (typeof themeToggleBtn !== "undefined" && themeToggleBtn instanceof HTMLButtonElement) {
     themeToggleBtn.addEventListener("click", () => {
       const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
       applyTheme(currentTheme === "dark" ? "light" : "dark");
     });
   }
-  globalThis.addEventListener("hashchange", () => {
-    setActiveView(getViewFromLocationHash());
-  });
+  if (typeof globalThis.addEventListener === "function") {
+    globalThis.addEventListener("hashchange", () => {
+      if (typeof setActiveView === "function" && typeof getViewFromLocationHash === "function") {
+        setActiveView(getViewFromLocationHash());
+      }
+    });
+  }
 
   refreshBtn.addEventListener("click", async () => {
     stopStatusRefreshInterval();
@@ -1757,7 +1990,10 @@ async function init() {
       startStatusRefreshInterval();
     }
   });
-  if (refreshDashboardBtn instanceof HTMLButtonElement) {
+  if (
+    typeof refreshDashboardBtn !== "undefined" &&
+    refreshDashboardBtn instanceof HTMLButtonElement
+  ) {
     refreshDashboardBtn.addEventListener("click", async () => {
       await fetchWebcams();
       await refreshStatuses();
@@ -1765,7 +2001,7 @@ async function init() {
       renderOverviewPanel();
     });
   }
-  if (scanDiscoveredBtn instanceof HTMLButtonElement) {
+  if (typeof scanDiscoveredBtn !== "undefined" && scanDiscoveredBtn instanceof HTMLButtonElement) {
     scanDiscoveredBtn.addEventListener("click", async () => {
       await fetchWebcams();
       await refreshStatuses();
@@ -1774,7 +2010,7 @@ async function init() {
       setDiscoveredFeedback("Discovery queue refreshed.");
     });
   }
-  if (discoveredList instanceof HTMLElement) {
+  if (typeof discoveredList !== "undefined" && discoveredList instanceof HTMLElement) {
     discoveredList.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) {
@@ -1792,45 +2028,61 @@ async function init() {
       renderDiscoveredPanel();
     });
   }
-  if (discoveredApproveBtn instanceof HTMLButtonElement) {
+  if (
+    typeof discoveredApproveBtn !== "undefined" &&
+    discoveredApproveBtn instanceof HTMLButtonElement
+  ) {
     discoveredApproveBtn.addEventListener("click", async () => {
       await applyDiscoveredDecision("approve");
       await fetchOverview();
     });
   }
-  if (discoveredRejectBtn instanceof HTMLButtonElement) {
+  if (
+    typeof discoveredRejectBtn !== "undefined" &&
+    discoveredRejectBtn instanceof HTMLButtonElement
+  ) {
     discoveredRejectBtn.addEventListener("click", async () => {
       await applyDiscoveredDecision("reject");
       await fetchOverview();
     });
   }
-  if (discoveredLaterBtn instanceof HTMLButtonElement) {
+  if (
+    typeof discoveredLaterBtn !== "undefined" &&
+    discoveredLaterBtn instanceof HTMLButtonElement
+  ) {
     discoveredLaterBtn.addEventListener("click", async () => {
       await applyDiscoveredDecision("snooze");
       await fetchOverview();
     });
   }
 
-  settingsTabButtons.forEach((button) => {
-    if (!(button instanceof HTMLButtonElement)) {
-      return;
-    }
-    button.addEventListener("click", () => {
-      const nextTab = button.dataset.settingsTab || "auth";
-      setSettingsTab(nextTab);
+  if (typeof settingsTabButtons !== "undefined" && typeof settingsTabButtons.forEach === "function") {
+    settingsTabButtons.forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) {
+        return;
+      }
+      button.addEventListener("click", () => {
+        const nextTab = button.dataset.settingsTab || "auth";
+        setSettingsTab(nextTab);
+      });
     });
-  });
-  if (settingsSaveBtn instanceof HTMLButtonElement) {
+  }
+  if (typeof settingsSaveBtn !== "undefined" && settingsSaveBtn instanceof HTMLButtonElement) {
     settingsSaveBtn.addEventListener("click", saveSettings);
   }
-  if (settingsResetBtn instanceof HTMLButtonElement) {
+  if (typeof settingsResetBtn !== "undefined" && settingsResetBtn instanceof HTMLButtonElement) {
     settingsResetBtn.addEventListener("click", resetSettings);
   }
-  if (refreshSettingsBtn instanceof HTMLButtonElement) {
+  if (
+    typeof refreshSettingsBtn !== "undefined" &&
+    refreshSettingsBtn instanceof HTMLButtonElement
+  ) {
     refreshSettingsBtn.addEventListener("click", fetchSettingsData);
   }
 
   if (
+    typeof toggleWebcamFormPanelBtn !== "undefined" &&
+    typeof webcamFormContent !== "undefined" &&
     toggleWebcamFormPanelBtn instanceof HTMLButtonElement &&
     webcamFormContent instanceof HTMLElement
   ) {
@@ -1854,36 +2106,60 @@ async function init() {
     setDiagnosticPanelExpanded(false);
     diagnosticsAdvancedCheckbox.addEventListener("change", toggleDiagnosticPanelContent);
   }
-  copyDiagnosticReportBtn.addEventListener("click", async () => {
-    if (!latestDiagnosticResult) {
-      showFeedback("Run Diagnose first to generate a report.", true);
-      return;
-    }
+  if (
+    typeof copyDiagnosticReportBtn !== "undefined" &&
+    copyDiagnosticReportBtn &&
+    typeof copyDiagnosticReportBtn.addEventListener === "function"
+  ) {
+    copyDiagnosticReportBtn.addEventListener("click", async () => {
+      if (!latestDiagnosticResult) {
+        showFeedback("Run Diagnose first to generate a report.", true);
+        return;
+      }
 
-    const report = buildDiagnosticTextReport(latestDiagnosticResult);
+      const report = buildDiagnosticTextReport(latestDiagnosticResult);
 
-    if (typeof globalThis.navigator?.clipboard?.writeText !== "function") {
-      showFeedback("Clipboard not available in this browser.", true);
-      return;
-    }
+      if (typeof globalThis.navigator?.clipboard?.writeText !== "function") {
+        showFeedback("Clipboard not available in this browser.", true);
+        return;
+      }
 
-    try {
-      await globalThis.navigator.clipboard.writeText(report);
-      showFeedback("Diagnostic report copied to clipboard.");
-    } catch {
-      showFeedback("Could not copy report to clipboard.", true);
-    }
-  });
+      try {
+        await globalThis.navigator.clipboard.writeText(report);
+        showFeedback("Diagnostic report copied to clipboard.");
+      } catch {
+        showFeedback("Could not copy report to clipboard.", true);
+      }
+    });
+  }
 
-  setSettingsTab("auth");
-  setActiveView(getViewFromLocationHash());
-  await fetchWebcams();
-  await refreshStatuses();
-  await fetchOverview();
-  await fetchSettingsData();
-  renderDiscoveredPanel();
-  renderOverviewPanel();
-  startStatusRefreshInterval();
+  if (typeof setSettingsTab === "function") {
+    setSettingsTab("auth");
+  }
+  if (typeof setActiveView === "function" && typeof getViewFromLocationHash === "function") {
+    setActiveView(getViewFromLocationHash());
+  }
+  if (typeof fetchWebcams === "function") {
+    await fetchWebcams();
+  }
+  if (typeof refreshStatuses === "function") {
+    await refreshStatuses();
+  }
+  if (typeof fetchOverview === "function") {
+    await fetchOverview();
+  }
+  if (typeof fetchSettingsData === "function") {
+    await fetchSettingsData();
+  }
+  if (typeof renderDiscoveredPanel === "function") {
+    renderDiscoveredPanel();
+  }
+  if (typeof renderOverviewPanel === "function") {
+    renderOverviewPanel();
+  }
+  if (typeof startStatusRefreshInterval === "function") {
+    startStatusRefreshInterval();
+  }
 }
 
 init().catch((error) => {

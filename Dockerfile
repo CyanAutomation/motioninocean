@@ -93,6 +93,8 @@ LABEL org.opencontainers.image.build.include-mock-camera="${INCLUDE_MOCK_CAMERA}
 # ---- Layer 1: System Dependencies (Stable) ----
 # Install base system packages from Debian repositories only.
 # Keep Raspberry Pi apt source/pinning out of this layer so apt-get update does not depend on archive.raspberrypi.org.
+# CRITICAL: Install python3, python3-venv, python3-numpy explicitly before venv copy.
+# Multi-stage venv with --system-site-packages uses symlinks to system Python; must exist before validation.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
@@ -101,7 +103,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         ca-certificates \
         curl \
         gnupg \
-        gosu && \
+        gosu \
+        python3 \
+        python3-venv \
+        python3-numpy && \
     rm -rf /var/lib/apt/lists/*
 
 
@@ -140,8 +145,6 @@ Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
       libcamera-dev \
       python3-libcamera \
       python3-picamera2 \
-      python3 \
-      python3-numpy \
       v4l-utils && \
     # Verify installation
     echo "Camera packages installed successfully:" && \
