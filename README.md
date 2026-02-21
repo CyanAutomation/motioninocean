@@ -23,7 +23,6 @@ docker compose up -d
 
 Open `http://localhost:8000`.
 
-
 ## Docker Build (Canonical Args)
 
 When building manually, prefer the canonical suite pairing:

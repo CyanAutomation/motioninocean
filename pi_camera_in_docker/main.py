@@ -234,9 +234,7 @@ def _collect_current_config() -> Dict[str, Any]:
     except ValueError:
         max_stream_connections = 10
 
-    pi3_profile = os.environ.get(
-        "MIO_PI3_PROFILE", "false"
-    ).lower() in (
+    pi3_profile = os.environ.get("MIO_PI3_PROFILE", "false").lower() in (
         "1",
         "true",
         "yes",

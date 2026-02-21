@@ -56,4 +56,3 @@ test("management init exits safely when required DOM ids are missing", async () 
   assert.equal(consoleErrors.length, 1);
   assert.match(consoleErrors[0], /Missing required management UI element/);
 });
-

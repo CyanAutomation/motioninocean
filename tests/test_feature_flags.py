@@ -95,9 +95,7 @@ class TestFeatureFlagRegistry:
         """Test OCTOPRINT_COMPATIBILITY supports both prefixed and legacy env vars."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
-        with mock.patch.dict(
-            os.environ, {"MIO_OCTOPRINT_COMPATIBILITY": "true"}, clear=True
-        ):
+        with mock.patch.dict(os.environ, {"MIO_OCTOPRINT_COMPATIBILITY": "true"}, clear=True):
             flags = FeatureFlags()
             flags.load()
             assert flags.is_enabled("OCTOPRINT_COMPATIBILITY") is True

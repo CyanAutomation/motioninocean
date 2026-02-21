@@ -119,7 +119,7 @@ def log_provenance_info() -> None:
     app_version = "unknown"
     if os.path.exists(version_file):
         try:
-            with open(version_file, "r", encoding="utf-8") as f:
+            with open(version_file, encoding="utf-8") as f:
                 app_version = f.read().strip()
         except Exception as e:
             logger.warning("Failed to read VERSION file: %s", e)
@@ -129,7 +129,7 @@ def log_provenance_info() -> None:
     metadata_file = "/app/BUILD_METADATA"
     if os.path.exists(metadata_file):
         try:
-            with open(metadata_file, "r", encoding="utf-8") as f:
+            with open(metadata_file, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if line and "=" in line:
@@ -169,8 +169,14 @@ def log_provenance_info() -> None:
     dpkg_info: Dict[str, str] = {}
     try:
         result = subprocess.run(
-            ["dpkg-query", "-W", "-f=${Package}\t${Version}\t${Origin}\n",
-             "libcamera-apps", "python3-picamera2", "python3-libcamera"],
+            [
+                "dpkg-query",
+                "-W",
+                "-f=${Package}\t${Version}\t${Origin}\n",
+                "libcamera-apps",
+                "python3-picamera2",
+                "python3-libcamera",
+            ],
             capture_output=True,
             text=True,
             timeout=5,
@@ -193,7 +199,7 @@ def log_provenance_info() -> None:
     preferences_file = "/etc/apt/preferences.d/rpi-camera.preferences"
     if os.path.exists(preferences_file):
         try:
-            with open(preferences_file, "r", encoding="utf-8") as f:
+            with open(preferences_file, encoding="utf-8") as f:
                 apt_prefs_content = f.read()
         except Exception as e:
             logger.debug("Could not read apt preferences: %s", e)
@@ -221,16 +227,22 @@ def log_provenance_info() -> None:
         logger.debug("picamera2.__file__: %s", picamera2_path)
         logger.debug("Full libcamera version: %s", libcamera_version)
         logger.debug("Package versions and origins: %s", dpkg_info)
-        logger.debug("Apt preferences file (/etc/apt/preferences.d/rpi-camera.preferences):\n%s", apt_prefs_content)
-        logger.debug("Provenance snapshot: %s", {
-            "app_version": app_version,
-            "libcamera_version": libcamera_version,
-            "picamera2_version": picamera2_version,
-            "picamera2_path": picamera2_path,
-            "package_info": dpkg_info,
-            "debian_suite": debian_suite,
-            "rpi_suite": rpi_suite,
-            "mock_camera_enabled": include_mock,
-            "build_timestamp": build_time,
-            "package_origins": origin_summary,
-        })
+        logger.debug(
+            "Apt preferences file (/etc/apt/preferences.d/rpi-camera.preferences):\n%s",
+            apt_prefs_content,
+        )
+        logger.debug(
+            "Provenance snapshot: %s",
+            {
+                "app_version": app_version,
+                "libcamera_version": libcamera_version,
+                "picamera2_version": picamera2_version,
+                "picamera2_path": picamera2_path,
+                "package_info": dpkg_info,
+                "debian_suite": debian_suite,
+                "rpi_suite": rpi_suite,
+                "mock_camera_enabled": include_mock,
+                "build_timestamp": build_time,
+                "package_origins": origin_summary,
+            },
+        )

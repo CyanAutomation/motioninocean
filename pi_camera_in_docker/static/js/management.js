@@ -80,9 +80,7 @@ function getMissingRequiredElementIds() {
     ["copy-diagnostic-report-btn", copyDiagnosticReportBtn],
   ];
 
-  return requiredElements
-    .filter(([, element]) => element == null)
-    .map(([id]) => id);
+  return requiredElements.filter(([, element]) => element == null).map(([id]) => id);
 }
 
 function isDiagnosticPanelContentVisible() {

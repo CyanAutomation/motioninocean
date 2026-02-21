@@ -5,9 +5,9 @@ This script handles all file replacements across templates, Python code, JavaScr
 CSS, and tests to rename "node" terminology to "webcam".
 """
 
-import re
 from pathlib import Path
 from typing import Dict, List, Tuple
+
 
 # Type alias
 ReplacementList = List[Tuple[str, str, str]]  # (old, new, description)
@@ -15,16 +15,32 @@ ReplacementList = List[Tuple[str, str, str]]  # (old, new, description)
 REPLACEMENTS: Dict[str, ReplacementList] = {
     # ====== 1. HTML Template ======
     "pi_camera_in_docker/templates/management.html": [
-        ("motion-in-ocean - Node Management", "motion-in-ocean - Webcam Management", "Meta description"),
+        (
+            "motion-in-ocean - Node Management",
+            "motion-in-ocean - Webcam Management",
+            "Meta description",
+        ),
         (">Node Management<", ">Webcam Management<", "Page title"),
-        ("Manage webcam nodes and monitor node health.", "Manage webcam hosts and monitor webcam health.", "Subtitle"),
+        (
+            "Manage webcam nodes and monitor node health.",
+            "Manage webcam hosts and monitor webcam health.",
+            "Subtitle",
+        ),
         ("Add node", "Add webcam host", "Form heading"),
         ("node-form-panel-container", "webcam-form-panel-container", "Form container ID"),
         ('class="node-form-panel', 'class="webcam-form-panel', "Form panel class"),
         ("toggle-node-form-panel-btn", "toggle-webcam-form-panel-btn", "Toggle button ID"),
-        ('aria-label="Collapse node form panel"', 'aria-label="Collapse webcam form panel"', "ARIA label"),
-        ('aria-controls="node-form-content"', 'aria-controls="webcam-form-content"', "ARIA control"),
-        	("node-form-content", "webcam-form-content", "Form content ID"),
+        (
+            'aria-label="Collapse node form panel"',
+            'aria-label="Collapse webcam form panel"',
+            "ARIA label",
+        ),
+        (
+            'aria-controls="node-form-content"',
+            'aria-controls="webcam-form-content"',
+            "ARIA control",
+        ),
+        ("node-form-content", "webcam-form-content", "Form content ID"),
         ("node-form-content-wrapper", "webcam-form-content-wrapper", "Form wrapper ID"),
         ('id="node-form"', 'id="webcam-form"', "Form ID"),
         ("editing-node-id", "editing-webcam-id", "Hidden input"),
@@ -37,7 +53,11 @@ REPLACEMENTS: Dict[str, ReplacementList] = {
         ("node-auth-token", "webcam-auth-token", "Auth token field"),
         (">Remote Node Token<", ">Remote Webcam Token<", "Auth token label"),
         ("Set to the remote node", "Set to the remote webcam", "Auth placeholder"),
-        ("For webcam nodes, use the same token configur", "For webcam hosts, use the same token configured", "Auth helper text"),
+        (
+            "For webcam nodes, use the same token configur",
+            "For webcam hosts, use the same token configured",
+            "Auth helper text",
+        ),
         ("node-capabilities", "webcam-capabilities", "Capabilities field"),
         ("node-labels", "webcam-labels", "Labels field"),
         (">Save node<", ">Save webcam host<", "Save button"),
@@ -55,7 +75,6 @@ REPLACEMENTS: Dict[str, ReplacementList] = {
         ("diagnostic-node-id", "diagnostic-webcam-id", "Diagnostic span"),
         ("Run Diagnose on a node", "Run Diagnose on a webcam", "Diagnostic text"),
     ],
-    
     # ====== 2. Management API (Python) ======
     "pi_camera_in_docker/management_api.py": [
         # Endpoint routes
@@ -74,7 +93,6 @@ REPLACEMENTS: Dict[str, ReplacementList] = {
         ("node_id", "webcam_id", "Parameter names"),
         ("node ", "webcam ", "Comments/docstrings"),
     ],
-    
     # ====== 3. Node Registry (Python) ======
     "pi_camera_in_docker/node_registry.py": [
         ("class NodeValidationError", "class WebcamValidationError", "Exception class"),
@@ -91,7 +109,6 @@ REPLACEMENTS: Dict[str, ReplacementList] = {
         ("NodeRegistry", "WebcamRegistry", "Class reference"),
         ("node ", "webcam ", "Comments"),
     ],
-    
     # ====== 4. Discovery (Python) ======
     "pi_camera_in_docker/discovery.py": [
         ("_stable_node_id", "_stable_webcam_id", "Function name"),
@@ -101,7 +118,6 @@ REPLACEMENTS: Dict[str, ReplacementList] = {
         ('"node_id"', '"webcam_id"', "JSON field name"),
         ("node ", "webcam ", "Comments/logs"),
     ],
-    
     # ====== 5. Runtime Config (Python) ======
     "pi_camera_in_docker/runtime_config.py": [
         ("DISCOVERY_NODE_ID", "DISCOVERY_WEBCAM_ID", "Env var"),
@@ -110,7 +126,6 @@ REPLACEMENTS: Dict[str, ReplacementList] = {
         ("node_registry_path", "webcam_registry_path", "Config key"),
         ("node ", "webcam ", "Comments"),
     ],
-    
     # ====== 6. Management JavaScript ======
     "pi_camera_in_docker/static/js/management.js": [
         # DOM element variables
@@ -132,7 +147,11 @@ REPLACEMENTS: Dict[str, ReplacementList] = {
         ("getDiscoveryInfo(node)", "getDiscoveryInfo(webcam)", "Function param"),
         ("buildNodePayload", "buildWebcamPayload", "Function name"),
         ("normalizeNodeStatusError", "normalizeWebcamStatusError", "Function name"),
-        ("enrichStatusWithAggregation(nodeId", "enrichStatusWithAggregation(webcamId", "Function param"),
+        (
+            "enrichStatusWithAggregation(nodeId",
+            "enrichStatusWithAggregation(webcamId",
+            "Function param",
+        ),
         ("normalizeNodeStatusForUi", "normalizeWebcamStatusForUi", "Function name"),
         ("fetchNodes", "fetchWebcams", "Function name"),
         # Error codes
@@ -165,7 +184,6 @@ REPLACEMENTS: Dict[str, ReplacementList] = {
         (" node:", " webcam:", "Loop variable"),
         ("node ", "webcam ", "Comments"),
     ],
-    
     # ====== 7. Management CSS ======
     "pi_camera_in_docker/static/css/management.css": [
         (".node-form-panel", ".webcam-form-panel", "Class selector"),
@@ -175,7 +193,6 @@ REPLACEMENTS: Dict[str, ReplacementList] = {
         ("#node-", "#webcam-", "ID selector prefix"),
         ("node-", "webcam-", "Class names in CSS"),
     ],
-    
     # ====== 8. Test: Node Registry ======
     "tests/test_node_registry.py": [
         ("test_", "test_", "Test function prefix - will update manually"),
@@ -186,7 +203,6 @@ REPLACEMENTS: Dict[str, ReplacementList] = {
         ("NODE_", "WEBCAM_", "Error code prefix"),
         ("node ", "webcam ", "Comments"),
     ],
-    
     # ====== 9. Test: Management API ======
     "tests/test_management_api.py": [
         ("/api/nodes", "/api/webcams", "API endpoint"),
@@ -195,13 +211,11 @@ REPLACEMENTS: Dict[str, ReplacementList] = {
         ("NODE_", "WEBCAM_", "Error code prefix"),
         ("node ", "webcam ", "Comments"),
     ],
-    
     # ====== 10. Test: Integration ======
     "tests/test_integration.py": [
         ("NODE_REGISTRY_PATH", "WEBCAM_REGISTRY_PATH", "Env var"),
         ("node_registry_path", "webcam_registry_path", "Config key"),
     ],
-    
     # ====== 11. Test: Parallel Containers ======
     "tests/test_parallel_containers.py": [
         ("check_management_list_nodes", "check_management_list_webcams", "Function name"),
@@ -212,17 +226,18 @@ REPLACEMENTS: Dict[str, ReplacementList] = {
     ],
 }
 
+
 def apply_replacements(file_path: str, replacements: ReplacementList) -> int:
     """Apply all replacements to a file and return count."""
     full_path = Path(file_path)
     if not full_path.exists():
         print(f"  ⚠️  File not found: {file_path}")
         return 0
-    
+
     content = full_path.read_text()
     original_content = content
     count = 0
-    
+
     for old, new, desc in replacements:
         # Skip placeholder entries
         if old == new:
@@ -231,25 +246,26 @@ def apply_replacements(file_path: str, replacements: ReplacementList) -> int:
             content = content.replace(old, new)
             count += 1
             print(f"  ✓ {desc}")
-    
+
     if content != original_content:
         full_path.write_text(content)
         print(f"  → Wrote {count} changes\n")
     else:
-        print(f"  → No changes made\n")
-    
+        print("  → No changes made\n")
+
     return count
+
 
 def main():
     """Run all replacements."""
     print("\n" + "=" * 80)
     print("   REBRAND: node -> webcam terminology (motion-in-ocean)")
     print("=" * 80 + "\n")
-    
+
     total_changes = 0
     successful_files = 0
     failed_files = 0
-    
+
     for file_path, replacements in REPLACEMENTS.items():
         print(f"📁 {file_path}")
         try:
@@ -259,13 +275,14 @@ def main():
         except Exception as e:
             print(f"  ❌ ERROR: {e}\n")
             failed_files += 1
-    
+
     print("=" * 80)
-    print(f"✅ SUMMARY")
+    print("✅ SUMMARY")
     print(f"   Total replacements: {total_changes}")
     print(f"   Files processed:    {successful_files}")
     print(f"   Files failed:       {failed_files}")
     print("=" * 80 + "\n")
+
 
 if __name__ == "__main__":
     main()

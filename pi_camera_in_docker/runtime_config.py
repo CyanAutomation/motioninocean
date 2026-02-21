@@ -230,7 +230,9 @@ def _load_discovery_config() -> Dict[str, Any]:
         "true",
         "yes",
     )
-    discovery_management_url = os.environ.get("MIO_DISCOVERY_MANAGEMENT_URL", "http://127.0.0.1:8001")
+    discovery_management_url = os.environ.get(
+        "MIO_DISCOVERY_MANAGEMENT_URL", "http://127.0.0.1:8001"
+    )
     discovery_token = os.environ.get("MIO_DISCOVERY_TOKEN", "")
     try:
         discovery_interval_seconds = float(os.environ.get("MIO_DISCOVERY_INTERVAL_SECONDS", "30"))
@@ -327,10 +329,7 @@ def _load_advanced_config() -> Dict[str, Any]:
         webcam_registry_path, application_settings_path, management_auth_token,
         webcam_control_plane_auth_token, fail_on_camera_init_error.
     """
-    pi3_profile_raw = os.environ.get(
-        "MIO_PI3_PROFILE",
-        os.environ.get("PI3_PROFILE", "false")
-    )
+    pi3_profile_raw = os.environ.get("MIO_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false"))
 
     fail_on_camera_init_error_raw = os.environ.get(
         "MIO_FAIL_ON_CAMERA_INIT_ERROR",
@@ -342,12 +341,16 @@ def _load_advanced_config() -> Dict[str, Any]:
         "mock_camera": is_flag_enabled("MOCK_CAMERA"),
         "allow_pykms_mock": os.environ.get("MIO_ALLOW_PYKMS_MOCK", "false").lower()
         in ("1", "true", "yes"),
-        "webcam_registry_path": os.environ.get("MIO_NODE_REGISTRY_PATH", "/data/node-registry.json"),
+        "webcam_registry_path": os.environ.get(
+            "MIO_NODE_REGISTRY_PATH", "/data/node-registry.json"
+        ),
         "application_settings_path": os.environ.get(
             "MIO_APPLICATION_SETTINGS_PATH", "/data/application-settings.json"
         ),
         "management_auth_token": os.environ.get("MIO_MANAGEMENT_AUTH_TOKEN", ""),
-        "webcam_control_plane_auth_token": os.environ.get("MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", ""),
+        "webcam_control_plane_auth_token": os.environ.get(
+            "MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", ""
+        ),
         "fail_on_camera_init_error": fail_on_camera_init_error_raw.lower() in ("1", "true", "yes"),
     }
 
@@ -579,6 +582,7 @@ def get_effective_settings_payload(app_settings: ApplicationSettings) -> Dict[st
         "modified_by": persisted.get("modified_by"),
     }
 
+
 def load_build_metadata() -> Dict[str, str]:
     """Load build-time metadata from /app/BUILD_METADATA file.
 
@@ -605,7 +609,7 @@ def load_build_metadata() -> Dict[str, str]:
         return metadata
 
     try:
-        with open(metadata_file, "r", encoding="utf-8") as f:
+        with open(metadata_file, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line and "=" in line and not line.startswith("#"):

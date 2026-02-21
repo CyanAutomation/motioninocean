@@ -1,6 +1,7 @@
 # Failing Tests Analysis - Motion In Ocean
 
 ## Overview
+
 This document provides detailed analysis of 2 failing tests in the Motion In Ocean test suite, with root cause identification and recommended fixes.
 
 ---
@@ -8,12 +9,14 @@ This document provides detailed analysis of 2 failing tests in the Motion In Oce
 ## Test 1: `test_webcam_compose_contract_basics`
 
 ### Test Location
+
 - **File**: [tests/test_config.py](tests/test_config.py)
 - **Lines**: 14-36
 - **Test Class**: N/A (module-level function)
 - **Method**: `test_webcam_compose_contract_basics(workspace_root)`
 
 ### Test Code
+
 ```python
 def test_webcam_compose_contract_basics(workspace_root):
     """Webcam compose file should parse and expose core service runtime contracts."""
@@ -41,16 +44,23 @@ def test_webcam_compose_contract_basics(workspace_root):
 ```
 
 ### What the Test Expects
+
 1. The docker-compose.yaml should exist and parse as valid YAML
 2. The `motion-in-ocean` service should have: `image`, `restart`, `ports`, and `healthcheck` fields
 3. The service should have either `environment` or `env_file`
 4. **Key Assertion**: The healthcheck `test` field should contain the string `/health`
 
 ### What It Actually Gets
+
 The healthcheck in the docker-compose.yaml is:
+
 ```yaml
 healthcheck:
-  test: ["CMD-SHELL", "python3 -c \"import socket; socket.create_connection(('localhost', 8000), timeout=3)\" 2>/dev/null || exit 1"]
+  test:
+    [
+      "CMD-SHELL",
+      'python3 -c "import socket; socket.create_connection((''localhost'', 8000), timeout=3)" 2>/dev/null || exit 1',
+    ]
   interval: 30s
   timeout: 5s
   retries: 3
@@ -58,6 +68,7 @@ healthcheck:
 ```
 
 **Actual healthcheck test string**:
+
 ```
 ['CMD-SHELL', 'python3 -c "import socket; socket.create_connection((\'localhost\', 8000), timeout=3)" 2>/dev/null || exit 1']
 ```
@@ -65,6 +76,7 @@ healthcheck:
 **Does it contain `/health`?** ❌ No - it uses a socket connection test instead.
 
 ### Error Output
+
 ```
 AssertionError: Healthcheck should use /health endpoint
 assert '/health' in '[\'CMD-SHELL\', \'python3 -c "import socket; socket.create_connection((\\\'localhost\\\', 8000), timeout=3)" 2>/dev/null || exit 1\']'
@@ -72,16 +84,17 @@ assert '/health' in '[\'CMD-SHELL\', \'python3 -c "import socket; socket.create_
 
 ### Root Cause Analysis
 
-| Category | Finding |
-|----------|---------|
-| **Issue Type** | TEST/CODE MISMATCH |
-| **Root Cause** | The test expects the healthcheck to query the `/health` endpoint, but the docker-compose.yaml uses a socket connection test that directly checks port 8000 availability. |
-| **Responsibility** | This is a design/contract mismatch between test expectations and actual implementation. |
-| **Impact** | The healthcheck works correctly (tests basic connectivity), but doesn't validate the application's actual `/health` endpoint. |
+| Category           | Finding                                                                                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Issue Type**     | TEST/CODE MISMATCH                                                                                                                                                       |
+| **Root Cause**     | The test expects the healthcheck to query the `/health` endpoint, but the docker-compose.yaml uses a socket connection test that directly checks port 8000 availability. |
+| **Responsibility** | This is a design/contract mismatch between test expectations and actual implementation.                                                                                  |
+| **Impact**         | The healthcheck works correctly (tests basic connectivity), but doesn't validate the application's actual `/health` endpoint.                                            |
 
 ### Is This a Bug?
 
 **In the Test?** It depends on architectural intent:
+
 - If the healthcheck **should** query the `/health` endpoint (to validate app readiness, not just port availability), then the **test is correct** and the **docker-compose.yaml is wrong**.
 - If a socket-level connectivity check is intentional, then the **test is too strict**.
 
@@ -92,8 +105,9 @@ assert '/health' in '[\'CMD-SHELL\', \'python3 -c "import socket; socket.create_
 **Option A: Update docker-compose.yaml to use /health endpoint** ✅ (STRONGLY RECOMMENDED)
 
 The Flask app already exposes a `/health` endpoint ([pi_camera_in_docker/shared.py](pi_camera_in_docker/shared.py) lines 299-308) that returns:
+
 ```json
-{"status": "healthy", "timestamp": "...", "app_mode": "webcam"}
+{ "status": "healthy", "timestamp": "...", "app_mode": "webcam" }
 ```
 
 The Docker image has `curl` installed ([Dockerfile](Dockerfile) line 26), so this will work:
@@ -108,6 +122,7 @@ healthcheck:
 ```
 
 This approach:
+
 - ✅ Validates actual app readiness (not just port availability)
 - ✅ Uses available tools (curl is installed)
 - ✅ Matches the test's expectations
@@ -116,17 +131,19 @@ This approach:
 **Option B: Update test to accept socket connection healthcheck** (Less Preferred)
 
 If socket-level connectivity is intentionally sufficient:
+
 ```python
 # Replace the assertion at line 36:
 assert "test" in healthcheck, "Missing healthcheck test"
 assert (
-    "/health" in str(healthcheck.get("test")) or 
+    "/health" in str(healthcheck.get("test")) or
     "socket.create_connection" in str(healthcheck.get("test")),
     "Healthcheck should test /health endpoint or port connectivity"
 )
 ```
 
 This approach is less desirable because:
+
 - ❌ Socket connection doesn't validate application state
 - ❌ Port open ≠ application ready (e.g., app could be deadlocked)
 
@@ -135,12 +152,14 @@ This approach is less desirable because:
 ## Test 2: `test_announcer_thread_lifecycle`
 
 ### Test Location
+
 - **File**: [tests/test_discovery_integration.py](tests/test_discovery_integration.py)
 - **Lines**: 153-186
 - **Test Class**: `TestDiscoveryAnnounceIntegration`
 - **Method**: `test_announcer_thread_lifecycle(self)`
 
 ### Test Code
+
 ```python
 def test_announcer_thread_lifecycle(self):
     """Verify announcer thread starts and stops correctly."""
@@ -201,11 +220,13 @@ def stop(self, timeout_seconds: float = 3.0) -> None:
 ```
 
 When the test tries to call `.is_alive()` on `None`, it raises:
+
 ```
 AttributeError: 'NoneType' object has no attribute 'is_alive'
 ```
 
 ### Error Output
+
 ```
 tests/test_discovery_integration.py:185: in test_announcer_thread_lifecycle
     assert not announcer._thread.is_alive()
@@ -215,13 +236,13 @@ E   AttributeError: 'NoneType' object has no attribute 'is_alive'
 
 ### Root Cause Analysis
 
-| Category | Finding |
-|----------|---------|
-| **Issue Type** | TEST BUG |
-| **Root Cause** | The test assumes `announcer._thread` will still reference the thread object after `stop()`, but the `stop()` method sets `_thread = None` after joining. The test doesn't account for this behavior. |
-| **Code Behavior** | The `DiscoveryAnnouncer.stop()` method is designed to clean up the thread reference after stopping. This is defensive programming to prevent accidental reuse of a dead thread. |
-| **Test Behavior** | The test expects the thread object to persist but be in an "not alive" state. It doesn't check for the cleanup behavior. |
-| **Responsibility** | 100% test bug - the test assumptions don't match the actual implementation contract. |
+| Category           | Finding                                                                                                                                                                                              |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Issue Type**     | TEST BUG                                                                                                                                                                                             |
+| **Root Cause**     | The test assumes `announcer._thread` will still reference the thread object after `stop()`, but the `stop()` method sets `_thread = None` after joining. The test doesn't account for this behavior. |
+| **Code Behavior**  | The `DiscoveryAnnouncer.stop()` method is designed to clean up the thread reference after stopping. This is defensive programming to prevent accidental reuse of a dead thread.                      |
+| **Test Behavior**  | The test expects the thread object to persist but be in an "not alive" state. It doesn't check for the cleanup behavior.                                                                             |
+| **Responsibility** | 100% test bug - the test assumptions don't match the actual implementation contract.                                                                                                                 |
 
 ### Is This a Bug?
 
@@ -232,6 +253,7 @@ E   AttributeError: 'NoneType' object has no attribute 'is_alive'
 ### Implementation Contract
 
 The `DiscoveryAnnouncer` class contract is:
+
 - After `stop()`, the `_thread` attribute is `None`
 - This allows safe restart via `start()` again
 - This prevents accidentally checking/accessing a dead thread object
@@ -248,6 +270,7 @@ assert announcer._thread is None, "Thread should be cleaned up after stop()"
 ```
 
 **Alternative (less preferred)**: Modify the `stop()` method to NOT set `_thread = None`:
+
 ```python
 def stop(self, timeout_seconds: float = 3.0) -> None:
     """Stop the discovery announcement daemon thread gracefully."""
@@ -257,6 +280,7 @@ def stop(self, timeout_seconds: float = 3.0) -> None:
             self._thread.join(timeout=timeout_seconds)
         # Don't set to None - allow checking if thread is alive
 ```
+
 However, this is less clean from a resource management perspective.
 
 ---
@@ -268,23 +292,29 @@ However, this is less clean from a resource management perspective.
 **File**: [containers/motion-in-ocean-webcam/docker-compose.yaml](containers/motion-in-ocean-webcam/docker-compose.yaml)
 
 **Current (lines 65-71)**:
+
 ```yaml
-    healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import socket; socket.create_connection(('localhost', 8000), timeout=3)\" 2>/dev/null || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
+healthcheck:
+  test:
+    [
+      "CMD-SHELL",
+      'python3 -c "import socket; socket.create_connection((''localhost'', 8000), timeout=3)" 2>/dev/null || exit 1',
+    ]
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: 30s
 ```
 
 **Replace with**:
+
 ```yaml
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: 30s
 ```
 
 ### Fix 2: Update test assertion (Recommended for Test 2)
@@ -292,6 +322,7 @@ However, this is less clean from a resource management perspective.
 **File**: [tests/test_discovery_integration.py](tests/test_discovery_integration.py)
 
 **Current (line 185)**:
+
 ```python
             # Stop and verify thread is dead
             announcer.stop()
@@ -300,6 +331,7 @@ However, this is less clean from a resource management perspective.
 ```
 
 **Replace with**:
+
 ```python
             # Stop and verify thread is dead
             announcer.stop()
@@ -309,22 +341,23 @@ However, this is less clean from a resource management perspective.
 
 ---
 
-| Test | Issue Type | Severity | Root Cause | Recommended Fix |
-|------|-----------|----------|-----------|-----------------|
-| `test_webcam_compose_contract_basics` | Test/Code Mismatch | Medium | Test expects `/health` endpoint check; code uses socket connection | Update docker-compose OR update test assertion |
-| `test_announcer_thread_lifecycle` | Test Bug | High | Test assumes `_thread` exists after `stop()`; code sets it to `None` | Change assertion to check `_thread is None` |
+| Test                                  | Issue Type         | Severity | Root Cause                                                           | Recommended Fix                                |
+| ------------------------------------- | ------------------ | -------- | -------------------------------------------------------------------- | ---------------------------------------------- |
+| `test_webcam_compose_contract_basics` | Test/Code Mismatch | Medium   | Test expects `/health` endpoint check; code uses socket connection   | Update docker-compose OR update test assertion |
+| `test_announcer_thread_lifecycle`     | Test Bug           | High     | Test assumes `_thread` exists after `stop()`; code sets it to `None` | Change assertion to check `_thread is None`    |
 
 ---
 
 ## Related Code References
 
 ### For Test 1 (Healthcheck)
+
 - **Flask healthcheck endpoint**: [pi_camera_in_docker/shared.py](pi_camera_in_docker/shared.py) - should have `GET /health`
 - **Docker compose config**: [containers/motion-in-ocean-webcam/docker-compose.yaml](containers/motion-in-ocean-webcam/docker-compose.yaml) lines 65-71
 - **Test file**: [tests/test_config.py](tests/test_config.py) lines 14-36
 
 ### For Test 2 (Thread Lifecycle)
+
 - **DiscoveryAnnouncer implementation**: [pi_camera_in_docker/discovery.py](pi_camera_in_docker/discovery.py) lines 73-247
 - **stop() method**: [pi_camera_in_docker/discovery.py](pi_camera_in_docker/discovery.py) lines 124-133
 - **Test file**: [tests/test_discovery_integration.py](tests/test_discovery_integration.py) lines 153-186
-

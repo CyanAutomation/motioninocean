@@ -186,7 +186,9 @@ def test_create_app_from_env_defaults_invalid_fps_to_safe_fallback(monkeypatch, 
     monkeypatch.setenv("MIO_APP_MODE", "management")
     monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
     monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry-invalid-fps.json"))
-    monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-invalid-fps.json"))
+    monkeypatch.setenv(
+        "MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-invalid-fps.json")
+    )
     monkeypatch.setenv("MIO_RESOLUTION", "800x600")
     monkeypatch.setenv("MIO_FPS", "not-an-int")
 
@@ -298,8 +300,8 @@ def test_dockerfile_runtime_contract_instructions(workspace_root):
     assert "COPY --from=builder /opt/venv /opt/venv" in dockerfile_content
 
     has_pip_install = (
-        "pip3 install" in dockerfile_content.lower() or
-        "/opt/venv/bin/pip install" in dockerfile_content.lower()
+        "pip3 install" in dockerfile_content.lower()
+        or "/opt/venv/bin/pip install" in dockerfile_content.lower()
     )
     has_flask = "flask" in dockerfile_content.lower()
     has_requirements = "flask" in requirements_content
@@ -403,7 +405,13 @@ def test_legacy_pi3_profile_env_var_is_still_supported(workspace_root):
             "MIO_PI3_PROFILE": "false",
             "MIO_PI3_OPTIMIZATION": "false",
         },
-        unset_keys=["MIO_RESOLUTION", "MIO_FPS", "MIO_TARGET_FPS", "MIO_JPEG_QUALITY", "MIO_MAX_STREAM_CONNECTIONS"],
+        unset_keys=[
+            "MIO_RESOLUTION",
+            "MIO_FPS",
+            "MIO_TARGET_FPS",
+            "MIO_JPEG_QUALITY",
+            "MIO_MAX_STREAM_CONNECTIONS",
+        ],
     )
 
     assert data["pi3_profile_enabled"] is False
@@ -415,7 +423,13 @@ def test_legacy_pi3_profile_env_var_is_still_supported(workspace_root):
             "PI3_PROFILE": "true",
             "MIO_PI3_OPTIMIZATION": "false",
         },
-        unset_keys=["MIO_RESOLUTION", "MIO_FPS", "MIO_TARGET_FPS", "MIO_JPEG_QUALITY", "MIO_MAX_STREAM_CONNECTIONS"],
+        unset_keys=[
+            "MIO_RESOLUTION",
+            "MIO_FPS",
+            "MIO_TARGET_FPS",
+            "MIO_JPEG_QUALITY",
+            "MIO_MAX_STREAM_CONNECTIONS",
+        ],
     )
 
     assert data["pi3_profile_enabled"] is True

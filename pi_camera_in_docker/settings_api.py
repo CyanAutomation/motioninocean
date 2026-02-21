@@ -84,7 +84,9 @@ def _load_env_settings_defaults() -> Dict[str, Dict[str, Any]]:
         "logging": {
             "log_level": os.environ.get("MIO_LOG_LEVEL", "INFO"),
             "log_format": os.environ.get("MIO_LOG_FORMAT", "text"),
-            "log_include_identifiers": os.environ.get("MIO_LOG_INCLUDE_IDENTIFIERS", "false").lower()
+            "log_include_identifiers": os.environ.get(
+                "MIO_LOG_INCLUDE_IDENTIFIERS", "false"
+            ).lower()
             in ("1", "true", "yes"),
         },
         "discovery": {

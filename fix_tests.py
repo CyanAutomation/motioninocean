@@ -95,7 +95,7 @@ def fix_test_units():
     content = test_units_path.read_text()
 
     # Fix 1: test_shutdown_updates_ready_metrics_and_api_status_immediately
-    old_config1 = '''    app, _limiter, state = main._create_base_app(
+    old_config1 = """    app, _limiter, state = main._create_base_app(
         {
             "app_mode": "webcam",
             "resolution": (640, 480),
@@ -111,9 +111,9 @@ def fix_test_units():
             "node_registry_path": "/tmp/node-registry.json",
             "management_auth_token": "",
         }
-    )'''
+    )"""
 
-    new_config1 = '''    app, _limiter, state = main._create_base_app(
+    new_config1 = """    app, _limiter, state = main._create_base_app(
         {
             "app_mode": "webcam",
             "resolution": (640, 480),
@@ -130,12 +130,12 @@ def fix_test_units():
             "application_settings_path": "/tmp/application-settings.json",
             "management_auth_token": "",
         }
-    )'''
+    )"""
 
     content = content.replace(old_config1, new_config1)
 
     # Fix 2: Update _build_base_app_config function
-    old_build_config = '''def _build_base_app_config(cors_enabled=False, cors_origins="disabled"):
+    old_build_config = """def _build_base_app_config(cors_enabled=False, cors_origins="disabled"):
     return {
         "app_mode": "webcam",
         "resolution": (640, 480),
@@ -151,9 +151,9 @@ def fix_test_units():
         "allow_pykms_mock": False,
         "node_registry_path": "/tmp/node-registry.json",
         "management_auth_token": "",
-    }'''
+    }"""
 
-    new_build_config = '''def _build_base_app_config(cors_enabled=False, cors_origins="disabled"):
+    new_build_config = """def _build_base_app_config(cors_enabled=False, cors_origins="disabled"):
     return {
         "app_mode": "webcam",
         "resolution": (640, 480),
@@ -170,7 +170,7 @@ def fix_test_units():
         "node_registry_path": "/tmp/node-registry.json",
         "application_settings_path": "/tmp/application-settings.json",
         "management_auth_token": "",
-    }'''
+    }"""
 
     content = content.replace(old_build_config, new_build_config)
 
@@ -185,7 +185,7 @@ def fix_test_integration():
     content = test_integration_path.read_text()
 
     # Fix: _build_webcam_status_app function
-    old_config = '''def _build_webcam_status_app(main_module, stream_status_payload):
+    old_config = """def _build_webcam_status_app(main_module, stream_status_payload):
     cfg = {
         "app_mode": "webcam",
         "resolution": (640, 480),
@@ -201,9 +201,9 @@ def fix_test_integration():
         "allow_pykms_mock": False,
         "node_registry_path": "/tmp/node-registry.json",
         "management_auth_token": "",
-    }'''
+    }"""
 
-    new_config = '''def _build_webcam_status_app(main_module, stream_status_payload):
+    new_config = """def _build_webcam_status_app(main_module, stream_status_payload):
     cfg = {
         "app_mode": "webcam",
         "resolution": (640, 480),
@@ -220,7 +220,7 @@ def fix_test_integration():
         "node_registry_path": "/tmp/node-registry.json",
         "application_settings_path": "/tmp/application-settings.json",
         "management_auth_token": "",
-    }'''
+    }"""
 
     content = content.replace(old_config, new_config)
 
@@ -235,13 +235,13 @@ def fix_env_example_webcam():
     content = env_path.read_text()
 
     # Find the line with "CATAAS_API_URL"
-    old_section = '''# The endpoint to fetch cat GIFs from (cataas.com API)
+    old_section = """# The endpoint to fetch cat GIFs from (cataas.com API)
 # Default: https://cataas.com/cat.gif
 CATAAS_API_URL=https://cataas.com/cat.gif
 
-# Application Settings Persistence Path'''
+# Application Settings Persistence Path"""
 
-    new_section = '''# The endpoint to fetch cat GIFs from (cataas.com API)
+    new_section = """# The endpoint to fetch cat GIFs from (cataas.com API)
 # Default: https://cataas.com/cat.gif
 CATAAS_API_URL=https://cataas.com/cat.gif
 
@@ -252,7 +252,7 @@ MOTION_IN_OCEAN_JPEG_QUALITY=90
 MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS=10
 DISCOVERY_ENABLED=false
 
-# Application Settings Persistence Path'''
+# Application Settings Persistence Path"""
 
     content = content.replace(old_section, new_section)
     env_path.write_text(content)
@@ -266,16 +266,16 @@ def fix_env_example_management():
     content = env_path.read_text()
 
     # Find the line with "MOCK_CAMERA"
-    old_section = '''# ========== INFRASTRUCTURE CONFIGURATION ==========
+    old_section = """# ========== INFRASTRUCTURE CONFIGURATION ==========
 
 # Mock Camera Mode (for testing)
 # Set to 'true' to use synthetic camera
 # Default: false
 MOCK_CAMERA=false
 
-# Application Settings Persistence Path'''
+# Application Settings Persistence Path"""
 
-    new_section = '''# ========== INFRASTRUCTURE CONFIGURATION ==========
+    new_section = """# ========== INFRASTRUCTURE CONFIGURATION ==========
 
 # Mock Camera Mode (for testing)
 # Set to 'true' to use synthetic camera
@@ -289,7 +289,7 @@ MOTION_IN_OCEAN_JPEG_QUALITY=90
 MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS=10
 DISCOVERY_ENABLED=false
 
-# Application Settings Persistence Path'''
+# Application Settings Persistence Path"""
 
     content = content.replace(old_section, new_section)
     env_path.write_text(content)
@@ -314,11 +314,12 @@ def main():
         print("  • conftest.py: Added tmp_app_settings_path and full_config fixtures")
         print("  • test_units.py: Added application_settings_path to 5 config dicts")
         print("  • test_integration.py: Added application_settings_path to config dict")
-        print("  • .env.example files: Added 5 camera runtime settings to both webcam and management")
+        print(
+            "  • .env.example files: Added 5 camera runtime settings to both webcam and management"
+        )
         return 0
-    else:
-        print("\n✗ Some fixes failed!")
-        return 1
+    print("\n✗ Some fixes failed!")
+    return 1
 
 
 if __name__ == "__main__":

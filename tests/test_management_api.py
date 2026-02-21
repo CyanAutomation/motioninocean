@@ -857,10 +857,7 @@ def test_discovery_announce_blocks_private_ip_without_opt_in(monkeypatch, tmp_pa
 
     assert blocked.status_code == 403
     assert blocked.json["error"]["code"] == "DISCOVERY_PRIVATE_IP_BLOCKED"
-    assert (
-        blocked.json["error"]["details"]["required_setting"]
-        == "MIO_ALLOW_PRIVATE_IPS=true"
-    )
+    assert blocked.json["error"]["details"]["required_setting"] == "MIO_ALLOW_PRIVATE_IPS=true"
 
 
 def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path):
