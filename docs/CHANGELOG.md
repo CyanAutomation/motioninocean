@@ -11,6 +11,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.17.2] - 2026-02-21
+
+- Update SKILL.md and CONTRIBUTING.md for improved device mapping guidance and Docker build instructions
+- Add ARM64 Docker build targets and update README for Raspberry Pi deployment
+- Refactor Makefile and Python files for improved clarity and organization
+- Refactor load_build_metadata to use pathlib for file handling
+- Refactor file handling to use pathlib for improved path management
+- Refactor code and documentation for clarity and consistency
+- [docker] Fail fast when fallback preflight retry fails (#347)
+- [docker] Add camera package preflight and fallback suite checks (#346)
+
 ## [1.17.1] - 2026-02-21
 
 - [docs] Add canonical Docker build args and fallback guidance (#345)
