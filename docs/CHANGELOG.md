@@ -11,6 +11,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.16.5] - 2026-02-21
+
+- Implement feature X to enhance user experience and fix bug Y in module Z
+- chore: automated code quality fixes [nightly] (#343)
+- Implement feature X to enhance user experience and fix bug Y in module Z
+- Refactor Dockerfile healthcheck to use /health endpoint and update test assertions for thread lifecycle cleanup
+
 ## [1.16.4] - 2026-02-20
 
 - Refactor healthcheck command to use Python socket connection for improved reliability
