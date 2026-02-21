@@ -7,7 +7,6 @@ import os
 import subprocess
 import sys
 
-import pytest
 import yaml
 
 
@@ -241,7 +240,10 @@ def test_real_camera_startup_failure_records_degraded_state_and_boots(monkeypatc
     startup_error = app.motion_state["camera_startup_error"]
     assert startup_error is not None
     assert startup_error["code"] == "CAMERA_UNAVAILABLE"
-    assert startup_error["message"] == "No cameras detected. Check device mappings and camera hardware."
+    assert (
+        startup_error["message"]
+        == "No cameras detected. Check device mappings and camera hardware."
+    )
     assert startup_error["reason"] == "camera_unavailable"
     assert startup_error["context"]["detection_path"] == "test.path"
 

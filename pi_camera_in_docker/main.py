@@ -1519,6 +1519,7 @@ def _init_real_camera(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(
         cfg["allow_pykms_mock"]
     )
+
     def _set_startup_error(
         *,
         code: str,
@@ -1665,8 +1666,7 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     except Exception:
         startup_error = state.get("camera_startup_error")
         is_unexpected_exception = (
-            isinstance(startup_error, dict)
-            and startup_error.get("reason") == "camera_exception"
+            isinstance(startup_error, dict) and startup_error.get("reason") == "camera_exception"
         )
         if cfg.get("fail_on_camera_init_error", False) or is_unexpected_exception:
             raise
