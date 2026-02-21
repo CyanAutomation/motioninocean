@@ -639,6 +639,27 @@ curl -X POST http://192.168.1.100:8001/api/nodes \
 
 ## Troubleshooting
 
+### Canonical Docker Build Args for Camera Compatibility
+
+Use this canonical build-arg pair when building images manually:
+
+```bash
+docker build \
+  --build-arg DEBIAN_SUITE=trixie \
+  --build-arg RPI_SUITE=bookworm \
+  -t motion-in-ocean:local .
+```
+
+If camera packages are unavailable in your selected Raspberry Pi suite, use `RPI_SUITE=bookworm`.
+
+If you intentionally build with a different Raspberry Pi suite and retain fallback behavior, set:
+
+```bash
+--build-arg ALLOW_BOOKWORM_FALLBACK=true
+```
+
+This retries camera package installation against Bookworm when the primary `RPI_SUITE` fails.
+
 ### Nodes Not Connecting
 
 **Symptom**: Management UI shows node as "unavailable" or error when fetching status
