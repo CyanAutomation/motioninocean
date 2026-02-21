@@ -224,7 +224,8 @@ LABEL org.opencontainers.image.authors="CyanAutomation"
 LABEL org.opencontainers.image.vendor="CyanAutomation"
 LABEL org.opencontainers.image.build.debian-suite="${DEBIAN_SUITE}"
 LABEL org.opencontainers.image.build.rpi-suite="${RPI_SUITE}"
-LABEL org.opencontainers.image.build.active-rpi-suite="${RPI_SUITE}"
+LABEL org.opencontainers.image.build.requested-rpi-suite="${RPI_SUITE}"
+LABEL org.opencontainers.image.build.allow-bookworm-fallback="${ALLOW_BOOKWORM_FALLBACK}"
 LABEL org.opencontainers.image.build.include-mock-camera="${INCLUDE_MOCK_CAMERA}"
 
 # ---- Layer 1: System Dependencies (Stable) ----
@@ -319,6 +320,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     } && \
     update_with_optional_fallback && \
     check_camera_preflight "$ACTIVE_RPI_SUITE" && \
+    printf '%s\n' "$ACTIVE_RPI_SUITE" > /tmp/active_rpi_suite && \
     echo "[Final Stage Layer 2] Attempting to install libcamera packages from ${ACTIVE_RPI_SUITE}..." && \
     install_camera_packages && \
     echo "[Final Stage Layer 2] SUCCESS: libcamera packages installed from ${ACTIVE_RPI_SUITE}" && \
@@ -363,10 +365,12 @@ RUN mkdir -p /app && \
     ( \
         echo "DEBIAN_SUITE=${DEBIAN_SUITE}"; \
         echo "RPI_SUITE=${RPI_SUITE}"; \
+        if [ -f /tmp/active_rpi_suite ]; then echo "ACTIVE_RPI_SUITE=$(cat /tmp/active_rpi_suite)"; fi; \
         echo "INCLUDE_MOCK_CAMERA=${INCLUDE_MOCK_CAMERA}"; \
         echo "BUILD_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"; \
     ) > /app/BUILD_METADATA && \
-    cat /app/BUILD_METADATA
+    cat /app/BUILD_METADATA && \
+    rm -f /tmp/active_rpi_suite
 
 # Validate required Python modules and picamera2 camera-info contract in the final image
 # Known-good baseline: Raspberry Pi Bookworm repo package for python3-picamera2 (archive.raspberrypi.org/debian)
