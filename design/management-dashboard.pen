@@ -721,6 +721,75 @@
                       "fontWeight": "600"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "k8JCx",
+                  "x": 1068,
+                  "y": 14,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#E5E7EB",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "qZSsb",
+                      "x": 16,
+                      "y": 16,
+                      "name": "icon-sun-core",
+                      "width": 12,
+                      "height": 12,
+                      "fill": "#111827",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "CuvZK",
+                      "x": 21,
+                      "y": 8,
+                      "name": "icon-sun-ray-t",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UTWgG",
+                      "x": 31,
+                      "y": 21,
+                      "name": "icon-sun-ray-r",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "IAwbN",
+                      "x": 21,
+                      "y": 31,
+                      "name": "icon-sun-ray-b",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hKplr",
+                      "x": 8,
+                      "y": 21,
+                      "name": "icon-sun-ray-l",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    }
+                  ]
                 }
               ]
             },
@@ -1805,6 +1874,53 @@
                       "fontWeight": "600"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "GTkmZ",
+                  "x": 1068,
+                  "y": 14,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#1E293B",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "OmdLT",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Nu3Jp",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#1E293B",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "XM58R",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
+                    }
+                  ]
                 }
               ]
             },
@@ -2790,6 +2906,75 @@
                       "fontWeight": "600"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "yCeXy",
+                  "x": 130,
+                  "y": 0,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#E5E7EB",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "wpFRd",
+                      "x": 16,
+                      "y": 16,
+                      "name": "icon-sun-core",
+                      "width": 12,
+                      "height": 12,
+                      "fill": "#111827",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dYqKf",
+                      "x": 21,
+                      "y": 8,
+                      "name": "icon-sun-ray-t",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "H7Sd4",
+                      "x": 31,
+                      "y": 21,
+                      "name": "icon-sun-ray-r",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "19qA7",
+                      "x": 21,
+                      "y": 31,
+                      "name": "icon-sun-ray-b",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dYrtV",
+                      "x": 8,
+                      "y": 21,
+                      "name": "icon-sun-ray-l",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    }
+                  ]
                 }
               ]
             },
@@ -3504,6 +3689,53 @@
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "B0W51",
+                  "x": 130,
+                  "y": 0,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#1E293B",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "PSaYF",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "T2ojt",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#1E293B",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hdISk",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
                     }
                   ]
                 }
@@ -4319,6 +4551,75 @@
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "6DxOJ",
+                  "x": 1068,
+                  "y": 14,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#E5E7EB",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "qLOZp",
+                      "x": 16,
+                      "y": 16,
+                      "name": "icon-sun-core",
+                      "width": 12,
+                      "height": 12,
+                      "fill": "#111827",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Ai6BD",
+                      "x": 21,
+                      "y": 8,
+                      "name": "icon-sun-ray-t",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BX3n7",
+                      "x": 31,
+                      "y": 21,
+                      "name": "icon-sun-ray-r",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "0na02",
+                      "x": 21,
+                      "y": 31,
+                      "name": "icon-sun-ray-b",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Zfw0S",
+                      "x": 8,
+                      "y": 21,
+                      "name": "icon-sun-ray-l",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
                     }
                   ]
                 }
@@ -5358,6 +5659,75 @@
                       "fontWeight": "600"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "YQHLS",
+                  "x": 1068,
+                  "y": 14,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#E5E7EB",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "GN1EI",
+                      "x": 16,
+                      "y": 16,
+                      "name": "icon-sun-core",
+                      "width": 12,
+                      "height": 12,
+                      "fill": "#111827",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "7VJwT",
+                      "x": 21,
+                      "y": 8,
+                      "name": "icon-sun-ray-t",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "GpjHy",
+                      "x": 31,
+                      "y": 21,
+                      "name": "icon-sun-ray-r",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "uDesg",
+                      "x": 21,
+                      "y": 31,
+                      "name": "icon-sun-ray-b",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "j0nUE",
+                      "x": 8,
+                      "y": 21,
+                      "name": "icon-sun-ray-l",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    }
+                  ]
                 }
               ]
             },
@@ -6371,6 +6741,75 @@
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "I5hUN",
+                  "x": 1068,
+                  "y": 14,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#E5E7EB",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "UAWs0",
+                      "x": 16,
+                      "y": 16,
+                      "name": "icon-sun-core",
+                      "width": 12,
+                      "height": 12,
+                      "fill": "#111827",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "02Ufa",
+                      "x": 21,
+                      "y": 8,
+                      "name": "icon-sun-ray-t",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Jtfu0",
+                      "x": 31,
+                      "y": 21,
+                      "name": "icon-sun-ray-r",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HH4nb",
+                      "x": 21,
+                      "y": 31,
+                      "name": "icon-sun-ray-b",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BnRTz",
+                      "x": 8,
+                      "y": 21,
+                      "name": "icon-sun-ray-l",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
                     }
                   ]
                 }
@@ -7488,6 +7927,53 @@
                       "fontWeight": "600"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wjJC6",
+                  "x": 1068,
+                  "y": 14,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#1E293B",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "DekHE",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Y4yHt",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#1E293B",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yLvY0",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
+                    }
+                  ]
                 }
               ]
             },
@@ -8503,6 +8989,53 @@
                       "fontWeight": "600"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "NEas8",
+                  "x": 1068,
+                  "y": 14,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#1E293B",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "f8KEu",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "aZQMm",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#1E293B",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "VsITT",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
+                    }
+                  ]
                 }
               ]
             },
@@ -9516,6 +10049,53 @@
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "njxsR",
+                  "x": 1068,
+                  "y": 14,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#1E293B",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "fwR8E",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "vPvqL",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#1E293B",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "oXH1K",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
                     }
                   ]
                 }
@@ -10534,6 +11114,75 @@
                       "fontWeight": "600"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "p7hvr",
+                  "x": 130,
+                  "y": 0,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#E5E7EB",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "reT51",
+                      "x": 16,
+                      "y": 16,
+                      "name": "icon-sun-core",
+                      "width": 12,
+                      "height": 12,
+                      "fill": "#111827",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "wHsA8",
+                      "x": 21,
+                      "y": 8,
+                      "name": "icon-sun-ray-t",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BrDuE",
+                      "x": 31,
+                      "y": 21,
+                      "name": "icon-sun-ray-r",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "6yfLb",
+                      "x": 21,
+                      "y": 31,
+                      "name": "icon-sun-ray-b",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "uxKaM",
+                      "x": 8,
+                      "y": 21,
+                      "name": "icon-sun-ray-l",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    }
+                  ]
                 }
               ]
             },
@@ -11248,6 +11897,75 @@
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "JoISB",
+                  "x": 130,
+                  "y": 0,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#E5E7EB",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Pfon3",
+                      "x": 16,
+                      "y": 16,
+                      "name": "icon-sun-core",
+                      "width": 12,
+                      "height": 12,
+                      "fill": "#111827",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "mLjaw",
+                      "x": 21,
+                      "y": 8,
+                      "name": "icon-sun-ray-t",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "3mSxX",
+                      "x": 31,
+                      "y": 21,
+                      "name": "icon-sun-ray-r",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gjoWy",
+                      "x": 21,
+                      "y": 31,
+                      "name": "icon-sun-ray-b",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dc5C0",
+                      "x": 8,
+                      "y": 21,
+                      "name": "icon-sun-ray-l",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
                     }
                   ]
                 }
@@ -11966,6 +12684,75 @@
                       "fontWeight": "600"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "1Gf62",
+                  "x": 130,
+                  "y": 0,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#E5E7EB",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "8TVxI",
+                      "x": 16,
+                      "y": 16,
+                      "name": "icon-sun-core",
+                      "width": 12,
+                      "height": 12,
+                      "fill": "#111827",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NQAbt",
+                      "x": 21,
+                      "y": 8,
+                      "name": "icon-sun-ray-t",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "3GRAZ",
+                      "x": 31,
+                      "y": 21,
+                      "name": "icon-sun-ray-r",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "iF5TN",
+                      "x": 21,
+                      "y": 31,
+                      "name": "icon-sun-ray-b",
+                      "width": 2,
+                      "height": 5,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    },
+                    {
+                      "type": "frame",
+                      "id": "muS0M",
+                      "x": 8,
+                      "y": 21,
+                      "name": "icon-sun-ray-l",
+                      "width": 5,
+                      "height": 2,
+                      "fill": "#111827",
+                      "cornerRadius": 1
+                    }
+                  ]
                 }
               ]
             },
@@ -12680,6 +13467,53 @@
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "bwebn",
+                  "x": 130,
+                  "y": 0,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#1E293B",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "9mSqj",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LBwVv",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#1E293B",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "tatoY",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
                     }
                   ]
                 }
@@ -13398,6 +14232,53 @@
                       "fontWeight": "600"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "6dzNM",
+                  "x": 130,
+                  "y": 0,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#1E293B",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "8bYnS",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "m4sJk",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#1E293B",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UITkq",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
+                    }
+                  ]
                 }
               ]
             },
@@ -14112,6 +14993,53 @@
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "KMsSG",
+                  "x": 130,
+                  "y": 0,
+                  "name": "Theme Toggle",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#1E293B",
+                  "cornerRadius": 12,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "XCY9D",
+                      "x": 14,
+                      "y": 12,
+                      "name": "icon-moon-outer",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yws6X",
+                      "x": 19,
+                      "y": 10,
+                      "name": "icon-moon-cut",
+                      "width": 16,
+                      "height": 16,
+                      "fill": "#1E293B",
+                      "cornerRadius": 999
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Fq3An",
+                      "x": 11,
+                      "y": 10,
+                      "name": "icon-moon-star",
+                      "width": 3,
+                      "height": 3,
+                      "fill": "#E2E8F0",
+                      "cornerRadius": 999
                     }
                   ]
                 }

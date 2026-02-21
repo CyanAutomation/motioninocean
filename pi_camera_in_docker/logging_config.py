@@ -106,9 +106,11 @@ def log_provenance_info() -> None:
     - Build suite parameters from /app/BUILD_METADATA
     - libcamera version (from libcamera-hello utility)
     - picamera2 module information and import path
+    - Package origins and versions (dpkg for camera packages)
+    - Apt pinning preferences for camera packages
 
     INFO level: Concise single-line summary for standard logging
-    DEBUG level: Detailed module inspection, filesystem paths, and full version tree
+    DEBUG level: Detailed module inspection, filesystem paths, full version tree, and dpkg output
     """
     logger = logging.getLogger(__name__)
 
@@ -163,15 +165,53 @@ def log_provenance_info() -> None:
     except Exception as e:
         logger.debug("Could not import picamera2: %s", e)
 
+    # Get dpkg info for camera packages
+    dpkg_info: Dict[str, str] = {}
+    try:
+        result = subprocess.run(
+            ["dpkg-query", "-W", "-f=${Package}\t${Version}\t${Origin}\n",
+             "libcamera-apps", "python3-picamera2", "python3-libcamera"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            for line in result.stdout.strip().split("\n"):
+                if line and "\t" in line:
+                    parts = line.split("\t")
+                    if len(parts) >= 3:
+                        pkg_name = parts[0]
+                        dpkg_info[pkg_name] = {
+                            "version": parts[1],
+                            "origin": parts[2],
+                        }
+    except Exception as e:
+        logger.debug("Could not query dpkg for package origins: %s", e)
+
+    # Get apt preferences info
+    apt_prefs_content = "not found"
+    preferences_file = "/etc/apt/preferences.d/rpi-camera.preferences"
+    if os.path.exists(preferences_file):
+        try:
+            with open(preferences_file, "r", encoding="utf-8") as f:
+                apt_prefs_content = f.read()
+        except Exception as e:
+            logger.debug("Could not read apt preferences: %s", e)
+
     # Build INFO-level summary (single line)
     debian_suite = build_metadata.get("DEBIAN_SUITE", "unknown")
     rpi_suite = build_metadata.get("RPI_SUITE", "unknown")
     include_mock = build_metadata.get("INCLUDE_MOCK_CAMERA", "unknown")
     build_time = build_metadata.get("BUILD_TIMESTAMP", "unknown")
 
+    # Extract origin summary from dpkg_info
+    origins = [info.get("origin", "unknown") for info in dpkg_info.values()]
+    origin_summary = "/".join(set(origins)) if origins else "unknown"
+
     info_summary = (
         f"version={app_version} libcamera={libcamera_version} picamera2={picamera2_version} "
-        f"debian:suite={debian_suite} rpi:suite={rpi_suite} mock_camera={include_mock}"
+        f"debian:suite={debian_suite} rpi:suite={rpi_suite} mock_camera={include_mock} "
+        f"package_origins={origin_summary}"
     )
     logger.info("Camera stack provenance: %s", info_summary)
 
@@ -180,13 +220,17 @@ def log_provenance_info() -> None:
         logger.debug("BUILD_METADATA: %s", build_metadata)
         logger.debug("picamera2.__file__: %s", picamera2_path)
         logger.debug("Full libcamera version: %s", libcamera_version)
+        logger.debug("Package versions and origins: %s", dpkg_info)
+        logger.debug("Apt preferences file (/etc/apt/preferences.d/rpi-camera.preferences):\n%s", apt_prefs_content)
         logger.debug("Provenance snapshot: %s", {
             "app_version": app_version,
             "libcamera_version": libcamera_version,
             "picamera2_version": picamera2_version,
             "picamera2_path": picamera2_path,
+            "package_info": dpkg_info,
             "debian_suite": debian_suite,
             "rpi_suite": rpi_suite,
             "mock_camera_enabled": include_mock,
             "build_timestamp": build_time,
+            "package_origins": origin_summary,
         })

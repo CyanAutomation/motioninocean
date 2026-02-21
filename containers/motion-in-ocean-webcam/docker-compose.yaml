@@ -56,6 +56,7 @@ services:
 
     volumes:
       - /run/udev:/run/udev:ro
+      - /dev/dma_heap:/dev/dma_heap
       - motion-in-ocean-data:/data
 
     # Privileged mode allows access to all host devices

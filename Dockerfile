@@ -2,9 +2,13 @@
 # DEBIAN_SUITE: Base Debian release for builder and final stages (default: trixie)
 # RPI_SUITE: Raspberry Pi repository suite (default: trixie)
 # INCLUDE_MOCK_CAMERA: Include Pillow for mock camera test frames (default: true)
+# ALLOW_BOOKWORM_FALLBACK: Allow fallback to Bookworm if primary suite fails (default: false)
+#   Set to true ONLY for compatibility builds where mixing suites is acceptable
+#   When false, build fails with clear message if primary suite packages unavailable
 ARG DEBIAN_SUITE=trixie
 ARG RPI_SUITE=trixie
 ARG INCLUDE_MOCK_CAMERA=true
+ARG ALLOW_BOOKWORM_FALLBACK=false
 
 # ---- Builder Stage ----
 # This stage is responsible for adding the Raspberry Pi repository and building Python packages.
@@ -23,6 +27,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3 \
         python3-pip \
         python3-dev \
+        python3-venv \
         python3-numpy \
         ca-certificates \
         gnupg \
@@ -33,7 +38,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # ---- Layer 2: Raspberry Pi Repository & Camera Packages (Stable) ----
 # Configure Raspberry Pi repository and install picamera2 system packages
 # Both stages require this setup; duplication is necessary in multi-stage builds
-# Includes fallback logic to Bookworm if Trixie packages are unavailable
+# 
+# Fallback behavior controlled by ALLOW_BOOKWORM_FALLBACK:
+# - false (default): fail build if primary RPI_SUITE packages unavailable (prevents silent mismatches)
+# - true: automatically fallback to Bookworm if primary suite fails (for compatibility builds)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
@@ -59,10 +67,21 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     echo "[Layer 2] Adding Raspberry Pi repository for suite: ${RPI_SUITE}..." && \
     echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ ${RPI_SUITE} main" > /etc/apt/sources.list.d/raspi.list && \
     rm /tmp/raspberrypi.gpg.key && \
+    \
+    # Create apt preferences file to pin camera packages to RPi repo, others to Debian
+    echo "[Layer 2] Setting apt pinning for camera packages..." && \
+    mkdir -p /etc/apt/preferences.d && \
+    printf "# Pin camera-related packages to Raspberry Pi repository (higher priority)\n\
+Package: libcamera* python3-libcamera python3-picamera2 rpicam*\n\
+Pin: origin archive.raspberrypi.org\n\
+Pin-Priority: 1001\n\
+\n\
+# Keep other packages at lower priority from RPi repo (prefer Debian versions)\n\
+Package: *\n\
+Pin: origin archive.raspberrypi.org\n\
+Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
     echo "[Layer 2] Running apt-get update..." && \
-    if ! apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 2>&1 | tail -20; then \
-      echo "[ERROR] apt-get update failed"; exit 1; \
-    fi && \
+    apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
     echo "[Layer 2] Attempting to install libcamera packages for ${RPI_SUITE}..." && \
     if apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         libcamera-apps \
@@ -71,11 +90,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3-picamera2 \
         v4l-utils 2>&1; then \
       echo "[Layer 2] SUCCESS: libcamera packages installed from ${RPI_SUITE}"; \
+      echo "[Layer 2] Package origin verification:" && \
+      apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
+      dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
+        libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true; \
     else \
       INSTALL_EXIT=$?; \
-      echo "[WARNING] Installation from ${RPI_SUITE} failed with exit code $INSTALL_EXIT"; \
-      if [ "${RPI_SUITE}" != "bookworm" ]; then \
-        echo "[Layer 2] Attempting fallback to Bookworm repository..."; \
+      echo "[ERROR] Installation from ${RPI_SUITE} failed with exit code $INSTALL_EXIT"; \
+      if [ "${ALLOW_BOOKWORM_FALLBACK}" = "true" ]; then \
+        echo "[Layer 2] ALLOW_BOOKWORM_FALLBACK=true: attempting fallback to Bookworm repository..."; \
         echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
         apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
         apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
@@ -85,18 +108,27 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
           python3-picamera2 \
           v4l-utils && \
         echo "[Layer 2] SUCCESS: libcamera packages installed from Bookworm (fallback)"; \
+        echo "[Layer 2] Package origin verification (after fallback):" && \
+        apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
+        dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
+          libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true; \
       else \
-        echo "[ERROR] Bookworm installation also failed; giving up"; exit $INSTALL_EXIT; \
+        echo "[ERROR] ALLOW_BOOKWORM_FALLBACK=false (default): build fails rather than silently mixing suites"; \
+        echo "[ERROR] To allow fallback, rebuild with: --build-arg ALLOW_BOOKWORM_FALLBACK=true"; \
+        echo "[ERROR] Affected packages: libcamera-apps python3-picamera2 python3-libcamera"; \
+        exit $INSTALL_EXIT; \
       fi; \
     fi && \
     rm -rf /var/lib/apt/lists/*
 
 # ---- Layer 3: Virtual Environment Setup (Volatile) ----
 # Create venv to isolate pip-managed packages from system Python
+# Using --system-site-packages to allow venv access to apt-installed picamera2 and libcamera
 # This prevents conflicts between apt-managed (system) and pip-managed (application) dependencies
+# while ensuring camera stack visibility (picamera2 is installed via apt, not pip)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    python3 -m venv /opt/venv && \
+    python3 -m venv --system-site-packages /opt/venv && \
     /opt/venv/bin/pip install --upgrade pip setuptools wheel
 
 # ---- Layer 4: Python Dependencies (Volatile) ----
@@ -125,6 +157,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # The final image uses debian:${DEBIAN_SUITE}-slim with system Python to ensure apt-installed
 # python3-picamera2 is available alongside isolated pip dependencies in /opt/venv
 # Venv approach prevents conflicts between system and pip-managed package versions
+# Redeclare build args for use in this stage (Docker scoping rules)
+ARG DEBIAN_SUITE=trixie
+ARG RPI_SUITE=trixie
+ARG INCLUDE_MOCK_CAMERA=true
+ARG ALLOW_BOOKWORM_FALLBACK=false
 FROM debian:${DEBIAN_SUITE}-slim
 
 # Prevent Python bytecode generation and enable unbuffered output
@@ -137,6 +174,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Copy GPG key and apt source list from builder stage
 COPY --from=builder /usr/share/keyrings/raspberrypi.gpg /usr/share/keyrings/raspberrypi.gpg
 COPY --from=builder /etc/apt/sources.list.d/raspi.list /etc/apt/sources.list.d/raspi.list
+COPY --from=builder /etc/apt/preferences.d/rpi-camera.preferences /etc/apt/preferences.d/rpi-camera.preferences
 
 # ---- OCI Labels (Metadata - no cache impact) ----
 # Image metadata with build-time arguments for provenance tracking
@@ -164,13 +202,16 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # ---- Layer 2: Raspberry Pi Camera Packages (Stable) ----
 # Install Raspberry Pi camera runtime packages using the copied repository setup
 # Note: libcamera-dev excluded from final stage (header files not needed at runtime, saves ~30-50MB)
-# Includes fallback logic to Bookworm if Trixie packages are unavailable
+#
+# Fallback behavior controlled by ALLOW_BOOKWORM_FALLBACK:
+# - false (default): fail build if primary RPI_SUITE packages unavailable (prevents silent mismatches)
+# - true: automatically fallback to Bookworm if primary suite fails (for compatibility builds)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
     echo "[Final Stage Layer 2] Running apt-get update..." && \
     apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
-    echo "[Final Stage Layer 2] Attempting to install libcamera packages..." && \
+    echo "[Final Stage Layer 2] Attempting to install libcamera packages from ${RPI_SUITE}..." && \
     if apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         libcamera-apps \
         python3 \
@@ -178,20 +219,36 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         python3-libcamera \
         python3-picamera2 \
         v4l-utils 2>&1; then \
-      echo "[Final Stage Layer 2] SUCCESS: libcamera packages installed"; \
+      echo "[Final Stage Layer 2] SUCCESS: libcamera packages installed from ${RPI_SUITE}"; \
+      echo "[Final Stage Layer 2] Package origin verification:" && \
+      apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
+      dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
+        libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true; \
     else \
       INSTALL_EXIT=$?; \
-      echo "[WARNING] Installation failed with exit code $INSTALL_EXIT; attempting Bookworm fallback..."; \
-      echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
-      apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
-      apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
-        libcamera-apps \
-        python3 \
-        python3-numpy \
-        python3-libcamera \
-        python3-picamera2 \
-        v4l-utils && \
-      echo "[Final Stage Layer 2] SUCCESS: libcamera packages installed from Bookworm (fallback)"; \
+      echo "[ERROR] Installation from ${RPI_SUITE} failed with exit code $INSTALL_EXIT"; \
+      if [ "${ALLOW_BOOKWORM_FALLBACK}" = "true" ]; then \
+        echo "[Final Stage Layer 2] ALLOW_BOOKWORM_FALLBACK=true: attempting fallback to Bookworm..."; \
+        echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
+        apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
+        apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
+          libcamera-apps \
+          python3 \
+          python3-numpy \
+          python3-libcamera \
+          python3-picamera2 \
+          v4l-utils && \
+        echo "[Final Stage Layer 2] SUCCESS: libcamera packages installed from Bookworm (fallback)"; \
+        echo "[Final Stage Layer 2] Package origin verification (after fallback):" && \
+        apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
+        dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
+          libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true; \
+      else \
+        echo "[ERROR] ALLOW_BOOKWORM_FALLBACK=false (default): build fails rather than silently mixing suites"; \
+        echo "[ERROR] To allow fallback, rebuild with: --build-arg ALLOW_BOOKWORM_FALLBACK=true"; \
+        echo "[ERROR] Affected packages: libcamera-apps python3-picamera2 python3-libcamera"; \
+        exit $INSTALL_EXIT; \
+      fi; \
     fi && \
     rm -rf /var/lib/apt/lists/*
 
