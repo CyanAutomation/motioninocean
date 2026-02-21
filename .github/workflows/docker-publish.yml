@@ -53,7 +53,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            INCLUDE_MOCK_CAMERA=false
+            INCLUDE_MOCK_CAMERA=true
           cache-from: type=gha
           cache-to: type=gha,mode=max
         id: build_bookworm
@@ -67,7 +67,7 @@ jobs:
           platforms: linux/arm64
           push: false
           build-args: |
-            INCLUDE_MOCK_CAMERA=false
+            INCLUDE_MOCK_CAMERA=true
           cache-from: type=gha
           outputs: type=oci,dest=/tmp/test-bookworm-image
         continue-on-error: true
