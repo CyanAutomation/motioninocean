@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.16.8] - 2026-02-21
+
+- feat: Enhance logging and provenance information in camera application
+- feat: add dark variant gap report for management dashboard
+
 ## [1.16.7] - 2026-02-21
 
 - Refactor code structure for improved readability and maintainability
