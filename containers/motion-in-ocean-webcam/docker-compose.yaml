@@ -63,6 +63,10 @@ services:
     # For production, use: docker compose -f docker-compose.yml -f docker-compose.hardened.yml
     privileged: true
 
+    group_add:
+      - video
+      - render
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

@@ -32,6 +32,7 @@ services:
     # Device group membership for access permissions
     group_add:
       - video
+      - render
 
     # Device cgroup rules as fallback for unmapped devices
     # These allow character devices in specific ranges to be accessed

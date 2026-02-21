@@ -51,8 +51,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     rm /tmp/raspberrypi.gpg.key && \
     apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
     apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
+        libcamera-apps \
+        libcamera-dev \
         python3-libcamera \
-        python3-picamera2 && \
+        python3-picamera2 \
+        v4l-utils && \
     rm -rf /var/lib/apt/lists/*
 
 # ---- Layer 3: Python Dependencies (Volatile) ----
@@ -118,10 +121,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     set -e && \
     apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
     apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
+        libcamera-apps \
+        libcamera-dev \
         python3 \
         python3-numpy \
         python3-libcamera \
-        python3-picamera2 && \
+        python3-picamera2 \
+        v4l-utils && \
     rm -rf /var/lib/apt/lists/*
 
 # ---- Layer 3: Non-Root User Setup (Runtime Security) ----
@@ -169,6 +175,11 @@ else:
         "Incompatible python3-picamera2 package revision: expected picamera2.global_camera_info or picamera2.Picamera2.global_camera_info"
     )
 PY
+
+# Validate libcamera install and Raspberry Pi pipeline/IPA locations
+RUN libcamera-hello --version
+RUN test -d /usr/share/libcamera/pipeline/rpi/vc4
+RUN test -d /usr/share/libcamera/ipa/rpi/vc4
 
 # Explicitly set STOPSIGNAL to SIGTERM for graceful shutdown handling
 STOPSIGNAL SIGTERM
