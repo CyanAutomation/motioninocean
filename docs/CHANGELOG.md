@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.17.8] - 2026-02-21
+
+- Enhance Dockerfile for architecture-aware Raspberry Pi camera package installation
+- Update Docker build configuration to include mock camera for testing
+
 ## [1.17.7] - 2026-02-21
 
 - Add architecture-aware stack validation script for motion-in-ocean
