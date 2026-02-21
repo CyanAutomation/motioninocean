@@ -1,12 +1,16 @@
 # ---- Build Arguments ----
 # DEBIAN_SUITE: Base Debian release for builder and final stages (default: trixie)
-# RPI_SUITE: Raspberry Pi repository suite (default: trixie)
+# RPI_SUITE: Raspberry Pi repository suite (default: bookworm)
+#
+# Intentional suite split:
+# - Debian base can track newer releases (e.g., trixie) for core userspace.
+# - Raspberry Pi camera repo stays on bookworm until trixie camera packages are fully resolvable.
 # INCLUDE_MOCK_CAMERA: Include Pillow for mock camera test frames (default: true)
 # ALLOW_BOOKWORM_FALLBACK: Allow fallback to Bookworm if primary suite fails (default: false)
 #   Set to true ONLY for compatibility builds where mixing suites is acceptable
 #   When false, build fails with clear message if primary suite packages unavailable
 ARG DEBIAN_SUITE=trixie
-ARG RPI_SUITE=trixie
+ARG RPI_SUITE=bookworm
 ARG INCLUDE_MOCK_CAMERA=true
 ARG ALLOW_BOOKWORM_FALLBACK=false
 
@@ -158,8 +162,12 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # python3-picamera2 is available alongside isolated pip dependencies in /opt/venv
 # Venv approach prevents conflicts between system and pip-managed package versions
 # Redeclare build args for use in this stage (Docker scoping rules)
+#
+# Intentional suite split mirrors top-level build args:
+# - Debian base may be newer (e.g., trixie).
+# - Raspberry Pi camera repo remains on bookworm until trixie camera stack resolution improves.
 ARG DEBIAN_SUITE=trixie
-ARG RPI_SUITE=trixie
+ARG RPI_SUITE=bookworm
 ARG INCLUDE_MOCK_CAMERA=true
 ARG ALLOW_BOOKWORM_FALLBACK=false
 FROM debian:${DEBIAN_SUITE}-slim
