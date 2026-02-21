@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.17.3] - 2026-02-21
+
+- Enhance SKILL.md with container startup flow diagram and error message index; update Dockerfile and Makefile for improved build argument handling
+
 ## [1.17.2] - 2026-02-21
 
 - Update SKILL.md and CONTRIBUTING.md for improved device mapping guidance and Docker build instructions
