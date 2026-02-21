@@ -605,14 +605,14 @@ def load_build_metadata() -> Dict[str, str]:
     metadata: Dict[str, str] = {}
     metadata_file = "/app/BUILD_METADATA"
 
-    if not os.path.exists(metadata_file):
+    if not Path(metadata_file).exists():
         logger.debug("BUILD_METADATA file not found at %s (normal in dev)", metadata_file)
         return metadata
 
     try:
-        with open(metadata_file, encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
+        with Path(metadata_file).open(encoding="utf-8") as f:
+            for raw_line in f:
+                line = raw_line.strip()
                 if line and "=" in line and not line.startswith("#"):
                     key, value = line.split("=", 1)
                     metadata[key.strip()] = value.strip()
