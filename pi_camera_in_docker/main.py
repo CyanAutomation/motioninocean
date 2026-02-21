@@ -27,7 +27,7 @@ from .cat_gif_generator import CatGifGenerator
 from .config_validator import ConfigValidationError, validate_all_config
 from .discovery import DiscoveryAnnouncer, build_discovery_payload
 from .feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
-from .logging_config import configure_logging
+from .logging_config import configure_logging, log_provenance_info
 from .management_api import register_management_routes
 from .modes.webcam import (
     ConnectionTracker,
@@ -65,6 +65,7 @@ ALLOWED_APP_MODES = {"webcam", "management"}
 DEFAULT_APP_MODE = "webcam"
 
 configure_logging()
+log_provenance_info()
 logger = logging.getLogger(__name__)
 
 feature_flags: FeatureFlags = get_feature_flags()

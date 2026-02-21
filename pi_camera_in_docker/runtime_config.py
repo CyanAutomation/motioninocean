@@ -578,3 +578,41 @@ def get_effective_settings_payload(app_settings: ApplicationSettings) -> Dict[st
         "last_modified": persisted.get("last_modified"),
         "modified_by": persisted.get("modified_by"),
     }
+
+def load_build_metadata() -> Dict[str, str]:
+    """Load build-time metadata from /app/BUILD_METADATA file.
+
+    Reads key-value pairs created at build time documenting:
+    - DEBIAN_SUITE: Debian release (e.g., trixie, bookworm)
+    - RPI_SUITE: Raspberry Pi repo suite
+    - INCLUDE_MOCK_CAMERA: Whether mock camera support was compiled
+    - BUILD_TIMESTAMP: ISO-8601 timestamp of build completion
+
+    Returns:
+        Dictionary of build metadata. Returns empty dict if file not found
+        or unreadable (e.g., in development without Docker).
+
+    Example:
+        >>> metadata = load_build_metadata()
+        >>> metadata.get("DEBIAN_SUITE")
+        "trixie"
+    """
+    metadata: Dict[str, str] = {}
+    metadata_file = "/app/BUILD_METADATA"
+
+    if not os.path.exists(metadata_file):
+        logger.debug("BUILD_METADATA file not found at %s (normal in dev)", metadata_file)
+        return metadata
+
+    try:
+        with open(metadata_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and "=" in line and not line.startswith("#"):
+                    key, value = line.split("=", 1)
+                    metadata[key.strip()] = value.strip()
+        logger.debug("Loaded BUILD_METADATA: %s", metadata)
+    except Exception as e:
+        logger.warning("Failed to read BUILD_METADATA: %s", e)
+
+    return metadata

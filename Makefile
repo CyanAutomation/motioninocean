@@ -250,16 +250,41 @@ clean:
 
 # Docker targets
 # Using BuildKit for enhanced caching and faster builds
+# Build args: DEBIAN_SUITE (default: trixie), RPI_SUITE (default: trixie), INCLUDE_MOCK_CAMERA (default: true)
 docker-build:
-	@echo "Building default Docker image (with mock camera)..."
-	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_MOCK_CAMERA=true -t motion-in-ocean:dev .
+	@echo "Building default Docker image (trixie, with mock camera)..."
+	DOCKER_BUILDKIT=1 docker build \
+		--build-arg DEBIAN_SUITE=trixie \
+		--build-arg RPI_SUITE=trixie \
+		--build-arg INCLUDE_MOCK_CAMERA=true \
+		-t motion-in-ocean:dev .
 
 docker-build-prod:
-	@echo "Building production Docker image (without mock camera, smallest size)..."
-	DOCKER_BUILDKIT=1 docker build --build-arg INCLUDE_MOCK_CAMERA=false -t motion-in-ocean:dev-prod .
+	@echo "Building production Docker image (trixie, without mock camera, smallest size)..."
+	DOCKER_BUILDKIT=1 docker build \
+		--build-arg DEBIAN_SUITE=trixie \
+		--build-arg RPI_SUITE=trixie \
+		--build-arg INCLUDE_MOCK_CAMERA=false \
+		-t motion-in-ocean:dev-prod .
+
+docker-build-bookworm:
+	@echo "Building Docker image for Bookworm (with mock camera)..."
+	DOCKER_BUILDKIT=1 docker build \
+		--build-arg DEBIAN_SUITE=bookworm \
+		--build-arg RPI_SUITE=bookworm \
+		--build-arg INCLUDE_MOCK_CAMERA=true \
+		-t motion-in-ocean:bookworm .
+
+docker-build-bookworm-prod:
+	@echo "Building production Docker image for Bookworm (without mock camera)..."
+	DOCKER_BUILDKIT=1 docker build \
+		--build-arg DEBIAN_SUITE=bookworm \
+		--build-arg RPI_SUITE=bookworm \
+		--build-arg INCLUDE_MOCK_CAMERA=false \
+		-t motion-in-ocean:bookworm-prod .
 
 # Legacy target for backward compatibility
-docker-build-both: docker-build docker-build-full
+docker-build-both: docker-build docker-build-prod
 
 docker-run:
 	@echo "Running Docker container..."

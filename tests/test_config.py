@@ -300,18 +300,26 @@ def test_dockerfile_runtime_contract_instructions(workspace_root):
     requirements_path = workspace_root / "requirements.txt"
     requirements_content = requirements_path.read_text().lower()
 
-    assert dockerfile_content.count("FROM debian:bookworm-slim") >= 2
+    # Check for parameterized FROM statements (DEBIAN_SUITE build arg)
+    assert dockerfile_content.count("FROM debian:${DEBIAN_SUITE}-slim") >= 2
+    # Check that build args are defined
+    assert "ARG DEBIAN_SUITE=trixie" in dockerfile_content
+    assert "ARG RPI_SUITE=trixie" in dockerfile_content
     assert "python3-picamera2" in dockerfile_content
     assert "WORKDIR /app" in dockerfile_content
     assert "COPY pi_camera_in_docker/ /app/pi_camera_in_docker/" in dockerfile_content
     assert 'CMD ["python3", "-m", "pi_camera_in_docker.main"]' in dockerfile_content
+    # Check venv isolation
+    assert "/opt/venv/bin/pip install" in dockerfile_content
+    assert "COPY --from=builder /opt/venv /opt/venv" in dockerfile_content
 
     has_pip_install = (
-        "pip3 install" in dockerfile_content.lower()
-        and "flask" in dockerfile_content.lower().split("pip3 install", 1)[-1].split("\n")[0]
+        "pip3 install" in dockerfile_content.lower() or
+        "/opt/venv/bin/pip install" in dockerfile_content.lower()
     )
+    has_flask = "flask" in dockerfile_content.lower()
     has_requirements = "flask" in requirements_content
-    assert has_pip_install or has_requirements, "Flask dependency contract missing"
+    assert (has_pip_install and has_flask) or has_requirements, "Flask dependency contract missing"
 
 
 def _load_main_config_with_env(workspace_root, env_updates, unset_keys=None):

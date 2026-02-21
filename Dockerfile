@@ -1,12 +1,15 @@
+# ---- Build Arguments ----
+# DEBIAN_SUITE: Base Debian release for builder and final stages (default: trixie)
+# RPI_SUITE: Raspberry Pi repository suite (default: trixie)
+# INCLUDE_MOCK_CAMERA: Include Pillow for mock camera test frames (default: true)
+ARG DEBIAN_SUITE=trixie
+ARG RPI_SUITE=trixie
+ARG INCLUDE_MOCK_CAMERA=true
+
 # ---- Builder Stage ----
 # This stage is responsible for adding the Raspberry Pi repository and building Python packages.
-# Using debian:bookworm-slim with system Python to ensure compatibility with apt-installed python3-picamera2
-FROM debian:bookworm-slim AS builder
-
-# Build argument to control Pillow installation for mock camera support
-# Set to "false" to exclude mock camera support (~5-7MB savings)
-# Default is "true" for development and testing flexibility
-ARG INCLUDE_MOCK_CAMERA=true
+# Using debian:${DEBIAN_SUITE}-slim with system Python to ensure compatibility with apt-installed python3-picamera2
+FROM debian:${DEBIAN_SUITE}-slim AS builder
 
 # ---- Layer 1: System Build Tools (Stable) ----
 # Install base system dependencies and build toolchain
@@ -47,7 +50,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       echo "ERROR: GPG dearmor failed"; exit 1; \
     fi && \
     echo "Adding Raspberry Pi repository..." && \
-    echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
+    echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ ${RPI_SUITE} main" > /etc/apt/sources.list.d/raspi.list && \
     rm /tmp/raspberrypi.gpg.key && \
     apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
     apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
@@ -58,48 +61,62 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         v4l-utils && \
     rm -rf /var/lib/apt/lists/*
 
-# ---- Layer 3: Python Dependencies (Volatile) ----
-# Prepare for pip install: copy requirements and install pip packages
+# ---- Layer 3: Virtual Environment Setup (Volatile) ----
+# Create venv to isolate pip-managed packages from system Python
+# This prevents conflicts between apt-managed (system) and pip-managed (application) dependencies
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install --upgrade pip setuptools wheel
+
+# ---- Layer 4: Python Dependencies (Volatile) ----
+# Prepare for pip install: copy requirements and install pip packages into venv
 # Separate layer enables fast cache hits when only requirements.txt changes
 WORKDIR /app
 COPY requirements.txt /app/
 
-# Install Python packages with BuildKit cache mount for faster rebuilds
+# Install Python packages into venv with BuildKit cache mount for faster rebuilds
 # Exclude numpy (use system python3-numpy for simplejpeg compatibility)
 # Conditionally install Pillow for mock camera support (controlled by INCLUDE_MOCK_CAMERA)
 RUN --mount=type=cache,target=/root/.cache/pip \
     set -e && \
     sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' requirements.txt | \
       awk '!/^(numpy|Pillow)/' > /tmp/requirements-base.txt && \
-    pip3 install --break-system-packages --no-cache-dir -r /tmp/requirements-base.txt && \
+    /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements-base.txt && \
     if [ "$INCLUDE_MOCK_CAMERA" = "true" ]; then \
         echo "Installing Pillow for mock camera support..." && \
-        grep "^Pillow" requirements.txt | pip3 install --break-system-packages --no-cache-dir -r /dev/stdin; \
+        grep "^Pillow" requirements.txt | /opt/venv/bin/pip install --no-cache-dir -r /dev/stdin; \
     else \
         echo "Skipping Pillow installation (INCLUDE_MOCK_CAMERA=false)"; \
     fi && \
     rm -rf /tmp/requirements-base.txt /tmp/*
 
 # ---- Final Stage ----
-# The final image uses debian:bookworm-slim with system Python to ensure apt-installed
-# python3-picamera2 is available in the same Python environment used by the application
-# Python 3.11 from system packages (Bookworm); aligned with requires-python >=3.9 in pyproject.toml
-FROM debian:bookworm-slim
+# The final image uses debian:${DEBIAN_SUITE}-slim with system Python to ensure apt-installed
+# python3-picamera2 is available alongside isolated pip dependencies in /opt/venv
+# Venv approach prevents conflicts between system and pip-managed package versions
+FROM debian:${DEBIAN_SUITE}-slim
 
 # Prevent Python bytecode generation and enable unbuffered output
 # Savings: ~5-10% image size; improves container startup performance
+# Add venv to PATH so 'python3' resolves to venv python
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PATH=/opt/venv/bin:$PATH
 
 # Copy GPG key and apt source list from builder stage
 COPY --from=builder /usr/share/keyrings/raspberrypi.gpg /usr/share/keyrings/raspberrypi.gpg
 COPY --from=builder /etc/apt/sources.list.d/raspi.list /etc/apt/sources.list.d/raspi.list
 
 # ---- OCI Labels (Metadata - no cache impact) ----
+# Image metadata with build-time arguments for provenance tracking
 LABEL org.opencontainers.image.source="https://github.com/CyanAutomation/motioninocean"
 LABEL org.opencontainers.image.description="Raspberry Pi CSI camera streaming container (Picamera2/libcamera)"
 LABEL org.opencontainers.image.authors="CyanAutomation"
 LABEL org.opencontainers.image.vendor="CyanAutomation"
+LABEL org.opencontainers.image.build.debian-suite="${DEBIAN_SUITE}"
+LABEL org.opencontainers.image.build.rpi-suite="${RPI_SUITE}"
+LABEL org.opencontainers.image.build.include-mock-camera="${INCLUDE_MOCK_CAMERA}"
 
 # ---- Layer 1: System Dependencies (Stable) ----
 # Install base system packages. Mirrored from builder stage (required for both image construction and runtime)
@@ -116,13 +133,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 # ---- Layer 2: Raspberry Pi Camera Packages (Stable) ----
 # Install Raspberry Pi camera runtime packages using the copied repository setup
+# Note: libcamera-dev excluded from final stage (header files not needed at runtime, saves ~30-50MB)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
     apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
     apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         libcamera-apps \
-        libcamera-dev \
         python3 \
         python3-numpy \
         python3-libcamera \
@@ -139,10 +156,10 @@ RUN groupadd -g 10001 app && \
 # ---- Layer 4: Prepare Application Directory ----
 WORKDIR /app
 
-# ---- Layer 5: Copy Pip Packages & Application Code (Change Frequency Order) ----
-# Copy pre-compiled Python packages from builder stage
-# Debian Bookworm uses Python 3.11 by default
-COPY --from=builder /usr/local/lib/python3.11/dist-packages /usr/local/lib/python3.11/dist-packages
+# ---- Layer 5: Copy Virtual Environment & Application Code (Change Frequency Order) ----
+# Copy pre-built venv from builder stage with all pip-managed dependencies isolated
+# Isolation prevents conflicts between system apt-managed and app pip-managed packages
+COPY --from=builder /opt/venv /opt/venv
 
 # Copy application code with explicit per-file/directory COPYs
 # Ordered by change frequency: stable → dynamic (requirements are pre-copied in builder)
@@ -153,6 +170,18 @@ COPY scripts/healthcheck.py /app/healthcheck.py
 COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /app/healthcheck.py
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# ---- Layer 6: Build Metadata & Provenance ----
+# Write build metadata to /app/BUILD_METADATA for runtime access by logging system
+# Enables camera stack provenance logging at startup (version info, build suite, etc.)
+RUN mkdir -p /app && \
+    ( \
+        echo "DEBIAN_SUITE=${DEBIAN_SUITE}"; \
+        echo "RPI_SUITE=${RPI_SUITE}"; \
+        echo "INCLUDE_MOCK_CAMERA=${INCLUDE_MOCK_CAMERA}"; \
+        echo "BUILD_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"; \
+    ) > /app/BUILD_METADATA && \
+    cat /app/BUILD_METADATA
 
 # Validate required Python modules and picamera2 camera-info contract in the final image
 # Known-good baseline: Raspberry Pi Bookworm repo package for python3-picamera2 (archive.raspberrypi.org/debian)
@@ -185,6 +214,7 @@ RUN test -d /usr/share/libcamera/ipa/rpi/vc4
 STOPSIGNAL SIGTERM
 
 # Set PYTHONPATH to ensure package discovery for module execution
+# Python3 now resolves to venv python via PATH=/opt/venv/bin:$PATH
 ENV PYTHONPATH=/app
 
 # Set startup entrypoint to validate/fix /data permissions and then drop to app user.
