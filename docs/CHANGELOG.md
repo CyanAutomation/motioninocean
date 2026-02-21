@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.17.7] - 2026-02-21
+
+- Add architecture-aware stack validation script for motion-in-ocean
+- Refactor Dockerfile to use build arguments for Debian suite; update logging configuration to handle picamera2 import gracefully
+
 ## [1.17.6] - 2026-02-21
 
 - Enhance management UI with new navigation buttons and utility panel; update token handling description
