@@ -128,7 +128,10 @@ Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
         echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
         apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
         ACTIVE_RPI_SUITE="bookworm" && \
-        check_camera_preflight "$ACTIVE_RPI_SUITE"; \
+        if ! check_camera_preflight "$ACTIVE_RPI_SUITE"; then \
+          echo "[ERROR] Preflight failed for both ${RPI_SUITE} and Bookworm fallback."; \
+          exit 1; \
+        fi; \
       else \
         echo "[ERROR] ALLOW_BOOKWORM_FALLBACK=${ALLOW_BOOKWORM_FALLBACK}. Failing fast after preflight check for suite ${ACTIVE_RPI_SUITE}."; \
         exit 1; \
@@ -277,7 +280,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
         apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
         ACTIVE_RPI_SUITE="bookworm" && \
-        check_camera_preflight "$ACTIVE_RPI_SUITE"; \
+        if ! check_camera_preflight "$ACTIVE_RPI_SUITE"; then \
+          echo "[ERROR] Preflight failed for both ${RPI_SUITE} and Bookworm fallback."; \
+          exit 1; \
+        fi; \
       else \
         echo "[ERROR] ALLOW_BOOKWORM_FALLBACK=${ALLOW_BOOKWORM_FALLBACK}. Failing fast after preflight check for suite ${ACTIVE_RPI_SUITE}."; \
         exit 1; \
