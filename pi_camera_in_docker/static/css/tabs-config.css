@@ -398,6 +398,14 @@
   margin-top: var(--space-5);
 }
 
+.config-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
 .config-info {
   font-size: 0.85rem;
   color: var(--color-text-muted);

@@ -5,6 +5,38 @@
  */
 /* global switchTab */
 
+/**
+ * Build a render-ready summary model from `/api/settings/changes` response data.
+ *
+ * @param {Object} changesPayload - API payload containing `overridden` entries.
+ * @param {Object|null} schemaPayload - Loaded settings schema, used for restartability lookup.
+ * @returns {{items: Array<Object>, restartRequired: boolean}} Render model for summary block.
+ */
+function buildSettingsChangesSummaryModel(changesPayload, schemaPayload) {
+  const overridden = Array.isArray(changesPayload?.overridden) ? changesPayload.overridden : [];
+  const schemaProperties = schemaPayload || {};
+
+  const items = overridden
+    .filter((entry) => typeof entry?.category === "string" && typeof entry?.key === "string")
+    .map((entry) => {
+      const categorySchema = schemaProperties[entry.category];
+      const keySchema = categorySchema?.properties?.[entry.key] || {};
+      const restartable = keySchema.restartable === true;
+      return {
+        category: entry.category,
+        key: entry.key,
+        value: entry.value,
+        envValue: entry.env_value,
+        restartable,
+      };
+    });
+
+  return {
+    items,
+    restartRequired: items.some((item) => item.restartable),
+  };
+}
+
 const SettingsUI = (() => {
   // State
   let schema = null;
@@ -19,6 +51,9 @@ const SettingsUI = (() => {
   const resetBtn = () => document.getElementById("settings-reset-btn");
   const errorAlert = () => document.getElementById("settings-error-alert");
   const successAlert = () => document.getElementById("settings-success-alert");
+  const changesSummary = () => document.getElementById("settings-changes-summary");
+  const changesList = () => document.getElementById("settings-changes-list");
+  const restartWarning = () => document.getElementById("settings-restart-warning");
 
   /**
    * Initialize Settings UI.
@@ -109,6 +144,7 @@ const SettingsUI = (() => {
       formDirty = false;
       dirtyFields.clear();
       updateSaveButton();
+      await refreshChangesSummary();
 
       showSuccess("Settings loaded successfully");
     } catch (error) {
@@ -483,6 +519,7 @@ const SettingsUI = (() => {
         formDirty = false;
         dirtyFields.clear();
         updateSaveButton();
+        await refreshChangesSummary();
         showSuccess("Settings saved successfully!");
       } else if (response.status === 422) {
         // Requires restart
@@ -491,6 +528,7 @@ const SettingsUI = (() => {
         formDirty = false;
         dirtyFields.clear();
         updateSaveButton();
+        await refreshChangesSummary();
         showWarning(
           "Settings saved! Some changes require server restart:\n" +
             result.modified_on_restart.join("\n"),
@@ -535,6 +573,7 @@ const SettingsUI = (() => {
         dirtyFields.clear();
         updateSaveButton();
         await loadSettings();
+        await refreshChangesSummary();
         showSuccess("Settings reset to defaults!");
       } else {
         throw new Error(`HTTP ${response.status}`);
@@ -591,6 +630,62 @@ const SettingsUI = (() => {
    */
   const showWarning = (message) => {
     showSuccess("ℹ️ " + message);
+  };
+
+  /**
+   * Render settings changes summary from server-side overrides.
+   *
+   * @param {{items: Array<Object>, restartRequired: boolean}} model - Changes summary model.
+   * @returns {void}
+   */
+  const renderChangesSummary = (model) => {
+    if (!changesSummary() || !changesList() || !restartWarning()) {
+      return;
+    }
+
+    changesList().innerHTML = "";
+    if (!Array.isArray(model.items) || model.items.length === 0) {
+      changesSummary().classList.add("hidden");
+      restartWarning().classList.add("hidden");
+      return;
+    }
+
+    model.items.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "settings-change-item";
+      row.innerHTML = `
+        <div class="settings-change-path">${item.category}.${item.key}</div>
+        <div class="settings-change-values">
+          <span class="settings-change-value">Current: ${String(item.value)}</span>
+          <span class="settings-change-value">Default: ${String(item.envValue)}</span>
+          ${item.restartable ? '<span class="settings-change-badge">Restart required</span>' : ""}
+        </div>
+      `;
+      changesList().appendChild(row);
+    });
+
+    changesSummary().classList.remove("hidden");
+    restartWarning().classList.toggle("hidden", !model.restartRequired);
+  };
+
+  /**
+   * Refresh changes summary by querying /api/settings/changes.
+   *
+   * @async
+   * @returns {Promise<void>}
+   */
+  const refreshChangesSummary = async () => {
+    try {
+      const response = await fetch("/api/settings/changes");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const changesData = await response.json();
+      const model = buildSettingsChangesSummaryModel(changesData, schema);
+      renderChangesSummary(model);
+    } catch (error) {
+      console.error("Error loading settings change summary:", error);
+    }
   };
 
   return {

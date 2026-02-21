@@ -64,6 +64,12 @@
   white-space: nowrap;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .status-indicator {
   width: 0.625rem;
   height: 0.625rem;
@@ -405,6 +411,12 @@
 
   .connection-status {
     align-self: flex-start;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
   }
 
   .container {

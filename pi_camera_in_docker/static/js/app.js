@@ -5,6 +5,7 @@
 
 const REQUEST_TIMEOUT_MS = 5000;
 const CONFIG_POLL_INTERVAL_MS = 5000;
+const THEME_STORAGE_KEY = "webcam.theme";
 
 const state = {
   updateInterval: null,
@@ -38,6 +39,8 @@ const state = {
     fullscreenBtn: null,
     statusIndicator: null,
     statusText: null,
+    themeToggleBtn: null,
+    configRefreshBtn: null,
     fpsValue: null,
     uptimeValue: null,
     framesValue: null,
@@ -54,11 +57,53 @@ const state = {
 function init() {
   cacheElements();
   attachHandlers();
+  initializeTheme();
   startStatsUpdate();
   updateStats().catch((error) => console.error("Initial stats update failed:", error));
   updateConfig().catch((error) => console.error("Initial config update failed:", error));
 
   console.log("motion-in-ocean camera stream initialized");
+}
+
+/**
+ * Apply theme mode to webcam page.
+ *
+ * Persists selected mode in localStorage and updates toggle label.
+ *
+ * @param {string} theme - Theme name ("light" or "dark").
+ * @returns {void}
+ */
+function applyTheme(theme) {
+  const resolvedTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", resolvedTheme);
+
+  if (state.elements.themeToggleBtn) {
+    state.elements.themeToggleBtn.textContent =
+      resolvedTheme === "dark" ? "Light Theme" : "Dark Theme";
+  }
+
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, resolvedTheme);
+  } catch {
+    // Ignore local storage failures.
+  }
+}
+
+/**
+ * Initialize theme from persisted user preference.
+ *
+ * Defaults to light theme when no preference exists.
+ *
+ * @returns {void}
+ */
+function initializeTheme() {
+  let preferredTheme = "light";
+  try {
+    preferredTheme = localStorage.getItem(THEME_STORAGE_KEY) || "light";
+  } catch {
+    // Ignore local storage failures.
+  }
+  applyTheme(preferredTheme);
 }
 
 /**
@@ -75,6 +120,8 @@ function cacheElements() {
   state.elements.fullscreenBtn = document.getElementById("fullscreen-btn");
   state.elements.statusIndicator = document.getElementById("status-indicator");
   state.elements.statusText = document.getElementById("status-text");
+  state.elements.themeToggleBtn = document.getElementById("theme-toggle-btn");
+  state.elements.configRefreshBtn = document.getElementById("config-refresh-btn");
 
   state.elements.fpsValue = document.getElementById("fps-value");
   state.elements.uptimeValue = document.getElementById("uptime-value");
@@ -104,6 +151,17 @@ function attachHandlers() {
 
   if (state.elements.fullscreenBtn) {
     state.elements.fullscreenBtn.addEventListener("click", toggleFullscreen);
+  }
+
+  if (state.elements.themeToggleBtn) {
+    state.elements.themeToggleBtn.addEventListener("click", () => {
+      const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+      applyTheme(currentTheme === "dark" ? "light" : "dark");
+    });
+  }
+
+  if (state.elements.configRefreshBtn) {
+    state.elements.configRefreshBtn.addEventListener("click", refreshConfigPanel);
   }
 
   if (state.elements.videoStream) {
@@ -739,6 +797,18 @@ function stopConfigPolling() {
     clearInterval(state.configPollingInterval);
     state.configPollingInterval = null;
   }
+}
+
+/**
+ * Trigger an immediate configuration refresh.
+ *
+ * Forces loading state behavior and reuses existing updateConfig error handling.
+ *
+ * @returns {void}
+ */
+function refreshConfigPanel() {
+  state.configInitialLoadPending = true;
+  updateConfig().catch((error) => console.error("Config update failed:", error));
 }
 
 /**

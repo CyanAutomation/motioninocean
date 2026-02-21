@@ -47,9 +47,14 @@
           </button>
         </div>
 
-        <div class="connection-status" aria-live="polite" role="status">
-          <div id="status-indicator" class="status-indicator connecting"></div>
-          <span id="status-text" class="status-text">Connecting...</span>
+        <div class="header-actions">
+          <div class="connection-status" aria-live="polite" role="status">
+            <div id="status-indicator" class="status-indicator connecting"></div>
+            <span id="status-text" class="status-text">Connecting...</span>
+          </div>
+          <button id="theme-toggle-btn" class="ui-btn ui-btn--secondary" type="button">
+            Dark Theme
+          </button>
         </div>
       </div>
     </header>
@@ -315,7 +320,12 @@
 
           <!-- Footer -->
           <div class="config-footer">
-            <p class="config-info">Configuration auto-updates every 5 seconds</p>
+            <div class="config-footer-actions">
+              <p class="config-info">Configuration auto-updates every 5 seconds</p>
+              <button id="config-refresh-btn" class="ui-btn ui-btn--secondary" type="button">
+                Refresh Config ↻
+              </button>
+            </div>
             <div class="config-health-legend" aria-label="Health status legend">
               <span class="config-health-legend-label">Health:</span>
               <span class="config-value health-indicator health-ok">OK = normal</span>
