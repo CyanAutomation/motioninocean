@@ -1,0 +1,80 @@
+# Management Dashboard Implementability Audit (Strictly Wired Now)
+
+Date: 2026-02-21  
+Design source: `design/management-dashboard.pen`  
+Canonical frames audited: `bi8Au`, `qOUtZ`, `t18Jl`, `ggnsE`  
+Variant delta frames checked: `Al22H`, `6JpI1`, `xP1lh`, `XDIGi`, `4y5GB`, `FoxXg`, `g0C9s`, `trmqY`, `pCb6s`, `AAvOe`, `WaPlf`, `cgays`
+
+## Verdict Summary
+
+- `SUPPORTED_NOW`: 17
+- `SUPPORTED_WITH_CONSTRAINT`: 7
+- `NOT_WIRED`: 5
+- `BACKEND_GAP`: 1
+- `COSMETIC_ONLY`: 3
+
+Overall: the core behavior families (Overview, Devices, Discovered, Settings) are largely implementable with current repo functionality, but several high-visibility design elements are not currently wired as designed (notably left-rail navigation model and top-level save/scan semantics).
+
+## Evidence Anchors
+
+- Management UI structure: `pi_camera_in_docker/templates/management.html:14`, `pi_camera_in_docker/templates/management.html:58`, `pi_camera_in_docker/templates/management.html:305`, `pi_camera_in_docker/templates/management.html:343`
+- Main UI behaviors: `pi_camera_in_docker/static/js/management.js:558`, `pi_camera_in_docker/static/js/management.js:650`, `pi_camera_in_docker/static/js/management.js:699`, `pi_camera_in_docker/static/js/management.js:844`, `pi_camera_in_docker/static/js/management.js:879`, `pi_camera_in_docker/static/js/management.js:926`, `pi_camera_in_docker/static/js/management.js:1003`, `pi_camera_in_docker/static/js/management.js:1049`, `pi_camera_in_docker/static/js/management.js:1219`, `pi_camera_in_docker/static/js/management.js:1298`, `pi_camera_in_docker/static/js/management.js:1685`, `pi_camera_in_docker/static/js/management.js:1710`
+- Management API: `pi_camera_in_docker/management_api.py:1445`, `pi_camera_in_docker/management_api.py:1577`, `pi_camera_in_docker/management_api.py:1624`, `pi_camera_in_docker/management_api.py:1653`, `pi_camera_in_docker/management_api.py:1687`, `pi_camera_in_docker/management_api.py:1753`
+- Settings API: `pi_camera_in_docker/settings_api.py:117`, `pi_camera_in_docker/settings_api.py:161`, `pi_camera_in_docker/settings_api.py:270`, `pi_camera_in_docker/settings_api.py:294`
+- Theme/responsive support: `pi_camera_in_docker/static/css/theme.css:95`, `pi_camera_in_docker/static/css/management.css:314`, `pi_camera_in_docker/static/css/management.css:365`
+
+## Strict Element Matrix
+
+| Family | Designed Element (from `.pen`) | Current Repo Evidence | Verdict | Gap / Constraint | Minimal Fix Path |
+|---|---|---|---|---|---|
+| Global shell | Left vertical rail icon navigation | Current nav is top button row (`view-overview/devices/discovered/settings`) | `NOT_WIRED` | Design interaction model differs from implemented shell | Add rail nav markup + map to `setActiveView()` |
+| Global shell | Theme toggle button/icon | Header theme button + `applyTheme()` | `SUPPORTED_NOW` | Label differs from icon-only style | Cosmetic restyle only |
+| Global shell | Desktop/mobile adaptation | Media queries for grids/layout/table wrapping | `SUPPORTED_NOW` | Exact pixel parity not guaranteed | Tune CSS tokens/layout only |
+| Global shell | Light/dark variants | `data-theme` token system and toggle | `SUPPORTED_NOW` | Design-specific colors may vary | Token adjustments only |
+| Overview | Refresh Dashboard button | `refresh-dashboard-btn` triggers fetch + render | `SUPPORTED_NOW` | None | N/A |
+| Overview | Metric chips (Total/Online/Offline/Streaming) | `overview-*` fields rendered from `/api/management/overview` summary | `SUPPORTED_NOW` | None | N/A |
+| Overview | Recent Activity list with status transitions | `activityFeed` + `appendActivityFeed` + render list | `SUPPORTED_NOW` | Activity item schema is implementation-defined | N/A |
+| Overview | Action Sidebar remediation list | Derived from auth/SSRF/discovered pending counts | `SUPPORTED_NOW` | Text differs from mock copy | N/A |
+| Overview | Hero-strip chip states shown in design | No dedicated chip components; same info exists in cards/lists | `SUPPORTED_WITH_CONSTRAINT` | Different visual container | Add chip row bound to existing computed values |
+| Overview mobile | “Refresh Home” label/placement | Existing action is `refresh-dashboard-btn` in overview panel | `SUPPORTED_WITH_CONSTRAINT` | Copy/placement mismatch | Alias/copy update |
+| Devices | Device create/edit form | Full form + submit handler (`POST`/`PUT /api/webcams`) | `SUPPORTED_NOW` | Design shows fewer fields than implementation | N/A |
+| Devices | Device list with row actions | Table rendered from webcam list + status map | `SUPPORTED_NOW` | Table format differs from design cards | UI restyle only |
+| Devices | Row action: Edit | `data-action="edit"` -> `beginEditNode()` | `SUPPORTED_NOW` | None | N/A |
+| Devices | Row action: Remove | `data-action="delete"` -> `DELETE /api/webcams/<id>` | `SUPPORTED_NOW` | None | N/A |
+| Devices | Row action: Check | No explicit “Check” action; closest is Diagnose | `SUPPORTED_WITH_CONSTRAINT` | Label/action mismatch | Add explicit “Check” alias to diagnose/status refresh |
+| Devices | Connection Check summary card | Diagnostics/status details exist, but not in dedicated card as shown | `SUPPORTED_WITH_CONSTRAINT` | Different presentation | Render summary card from existing status/diagnostic state |
+| Devices | “Refresh Devices/Refresh List” top action | `refresh-webcams-btn` refetch + refresh statuses | `SUPPORTED_NOW` | Label differs by frame variant | Copy update only |
+| Devices | Collapse/expand form panel | `toggle-webcam-form-panel-btn` + state persistence | `SUPPORTED_NOW` | Not present in design; additive behavior | N/A |
+| Devices | Advanced diagnostics report panel | Full diagnostics UI + copy report + structured checks | `SUPPORTED_NOW` | Richer than design | N/A |
+| Devices | Remote node actions beyond diagnose/delete | Backend endpoint exists (`/api/webcams/<id>/actions/<action>`) but no UI call path | `NOT_WIRED` | UI cannot execute action proxy currently | Add row action buttons + handler using existing endpoint |
+| Devices | Docker transport for remote actions | API blocks non-http actions | `SUPPORTED_WITH_CONSTRAINT` | `TRANSPORT_UNSUPPORTED` for docker actions | Keep constraint or add docker action implementation |
+| Discovered | Queue of discovered pending nodes | `getDiscoveredNodes()` + discovered list renderer | `SUPPORTED_NOW` | None | N/A |
+| Discovered | Select pending node | Click handler on `data-discovered-id` buttons | `SUPPORTED_NOW` | None | N/A |
+| Discovered | Add/Ignore/Maybe Later actions | Approve/reject API + local snooze behavior | `SUPPORTED_NOW` | “Maybe later” is local browser state only | Persist snooze server-side if needed |
+| Discovered | Connection Notes panel | Renders node error message/details fallback | `SUPPORTED_NOW` | None | N/A |
+| Discovered | “Scan Again” semantics (active network scan) | Button only refreshes existing registry/status/overview | `BACKEND_GAP` | No active discovery scan endpoint | Add management-side scan job + endpoint; wire button |
+| Settings | Tabbed sections (Authentication/Discovery/Runtime) | `data-settings-tab` + `setSettingsTab()` | `SUPPORTED_NOW` | None | N/A |
+| Settings | Discovery controls | `GET/PATCH /api/settings` bound to discovery fields | `SUPPORTED_NOW` | None | N/A |
+| Settings | Runtime summary + overrides | `GET /api/settings/changes` -> runtime panel | `SUPPORTED_NOW` | None | N/A |
+| Settings | Save changes | `settings-save-btn` -> `PATCH /api/settings` (422 handling included) | `SUPPORTED_NOW` | None | N/A |
+| Settings | Reset | `settings-reset-btn` -> `POST /api/settings/reset` | `SUPPORTED_NOW` | None | N/A |
+| Settings | Explicit “Check” action in footer/header copy | No dedicated check button; closest is refresh settings | `SUPPORTED_WITH_CONSTRAINT` | “Check” is implicit via `fetchSettingsData()` | Add explicit `Check` button bound to current fetch+validation summary |
+| Settings | Top-right “Save Changes ✓” CTA in page header | Header currently has `refresh-settings-btn`, not save | `NOT_WIRED` | CTA location/behavior mismatch | Replace or add header save button bound to `saveSettings()` |
+| Settings mobile | Security/Discovery/Runtime compact narrative block | No direct equivalent content block; tabs + panels used instead | `NOT_WIRED` | Copy block not represented | Add summary card fed from settings state |
+| Visual/decorative | Background dot pattern | Not implemented as explicit shape layer | `COSMETIC_ONLY` | Decorative only | Optional CSS background effect |
+| Visual/decorative | Pixel-composed icon glyphs in rail | Existing UI uses text/button styling instead | `COSMETIC_ONLY` | Decorative only | Optional icon assets/SVG |
+| Visual/decorative | Precise frame geometry spacing | Different but functional responsive layout | `COSMETIC_ONLY` | Non-functional | Optional CSS alignment pass |
+
+## Variant Delta Check (Desktop/Mobile + Dark/Light)
+
+- `bi8Au` vs `Al22H`, `qOUtZ` vs `XDIGi`, `t18Jl` vs `4y5GB`, `ggnsE` vs `FoxXg`: behaviorally identical, theme-only deltas are supported by `data-theme`.
+- Mobile variants (`6JpI1`, `xP1lh`, `g0C9s`, `AAvOe`, `trmqY`, `WaPlf`, `pCb6s`, `cgays`) mostly compress or relabel existing actions; these are generally supported by responsive CSS and same JS handlers.
+- Mobile-specific copy blocks (“Security · Discovery · Runtime”, “Refresh Home/List”) are not represented exactly in DOM copy but can map to existing behavior with small frontend text/layout changes.
+
+## High-Priority Gaps to Close
+
+1. Implement left-rail navigation shell if design parity is required (`NOT_WIRED`).
+2. Define true “Scan Again” behavior; current implementation is a refresh, not active discovery scan (`BACKEND_GAP`).
+3. Add explicit UI wiring for action-proxy endpoint if design expects operational row actions beyond diagnose/delete (`NOT_WIRED`).
+4. Align settings top CTA and explicit “Check” control with current save/refresh handlers (`NOT_WIRED` / `SUPPORTED_WITH_CONSTRAINT`).
+

@@ -84,7 +84,6 @@ let statusRefreshToken = 0;
 let statusRefreshIntervalId;
 let latestDiagnosticResult = null;
 let overviewSnapshot = null;
-let currentView = "overview";
 let currentSettingsPayload = null;
 let selectedDiscoveredNodeId = "";
 let activityFeed = [];
@@ -560,7 +559,6 @@ function setActiveView(view) {
   if (!VIEWS.includes(view)) {
     return;
   }
-  currentView = view;
   const viewMap = {
     overview: overviewView,
     devices: devicesView,
@@ -606,7 +604,7 @@ function initializeTheme() {
   try {
     preferredTheme = globalThis.localStorage?.getItem(THEME_STORAGE_KEY) || "light";
   } catch {
-    preferredTheme = "light";
+    // Ignore local storage failures.
   }
   applyTheme(preferredTheme);
 }
