@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.16.6] - 2026-02-21
+
+- docs: add troubleshooting section for camera detection issues in deployment guide
+- Enhance Dockerfile and docker-compose configurations for improved camera support and security
+
 ## [1.16.5] - 2026-02-21
 
 - Implement feature X to enhance user experience and fix bug Y in module Z
