@@ -11,6 +11,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.16.9] - 2026-02-21
+
+- Refactor test_env_example_contains_required_runtime_variables to remove unnecessary variables
+- refactor: Update environment variable names for consistency across configurations and tests
+- feat: Update environment variable names for consistency across tests
+- Refactor environment variable names for consistency and clarity
+
 ## [1.16.8] - 2026-02-21
 
 - feat: Enhance logging and provenance information in camera application
