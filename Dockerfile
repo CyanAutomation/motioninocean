@@ -120,25 +120,24 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 
 
-# ---- Layer 2: Raspberry Pi Repository Setup & Camera Packages ----
-# Install Raspberry Pi camera runtime packages with strict GPG verification.
-# No fallback logic; build fails clearly if packages unavailable.
+# ---- Layer 2: Raspberry Pi Repository Setup & Camera Packages (arm64 only) ----
+# Install Raspberry Pi camera runtime packages (arm64 only, skipped for amd64).
+# On arm64: Downloads RPi GPG key, adds RPi repository, installs camera packages with strict GPG verification.
+# On amd64: Skipped entirely; prevents unnecessary package installation and repo setup on non-hardware architectures.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
-    # Download and verify Raspberry Pi GPG key
-    echo "Downloading Raspberry Pi GPG key..." && \
-    curl -L --connect-timeout 10 --max-time 30 --retry 2 -f \
-      "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" \
-      -o /tmp/raspberrypi.gpg.key && \
-    echo "Verifying GPG key integrity..." && \
-    gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
-    rm /tmp/raspberrypi.gpg.key && \
-    # Add Raspberry Pi repository (pinned to bookworm, no suite switching)
-    echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
-    # Create apt preferences to prioritize camera packages from RPi repo
-    mkdir -p /etc/apt/preferences.d && \
-    printf "# Pin camera-related packages to Raspberry Pi repository\n\
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        echo "Installing Raspberry Pi camera stack for arm64..." && \
+        curl -L --connect-timeout 10 --max-time 30 --retry 2 -f \
+          "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" \
+          -o /tmp/raspberrypi.gpg.key && \
+        echo "Verifying GPG key integrity..." && \
+        gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
+        rm /tmp/raspberrypi.gpg.key && \
+        echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
+        mkdir -p /etc/apt/preferences.d && \
+        printf "# Pin camera-related packages to Raspberry Pi repository\n\
 Package: libcamera* python3-libcamera python3-picamera2 rpicam*\n\
 Pin: origin archive.raspberrypi.org\n\
 Pin-Priority: 1001\n\
@@ -147,20 +146,21 @@ Pin-Priority: 1001\n\
 Package: *\n\
 Pin: origin archive.raspberrypi.org\n\
 Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
-    # Update and install camera packages
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
-      libcamera-apps \
-      libcamera-dev \
-      python3-libcamera \
-      python3-picamera2 \
-      v4l-utils && \
-    # Verify installation
-    echo "Camera packages installed successfully:" && \
-    apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
-    dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
-      libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true && \
-    rm -rf /var/lib/apt/lists/*
+        apt-get update && \
+        apt-get install -y --no-install-recommends \
+          libcamera-apps \
+          libcamera-dev \
+          python3-libcamera \
+          python3-picamera2 \
+          v4l-utils && \
+        echo "Camera packages installed successfully:" && \
+        apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
+        dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
+          libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true && \
+        rm -rf /var/lib/apt/lists/*; \
+    else \
+        echo "Skipping Raspberry Pi camera stack (non-arm64 build)"; \
+    fi
 
 # ---- Layer 3: Non-Root User Setup (Runtime Security) ----
 # Ensure common device-access groups exist (Debian slim may not ship them)
@@ -204,23 +204,14 @@ RUN mkdir -p /app && \
     ) > /app/BUILD_METADATA && \
     cat /app/BUILD_METADATA
 
-# ---- Layer 6: Enforce INCLUDE_MOCK_CAMERA for non-ARM64 Builds ----
-# Architecture-aware enforcement:
-# - amd64 (mock camera only): MUST have INCLUDE_MOCK_CAMERA=true to prevent runtime failures
-# - arm64 (Raspberry Pi): Can use real camera (INCLUDE_MOCK_CAMERA=false) or mock (true)
-RUN if [ "$TARGETARCH" != "arm64" ] && [ "$INCLUDE_MOCK_CAMERA" != "true" ]; then \
-    echo "ERROR: amd64 builds require INCLUDE_MOCK_CAMERA=true (no hardware camera support on non-ARM64)"; \
-    exit 1; \
-    fi
-
-# ---- Layer 7: Validate Python Modules & Camera Contract (Architecture-Aware) ----
+# ---- Layer 6: Validate Python Modules & Camera Contract (Architecture-Aware) ----
 # Conditional validation based on architecture:
 # - arm64: Validates full camera stack (numpy, flask, flask_cors, picamera2, libcamera)
 # - amd64: Validates Python stack only (numpy, flask, flask_cors; no picamera2 or libcamera)
 # This ensures explicit behavior: arm64 fails if camera unavailable, amd64 fails if core Python unavailable
 RUN /usr/local/bin/validate-stack.py
 
-# Validate libcamera install and Raspberry Pi pipeline/IPA locations (arm64 only)
+# Layer 6 (continued): Validate libcamera install and Raspberry Pi pipeline/IPA locations (arm64 only)
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
     libcamera-hello --version && \
     test -d /usr/share/libcamera/pipeline/rpi/vc4 && \
