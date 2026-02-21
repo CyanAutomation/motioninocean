@@ -11,6 +11,45 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/management.css') }}" />
   </head>
   <body>
+    <nav class="management-side-rail" aria-label="Management quick navigation">
+      <button id="rail-overview-btn" class="rail-btn" type="button" aria-label="Overview" title="Overview">
+        O
+      </button>
+      <button id="rail-devices-btn" class="rail-btn" type="button" aria-label="Devices" title="Devices">
+        D
+      </button>
+      <button
+        id="rail-discovered-btn"
+        class="rail-btn"
+        type="button"
+        aria-label="Discovered"
+        title="Discovered"
+      >
+        R
+      </button>
+      <button id="rail-settings-btn" class="rail-btn" type="button" aria-label="Settings" title="Settings">
+        S
+      </button>
+      <button
+        id="rail-export-btn"
+        class="rail-btn rail-btn--utility"
+        type="button"
+        aria-label="Export Diagnostic Report"
+        title="Export Diagnostic Report"
+      >
+        F
+      </button>
+      <button
+        id="rail-help-btn"
+        class="rail-btn rail-btn--utility"
+        type="button"
+        aria-label="Open Help"
+        title="Open Help"
+      >
+        ?
+      </button>
+    </nav>
+
     <header class="management-header">
       <div class="management-header-row">
         <div>
@@ -364,8 +403,19 @@
         </div>
         <div id="settings-auth-panel" class="settings-panel">
           <h3>Management API auth</h3>
-          <p>This dashboard token is client-side and used for authenticated management API requests.</p>
-          <small>Use the token field in the page header to update it.</small>
+          <p>This token is stored in this browser and sent with management API requests.</p>
+          <div class="ui-form-control">
+            <label for="settings-management-api-token">MANAGEMENT_AUTH_TOKEN (dashboard token)</label>
+            <input
+              id="settings-management-api-token"
+              type="password"
+              autocomplete="off"
+              placeholder="Paste token for this dashboard session"
+            />
+          </div>
+          <small>
+            This does not modify server environment variables. It updates the token used by this dashboard UI.
+          </small>
         </div>
         <div id="settings-discovery-panel" class="settings-panel hidden">
           <h3>Discovery settings</h3>
@@ -401,6 +451,23 @@
         <p id="settings-feedback" class="feedback" aria-live="polite"></p>
       </section>
     </main>
+
+    <div id="utility-panel" class="utility-panel hidden" role="dialog" aria-modal="false" aria-label="Utilities">
+      <div class="utility-panel__header">
+        <h3 id="utility-panel-title">Utilities</h3>
+        <button id="utility-panel-close-btn" class="ui-btn ui-btn--secondary" type="button">Close</button>
+      </div>
+      <div id="utility-panel-content" class="utility-panel__content"></div>
+    </div>
+
+    <nav class="management-bottom-rail" aria-label="Management mobile controls">
+      <button id="mobile-overview-btn" class="mobile-rail-btn" type="button" aria-label="Overview">O</button>
+      <button id="mobile-devices-btn" class="mobile-rail-btn" type="button" aria-label="Devices">D</button>
+      <button id="mobile-discovered-btn" class="mobile-rail-btn" type="button" aria-label="Discovered">R</button>
+      <button id="mobile-settings-btn" class="mobile-rail-btn" type="button" aria-label="Settings">S</button>
+      <button id="mobile-export-btn" class="mobile-rail-btn" type="button" aria-label="Export Report">F</button>
+      <button id="mobile-help-btn" class="mobile-rail-btn" type="button" aria-label="Help">?</button>
+    </nav>
 
     <script type="module" src="{{ url_for('static', filename='js/management.js') }}"></script>
   </body>
