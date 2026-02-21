@@ -43,7 +43,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
-      - name: Build and push
+      - name: Build and push (Trixie)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -58,6 +58,41 @@ jobs:
             INCLUDE_MOCK_CAMERA=false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+        continue-on-error: true
+        id: build_trixie
+
+      - name: Fallback build (Bookworm) if Trixie failed
+        if: failure() && steps.build_trixie.outcome == 'failure'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm64,linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            DEBIAN_SUITE=bookworm
+            RPI_SUITE=bookworm
+            INCLUDE_MOCK_CAMERA=false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build test variant (Bookworm) in parallel
+        if: success()
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm64
+          push: false
+          build-args: |
+            DEBIAN_SUITE=bookworm
+            RPI_SUITE=bookworm
+            INCLUDE_MOCK_CAMERA=false
+          cache-from: type=gha
+          outputs: type=oci,dest=/tmp/test-bookworm-image
+        continue-on-error: true
 
       - name: Extract changelog for release
         id: changelog

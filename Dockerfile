@@ -33,32 +33,62 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # ---- Layer 2: Raspberry Pi Repository & Camera Packages (Stable) ----
 # Configure Raspberry Pi repository and install picamera2 system packages
 # Both stages require this setup; duplication is necessary in multi-stage builds
+# Includes fallback logic to Bookworm if Trixie packages are unavailable
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
     # Download Raspberry Pi GPG key with checksum verification
-    echo "Downloading Raspberry Pi GPG key..." && \
-    curl -L --connect-timeout 10 --max-time 30 --retry 2 -f \
+    echo "[Layer 2] Downloading Raspberry Pi GPG key..." && \
+    if ! curl -L --connect-timeout 10 --max-time 30 --retry 2 -f \
       "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" \
-      -o /tmp/raspberrypi.gpg.key && \
+      -o /tmp/raspberrypi.gpg.key 2>&1; then \
+      echo "[ERROR] GPG key download failed"; exit 1; \
+    fi && \
     if [ ! -s "/tmp/raspberrypi.gpg.key" ]; then \
-      echo "ERROR: Failed to download or GPG key is empty"; exit 1; \
+      echo "[ERROR] GPG key is empty after download"; exit 1; \
     fi && \
-    echo "Verifying GPG key integrity..." && \
-    gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
+    echo "[Layer 2] GPG key size: $(stat -c%s /tmp/raspberrypi.gpg.key) bytes" && \
+    echo "[Layer 2] Verifying GPG key integrity..." && \
+    if ! gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key 2>&1; then \
+      echo "[ERROR] GPG dearmor failed"; exit 1; \
+    fi && \
     if [ ! -s "/usr/share/keyrings/raspberrypi.gpg" ]; then \
-      echo "ERROR: GPG dearmor failed"; exit 1; \
+      echo "[ERROR] GPG binary keyring is empty after dearmor"; exit 1; \
     fi && \
-    echo "Adding Raspberry Pi repository..." && \
+    echo "[Layer 2] GPG keyring size: $(stat -c%s /usr/share/keyrings/raspberrypi.gpg) bytes" && \
+    echo "[Layer 2] Adding Raspberry Pi repository for suite: ${RPI_SUITE}..." && \
     echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ ${RPI_SUITE} main" > /etc/apt/sources.list.d/raspi.list && \
     rm /tmp/raspberrypi.gpg.key && \
-    apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
-    apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
+    echo "[Layer 2] Running apt-get update..." && \
+    if ! apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 2>&1 | tail -20; then \
+      echo "[ERROR] apt-get update failed"; exit 1; \
+    fi && \
+    echo "[Layer 2] Attempting to install libcamera packages for ${RPI_SUITE}..." && \
+    if apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         libcamera-apps \
         libcamera-dev \
         python3-libcamera \
         python3-picamera2 \
-        v4l-utils && \
+        v4l-utils 2>&1; then \
+      echo "[Layer 2] SUCCESS: libcamera packages installed from ${RPI_SUITE}"; \
+    else \
+      INSTALL_EXIT=$?; \
+      echo "[WARNING] Installation from ${RPI_SUITE} failed with exit code $INSTALL_EXIT"; \
+      if [ "${RPI_SUITE}" != "bookworm" ]; then \
+        echo "[Layer 2] Attempting fallback to Bookworm repository..."; \
+        echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
+        apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
+        apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
+          libcamera-apps \
+          libcamera-dev \
+          python3-libcamera \
+          python3-picamera2 \
+          v4l-utils && \
+        echo "[Layer 2] SUCCESS: libcamera packages installed from Bookworm (fallback)"; \
+      else \
+        echo "[ERROR] Bookworm installation also failed; giving up"; exit $INSTALL_EXIT; \
+      fi; \
+    fi && \
     rm -rf /var/lib/apt/lists/*
 
 # ---- Layer 3: Virtual Environment Setup (Volatile) ----
@@ -134,17 +164,35 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # ---- Layer 2: Raspberry Pi Camera Packages (Stable) ----
 # Install Raspberry Pi camera runtime packages using the copied repository setup
 # Note: libcamera-dev excluded from final stage (header files not needed at runtime, saves ~30-50MB)
+# Includes fallback logic to Bookworm if Trixie packages are unavailable
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
+    echo "[Final Stage Layer 2] Running apt-get update..." && \
     apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
-    apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
+    echo "[Final Stage Layer 2] Attempting to install libcamera packages..." && \
+    if apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
+        libcamera-apps \
+        python3 \
+        python3-numpy \
+        python3-libcamera \
+        python3-picamera2 \
+        v4l-utils 2>&1; then \
+      echo "[Final Stage Layer 2] SUCCESS: libcamera packages installed"; \
+    else \
+      INSTALL_EXIT=$?; \
+      echo "[WARNING] Installation failed with exit code $INSTALL_EXIT; attempting Bookworm fallback..."; \
+      echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
+      apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
+      apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         libcamera-apps \
         python3 \
         python3-numpy \
         python3-libcamera \
         python3-picamera2 \
         v4l-utils && \
+      echo "[Final Stage Layer 2] SUCCESS: libcamera packages installed from Bookworm (fallback)"; \
+    fi && \
     rm -rf /var/lib/apt/lists/*
 
 # ---- Layer 3: Non-Root User Setup (Runtime Security) ----
