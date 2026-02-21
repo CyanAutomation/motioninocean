@@ -329,7 +329,8 @@ def _load_advanced_config() -> Dict[str, Any]:
         webcam_control_plane_auth_token, fail_on_camera_init_error.
     """
     pi3_profile_raw = os.environ.get(
-        "MOTION_IN_OCEAN_PI3_PROFILE", "false"
+        "MOTION_IN_OCEAN_PI3_PROFILE",
+        os.environ.get("PI3_PROFILE", "false")
     )
 
     fail_on_camera_init_error_raw = os.environ.get(

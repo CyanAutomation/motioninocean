@@ -41,7 +41,7 @@ def test_load_config_discovery_overrides(monkeypatch, workspace_root):
         monkeypatch.setenv("MOTION_IN_OCEAN_DISCOVERY_TOKEN", "top-secret")
         monkeypatch.setenv("MOTION_IN_OCEAN_DISCOVERY_INTERVAL_SECONDS", "12")
         monkeypatch.setenv("MOTION_IN_OCEAN_DISCOVERY_WEBCAM_ID", "node-override")
-        monkeypatch.setenv("BASE_URL", "http://camera.local:8000")
+        monkeypatch.setenv("MOTION_IN_OCEAN_BASE_URL", "http://camera.local:8000")
 
         cfg = main._load_config()
 

@@ -92,7 +92,7 @@ def test_load_env_config_supports_application_settings_path(monkeypatch):
 
 def test_load_env_config_supports_webcam_control_plane_auth_token(monkeypatch):
     """WEBCAM_CONTROL_PLANE_AUTH_TOKEN should be exposed in runtime configuration."""
-    monkeypatch.setenv("WEBCAM_CONTROL_PLANE_AUTH_TOKEN", "webcam-token")
+    monkeypatch.setenv("MOTION_IN_OCEAN_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", "webcam-token")
 
     cfg = runtime_config.load_env_config()
 

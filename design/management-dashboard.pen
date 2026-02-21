@@ -2967,6 +2967,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "yAHRA",
+                      "x": 20,
+                      "y": 54,
+                      "name": "ovLmAgg",
+                      "fill": "#4338CA",
+                      "content": "Live aggregate from /api/management/overview",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -2992,6 +3004,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Cbzy3",
+                      "x": 20,
+                      "y": 54,
+                      "name": "ovLmPending",
+                      "fill": "#6B7280",
+                      "content": "2 discovered nodes pending approval",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -3017,6 +3041,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "yMj8Z",
+                      "x": 20,
+                      "y": 54,
+                      "name": "ovLmSSRF",
+                      "fill": "#6B7280",
+                      "content": "1 node blocked by SSRF policy",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -3730,6 +3766,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 22,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "7G9mM",
+                      "x": 20,
+                      "y": 54,
+                      "name": "ovDmAgg",
+                      "fill": "#A5B4FC",
+                      "content": "Live aggregate from /api/management/overview",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -3755,6 +3803,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "aGsmL",
+                      "x": 20,
+                      "y": 54,
+                      "name": "ovDmPending",
+                      "fill": "#94A3B8",
+                      "content": "2 discovered nodes pending approval",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -3780,6 +3840,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "1AoaW",
+                      "x": 20,
+                      "y": 54,
+                      "name": "ovDmSSRF",
+                      "fill": "#94A3B8",
+                      "content": "1 node blocked by SSRF policy",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -8000,6 +8072,18 @@
                           "fontWeight": "600"
                         }
                       ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "D4quX",
+                      "x": 24,
+                      "y": 54,
+                      "name": "dDeskRegSub",
+                      "fill": "#5EEAD4",
+                      "content": "Create / edit nodes",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -8100,6 +8184,18 @@
                           "fontWeight": "normal"
                         }
                       ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "9jsGE",
+                      "x": 24,
+                      "y": 54,
+                      "name": "dDeskOpsSub",
+                      "fill": "#94A3B8",
+                      "content": "Registered nodes with action-centric table",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -11087,6 +11183,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "GdiX3",
+                      "x": 20,
+                      "y": 54,
+                      "name": "devLmRegSub",
+                      "fill": "#0F766E",
+                      "content": "Create / edit nodes",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -11112,6 +11220,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ztHyT",
+                      "x": 20,
+                      "y": 54,
+                      "name": "devLmOpsSub",
+                      "fill": "#6B7280",
+                      "content": "Registered nodes with action-centric table",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -11137,6 +11257,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "bjmmV",
+                      "x": 20,
+                      "y": 54,
+                      "name": "devLmDiagSub",
+                      "fill": "#C2410C",
+                      "content": "Registration PASS · URL FAIL(SSRF_BLOCKED)",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -11850,6 +11982,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "7r2lL",
+                      "x": 20,
+                      "y": 54,
+                      "name": "discLmQueueMeta",
+                      "fill": "#6B7280",
+                      "content": "webcam-yard-04 · announced 5m ago · pending",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -11875,6 +12019,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "aN6D3",
+                      "x": 20,
+                      "y": 54,
+                      "name": "discLmDecisionMeta",
+                      "fill": "#6B7280",
+                      "content": "Approve as registered · Reject discovery",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -11900,6 +12056,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "uBsww",
+                      "x": 20,
+                      "y": 54,
+                      "name": "discLmPolicyMeta",
+                      "fill": "#475569",
+                      "content": "SSRF_BLOCKED: private-IP target",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -12613,6 +12781,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "34Fui",
+                      "x": 20,
+                      "y": 60,
+                      "name": "setLmHeaderMeta",
+                      "fill": "#6B7280",
+                      "content": "Changed from env defaults",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -12637,6 +12817,18 @@
                       "content": "Auth + Discovery + Runtime sections",
                       "fontFamily": "Inter",
                       "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "XF7Rb",
+                      "x": 20,
+                      "y": 46,
+                      "name": "setLmPanelsMeta",
+                      "fill": "#6B7280",
+                      "content": "Management auth · Discovery · Runtime",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
                       "fontWeight": "normal"
                     }
                   ]
@@ -12663,6 +12855,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "xYBqo",
+                      "x": 20,
+                      "y": 54,
+                      "name": "setLmFooterMeta",
+                      "fill": "#94A3B8",
+                      "content": "Validate before apply. Reset uses env defaults.",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -13376,6 +13580,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ozdVK",
+                      "x": 20,
+                      "y": 54,
+                      "name": "devDmRegSub",
+                      "fill": "#5EEAD4",
+                      "content": "Create / edit nodes",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -13401,6 +13617,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "eM2Ir",
+                      "x": 20,
+                      "y": 54,
+                      "name": "devDmOpsSub",
+                      "fill": "#94A3B8",
+                      "content": "Registered nodes with action-centric table",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -13426,6 +13654,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "38jrs",
+                      "x": 20,
+                      "y": 54,
+                      "name": "devDmDiagSub",
+                      "fill": "#FB923C",
+                      "content": "Registration PASS · URL FAIL(SSRF_BLOCKED)",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -14139,6 +14379,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "f6fJz",
+                      "x": 20,
+                      "y": 54,
+                      "name": "discDmQueueMeta",
+                      "fill": "#94A3B8",
+                      "content": "webcam-yard-04 · announced 5m ago · pending",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -14164,6 +14416,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "eCNsk",
+                      "x": 20,
+                      "y": 54,
+                      "name": "discDmDecisionMeta",
+                      "fill": "#94A3B8",
+                      "content": "Approve as registered · Reject discovery",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -14189,6 +14453,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 18,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "se4Hj",
+                      "x": 20,
+                      "y": 54,
+                      "name": "discDmPolicyMeta",
+                      "fill": "#94A3B8",
+                      "content": "SSRF_BLOCKED: private-IP target",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -14902,6 +15178,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 20,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "KKxyO",
+                      "x": 20,
+                      "y": 60,
+                      "name": "setDmHeaderMeta",
+                      "fill": "#94A3B8",
+                      "content": "Changed from env defaults",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -14926,6 +15214,18 @@
                       "content": "Auth + Discovery + Runtime sections",
                       "fontFamily": "Inter",
                       "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "sRX83",
+                      "x": 20,
+                      "y": 46,
+                      "name": "setDmPanelsMeta",
+                      "fill": "#94A3B8",
+                      "content": "Management auth · Discovery · Runtime",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
                       "fontWeight": "normal"
                     }
                   ]
@@ -14952,6 +15252,18 @@
                       "fontFamily": "Inter",
                       "fontSize": 16,
                       "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "2FyMe",
+                      "x": 20,
+                      "y": 54,
+                      "name": "setDmFooterMeta",
+                      "fill": "#94A3B8",
+                      "content": "Validate before apply. Reset uses env defaults.",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
