@@ -23,6 +23,30 @@ docker compose up -d
 
 Open `http://localhost:8000`.
 
+
+## Docker Build (Canonical Args)
+
+When building manually, prefer the canonical suite pairing:
+
+```bash
+docker build \
+  --build-arg DEBIAN_SUITE=trixie \
+  --build-arg RPI_SUITE=bookworm \
+  -t motion-in-ocean:local .
+```
+
+If camera packages are unavailable for your selected Raspberry Pi suite, switch `RPI_SUITE` to `bookworm`.
+
+If you intentionally keep a non-Bookworm `RPI_SUITE`, you can opt into fallback behavior:
+
+```bash
+docker build \
+  --build-arg DEBIAN_SUITE=trixie \
+  --build-arg RPI_SUITE=<your-suite> \
+  --build-arg ALLOW_BOOKWORM_FALLBACK=true \
+  -t motion-in-ocean:local .
+```
+
 ## Full Documentation
 
 - Documentation hub: [docs/README.md](docs/README.md)

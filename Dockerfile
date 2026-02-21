@@ -1,6 +1,8 @@
 # ---- Build Arguments ----
 # DEBIAN_SUITE: Base Debian release for builder and final stages (default: trixie)
 # RPI_SUITE: Raspberry Pi repository suite (default: bookworm)
+# Canonical build example:
+#   docker build --build-arg DEBIAN_SUITE=trixie --build-arg RPI_SUITE=bookworm .
 #
 # Intentional suite split:
 # - Debian base can track newer releases (e.g., trixie) for core userspace.
@@ -9,6 +11,7 @@
 # ALLOW_BOOKWORM_FALLBACK: Allow fallback to Bookworm if primary suite fails (default: false)
 #   Set to true ONLY for compatibility builds where mixing suites is acceptable
 #   When false, build fails with clear message if primary suite packages unavailable
+#   Fallback retries camera package installation with RPI_SUITE=bookworm
 ARG DEBIAN_SUITE=trixie
 ARG RPI_SUITE=bookworm
 ARG INCLUDE_MOCK_CAMERA=true
