@@ -1,20 +1,27 @@
 # ---- Build Arguments ----
-# DEBIAN_SUITE: Base Debian release for builder and final stages (default: trixie)
+# DEBIAN_SUITE: Base Debian release for builder and final stages (default: bookworm)
 # RPI_SUITE: Raspberry Pi repository suite (default: bookworm)
 # Canonical build example:
-#   docker build --build-arg DEBIAN_SUITE=trixie --build-arg RPI_SUITE=bookworm .
+#   docker build --build-arg DEBIAN_SUITE=bookworm --build-arg RPI_SUITE=bookworm .
+#
+# 🔴 DEBIAN 13 CRITICAL NOTICE (Feb 2026):
+# Debian 13 (Trixie) enforces strict GPG policy as of 2026-02-01: SHA1-based signatures are rejected.
+# The Raspberry Pi archive signing key uses SHA1 binding signatures, which Trixie rejects.
+# Therefore, Bookworm (Debian 12) is now the primary/default suite.
+# Trixie support remains available but experimental via ARG overrides.
 #
 # Intentional suite split:
-# - Debian base can track newer releases (e.g., trixie) for core userspace.
-# - Raspberry Pi camera repo stays on bookworm until trixie camera packages are fully resolvable.
+# - Primary build now uses Bookworm for both Debian base and RPi camera packages (stable, compatible).
+# - Trixie remains available for experimentation; set ARG DEBIAN_SUITE=trixie to opt in.
+# - Once Raspberry Pi issues updated GPG signatures, Trixie will become default again.
+#
 # INCLUDE_MOCK_CAMERA: Include Pillow for mock camera test frames (default: true)
 # ALLOW_BOOKWORM_FALLBACK: Allow fallback to Bookworm if primary suite fails (default: false)
 #   Set to true ONLY for compatibility builds where mixing suites is acceptable
 #   When false, build fails with clear message if primary suite packages unavailable
-#   Fallback retries camera package installation with RPI_SUITE=bookworm
 #
 # Important: build args referenced in FROM must be declared before the first FROM.
-ARG DEBIAN_SUITE=trixie
+ARG DEBIAN_SUITE=bookworm
 ARG RPI_SUITE=bookworm
 ARG INCLUDE_MOCK_CAMERA=true
 ARG ALLOW_BOOKWORM_FALLBACK=false

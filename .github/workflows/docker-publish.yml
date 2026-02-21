@@ -43,27 +43,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
-      - name: Build and push (Debian trixie + RPi bookworm)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/arm64,linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            DEBIAN_SUITE=trixie
-            # Temporary compatibility pin: Raspberry Pi apt repo metadata can fail sqv/SHA1 policy checks on trixie.
-            RPI_SUITE=bookworm
-            INCLUDE_MOCK_CAMERA=false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-        continue-on-error: true
-        id: build_trixie
-
-      - name: Fallback build (Bookworm) if Trixie failed
-        if: failure() && steps.build_trixie.outcome == 'failure'
+      - name: Build and push (Debian bookworm + RPi bookworm) - PRIMARY
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -74,6 +54,27 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             DEBIAN_SUITE=bookworm
+            # Primary suite: Bookworm stable (Feb 2026: Trixie SHA1 policy rejection prevents use as primary)
+            RPI_SUITE=bookworm
+            INCLUDE_MOCK_CAMERA=false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        continue-on-error: true
+        id: build_bookworm
+
+      - name: Fallback build (Debian trixie) if Bookworm failed - EXPERIMENTAL
+        if: failure() && steps.build_bookworm.outcome == 'failure'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm64,linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            DEBIAN_SUITE=trixie
+            # Fallback only: Trixie GPG SHA1 policy enforced as of 2026-02-01
             RPI_SUITE=bookworm
             INCLUDE_MOCK_CAMERA=false
           cache-from: type=gha

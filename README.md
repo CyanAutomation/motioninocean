@@ -25,25 +25,32 @@ Open `http://localhost:8000`.
 
 ## Docker Build (Canonical Args)
 
-When building manually, prefer the canonical suite pairing:
+### Primary Build (Stable)
+
+When building manually, use the primary stable suite pairing:
 
 ```bash
 docker build \
-  --build-arg DEBIAN_SUITE=trixie \
+  --build-arg DEBIAN_SUITE=bookworm \
   --build-arg RPI_SUITE=bookworm \
   -t motion-in-ocean:local .
 ```
 
-If camera packages are unavailable for your selected Raspberry Pi suite, switch `RPI_SUITE` to `bookworm`.
+This is the recommended build configuration for all deployments, as of February 2026.
 
-If you intentionally keep a non-Bookworm `RPI_SUITE`, you can opt into fallback behavior:
+### Why Bookworm (Not Trixie)?
+
+Debian 13 (Trixie, released 2026-02-01) enforces strict GPG policy: it rejects SHA1-based signature bindings as cryptographically insecure. The Raspberry Pi repository's signing key uses SHA1 binding signatures, so **Trixie cannot verify the RPi repository metadata**.
+
+Bookworm (Debian 12) predates this policy change and remains compatible with the RPi repository. Once the Raspberry Pi project reissues their GPG key with modern signature algorithms, Trixie can be made the default again.
+
+### Experimental: Build with Trixie
+
+To test Trixie (may fail due to GPG policy):
 
 ```bash
-docker build \
-  --build-arg DEBIAN_SUITE=trixie \
-  --build-arg RPI_SUITE=<your-suite> \
-  --build-arg ALLOW_BOOKWORM_FALLBACK=true \
-  -t motion-in-ocean:local .
+make docker-build-trixie   # Experimental Trixie dev build
+make docker-build-trixie-prod  # Experimental Trixie production build
 ```
 
 ## Building for Raspberry Pi (ARM64)

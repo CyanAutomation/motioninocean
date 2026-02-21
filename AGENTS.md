@@ -767,12 +767,23 @@ See [.github/workflows/docker-publish.yml](.github/workflows/docker-publish.yml)
 
 ### Multi-Architecture Builds
 
-The Dockerfile supports multi-arch via Docker Buildx:
+The Dockerfile supports multi-arch via Docker Buildx. The **primary build targets Debian Bookworm** (stable, Feb 2026 compatible):
 
 ```bash
-# Build for arm64 (Raspberry Pi) and amd64 (Intel/AMD)
-docker buildx build --platform linux/arm64,linux/amd64 -t ghcr.io/cyanautomation/motioninocean:latest .
+# Build primary Bookworm for arm64 (Raspberry Pi) and amd64 (Intel/AMD)
+docker buildx build --platform linux/arm64,linux/amd64 \
+  --build-arg DEBIAN_SUITE=bookworm \
+  --build-arg RPI_SUITE=bookworm \
+  -t ghcr.io/cyanautomation/motioninocean:latest .
+
+# Experimental Trixie build (may fail due to GPG SHA1 policy as of 2026-02-01)
+docker buildx build --platform linux/arm64,linux/amd64 \
+  --build-arg DEBIAN_SUITE=trixie \
+  --build-arg RPI_SUITE=bookworm \
+  -t ghcr.io/cyanautomation/motioninocean:trixie-experimental .
 ```
+
+**Why Bookworm is now primary:** Debian 13 (Trixie) enforces strict GPG signature policy, rejecting SHA1 bindings. The Raspberry Pi repository's signing key uses SHA1, making it incompatible with Trixie. Use Bookworm until the Raspberry Pi project reissues their GPG key with modern algorithms.
 
 ---
 

@@ -254,7 +254,15 @@ clean:
 
 # Docker targets
 # Using BuildKit for enhanced caching and faster builds
-# Build args: DEBIAN_SUITE (default: trixie), RPI_SUITE (default: bookworm), INCLUDE_MOCK_CAMERA (default: true)
+#
+# PRIMARY BUILD TARGETS (Debian Bookworm - stable, Feb 2026 compatible):
+#   make docker-build         Build dev image (Debian bookworm + RPi bookworm, with mock camera)
+#   make docker-build-prod    Build production image (Debian bookworm + RPi bookworm, without mock camera)
+#   make docker-build-arm64   Build ARM64 dev image for Raspberry Pi deployment
+#
+# EXPERIMENTAL TARGETS (Debian Trixie - SHA1 policy issues on Debian 13):
+#   make docker-build-trixie       Experimental Trixie build (for testing)
+#   make docker-build-trixie-prod  Experimental Trixie production build
 #
 # ARCHITECTURE NOTE:
 # Local `docker build` defaults to your host's CPU architecture (amd64 on Intel/Mac, arm64 on ARM hosts).
@@ -263,59 +271,66 @@ clean:
 #   make docker-build-prod-arm64  (instead of make docker-build-prod)
 # Or use plain `docker build` if building on an ARM64 host.
 docker-build:
-	@echo "Building default Docker image (Debian trixie + RPi bookworm, with mock camera)..."
+	@echo "Building default Docker image (Debian bookworm + RPi bookworm, with mock camera)..."
 	@echo "Note: This builds for your host architecture. For Raspberry Pi, use: make docker-build-arm64"
 	DOCKER_BUILDKIT=1 docker build \
-		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-trixie} \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-bookworm} \
 		--build-arg RPI_SUITE=$${RPI_SUITE:-bookworm} \
 		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-true} \
 		-t motion-in-ocean:dev .
 
 docker-build-prod:
-	@echo "Building production Docker image (Debian trixie + RPi bookworm, without mock camera, smallest size)..."
+	@echo "Building production Docker image (Debian bookworm + RPi bookworm, without mock camera, smallest size)..."
 	DOCKER_BUILDKIT=1 docker build \
-		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-trixie} \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-bookworm} \
 		--build-arg RPI_SUITE=$${RPI_SUITE:-bookworm} \
 		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-false} \
 		-t motion-in-ocean:dev-prod .
 
+# EXPERIMENTAL: Debian Trixie builds
+# Note: Trixie has strict SHA1 policy (since 2026-02-01) which conflicts with RPi GPG signatures.
+# These targets are for testing purposes only. Use primary targets (docker-build/docker-build-prod) for production.
+docker-build-trixie:
+	@echo "Building EXPERIMENTAL Docker image (Debian trixie + RPi bookworm, with mock camera)..."
+	@echo "WARNING: Trixie builds may fail due to GPG SHA1 policy. Use docker-build for stable builds."
+	DOCKER_BUILDKIT=1 docker build \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-trixie} \
+		--build-arg RPI_SUITE=$${RPI_SUITE:-bookworm} \
+		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-true} \
+		-t motion-in-ocean:trixie-experimental .
+
+docker-build-trixie-prod:
+	@echo "Building EXPERIMENTAL production Docker image (Debian trixie + RPi bookworm, without mock camera)..."
+	@echo "WARNING: Trixie builds may fail due to GPG SHA1 policy. Use docker-build-prod for stable builds."
+	DOCKER_BUILDKIT=1 docker build \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-trixie} \
+		--build-arg RPI_SUITE=$${RPI_SUITE:-bookworm} \
+		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-false} \
+		-t motion-in-ocean:trixie-experimental-prod .
+
+# LEGACY: Full Trixie suite (both Debian and RPi repo)
 docker-build-rpi-trixie:
-	@echo "Building Docker image (Debian trixie + RPi trixie experimental, with mock camera)..."
+	@echo "Building EXPERIMENTAL Docker image (Debian trixie + RPi trixie, with mock camera)..."
+	@echo "WARNING: Both suites on trixie; camera packages may be unavailable."
 	DOCKER_BUILDKIT=1 docker build \
 		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-trixie} \
 		--build-arg RPI_SUITE=$${RPI_SUITE:-trixie} \
 		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-true} \
 		-t motion-in-ocean:trixie-rpi-trixie .
 
-docker-build-bookworm:
-	@echo "Building Docker image for Bookworm (with mock camera)..."
-	DOCKER_BUILDKIT=1 docker build \
-		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-bookworm} \
-		--build-arg RPI_SUITE=$${RPI_SUITE:-bookworm} \
-		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-true} \
-		-t motion-in-ocean:bookworm .
-
-docker-build-bookworm-prod:
-	@echo "Building production Docker image for Bookworm (without mock camera)..."
-	DOCKER_BUILDKIT=1 docker build \
-		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-bookworm} \
-		--build-arg RPI_SUITE=$${RPI_SUITE:-bookworm} \
-		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-false} \
-		-t motion-in-ocean:bookworm-prod .
-
 # ARM64-explicit targets (use for Raspberry Pi deployment or when building on non-ARM hosts)
 docker-build-arm64:
-	@echo "Building ARM64 Docker image (Debian trixie + RPi bookworm, with mock camera)..."
+	@echo "Building ARM64 Docker image (Debian bookworm + RPi bookworm, with mock camera)..."
 	docker buildx build --platform linux/arm64 \
-		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-trixie} \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-bookworm} \
 		--build-arg RPI_SUITE=$${RPI_SUITE:-bookworm} \
 		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-true} \
 		-t motion-in-ocean:dev .
 
 docker-build-prod-arm64:
-	@echo "Building ARM64 production Docker image (Debian trixie + RPi bookworm, without mock camera)..."
+	@echo "Building ARM64 production Docker image (Debian bookworm + RPi bookworm, without mock camera)..."
 	docker buildx build --platform linux/arm64 \
-		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-trixie} \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-bookworm} \
 		--build-arg RPI_SUITE=$${RPI_SUITE:-bookworm} \
 		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-false} \
 		-t motion-in-ocean:dev-prod .
