@@ -219,7 +219,191 @@ docker exec motion-in-ocean env | grep -E 'HEALTHCHECK|MOTION_IN_OCEAN_HEALTHCHE
 
 Good: `MOTION_IN_OCEAN_HEALTHCHECK_READY=true` (or `HEALTHCHECK_READY=true`) matches expected policy.
 
-## Decision tree
+---
+
+## Container Startup Flow Diagram
+
+This diagram shows the initialization sequence and where camera detection failures occur:
+
+```mermaid
+graph TD
+    A["Container starts<br/>(entrypoint main.py)"]
+    B["Load runtime config<br/>(env vars)"]
+    C{"Check mock_camera<br/>flag?"}
+    D["Initialize mock camera<br/>(cat_gif_generator)"]
+    E["Initialize real camera<br/>(_init_real_camera)"]
+    F["Detect device nodes<br/>(_detect_camera_devices)"]
+    G["Enumerate cameras<br/>(picamera2.global_camera_info)"]
+    H{"Cameras<br/>found?"}
+    I["Log: 'Detected N camera(s)'<br/>(SUCCESS)"]
+    J["Create Picamera2 instance<br/>Configure video pipeline"]
+    K["Start recording<br/>(MJPEG encoding)"]
+    L["Set recording_started event<br/>(Ready for /ready probe)"]
+    M["Log: 'No cameras detected'<br/>(FAILURE)"]
+    N["Set camera_startup_error<br/>(code, message, context)"]
+    O{"fail_on_camera_<br/>init_error<br/>flag?"}
+    P["Exit immediately<br/>(fail-fast)"]
+    Q["Continue in degraded mode<br/>(mock fallback)"]
+    R["/health returns 200<br/>/ready returns 503<br/>/stream returns 503"]
+    
+    A --> B
+    B --> C
+    C -->|true| D
+    C -->|false| E
+    D --> L
+    E --> F
+    F --> G
+    G --> H
+    H -->|yes| I
+    H -->|no| M
+    I --> J
+    J --> K
+    K --> L
+    M --> N
+    N --> O
+    O -->|true| P
+    O -->|false| Q
+    P --> R
+    Q --> R
+    
+    style I fill:#90EE90
+    style L fill:#90EE90
+    style M fill:#FFB6C6
+    style N fill:#FFB6C6
+    style P fill:#FF6B6B
+    style R fill:#FFE4B5
+```
+
+**Key decision points:**
+
+1. **Mock camera enabled?** (`MOCK_CAMERA` or `MIO_CAT_GIF` env vars)
+   - If yes: Dummy frame generation; always succeeds
+   - If no: Proceed to real camera initialization
+
+2. **Device nodes detected?** (`_detect_camera_devices()`)
+   - If no: Log device inventory and fail category
+
+3. **Cameras enumerated by libcamera?** (`picamera2.global_camera_info()`)
+   - If no: Log error, set camera startup error with context, branch to fail-fast or degraded mode
+
+4. **Fail-fast enabled?** (`MIO_FAIL_ON_CAMERA_INIT_ERROR=true`)
+   - If yes: Container exits; clear indication of infrastructure problem
+   - If no: Container stays running but `/ready` returns 503; can probe and debug via API
+
+---
+
+## Error Message Index
+
+Cross-reference specific error messages logged or returned to root causes and remediation:
+
+| Error Message | Where | Root Cause | Troubleshooting Branch |
+|---------------|-------|-----------|----------------------|
+| `No cameras detected by picamera2 enumeration` | `main.py:1553` (logs) | Device nodes exist but libcamera enumeration failed | Device mapping + libcamera pipeline (see below) |
+| `No cameras detected. Check device mappings and camera hardware.` | `/ready` response (503) | Same; returned when `/ready` is probed during degraded mode | Device mapping verification; if devices OK, check libcamera/IPA |
+| `RuntimeError: No cameras detected...` | Container logs (startup) | Camera initialization failed completely | Fail-fast branch (if MIO_FAIL_ON_CAMERA_INIT_ERROR=true) |
+| `Camera enumeration failed. Verify device mappings and permissions.` | Container logs | Picamera2 raised IndexError during camera detection | Run `./detect-devices.sh`; verify container device mappings |
+| `Permission denied accessing camera device` | Container logs | Camera device nodes mounted but container lacks read/execute permission | Add group_add: [video, render]; verify stat permissions match /dev/video* |
+| `Camera not initialized or recording not started` | `/ready` response (503) | _init_real_camera() did not complete successfully or recording_started event not set | Check container logs for specific error; probe /health |
+| `No frames captured yet` | `/ready` response (503) | Recording started but frame buffer still empty | Normal during startup; wait a few seconds and retry |
+| `stale_stream` | `/ready` response (503) | Last frame captured > max_frame_age_seconds ago (default 5s) | Check if camera is hung or FPS is too low for frame age threshold |
+| `HTTP 429 on /stream.mjpg` | Stream response | Max stream connections reached (default 5) | Increase MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS or close existing clients |
+
+---
+
+## Libcamera Pipeline Troubleshooting
+
+Even if device nodes are correctly mapped, camera enumeration can fail if libcamera cannot load the camera pipeline or IPA modules for your hardware.
+
+### Common libcamera/Pipeline Failures
+
+**Symptom:** Device nodes exist (`/dev/video0`, `/dev/media0`, `/dev/vchiq` present in container) but picamera2.global_camera_info() returns empty list.
+
+**Root Causes:**
+
+1. **Pipeline or IPA modules missing** (corrupted/incomplete Dockerfile build)
+2. **Incompatible Debian suite** (e.g., bookworm IPA incompatible with bullseye kernel)
+3. **Missing Picamera2 system dependencies** (libcamera, libcamera-apps, roles package)
+
+### Diagnosis
+
+**Inside container, test libcamera directly:**
+
+```bash
+docker exec motion-in-ocean /bin/bash
+
+# Find where libcamera libraries are installed
+ldconfig -p | grep libcamera
+
+# List available pipelines
+ls /usr/lib/libcamera/ipa/ 2>/dev/null
+# Normal output: /usr/lib/libcamera/ipa/libcamera_ipa_rpi.la, etc.
+
+# Test libcamera enumeration (low-level)
+libcamera-hello --list-cameras 2>&1 | tee /tmp/libcamera-test.log
+```
+
+**Expected output from libcamera-hello:**
+
+```
+Available cameras:
+0: imx708 [4608x2592] (/base/soc/i2c0mux/i2c@0,0/imx708@1a)
+```
+
+**If no cameras listed, examine logs:**
+
+```bash
+LIBCAMERA_LOG_LEVELS=DEBUG libcamera-hello --list-cameras 2>&1 | head -30
+```
+
+Look for:
+
+- `[ERROR]` messages about pipeline loading
+- `[ERROR]` messages about IPA modules
+- Missing `/usr/lib/libcamera/ipa/` directory entirely
+
+### Dockerfile Build Args (Camera Stack Selection)
+
+Camera support is controlled by Dockerfile build arguments. Check your image build:
+
+```bash
+# Inspect image build args (if available in history)
+docker image inspect ghcr.io/cyanautomation/motioninocean:latest --format='{{json .Config.Labels}}' | jq '.[] | select(. | contains("DEBIAN_SUITE"))'
+```
+
+Key args affecting camera support:
+
+- `DEBIAN_SUITE` (bullseye, bookworm) — OS baseline for libcamera/IPA versions
+- `RPI_SUITE` (bullseye-rtkit, bookworm) — RPi camera stack version
+- `ALLOW_BOOKWORM_FALLBACK` — If true, tries bookworm IPA when primary suite fails
+
+**If image built with mismatched suites:**
+
+```bash
+# Rebuild image with correct suite
+docker build \
+  --build-arg DEBIAN_SUITE=bookworm \
+  --build-arg RPI_SUITE=bookworm \
+  -t motioninocean:bookworm \
+  .
+
+# Test new image
+docker compose -f docker-compose.yml up -d
+```
+
+### Reference: Libcamera Component Versions
+
+| Component | Bullseye | Bookworm | Notes |
+|-----------|----------|----------|--------|
+| libcamera | 0.0.x | 0.1.x+ | Different API/behavior |
+| libcamera-apps | 0.7.x | 1.1.x+ | OctoPrint compatibility varies |
+| picamera2 (Python) | 0.3.x | 0.6.x+ | Highly version-sensitive |
+| IPA modules | bullseye-specific | bookworm-specific | NOT backward compatible |
+
+If running bullseye kernel with bookworm IPA (or vice versa), libcamera will fail silently during enumeration.
+
+---
+
+## Log Format & Structured Logging
 
 1. **Camera not detected**
    - Run `./detect-devices.sh`.

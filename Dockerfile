@@ -12,6 +12,12 @@
 #   Set to true ONLY for compatibility builds where mixing suites is acceptable
 #   When false, build fails with clear message if primary suite packages unavailable
 #   Fallback retries camera package installation with RPI_SUITE=bookworm
+#
+# Important: build args referenced in FROM must be declared before the first FROM.
+ARG DEBIAN_SUITE=trixie
+ARG RPI_SUITE=bookworm
+ARG INCLUDE_MOCK_CAMERA=true
+ARG ALLOW_BOOKWORM_FALLBACK=false
 
 # ---- Builder Stage ----
 # This stage is responsible for adding the Raspberry Pi repository and building Python packages.
@@ -19,10 +25,10 @@
 FROM debian:${DEBIAN_SUITE}-slim AS builder
 
 # Re-declare build args for this stage
-ARG DEBIAN_SUITE=trixie
-ARG RPI_SUITE=bookworm
-ARG INCLUDE_MOCK_CAMERA=true
-ARG ALLOW_BOOKWORM_FALLBACK=false
+ARG DEBIAN_SUITE
+ARG RPI_SUITE
+ARG INCLUDE_MOCK_CAMERA
+ARG ALLOW_BOOKWORM_FALLBACK
 
 # ---- Layer 1: System Build Tools (Stable) ----
 # Install base system dependencies and build toolchain
@@ -187,10 +193,10 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 FROM debian:${DEBIAN_SUITE}-slim
 
 # Re-declare build args for this stage
-ARG DEBIAN_SUITE=trixie
-ARG RPI_SUITE=bookworm
-ARG INCLUDE_MOCK_CAMERA=true
-ARG ALLOW_BOOKWORM_FALLBACK=false
+ARG DEBIAN_SUITE
+ARG RPI_SUITE
+ARG INCLUDE_MOCK_CAMERA
+ARG ALLOW_BOOKWORM_FALLBACK
 
 # Prevent Python bytecode generation and enable unbuffered output
 # Savings: ~5-10% image size; improves container startup performance

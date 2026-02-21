@@ -266,66 +266,66 @@ docker-build:
 	@echo "Building default Docker image (trixie, with mock camera)..."
 	@echo "Note: This builds for your host architecture. For Raspberry Pi, use: make docker-build-arm64"
 	DOCKER_BUILDKIT=1 docker build \
-		--build-arg DEBIAN_SUITE=trixie \
-		--build-arg RPI_SUITE=trixie \
-		--build-arg INCLUDE_MOCK_CAMERA=true \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-trixie} \
+		--build-arg RPI_SUITE=$${RPI_SUITE:-trixie} \
+		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-true} \
 		-t motion-in-ocean:dev .
 
 docker-build-prod:
 	@echo "Building production Docker image (trixie, without mock camera, smallest size)..."
 	DOCKER_BUILDKIT=1 docker build \
-		--build-arg DEBIAN_SUITE=trixie \
-		--build-arg RPI_SUITE=trixie \
-		--build-arg INCLUDE_MOCK_CAMERA=false \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-trixie} \
+		--build-arg RPI_SUITE=$${RPI_SUITE:-trixie} \
+		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-false} \
 		-t motion-in-ocean:dev-prod .
 
 docker-build-bookworm:
 	@echo "Building Docker image for Bookworm (with mock camera)..."
 	DOCKER_BUILDKIT=1 docker build \
-		--build-arg DEBIAN_SUITE=bookworm \
-		--build-arg RPI_SUITE=bookworm \
-		--build-arg INCLUDE_MOCK_CAMERA=true \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-bookworm} \
+		--build-arg RPI_SUITE=$${RPI_SUITE:-bookworm} \
+		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-true} \
 		-t motion-in-ocean:bookworm .
 
 docker-build-bookworm-prod:
 	@echo "Building production Docker image for Bookworm (without mock camera)..."
 	DOCKER_BUILDKIT=1 docker build \
-		--build-arg DEBIAN_SUITE=bookworm \
-		--build-arg RPI_SUITE=bookworm \
-		--build-arg INCLUDE_MOCK_CAMERA=false \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-bookworm} \
+		--build-arg RPI_SUITE=$${RPI_SUITE:-bookworm} \
+		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-false} \
 		-t motion-in-ocean:bookworm-prod .
 
 # ARM64-explicit targets (use for Raspberry Pi deployment or when building on non-ARM hosts)
 docker-build-arm64:
 	@echo "Building ARM64 Docker image (trixie, with mock camera)..."
 	docker buildx build --platform linux/arm64 \
-		--build-arg DEBIAN_SUITE=trixie \
-		--build-arg RPI_SUITE=trixie \
-		--build-arg INCLUDE_MOCK_CAMERA=true \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-trixie} \
+		--build-arg RPI_SUITE=$${RPI_SUITE:-trixie} \
+		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-true} \
 		-t motion-in-ocean:dev .
 
 docker-build-prod-arm64:
 	@echo "Building ARM64 production Docker image (trixie, without mock camera)..."
 	docker buildx build --platform linux/arm64 \
-		--build-arg DEBIAN_SUITE=trixie \
-		--build-arg RPI_SUITE=trixie \
-		--build-arg INCLUDE_MOCK_CAMERA=false \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-trixie} \
+		--build-arg RPI_SUITE=$${RPI_SUITE:-trixie} \
+		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-false} \
 		-t motion-in-ocean:dev-prod .
 
 docker-build-bookworm-arm64:
 	@echo "Building ARM64 Docker image for Bookworm (with mock camera)..."
 	docker buildx build --platform linux/arm64 \
-		--build-arg DEBIAN_SUITE=bookworm \
-		--build-arg RPI_SUITE=bookworm \
-		--build-arg INCLUDE_MOCK_CAMERA=true \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-bookworm} \
+		--build-arg RPI_SUITE=$${RPI_SUITE:-bookworm} \
+		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-true} \
 		-t motion-in-ocean:bookworm .
 
 docker-build-bookworm-prod-arm64:
 	@echo "Building ARM64 production Docker image for Bookworm (without mock camera)..."
 	docker buildx build --platform linux/arm64 \
-		--build-arg DEBIAN_SUITE=bookworm \
-		--build-arg RPI_SUITE=bookworm \
-		--build-arg INCLUDE_MOCK_CAMERA=false \
+		--build-arg DEBIAN_SUITE=$${DEBIAN_SUITE:-bookworm} \
+		--build-arg RPI_SUITE=$${RPI_SUITE:-bookworm} \
+		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-false} \
 		-t motion-in-ocean:bookworm-prod .
 
 # Legacy target for backward compatibility
