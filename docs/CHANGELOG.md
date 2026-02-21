@@ -11,6 +11,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.17.1] - 2026-02-21
+
+- [docs] Add canonical Docker build args and fallback guidance (#345)
+- [docker] Align RPI_SUITE defaults to bookworm (#344)
+- fix: remove duplicate MIO_APP_MODE assignment in .env.example
+
 ## [1.17.0] - 2026-02-21
 
 - Implement feature X to enhance user experience and fix bug Y in module Z
