@@ -11,6 +11,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.17.4] - 2026-02-21
+
+- [docker] Fix active suite provenance metadata after fallback (#352)
+- [build] Default RPI_SUITE to bookworm for docker targets (#351)
+- [docker] Harden RPi suite update + fallback flow (#350)
+- [docker] Reorder final-stage apt source setup for camera layer (#349)
+- [ci] Decouple RPi suite from primary docker publish build (#348)
+
 ## [1.17.3] - 2026-02-21
 
 - Enhance SKILL.md with container startup flow diagram and error message index; update Dockerfile and Makefile for improved build argument handling
