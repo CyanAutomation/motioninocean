@@ -89,43 +89,58 @@ Pin: origin archive.raspberrypi.org\n\
 Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
     echo "[Layer 2] Running apt-get update..." && \
     apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
-    echo "[Layer 2] Attempting to install libcamera packages for ${RPI_SUITE}..." && \
-    if apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
+    REQUIRED_CAMERA_PACKAGES="libcamera-apps python3-libcamera python3-picamera2" && \
+    check_camera_preflight() { \
+      suite="$1"; \
+      missing_packages=""; \
+      for pkg in $REQUIRED_CAMERA_PACKAGES; do \
+        echo "[Layer 2] Preflight: checking ${pkg} for suite ${suite}"; \
+        apt-cache policy "$pkg"; \
+        candidate="$(apt-cache policy "$pkg" | awk '/Candidate:/ {print $2; exit}')"; \
+        if [ -z "$candidate" ] || [ "$candidate" = "(none)" ]; then \
+          missing_packages="$missing_packages $pkg"; \
+          continue; \
+        fi; \
+        if ! apt-cache madison "$pkg" | awk -v suite="$suite" '$0 ~ /archive\.raspberrypi\.org\/debian/ && $0 ~ suite {found=1} END {exit found ? 0 : 1}'; then \
+          missing_packages="$missing_packages $pkg"; \
+        fi; \
+      done; \
+      missing_packages="$(echo "$missing_packages" | xargs)"; \
+      if [ -n "$missing_packages" ]; then \
+        echo "[ERROR] Preflight failed for suite ${suite}. Missing/unavailable package(s): ${missing_packages}"; \
+        return 1; \
+      fi; \
+      echo "[Layer 2] Preflight passed for suite ${suite}"; \
+      return 0; \
+    } && \
+    install_camera_packages() { \
+      apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         libcamera-apps \
         libcamera-dev \
         python3-libcamera \
         python3-picamera2 \
-        v4l-utils 2>&1; then \
-      echo "[Layer 2] SUCCESS: libcamera packages installed from ${RPI_SUITE}"; \
-      echo "[Layer 2] Package origin verification:" && \
-      apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
-      dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
-        libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true; \
-    else \
-      INSTALL_EXIT=$?; \
-      echo "[ERROR] Installation from ${RPI_SUITE} failed with exit code $INSTALL_EXIT"; \
-      if [ "${ALLOW_BOOKWORM_FALLBACK}" = "true" ]; then \
-        echo "[Layer 2] ALLOW_BOOKWORM_FALLBACK=true: attempting fallback to Bookworm repository..."; \
+        v4l-utils; \
+    } && \
+    ACTIVE_RPI_SUITE="${RPI_SUITE}" && \
+    if ! check_camera_preflight "$ACTIVE_RPI_SUITE"; then \
+      if [ "${ALLOW_BOOKWORM_FALLBACK}" = "true" ] && [ "$ACTIVE_RPI_SUITE" != "bookworm" ]; then \
+        echo "[Layer 2] ALLOW_BOOKWORM_FALLBACK=true: switching Raspberry Pi repository to Bookworm for preflight retry..."; \
         echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
         apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
-        apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
-          libcamera-apps \
-          libcamera-dev \
-          python3-libcamera \
-          python3-picamera2 \
-          v4l-utils && \
-        echo "[Layer 2] SUCCESS: libcamera packages installed from Bookworm (fallback)"; \
-        echo "[Layer 2] Package origin verification (after fallback):" && \
-        apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
-        dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
-          libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true; \
+        ACTIVE_RPI_SUITE="bookworm" && \
+        check_camera_preflight "$ACTIVE_RPI_SUITE"; \
       else \
-        echo "[ERROR] ALLOW_BOOKWORM_FALLBACK=false (default): build fails rather than silently mixing suites"; \
-        echo "[ERROR] To allow fallback, rebuild with: --build-arg ALLOW_BOOKWORM_FALLBACK=true"; \
-        echo "[ERROR] Affected packages: libcamera-apps python3-picamera2 python3-libcamera"; \
-        exit $INSTALL_EXIT; \
+        echo "[ERROR] ALLOW_BOOKWORM_FALLBACK=${ALLOW_BOOKWORM_FALLBACK}. Failing fast after preflight check for suite ${ACTIVE_RPI_SUITE}."; \
+        exit 1; \
       fi; \
     fi && \
+    echo "[Layer 2] Attempting to install libcamera packages for ${ACTIVE_RPI_SUITE}..." && \
+    install_camera_packages && \
+    echo "[Layer 2] SUCCESS: libcamera packages installed from ${ACTIVE_RPI_SUITE}" && \
+    echo "[Layer 2] Package origin verification:" && \
+    apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
+    dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
+      libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true && \
     rm -rf /var/lib/apt/lists/*
 
 # ---- Layer 3: Virtual Environment Setup (Volatile) ----
@@ -222,45 +237,59 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     set -e && \
     echo "[Final Stage Layer 2] Running apt-get update..." && \
     apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
-    echo "[Final Stage Layer 2] Attempting to install libcamera packages from ${RPI_SUITE}..." && \
-    if apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
+    REQUIRED_CAMERA_PACKAGES="libcamera-apps python3-libcamera python3-picamera2" && \
+    check_camera_preflight() { \
+      suite="$1"; \
+      missing_packages=""; \
+      for pkg in $REQUIRED_CAMERA_PACKAGES; do \
+        echo "[Final Stage Layer 2] Preflight: checking ${pkg} for suite ${suite}"; \
+        apt-cache policy "$pkg"; \
+        candidate="$(apt-cache policy "$pkg" | awk '/Candidate:/ {print $2; exit}')"; \
+        if [ -z "$candidate" ] || [ "$candidate" = "(none)" ]; then \
+          missing_packages="$missing_packages $pkg"; \
+          continue; \
+        fi; \
+        if ! apt-cache madison "$pkg" | awk -v suite="$suite" '$0 ~ /archive\.raspberrypi\.org\/debian/ && $0 ~ suite {found=1} END {exit found ? 0 : 1}'; then \
+          missing_packages="$missing_packages $pkg"; \
+        fi; \
+      done; \
+      missing_packages="$(echo "$missing_packages" | xargs)"; \
+      if [ -n "$missing_packages" ]; then \
+        echo "[ERROR] Preflight failed for suite ${suite}. Missing/unavailable package(s): ${missing_packages}"; \
+        return 1; \
+      fi; \
+      echo "[Final Stage Layer 2] Preflight passed for suite ${suite}"; \
+      return 0; \
+    } && \
+    install_camera_packages() { \
+      apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
         libcamera-apps \
         python3 \
         python3-numpy \
         python3-libcamera \
         python3-picamera2 \
-        v4l-utils 2>&1; then \
-      echo "[Final Stage Layer 2] SUCCESS: libcamera packages installed from ${RPI_SUITE}"; \
-      echo "[Final Stage Layer 2] Package origin verification:" && \
-      apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
-      dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
-        libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true; \
-    else \
-      INSTALL_EXIT=$?; \
-      echo "[ERROR] Installation from ${RPI_SUITE} failed with exit code $INSTALL_EXIT"; \
-      if [ "${ALLOW_BOOKWORM_FALLBACK}" = "true" ]; then \
-        echo "[Final Stage Layer 2] ALLOW_BOOKWORM_FALLBACK=true: attempting fallback to Bookworm..."; \
+        v4l-utils; \
+    } && \
+    ACTIVE_RPI_SUITE="${RPI_SUITE}" && \
+    if ! check_camera_preflight "$ACTIVE_RPI_SUITE"; then \
+      if [ "${ALLOW_BOOKWORM_FALLBACK}" = "true" ] && [ "$ACTIVE_RPI_SUITE" != "bookworm" ]; then \
+        echo "[Final Stage Layer 2] ALLOW_BOOKWORM_FALLBACK=true: switching Raspberry Pi repository to Bookworm for preflight retry..."; \
         echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
         apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 && \
-        apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
-          libcamera-apps \
-          python3 \
-          python3-numpy \
-          python3-libcamera \
-          python3-picamera2 \
-          v4l-utils && \
-        echo "[Final Stage Layer 2] SUCCESS: libcamera packages installed from Bookworm (fallback)"; \
-        echo "[Final Stage Layer 2] Package origin verification (after fallback):" && \
-        apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
-        dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
-          libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true; \
+        ACTIVE_RPI_SUITE="bookworm" && \
+        check_camera_preflight "$ACTIVE_RPI_SUITE"; \
       else \
-        echo "[ERROR] ALLOW_BOOKWORM_FALLBACK=false (default): build fails rather than silently mixing suites"; \
-        echo "[ERROR] To allow fallback, rebuild with: --build-arg ALLOW_BOOKWORM_FALLBACK=true"; \
-        echo "[ERROR] Affected packages: libcamera-apps python3-picamera2 python3-libcamera"; \
-        exit $INSTALL_EXIT; \
+        echo "[ERROR] ALLOW_BOOKWORM_FALLBACK=${ALLOW_BOOKWORM_FALLBACK}. Failing fast after preflight check for suite ${ACTIVE_RPI_SUITE}."; \
+        exit 1; \
       fi; \
     fi && \
+    echo "[Final Stage Layer 2] Attempting to install libcamera packages from ${ACTIVE_RPI_SUITE}..." && \
+    install_camera_packages && \
+    echo "[Final Stage Layer 2] SUCCESS: libcamera packages installed from ${ACTIVE_RPI_SUITE}" && \
+    echo "[Final Stage Layer 2] Package origin verification:" && \
+    apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
+    dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
+      libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true && \
     rm -rf /var/lib/apt/lists/*
 
 # ---- Layer 3: Non-Root User Setup (Runtime Security) ----
