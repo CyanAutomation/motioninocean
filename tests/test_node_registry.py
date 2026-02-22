@@ -189,3 +189,51 @@ def test_upsert_node_is_atomic_for_concurrent_creates(tmp_path):
     nodes = registry.list_webcams()
     assert len(nodes) == 1
     assert nodes[0]["id"] == "node-atomic"
+
+
+def test_list_webcams_is_serialized_with_concurrent_upserts(tmp_path):
+    registry = FileWebcamRegistry(str(tmp_path / "registry.json"))
+    stop = threading.Event()
+    failures = []
+
+    def writer() -> None:
+        for i in range(200):
+            create_value = _node("node-race", f"Node {i}")
+            patch_value = {
+                "name": f"Node {i}",
+                "base_url": "http://example.com",
+                "transport": "http",
+                "capabilities": ["stream"],
+                "last_seen": "2024-01-01T00:00:00",
+                "labels": {},
+                "auth": {"type": "none"},
+                "discovery": {
+                    "source": "discovered",
+                    "last_announce_at": "2024-01-01T00:00:00",
+                    "approved": False,
+                },
+            }
+            registry.upsert_webcam("node-race", create_value, patch_value)
+        stop.set()
+
+    def reader() -> None:
+        while not stop.is_set():
+            try:
+                webcams = registry.list_webcams()
+                assert isinstance(webcams, list)
+            except Exception as exc:  # pragma: no cover - assertion records failures
+                failures.append(exc)
+                stop.set()
+
+    writer_thread = threading.Thread(target=writer)
+    reader_threads = [threading.Thread(target=reader) for _ in range(4)]
+
+    for thread in reader_threads:
+        thread.start()
+    writer_thread.start()
+
+    writer_thread.join()
+    for thread in reader_threads:
+        thread.join()
+
+    assert failures == []
