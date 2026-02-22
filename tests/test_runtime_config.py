@@ -12,7 +12,6 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
         "max_stream_connections": 10,
         "api_test_mode_enabled": False,
         "api_test_cycle_interval_seconds": 5.0,
-        "cat_gif_enabled": False,
         "discovery_enabled": False,
         "discovery_management_url": "http://127.0.0.1:8001",
         "discovery_token": "",

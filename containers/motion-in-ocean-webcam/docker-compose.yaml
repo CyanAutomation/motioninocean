@@ -10,10 +10,6 @@
 # With Mock Camera (for testing without hardware):
 #   docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
 #
-# With Mock Camera + Animated Cat GIFs (for demos/fun!):
-#   MOCK_CAMERA=true CAT_GIF=true \
-#   docker compose -f docker-compose.yml -f docker-compose.mock.yml -f docker-compose.cat-gif.yml up -d
-#
 # Requirements:
 #   - Copy .env.example to .env and customize
 #   - (Optional) Run ../detect-devices.sh to generate docker-compose.override.yml
@@ -44,8 +40,6 @@ services:
       MIO_OCTOPRINT_COMPATIBILITY: ${MIO_OCTOPRINT_COMPATIBILITY:-false}
       MIO_CORS_ORIGINS: ${MIO_CORS_ORIGINS:-*}
       MIO_MOCK_CAMERA: ${MIO_MOCK_CAMERA:-false}
-      MIO_CAT_GIF: ${MIO_CAT_GIF:-false}
-      MIO_CATAAS_API_URL: ${MIO_CATAAS_API_URL:-https://cataas.com/cat/gif}
       MIO_APPLICATION_SETTINGS_PATH: ${MIO_APPLICATION_SETTINGS_PATH:-/data/application-settings.json}
       MIO_SENTRY_DSN: ${MIO_SENTRY_DSN:-}
       MIO_BASE_URL: ${MIO_BASE_URL:-}

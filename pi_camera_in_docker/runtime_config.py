@@ -153,11 +153,9 @@ def _load_stream_config() -> Dict[str, Any]:
     Env vars:
     - API_TEST_MODE_ENABLED (default: false)
     - API_TEST_CYCLE_INTERVAL_SECONDS (default: 5.0)
-    - CAT_GIF (feature flag, default: false)
 
     Returns:
-        Dict with keys: api_test_mode_enabled, api_test_cycle_interval_seconds,
-        cat_gif_enabled.
+        Dict with keys: api_test_mode_enabled, api_test_cycle_interval_seconds.
     """
     api_test_mode_enabled = os.environ.get("MIO_API_TEST_MODE_ENABLED", "false").lower() in (
         "1",
@@ -173,12 +171,9 @@ def _load_stream_config() -> Dict[str, Any]:
     if api_test_cycle_interval_seconds <= 0:
         api_test_cycle_interval_seconds = 5.0
 
-    cat_gif_enabled = is_flag_enabled("CAT_GIF")
-
     return {
         "api_test_mode_enabled": api_test_mode_enabled,
         "api_test_cycle_interval_seconds": api_test_cycle_interval_seconds,
-        "cat_gif_enabled": cat_gif_enabled,
     }
 
 
