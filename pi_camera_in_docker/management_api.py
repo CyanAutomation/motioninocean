@@ -8,6 +8,7 @@ Includes comprehensive SSRF protection, DNS pinning, and secure HTTP request han
 import http.client
 import ipaddress
 import json
+import logging
 import os
 import socket
 import ssl
@@ -25,12 +26,46 @@ from .transport_url_validation import parse_docker_url
 
 
 # SSRF Protection Configuration
-# Set MIO_ALLOW_PRIVATE_IPS=true to disable private IP blocking (use only in internal networks)
-ALLOW_PRIVATE_IPS = os.environ.get("MIO_ALLOW_PRIVATE_IPS", "").lower() in {
-    "true",
-    "1",
-    "yes",
-}
+# Canonical variable: MIO_ALLOW_PRIVATE_IPS
+# Legacy alias retained temporarily: MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS
+CANONICAL_ALLOW_PRIVATE_IPS_ENV_VAR = "MIO_ALLOW_PRIVATE_IPS"
+LEGACY_ALLOW_PRIVATE_IPS_ENV_VAR = "MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS"
+
+logger = logging.getLogger(__name__)
+
+
+def _parse_env_bool(raw: str) -> bool:
+    """Parse a permissive env-var boolean value."""
+    return raw.lower() in {"true", "1", "yes"}
+
+
+def _load_allow_private_ips_flag() -> bool:
+    """Load private-IP override flag with precedence and deprecation logging."""
+    canonical_raw = os.environ.get(CANONICAL_ALLOW_PRIVATE_IPS_ENV_VAR)
+    legacy_raw = os.environ.get(LEGACY_ALLOW_PRIVATE_IPS_ENV_VAR)
+
+    if canonical_raw is not None:
+        if legacy_raw is not None and _parse_env_bool(canonical_raw) != _parse_env_bool(legacy_raw):
+            logger.warning(
+                "Both %s and deprecated %s are set with different values; using %s.",
+                CANONICAL_ALLOW_PRIVATE_IPS_ENV_VAR,
+                LEGACY_ALLOW_PRIVATE_IPS_ENV_VAR,
+                CANONICAL_ALLOW_PRIVATE_IPS_ENV_VAR,
+            )
+        return _parse_env_bool(canonical_raw)
+
+    if legacy_raw is not None:
+        logger.warning(
+            "Environment variable %s is deprecated; please migrate to %s.",
+            LEGACY_ALLOW_PRIVATE_IPS_ENV_VAR,
+            CANONICAL_ALLOW_PRIVATE_IPS_ENV_VAR,
+        )
+        return _parse_env_bool(legacy_raw)
+
+    return False
+
+
+ALLOW_PRIVATE_IPS = _load_allow_private_ips_flag()
 
 # Request timeout used for proxied webcam HTTP calls.
 REQUEST_TIMEOUT_SECONDS = 5.0

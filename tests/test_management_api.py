@@ -883,6 +883,52 @@ def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path)
     assert created.json["node"]["id"] == "node-discovery-private-allowed"
 
 
+def test_allow_private_ips_uses_canonical_env_var_precedence(monkeypatch, tmp_path, caplog):
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("MIO_ALLOW_PRIVATE_IPS", "true")
+    monkeypatch.setenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "false")
+
+    caplog.set_level("WARNING")
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    assert management_api.ALLOW_PRIVATE_IPS is True
+    assert (
+        "Both MIO_ALLOW_PRIVATE_IPS and deprecated MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS "
+        "are set with different values; using MIO_ALLOW_PRIVATE_IPS." in caplog.text
+    )
+
+    payload = {
+        "webcam_id": "node-discovery-private-canonical-precedence",
+        "name": "Discovery Node Private Allowed",
+        "base_url": "http://192.168.1.52:8000",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    created = client.post(
+        "/api/discovery/announce",
+        json=payload,
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+
+    assert created.status_code == 201
+
+
+def test_allow_private_ips_legacy_env_var_logs_deprecation(monkeypatch, tmp_path, caplog):
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.delenv("MIO_ALLOW_PRIVATE_IPS", raising=False)
+    monkeypatch.setenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "true")
+
+    caplog.set_level("WARNING")
+    _client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    assert management_api.ALLOW_PRIVATE_IPS is True
+    assert (
+        "Environment variable MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS is deprecated; "
+        "please migrate to MIO_ALLOW_PRIVATE_IPS." in caplog.text
+    )
+
+
 def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
     monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
@@ -2073,8 +2119,12 @@ def test_diagnose_includes_structured_status_and_codes(monkeypatch):
     assert recommendation["message"] == payload["guidance"][0]
 
 
-def test_diagnose_recommendations_keep_backward_compatible_guidance(monkeypatch):
+def test_diagnose_recommendations_reference_canonical_private_ip_variable(monkeypatch):
+    monkeypatch.delenv("MIO_ALLOW_PRIVATE_IPS", raising=False)
+    monkeypatch.delenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", raising=False)
+
     management_api = importlib.import_module("pi_camera_in_docker.management_api")
+    management_api = importlib.reload(management_api)
 
     webcam = {"id": "node-diag", "base_url": "http://example.invalid:8000", "transport": "http"}
 
@@ -2096,3 +2146,13 @@ def test_diagnose_recommendations_keep_backward_compatible_guidance(monkeypatch)
     assert payload["recommendations"][0]["status"] == "fail"
     assert payload["recommendations"][0]["code"] == "NETWORK_CONNECTIVITY_ERROR"
     assert payload["diagnostics"]["network_connectivity"]["status"] == "fail"
+
+    ssrf_webcam = {
+        "id": "node-diag-ssrf",
+        "base_url": "http://192.168.1.10:8000",
+        "transport": "http",
+    }
+    ssrf_payload = management_api._diagnose_webcam(ssrf_webcam)
+    ssrf_messages = [entry["message"] for entry in ssrf_payload["recommendations"]]
+    assert any("MIO_ALLOW_PRIVATE_IPS=true" in message for message in ssrf_messages)
+    assert all("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS" not in message for message in ssrf_messages)

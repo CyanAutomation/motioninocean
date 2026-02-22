@@ -228,7 +228,7 @@ function describeApiError(errorPayload = {}) {
   const details = errorPayload?.error?.details || errorPayload?.details || {};
 
   if (code === "DISCOVERY_PRIVATE_IP_BLOCKED") {
-    return `Discovery registration blocked by private-IP policy. ${details.remediation || "Set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true only for trusted internal networks."}`;
+    return `Discovery registration blocked by private-IP policy. ${details.remediation || "Set MIO_ALLOW_PRIVATE_IPS=true only for trusted internal networks."}`;
   }
 
   if (code === "WEBCAM_UNAUTHORIZED") {
@@ -236,7 +236,7 @@ function describeApiError(errorPayload = {}) {
   }
 
   if (code === "SSRF_BLOCKED") {
-    return "Private-IP policy blocked this target. Use a docker network hostname, or explicitly enable MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true on management for trusted internal networks.";
+    return "Private-IP policy blocked this target. Use a docker network hostname, or explicitly enable MIO_ALLOW_PRIVATE_IPS=true on management for trusted internal networks.";
   }
 
   return errorPayload?.error?.message || errorPayload?.message || "Request failed.";
@@ -546,7 +546,7 @@ function getStatusReason(status = {}) {
   const knownReasons = {
     SSRF_BLOCKED: {
       title: "Private-IP policy blocked this webcam target.",
-      hint: "Use a docker network hostname (e.g., 'motion-in-ocean-webcam:8000') or explicitly set MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true on management for trusted internal networks. Click Diagnose for details.",
+      hint: "Use a docker network hostname (e.g., 'motion-in-ocean-webcam:8000') or explicitly set MIO_ALLOW_PRIVATE_IPS=true on management for trusted internal networks. Click Diagnose for details.",
     },
     NETWORK_UNREACHABLE: {
       title: "Node is unreachable on the network.",
