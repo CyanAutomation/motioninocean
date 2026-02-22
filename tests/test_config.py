@@ -291,7 +291,7 @@ def test_dockerfile_runtime_contract_instructions(workspace_root):
     # Check that build args are defined (Trixie is the target suite)
     assert "ARG DEBIAN_SUITE=trixie" in dockerfile_content
     assert "ARG RPI_SUITE=trixie" in dockerfile_content
-    assert "python3-picamera2" in dockerfile_content
+    assert "/opt/venv/bin/pip install --no-deps picamera2" in dockerfile_content
     assert "WORKDIR /app" in dockerfile_content
     assert "COPY pi_camera_in_docker/ /app/pi_camera_in_docker/" in dockerfile_content
     assert 'CMD ["python3", "-m", "pi_camera_in_docker.main"]' in dockerfile_content

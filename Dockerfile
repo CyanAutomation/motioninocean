@@ -37,13 +37,19 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 # ---- Layer 2: Virtual Environment Setup ----
 # Create venv to isolate pip-managed packages from system Python
-# Using --system-site-packages to allow venv access to apt-installed picamera2 and libcamera
+# Using --system-site-packages to allow venv access to apt-installed libcamera C extensions
 # This prevents conflicts between apt-managed (system) and pip-managed (application) dependencies
-# while ensuring camera stack visibility (picamera2 is installed via apt in final stage, not pip)
+# picamera2 (pure-Python wrapper) is pip-installed here on arm64:
+#   python3-picamera2 is only in the RPi bookworm apt repo, not trixie.
+#   The C extension (python3-libcamera) is still installed via apt in the final stage.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     python3 -m venv --system-site-packages /opt/venv && \
-    /opt/venv/bin/pip install --upgrade pip setuptools wheel
+    /opt/venv/bin/pip install --upgrade pip setuptools wheel && \
+    if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
+        echo "Installing picamera2 from PyPI (python3-picamera2 not in RPi trixie apt repo)..." && \
+        /opt/venv/bin/pip install --no-deps picamera2; \
+    fi
 
 # ---- Layer 3: Python Dependencies (Volatile) ----
 # Prepare for pip install: copy requirements and install pip packages into venv
@@ -61,8 +67,10 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     rm -rf /tmp/requirements-base.txt /tmp/*
 
 # ---- Final Stage ----
-# The final image uses raspbian:trixie-slim with system Python for apt-installed
-# python3-picamera2 and libcamera libraries alongside isolated pip dependencies in /opt/venv
+# The final image uses debian:trixie-slim with system Python for apt-installed
+# libcamera libraries alongside isolated pip dependencies in /opt/venv.
+# picamera2 (pure-Python wrapper) is pip-installed into /opt/venv in the builder stage above,
+# since python3-picamera2 is not available in the RPi trixie apt repo (only in bookworm).
 # Venv approach prevents conflicts between system and pip-managed package versions
 FROM debian:${DEBIAN_SUITE}-slim
 
@@ -128,7 +136,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] https://archive.raspberrypi.com/debian/ ${RPI_SUITE} main" > /etc/apt/sources.list.d/raspi.list && \
         mkdir -p /etc/apt/preferences.d && \
         printf "# Pin camera-related packages to Raspberry Pi repository\n\
-Package: libcamera* python3-libcamera python3-picamera2 rpicam*\n\
+Package: libcamera* python3-libcamera rpicam*\n\
 Pin: origin archive.raspberrypi.com\n\
 Pin-Priority: 1001\n\
 \n\
@@ -142,24 +150,13 @@ Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
         apt-get install -y --no-install-recommends \
           libcamera-dev \
           python3-libcamera \
-          python3-picamera2 \
           rpicam-apps \
           v4l-utils && \
         rm -f /etc/apt/apt.conf.d/99use-gpgv-rpi && \
         echo "Camera packages installed successfully:" && \
-        apt-cache policy libcamera-dev rpicam-apps python3-picamera2 python3-libcamera && \
+        apt-cache policy libcamera-dev rpicam-apps python3-libcamera && \
         dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
-          libcamera-dev rpicam-apps python3-picamera2 python3-libcamera 2>/dev/null || true && \
-        echo "Running arm64 camera package preflight diagnostics..." && \
-        apt-cache policy python3-picamera2 python3-libcamera && \
-        echo "python3-picamera2 file listing (first 40 entries):" && \
-        dpkg -L python3-picamera2 | head -n 40 && \
-        if python3 -c "import sys; print(sys.path); import picamera2; print(picamera2.__file__)"; then \
-            echo "picamera2 import preflight passed."; \
-        else \
-            echo "ERROR: picamera2 import failed after package install. Likely Debian/RPi suite or package mismatch (DEBIAN_SUITE=${DEBIAN_SUITE}, RPI_SUITE=${RPI_SUITE})." >&2; \
-            exit 1; \
-        fi && \
+          libcamera-dev rpicam-apps python3-libcamera 2>/dev/null || true && \
         rm -rf /var/lib/apt/lists/*; \
     else \
         echo "Skipping Raspberry Pi camera stack (non-arm64 build)"; \
@@ -226,7 +223,7 @@ RUN mkdir -p /app && \
 # This ensures explicit behavior: arm64 fails if camera unavailable, amd64 fails if core Python unavailable
 # Use venv Python: flask and flask_cors are pip-installed into /opt/venv only (not the system Python).
 # The venv was created with --system-site-packages so /opt/venv/bin/python3 also sees apt-installed
-# packages (picamera2, numpy, libcamera) via /usr/lib/python3/dist-packages/ — both stages share the
+# packages (numpy, libcamera C extensions) via /usr/lib/python3/dist-packages/ — both stages share the
 # same raspbian:trixie-slim base so pyvenv.cfg home pointers match correctly across build stages.
 RUN /opt/venv/bin/python3 /usr/local/bin/validate-stack.py
 
