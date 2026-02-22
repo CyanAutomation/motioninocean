@@ -21,9 +21,10 @@ Pillow>=12.1.1
 numpy==2.2.3
 
 # Camera support for Raspberry Pi
-# picamera2 is installed from PyPI (python3-picamera2 not available in Debian Trixie apt repo)
-# C extensions (libcamera, python3-libcamera) are still installed via apt in the final Dockerfile stage.
-picamera2==0.3.34
+# Note: picamera2 is installed separately via conditional pip install in the Dockerfile
+# builder stage for arm64 only (see Dockerfile line ~52).
+# It is NOT in requirements.txt to avoid unnecessary build of C dependencies on amd64.
+# C extensions (libcamera, python3-libcamera) are installed via apt in the final stage.
 
 # Development and testing dependencies
 # These are listed here for reference but installed separately in CI/dev environments
