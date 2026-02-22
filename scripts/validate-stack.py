@@ -8,6 +8,8 @@ This script validates the required Python stack based on the build architecture:
 """
 
 import os
+import platform
+import subprocess
 import sys
 
 
@@ -69,16 +71,59 @@ def validate_amd64():
         return 1
 
 
+def _normalize_architecture(value: str | None) -> str | None:
+    """Normalize architecture labels used by this script."""
+    if value is None:
+        return None
+
+    mapping = {
+        "aarch64": "arm64",
+        "amd64": "amd64",
+        "arm64": "arm64",
+        "x86_64": "amd64",
+    }
+    return mapping.get(value.strip().lower())
+
+
+def _detect_architecture_from_dpkg() -> str | None:
+    """Detect architecture from the container OS using dpkg."""
+    try:
+        result = subprocess.run(
+            ["dpkg", "--print-architecture"],
+            capture_output=True,
+            check=True,
+            text=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return None
+
+    return _normalize_architecture(result.stdout)
+
+
+def _select_target_architecture() -> tuple[str | None, str | None, str | None]:
+    """Determine architecture from dpkg first, then env var, then platform.machine."""
+    dpkg_arch = _detect_architecture_from_dpkg()
+    env_arch = _normalize_architecture(os.environ.get("TARGETARCH"))
+    machine_arch = _normalize_architecture(platform.machine())
+
+    selected_arch = dpkg_arch or env_arch or machine_arch
+    return selected_arch, dpkg_arch, env_arch or machine_arch
+
+
 def main():
     """Main entry point for stack validation."""
-    targetarch = os.environ.get("TARGETARCH", "unknown")
+    targetarch, detected_arch, fallback_arch = _select_target_architecture()
 
     if targetarch == "arm64":
         return validate_arm64()
     elif targetarch == "amd64":
         return validate_amd64()
     else:
-        print(f"ERROR: Unknown or missing TARGETARCH: {targetarch}")
+        print(
+            "ERROR: Unknown architecture. "
+            f"detected_from_dpkg={detected_arch or 'unknown'}, "
+            f"fallback_value={fallback_arch or 'unknown'}"
+        )
         return 1
 
 
