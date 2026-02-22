@@ -79,6 +79,7 @@ def is_private_ip_allowed() -> bool:
     """
     return _load_allow_private_ips_flag()
 
+
 # Request timeout used for proxied webcam HTTP calls.
 REQUEST_TIMEOUT_SECONDS = 5.0
 
@@ -370,6 +371,28 @@ def _discovery_metadata(existing: Optional[Dict[str, Any]] = None) -> Dict[str, 
         "first_seen": first_seen or now_iso,
         "last_announce_at": now_iso,
         "approved": approved,
+    }
+
+
+def _announce_discovery_patch(existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Build discovery patch metadata for announce upserts.
+
+    Ensures first_seen is always present in the patch payload, updates
+    last_announce_at on every announce, and preserves existing approval state
+    when present.
+
+    Args:
+        existing: Existing webcam entry, if one already exists in the registry.
+
+    Returns:
+        Discovery patch dictionary for upsert update path.
+    """
+    metadata = _discovery_metadata(existing)
+    return {
+        "source": "discovered",
+        "first_seen": metadata["first_seen"],
+        "last_announce_at": metadata["last_announce_at"],
+        "approved": metadata["approved"],
     }
 
 
@@ -1544,6 +1567,8 @@ def register_management_routes(
         if blocked_target:
             return _discovery_private_ip_block_response(validated["base_url"], blocked_target)
 
+        existing = registry.get_webcam(validated["id"])
+
         patch = {
             "name": validated["name"],
             "base_url": validated["base_url"],
@@ -1552,10 +1577,7 @@ def register_management_routes(
             "last_seen": validated["last_seen"],
             "labels": validated["labels"],
             "auth": validated["auth"],
-            "discovery": {
-                "source": "discovered",
-                "last_announce_at": _utc_now_iso(),
-            },
+            "discovery": _announce_discovery_patch(existing),
         }
         try:
             upserted = registry.upsert_webcam(validated["id"], validated, patch)
