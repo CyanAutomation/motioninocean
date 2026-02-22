@@ -23,7 +23,6 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 from .application_settings import ApplicationSettings
-from .cat_gif_generator import CatGifGenerator
 from .config_validator import ConfigValidationError, validate_all_config
 from .discovery import DiscoveryAnnouncer, build_discovery_payload
 from .feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
@@ -539,7 +538,6 @@ def _init_app_state(config: Dict[str, Any]) -> dict:
         "camera_lock": RLock(),
         "max_frame_age_seconds": config["max_frame_age_seconds"],
         "picam2_instance": None,
-        "cat_gif_generator": None,
         "camera_startup_error": None,
         "active_mock_fallback": False,
     }
@@ -1475,44 +1473,21 @@ def _init_mock_camera_frames(state: Dict[str, Any], cfg: Dict[str, Any]) -> None
     output: FrameBuffer = state["output"]
     shutdown_requested: Event = state["shutdown_requested"]
 
-    if cfg["cat_gif_enabled"]:
-        # Use cat GIF streaming mode
-        cat_generator = CatGifGenerator(
-            resolution=cfg["resolution"],
-            jpeg_quality=cfg["jpeg_quality"],
-            target_fps=cfg["fps"] if cfg["fps"] > 0 else 10,
-            api_url="https://cataas.com/cat/gif",
-        )
-        state["cat_gif_generator"] = cat_generator
+    fallback = Image.new("RGB", cfg["resolution"], color=(0, 0, 0))
+    buf = io.BytesIO()
+    fallback.save(buf, format="JPEG", quality=cfg["jpeg_quality"])
+    frame = buf.getvalue()
 
-        def generate_cat_gif_frames() -> None:
-            recording_started.set()
-            try:
-                for frame in cat_generator.generate_frames():
-                    if shutdown_requested.is_set():
-                        break
-                    output.write(frame)
-            finally:
-                recording_started.clear()
+    def generate_mock_frames() -> None:
+        recording_started.set()
+        try:
+            while not shutdown_requested.is_set():
+                time.sleep(1 / (cfg["fps"] if cfg["fps"] > 0 else 10))
+                output.write(frame)
+        finally:
+            recording_started.clear()
 
-        Thread(target=generate_cat_gif_frames, daemon=True).start()
-    else:
-        # Use classic black frame mock mode
-        fallback = Image.new("RGB", cfg["resolution"], color=(0, 0, 0))
-        buf = io.BytesIO()
-        fallback.save(buf, format="JPEG", quality=cfg["jpeg_quality"])
-        frame = buf.getvalue()
-
-        def generate_mock_frames() -> None:
-            recording_started.set()
-            try:
-                while not shutdown_requested.is_set():
-                    time.sleep(1 / (cfg["fps"] if cfg["fps"] > 0 else 10))
-                    output.write(frame)
-            finally:
-                recording_started.clear()
-
-        Thread(target=generate_mock_frames, daemon=True).start()
+    Thread(target=generate_mock_frames, daemon=True).start()
 
 
 def _init_real_camera(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
