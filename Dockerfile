@@ -9,7 +9,7 @@ ARG RPI_SUITE=trixie
 # ---- Builder Stage ----
 # Minimal Python packaging stage: installs build tools and creates isolated venv.
 # Camera packages are NOT needed here; they are installed only in the final stage.
-FROM raspbian:${DEBIAN_SUITE}-slim AS builder
+FROM debian:${DEBIAN_SUITE}-slim AS builder
 
 # Re-declare build args for this stage
 ARG DEBIAN_SUITE
