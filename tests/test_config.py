@@ -619,7 +619,7 @@ print(json.dumps(results))
 
 
 def test_setup_generate_uses_mio_management_auth_token_in_env(monkeypatch, tmp_path):
-    """Setup generation should emit canonical management auth token env variable."""
+    """Setup generation should emit canonical env variable names for mode and management auth."""
     from pi_camera_in_docker import main
 
     monkeypatch.setenv("MIO_APP_MODE", "management")
@@ -646,6 +646,8 @@ def test_setup_generate_uses_mio_management_auth_token_in_env(monkeypatch, tmp_p
 
     assert response.status_code == 200
     env_content = response.get_json()["env_content"]
+    assert "MIO_APP_MODE=management" in env_content
+    assert "MIO_MODE=" not in env_content
     assert "MIO_MANAGEMENT_AUTH_TOKEN=generated-token" in env_content
     assert "MANAGEMENT_AUTH_TOKEN=generated-token" not in env_content
 
