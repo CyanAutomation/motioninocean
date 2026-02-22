@@ -36,7 +36,6 @@ echo ""
 # Build with timing
 BUILD_START=$(date +%s%N)
 docker build \
-    --build-arg INCLUDE_MOCK_CAMERA=true \
     -t "$FULL_TAG" \
     -f Dockerfile \
     . 2>&1 | tail -20

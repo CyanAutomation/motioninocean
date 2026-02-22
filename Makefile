@@ -47,18 +47,18 @@ help:
 	@echo ""
 	@echo "Docker Build (Debian Bookworm, appliance-model, locked to RPi CSI camera):"
 	@echo "  Single-Platform Builds (host architecture):"
-	@echo "    make docker-build              Build dev image (with mock camera)"
-	@echo "    make docker-build-prod         Build production image (without mock camera)"
+	@echo "    make docker-build              Build image (mock support included)"
+	@echo "    make docker-build-prod         Build production-tagged image (same build, different tag)"
 	@echo ""
 	@echo "  Cross-Platform Builds (explicit architecture):"
 	@echo "    make docker-build-arm64        Build ARM64 dev image (RPi deployment)"
 	@echo "    make docker-build-prod-arm64   Build ARM64 production image"
-	@echo "    make docker-build-amd64        Build AMD64 dev image (mock camera required)"
-	@echo "    make docker-build-prod-amd64   Build AMD64 production image (mock camera required)"
+	@echo "    make docker-build-amd64        Build AMD64 image (mock support included)"
+	@echo "    make docker-build-prod-amd64   Build AMD64 production-tagged image (same build)"
 	@echo ""
 	@echo "  Multi-Architecture Convenience (sequential arm64 + amd64):"
-	@echo "    make docker-build-all          Build both ARM64 and AMD64 dev images"
-	@echo "    make docker-build-prod-all     Build both ARM64 and AMD64 prod images"
+	@echo "    make docker-build-all          Build both ARM64 and AMD64 images"
+	@echo "    make docker-build-prod-all     Build both ARM64 and AMD64 production-tagged images"
 	@echo ""
 	@echo "  Options:"
 	@echo "    DOCKER_PUSH=1 REGISTRY=ghcr.io/myorg make docker-build-amd64  (auto-push to registry)"
@@ -267,8 +267,8 @@ clean:
 # Motion In Ocean is locked to Debian Bookworm (stable, rigid appliance model).
 #
 # PRIMARY BUILD TARGETS:
-#   make docker-build         Build dev image (with mock camera)
-#   make docker-build-prod    Build production image (without mock camera)
+#   make docker-build         Build image (mock support included)
+#   make docker-build-prod    Build production-tagged image (same build, different tag)
 #   make docker-build-arm64   Build ARM64 dev image for Raspberry Pi deployment
 #
 # ARCHITECTURE NOTE:
@@ -278,49 +278,38 @@ clean:
 #   make docker-build-prod-arm64  (instead of make docker-build-prod)
 # Or use plain `docker build` if building on an ARM64 host.
 docker-build:
-	@echo "Building Docker image (Debian bookworm, with mock camera)..."
+	@echo "Building Docker image (Debian bookworm, mock support included)..."
 	@echo "Note: This builds for your host architecture. For Raspberry Pi, use: make docker-build-arm64"
 	DOCKER_BUILDKIT=1 docker build \
-		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-true} \
 		-t motion-in-ocean:dev .
 
 docker-build-prod:
-	@echo "Building production Docker image (Debian bookworm, without mock camera, smallest size)..."
+	@echo "Building production-tagged Docker image (Debian bookworm, mock support included)..."
 	DOCKER_BUILDKIT=1 docker build \
-		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-false} \
 		-t motion-in-ocean:dev-prod .
 
 # ARM64-explicit targets (use for Raspberry Pi deployment or when building on non-ARM hosts)
-# arm64 can use real camera (INCLUDE_MOCK_CAMERA=false) or mock camera (true) per Dockerfile design
 docker-build-arm64:
-	@echo "Building ARM64 Docker image (Debian bookworm, with mock camera)..."
+	@echo "Building ARM64 Docker image (Debian bookworm, mock support included)..."
 	docker buildx build --platform linux/arm64 \
-		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-true} \
 		-t motion-in-ocean:dev .
 
 docker-build-prod-arm64:
-	@echo "Building ARM64 production Docker image (Debian bookworm, without mock camera)..."
+	@echo "Building ARM64 production-tagged Docker image (Debian bookworm, mock support included)..."
 	docker buildx build --platform linux/arm64 \
-		--build-arg INCLUDE_MOCK_CAMERA=$${INCLUDE_MOCK_CAMERA:-false} \
 		-t motion-in-ocean:dev-prod .
 
 # AMD64-explicit targets (for Intel/AMD hosts)
-# CONSTRAINT: INCLUDE_MOCK_CAMERA=true is hardcoded (non-negotiable, enforced by Dockerfile Layer 6).
-# Rationale: No hardware camera support on amd64; mock camera fallback ensures functional image.
 # To enable auto-push to registry: DOCKER_PUSH=1 make docker-build-amd64
 docker-build-amd64:
-	@echo "Building AMD64 Docker image (Debian bookworm, with mock camera support)..."
-	@echo "Note: amd64 requires mock camera (Dockerfile Layer 6 guard prevents real camera on amd64)"
+	@echo "Building AMD64 Docker image (Debian bookworm, mock support included)..."
 	docker buildx build --platform linux/amd64 \
-		--build-arg INCLUDE_MOCK_CAMERA=true \
 		-t motion-in-ocean:dev \
 		$${DOCKER_PUSH:+--push} .
 
 docker-build-prod-amd64:
-	@echo "Building AMD64 production Docker image (Debian bookworm, with mock camera support)..."
-	@echo "Note: amd64 production requires mock camera (Dockerfile Layer 6 guard prevents real camera on amd64)"
+	@echo "Building AMD64 production-tagged Docker image (Debian bookworm, mock support included)..."
 	docker buildx build --platform linux/amd64 \
-		--build-arg INCLUDE_MOCK_CAMERA=true \
 		-t motion-in-ocean:dev-prod \
 		$${DOCKER_PUSH:+--push} .
 

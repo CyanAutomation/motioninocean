@@ -779,6 +779,58 @@ def test_run_webcam_mode_raises_on_camera_init_failure_in_strict_mode(monkeypatc
         main._run_webcam_mode(state, cfg)
 
 
+def test_run_webcam_mode_explicit_mock_camera_forces_mock_path(monkeypatch):
+    """Explicit mock mode should bypass real camera init and use mock frames."""
+    from threading import Event, RLock
+
+    from modes.webcam import ConnectionTracker, FrameBuffer, StreamStats
+
+    from pi_camera_in_docker import main
+
+    cfg = {
+        "mock_camera": True,
+        "fail_on_camera_init_error": True,
+        "target_fps": 0,
+        "max_stream_connections": 10,
+    }
+
+    stream_stats = StreamStats()
+    output = FrameBuffer(stream_stats, target_fps=cfg["target_fps"])
+    state = {
+        "recording_started": Event(),
+        "shutdown_requested": Event(),
+        "camera_lock": RLock(),
+        "output": output,
+        "stream_stats": stream_stats,
+        "connection_tracker": ConnectionTracker(),
+        "max_stream_connections": cfg["max_stream_connections"],
+        "picam2_instance": None,
+    }
+
+    monkeypatch.setattr(main, "_check_device_availability", lambda _cfg: None)
+
+    real_camera_called = []
+
+    def fail_if_real_camera_called(_state, _cfg):
+        real_camera_called.append(True)
+
+    mock_camera_called = []
+
+    def fake_mock_frames(_state, _cfg):
+        mock_camera_called.append(True)
+        _state["recording_started"].set()
+
+    monkeypatch.setattr(main, "_init_real_camera", fail_if_real_camera_called)
+    monkeypatch.setattr(main, "_init_mock_camera_frames", fake_mock_frames)
+
+    main._run_webcam_mode(state, cfg)
+
+    assert mock_camera_called
+    assert not real_camera_called
+    assert state["recording_started"].is_set() is True
+    assert state["active_mock_fallback"] is False
+
+
 def test_run_webcam_mode_falls_back_to_mock_on_camera_init_failure_when_not_strict(monkeypatch):
     """Non-strict camera init mode should activate mock fallback on camera failures."""
     from threading import Event, RLock
