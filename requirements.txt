@@ -14,9 +14,7 @@ Flask-Limiter==3.11.0
 sentry-sdk[flask]==2.19.0
 
 # Lightweight image generation for mock camera fallback
-# NOTE: This is now conditionally installed via Dockerfile build arg INCLUDE_MOCK_CAMERA
-# Default build includes this dependency for development/testing flexibility
-# To exclude mock camera support (save ~7MB), build with: --build-arg INCLUDE_MOCK_CAMERA=false
+# Included in all builds so runtime can switch to mock mode via MOCK_CAMERA=true when needed.
 Pillow>=12.1.1
 
 # NumPy for array processing

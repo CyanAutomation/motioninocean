@@ -43,8 +43,8 @@ Raspberry Pi-specific camera packages (libcamera, picamera2) are ARM-only. If bu
 
 **Using Makefile (recommended):**
 ```bash
-make docker-build-arm64       # Dev image with mock camera
-make docker-build-prod-arm64  # Production image
+make docker-build-arm64       # ARM64 image (mock support included)
+make docker-build-prod-arm64  # Production-tagged ARM64 image (same build profile)
 ```
 
 **Using docker buildx directly:**

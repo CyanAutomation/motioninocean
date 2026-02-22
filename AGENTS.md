@@ -147,10 +147,10 @@ make security
 ### Docker Build
 
 ```bash
-# Build image with mock camera (testing)
+# Build image (mock support always included; runtime toggles via MOCK_CAMERA)
 make docker-build
 
-# Build production image (real camera hardware only)
+# Build production-tagged image (same build profile)
 make docker-build-prod
 
 # Build all variants
