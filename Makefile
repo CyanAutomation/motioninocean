@@ -1,6 +1,10 @@
 # Makefile for motion-in-ocean development tasks
 # Provides convenient shortcuts for common operations
 
+# Docker build configuration
+DEBIAN_SUITE ?= trixie
+RPI_SUITE ?= trixie
+
 .PHONY: help install install-dev install-node test test-frontend lint format type-check security clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
@@ -278,38 +282,50 @@ clean:
 #   make docker-build-prod-arm64  (instead of make docker-build-prod)
 # Or use plain `docker build` if building on an ARM64 host.
 docker-build:
-	@echo "Building Docker image (Debian bookworm, mock support included)..."
+	@echo "Building Docker image (DEBIAN_SUITE=$(DEBIAN_SUITE), RPI_SUITE=$(RPI_SUITE), mock support included)..."
 	@echo "Note: This builds for your host architecture. For Raspberry Pi, use: make docker-build-arm64"
 	DOCKER_BUILDKIT=1 docker build \
+		--build-arg DEBIAN_SUITE=$(DEBIAN_SUITE) \
+		--build-arg RPI_SUITE=$(RPI_SUITE) \
 		-t motion-in-ocean:dev .
 
 docker-build-prod:
-	@echo "Building production-tagged Docker image (Debian bookworm, mock support included)..."
+	@echo "Building production-tagged Docker image (DEBIAN_SUITE=$(DEBIAN_SUITE), RPI_SUITE=$(RPI_SUITE), mock support included)..."
 	DOCKER_BUILDKIT=1 docker build \
+		--build-arg DEBIAN_SUITE=$(DEBIAN_SUITE) \
+		--build-arg RPI_SUITE=$(RPI_SUITE) \
 		-t motion-in-ocean:dev-prod .
 
 # ARM64-explicit targets (use for Raspberry Pi deployment or when building on non-ARM hosts)
 docker-build-arm64:
-	@echo "Building ARM64 Docker image (Debian bookworm, mock support included)..."
+	@echo "Building ARM64 Docker image (DEBIAN_SUITE=$(DEBIAN_SUITE), RPI_SUITE=$(RPI_SUITE), mock support included)..."
 	docker buildx build --platform linux/arm64 \
+		--build-arg DEBIAN_SUITE=$(DEBIAN_SUITE) \
+		--build-arg RPI_SUITE=$(RPI_SUITE) \
 		-t motion-in-ocean:dev .
 
 docker-build-prod-arm64:
-	@echo "Building ARM64 production-tagged Docker image (Debian bookworm, mock support included)..."
+	@echo "Building ARM64 production-tagged Docker image (DEBIAN_SUITE=$(DEBIAN_SUITE), RPI_SUITE=$(RPI_SUITE), mock support included)..."
 	docker buildx build --platform linux/arm64 \
+		--build-arg DEBIAN_SUITE=$(DEBIAN_SUITE) \
+		--build-arg RPI_SUITE=$(RPI_SUITE) \
 		-t motion-in-ocean:dev-prod .
 
 # AMD64-explicit targets (for Intel/AMD hosts)
 # To enable auto-push to registry: DOCKER_PUSH=1 make docker-build-amd64
 docker-build-amd64:
-	@echo "Building AMD64 Docker image (Debian bookworm, mock support included)..."
+	@echo "Building AMD64 Docker image (DEBIAN_SUITE=$(DEBIAN_SUITE), RPI_SUITE=$(RPI_SUITE), mock support included)..."
 	docker buildx build --platform linux/amd64 \
+		--build-arg DEBIAN_SUITE=$(DEBIAN_SUITE) \
+		--build-arg RPI_SUITE=$(RPI_SUITE) \
 		-t motion-in-ocean:dev \
 		$${DOCKER_PUSH:+--push} .
 
 docker-build-prod-amd64:
-	@echo "Building AMD64 production-tagged Docker image (Debian bookworm, mock support included)..."
+	@echo "Building AMD64 production-tagged Docker image (DEBIAN_SUITE=$(DEBIAN_SUITE), RPI_SUITE=$(RPI_SUITE), mock support included)..."
 	docker buildx build --platform linux/amd64 \
+		--build-arg DEBIAN_SUITE=$(DEBIAN_SUITE) \
+		--build-arg RPI_SUITE=$(RPI_SUITE) \
 		-t motion-in-ocean:dev-prod \
 		$${DOCKER_PUSH:+--push} .
 
