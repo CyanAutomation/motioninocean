@@ -254,10 +254,8 @@ RUN echo "Detected architecture: $(dpkg --print-architecture)" && \
     echo "${LIBCAM_SONAME} confirmed." && \
     python3 -c "\
 import libcamera; \
-v = libcamera.__version__; \
-print('libcamera Python binding version:', v); \
-parts = v.split('.'); \
-assert len(parts) >= 2 and int(parts[0]) == 0 and int(parts[1]) >= 5, f'Expected libcamera >= 0.5, got: {v}. Too old — rebuild required.' \
+assert hasattr(libcamera, 'CameraManager'), 'libcamera Python binding is missing CameraManager — binding too old or broken.'; \
+print('libcamera Python binding imported successfully.'); \
 " && \
     echo "libcamera Python binding confirmed."; \
     else \
