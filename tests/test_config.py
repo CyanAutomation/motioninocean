@@ -650,6 +650,35 @@ def test_setup_generate_uses_mio_management_auth_token_in_env(monkeypatch, tmp_p
     assert "MANAGEMENT_AUTH_TOKEN=generated-token" not in env_content
 
 
+
+
+def test_setup_templates_and_generate_propagates_management_auth_token(monkeypatch, tmp_path):
+    """Setup template current config token should round-trip into generated env content."""
+    from pi_camera_in_docker import main
+
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_MANAGEMENT_AUTH_TOKEN", "token-from-env")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry-setup-roundtrip.json"))
+    monkeypatch.setenv(
+        "MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-setup-roundtrip.json")
+    )
+
+    app = main.create_app_from_env()
+    client = app.test_client()
+
+    templates_response = client.get("/api/setup/templates")
+    assert templates_response.status_code == 200
+    current_config = templates_response.get_json()["current_config"]
+    assert current_config["auth_token"] == "token-from-env"
+    assert current_config["auth_token_configured"] is True
+
+    generate_response = client.post("/api/setup/generate", json=current_config)
+    assert generate_response.status_code == 200
+    env_content = generate_response.get_json()["env_content"]
+    assert "MIO_MANAGEMENT_AUTH_TOKEN=token-from-env" in env_content
+
+
 def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspace_root):
     """Verify setup UI device detection captures /dev/v4l-subdev* nodes."""
     original_path = sys.path.copy()
