@@ -62,3 +62,21 @@ docker buildx build --platform linux/arm64 \
 - Migration deltas only: [docs/guides/MIGRATION.md](docs/guides/MIGRATION.md)
 - Feature flags reference: [docs/guides/FEATURE_FLAGS.md](docs/guides/FEATURE_FLAGS.md)
 - Container directory pattern specifics: [containers/README.md](containers/README.md)
+
+## Environment Variable Naming (Canonical)
+
+- **Canonical app variables** use the `MIO_*` prefix (for example: `MIO_APP_MODE`, `MIO_PORT`, `MIO_BIND_HOST`).
+- **Docker/Compose schema keys** are separate and unchanged (`services`, `image`, `ports`, `environment`, `volumes`, `networks`, `depends_on`).
+
+### Legacy aliases still accepted temporarily
+
+| Canonical `MIO_*` var         | Legacy alias                    |
+| ----------------------------- | ------------------------------- |
+| `MIO_APP_MODE`                | `APP_MODE`, `MOTION_IN_OCEAN_MODE` |
+| `MIO_PORT`                    | `MOTION_IN_OCEAN_PORT`          |
+| `MIO_BIND_HOST`               | `MOTION_IN_OCEAN_BIND_HOST`     |
+| `MIO_RESOLUTION`              | `RESOLUTION`, `MOTION_IN_OCEAN_RESOLUTION` |
+| `MIO_MANAGEMENT_AUTH_TOKEN`   | `MANAGEMENT_AUTH_TOKEN`         |
+| `MIO_DISCOVERY_TOKEN`         | `DISCOVERY_TOKEN`               |
+
+See the deployment guide for complete examples and migration details.
