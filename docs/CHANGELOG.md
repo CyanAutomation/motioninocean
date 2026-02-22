@@ -11,6 +11,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.18.1] - 2026-02-22
+
+- [docker] Update Pillow requirement comments for unconditional install (#360)
+- [webcam] Fallback to mock frames when real camera init fails (#359)
+- [logging] Separate runtime mock camera from provenance metadata (#358)
+- [docker] Always include mock-camera runtime dependency set (#357)
+
 ## [1.18.0] - 2026-02-22
 
 - [camera] Prefer rpicam-hello before libcamera-hello in validation (#356)
