@@ -87,7 +87,7 @@ LABEL org.opencontainers.image.vendor="CyanAutomation"
 
 # ---- Layer 1: System Dependencies (Stable) ----
 # Install base system packages from Debian repositories only.
-# Keep Raspberry Pi apt source/pinning out of this layer so apt-get update does not depend on archive.raspberrypi.org.
+# Keep Raspberry Pi apt source/pinning out of this layer so apt-get update does not depend on archive.raspberrypi.com.
 # CRITICAL: Install python3, python3-venv, python3-numpy explicitly before venv copy.
 # Multi-stage venv with --system-site-packages uses symlinks to system Python; must exist before validation.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -120,21 +120,21 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
         echo "Installing Raspberry Pi camera stack for arm64..." && \
         curl -L --connect-timeout 10 --max-time 30 --retry 2 -f \
-          "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" \
+          "https://archive.raspberrypi.com/debian/raspberrypi.gpg.key" \
           -o /tmp/raspberrypi.gpg.key && \
         echo "Verifying GPG key integrity..." && \
         gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
         rm /tmp/raspberrypi.gpg.key && \
-        echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ ${RPI_SUITE} main" > /etc/apt/sources.list.d/raspi.list && \
+        echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] https://archive.raspberrypi.com/debian/ ${RPI_SUITE} main" > /etc/apt/sources.list.d/raspi.list && \
         mkdir -p /etc/apt/preferences.d && \
         printf "# Pin camera-related packages to Raspberry Pi repository\n\
 Package: libcamera* python3-libcamera python3-picamera2 rpicam*\n\
-Pin: origin archive.raspberrypi.org\n\
+Pin: origin archive.raspberrypi.com\n\
 Pin-Priority: 1001\n\
 \n\
 # Lower priority for other RPi packages (prefer Debian versions)\n\
 Package: *\n\
-Pin: origin archive.raspberrypi.org\n\
+Pin: origin archive.raspberrypi.com\n\
 Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
         apt-get update && \
         apt-get install -y --no-install-recommends \
