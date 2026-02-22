@@ -97,7 +97,7 @@ def _detect_architecture_from_dpkg() -> str | None:
             text=True,
             timeout=5,
         )
-    except (FileNotFoundError, subprocess.CalledProcessError):
+    except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
         return None
 
     return _normalize_architecture(result.stdout)
