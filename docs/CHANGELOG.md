@@ -11,6 +11,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.17.9] - 2026-02-22
+
+- [docker] Use dpkg architecture detection in arm64 conditionals (#354)
+- [scripts] Detect stack architecture from container OS before env var (#353)
+- Refactor type annotations for improved clarity in logging and management API
+- Implement theme management and settings changes summary features
+
 ## [1.17.8] - 2026-02-21
 
 - Enhance Dockerfile for architecture-aware Raspberry Pi camera package installation
