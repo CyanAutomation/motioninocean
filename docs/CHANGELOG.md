@@ -13,6 +13,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [1.18.5] - 2026-02-22
 
+- [docker] Update Raspberry Pi repository URLs and adjust Dockerfile test assertions for Trixie suite
+- [build] Make Docker suite args explicit in Make targets (#388)
+
+## [1.18.5] - 2026-02-22
+
 - [docker] Base image stages on raspbian trixie slim (#387)
 - [docker] Add arm64 camera install preflight diagnostics (#386)
 
