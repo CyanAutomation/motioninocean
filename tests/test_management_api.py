@@ -1480,8 +1480,6 @@ def test_node_action_maps_invalid_upstream_payload_to_controlled_error(monkeypat
     assert response.json["error"]["details"]["action"] == "restart"
 
 
-
-
 def test_node_status_maps_non_object_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
     client, management_api = _new_management_client(monkeypatch, tmp_path)
 
@@ -1541,6 +1539,7 @@ def test_node_action_maps_non_object_upstream_payload_to_controlled_error(monkey
     assert response.json["error"]["code"] == "WEBCAM_INVALID_RESPONSE"
     assert response.json["error"]["details"]["reason"] == "malformed json"
     assert response.json["error"]["details"]["action"] == "restart"
+
 
 def test_create_node_migrates_legacy_auth_with_token(monkeypatch, tmp_path):
     client, _ = _new_management_client(monkeypatch, tmp_path)
@@ -1679,8 +1678,6 @@ def test_request_json_retries_next_vetted_address_when_first_connection_fails(mo
     assert attempted_addresses == ["93.184.216.34", "93.184.216.35"]
 
 
-
-
 def test_request_json_raises_for_array_json_payload(monkeypatch):
     from pi_camera_in_docker import management_api
 
@@ -1757,6 +1754,7 @@ def test_request_json_raises_for_scalar_json_payload(monkeypatch):
             "GET",
             "/api/status",
         )
+
 
 def test_request_json_maps_name_resolution_failure_to_dns_category(monkeypatch):
     from pi_camera_in_docker import management_api

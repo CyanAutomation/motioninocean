@@ -228,7 +228,9 @@ class TestDiscoveryEndToEnd:
             node_data = response.json["node"]
             assert node_data["id"] == "node-webcam-1"
             assert node_data["discovery"]["source"] == "discovered"
-            assert node_data["discovery"]["approved"] is False, "New discovery should start unapproved"
+            assert node_data["discovery"]["approved"] is False, (
+                "New discovery should start unapproved"
+            )
 
             # Step 2: Admin approves the discovered node
             approval_response = client.post(

@@ -32,8 +32,7 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
 
     if not management_url:
         message = (
-            "MIO_DISCOVERY_ENABLED=true requires env var "
-            "MIO_DISCOVERY_MANAGEMENT_URL to be set"
+            "MIO_DISCOVERY_ENABLED=true requires env var MIO_DISCOVERY_MANAGEMENT_URL to be set"
         )
         raise ConfigValidationError(
             message,

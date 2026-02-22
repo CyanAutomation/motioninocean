@@ -69,7 +69,9 @@ def _load_camera_config() -> Dict[str, Any]:
             logger.warning("Invalid MIO_FPS range '%s', using default 24", fps_raw)
             fps = 24
     except ValueError:
-        logger.warning("Invalid MIO_FPS value '%s', using default 24", os.environ.get("MIO_FPS", "24"))
+        logger.warning(
+            "Invalid MIO_FPS value '%s', using default 24", os.environ.get("MIO_FPS", "24")
+        )
         fps = 24
 
     try:
@@ -466,7 +468,9 @@ def _merge_discovery_settings(merged: Dict[str, Any], discovery_settings: Dict[s
             if interval > 0:
                 merged["discovery_interval_seconds"] = interval
             else:
-                logger.warning("Invalid persisted discovery_interval_seconds range, using env value")
+                logger.warning(
+                    "Invalid persisted discovery_interval_seconds range, using env value"
+                )
         else:
             logger.warning("Invalid persisted discovery_interval_seconds type, using env value")
 

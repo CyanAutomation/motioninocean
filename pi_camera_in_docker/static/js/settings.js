@@ -17,7 +17,7 @@ function buildSettingsChangesSummaryModel(changesPayload, schemaPayload) {
   const schemaProperties = schemaPayload || {};
 
   const items = overridden
-    .filter((entry) => typeof entry?.category === "string" && typeof entry?.key === "string")
+    .filter((entry) => typeof entry?.category === 'string' && typeof entry?.key === 'string')
     .map((entry) => {
       const categorySchema = schemaProperties[entry.category];
       const keySchema = categorySchema?.properties?.[entry.key] || {};
@@ -45,15 +45,15 @@ const SettingsUI = (() => {
   const dirtyFields = new Set();
 
   // DOM Elements
-  const settingsTab = () => document.getElementById("settings-tab-btn");
-  const settingsLoading = () => document.getElementById("settings-loading");
-  const saveBtn = () => document.getElementById("settings-save-btn");
-  const resetBtn = () => document.getElementById("settings-reset-btn");
-  const errorAlert = () => document.getElementById("settings-error-alert");
-  const successAlert = () => document.getElementById("settings-success-alert");
-  const changesSummary = () => document.getElementById("settings-changes-summary");
-  const changesList = () => document.getElementById("settings-changes-list");
-  const restartWarning = () => document.getElementById("settings-restart-warning");
+  const settingsTab = () => document.getElementById('settings-tab-btn');
+  const settingsLoading = () => document.getElementById('settings-loading');
+  const saveBtn = () => document.getElementById('settings-save-btn');
+  const resetBtn = () => document.getElementById('settings-reset-btn');
+  const errorAlert = () => document.getElementById('settings-error-alert');
+  const successAlert = () => document.getElementById('settings-success-alert');
+  const changesSummary = () => document.getElementById('settings-changes-summary');
+  const changesList = () => document.getElementById('settings-changes-list');
+  const restartWarning = () => document.getElementById('settings-restart-warning');
 
   /**
    * Initialize Settings UI.
@@ -66,25 +66,25 @@ const SettingsUI = (() => {
   const init = () => {
     // Register tab click handler
     if (settingsTab()) {
-      settingsTab().addEventListener("click", onTabClick);
+      settingsTab().addEventListener('click', onTabClick);
     }
 
     // Register action handlers
     if (saveBtn()) {
-      saveBtn().addEventListener("click", onSave);
+      saveBtn().addEventListener('click', onSave);
     }
     if (resetBtn()) {
-      resetBtn().addEventListener("click", onReset);
+      resetBtn().addEventListener('click', onReset);
     }
 
     // Register section toggle handlers
-    document.querySelectorAll(".settings-section-toggle").forEach((toggle) => {
-      toggle.addEventListener("click", onSectionToggle);
+    document.querySelectorAll('.settings-section-toggle').forEach((toggle) => {
+      toggle.addEventListener('click', onSectionToggle);
     });
 
     // Register section header click handlers (toggle collapse)
-    document.querySelectorAll(".settings-section-header").forEach((header) => {
-      header.addEventListener("click", onSectionHeaderClick);
+    document.querySelectorAll('.settings-section-header').forEach((header) => {
+      header.addEventListener('click', onSectionHeaderClick);
     });
   };
 
@@ -102,7 +102,7 @@ const SettingsUI = (() => {
     e.preventDefault();
 
     // Switch to settings tab using central handler
-    switchTab("settings");
+    switchTab('settings');
 
     // Load data if not already loaded
     if (!schema || !currentSettings) {
@@ -121,16 +121,16 @@ const SettingsUI = (() => {
    */
   const loadSettings = async () => {
     try {
-      settingsLoading().classList.remove("hidden");
+      settingsLoading().classList.remove('hidden');
 
       // Fetch schema and current settings in parallel
       const [schemaResp, settingsResp] = await Promise.all([
-        fetch("/api/settings/schema"),
-        fetch("/api/settings"),
+        fetch('/api/settings/schema'),
+        fetch('/api/settings'),
       ]);
 
       if (!schemaResp.ok || !settingsResp.ok) {
-        throw new Error("Failed to load settings");
+        throw new Error('Failed to load settings');
       }
 
       const schemaData = await schemaResp.json();
@@ -146,12 +146,12 @@ const SettingsUI = (() => {
       updateSaveButton();
       await refreshChangesSummary();
 
-      showSuccess("Settings loaded successfully");
+      showSuccess('Settings loaded successfully');
     } catch (error) {
-      console.error("Error loading settings:", error);
-      showError("Failed to load settings: " + error.message);
+      console.error('Error loading settings:', error);
+      showError('Failed to load settings: ' + error.message);
     } finally {
-      settingsLoading().classList.add("hidden");
+      settingsLoading().classList.add('hidden');
     }
   };
 
@@ -179,9 +179,9 @@ const SettingsUI = (() => {
     renderFeatureFlags();
 
     // Attach change event handlers to all inputs
-    document.querySelectorAll(".setting-input").forEach((input) => {
-      input.addEventListener("change", onFieldChange);
-      input.addEventListener("input", onFieldChange);
+    document.querySelectorAll('.setting-input').forEach((input) => {
+      input.addEventListener('change', onFieldChange);
+      input.addEventListener('input', onFieldChange);
     });
   };
 
@@ -196,33 +196,33 @@ const SettingsUI = (() => {
     const cameraSettings = currentSettings.camera || {};
 
     // Resolution
-    const resolutionSelect = document.getElementById("setting-resolution");
+    const resolutionSelect = document.getElementById('setting-resolution');
     if (resolutionSelect) {
-      resolutionSelect.value = cameraSettings.resolution || "";
+      resolutionSelect.value = cameraSettings.resolution || '';
     }
 
     // FPS
-    const fpsSlider = document.getElementById("setting-fps");
+    const fpsSlider = document.getElementById('setting-fps');
     if (fpsSlider) {
       fpsSlider.value = cameraSettings.fps || 30;
       updateSliderDisplay(fpsSlider);
     }
 
     // JPEG Quality
-    const qualitySlider = document.getElementById("setting-jpeg-quality");
+    const qualitySlider = document.getElementById('setting-jpeg-quality');
     if (qualitySlider) {
       qualitySlider.value = cameraSettings.jpeg_quality || 85;
       updateSliderDisplay(qualitySlider);
     }
 
     // Max Connections
-    const maxConnInput = document.getElementById("setting-max-connections");
+    const maxConnInput = document.getElementById('setting-max-connections');
     if (maxConnInput) {
       maxConnInput.value = cameraSettings.max_stream_connections || 2;
     }
 
     // Max Frame Age
-    const frameAgeInput = document.getElementById("setting-max-frame-age");
+    const frameAgeInput = document.getElementById('setting-max-frame-age');
     if (frameAgeInput) {
       frameAgeInput.value = cameraSettings.max_frame_age_seconds || 10;
     }
@@ -239,19 +239,19 @@ const SettingsUI = (() => {
     const loggingSettings = currentSettings.logging || {};
 
     // Log Level
-    const logLevelSelect = document.getElementById("setting-log-level");
+    const logLevelSelect = document.getElementById('setting-log-level');
     if (logLevelSelect) {
-      logLevelSelect.value = loggingSettings.log_level || "INFO";
+      logLevelSelect.value = loggingSettings.log_level || 'INFO';
     }
 
     // Log Format
-    const logFormatSelect = document.getElementById("setting-log-format");
+    const logFormatSelect = document.getElementById('setting-log-format');
     if (logFormatSelect) {
-      logFormatSelect.value = loggingSettings.log_format || "text";
+      logFormatSelect.value = loggingSettings.log_format || 'text';
     }
 
     // Include Identifiers
-    const identifiersCheckbox = document.getElementById("setting-log-identifiers");
+    const identifiersCheckbox = document.getElementById('setting-log-identifiers');
     if (identifiersCheckbox) {
       identifiersCheckbox.checked = loggingSettings.log_include_identifiers || false;
     }
@@ -268,25 +268,25 @@ const SettingsUI = (() => {
     const discoverySettings = currentSettings.discovery || {};
 
     // Discovery Enabled
-    const enabledCheckbox = document.getElementById("setting-discovery-enabled");
+    const enabledCheckbox = document.getElementById('setting-discovery-enabled');
     if (enabledCheckbox) {
       enabledCheckbox.checked = discoverySettings.discovery_enabled || false;
     }
 
     // Management URL
-    const urlInput = document.getElementById("setting-discovery-url");
+    const urlInput = document.getElementById('setting-discovery-url');
     if (urlInput) {
-      urlInput.value = discoverySettings.discovery_management_url || "http://127.0.0.1:8001";
+      urlInput.value = discoverySettings.discovery_management_url || 'http://127.0.0.1:8001';
     }
 
     // Discovery Token
-    const tokenInput = document.getElementById("setting-discovery-token");
+    const tokenInput = document.getElementById('setting-discovery-token');
     if (tokenInput) {
-      tokenInput.value = discoverySettings.discovery_token || "";
+      tokenInput.value = discoverySettings.discovery_token || '';
     }
 
     // Discovery Interval
-    const intervalInput = document.getElementById("setting-discovery-interval");
+    const intervalInput = document.getElementById('setting-discovery-interval');
     if (intervalInput) {
       intervalInput.value = discoverySettings.discovery_interval_seconds || 30;
     }
@@ -301,67 +301,67 @@ const SettingsUI = (() => {
    * @returns {void}
    */
   const renderFeatureFlags = () => {
-    const container = document.getElementById("feature-flags-container");
+    const container = document.getElementById('feature-flags-container');
     if (!container || !schema.feature_flags) return;
 
     const flagSettings = currentSettings.feature_flags || {};
     const flagSchema = schema.feature_flags.properties || {};
 
-    container.innerHTML = "";
+    container.innerHTML = '';
 
     // Group flags by category
     const categories = {};
     for (const [flagName, flagDef] of Object.entries(flagSchema)) {
-      const category = flagDef.category || "Other";
+      const category = flagDef.category || 'Other';
       if (!categories[category]) categories[category] = [];
       categories[category].push({ name: flagName, def: flagDef });
     }
 
     // Render each category
     for (const [category, flags] of Object.entries(categories)) {
-      const categoryDiv = document.createElement("div");
-      categoryDiv.style.gridColumn = "span 1";
+      const categoryDiv = document.createElement('div');
+      categoryDiv.style.gridColumn = 'span 1';
 
       flags.forEach(({ name, def }) => {
-        const itemDiv = document.createElement("div");
-        itemDiv.className = "feature-flag-item";
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'feature-flag-item';
 
-        const toggleDiv = document.createElement("div");
-        toggleDiv.className = "feature-flag-toggle";
+        const toggleDiv = document.createElement('div');
+        toggleDiv.className = 'feature-flag-toggle';
 
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.className = "setting-input setting-checkbox";
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'setting-input setting-checkbox';
         checkbox.id = `setting-flag-${name}`;
-        checkbox.dataset.category = "feature_flags";
+        checkbox.dataset.category = 'feature_flags';
         checkbox.dataset.property = name;
         checkbox.checked = flagSettings[name] || def.default || false;
-        checkbox.addEventListener("change", onFieldChange);
+        checkbox.addEventListener('change', onFieldChange);
 
-        const label = document.createElement("label");
-        label.className = "feature-flag-label";
+        const label = document.createElement('label');
+        label.className = 'feature-flag-label';
         label.htmlFor = checkbox.id;
         label.textContent = def.title || name;
 
         toggleDiv.appendChild(checkbox);
         toggleDiv.appendChild(label);
 
-        const categoryBadge = document.createElement("div");
-        categoryBadge.className = "feature-flag-category";
+        const categoryBadge = document.createElement('div');
+        categoryBadge.className = 'feature-flag-category';
         categoryBadge.textContent = category;
 
-        const description = document.createElement("div");
-        description.className = "feature-flag-description";
-        description.textContent = def.description || "";
+        const description = document.createElement('div');
+        description.className = 'feature-flag-description';
+        description.textContent = def.description || '';
 
         itemDiv.appendChild(toggleDiv);
         itemDiv.appendChild(categoryBadge);
         itemDiv.appendChild(description);
 
         if (def.warning) {
-          const warning = document.createElement("div");
-          warning.className = "setting-hint";
-          warning.textContent = "⚠️ " + def.warning;
+          const warning = document.createElement('div');
+          warning.className = 'setting-hint';
+          warning.textContent = '⚠️ ' + def.warning;
           itemDiv.appendChild(warning);
         }
 
@@ -382,7 +382,7 @@ const SettingsUI = (() => {
    */
   const updateSliderDisplay = (slider) => {
     const container = slider.parentElement;
-    const display = container?.querySelector(".setting-value-display .setting-current-value");
+    const display = container?.querySelector('.setting-value-display .setting-current-value');
     if (display) {
       display.textContent = slider.value;
     }
@@ -408,7 +408,7 @@ const SettingsUI = (() => {
     updateSaveButton();
 
     // Update slider display if applicable
-    if (input.classList.contains("setting-slider")) {
+    if (input.classList.contains('setting-slider')) {
       updateSliderDisplay(input);
     }
   };
@@ -441,8 +441,8 @@ const SettingsUI = (() => {
     const content = document.querySelector(`.settings-section-content[data-section="${section}"]`);
 
     if (content) {
-      content.classList.toggle("collapsed");
-      toggle.classList.toggle("collapsed");
+      content.classList.toggle('collapsed');
+      toggle.classList.toggle('collapsed');
     }
   };
 
@@ -456,7 +456,7 @@ const SettingsUI = (() => {
    */
   const onSectionHeaderClick = (e) => {
     const header = e.currentTarget;
-    const toggle = header.querySelector(".settings-section-toggle");
+    const toggle = header.querySelector('.settings-section-toggle');
     if (toggle) {
       toggle.click();
     }
@@ -475,7 +475,7 @@ const SettingsUI = (() => {
    */
   const onSave = async () => {
     if (!formDirty || dirtyFields.size === 0) {
-      showWarning("No changes to save");
+      showWarning('No changes to save');
       return;
     }
 
@@ -485,19 +485,19 @@ const SettingsUI = (() => {
       // Build patch payload
       const patch = {};
       for (const fieldKey of dirtyFields) {
-        const [category, property] = fieldKey.split(".");
+        const [category, property] = fieldKey.split('.');
         if (!patch[category]) patch[category] = {};
 
         // Get value from form
         const input = document.querySelector(
-          `.setting-input[data-category="${category}"][data-property="${property}"]`,
+          `.setting-input[data-category="${category}"][data-property="${property}"]`
         );
         if (!input) continue;
 
         let value;
-        if (input.type === "checkbox") {
+        if (input.type === 'checkbox') {
           value = input.checked;
-        } else if (input.type === "number" || input.type === "range") {
+        } else if (input.type === 'number' || input.type === 'range') {
           value = parseFloat(input.value);
         } else {
           value = input.value;
@@ -507,9 +507,9 @@ const SettingsUI = (() => {
       }
 
       // Send PATCH request
-      const response = await fetch("/api/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patch),
       });
 
@@ -520,7 +520,7 @@ const SettingsUI = (() => {
         dirtyFields.clear();
         updateSaveButton();
         await refreshChangesSummary();
-        showSuccess("Settings saved successfully!");
+        showSuccess('Settings saved successfully!');
       } else if (response.status === 422) {
         // Requires restart
         const result = await response.json();
@@ -530,22 +530,22 @@ const SettingsUI = (() => {
         updateSaveButton();
         await refreshChangesSummary();
         showWarning(
-          "Settings saved! Some changes require server restart:\n" +
-            result.modified_on_restart.join("\n"),
+          'Settings saved! Some changes require server restart:\n' +
+            result.modified_on_restart.join('\n')
         );
       } else if (response.status === 400) {
         const result = await response.json();
         const errors = result.validation_errors || {};
         const errorList = Object.entries(errors)
           .map(([key, msg]) => `${key}: ${msg}`)
-          .join("\n");
-        showError("Validation error:\n" + errorList);
+          .join('\n');
+        showError('Validation error:\n' + errorList);
       } else {
         throw new Error(`HTTP ${response.status}`);
       }
     } catch (error) {
-      console.error("Error saving settings:", error);
-      showError("Failed to save settings: " + error.message);
+      console.error('Error saving settings:', error);
+      showError('Failed to save settings: ' + error.message);
       saveBtn().disabled = false;
     }
   };
@@ -561,12 +561,12 @@ const SettingsUI = (() => {
    * @throws {Error} If reset request fails.
    */
   const onReset = async () => {
-    if (!confirm("Reset all settings to defaults? This cannot be undone.")) {
+    if (!confirm('Reset all settings to defaults? This cannot be undone.')) {
       return;
     }
 
     try {
-      const response = await fetch("/api/settings/reset", { method: "POST" });
+      const response = await fetch('/api/settings/reset', { method: 'POST' });
 
       if (response.ok) {
         formDirty = false;
@@ -574,13 +574,13 @@ const SettingsUI = (() => {
         updateSaveButton();
         await loadSettings();
         await refreshChangesSummary();
-        showSuccess("Settings reset to defaults!");
+        showSuccess('Settings reset to defaults!');
       } else {
         throw new Error(`HTTP ${response.status}`);
       }
     } catch (error) {
-      console.error("Error resetting settings:", error);
-      showError("Failed to reset settings: " + error.message);
+      console.error('Error resetting settings:', error);
+      showError('Failed to reset settings: ' + error.message);
     }
   };
 
@@ -594,11 +594,11 @@ const SettingsUI = (() => {
    */
   const showError = (message) => {
     const alert = errorAlert();
-    const msgElement = document.getElementById("settings-error-message");
+    const msgElement = document.getElementById('settings-error-message');
     if (alert && msgElement) {
       msgElement.textContent = message;
-      alert.classList.remove("hidden");
-      setTimeout(() => alert.classList.add("hidden"), 8000);
+      alert.classList.remove('hidden');
+      setTimeout(() => alert.classList.add('hidden'), 8000);
     }
   };
 
@@ -612,11 +612,11 @@ const SettingsUI = (() => {
    */
   const showSuccess = (message) => {
     const alert = successAlert();
-    const msgElement = document.getElementById("settings-success-message");
+    const msgElement = document.getElementById('settings-success-message');
     if (alert && msgElement) {
       msgElement.textContent = message;
-      alert.classList.remove("hidden");
-      setTimeout(() => alert.classList.add("hidden"), 6000);
+      alert.classList.remove('hidden');
+      setTimeout(() => alert.classList.add('hidden'), 6000);
     }
   };
 
@@ -629,7 +629,7 @@ const SettingsUI = (() => {
    * @returns {void}
    */
   const showWarning = (message) => {
-    showSuccess("ℹ️ " + message);
+    showSuccess('ℹ️ ' + message);
   };
 
   /**
@@ -643,29 +643,29 @@ const SettingsUI = (() => {
       return;
     }
 
-    changesList().innerHTML = "";
+    changesList().innerHTML = '';
     if (!Array.isArray(model.items) || model.items.length === 0) {
-      changesSummary().classList.add("hidden");
-      restartWarning().classList.add("hidden");
+      changesSummary().classList.add('hidden');
+      restartWarning().classList.add('hidden');
       return;
     }
 
     model.items.forEach((item) => {
-      const row = document.createElement("div");
-      row.className = "settings-change-item";
+      const row = document.createElement('div');
+      row.className = 'settings-change-item';
       row.innerHTML = `
         <div class="settings-change-path">${item.category}.${item.key}</div>
         <div class="settings-change-values">
           <span class="settings-change-value">Current: ${String(item.value)}</span>
           <span class="settings-change-value">Default: ${String(item.envValue)}</span>
-          ${item.restartable ? '<span class="settings-change-badge">Restart required</span>' : ""}
+          ${item.restartable ? '<span class="settings-change-badge">Restart required</span>' : ''}
         </div>
       `;
       changesList().appendChild(row);
     });
 
-    changesSummary().classList.remove("hidden");
-    restartWarning().classList.toggle("hidden", !model.restartRequired);
+    changesSummary().classList.remove('hidden');
+    restartWarning().classList.toggle('hidden', !model.restartRequired);
   };
 
   /**
@@ -676,7 +676,7 @@ const SettingsUI = (() => {
    */
   const refreshChangesSummary = async () => {
     try {
-      const response = await fetch("/api/settings/changes");
+      const response = await fetch('/api/settings/changes');
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -684,7 +684,7 @@ const SettingsUI = (() => {
       const model = buildSettingsChangesSummaryModel(changesData, schema);
       renderChangesSummary(model);
     } catch (error) {
-      console.error("Error loading settings change summary:", error);
+      console.error('Error loading settings change summary:', error);
     }
   };
 
@@ -695,8 +695,8 @@ const SettingsUI = (() => {
 })();
 
 // Initialize when DOM is ready
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", SettingsUI.init);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', SettingsUI.init);
 } else {
   SettingsUI.init();
 }

@@ -167,7 +167,7 @@
   grid-template-columns: 44px 1fr;
 }
 
-.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"]) {
+.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded='false']) {
   grid-template-columns: 44px 1fr;
 }
 
@@ -205,12 +205,12 @@
 }
 
 #toggle-webcam-form-panel-btn::before {
-  content: "◀";
+  content: '◀';
   font-size: 0.8rem;
 }
 
-#toggle-webcam-form-panel-btn[aria-expanded="false"]::before {
-  content: "▶";
+#toggle-webcam-form-panel-btn[aria-expanded='false']::before {
+  content: '▶';
 }
 
 #webcam-form-content {
@@ -223,20 +223,20 @@
 }
 
 .management-layout.is-form-collapsed .webcam-form-panel,
-.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"]) .webcam-form-panel {
+.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded='false']) .webcam-form-panel {
   padding: 0;
   border-right: 1px solid var(--color-border-subtle);
 }
 
 .management-layout.is-form-collapsed #webcam-form-content,
-.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"]) #webcam-form-content {
+.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded='false']) #webcam-form-content {
   width: 0;
   opacity: 0;
   pointer-events: none;
 }
 
 .management-layout.is-form-collapsed #toggle-webcam-form-panel-btn,
-.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"])
+.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded='false'])
   #toggle-webcam-form-panel-btn {
   width: 2rem;
   min-width: 2rem;
@@ -246,14 +246,14 @@
 }
 
 .management-layout.is-form-collapsed .webcam-form-panel .panel-header,
-.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"])
+.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded='false'])
   .webcam-form-panel
   .panel-header {
   justify-content: center;
 }
 
 .management-layout.is-form-collapsed #form-title,
-.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"]) #form-title {
+.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded='false']) #form-title {
   display: none;
 }
 
@@ -327,17 +327,17 @@
 
   .management-layout,
   .management-layout.is-form-collapsed,
-  .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"]) {
+  .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded='false']) {
     grid-template-columns: 1fr;
   }
 
   .management-layout.is-form-collapsed .webcam-form-panel,
-  .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"]) .webcam-form-panel {
+  .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded='false']) .webcam-form-panel {
     padding-inline: var(--space-4);
   }
 
   .management-layout.is-form-collapsed #webcam-form-content,
-  .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"])
+  .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded='false'])
     #webcam-form-content {
     width: 100%;
     opacity: 1;
@@ -345,7 +345,7 @@
   }
 
   .management-layout.is-form-collapsed #toggle-webcam-form-panel-btn,
-  .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"])
+  .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded='false'])
     #toggle-webcam-form-panel-btn {
     width: 2rem;
     min-width: 2rem;
@@ -355,7 +355,7 @@
   }
 
   .management-layout.is-form-collapsed .webcam-form-panel .panel-header,
-  .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"])
+  .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded='false'])
     .webcam-form-panel
     .panel-header {
     justify-content: flex-end;
@@ -393,7 +393,7 @@
   margin-bottom: var(--space-1);
 }
 
-.diagnostic-advanced-toggle input[type="checkbox"] {
+.diagnostic-advanced-toggle input[type='checkbox'] {
   flex: 0 0 auto;
   margin: 0;
 }
@@ -572,7 +572,7 @@
     gap: var(--space-1);
   }
 
-  .diagnostic-advanced-toggle input[type="checkbox"] {
+  .diagnostic-advanced-toggle input[type='checkbox'] {
     margin-top: 0.15rem;
   }
 

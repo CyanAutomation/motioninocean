@@ -5,7 +5,7 @@
 
 const REQUEST_TIMEOUT_MS = 5000;
 const CONFIG_POLL_INTERVAL_MS = 5000;
-const THEME_STORAGE_KEY = "webcam.theme";
+const THEME_STORAGE_KEY = 'webcam.theme';
 
 const state = {
   updateInterval: null,
@@ -18,7 +18,7 @@ const state = {
   statsCollapsed: false,
   statsInFlight: false,
   configInFlight: false,
-  currentTab: "main",
+  currentTab: 'main',
   lastConfigUpdate: null,
   configPollingInterval: null,
   configInitialLoadPending: false,
@@ -63,10 +63,10 @@ function init() {
   initializeTheme();
   updateViewMeta(state.currentTab);
   startStatsUpdate();
-  updateStats().catch((error) => console.error("Initial stats update failed:", error));
-  updateConfig().catch((error) => console.error("Initial config update failed:", error));
+  updateStats().catch((error) => console.error('Initial stats update failed:', error));
+  updateConfig().catch((error) => console.error('Initial config update failed:', error));
 
-  console.log("motion-in-ocean camera stream initialized");
+  console.log('motion-in-ocean camera stream initialized');
 }
 
 /**
@@ -78,12 +78,12 @@ function init() {
  * @returns {void}
  */
 function applyTheme(theme) {
-  const resolvedTheme = theme === "dark" ? "dark" : "light";
-  document.documentElement.setAttribute("data-theme", resolvedTheme);
+  const resolvedTheme = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', resolvedTheme);
 
   if (state.elements.themeToggleBtn) {
     state.elements.themeToggleBtn.textContent =
-      resolvedTheme === "dark" ? "Light Theme" : "Dark Theme";
+      resolvedTheme === 'dark' ? 'Light Theme' : 'Dark Theme';
   }
 
   try {
@@ -101,9 +101,9 @@ function applyTheme(theme) {
  * @returns {void}
  */
 function initializeTheme() {
-  let preferredTheme = "light";
+  let preferredTheme = 'light';
   try {
-    preferredTheme = localStorage.getItem(THEME_STORAGE_KEY) || "light";
+    preferredTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'light';
   } catch {
     // Ignore local storage failures.
   }
@@ -114,34 +114,34 @@ function initializeTheme() {
  * Cache DOM elements for performance
  */
 function cacheElements() {
-  state.elements.videoStream = document.getElementById("video-stream");
-  state.elements.statsPanel = document.getElementById("stats-panel");
-  state.elements.configPanel = document.getElementById("config-panel");
-  state.elements.settingsPanel = document.getElementById("settings-panel");
-  state.elements.setupPanel = document.getElementById("setup-panel");
-  state.elements.toggleStatsBtn = document.getElementById("toggle-stats-btn");
-  state.elements.refreshBtn = document.getElementById("refresh-btn");
-  state.elements.fullscreenBtn = document.getElementById("fullscreen-btn");
-  state.elements.statusIndicator = document.getElementById("status-indicator");
-  state.elements.statusText = document.getElementById("status-text");
-  state.elements.themeToggleBtn = document.getElementById("theme-toggle-btn");
-  state.elements.configRefreshBtn = document.getElementById("config-refresh-btn");
+  state.elements.videoStream = document.getElementById('video-stream');
+  state.elements.statsPanel = document.getElementById('stats-panel');
+  state.elements.configPanel = document.getElementById('config-panel');
+  state.elements.settingsPanel = document.getElementById('settings-panel');
+  state.elements.setupPanel = document.getElementById('setup-panel');
+  state.elements.toggleStatsBtn = document.getElementById('toggle-stats-btn');
+  state.elements.refreshBtn = document.getElementById('refresh-btn');
+  state.elements.fullscreenBtn = document.getElementById('fullscreen-btn');
+  state.elements.statusIndicator = document.getElementById('status-indicator');
+  state.elements.statusText = document.getElementById('status-text');
+  state.elements.themeToggleBtn = document.getElementById('theme-toggle-btn');
+  state.elements.configRefreshBtn = document.getElementById('config-refresh-btn');
 
-  state.elements.fpsValue = document.getElementById("fps-value");
-  state.elements.uptimeValue = document.getElementById("uptime-value");
-  state.elements.framesValue = document.getElementById("frames-value");
-  state.elements.lastFrameAgeValue = document.getElementById("last-frame-age-value");
-  state.elements.maxFrameAgeValue = document.getElementById("max-frame-age-value");
-  state.elements.resolutionValue = document.getElementById("resolution-value");
-  state.elements.lastUpdated = document.getElementById("last-updated");
-  state.elements.viewTitle = document.getElementById("webcam-view-title");
-  state.elements.viewSubtitle = document.getElementById("webcam-view-subtitle");
-  state.elements.startMeetingBtn = document.getElementById("start-meeting-btn");
+  state.elements.fpsValue = document.getElementById('fps-value');
+  state.elements.uptimeValue = document.getElementById('uptime-value');
+  state.elements.framesValue = document.getElementById('frames-value');
+  state.elements.lastFrameAgeValue = document.getElementById('last-frame-age-value');
+  state.elements.maxFrameAgeValue = document.getElementById('max-frame-age-value');
+  state.elements.resolutionValue = document.getElementById('resolution-value');
+  state.elements.lastUpdated = document.getElementById('last-updated');
+  state.elements.viewTitle = document.getElementById('webcam-view-title');
+  state.elements.viewSubtitle = document.getElementById('webcam-view-subtitle');
+  state.elements.startMeetingBtn = document.getElementById('start-meeting-btn');
 
   // Config panel elements
-  state.elements.configLoading = document.getElementById("config-loading");
-  state.elements.configErrorAlert = document.getElementById("config-error-alert");
-  state.elements.configErrorMessage = document.getElementById("config-error-message");
+  state.elements.configLoading = document.getElementById('config-loading');
+  state.elements.configErrorAlert = document.getElementById('config-error-alert');
+  state.elements.configErrorMessage = document.getElementById('config-error-message');
 }
 
 /**
@@ -149,69 +149,69 @@ function cacheElements() {
  */
 function attachHandlers() {
   if (state.elements.toggleStatsBtn) {
-    state.elements.toggleStatsBtn.addEventListener("click", toggleStats);
+    state.elements.toggleStatsBtn.addEventListener('click', toggleStats);
   }
 
   if (state.elements.refreshBtn) {
-    state.elements.refreshBtn.addEventListener("click", refreshStream);
+    state.elements.refreshBtn.addEventListener('click', refreshStream);
   }
 
   if (state.elements.fullscreenBtn) {
-    state.elements.fullscreenBtn.addEventListener("click", toggleFullscreen);
+    state.elements.fullscreenBtn.addEventListener('click', toggleFullscreen);
   }
 
   if (state.elements.themeToggleBtn) {
-    state.elements.themeToggleBtn.addEventListener("click", () => {
-      const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
-      applyTheme(currentTheme === "dark" ? "light" : "dark");
+    state.elements.themeToggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
     });
   }
 
   if (state.elements.configRefreshBtn) {
-    state.elements.configRefreshBtn.addEventListener("click", refreshConfigPanel);
+    state.elements.configRefreshBtn.addEventListener('click', refreshConfigPanel);
   }
 
   if (state.elements.startMeetingBtn) {
-    state.elements.startMeetingBtn.addEventListener("click", () => switchTab("setup"));
+    state.elements.startMeetingBtn.addEventListener('click', () => switchTab('setup'));
   }
 
   if (state.elements.videoStream) {
-    state.elements.videoStream.addEventListener("load", onStreamLoad);
-    state.elements.videoStream.addEventListener("error", onStreamError);
+    state.elements.videoStream.addEventListener('load', onStreamLoad);
+    state.elements.videoStream.addEventListener('error', onStreamError);
   }
 
   // Tab navigation handlers
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const tab = btn.getAttribute("data-tab");
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tab = btn.getAttribute('data-tab');
       switchTab(tab);
     });
   });
 
   // Config group toggle handlers
-  document.querySelectorAll(".config-group-toggle").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const group = btn.getAttribute("data-group");
+  document.querySelectorAll('.config-group-toggle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const group = btn.getAttribute('data-group');
       toggleConfigGroup(group);
     });
   });
 
-  document.addEventListener("fullscreenchange", onFullscreenChange);
-  document.addEventListener("webkitfullscreenchange", onFullscreenChange);
-  document.addEventListener("mozfullscreenchange", onFullscreenChange);
-  document.addEventListener("MSFullscreenChange", onFullscreenChange);
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+  document.addEventListener('mozfullscreenchange', onFullscreenChange);
+  document.addEventListener('MSFullscreenChange', onFullscreenChange);
 
-  document.addEventListener("visibilitychange", () => {
+  document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       stopStatsUpdate();
       stopConfigPolling();
     } else {
-      if (!state.statsCollapsed && state.currentTab === "main") {
+      if (!state.statsCollapsed && state.currentTab === 'main') {
         startStatsUpdate();
-        updateStats().catch((error) => console.error("Stats update failed:", error));
-      } else if (state.currentTab === "config") {
+        updateStats().catch((error) => console.error('Stats update failed:', error));
+      } else if (state.currentTab === 'config') {
         startConfigPolling();
-        updateConfig().catch((error) => console.error("Config update failed:", error));
+        updateConfig().catch((error) => console.error('Config update failed:', error));
       }
 
       assertSinglePollingMode();
@@ -228,7 +228,7 @@ function assertSinglePollingMode() {
 
   console.assert(
     !(statsPollingActive && configPollingActive),
-    "Invalid polling state: stats and config polling are both active.",
+    'Invalid polling state: stats and config polling are both active.'
   );
 }
 
@@ -252,42 +252,42 @@ async function updateStats() {
       const data = await fetchMetrics();
       renderMetrics(data);
     } catch (error) {
-      if (error && error.name === "AbortError") {
-        console.warn("Stats request timed out, will retry.");
+      if (error && error.name === 'AbortError') {
+        console.warn('Stats request timed out, will retry.');
         increaseBackoff();
         return;
       }
 
-      console.error("Failed to fetch stats:", error);
-      setConnectionStatus("disconnected", "Disconnected");
+      console.error('Failed to fetch stats:', error);
+      setConnectionStatus('disconnected', 'Disconnected');
       increaseBackoff();
 
       if (state.elements.fpsValue) {
-        state.elements.fpsValue.textContent = "--";
+        state.elements.fpsValue.textContent = '--';
       }
 
       if (state.elements.uptimeValue) {
-        state.elements.uptimeValue.textContent = "--";
+        state.elements.uptimeValue.textContent = '--';
       }
 
       if (state.elements.framesValue) {
-        state.elements.framesValue.textContent = "--";
+        state.elements.framesValue.textContent = '--';
       }
 
       if (state.elements.lastFrameAgeValue) {
-        state.elements.lastFrameAgeValue.textContent = "--";
+        state.elements.lastFrameAgeValue.textContent = '--';
       }
 
       if (state.elements.maxFrameAgeValue) {
-        state.elements.maxFrameAgeValue.textContent = "--";
+        state.elements.maxFrameAgeValue.textContent = '--';
       }
 
       if (state.elements.resolutionValue) {
-        state.elements.resolutionValue.textContent = "--";
+        state.elements.resolutionValue.textContent = '--';
       }
 
       if (state.elements.lastUpdated) {
-        state.elements.lastUpdated.textContent = "--";
+        state.elements.lastUpdated.textContent = '--';
       }
 
       return;
@@ -309,18 +309,18 @@ function toggleStats() {
   state.statsCollapsed = !state.statsCollapsed;
 
   if (state.elements.statsPanel) {
-    state.elements.statsPanel.classList.toggle("collapsed", state.statsCollapsed);
+    state.elements.statsPanel.classList.toggle('collapsed', state.statsCollapsed);
   }
 
   if (state.elements.toggleStatsBtn) {
-    state.elements.toggleStatsBtn.textContent = state.statsCollapsed ? "▼" : "▲";
+    state.elements.toggleStatsBtn.textContent = state.statsCollapsed ? '▼' : '▲';
   }
 
   if (state.statsCollapsed) {
     stopStatsUpdate();
   } else {
     startStatsUpdate();
-    updateStats().catch((error) => console.error("Stats update failed:", error));
+    updateStats().catch((error) => console.error('Stats update failed:', error));
   }
 }
 
@@ -335,13 +335,13 @@ function toggleStats() {
 function refreshStream() {
   if (!state.elements.videoStream) return;
 
-  const streamUrl = state.elements.videoStream.src.split("?")[0];
+  const streamUrl = state.elements.videoStream.src.split('?')[0];
   state.elements.videoStream.src = `${streamUrl}?t=${Date.now()}`;
 
   if (state.elements.refreshBtn) {
-    state.elements.refreshBtn.style.transform = "rotate(360deg)";
+    state.elements.refreshBtn.style.transform = 'rotate(360deg)';
     setTimeout(() => {
-      state.elements.refreshBtn.style.transform = "";
+      state.elements.refreshBtn.style.transform = '';
     }, 300);
   }
 }
@@ -355,7 +355,7 @@ function refreshStream() {
  * @returns {void}
  */
 function toggleFullscreen() {
-  const container = document.querySelector(".video-container");
+  const container = document.querySelector('.video-container');
   if (!container) return;
 
   if (
@@ -396,13 +396,13 @@ function onFullscreenChange() {
   );
 
   if (state.elements.fullscreenBtn) {
-    const btnText = state.elements.fullscreenBtn.querySelector(".control-btn-text");
+    const btnText = state.elements.fullscreenBtn.querySelector('.control-btn-text');
     if (btnText) {
-      btnText.textContent = isFullscreen ? "Exit Fullscreen" : "Fullscreen";
+      btnText.textContent = isFullscreen ? 'Exit Fullscreen' : 'Fullscreen';
     }
-    const btnIcon = state.elements.fullscreenBtn.querySelector(".control-btn-icon");
+    const btnIcon = state.elements.fullscreenBtn.querySelector('.control-btn-icon');
     if (btnIcon) {
-      btnIcon.textContent = isFullscreen ? "⛶" : "⛶";
+      btnIcon.textContent = isFullscreen ? '⛶' : '⛶';
     }
   }
 }
@@ -416,7 +416,7 @@ function onFullscreenChange() {
  */
 function onStreamLoad() {
   hideLoading();
-  setConnectionStatus("connected", "Stream Connected");
+  setConnectionStatus('connected', 'Stream Connected');
 }
 
 /**
@@ -427,8 +427,8 @@ function onStreamLoad() {
  * @returns {void}
  */
 function onStreamError() {
-  console.error("Video stream error");
-  setConnectionStatus("disconnected", "Stream Error");
+  console.error('Video stream error');
+  setConnectionStatus('disconnected', 'Stream Error');
   increaseBackoff();
 }
 
@@ -443,10 +443,10 @@ function onStreamError() {
  * @returns {void}
  */
 function setConnectionStatus(status, text) {
-  state.isConnected = status === "connected" || status === "stale";
+  state.isConnected = status === 'connected' || status === 'stale';
 
   if (state.elements.statusIndicator) {
-    state.elements.statusIndicator.className = "status-indicator";
+    state.elements.statusIndicator.className = 'status-indicator';
     state.elements.statusIndicator.classList.add(status);
   }
 
@@ -468,7 +468,7 @@ function startStatsUpdate() {
   if (state.statsCollapsed || document.hidden) return;
 
   state.updateInterval = setInterval(() => {
-    updateStats().catch((error) => console.error("Stats update failed:", error));
+    updateStats().catch((error) => console.error('Stats update failed:', error));
   }, state.updateFrequency);
 }
 
@@ -514,7 +514,7 @@ function increaseBackoff() {
   state.consecutiveFailures += 1;
   const nextFrequency = Math.min(
     state.baseUpdateFrequency * Math.pow(2, state.consecutiveFailures),
-    state.maxUpdateFrequency,
+    state.maxUpdateFrequency
   );
   setUpdateFrequency(nextFrequency);
 }
@@ -551,7 +551,7 @@ async function fetchMetrics() {
   }, REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch("/metrics", { signal: controller.signal });
+    const response = await fetch('/metrics', { signal: controller.signal });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -580,18 +580,18 @@ function renderMetrics(data) {
   const hasFrameAge = Number.isFinite(lastFrameAge);
   const hasMaxFrameAge = Number.isFinite(maxFrameAge);
   const isStale = cameraActive && hasFrameAge && hasMaxFrameAge && lastFrameAge > maxFrameAge;
-  const statusText = cameraActive ? (isStale ? "Stale stream" : "Connected") : "Camera inactive";
-  const statusState = cameraActive ? (isStale ? "stale" : "connected") : "inactive";
+  const statusText = cameraActive ? (isStale ? 'Stale stream' : 'Connected') : 'Camera inactive';
+  const statusState = cameraActive ? (isStale ? 'stale' : 'connected') : 'inactive';
 
   setConnectionStatus(statusState, statusText);
-  if (statusState === "connected") {
+  if (statusState === 'connected') {
     resetBackoff();
-  } else if (statusState === "inactive" || statusState === "stale") {
+  } else if (statusState === 'inactive' || statusState === 'stale') {
     increaseBackoff();
   }
 
   if (state.elements.fpsValue) {
-    state.elements.fpsValue.textContent = data.current_fps ? data.current_fps.toFixed(1) : "0.0";
+    state.elements.fpsValue.textContent = data.current_fps ? data.current_fps.toFixed(1) : '0.0';
   }
 
   if (state.elements.uptimeValue) {
@@ -631,7 +631,7 @@ function renderMetrics(data) {
  * @returns {string} Formatted uptime string, or "0s" if invalid.
  */
 function formatUptime(seconds) {
-  if (!seconds || seconds < 0) return "0s";
+  if (!seconds || seconds < 0) return '0s';
 
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
@@ -644,7 +644,7 @@ function formatUptime(seconds) {
   if (minutes > 0) parts.push(`${minutes}m`);
   if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
 
-  return parts.join(" ");
+  return parts.join(' ');
 }
 
 /**
@@ -656,7 +656,7 @@ function formatUptime(seconds) {
  * @returns {string} Formatted number string.
  */
 function formatNumber(num) {
-  if (num === null || num === undefined) return "0";
+  if (num === null || num === undefined) return '0';
   return num.toLocaleString();
 }
 
@@ -669,8 +669,8 @@ function formatNumber(num) {
  * @returns {string} Formatted seconds string, or "--" if invalid.
  */
 function formatSeconds(seconds) {
-  if (seconds === null || seconds === undefined) return "--";
-  if (Number.isNaN(seconds)) return "--";
+  if (seconds === null || seconds === undefined) return '--';
+  if (Number.isNaN(seconds)) return '--';
   return `${Number(seconds).toFixed(2)}s`;
 }
 
@@ -682,9 +682,9 @@ function formatSeconds(seconds) {
  * @returns {void}
  */
 function hideLoading() {
-  const loadingOverlay = document.querySelector(".loading-overlay");
+  const loadingOverlay = document.querySelector('.loading-overlay');
   if (loadingOverlay) {
-    loadingOverlay.style.opacity = "0";
+    loadingOverlay.style.opacity = '0';
     setTimeout(() => {
       loadingOverlay.remove();
     }, 300);
@@ -703,33 +703,33 @@ function hideLoading() {
  * @returns {void}
  */
 function switchTab(tabName) {
-  const wasConfigTab = state.currentTab === "config";
-  const wasSetupTab = state.currentTab === "setup";
+  const wasConfigTab = state.currentTab === 'config';
+  const wasSetupTab = state.currentTab === 'setup';
   state.currentTab = tabName;
 
   // Update tab buttons
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
-    btn.classList.remove("active");
-    if (btn.getAttribute("data-tab") === tabName) {
-      btn.classList.add("active");
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.classList.remove('active');
+    if (btn.getAttribute('data-tab') === tabName) {
+      btn.classList.add('active');
     }
   });
 
   updateViewMeta(tabName);
 
   // Update visible panels
-  const mainSection = document.querySelector(".video-section");
+  const mainSection = document.querySelector('.video-section');
   const statsPanel = state.elements.statsPanel;
   const configPanel = state.elements.configPanel;
   const settingsPanel = state.elements.settingsPanel;
   const setupPanel = state.elements.setupPanel;
 
-  if (tabName === "main") {
-    if (mainSection) mainSection.classList.remove("hidden");
-    if (statsPanel) statsPanel.classList.remove("hidden");
-    if (configPanel) configPanel.classList.add("hidden");
-    if (settingsPanel) settingsPanel.classList.add("hidden");
-    if (setupPanel) setupPanel.classList.add("hidden");
+  if (tabName === 'main') {
+    if (mainSection) mainSection.classList.remove('hidden');
+    if (statsPanel) statsPanel.classList.remove('hidden');
+    if (configPanel) configPanel.classList.add('hidden');
+    if (settingsPanel) settingsPanel.classList.add('hidden');
+    if (setupPanel) setupPanel.classList.add('hidden');
 
     // Resume stats updates and stop config refresh updates
     stopConfigPolling();
@@ -737,37 +737,37 @@ function switchTab(tabName) {
     if (!state.statsCollapsed) {
       startStatsUpdate();
     }
-  } else if (tabName === "config") {
-    if (mainSection) mainSection.classList.add("hidden");
-    if (statsPanel) statsPanel.classList.add("hidden");
-    if (configPanel) configPanel.classList.remove("hidden");
-    if (settingsPanel) settingsPanel.classList.add("hidden");
-    if (setupPanel) setupPanel.classList.add("hidden");
+  } else if (tabName === 'config') {
+    if (mainSection) mainSection.classList.add('hidden');
+    if (statsPanel) statsPanel.classList.add('hidden');
+    if (configPanel) configPanel.classList.remove('hidden');
+    if (settingsPanel) settingsPanel.classList.add('hidden');
+    if (setupPanel) setupPanel.classList.add('hidden');
 
     // Stop stats updates and start config refresh/timestamp updates
     stopStatsUpdate();
 
     if (!wasConfigTab) {
       state.configInitialLoadPending = true;
-      updateConfig().catch((error) => console.error("Config update failed:", error));
+      updateConfig().catch((error) => console.error('Config update failed:', error));
       startConfigPolling();
     }
-  } else if (tabName === "settings") {
-    if (mainSection) mainSection.classList.add("hidden");
-    if (statsPanel) statsPanel.classList.add("hidden");
-    if (configPanel) configPanel.classList.add("hidden");
-    if (settingsPanel) settingsPanel.classList.remove("hidden");
-    if (setupPanel) setupPanel.classList.add("hidden");
+  } else if (tabName === 'settings') {
+    if (mainSection) mainSection.classList.add('hidden');
+    if (statsPanel) statsPanel.classList.add('hidden');
+    if (configPanel) configPanel.classList.add('hidden');
+    if (settingsPanel) settingsPanel.classList.remove('hidden');
+    if (setupPanel) setupPanel.classList.add('hidden');
 
     // Stop all polling
     stopStatsUpdate();
     stopConfigPolling();
-  } else if (tabName === "setup") {
-    if (mainSection) mainSection.classList.add("hidden");
-    if (statsPanel) statsPanel.classList.add("hidden");
-    if (configPanel) configPanel.classList.add("hidden");
-    if (settingsPanel) settingsPanel.classList.add("hidden");
-    if (setupPanel) setupPanel.classList.remove("hidden");
+  } else if (tabName === 'setup') {
+    if (mainSection) mainSection.classList.add('hidden');
+    if (statsPanel) statsPanel.classList.add('hidden');
+    if (configPanel) configPanel.classList.add('hidden');
+    if (settingsPanel) settingsPanel.classList.add('hidden');
+    if (setupPanel) setupPanel.classList.remove('hidden');
 
     // Stop all polling
     stopStatsUpdate();
@@ -776,7 +776,7 @@ function switchTab(tabName) {
     // Load setup tab if not already loaded
     if (!wasSetupTab) {
       state.setupInitialLoadPending = true;
-      loadSetupTab().catch((error) => console.error("Setup tab load failed:", error));
+      loadSetupTab().catch((error) => console.error('Setup tab load failed:', error));
     }
   }
 
@@ -791,23 +791,23 @@ function switchTab(tabName) {
  */
 function updateViewMeta(tabName) {
   const titleByTab = {
-    main: "Stream",
-    config: "Configuration",
-    setup: "Set-Up",
-    settings: "Runtime Settings",
+    main: 'Stream',
+    config: 'Configuration',
+    setup: 'Set-Up',
+    settings: 'Runtime Settings',
   };
   const subtitleByTab = {
-    main: "Camera Live Stream",
-    config: "Resolution, FPS, and JPEG tuning",
-    setup: "Guided setup and generated files",
-    settings: "Check changes before saving. Reset restores defaults.",
+    main: 'Camera Live Stream',
+    config: 'Resolution, FPS, and JPEG tuning',
+    setup: 'Guided setup and generated files',
+    settings: 'Check changes before saving. Reset restores defaults.',
   };
 
   if (state.elements.viewTitle) {
-    state.elements.viewTitle.textContent = titleByTab[tabName] || "Stream";
+    state.elements.viewTitle.textContent = titleByTab[tabName] || 'Stream';
   }
   if (state.elements.viewSubtitle) {
-    state.elements.viewSubtitle.textContent = subtitleByTab[tabName] || "Camera Live Stream";
+    state.elements.viewSubtitle.textContent = subtitleByTab[tabName] || 'Camera Live Stream';
   }
 }
 
@@ -818,7 +818,7 @@ function startConfigPolling() {
   if (state.configPollingInterval) return;
 
   state.configPollingInterval = setInterval(() => {
-    updateConfig().catch((error) => console.error("Config update failed:", error));
+    updateConfig().catch((error) => console.error('Config update failed:', error));
   }, CONFIG_POLL_INTERVAL_MS);
 }
 
@@ -841,7 +841,7 @@ function stopConfigPolling() {
  */
 function refreshConfigPanel() {
   state.configInitialLoadPending = true;
-  updateConfig().catch((error) => console.error("Config update failed:", error));
+  updateConfig().catch((error) => console.error('Config update failed:', error));
 }
 
 /**
@@ -852,9 +852,9 @@ function toggleConfigGroup(groupName) {
   const btn = document.querySelector(`.config-group-toggle[data-group="${groupName}"]`);
 
   if (content && btn) {
-    const isHidden = content.classList.contains("hidden");
-    content.classList.toggle("hidden", !isHidden);
-    btn.textContent = isHidden ? "▼" : "▶";
+    const isHidden = content.classList.contains('hidden');
+    content.classList.toggle('hidden', !isHidden);
+    btn.textContent = isHidden ? '▼' : '▶';
   }
 }
 
@@ -868,7 +868,7 @@ async function fetchConfig() {
   }, REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch("/api/config", { signal: controller.signal });
+    const response = await fetch('/api/config', { signal: controller.signal });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -885,7 +885,7 @@ async function fetchConfig() {
  */
 async function updateConfig() {
   if (state.configInFlight) return;
-  if (state.currentTab !== "config" || document.hidden) return;
+  if (state.currentTab !== 'config' || document.hidden) return;
 
   const showHeavyLoading = state.configInitialLoadPending;
 
@@ -895,7 +895,7 @@ async function updateConfig() {
     if (showHeavyLoading && state.elements.configLoading) {
       state.configLoadingDelayTimer = setTimeout(() => {
         state.configLoadingVisible = true;
-        state.elements.configLoading.classList.remove("hidden");
+        state.elements.configLoading.classList.remove('hidden');
       }, 400);
     }
 
@@ -908,18 +908,18 @@ async function updateConfig() {
 
       // Hide error alert on success
       if (state.elements.configErrorAlert) {
-        state.elements.configErrorAlert.classList.add("hidden");
+        state.elements.configErrorAlert.classList.add('hidden');
       }
     } catch (error) {
-      if (error && error.name === "AbortError") {
-        console.warn("Config request timed out, will retry.");
-        showConfigError("Configuration request timed out. Will retry automatically.");
+      if (error && error.name === 'AbortError') {
+        console.warn('Config request timed out, will retry.');
+        showConfigError('Configuration request timed out. Will retry automatically.');
         return;
       }
 
-      console.error("Failed to fetch config:", error);
+      console.error('Failed to fetch config:', error);
       clearConfigDisplay();
-      showConfigError(`Failed to load configuration: ${error.message || "Unknown error"}`);
+      showConfigError(`Failed to load configuration: ${error.message || 'Unknown error'}`);
       return;
     }
   } finally {
@@ -933,7 +933,7 @@ async function updateConfig() {
 
     // Hide loading state
     if (state.configLoadingVisible && state.elements.configLoading) {
-      state.elements.configLoading.classList.add("hidden");
+      state.elements.configLoading.classList.add('hidden');
       state.configLoadingVisible = false;
     }
   }
@@ -953,7 +953,7 @@ function showConfigError(message) {
   if (state.elements.configErrorMessage) {
     state.elements.configErrorMessage.textContent = message;
   }
-  state.elements.configErrorAlert.classList.remove("hidden");
+  state.elements.configErrorAlert.classList.remove('hidden');
 }
 
 /**
@@ -971,17 +971,17 @@ function renderConfig(data) {
     const cs = data.camera_settings;
 
     setConfigValue(
-      "config-resolution",
-      cs.resolution ? `${cs.resolution[0]} × ${cs.resolution[1]}` : "--",
+      'config-resolution',
+      cs.resolution ? `${cs.resolution[0]} × ${cs.resolution[1]}` : '--'
     );
-    setConfigValue("config-fps", cs.fps !== undefined ? `${cs.fps} FPS` : "--");
+    setConfigValue('config-fps', cs.fps !== undefined ? `${cs.fps} FPS` : '--');
     setConfigValue(
-      "config-target-fps",
-      cs.target_fps !== undefined ? `${cs.target_fps} FPS` : "--",
+      'config-target-fps',
+      cs.target_fps !== undefined ? `${cs.target_fps} FPS` : '--'
     );
     setConfigValue(
-      "config-jpeg-quality",
-      cs.jpeg_quality !== undefined ? `${cs.jpeg_quality}%` : "--",
+      'config-jpeg-quality',
+      cs.jpeg_quality !== undefined ? `${cs.jpeg_quality}%` : '--'
     );
   }
 
@@ -989,17 +989,17 @@ function renderConfig(data) {
   if (data.stream_control) {
     const sc = data.stream_control;
 
-    setConfigValue("config-max-connections", sc.max_stream_connections ?? "--");
-    setConfigValue("config-current-connections", sc.current_stream_connections ?? "--");
+    setConfigValue('config-max-connections', sc.max_stream_connections ?? '--');
+    setConfigValue('config-current-connections', sc.current_stream_connections ?? '--');
     setConfigValue(
-      "config-max-frame-age",
-      sc.max_frame_age_seconds !== undefined ? `${sc.max_frame_age_seconds}s` : "--",
+      'config-max-frame-age',
+      sc.max_frame_age_seconds !== undefined ? `${sc.max_frame_age_seconds}s` : '--'
     );
     setConfigValue(
-      "config-cors",
-      typeof sc.cors_origins === "string" && sc.cors_origins.length > 0
+      'config-cors',
+      typeof sc.cors_origins === 'string' && sc.cors_origins.length > 0
         ? sc.cors_origins
-        : "disabled",
+        : 'disabled'
     );
   }
 
@@ -1007,9 +1007,9 @@ function renderConfig(data) {
   if (data.runtime) {
     const rt = data.runtime;
 
-    setConfigValue("config-camera-active", formatBoolean(rt.camera_active));
-    setConfigValue("config-mock-camera", formatBoolean(rt.mock_camera));
-    setConfigValue("config-uptime", formatUptime(rt.uptime_seconds));
+    setConfigValue('config-camera-active', formatBoolean(rt.camera_active));
+    setConfigValue('config-mock-camera', formatBoolean(rt.mock_camera));
+    setConfigValue('config-uptime', formatUptime(rt.uptime_seconds));
   }
 
   // Health Check
@@ -1019,55 +1019,55 @@ function renderConfig(data) {
 
     const applyIndicator = (elementId, indicator) => {
       setHealthIndicator(elementId, indicator);
-      if (indicator && typeof indicator.state === "string") {
+      if (indicator && typeof indicator.state === 'string') {
         healthStates.push(indicator.state);
       }
     };
 
-    applyIndicator("config-health-camera-pipeline", hc.camera_pipeline);
-    applyIndicator("config-health-stream-freshness", hc.stream_freshness);
-    applyIndicator("config-health-connection-capacity", hc.connection_capacity);
-    applyIndicator("config-health-mock-mode", hc.mock_mode);
+    applyIndicator('config-health-camera-pipeline', hc.camera_pipeline);
+    applyIndicator('config-health-stream-freshness', hc.stream_freshness);
+    applyIndicator('config-health-connection-capacity', hc.connection_capacity);
+    applyIndicator('config-health-mock-mode', hc.mock_mode);
 
     const normalizedStates = healthStates.map(normalizeHealthState);
-    let overallState = "unknown";
-    if (normalizedStates.includes("fail")) {
-      overallState = "fail";
-    } else if (normalizedStates.includes("warn")) {
-      overallState = "warn";
-    } else if (normalizedStates.includes("ok")) {
-      overallState = "ok";
+    let overallState = 'unknown';
+    if (normalizedStates.includes('fail')) {
+      overallState = 'fail';
+    } else if (normalizedStates.includes('warn')) {
+      overallState = 'warn';
+    } else if (normalizedStates.includes('ok')) {
+      overallState = 'ok';
     }
 
-    setHealthIndicator("config-health-overall", {
+    setHealthIndicator('config-health-overall', {
       state: overallState,
       label: HEALTH_TEXT[overallState],
       details:
-        "Overall health derived from camera, stream freshness, connection capacity, and mock mode.",
+        'Overall health derived from camera, stream freshness, connection capacity, and mock mode.',
     });
   }
 
   // Timestamp
   if (data.timestamp) {
     const date = new Date(data.timestamp);
-    setConfigValue("config-timestamp", date.toLocaleTimeString());
+    setConfigValue('config-timestamp', date.toLocaleTimeString());
   }
 }
 
 const HEALTH_TEXT = {
-  ok: "OK",
-  warn: "Warning",
-  fail: "Failing",
-  unknown: "Unknown",
+  ok: 'OK',
+  warn: 'Warning',
+  fail: 'Failing',
+  unknown: 'Unknown',
 };
 
 function normalizeHealthState(stateValue) {
-  const normalized = String(stateValue || "").toLowerCase();
+  const normalized = String(stateValue || '').toLowerCase();
 
-  if (["ok", "pass", "healthy", "ready"].includes(normalized)) return "ok";
-  if (["warn", "warning", "degraded"].includes(normalized)) return "warn";
-  if (["fail", "error", "failed", "down", "unhealthy"].includes(normalized)) return "fail";
-  return "unknown";
+  if (['ok', 'pass', 'healthy', 'ready'].includes(normalized)) return 'ok';
+  if (['warn', 'warning', 'degraded'].includes(normalized)) return 'warn';
+  if (['fail', 'error', 'failed', 'down', 'unhealthy'].includes(normalized)) return 'fail';
+  return 'unknown';
 }
 
 function setHealthIndicator(elementId, indicator) {
@@ -1076,19 +1076,19 @@ function setHealthIndicator(elementId, indicator) {
 
   const stateKey = normalizeHealthState(indicator?.state);
   const labelText =
-    typeof indicator?.label === "string" && indicator.label.trim().length > 0
+    typeof indicator?.label === 'string' && indicator.label.trim().length > 0
       ? indicator.label
       : HEALTH_TEXT[stateKey];
 
   element.textContent = labelText;
   element.className = `config-value health-indicator health-${stateKey}`;
-  element.setAttribute("data-health-state", stateKey);
+  element.setAttribute('data-health-state', stateKey);
 
-  const detailText = typeof indicator?.details === "string" ? indicator.details.trim() : "";
+  const detailText = typeof indicator?.details === 'string' ? indicator.details.trim() : '';
   if (detailText) {
     element.title = detailText;
   } else {
-    element.removeAttribute("title");
+    element.removeAttribute('title');
   }
 }
 
@@ -1109,12 +1109,12 @@ function setConfigValue(elementId, value) {
   element.textContent = value;
 
   // Apply badge styling for boolean values
-  if (value === "Enabled" || value === "Yes") {
-    element.className = "config-value config-badge enabled";
-  } else if (value === "Disabled" || value === "No") {
-    element.className = "config-value config-badge disabled";
+  if (value === 'Enabled' || value === 'Yes') {
+    element.className = 'config-value config-badge enabled';
+  } else if (value === 'Disabled' || value === 'No') {
+    element.className = 'config-value config-badge disabled';
   } else {
-    element.className = "config-value";
+    element.className = 'config-value';
   }
 }
 
@@ -1127,8 +1127,8 @@ function setConfigValue(elementId, value) {
  * @returns {string} Formatted string ("Enabled", "Disabled", or "--").
  */
 function formatBoolean(value) {
-  if (value === null || value === undefined) return "--";
-  return value ? "Enabled" : "Disabled";
+  if (value === null || value === undefined) return '--';
+  return value ? 'Enabled' : 'Disabled';
 }
 
 /**
@@ -1141,15 +1141,15 @@ function formatBoolean(value) {
 function clearConfigDisplay() {
   const configValues = document.querySelectorAll('[data-config-value="true"]');
   configValues.forEach((el) => {
-    el.textContent = "--";
-    el.className = "config-value";
-    if (el.id && el.id.startsWith("config-health-")) {
-      el.classList.add("health-indicator", "health-unknown");
-      el.setAttribute("data-health-state", "unknown");
+    el.textContent = '--';
+    el.className = 'config-value';
+    if (el.id && el.id.startsWith('config-health-')) {
+      el.classList.add('health-indicator', 'health-unknown');
+      el.setAttribute('data-health-state', 'unknown');
     } else {
-      el.removeAttribute("data-health-state");
+      el.removeAttribute('data-health-state');
     }
-    el.removeAttribute("title");
+    el.removeAttribute('title');
   });
 }
 
@@ -1158,9 +1158,9 @@ function clearConfigDisplay() {
    ========================================== */
 
 const setupWizard = {
-  storageKey: "motioninocean.setupWizard.v1",
-  steps: ["environment", "preset", "review", "generate"],
-  currentStep: "environment",
+  storageKey: 'motioninocean.setupWizard.v1',
+  steps: ['environment', 'preset', 'review', 'generate'],
+  currentStep: 'environment',
   expertMode: false,
   initialized: false,
 };
@@ -1195,11 +1195,11 @@ function saveWizardState() {
     currentStep: setupWizard.currentStep,
     expertMode: setupWizard.expertMode,
     environment: {
-      piVersion: document.getElementById("env-pi-version")?.value || "",
-      intent: document.getElementById("env-intent")?.value || "",
-      mockCamera: document.getElementById("env-mock-camera")?.value || "false",
+      piVersion: document.getElementById('env-pi-version')?.value || '',
+      intent: document.getElementById('env-intent')?.value || '',
+      mockCamera: document.getElementById('env-mock-camera')?.value || 'false',
     },
-    preset: document.getElementById("preset-select")?.value || "custom",
+    preset: document.getElementById('preset-select')?.value || 'custom',
     fields: collectSetupConfig(),
   };
 
@@ -1216,27 +1216,27 @@ function saveWizardState() {
  */
 function applyStoredWizardState() {
   const stored = getWizardStateFromStorage();
-  if (!stored || typeof stored !== "object") return;
+  if (!stored || typeof stored !== 'object') return;
 
   const env = stored.environment || {};
-  if (document.getElementById("env-pi-version")) {
-    document.getElementById("env-pi-version").value = env.piVersion || "";
+  if (document.getElementById('env-pi-version')) {
+    document.getElementById('env-pi-version').value = env.piVersion || '';
   }
-  if (document.getElementById("env-intent")) {
-    document.getElementById("env-intent").value = env.intent || "";
+  if (document.getElementById('env-intent')) {
+    document.getElementById('env-intent').value = env.intent || '';
   }
-  if (document.getElementById("env-mock-camera")) {
-    document.getElementById("env-mock-camera").value = env.mockCamera || "false";
+  if (document.getElementById('env-mock-camera')) {
+    document.getElementById('env-mock-camera').value = env.mockCamera || 'false';
   }
 
-  if (stored.preset && document.getElementById("preset-select")) {
-    document.getElementById("preset-select").value = stored.preset;
+  if (stored.preset && document.getElementById('preset-select')) {
+    document.getElementById('preset-select').value = stored.preset;
   }
 
   applyConfigToForm(stored.fields || {});
 
   setupWizard.expertMode = Boolean(stored.expertMode);
-  const expertToggle = document.getElementById("expert-mode-toggle");
+  const expertToggle = document.getElementById('expert-mode-toggle');
   if (expertToggle) expertToggle.checked = setupWizard.expertMode;
 
   if (stored.currentStep && setupWizard.steps.includes(stored.currentStep)) {
@@ -1251,18 +1251,18 @@ function applyStoredWizardState() {
  */
 function collectSetupConfig() {
   return {
-    resolution: document.getElementById("setup-resolution")?.value || "",
-    fps: parseInt(document.getElementById("setup-fps")?.value || "0", 10) || 0,
-    jpeg_quality: parseInt(document.getElementById("setup-jpeg-quality")?.value || "90", 10) || 90,
+    resolution: document.getElementById('setup-resolution')?.value || '',
+    fps: parseInt(document.getElementById('setup-fps')?.value || '0', 10) || 0,
+    jpeg_quality: parseInt(document.getElementById('setup-jpeg-quality')?.value || '90', 10) || 90,
     max_connections:
-      parseInt(document.getElementById("setup-max-connections")?.value || "10", 10) || 10,
-    target_fps: document.getElementById("setup-target-fps")?.value
-      ? parseInt(document.getElementById("setup-target-fps")?.value, 10)
+      parseInt(document.getElementById('setup-max-connections')?.value || '10', 10) || 10,
+    target_fps: document.getElementById('setup-target-fps')?.value
+      ? parseInt(document.getElementById('setup-target-fps')?.value, 10)
       : null,
-    pi3_profile: document.getElementById("setup-pi3-profile")?.value === "true",
-    cors_origins: document.getElementById("setup-cors-origins")?.value || "",
-    mock_camera: document.getElementById("setup-mock-camera")?.value === "true",
-    auth_token: document.getElementById("setup-auth-token")?.value || "",
+    pi3_profile: document.getElementById('setup-pi3-profile')?.value === 'true',
+    cors_origins: document.getElementById('setup-cors-origins')?.value || '',
+    mock_camera: document.getElementById('setup-mock-camera')?.value === 'true',
+    auth_token: document.getElementById('setup-auth-token')?.value || '',
   };
 }
 
@@ -1273,7 +1273,7 @@ function collectSetupConfig() {
  * @returns {void}
  */
 function applyConfigToForm(config) {
-  if (!config || typeof config !== "object") return;
+  if (!config || typeof config !== 'object') return;
 
   const setValue = (id, value) => {
     const el = document.getElementById(id);
@@ -1282,16 +1282,16 @@ function applyConfigToForm(config) {
     }
   };
 
-  setValue("setup-resolution", config.resolution);
-  setValue("setup-fps", config.fps);
-  setValue("setup-jpeg-quality", config.jpeg_quality);
-  setValue("setup-max-connections", config.max_connections);
-  setValue("setup-target-fps", config.target_fps ?? "");
-  setValue("setup-pi3-profile", config.pi3_profile ? "true" : "false");
-  setValue("setup-cors-origins", config.cors_origins || "");
-  setValue("setup-mock-camera", config.mock_camera ? "true" : "false");
-  if (Object.prototype.hasOwnProperty.call(config, "auth_token")) {
-    setValue("setup-auth-token", config.auth_token || "");
+  setValue('setup-resolution', config.resolution);
+  setValue('setup-fps', config.fps);
+  setValue('setup-jpeg-quality', config.jpeg_quality);
+  setValue('setup-max-connections', config.max_connections);
+  setValue('setup-target-fps', config.target_fps ?? '');
+  setValue('setup-pi3-profile', config.pi3_profile ? 'true' : 'false');
+  setValue('setup-cors-origins', config.cors_origins || '');
+  setValue('setup-mock-camera', config.mock_camera ? 'true' : 'false');
+  if (Object.prototype.hasOwnProperty.call(config, 'auth_token')) {
+    setValue('setup-auth-token', config.auth_token || '');
   }
 }
 
@@ -1301,12 +1301,12 @@ function applyConfigToForm(config) {
  * @returns {string} Preset name ("pi3_low_power", "pi5_high_quality", or "custom").
  */
 function inferPresetFromEnvironment() {
-  const piVersion = document.getElementById("env-pi-version")?.value;
-  const intent = document.getElementById("env-intent")?.value;
+  const piVersion = document.getElementById('env-pi-version')?.value;
+  const intent = document.getElementById('env-intent')?.value;
 
-  if (piVersion === "pi3") return "pi3_low_power";
-  if (piVersion === "pi5" || intent === "management") return "pi5_high_quality";
-  return "custom";
+  if (piVersion === 'pi3') return 'pi3_low_power';
+  if (piVersion === 'pi5' || intent === 'management') return 'pi5_high_quality';
+  return 'custom';
 }
 
 /**
@@ -1316,31 +1316,31 @@ function inferPresetFromEnvironment() {
  * @returns {void}
  */
 function applyPresetToForm(preset) {
-  const envMockCamera = document.getElementById("env-mock-camera")?.value || "false";
+  const envMockCamera = document.getElementById('env-mock-camera')?.value || 'false';
 
-  if (preset === "pi3_low_power") {
+  if (preset === 'pi3_low_power') {
     applyConfigToForm({
-      resolution: "640x480",
+      resolution: '640x480',
       fps: 12,
       jpeg_quality: 75,
       max_connections: 3,
       target_fps: 12,
       pi3_profile: true,
-      mock_camera: envMockCamera === "true",
+      mock_camera: envMockCamera === 'true',
     });
-  } else if (preset === "pi5_high_quality") {
+  } else if (preset === 'pi5_high_quality') {
     applyConfigToForm({
-      resolution: "1280x720",
+      resolution: '1280x720',
       fps: 24,
       jpeg_quality: 90,
       max_connections: 10,
       target_fps: 24,
       pi3_profile: false,
-      mock_camera: envMockCamera === "true",
+      mock_camera: envMockCamera === 'true',
     });
   } else {
     applyConfigToForm({
-      mock_camera: envMockCamera === "true",
+      mock_camera: envMockCamera === 'true',
     });
   }
 }
@@ -1359,13 +1359,13 @@ function setWizardStep(step) {
   if (!setupWizard.steps.includes(step)) return;
   setupWizard.currentStep = step;
 
-  document.querySelectorAll(".wizard-step-panel").forEach((panel) => {
-    panel.classList.toggle("hidden", panel.getAttribute("data-step-panel") !== step);
+  document.querySelectorAll('.wizard-step-panel').forEach((panel) => {
+    panel.classList.toggle('hidden', panel.getAttribute('data-step-panel') !== step);
   });
 
-  document.querySelectorAll(".wizard-step").forEach((stepButton) => {
-    const isActive = stepButton.getAttribute("data-step") === step;
-    stepButton.classList.toggle("is-active", isActive);
+  document.querySelectorAll('.wizard-step').forEach((stepButton) => {
+    const isActive = stepButton.getAttribute('data-step') === step;
+    stepButton.classList.toggle('is-active', isActive);
   });
 
   updateWizardCompletion();
@@ -1383,20 +1383,20 @@ function setWizardStep(step) {
 function validateStep(step) {
   if (setupWizard.expertMode) return true;
 
-  if (step === "environment") {
+  if (step === 'environment') {
     return (
-      Boolean(document.getElementById("env-pi-version")?.value) &&
-      Boolean(document.getElementById("env-intent")?.value)
+      Boolean(document.getElementById('env-pi-version')?.value) &&
+      Boolean(document.getElementById('env-intent')?.value)
     );
   }
 
-  if (step === "preset") {
-    return Boolean(document.getElementById("preset-select")?.value);
+  if (step === 'preset') {
+    return Boolean(document.getElementById('preset-select')?.value);
   }
 
-  if (step === "review") {
-    const resolution = document.getElementById("setup-resolution")?.value || "";
-    const fps = Number.parseInt(document.getElementById("setup-fps")?.value || "", 10);
+  if (step === 'review') {
+    const resolution = document.getElementById('setup-resolution')?.value || '';
+    const fps = Number.parseInt(document.getElementById('setup-fps')?.value || '', 10);
     return /^\d+x\d+$/i.test(resolution) && Number.isInteger(fps) && fps >= 0 && fps <= 120;
   }
 
@@ -1420,11 +1420,11 @@ function updateWizardCompletion() {
     const currentIndex = getStepIndex(setupWizard.currentStep);
 
     if (stepValid) {
-      statusEl.textContent = "✓";
+      statusEl.textContent = '✓';
     } else if (stepIndex <= currentIndex) {
-      statusEl.textContent = "!";
+      statusEl.textContent = '!';
     } else {
-      statusEl.textContent = "○";
+      statusEl.textContent = '○';
     }
   });
 }
@@ -1439,29 +1439,29 @@ function updateWizardCompletion() {
  */
 function updateWizardNavigation() {
   const currentIndex = getStepIndex(setupWizard.currentStep);
-  const prevBtn = document.getElementById("setup-prev-btn");
-  const nextBtn = document.getElementById("setup-next-btn");
+  const prevBtn = document.getElementById('setup-prev-btn');
+  const nextBtn = document.getElementById('setup-next-btn');
 
   if (prevBtn) prevBtn.disabled = currentIndex <= 0;
 
   if (nextBtn) {
     if (currentIndex >= setupWizard.steps.length - 1) {
       nextBtn.disabled = true;
-      nextBtn.textContent = "Done";
+      nextBtn.textContent = 'Done';
     } else {
       nextBtn.disabled = !validateStep(setupWizard.currentStep);
-      nextBtn.textContent = "Next";
+      nextBtn.textContent = 'Next';
     }
   }
 }
 
 function escapeHtml(unsafe) {
   return String(unsafe)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 /**
@@ -1474,13 +1474,13 @@ function escapeHtml(unsafe) {
  */
 function updatePresetRecommendation() {
   const recommendedPreset = inferPresetFromEnvironment();
-  const recommendation = document.getElementById("preset-recommendation");
+  const recommendation = document.getElementById('preset-recommendation');
   if (recommendation) {
     recommendation.textContent = `Recommended from environment answers: ${recommendedPreset}`;
   }
 
-  const presetSelect = document.getElementById("preset-select");
-  if (presetSelect && (!presetSelect.value || presetSelect.value === "custom")) {
+  const presetSelect = document.getElementById('preset-select');
+  if (presetSelect && (!presetSelect.value || presetSelect.value === 'custom')) {
     presetSelect.value = recommendedPreset;
     applyPresetToForm(recommendedPreset);
   }
@@ -1494,12 +1494,12 @@ function updatePresetRecommendation() {
  * @returns {void}
  */
 function updateReviewSummary() {
-  const summary = document.getElementById("review-summary");
+  const summary = document.getElementById('review-summary');
   if (!summary) return;
 
-  const piVersion = document.getElementById("env-pi-version")?.value || "not selected";
-  const intent = document.getElementById("env-intent")?.value || "not selected";
-  const preset = document.getElementById("preset-select")?.value || "custom";
+  const piVersion = document.getElementById('env-pi-version')?.value || 'not selected';
+  const intent = document.getElementById('env-intent')?.value || 'not selected';
+  const preset = document.getElementById('preset-select')?.value || 'custom';
   const config = collectSetupConfig();
 
   summary.innerHTML = `<div class="instructions-header">🧾 Configuration summary</div>
@@ -1507,8 +1507,8 @@ function updateReviewSummary() {
       <li><strong>Hardware:</strong> ${escapeHtml(piVersion)}</li>
       <li><strong>Intent:</strong> ${escapeHtml(intent)}</li>
       <li><strong>Preset:</strong> ${escapeHtml(preset)}</li>
-      <li><strong>Resolution / FPS:</strong> ${escapeHtml(config.resolution || "--")} @ ${escapeHtml(config.fps || "--")}</li>
-      <li><strong>Mock camera:</strong> ${config.mock_camera ? "Yes" : "No"}</li>
+      <li><strong>Resolution / FPS:</strong> ${escapeHtml(config.resolution || '--')} @ ${escapeHtml(config.fps || '--')}</li>
+      <li><strong>Mock camera:</strong> ${config.mock_camera ? 'Yes' : 'No'}</li>
     </ul>`;
 }
 
@@ -1522,7 +1522,7 @@ function updateReviewSummary() {
 function onSetupNext() {
   if (!validateStep(setupWizard.currentStep)) return;
 
-  if (setupWizard.currentStep === "environment") {
+  if (setupWizard.currentStep === 'environment') {
     updatePresetRecommendation();
   }
 
@@ -1560,10 +1560,10 @@ async function loadSetupTab() {
     const setupPanel = state.elements.setupPanel;
     if (!setupPanel) return;
 
-    const setupLoading = document.getElementById("setup-loading");
-    if (setupLoading) setupLoading.classList.remove("hidden");
+    const setupLoading = document.getElementById('setup-loading');
+    if (setupLoading) setupLoading.classList.remove('hidden');
 
-    const response = await fetch("/api/setup/templates");
+    const response = await fetch('/api/setup/templates');
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const data = await response.json();
@@ -1574,7 +1574,7 @@ async function loadSetupTab() {
     applyStoredWizardState();
     updatePresetRecommendation();
 
-    if (setupLoading) setupLoading.classList.add("hidden");
+    if (setupLoading) setupLoading.classList.add('hidden');
 
     if (!setupWizard.initialized) {
       attachSetupEventListeners();
@@ -1583,17 +1583,17 @@ async function loadSetupTab() {
 
     setWizardStep(setupWizard.currentStep);
 
-    const statusDot = document.getElementById("setup-status-indicator");
-    const statusText = document.getElementById("setup-status-text");
-    if (statusDot) statusDot.className = "setup-status-dot ready";
-    if (statusText) statusText.textContent = "Setup ready";
+    const statusDot = document.getElementById('setup-status-indicator');
+    const statusText = document.getElementById('setup-status-text');
+    if (statusDot) statusDot.className = 'setup-status-dot ready';
+    if (statusText) statusText.textContent = 'Setup ready';
   } catch (error) {
-    console.error("Failed to load setup tab:", error);
+    console.error('Failed to load setup tab:', error);
     showSetupError(`Failed to load setup: ${error.message}`);
-    const statusDot = document.getElementById("setup-status-indicator");
-    const statusText = document.getElementById("setup-status-text");
-    if (statusDot) statusDot.className = "setup-status-dot error";
-    if (statusText) statusText.textContent = "Setup load failed";
+    const statusDot = document.getElementById('setup-status-indicator');
+    const statusText = document.getElementById('setup-status-text');
+    if (statusDot) statusDot.className = 'setup-status-dot error';
+    if (statusText) statusText.textContent = 'Setup load failed';
   }
 }
 
@@ -1614,17 +1614,17 @@ function getDeviceDetectionSummary(devices = {}, currentConfig = {}) {
   const dmaCount = devices.dma_heap_devices?.length || 0;
   const hasVchiq = Boolean(devices.vchiq_device);
   const cameraSignals = [videoCount > 0, mediaCount > 0, hasVchiq].filter(Boolean).length;
-  const modeIntent = document.getElementById("env-intent")?.value || currentConfig.intent || "";
-  const isManagementMode = modeIntent === "management";
+  const modeIntent = document.getElementById('env-intent')?.value || currentConfig.intent || '';
+  const isManagementMode = modeIntent === 'management';
 
   if (cameraSignals >= 2) {
     return {
-      status: "Camera likely ready",
-      tone: "detected",
-      guidance: "Camera interfaces look available. You can proceed with real camera streaming.",
+      status: 'Camera likely ready',
+      tone: 'detected',
+      guidance: 'Camera interfaces look available. You can proceed with real camera streaming.',
       recommendations: [
-        "Enable the camera interface in raspi-config and reboot if the stream still fails.",
-        "Keep /dev/vchiq and /dev/video* mounted into the container for hardware access.",
+        'Enable the camera interface in raspi-config and reboot if the stream still fails.',
+        'Keep /dev/vchiq and /dev/video* mounted into the container for hardware access.',
       ],
       isManagementMode,
       videoCount,
@@ -1636,15 +1636,15 @@ function getDeviceDetectionSummary(devices = {}, currentConfig = {}) {
 
   if (cameraSignals === 0) {
     return {
-      status: "No camera detected",
-      tone: isManagementMode ? "warning" : "error",
+      status: 'No camera detected',
+      tone: isManagementMode ? 'warning' : 'error',
       guidance: isManagementMode
-        ? "Management mode can run without a physical camera, but streaming features will remain unavailable until hardware is attached."
-        : "No camera interfaces were found. Check host device mounts and camera interface settings.",
+        ? 'Management mode can run without a physical camera, but streaming features will remain unavailable until hardware is attached.'
+        : 'No camera interfaces were found. Check host device mounts and camera interface settings.',
       recommendations: [
-        "Verify /dev/vchiq exists on the host and is mounted into the container.",
-        "For local development without hardware, set MOCK_CAMERA=true.",
-        "If using Raspberry Pi, enable Camera in raspi-config and reboot.",
+        'Verify /dev/vchiq exists on the host and is mounted into the container.',
+        'For local development without hardware, set MOCK_CAMERA=true.',
+        'If using Raspberry Pi, enable Camera in raspi-config and reboot.',
       ],
       isManagementMode,
       videoCount,
@@ -1655,13 +1655,13 @@ function getDeviceDetectionSummary(devices = {}, currentConfig = {}) {
   }
 
   return {
-    status: "Partial detection",
-    tone: "warning",
-    guidance: "Some camera signals were detected, but not all expected interfaces are present.",
+    status: 'Partial detection',
+    tone: 'warning',
+    guidance: 'Some camera signals were detected, but not all expected interfaces are present.',
     recommendations: [
-      "Confirm /dev/vchiq and /dev/video* are both available to the container.",
-      "Check camera ribbon seating and reboot if interfaces are intermittent.",
-      "Use MOCK_CAMERA=true during development to continue testing setup flows.",
+      'Confirm /dev/vchiq and /dev/video* are both available to the container.',
+      'Check camera ribbon seating and reboot if interfaces are intermittent.',
+      'Use MOCK_CAMERA=true during development to continue testing setup flows.',
     ],
     isManagementMode,
     videoCount,
@@ -1683,52 +1683,52 @@ function getDeviceDetectionSummary(devices = {}, currentConfig = {}) {
  * @returns {void}
  */
 function renderDeviceStatus(devices = {}, currentConfig = {}) {
-  const deviceStatus = document.getElementById("device-status");
+  const deviceStatus = document.getElementById('device-status');
   if (!deviceStatus) return;
 
   const summary = getDeviceDetectionSummary(devices, currentConfig);
 
   const checklistItems = [
     {
-      label: "Video devices (/dev/video*)",
+      label: 'Video devices (/dev/video*)',
       passed: summary.videoCount > 0,
-      detail: summary.videoCount > 0 ? devices.video_devices.join(", ") : "None",
+      detail: summary.videoCount > 0 ? devices.video_devices.join(', ') : 'None',
     },
     {
-      label: "Media devices (/dev/media*)",
+      label: 'Media devices (/dev/media*)',
       passed: summary.mediaCount > 0,
-      detail: summary.mediaCount > 0 ? devices.media_devices.join(", ") : "None",
+      detail: summary.mediaCount > 0 ? devices.media_devices.join(', ') : 'None',
     },
     {
-      label: "DMA heap",
+      label: 'DMA heap',
       passed: summary.dmaCount > 0,
-      detail: summary.dmaCount > 0 ? devices.dma_heap_devices.join(", ") : "None",
+      detail: summary.dmaCount > 0 ? devices.dma_heap_devices.join(', ') : 'None',
     },
     {
-      label: "/dev/vchiq",
+      label: '/dev/vchiq',
       passed: summary.hasVchiq,
-      detail: summary.hasVchiq ? "Detected" : "Not detected",
+      detail: summary.hasVchiq ? 'Detected' : 'Not detected',
     },
   ];
 
   const checklistHtml = checklistItems
     .map(
       (item) => `
-        <li class="device-check-item ${item.passed ? "passed" : "missing"}">
-          <span class="check-icon">${item.passed ? "✅" : "⚪"}</span>
+        <li class="device-check-item ${item.passed ? 'passed' : 'missing'}">
+          <span class="check-icon">${item.passed ? '✅' : '⚪'}</span>
           <span class="check-label">${escapeHtml(item.label)}</span>
           <span class="check-detail">${escapeHtml(item.detail)}</span>
-        </li>`,
+        </li>`
     )
-    .join("");
+    .join('');
 
   const recommendationsHtml = summary.recommendations
     .map((recommendation) => `<li>${escapeHtml(recommendation)}</li>`)
-    .join("");
+    .join('');
 
   const modeNote = summary.isManagementMode
     ? '<p class="device-mode-note">ℹ️ Management mode selected: camera-less operation can be expected.</p>'
-    : "";
+    : '';
 
   deviceStatus.innerHTML = `
     <div class="device-status-summary">
@@ -1759,14 +1759,14 @@ function renderDeviceStatus(devices = {}, currentConfig = {}) {
  * @throws {Error} If device template fetch fails.
  */
 async function rescanSetupDevices() {
-  const rescanBtn = document.getElementById("rescan-devices-btn");
+  const rescanBtn = document.getElementById('rescan-devices-btn');
   if (rescanBtn) {
     rescanBtn.disabled = true;
-    rescanBtn.textContent = "Scanning...";
+    rescanBtn.textContent = 'Scanning...';
   }
 
   try {
-    const response = await fetch("/api/setup/templates");
+    const response = await fetch('/api/setup/templates');
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const data = await response.json();
@@ -1774,12 +1774,12 @@ async function rescanSetupDevices() {
     state.setupFormState = data.current_config || state.setupFormState;
     renderDeviceStatus(state.setupDetectedDevices, state.setupFormState);
   } catch (error) {
-    console.error("Failed to rescan devices:", error);
+    console.error('Failed to rescan devices:', error);
     showSetupError(`Failed to re-scan devices: ${error.message}`);
   } finally {
     if (rescanBtn) {
       rescanBtn.disabled = false;
-      rescanBtn.textContent = "Re-scan devices";
+      rescanBtn.textContent = 'Re-scan devices';
     }
   }
 }
@@ -1800,32 +1800,32 @@ function updateSetupUI(data) {
   applyConfigToForm(data.current_config || {});
 
   if (data.current_config?.mock_camera !== undefined) {
-    document.getElementById("env-mock-camera").value = data.current_config.mock_camera
-      ? "true"
-      : "false";
+    document.getElementById('env-mock-camera').value = data.current_config.mock_camera
+      ? 'true'
+      : 'false';
   }
 }
 
 function attachSetupEventListeners() {
-  const presetSelect = document.getElementById("preset-select");
+  const presetSelect = document.getElementById('preset-select');
   if (presetSelect) {
-    presetSelect.addEventListener("change", (event) => {
+    presetSelect.addEventListener('change', (event) => {
       onPresetChange(event);
       updateReviewSummary();
       saveWizardState();
     });
   }
 
-  const generateBtn = document.getElementById("generate-btn");
+  const generateBtn = document.getElementById('generate-btn');
   if (generateBtn) {
-    generateBtn.addEventListener("click", onGenerateClick);
+    generateBtn.addEventListener('click', onGenerateClick);
   }
 
-  const expertToggle = document.getElementById("expert-mode-toggle");
+  const expertToggle = document.getElementById('expert-mode-toggle');
   if (expertToggle) {
-    expertToggle.addEventListener("change", (event) => {
+    expertToggle.addEventListener('change', (event) => {
       setupWizard.expertMode = event.target.checked;
-      const advancedPanel = document.getElementById("advanced-review-panel");
+      const advancedPanel = document.getElementById('advanced-review-panel');
       if (advancedPanel) advancedPanel.open = setupWizard.expertMode;
       updateWizardNavigation();
       updateWizardCompletion();
@@ -1833,18 +1833,18 @@ function attachSetupEventListeners() {
     });
   }
 
-  const nextBtn = document.getElementById("setup-next-btn");
-  if (nextBtn) nextBtn.addEventListener("click", onSetupNext);
+  const nextBtn = document.getElementById('setup-next-btn');
+  if (nextBtn) nextBtn.addEventListener('click', onSetupNext);
 
-  const prevBtn = document.getElementById("setup-prev-btn");
-  if (prevBtn) prevBtn.addEventListener("click", onSetupPrevious);
+  const prevBtn = document.getElementById('setup-prev-btn');
+  if (prevBtn) prevBtn.addEventListener('click', onSetupPrevious);
 
-  const rescanBtn = document.getElementById("rescan-devices-btn");
-  if (rescanBtn) rescanBtn.addEventListener("click", rescanSetupDevices);
+  const rescanBtn = document.getElementById('rescan-devices-btn');
+  if (rescanBtn) rescanBtn.addEventListener('click', rescanSetupDevices);
 
-  document.querySelectorAll(".wizard-step").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const requestedStep = btn.getAttribute("data-step");
+  document.querySelectorAll('.wizard-step').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const requestedStep = btn.getAttribute('data-step');
       const requestedIndex = getStepIndex(requestedStep);
       const currentIndex = getStepIndex(setupWizard.currentStep);
       if (requestedIndex <= currentIndex || validateStep(setupWizard.currentStep)) {
@@ -1853,22 +1853,22 @@ function attachSetupEventListeners() {
     });
   });
 
-  document.querySelectorAll(".output-copy-btn").forEach((btn) => {
-    btn.addEventListener("click", function () {
-      const targetId = this.getAttribute("data-target");
+  document.querySelectorAll('.output-copy-btn').forEach((btn) => {
+    btn.addEventListener('click', function () {
+      const targetId = this.getAttribute('data-target');
       copyToClipboard(targetId, this);
     });
   });
 
-  ["env-pi-version", "env-intent", "env-mock-camera"].forEach((id) => {
+  ['env-pi-version', 'env-intent', 'env-mock-camera'].forEach((id) => {
     const field = document.getElementById(id);
     if (!field) return;
-    field.addEventListener("change", () => {
-      if (id === "env-mock-camera") {
-        const mockCameraField = document.getElementById("setup-mock-camera");
+    field.addEventListener('change', () => {
+      if (id === 'env-mock-camera') {
+        const mockCameraField = document.getElementById('setup-mock-camera');
         if (mockCameraField) mockCameraField.value = field.value;
       }
-      if (id === "env-intent") {
+      if (id === 'env-intent') {
         renderDeviceStatus(state.setupDetectedDevices || {}, state.setupFormState || {});
       }
       updatePresetRecommendation();
@@ -1877,13 +1877,13 @@ function attachSetupEventListeners() {
     });
   });
 
-  document.querySelectorAll("[data-field]").forEach((field) => {
-    field.addEventListener("input", () => {
+  document.querySelectorAll('[data-field]').forEach((field) => {
+    field.addEventListener('input', () => {
       validateSetupForm();
       updateReviewSummary();
       saveWizardState();
     });
-    field.addEventListener("change", () => {
+    field.addEventListener('change', () => {
       validateSetupForm();
       updateReviewSummary();
       saveWizardState();
@@ -1907,15 +1907,15 @@ function onPresetChange(event) {
  * @returns {void}
  */
 function validateSetupForm() {
-  const resolution = document.getElementById("setup-resolution")?.value || "";
-  const fps = document.getElementById("setup-fps")?.value || "";
+  const resolution = document.getElementById('setup-resolution')?.value || '';
+  const fps = document.getElementById('setup-fps')?.value || '';
 
   if (resolution && !/^\d+x\d+$/i.test(resolution)) {
-    console.warn("Invalid resolution format. Use WIDTHxHEIGHT (e.g., 640x480)");
+    console.warn('Invalid resolution format. Use WIDTHxHEIGHT (e.g., 640x480)');
   }
 
   if (fps && (isNaN(fps) || parseInt(fps, 10) < 0 || parseInt(fps, 10) > 120)) {
-    console.warn("FPS must be between 0 and 120");
+    console.warn('FPS must be between 0 and 120');
   }
 
   updateWizardNavigation();
@@ -1937,46 +1937,46 @@ async function onGenerateClick() {
     validateSetupForm();
     const config = collectSetupConfig();
 
-    const validateResponse = await fetch("/api/setup/validate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const validateResponse = await fetch('/api/setup/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
     });
 
     if (!validateResponse.ok) {
       const errorData = await validateResponse.json();
-      throw new Error(errorData.error?.message || "Validation failed");
+      throw new Error(errorData.error?.message || 'Validation failed');
     }
 
     const validationResult = await validateResponse.json();
     if (!validationResult.valid && validationResult.errors?.length > 0) {
-      showSetupError(`Validation errors: ${validationResult.errors.join(", ")}`);
+      showSetupError(`Validation errors: ${validationResult.errors.join(', ')}`);
       return;
     }
 
-    const generateResponse = await fetch("/api/setup/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const generateResponse = await fetch('/api/setup/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
     });
 
     if (!generateResponse.ok) {
       const errorData = await generateResponse.json();
-      throw new Error(errorData.error?.message || "Generation failed");
+      throw new Error(errorData.error?.message || 'Generation failed');
     }
 
     const result = await generateResponse.json();
 
-    const dockerComposeOutput = document.getElementById("docker-compose-output");
-    if (dockerComposeOutput) dockerComposeOutput.value = result.docker_compose_yaml || "";
+    const dockerComposeOutput = document.getElementById('docker-compose-output');
+    if (dockerComposeOutput) dockerComposeOutput.value = result.docker_compose_yaml || '';
 
-    const envOutput = document.getElementById("env-output");
-    if (envOutput) envOutput.value = result.env_content || "";
+    const envOutput = document.getElementById('env-output');
+    if (envOutput) envOutput.value = result.env_content || '';
 
-    showSetupSuccess("Configuration generated successfully!");
+    showSetupSuccess('Configuration generated successfully!');
     saveWizardState();
   } catch (error) {
-    console.error("Generation failed:", error);
+    console.error('Generation failed:', error);
     showSetupError(`Generation failed: ${error.message}`);
   }
 }
@@ -1989,16 +1989,16 @@ function copyToClipboard(targetId, buttonElement) {
   if (!textarea) return;
 
   textarea.select();
-  document.execCommand("copy");
+  document.execCommand('copy');
 
   // Provide visual feedback
   const originalText = buttonElement.textContent;
-  buttonElement.textContent = "✓ Copied!";
-  buttonElement.classList.add("copied");
+  buttonElement.textContent = '✓ Copied!';
+  buttonElement.classList.add('copied');
 
   setTimeout(() => {
     buttonElement.textContent = originalText;
-    buttonElement.classList.remove("copied");
+    buttonElement.classList.remove('copied');
   }, 2000);
 }
 
@@ -2011,12 +2011,12 @@ function copyToClipboard(targetId, buttonElement) {
  * @returns {void}
  */
 function showSetupError(message) {
-  const errorAlert = document.getElementById("setup-error-alert");
-  const errorMessage = document.getElementById("setup-error-message");
+  const errorAlert = document.getElementById('setup-error-alert');
+  const errorMessage = document.getElementById('setup-error-message');
 
   if (errorAlert && errorMessage) {
     errorMessage.textContent = message;
-    errorAlert.classList.remove("hidden");
+    errorAlert.classList.remove('hidden');
   }
 }
 
@@ -2029,17 +2029,17 @@ function showSetupError(message) {
  * @returns {void}
  */
 function showSetupSuccess(message) {
-  const successAlert = document.getElementById("setup-success-alert");
-  const successMessage = document.getElementById("setup-success-message");
+  const successAlert = document.getElementById('setup-success-alert');
+  const successMessage = document.getElementById('setup-success-message');
 
   if (successAlert && successMessage) {
     successMessage.textContent = message;
-    successAlert.classList.remove("hidden");
+    successAlert.classList.remove('hidden');
 
     setTimeout(() => {
-      successAlert.classList.add("hidden");
+      successAlert.classList.add('hidden');
     }, 3000);
   }
 }
 
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener('DOMContentLoaded', init);

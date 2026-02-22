@@ -652,8 +652,6 @@ def test_setup_generate_uses_mio_management_auth_token_in_env(monkeypatch, tmp_p
     assert "MANAGEMENT_AUTH_TOKEN=generated-token" not in env_content
 
 
-
-
 def test_setup_templates_and_generate_propagates_management_auth_token(monkeypatch, tmp_path):
     """Setup template current config token should round-trip into generated env content."""
     from pi_camera_in_docker import main

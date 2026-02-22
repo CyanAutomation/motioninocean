@@ -239,8 +239,6 @@ def test_settings_changes_reports_no_override_for_defaults(monkeypatch, tmp_path
     # For now, a specific check that these two are not present is sufficient.
 
 
-
-
 def test_setup_templates_never_returns_raw_management_auth_token(monkeypatch, tmp_path):
     """Setup templates should not expose raw management auth token values."""
     from pi_camera_in_docker import main
@@ -262,6 +260,7 @@ def test_setup_templates_never_returns_raw_management_auth_token(monkeypatch, tm
     assert "auth_token" not in current_config
     assert current_config["auth_token_configured"] is True
     assert "super-secret-token" not in str(payload)
+
 
 def test_canonical_mio_env_vars_take_precedence_over_legacy_aliases(monkeypatch):
     """Canonical MIO_* env vars should win over legacy aliases when both are set."""

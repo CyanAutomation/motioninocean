@@ -85,7 +85,6 @@ def test_load_env_config_supports_application_settings_path(monkeypatch):
     assert cfg["application_settings_path"] == "/tmp/custom-settings.json"
 
 
-
 def test_merge_config_with_persisted_settings_invalid_fps_range_falls_back(caplog):
     """Out-of-range persisted fps should keep env fps and log a warning."""
     env_config = {
@@ -134,6 +133,8 @@ def test_merge_config_with_persisted_settings_invalid_negative_fps_range_falls_b
     assert merged["fps"] == 24
     assert merged["target_fps"] == 24
     assert "Invalid persisted fps range" in caplog.text
+
+
 def test_merge_config_with_persisted_settings_invalid_camera_jpeg_quality_type_falls_back(caplog):
     """Malformed persisted jpeg quality should not break merge and should keep env value."""
     env_config = {
