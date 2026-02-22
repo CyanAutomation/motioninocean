@@ -1,7 +1,7 @@
 # ---- Build Arguments ----
-# DEBIAN_SUITE: Debian suite used for builder/final stages (defaults to trixie to match RPi OS trixie hosts)
+# DEBIAN_SUITE: Suite used for builder/final stages (defaults to trixie to match RPi OS trixie hosts)
 # RPI_SUITE: Raspberry Pi apt suite used for camera packages (defaults to trixie; must match DEBIAN_SUITE)
-# Note: Motion In Ocean targets Debian Trixie to match Raspberry Pi OS Trixie and its libcamera stack.
+# Note: Motion In Ocean targets Raspberry Pi OS Trixie and its libcamera stack.
 # No suite overrides are supported. For alternative distros, fork and modify the Dockerfile.
 ARG DEBIAN_SUITE=trixie
 ARG RPI_SUITE=trixie
@@ -61,7 +61,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     rm -rf /tmp/requirements-base.txt /tmp/*
 
 # ---- Final Stage ----
-# The final image uses debian:trixie-slim with system Python for apt-installed
+# The final image uses raspbian:trixie-slim with system Python for apt-installed
 # python3-picamera2 and libcamera libraries alongside isolated pip dependencies in /opt/venv
 # Venv approach prevents conflicts between system and pip-managed package versions
 FROM debian:${DEBIAN_SUITE}-slim
@@ -224,7 +224,7 @@ RUN mkdir -p /app && \
 # Use venv Python: flask and flask_cors are pip-installed into /opt/venv only (not the system Python).
 # The venv was created with --system-site-packages so /opt/venv/bin/python3 also sees apt-installed
 # packages (picamera2, numpy, libcamera) via /usr/lib/python3/dist-packages/ — both stages share the
-# same debian:trixie-slim base so pyvenv.cfg home pointers match correctly across build stages.
+# same raspbian:trixie-slim base so pyvenv.cfg home pointers match correctly across build stages.
 RUN /opt/venv/bin/python3 /usr/local/bin/validate-stack.py
 
 # Layer 6 (continued): Validate libcamera install and Raspberry Pi pipeline/IPA locations (arm64 only)
