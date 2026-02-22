@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,6 +18,49 @@ except (ModuleNotFoundError, ImportError):
 
 DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_LOG_FORMAT = "text"
+
+CAMERA_CLI_CANDIDATES = ("rpicam-hello", "libcamera-hello")
+CAMERA_CLI_MISSING_ERROR = "Neither rpicam-hello nor libcamera-hello is available in PATH."
+
+
+def _detect_camera_cli() -> Optional[str]:
+    """Detect an available camera CLI command in priority order."""
+    for candidate in CAMERA_CLI_CANDIDATES:
+        if shutil.which(candidate):
+            return candidate
+    return None
+
+
+def _capture_camera_cli_version(logger: logging.Logger) -> tuple[str, str]:
+    """Capture camera CLI version string and report which binary was used."""
+    camera_cli = _detect_camera_cli()
+    if camera_cli is None:
+        logger.warning(CAMERA_CLI_MISSING_ERROR)
+        return "unknown", "none"
+
+    try:
+        result = subprocess.run(
+            [camera_cli, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if result.returncode == 0:
+            stdout = (result.stdout or "").strip()
+            version_line = stdout.split("\n")[0] if stdout else "unknown"
+            return version_line.strip(), camera_cli
+
+        logger.debug(
+            "Camera CLI version command failed: command=%s returncode=%s stderr=%s",
+            camera_cli,
+            result.returncode,
+            (result.stderr or "").strip(),
+        )
+    except Exception as e:
+        logger.debug("Could not capture camera CLI version using %s: %s", camera_cli, e)
+
+    return "unknown", camera_cli
 
 
 class ISO8601Formatter(logging.Formatter):
@@ -111,7 +155,7 @@ def log_provenance_info() -> None:
     Captures and logs:
     - Application version from /app/VERSION file
     - Build suite parameters from /app/BUILD_METADATA
-    - libcamera version (from libcamera-hello utility)
+    - libcamera version (from rpicam-hello or libcamera-hello utility)
     - picamera2 module information and import path
     - Package origins and versions (dpkg for camera packages)
     - Apt pinning preferences for camera packages
@@ -145,22 +189,8 @@ def log_provenance_info() -> None:
         except Exception as e:
             logger.warning("Failed to read BUILD_METADATA file: %s", e)
 
-    # Capture libcamera version
-    libcamera_version = "unknown"
-    try:
-        result = subprocess.run(
-            ["libcamera-hello", "--version"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
-        if result.returncode == 0:
-            # Output format: "libcamera 0.6.0 ..."
-            version_line = result.stdout.strip().split("\n")[0]
-            libcamera_version = version_line.strip()
-    except Exception as e:
-        logger.debug("Could not capture libcamera version: %s", e)
+    # Capture camera CLI version
+    libcamera_version, camera_cli_used = _capture_camera_cli_version(logger)
 
     # Capture picamera2 module info
     picamera2_version = "unknown"
@@ -223,7 +253,7 @@ def log_provenance_info() -> None:
     origin_summary = "/".join(set(origins)) if origins else "unknown"
 
     info_summary = (
-        f"version={app_version} libcamera={libcamera_version} picamera2={picamera2_version} "
+        f"version={app_version} camera_cli={camera_cli_used} libcamera={libcamera_version} picamera2={picamera2_version} "
         f"debian:suite={debian_suite} rpi:suite={rpi_suite} mock_camera={include_mock} "
         f"package_origins={origin_summary}"
     )
@@ -233,6 +263,7 @@ def log_provenance_info() -> None:
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("BUILD_METADATA: %s", build_metadata)
         logger.debug("picamera2.__file__: %s", picamera2_path)
+        logger.debug("Camera CLI used: %s", camera_cli_used)
         logger.debug("Full libcamera version: %s", libcamera_version)
         logger.debug("Package versions and origins: %s", dpkg_info)
         logger.debug(
@@ -243,6 +274,7 @@ def log_provenance_info() -> None:
             "Provenance snapshot: %s",
             {
                 "app_version": app_version,
+                "camera_cli_used": camera_cli_used,
                 "libcamera_version": libcamera_version,
                 "picamera2_version": picamera2_version,
                 "picamera2_path": picamera2_path,

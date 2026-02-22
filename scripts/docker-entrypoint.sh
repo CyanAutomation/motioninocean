@@ -6,6 +6,21 @@ APP_GID="${APP_GID:-10001}"
 DATA_DIR="${DATA_DIR:-/data}"
 export DATA_DIR
 
+CAMERA_CLI_MISSING_ERROR="Neither rpicam-hello nor libcamera-hello is available in PATH."
+
+detect_camera_cli() {
+    if command -v rpicam-hello >/dev/null 2>&1; then
+        echo "rpicam-hello"
+        return 0
+    fi
+    if command -v libcamera-hello >/dev/null 2>&1; then
+        echo "libcamera-hello"
+        return 0
+    fi
+    return 1
+}
+
+
 # Dump image provenance info for debugging and validation
 dump_provenance() {
     echo "[entrypoint] === Image Provenance ===" >&2
@@ -18,10 +33,11 @@ dump_provenance() {
     fi
     
     echo "[entrypoint] libcamera version:" >&2
-    if command -v libcamera-hello >/dev/null 2>&1; then
-        libcamera-hello --version 2>&1 | sed 's/^/[entrypoint]   /' >&2 || true
+    if CAMERA_CLI="$(detect_camera_cli)"; then
+        echo "[entrypoint]   camera_cli=${CAMERA_CLI}" >&2
+        "${CAMERA_CLI}" --version 2>&1 | sed 's/^/[entrypoint]   /' >&2 || true
     else
-        echo "[entrypoint]   libcamera-hello not found" >&2
+        echo "[entrypoint] WARNING: ${CAMERA_CLI_MISSING_ERROR}" >&2
     fi
     
     echo "[entrypoint] picamera2 import path:" >&2
