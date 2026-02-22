@@ -541,6 +541,7 @@ def _init_app_state(config: Dict[str, Any]) -> dict:
         "picam2_instance": None,
         "cat_gif_generator": None,
         "camera_startup_error": None,
+        "active_mock_fallback": False,
     }
 
 
@@ -702,6 +703,13 @@ class HealthCheckBuilder:
         Returns:
             Indicator dictionary with state, label, and details.
         """
+        if self.state.get("active_mock_fallback"):
+            return _indicator(
+                "warn",
+                "Mock fallback active",
+                "Real camera initialization failed and mock fallback is currently active.",
+            )
+
         expected_real_camera = self.state.get("app_mode") == "webcam"
         if self.config["mock_camera"] and expected_real_camera:
             return _indicator(
@@ -878,6 +886,8 @@ class ConfigResponseBuilder:
             "runtime": {
                 "camera_active": camera_active,
                 "mock_camera": self.config["mock_camera"],
+                "configured_mock_camera": self.config["mock_camera"],
+                "active_mock_fallback": bool(self.state.get("active_mock_fallback", False)),
                 "uptime_seconds": uptime_seconds,
             },
             "health_check": health_check,
@@ -1655,10 +1665,26 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
 
     # Validate device availability early
     _check_device_availability(cfg)
+    state["active_mock_fallback"] = False
 
     if cfg["mock_camera"]:
         _init_mock_camera_frames(state, cfg)
         return
+
+    def _activate_mock_fallback() -> None:
+        startup_error = state.get("camera_startup_error")
+        fallback_reason_code = "CAMERA_STARTUP_FAILED"
+        if isinstance(startup_error, dict):
+            fallback_reason_code = str(startup_error.get("code") or fallback_reason_code)
+
+        logger.warning(
+            "Real camera initialization failed; activating mock fallback "
+            "(reason_code=%s, strict_mode=%s).",
+            fallback_reason_code,
+            cfg.get("fail_on_camera_init_error", False),
+        )
+        _init_mock_camera_frames(state, cfg)
+        state["active_mock_fallback"] = True
 
     try:
         _init_real_camera(state, cfg)
@@ -1669,11 +1695,27 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
         )
         if cfg.get("fail_on_camera_init_error", False) or is_unexpected_exception:
             raise
-        logger.warning(
-            "Camera initialization failed; continuing startup in degraded mode because "
-            "MIO_FAIL_ON_CAMERA_INIT_ERROR is disabled.",
-            exc_info=True,
+        _activate_mock_fallback()
+        return
+
+    startup_error = state.get("camera_startup_error")
+    if isinstance(startup_error, dict):
+        startup_error_code = str(startup_error.get("code", ""))
+        startup_error_reason = str(startup_error.get("reason", ""))
+        is_expected_camera_failure = (
+            startup_error_code
+            in {
+                "CAMERA_UNAVAILABLE",
+                "CAMERA_PERMISSION_DENIED",
+                "CAMERA_STARTUP_FAILED",
+            }
+            or startup_error_reason == "camera_unavailable"
         )
+        if is_expected_camera_failure:
+            if cfg.get("fail_on_camera_init_error", False):
+                message = str(startup_error.get("message") or "Camera initialization failed")
+                raise RuntimeError(message)
+            _activate_mock_fallback()
 
 
 def handle_shutdown(app: Flask, signum: int, _frame: Optional[object]) -> None:

@@ -766,17 +766,21 @@ def test_run_webcam_mode_raises_on_camera_init_failure_in_strict_mode(monkeypatc
 
     monkeypatch.setattr(main, "_check_device_availability", lambda _cfg: None)
 
-    def raise_runtime_error(_state, _cfg):
-        raise RuntimeError("boom")
+    def set_runtime_startup_error(_state, _cfg):
+        _state["camera_startup_error"] = {
+            "code": "CAMERA_STARTUP_FAILED",
+            "reason": "camera_unavailable",
+            "message": "boom",
+        }
 
-    monkeypatch.setattr(main, "_init_real_camera", raise_runtime_error)
+    monkeypatch.setattr(main, "_init_real_camera", set_runtime_startup_error)
 
     with pytest.raises(RuntimeError, match="boom"):
         main._run_webcam_mode(state, cfg)
 
 
-def test_run_webcam_mode_boots_degraded_on_camera_init_failure_when_not_strict(monkeypatch):
-    """Non-strict camera init mode should continue startup in degraded state."""
+def test_run_webcam_mode_falls_back_to_mock_on_camera_init_failure_when_not_strict(monkeypatch):
+    """Non-strict camera init mode should activate mock fallback on camera failures."""
     from threading import Event, RLock
 
     from modes.webcam import ConnectionTracker, FrameBuffer, StreamStats
@@ -807,10 +811,21 @@ def test_run_webcam_mode_boots_degraded_on_camera_init_failure_when_not_strict(m
 
     monkeypatch.setattr(main, "_check_device_availability", lambda _cfg: None)
 
-    def raise_runtime_error(_state, _cfg):
-        raise RuntimeError("boom")
+    def set_runtime_startup_error(_state, _cfg):
+        _state["camera_startup_error"] = {
+            "code": "CAMERA_STARTUP_FAILED",
+            "reason": "camera_unavailable",
+        }
 
-    monkeypatch.setattr(main, "_init_real_camera", raise_runtime_error)
+    monkeypatch.setattr(main, "_init_real_camera", set_runtime_startup_error)
+
+    fallback_called = []
+
+    def fake_mock_fallback(_state, _cfg):
+        fallback_called.append(True)
+        _state["recording_started"].set()
+
+    monkeypatch.setattr(main, "_init_mock_camera_frames", fake_mock_fallback)
     monkeypatch.setattr(
         main.logger,
         "warning",
@@ -819,9 +834,83 @@ def test_run_webcam_mode_boots_degraded_on_camera_init_failure_when_not_strict(m
 
     main._run_webcam_mode(state, cfg)
 
-    assert state["recording_started"].is_set() is False
+    assert state["recording_started"].is_set() is True
+    assert state["active_mock_fallback"] is True
+    assert fallback_called
     assert warnings
-    assert "continuing startup in degraded mode" in warnings[0][0]
+    assert "activating mock fallback" in warnings[0][0]
+
+
+def test_run_webcam_mode_forced_real_camera_still_falls_back_when_not_strict(monkeypatch):
+    """Explicit MOCK_CAMERA=false should still permit fallback in non-strict mode."""
+    from threading import Event, RLock
+
+    from modes.webcam import ConnectionTracker, FrameBuffer, StreamStats
+
+    from pi_camera_in_docker import main
+
+    cfg = {
+        "mock_camera": False,
+        "fail_on_camera_init_error": False,
+        "target_fps": 0,
+        "max_stream_connections": 10,
+    }
+
+    stream_stats = StreamStats()
+    output = FrameBuffer(stream_stats, target_fps=cfg["target_fps"])
+    state = {
+        "recording_started": Event(),
+        "shutdown_requested": Event(),
+        "camera_lock": RLock(),
+        "output": output,
+        "stream_stats": stream_stats,
+        "connection_tracker": ConnectionTracker(),
+        "max_stream_connections": cfg["max_stream_connections"],
+        "picam2_instance": None,
+    }
+
+    monkeypatch.setattr(main, "_check_device_availability", lambda _cfg: None)
+
+    def set_permission_error(_state, _cfg):
+        _state["camera_startup_error"] = {
+            "code": "CAMERA_PERMISSION_DENIED",
+            "reason": "camera_unavailable",
+        }
+
+    monkeypatch.setattr(main, "_init_real_camera", set_permission_error)
+
+    fallback_called = []
+
+    def fake_mock_fallback(_state, _cfg):
+        fallback_called.append(True)
+
+    monkeypatch.setattr(main, "_init_mock_camera_frames", fake_mock_fallback)
+
+    main._run_webcam_mode(state, cfg)
+
+    assert fallback_called
+    assert state["active_mock_fallback"] is True
+
+
+def test_api_config_runtime_includes_mock_fallback_observability_fields(monkeypatch):
+    """Runtime config payload should expose configured mock and active fallback state."""
+    from pi_camera_in_docker import main
+
+    monkeypatch.setenv("MIO_APP_MODE", "webcam")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "false")
+
+    monkeypatch.setattr(main, "_run_webcam_mode", lambda _state, _cfg: None)
+
+    app = main.create_webcam_app()
+    app.motion_state["active_mock_fallback"] = True
+
+    response = app.test_client().get("/api/config")
+
+    assert response.status_code == 200
+    runtime = response.get_json()["runtime"]
+    assert runtime["mock_camera"] is False
+    assert runtime["configured_mock_camera"] is False
+    assert runtime["active_mock_fallback"] is True
 
 
 def test_run_webcam_mode_raises_unexpected_camera_exception_even_when_not_strict(monkeypatch):
