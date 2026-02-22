@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-02-22
+
+- [camera] Prefer rpicam-hello before libcamera-hello in validation (#356)
+- [docker] Use RPI_SUITE for Raspberry Pi apt source (#355)
+
 ## [1.17.9] - 2026-02-22
 
 - [docker] Use dpkg architecture detection in arm64 conditionals (#354)
