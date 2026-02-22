@@ -85,6 +85,55 @@ def test_load_env_config_supports_application_settings_path(monkeypatch):
     assert cfg["application_settings_path"] == "/tmp/custom-settings.json"
 
 
+
+def test_merge_config_with_persisted_settings_invalid_fps_range_falls_back(caplog):
+    """Out-of-range persisted fps should keep env fps and log a warning."""
+    env_config = {
+        "fps": 24,
+        "target_fps": 24,
+        "jpeg_quality": 90,
+        "discovery_interval_seconds": 30.0,
+        "discovery_management_url": "http://127.0.0.1:8001",
+    }
+    persisted = {
+        "settings": {
+            "camera": {"fps": 121},
+            "discovery": {},
+            "logging": {},
+        }
+    }
+
+    with caplog.at_level("WARNING"):
+        merged = runtime_config.merge_config_with_persisted_settings(env_config, persisted)
+
+    assert merged["fps"] == 24
+    assert merged["target_fps"] == 24
+    assert "Invalid persisted fps range" in caplog.text
+
+
+def test_merge_config_with_persisted_settings_invalid_negative_fps_range_falls_back(caplog):
+    """Negative persisted fps should keep env fps and log a warning."""
+    env_config = {
+        "fps": 24,
+        "target_fps": 24,
+        "jpeg_quality": 90,
+        "discovery_interval_seconds": 30.0,
+        "discovery_management_url": "http://127.0.0.1:8001",
+    }
+    persisted = {
+        "settings": {
+            "camera": {"fps": -1},
+            "discovery": {},
+            "logging": {},
+        }
+    }
+
+    with caplog.at_level("WARNING"):
+        merged = runtime_config.merge_config_with_persisted_settings(env_config, persisted)
+
+    assert merged["fps"] == 24
+    assert merged["target_fps"] == 24
+    assert "Invalid persisted fps range" in caplog.text
 def test_merge_config_with_persisted_settings_invalid_camera_jpeg_quality_type_falls_back(caplog):
     """Malformed persisted jpeg quality should not break merge and should keep env value."""
     env_config = {

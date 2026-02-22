@@ -388,9 +388,12 @@ def _merge_camera_settings(
     if camera_settings.get("fps") is not None:
         fps = camera_settings["fps"]
         if isinstance(fps, int):
-            merged["fps"] = fps
-            if merged.get("target_fps") == env_config.get("fps"):
-                merged["target_fps"] = fps
+            if 0 <= fps <= 120:
+                merged["fps"] = fps
+                if merged.get("target_fps") == env_config.get("fps"):
+                    merged["target_fps"] = fps
+            else:
+                logger.warning("Invalid persisted fps range, using env value")
         else:
             logger.warning("Invalid persisted fps type, using env value")
 
