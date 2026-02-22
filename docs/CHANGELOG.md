@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.18.6] - 2026-02-22
+
+- Update Dockerfile to install picamera2 in the virtual environment for arm64 builds
+
 ## [1.18.5] - 2026-02-22
 
 - [docker] Update Raspberry Pi repository URLs and adjust Dockerfile test assertions for Trixie suite
