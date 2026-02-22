@@ -280,6 +280,42 @@ def test_get_camera_info_prefers_module_level_global_camera_info(monkeypatch):
         sys.modules.pop("picamera2", None)
 
 
+def test_get_camera_info_uses_class_path_when_class_callable_is_invoked(monkeypatch):
+    """Detection path should report class method when that callable handles enumeration."""
+    import importlib
+    import sys
+    import tempfile
+    import types
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("MIO_APP_MODE", "management")
+        monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+
+        fake_module = types.ModuleType("picamera2")
+
+        def module_global_camera_info():
+            return [{"id": "module-cam"}]
+
+        class FakePicamera2:
+            global_camera_info = staticmethod(module_global_camera_info)
+
+        fake_module.Picamera2 = FakePicamera2
+        fake_module.global_camera_info = module_global_camera_info
+
+        sys.modules["picamera2"] = fake_module
+        sys.modules.pop("main", None)
+        main = importlib.import_module("pi_camera_in_docker.main")
+
+        camera_info, detection_path = main._get_camera_info(FakePicamera2)
+
+        assert camera_info == [{"id": "module-cam"}]
+        assert detection_path == "Picamera2.global_camera_info"
+
+        sys.modules.pop("main", None)
+        sys.modules.pop("picamera2", None)
+
+
 def test_get_camera_info_falls_back_to_class_method(monkeypatch):
     """Camera detection should fallback to Picamera2.global_camera_info when needed."""
     import importlib
