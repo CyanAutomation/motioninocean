@@ -93,6 +93,7 @@ def _detect_architecture_from_dpkg() -> str | None:
             capture_output=True,
             check=True,
             text=True,
+            timeout=5,
         )
     except (FileNotFoundError, subprocess.CalledProcessError):
         return None
