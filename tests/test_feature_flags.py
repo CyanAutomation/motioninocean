@@ -78,6 +78,44 @@ class TestFeatureFlagRegistry:
             flags.load()
             assert flags.is_enabled("MOCK_CAMERA") is False
 
+    def test_deprecation_warning_emitted_for_legacy_mock_camera_alias(self, caplog):
+        """Legacy MOCK_CAMERA alias usage should emit explicit deprecation warning."""
+        from pi_camera_in_docker.feature_flags import FeatureFlags
+
+        with mock.patch.dict(os.environ, {"MOCK_CAMERA": "true"}, clear=True):
+            flags = FeatureFlags()
+            with caplog.at_level("WARNING"):
+                flags.load()
+
+        assert flags.is_enabled("MOCK_CAMERA") is True
+        assert "Legacy environment variable 'MOCK_CAMERA' is deprecated" in caplog.text
+        assert "MIO_MOCK_CAMERA" in caplog.text
+
+    def test_deprecation_warning_emitted_for_legacy_cat_gif_alias(self, caplog):
+        """Legacy CAT_GIF alias usage should emit explicit deprecation warning."""
+        from pi_camera_in_docker.feature_flags import FeatureFlags
+
+        with mock.patch.dict(os.environ, {"CAT_GIF": "true"}, clear=True):
+            flags = FeatureFlags()
+            with caplog.at_level("WARNING"):
+                flags.load()
+
+        assert flags.is_enabled("CAT_GIF") is True
+        assert "Legacy environment variable 'CAT_GIF' is deprecated" in caplog.text
+        assert "MIO_CAT_GIF" in caplog.text
+
+    def test_no_deprecation_warning_when_prefixed_alias_is_used(self, caplog):
+        """MIO_ prefixed variables should not produce legacy alias deprecation warnings."""
+        from pi_camera_in_docker.feature_flags import FeatureFlags
+
+        with mock.patch.dict(os.environ, {"MIO_MOCK_CAMERA": "true"}, clear=True):
+            flags = FeatureFlags()
+            with caplog.at_level("WARNING"):
+                flags.load()
+
+        assert flags.is_enabled("MOCK_CAMERA") is True
+        assert "Legacy environment variable" not in caplog.text
+
     def test_prefixed_env_vars_take_precedence(self):
         """Test that MIO_ prefixed vars take precedence over legacy vars."""
         from pi_camera_in_docker.feature_flags import FeatureFlags

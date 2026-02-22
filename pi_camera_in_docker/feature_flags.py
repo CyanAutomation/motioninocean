@@ -15,6 +15,18 @@ from typing import Any, Callable, Dict, Optional
 logger = logging.getLogger(__name__)
 
 
+LEGACY_ALIAS_DEPRECATION_RELEASE_WINDOW = 3
+"""Number of minor releases legacy aliases remain supported after warning starts."""
+
+
+LEGACY_ALIAS_REMOVAL_TARGET = "v1.0"
+"""Target release for removing deprecated legacy feature-flag aliases."""
+
+
+LEGACY_ALIAS_DEPRECATION_FLAGS = {"MOCK_CAMERA", "CAT_GIF"}
+"""Flags for which legacy env aliases should emit explicit deprecation warnings."""
+
+
 class FeatureFlagCategory(Enum):
     """Categorization for feature flags."""
 
@@ -347,6 +359,17 @@ class FeatureFlags:
                             flag_name,
                             legacy_var,
                         )
+                        if flag_name in LEGACY_ALIAS_DEPRECATION_FLAGS:
+                            logger.warning(
+                                "Legacy environment variable '%s' is deprecated for feature flag '%s'. "
+                                "Use 'MIO_%s' instead. Legacy alias support is scheduled for removal "
+                                "after %s minor releases (target: %s).",
+                                legacy_var,
+                                flag_name,
+                                flag_name,
+                                LEGACY_ALIAS_DEPRECATION_RELEASE_WINDOW,
+                                LEGACY_ALIAS_REMOVAL_TARGET,
+                            )
                         break
 
             # Parse the value
