@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """
 Architecture-aware stack validation for motion-in-ocean.
 
