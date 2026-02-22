@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from .feature_flags import is_flag_enabled
+
 
 try:
     import picamera2  # type: ignore[import-not-found]
@@ -155,6 +157,7 @@ def log_provenance_info() -> None:
     Captures and logs:
     - Application version from /app/VERSION file
     - Build suite parameters from /app/BUILD_METADATA
+    - Build timestamp from /app/BUILD_METADATA
     - libcamera version (from rpicam-hello or libcamera-hello utility)
     - picamera2 module information and import path
     - Package origins and versions (dpkg for camera packages)
@@ -245,7 +248,6 @@ def log_provenance_info() -> None:
     # Build INFO-level summary (single line)
     debian_suite = build_metadata.get("DEBIAN_SUITE", "unknown")
     rpi_suite = build_metadata.get("RPI_SUITE", "unknown")
-    include_mock = build_metadata.get("INCLUDE_MOCK_CAMERA", "unknown")
     build_time = build_metadata.get("BUILD_TIMESTAMP", "unknown")
 
     # Extract origin summary from dpkg_info
@@ -254,10 +256,13 @@ def log_provenance_info() -> None:
 
     info_summary = (
         f"version={app_version} camera_cli={camera_cli_used} libcamera={libcamera_version} picamera2={picamera2_version} "
-        f"debian:suite={debian_suite} rpi:suite={rpi_suite} mock_camera={include_mock} "
+        f"debian:suite={debian_suite} rpi:suite={rpi_suite} build_timestamp={build_time} "
         f"package_origins={origin_summary}"
     )
     logger.info("Camera stack provenance: %s", info_summary)
+
+    runtime_mock_camera = is_flag_enabled("MOCK_CAMERA")
+    logger.info("Runtime mode: runtime_mock_camera=%s", runtime_mock_camera)
 
     # Log DEBUG-level detailed inspection
     if logger.isEnabledFor(logging.DEBUG):
@@ -281,7 +286,6 @@ def log_provenance_info() -> None:
                 "package_info": dpkg_info,
                 "debian_suite": debian_suite,
                 "rpi_suite": rpi_suite,
-                "mock_camera_enabled": include_mock,
                 "build_timestamp": build_time,
                 "package_origins": origin_summary,
             },

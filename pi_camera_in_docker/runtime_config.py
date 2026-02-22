@@ -590,7 +590,6 @@ def load_build_metadata() -> Dict[str, str]:
     Reads key-value pairs created at build time documenting:
     - DEBIAN_SUITE: Debian release (e.g., trixie, bookworm)
     - RPI_SUITE: Raspberry Pi repo suite
-    - INCLUDE_MOCK_CAMERA: Whether mock camera support was compiled
     - BUILD_TIMESTAMP: ISO-8601 timestamp of build completion
 
     Returns:
