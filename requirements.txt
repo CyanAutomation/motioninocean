@@ -21,10 +21,9 @@ Pillow>=12.1.1
 numpy==2.2.3
 
 # Camera support for Raspberry Pi
-# Note: picamera2 is installed separately via conditional pip install in the Dockerfile
-# builder stage for arm64 only (see Dockerfile line ~52).
-# It is NOT in requirements.txt to avoid unnecessary build of C dependencies on amd64.
-# C extensions (libcamera, python3-libcamera) are installed via apt in the final stage.
+# picamera2 and python3-libcamera are installed from the Raspberry Pi Bookworm apt repo on arm64
+# via the Dockerfile (Layer 2, final stage). They are NOT installed from pip.
+# amd64 builds skip camera packages entirely and use MOCK_CAMERA=true at runtime.
 
 # Development and testing dependencies
 # These are listed here for reference but installed separately in CI/dev environments
