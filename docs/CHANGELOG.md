@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.18.9] - 2026-02-22
+
+- Rename SENTRY_DSN to MIO_SENTRY_DSN in documentation and code for consistency
+- Enhance Sentry integration for error tracking across application components
+
 ## [1.18.8] - 2026-02-22
 
 - Update libcamera validation in Dockerfile to check for CameraManager presence
