@@ -85,6 +85,78 @@ def test_load_env_config_supports_application_settings_path(monkeypatch):
     assert cfg["application_settings_path"] == "/tmp/custom-settings.json"
 
 
+def test_merge_config_with_persisted_settings_invalid_camera_jpeg_quality_type_falls_back(caplog):
+    """Malformed persisted jpeg quality should not break merge and should keep env value."""
+    env_config = {
+        "jpeg_quality": 90,
+        "fps": 24,
+        "target_fps": 24,
+        "discovery_interval_seconds": 30.0,
+        "discovery_management_url": "http://127.0.0.1:8001",
+    }
+    persisted = {
+        "settings": {
+            "camera": {"jpeg_quality": "very-high"},
+            "discovery": {},
+            "logging": {},
+        }
+    }
+
+    with caplog.at_level("WARNING"):
+        merged = runtime_config.merge_config_with_persisted_settings(env_config, persisted)
+
+    assert merged["jpeg_quality"] == 90
+    assert "Invalid persisted jpeg_quality type" in caplog.text
+
+
+def test_merge_config_with_persisted_settings_invalid_discovery_interval_type_falls_back(caplog):
+    """Malformed persisted discovery interval should keep env value without exception."""
+    env_config = {
+        "jpeg_quality": 90,
+        "fps": 24,
+        "target_fps": 24,
+        "discovery_interval_seconds": 30.0,
+        "discovery_management_url": "http://127.0.0.1:8001",
+    }
+    persisted = {
+        "settings": {
+            "camera": {},
+            "discovery": {"discovery_interval_seconds": {"seconds": 5}},
+            "logging": {},
+        }
+    }
+
+    with caplog.at_level("WARNING"):
+        merged = runtime_config.merge_config_with_persisted_settings(env_config, persisted)
+
+    assert merged["discovery_interval_seconds"] == 30.0
+    assert "Invalid persisted discovery_interval_seconds type" in caplog.text
+
+
+def test_merge_config_with_persisted_settings_invalid_discovery_url_type_falls_back(caplog):
+    """Malformed persisted discovery URL should keep env value without exception."""
+    env_config = {
+        "jpeg_quality": 90,
+        "fps": 24,
+        "target_fps": 24,
+        "discovery_interval_seconds": 30.0,
+        "discovery_management_url": "http://127.0.0.1:8001",
+    }
+    persisted = {
+        "settings": {
+            "camera": {},
+            "discovery": {"discovery_management_url": ["http://invalid"]},
+            "logging": {},
+        }
+    }
+
+    with caplog.at_level("WARNING"):
+        merged = runtime_config.merge_config_with_persisted_settings(env_config, persisted)
+
+    assert merged["discovery_management_url"] == "http://127.0.0.1:8001"
+    assert "Invalid persisted discovery_management_url type" in caplog.text
+
+
 def test_load_env_config_supports_webcam_control_plane_auth_token(monkeypatch):
     """WEBCAM_CONTROL_PLANE_AUTH_TOKEN should be exposed in runtime configuration."""
     monkeypatch.setenv("MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", "webcam-token")
