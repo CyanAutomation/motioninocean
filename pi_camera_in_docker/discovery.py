@@ -50,8 +50,17 @@ def _safe_management_url(management_url: str) -> str:
         host = f"[{host}]"
     if parts.port is not None:
         host = f"{host}:{parts.port}"
-    base_path = parts.path.rstrip("/")
-    return urlunsplit((parts.scheme, host, f"{base_path}/api/discovery/announce", "", ""))
+    normalized_path = parts.path.rstrip("/")
+    announce_path = "/api/discovery/announce"
+
+    if normalized_path.endswith(announce_path):
+        safe_path = normalized_path
+    elif normalized_path:
+        safe_path = f"{normalized_path}{announce_path}"
+    else:
+        safe_path = announce_path
+
+    return urlunsplit((parts.scheme, host, safe_path, "", ""))
 
 
 def _redacted_url_for_logs(url: str) -> str:
