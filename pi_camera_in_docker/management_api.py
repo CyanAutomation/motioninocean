@@ -66,6 +66,8 @@ def _load_allow_private_ips_flag() -> bool:
 
 
 ALLOW_PRIVATE_IPS = _load_allow_private_ips_flag()
+
+
 def is_private_ip_allowed() -> bool:
     """Return whether private IP targets are allowed for SSRF checks.
 
@@ -73,9 +75,9 @@ def is_private_ip_allowed() -> bool:
     deterministically during runtime and tests.
 
     Returns:
-        True when MIO_ALLOW_PRIVATE_IPS is truthy, False otherwise.
+        True when private IP override evaluates to enabled, False otherwise.
     """
-    return os.environ.get("MIO_ALLOW_PRIVATE_IPS", "").lower() in {"true", "1", "yes"}
+    return _load_allow_private_ips_flag()
 
 # Request timeout used for proxied webcam HTTP calls.
 REQUEST_TIMEOUT_SECONDS = 5.0
