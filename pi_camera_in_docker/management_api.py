@@ -564,8 +564,10 @@ def _attempt_pinned_connection(
         except json.JSONDecodeError as exc:
             message = "webcam returned malformed JSON"
             raise NodeInvalidResponseError(message) from exc
-        else:
-            return response.status, body_json
+        if not isinstance(body_json, dict):
+            message = "webcam returned non-object JSON"
+            raise NodeInvalidResponseError(message)
+        return response.status, body_json
     finally:
         if actual_connection is not None:
             actual_connection.close()
