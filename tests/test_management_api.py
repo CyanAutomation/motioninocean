@@ -7,8 +7,8 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Flask
 import pytest
+from flask import Flask
 
 
 # Import workspace root path (WORKSPACE_ROOT is set in conftest.py)
@@ -1688,7 +1688,7 @@ def test_request_json_raises_for_array_json_payload(monkeypatch):
         status = 200
 
         def read(self):
-            return b'[1, 2, 3]'
+            return b"[1, 2, 3]"
 
     class FakeHTTPConnection:
         def __init__(self, host, port, connect_host, timeout):

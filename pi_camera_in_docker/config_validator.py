@@ -39,7 +39,7 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
             message,
             hint=(
                 "Docker Compose example: environment: "
-                "[\"MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001\"]"
+                """["MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"]"""
             ),
         )
 
@@ -49,7 +49,7 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
             message,
             hint=(
                 "Docker Compose example: environment: "
-                "[\"MIO_DISCOVERY_TOKEN=replace-with-shared-secret\"] "
+                """["MIO_DISCOVERY_TOKEN=replace-with-shared-secret"] """
                 "(must match management NODE_DISCOVERY_SHARED_SECRET)"
             ),
         )
@@ -63,7 +63,7 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
             message,
             hint=(
                 "Docker Compose example: environment: "
-                "[\"MIO_BASE_URL=http://192.168.1.100:8000\"]"
+                """["MIO_BASE_URL=http://192.168.1.100:8000"]"""
             ),
         )
 
