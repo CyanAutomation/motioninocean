@@ -148,18 +148,16 @@ def _apply_pi3_profile_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
 def _load_stream_config() -> Dict[str, Any]:
     """Load stream and mock camera configuration from environment variables.
 
-    Parses settings for API test mode and cat GIF mock camera (cataas.com).
+    Parses settings for API test mode and local mock camera feature flags.
 
     Env vars:
     - API_TEST_MODE_ENABLED (default: false)
     - API_TEST_CYCLE_INTERVAL_SECONDS (default: 5.0)
     - CAT_GIF (feature flag, default: false)
-    - CATAAS_API_URL (default: https://cataas.com/cat.gif)
-    - CAT_GIF_CACHE_TTL_SECONDS (default: 60.0)
 
     Returns:
         Dict with keys: api_test_mode_enabled, api_test_cycle_interval_seconds,
-        cat_gif_enabled, cataas_api_url, cat_gif_cache_ttl_seconds.
+        cat_gif_enabled.
     """
     api_test_mode_enabled = os.environ.get("MIO_API_TEST_MODE_ENABLED", "false").lower() in (
         "1",
@@ -176,37 +174,11 @@ def _load_stream_config() -> Dict[str, Any]:
         api_test_cycle_interval_seconds = 5.0
 
     cat_gif_enabled = is_flag_enabled("CAT_GIF")
-    cataas_api_url = os.environ.get("MIO_CATAAS_API_URL", "https://cataas.com/cat/gif").strip()
-    try:
-        cat_gif_cache_ttl_seconds = float(os.environ.get("MIO_CAT_GIF_CACHE_TTL_SECONDS", "60"))
-    except ValueError:
-        cat_gif_cache_ttl_seconds = 60.0
-    if cat_gif_cache_ttl_seconds <= 0:
-        cat_gif_cache_ttl_seconds = 60.0
-
-    try:
-        cat_gif_retry_base_seconds = float(os.environ.get("MIO_CAT_GIF_RETRY_BASE_SECONDS", "1"))
-    except ValueError:
-        cat_gif_retry_base_seconds = 1.0
-    if cat_gif_retry_base_seconds <= 0:
-        cat_gif_retry_base_seconds = 1.0
-
-    try:
-        cat_gif_retry_max_seconds = float(os.environ.get("MIO_CAT_GIF_RETRY_MAX_SECONDS", "60"))
-    except ValueError:
-        cat_gif_retry_max_seconds = 60.0
-    if cat_gif_retry_max_seconds <= 0:
-        cat_gif_retry_max_seconds = 60.0
-    cat_gif_retry_max_seconds = max(cat_gif_retry_max_seconds, cat_gif_retry_base_seconds)
 
     return {
         "api_test_mode_enabled": api_test_mode_enabled,
         "api_test_cycle_interval_seconds": api_test_cycle_interval_seconds,
         "cat_gif_enabled": cat_gif_enabled,
-        "cataas_api_url": cataas_api_url,
-        "cat_gif_cache_ttl_seconds": cat_gif_cache_ttl_seconds,
-        "cat_gif_retry_base_seconds": cat_gif_retry_base_seconds,
-        "cat_gif_retry_max_seconds": cat_gif_retry_max_seconds,
     }
 
 

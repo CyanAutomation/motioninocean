@@ -37,7 +37,7 @@ def tmp_app_settings_path(tmp_path):
 
 @pytest.fixture
 def full_config(tmp_app_settings_path):
-    """Return complete config dict with all 33 required keys."""
+    """Return complete config dict with all required runtime keys."""
     return {
         "app_mode": "webcam",
         "resolution": (640, 480),
@@ -49,10 +49,6 @@ def full_config(tmp_app_settings_path):
         "api_test_mode_enabled": False,
         "api_test_cycle_interval_seconds": 1.0,
         "cat_gif_enabled": False,
-        "cataas_api_url": "https://cataas.com/cat/gif",
-        "cat_gif_cache_ttl_seconds": 300,
-        "cat_gif_retry_base_seconds": 1.0,
-        "cat_gif_retry_max_seconds": 30.0,
         "discovery_enabled": False,
         "discovery_management_url": "http://localhost:8001",
         "discovery_token": "test-token",
