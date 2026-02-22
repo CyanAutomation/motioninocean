@@ -31,24 +31,40 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
     base_url = config.get("base_url", "").strip()
 
     if not management_url:
-        message = "DISCOVERY_ENABLED=true requires DISCOVERY_MANAGEMENT_URL to be set"
+        message = (
+            "MIO_DISCOVERY_ENABLED=true requires env var "
+            "MIO_DISCOVERY_MANAGEMENT_URL to be set"
+        )
         raise ConfigValidationError(
             message,
-            hint="Example: DISCOVERY_MANAGEMENT_URL=http://management-host:8001",
+            hint=(
+                "Docker Compose example: environment: "
+                "[\"MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001\"]"
+            ),
         )
 
     if not token:
-        message = "DISCOVERY_ENABLED=true requires DISCOVERY_TOKEN to be set"
+        message = "MIO_DISCOVERY_ENABLED=true requires env var MIO_DISCOVERY_TOKEN to be set"
         raise ConfigValidationError(
             message,
-            hint="Use same token as NODE_DISCOVERY_SHARED_SECRET on management node",
+            hint=(
+                "Docker Compose example: environment: "
+                "[\"MIO_DISCOVERY_TOKEN=replace-with-shared-secret\"] "
+                "(must match management NODE_DISCOVERY_SHARED_SECRET)"
+            ),
         )
 
     if not base_url or base_url == "http://unknown-host:8000":
-        message = "DISCOVERY_ENABLED=true requires BASE_URL to be set to reachable address"
+        message = (
+            "MIO_DISCOVERY_ENABLED=true requires env var "
+            "MIO_BASE_URL to be set to a reachable address"
+        )
         raise ConfigValidationError(
             message,
-            hint="Example: BASE_URL=http://192.168.1.100:8000",
+            hint=(
+                "Docker Compose example: environment: "
+                "[\"MIO_BASE_URL=http://192.168.1.100:8000\"]"
+            ),
         )
 
 
