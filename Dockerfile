@@ -98,6 +98,9 @@ LABEL org.opencontainers.image.vendor="CyanAutomation"
 # Keep Raspberry Pi apt source/pinning out of this layer so apt-get update does not depend on archive.raspberrypi.com.
 # CRITICAL: Install python3, python3-venv, python3-numpy explicitly before venv copy.
 # Multi-stage venv with --system-site-packages uses symlinks to system Python; must exist before validation.
+# NOTE: gpgv and dirmngr are required for Debian Trixie apt signature verification.
+# Trixie tightened repository signature checks; gpgv is mandatory before any apt-get update when arm64 uses Raspberry Pi repo.
+# dirmngr future-proofs GPG key handling for complex repository setups.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
@@ -105,7 +108,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
+        dirmngr \
         gnupg \
+        gpgv \
         gosu \
         python3 \
         python3-venv \
