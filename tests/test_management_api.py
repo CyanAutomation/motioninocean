@@ -883,6 +883,47 @@ def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path)
     assert created.json["node"]["id"] == "node-discovery-private-allowed"
 
 
+def test_discovery_private_ip_policy_updates_between_requests(monkeypatch, tmp_path):
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.delenv("MIO_ALLOW_PRIVATE_IPS", raising=False)
+    client, _ = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "webcam_id": "node-discovery-toggle-policy",
+        "name": "Discovery Node Toggle",
+        "base_url": "http://192.168.1.60:8000",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    blocked = client.post(
+        "/api/discovery/announce",
+        json=payload,
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+    assert blocked.status_code == 403
+    assert blocked.json["error"]["code"] == "DISCOVERY_PRIVATE_IP_BLOCKED"
+
+    monkeypatch.setenv("MIO_ALLOW_PRIVATE_IPS", "true")
+    allowed = client.post(
+        "/api/discovery/announce",
+        json=payload,
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+    assert allowed.status_code == 201
+    assert allowed.json["node"]["id"] == "node-discovery-toggle-policy"
+
+
+def test_is_blocked_address_reads_env_each_call(monkeypatch, tmp_path):
+    monkeypatch.delenv("MIO_ALLOW_PRIVATE_IPS", raising=False)
+    _client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    assert management_api._is_blocked_address("192.168.1.10") is True
+
+    monkeypatch.setenv("MIO_ALLOW_PRIVATE_IPS", "1")
+    assert management_api._is_blocked_address("192.168.1.10") is False
+
+
 def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
     monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
