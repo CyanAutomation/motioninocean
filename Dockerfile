@@ -1,10 +1,10 @@
 # ---- Build Arguments ----
-# DEBIAN_SUITE: Debian suite used for builder/final stages (locked to bookworm by default)
-# RPI_SUITE: Raspberry Pi apt suite used for camera packages (locked to bookworm by default)
-# Note: Motion In Ocean is locked to Debian Bookworm (stable distro rigidity for appliance containers).
+# DEBIAN_SUITE: Debian suite used for builder/final stages (defaults to trixie to match RPi OS trixie hosts)
+# RPI_SUITE: Raspberry Pi apt suite used for camera packages (defaults to trixie for libcamera0.6 availability)
+# Note: Motion In Ocean targets Debian Trixie to match Raspberry Pi OS Trixie and its libcamera0.6 stack.
 # No suite overrides are supported. For alternative distros, fork and modify the Dockerfile.
-ARG DEBIAN_SUITE=bookworm
-ARG RPI_SUITE=bookworm
+ARG DEBIAN_SUITE=trixie
+ARG RPI_SUITE=trixie
 
 # ---- Builder Stage ----
 # Minimal Python packaging stage: installs build tools and creates isolated venv.
@@ -61,7 +61,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     rm -rf /tmp/requirements-base.txt /tmp/*
 
 # ---- Final Stage ----
-# The final image uses debian:bookworm-slim with system Python for apt-installed
+# The final image uses debian:trixie-slim with system Python for apt-installed
 # python3-picamera2 and libcamera libraries alongside isolated pip dependencies in /opt/venv
 # Venv approach prevents conflicts between system and pip-managed package versions
 FROM debian:${DEBIAN_SUITE}-slim
@@ -201,7 +201,7 @@ RUN mkdir -p /app && \
 # Use venv Python: flask and flask_cors are pip-installed into /opt/venv only (not the system Python).
 # The venv was created with --system-site-packages so /opt/venv/bin/python3 also sees apt-installed
 # packages (picamera2, numpy, libcamera) via /usr/lib/python3/dist-packages/ — both stages share the
-# same debian:bookworm-slim base so pyvenv.cfg home pointers match correctly across build stages.
+# same debian:trixie-slim base so pyvenv.cfg home pointers match correctly across build stages.
 RUN /opt/venv/bin/python3 /usr/local/bin/validate-stack.py
 
 # Layer 6 (continued): Validate libcamera install and Raspberry Pi pipeline/IPA locations (arm64 only)
@@ -221,7 +221,7 @@ RUN echo "Detected architecture: $(dpkg --print-architecture)" && \
     test -d /usr/share/libcamera/ipa/rpi/vc4 && \
     echo "--- ABI version assertion ---" && \
     ldconfig -p | grep libcamera && \
-    ldconfig -p | grep -q 'libcamera.so.0.6' || { echo "ERROR: libcamera.so.0.6 not found — ABI mismatch (0.5 installed?). Rebuild required." >&2; exit 1; } && \
+    ldconfig -p | grep -q 'libcamera.so.0.6' || { echo "ERROR: libcamera.so.0.6 not found — ABI mismatch (wrong version installed?). Rebuild required." >&2; exit 1; } && \
     echo "libcamera.so.0.6 confirmed." && \
     python3 -c "\
 import libcamera; \
