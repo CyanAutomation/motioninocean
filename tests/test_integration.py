@@ -126,7 +126,7 @@ def test_webcam_not_ready_surfaces_camera_startup_failure_metadata():
         "code": "CAMERA_UNAVAILABLE",
         "message": "No cameras detected. Check device mappings and camera hardware.",
         "reason": "camera_unavailable",
-        "detection_path": "picamera2.global_camera_info",
+        "detection_path": "Picamera2.global_camera_info",
     }
     client = app.test_client()
 
@@ -138,7 +138,7 @@ def test_webcam_not_ready_surfaces_camera_startup_failure_metadata():
     assert ready_payload["status"] == "not_ready"
     assert ready_payload["reason"] == "camera_unavailable"
     assert ready_payload["camera_error"]["code"] == "CAMERA_UNAVAILABLE"
-    assert ready_payload["camera_error"]["detection_path"] == "picamera2.global_camera_info"
+    assert ready_payload["camera_error"]["detection_path"] == "Picamera2.global_camera_info"
 
     assert status.status_code == 200
     status_payload = status.get_json()

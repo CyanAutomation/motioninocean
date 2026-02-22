@@ -247,8 +247,8 @@ def test_healthcheck_url_validation_allows_valid_hostname(monkeypatch):
     assert captured["url"] == "http://example.com/health"
 
 
-def test_get_camera_info_prefers_module_level_global_camera_info(monkeypatch):
-    """Camera detection should work when picamera2 exposes module-level global_camera_info."""
+def test_get_camera_info_prefers_class_method_when_both_helpers_exist(monkeypatch):
+    """Camera detection should prefer Picamera2.global_camera_info when both helper forms exist."""
     import importlib
     import sys
     import tempfile
@@ -262,7 +262,9 @@ def test_get_camera_info_prefers_module_level_global_camera_info(monkeypatch):
         fake_module = types.ModuleType("picamera2")
 
         class FakePicamera2:
-            pass
+            @staticmethod
+            def global_camera_info():
+                return [{"id": "cam1"}]
 
         fake_module.Picamera2 = FakePicamera2
         fake_module.global_camera_info = lambda: [{"id": "cam0"}]
@@ -273,8 +275,8 @@ def test_get_camera_info_prefers_module_level_global_camera_info(monkeypatch):
 
         camera_info, detection_path = main._get_camera_info(FakePicamera2)
 
-        assert camera_info == [{"id": "cam0"}]
-        assert detection_path == "picamera2.global_camera_info"
+        assert camera_info == [{"id": "cam1"}]
+        assert detection_path == "Picamera2.global_camera_info"
 
         sys.modules.pop("main", None)
         sys.modules.pop("picamera2", None)
@@ -308,6 +310,40 @@ def test_get_camera_info_falls_back_to_class_method(monkeypatch):
         camera_info, detection_path = main._get_camera_info(FakePicamera2)
 
         assert camera_info == [{"id": "cam1"}]
+        assert detection_path == "Picamera2.global_camera_info"
+
+        sys.modules.pop("main", None)
+        sys.modules.pop("picamera2", None)
+
+
+def test_get_camera_info_uses_class_method_when_module_helper_absent(monkeypatch):
+    """Camera detection should use class method path when module-level helper is unavailable."""
+    import importlib
+    import sys
+    import tempfile
+    import types
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+        monkeypatch.setenv("MIO_APP_MODE", "management")
+        monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+
+        fake_module = types.ModuleType("picamera2")
+
+        class FakePicamera2:
+            @staticmethod
+            def global_camera_info():
+                return [{"id": "cam2"}]
+
+        fake_module.Picamera2 = FakePicamera2
+        sys.modules["picamera2"] = fake_module
+
+        sys.modules.pop("main", None)
+        main = importlib.import_module("pi_camera_in_docker.main")
+
+        camera_info, detection_path = main._get_camera_info(FakePicamera2)
+
+        assert camera_info
         assert detection_path == "Picamera2.global_camera_info"
 
         sys.modules.pop("main", None)
