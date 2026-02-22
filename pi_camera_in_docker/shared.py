@@ -300,7 +300,7 @@ def register_shared_routes(
     def health():
         return jsonify(
             {
-                "status": "healthy",
+                "status": "ok",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "app_mode": state["app_mode"],
             }
