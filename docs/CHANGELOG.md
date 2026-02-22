@@ -11,6 +11,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.18.3] - 2026-02-22
+
+- Add Playwright CLI documentation and features for browser automation
+- Remove rebranding scripts for node to webcam terminology
+- [management] Reject non-object JSON from webcam proxies (#385)
+- [runtime] Validate persisted camera fps range before merge (#384)
+- [config] Validate MIO_FPS range in runtime camera config (#383)
+- [management] Preserve discovery metadata on announce updates (#382)
+- [shared] Standardize /health status as ok (#381)
+
 ## [1.18.2] - 2026-02-22
 
 - [setup] Export MIO_APP_MODE in generated env (#380)
