@@ -595,7 +595,8 @@ class FileWebcamRegistry(WebcamRegistry):
         Returns:
             List of webcam dictionaries.
         """
-        return self._load()["nodes"]
+        with self._exclusive_lock():
+            return self._load()["nodes"]
 
     def get_webcam(self, webcam_id: str) -> Optional[Dict[str, Any]]:
         """Get webcam by ID.
