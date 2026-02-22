@@ -32,7 +32,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         ca-certificates \
         gnupg \
         curl \
-        gcc && \
+        gcc \
+        libcap-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # ---- Layer 2: Virtual Environment Setup ----
