@@ -11,6 +11,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.18.2] - 2026-02-22
+
+- [setup] Export MIO_APP_MODE in generated env (#380)
+- [setup] Align auth token config key for env export (#379)
+- [management] Unify private-IP SSRF flag evaluation (#378)
+- [discovery] Avoid duplicate announce endpoint in management URL (#377)
+- [management] Serialize node registry reads with lock (#376)
+- [management] Canonicalize private IP override env var (#374)
+- [setup] Use canonical management auth env key in setup output (#375)
+- [management] Read private-IP policy dynamically per request (#373)
+- [management] redact setup template auth token payload (#372)
+- [runtime-config] Guard persisted merge values by type (#371)
+- [cleanup] Remove CAT_GIF flag and cat-gif deployment artifacts (#370)
+- [webcam] Remove cat gif refresh route and client call (#369)
+- [tests] Canonicalize env-var fixtures and isolate legacy compat (#368)
+- [webcam] Simplify mock frame initialization path (#367)
+- [docs] Canonicalize env var naming across operator docs (#366)
+- [runtime] Remove CATAAS env config from stream settings (#365)
+- [containers] Switch cat-gif compose overlay docs/env to MIO keys (#364)
+- [config] Deprecate legacy feature-flag aliases and expand Sentry redaction (#363)
+- [config] Use canonical discovery env vars in validation hints (#362)
+- [docker] Remove mock build-profile references and extend webcam fallback tests (#361)
+
 ## [1.18.1] - 2026-02-22
 
 - [docker] Update Pillow requirement comments for unconditional install (#360)
