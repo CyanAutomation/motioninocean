@@ -1249,7 +1249,9 @@ function applyConfigToForm(config) {
   setValue("setup-pi3-profile", config.pi3_profile ? "true" : "false");
   setValue("setup-cors-origins", config.cors_origins || "");
   setValue("setup-mock-camera", config.mock_camera ? "true" : "false");
-  setValue("setup-auth-token", config.auth_token || "");
+  if (Object.prototype.hasOwnProperty.call(config, "auth_token")) {
+    setValue("setup-auth-token", config.auth_token || "");
+  }
 }
 
 /**
