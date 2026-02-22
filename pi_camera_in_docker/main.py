@@ -42,16 +42,6 @@ from .runtime_config import (
     merge_config_with_settings,
 )
 
-
-# Conditional import for picamera2 - not available in all test environments
-try:
-    from picamera2 import global_camera_info as _picamera2_global_camera_info
-except (ModuleNotFoundError, ImportError):
-    # Fallback when picamera2 is not available (e.g., in CI without hardware)
-    def _picamera2_global_camera_info():
-        return []
-
-
 from PIL import Image
 from werkzeug.serving import make_server
 
@@ -1442,7 +1432,7 @@ def _shutdown_camera(state: Dict[str, Any]) -> None:
 def _get_camera_info(picamera2_cls: Any) -> Tuple[list, str]:
     """Get list of available cameras from picamera2 library.
 
-    Attempts multiple detection methods (module function -> class method)
+    Attempts multiple detection methods (class method -> module function)
     to enumerate available cameras. Logs warnings if detection fails.
 
     Args:
@@ -1452,19 +1442,24 @@ def _get_camera_info(picamera2_cls: Any) -> Tuple[list, str]:
         Tuple of (camera_info_list, detection_method_used_string).
         Empty list if all detection methods fail.
     """
-    try:
-        return _picamera2_global_camera_info(), "picamera2.global_camera_info"
-    except (ImportError, AttributeError, NameError):
-        logger.debug(
-            "picamera2.global_camera_info import unavailable; falling back to Picamera2 class method"
-        )
-
     class_global_camera_info = getattr(picamera2_cls, "global_camera_info", None)
     if callable(class_global_camera_info):
         try:
             return class_global_camera_info(), "Picamera2.global_camera_info"
         except Exception:
             logger.debug("Picamera2.global_camera_info call failed at runtime")
+
+    try:
+        import picamera2
+    except (ModuleNotFoundError, ImportError):
+        logger.debug("picamera2 module import unavailable for runtime camera detection")
+    else:
+        module_global_camera_info = getattr(picamera2, "global_camera_info", None)
+        if callable(module_global_camera_info):
+            try:
+                return module_global_camera_info(), "picamera2.global_camera_info"
+            except Exception:
+                logger.debug("picamera2.global_camera_info call failed at runtime")
 
     logger.warning(
         "Unable to query camera inventory from picamera2. Proceeding with empty camera list. "
