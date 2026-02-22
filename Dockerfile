@@ -147,6 +147,16 @@ Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
         apt-cache policy libcamera-dev rpicam-apps python3-picamera2 python3-libcamera && \
         dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
           libcamera-dev rpicam-apps python3-picamera2 python3-libcamera 2>/dev/null || true && \
+        echo "Running arm64 camera package preflight diagnostics..." && \
+        apt-cache policy python3-picamera2 python3-libcamera && \
+        echo "python3-picamera2 file listing (first 40 entries):" && \
+        dpkg -L python3-picamera2 | head -n 40 && \
+        if python3 -c "import sys; print(sys.path); import picamera2; print(picamera2.__file__)"; then \
+            echo "picamera2 import preflight passed."; \
+        else \
+            echo "ERROR: picamera2 import failed after package install. Likely Debian/RPi suite or package mismatch (DEBIAN_SUITE=${DEBIAN_SUITE}, RPI_SUITE=${RPI_SUITE})." >&2; \
+            exit 1; \
+        fi && \
         rm -rf /var/lib/apt/lists/*; \
     else \
         echo "Skipping Raspberry Pi camera stack (non-arm64 build)"; \
