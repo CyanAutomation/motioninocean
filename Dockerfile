@@ -64,7 +64,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # The final image uses raspbian:trixie-slim with system Python for apt-installed
 # python3-picamera2 and libcamera libraries alongside isolated pip dependencies in /opt/venv
 # Venv approach prevents conflicts between system and pip-managed package versions
-FROM raspbian:${DEBIAN_SUITE}-slim
+FROM debian:${DEBIAN_SUITE}-slim
 
 # Re-declare build args for this stage
 ARG DEBIAN_SUITE
