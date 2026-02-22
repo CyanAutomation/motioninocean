@@ -188,9 +188,9 @@ def test_settings_changes_reports_no_override_for_defaults(monkeypatch, tmp_path
     from pi_camera_in_docker.application_settings import ApplicationSettings
     from pi_camera_in_docker.runtime_config import load_env_config
 
-    # Ensure environment variables are not set for these to pick up defaults
-    monkeypatch.delenv("JPEG_QUALITY", raising=False)
-    monkeypatch.delenv("MAX_STREAM_CONNECTIONS", raising=False)
+    # Ensure canonical environment variables are not set for these to pick up defaults
+    monkeypatch.delenv("MIO_JPEG_QUALITY", raising=False)
+    monkeypatch.delenv("MIO_MAX_STREAM_CONNECTIONS", raising=False)
 
     # Get the actual default values from runtime_config
     env_defaults = load_env_config()
@@ -203,7 +203,7 @@ def test_settings_changes_reports_no_override_for_defaults(monkeypatch, tmp_path
     monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
 
     # Create the app in management mode
-    monkeypatch.setenv("APP_MODE", "management")
+    monkeypatch.setenv("MIO_APP_MODE", "management")
     app = main.create_management_app()
     client = app.test_client()
 
@@ -237,6 +237,24 @@ def test_settings_changes_reports_no_override_for_defaults(monkeypatch, tmp_path
     # Optionally, also check that the total number of overridden settings is as expected (e.g., 0 if only these were set)
     # This might need adjustment if other settings are intentionally overridden by default in tests
     # For now, a specific check that these two are not present is sufficient.
+
+
+def test_canonical_mio_env_vars_take_precedence_over_legacy_aliases(monkeypatch):
+    """Canonical MIO_* env vars should win over legacy aliases when both are set."""
+    from pi_camera_in_docker.runtime_config import load_env_config
+
+    monkeypatch.setenv("APP_MODE", "webcam")
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("JPEG_QUALITY", "55")
+    monkeypatch.setenv("MIO_JPEG_QUALITY", "88")
+    monkeypatch.setenv("MAX_STREAM_CONNECTIONS", "2")
+    monkeypatch.setenv("MIO_MAX_STREAM_CONNECTIONS", "9")
+
+    config = load_env_config()
+
+    assert config["app_mode"] == "management"
+    assert config["jpeg_quality"] == 88
+    assert config["max_stream_connections"] == 9
 
 
 def test_request_logging_uses_non_empty_correlation_id(monkeypatch):

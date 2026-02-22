@@ -162,7 +162,7 @@ def test_create_app_from_env_applies_resolution_and_fps_env(monkeypatch, tmp_pat
 
 
 def test_create_app_from_env_defaults_invalid_resolution_to_safe_fallback(monkeypatch, tmp_path):
-    """Invalid RESOLUTION env value should fall back to default tuple in app config."""
+    """Invalid MIO_RESOLUTION env value should fall back to default tuple in app config."""
     from pi_camera_in_docker import main
 
     monkeypatch.setenv("MIO_APP_MODE", "management")
@@ -180,7 +180,7 @@ def test_create_app_from_env_defaults_invalid_resolution_to_safe_fallback(monkey
 
 
 def test_create_app_from_env_defaults_invalid_fps_to_safe_fallback(monkeypatch, tmp_path):
-    """Invalid FPS env value should fall back to deterministic default in app config."""
+    """Invalid MIO_FPS env value should fall back to deterministic default in app config."""
     from pi_camera_in_docker import main
 
     monkeypatch.setenv("MIO_APP_MODE", "management")
@@ -356,11 +356,17 @@ def test_pi3_profile_applies_defaults_when_explicit_env_absent(workspace_root):
     data = _load_main_config_with_env(
         workspace_root,
         {
-            "MOCK_CAMERA": "true",
+            "MIO_MOCK_CAMERA": "true",
             "MIO_PI3_PROFILE": "true",
             "MIO_PI3_OPTIMIZATION": "false",
         },
-        unset_keys=["RESOLUTION", "FPS", "TARGET_FPS", "JPEG_QUALITY", "MAX_STREAM_CONNECTIONS"],
+        unset_keys=[
+            "MIO_RESOLUTION",
+            "MIO_FPS",
+            "MIO_TARGET_FPS",
+            "MIO_JPEG_QUALITY",
+            "MIO_MAX_STREAM_CONNECTIONS",
+        ],
     )
 
     assert data["pi3_profile_enabled"] is True
@@ -395,8 +401,11 @@ def test_manual_env_values_override_pi3_profile_defaults(workspace_root):
     assert data["max_stream_connections"] == 9
 
 
-def test_legacy_pi3_profile_env_var_is_still_supported(workspace_root):
-    """Legacy PI3_PROFILE env var should still enable Pi 3 defaults."""
+# Legacy compatibility coverage
+
+
+def test_legacy_pi3_profile_compatibility_and_canonical_precedence(workspace_root):
+    """Legacy PI3_PROFILE remains supported and MIO_PI3_PROFILE takes precedence."""
     data = _load_main_config_with_env(
         workspace_root,
         {
@@ -464,10 +473,10 @@ print(json.dumps(metrics))
     env = os.environ.copy()
     env.update(
         {
-            "MOCK_CAMERA": "true",
+            "MIO_MOCK_CAMERA": "true",
             "MIO_PI3_PROFILE": "true",
             "MIO_PI3_OPTIMIZATION": "false",
-            "TARGET_FPS": "12",
+            "MIO_TARGET_FPS": "12",
         }
     )
 
@@ -526,8 +535,8 @@ print(json.dumps(results))
     env = os.environ.copy()
     env.update(
         {
-            "MOCK_CAMERA": "true",
-            "OCTOPRINT_COMPATIBILITY": "true",
+            "MIO_MOCK_CAMERA": "true",
+            "MIO_OCTOPRINT_COMPATIBILITY": "true",
         }
     )
 
@@ -588,8 +597,8 @@ print(json.dumps(results))
     env = os.environ.copy()
     env.update(
         {
-            "MOCK_CAMERA": "true",
-            "OCTOPRINT_COMPATIBILITY": "true",
+            "MIO_MOCK_CAMERA": "true",
+            "MIO_OCTOPRINT_COMPATIBILITY": "true",
         }
     )
 

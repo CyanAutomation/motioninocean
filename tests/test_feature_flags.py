@@ -64,8 +64,8 @@ class TestFeatureFlagRegistry:
             f"Missing flags: {expected_flags - set(all_flags.keys())}"
         )
 
-    def test_backward_compatibility_mock_camera(self):
-        """Test backward compatibility with legacy MOCK_CAMERA env var."""
+    def test_canonical_mock_camera_env_controls_flag_state(self):
+        """Canonical MIO_MOCK_CAMERA env var should control MOCK_CAMERA feature flag state."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
         with mock.patch.dict(os.environ, {"MIO_MOCK_CAMERA": "true"}, clear=True):
@@ -78,7 +78,23 @@ class TestFeatureFlagRegistry:
             flags.load()
             assert flags.is_enabled("MOCK_CAMERA") is False
 
-    def test_deprecation_warning_emitted_for_legacy_mock_camera_alias(self, caplog):
+    def test_no_deprecation_warning_when_using_canonical_mio_vars(self, caplog):
+        """Canonical MIO_ variables should not produce legacy alias deprecation warnings."""
+        from pi_camera_in_docker.feature_flags import FeatureFlags
+
+        with mock.patch.dict(os.environ, {"MIO_MOCK_CAMERA": "true"}, clear=True):
+            flags = FeatureFlags()
+            with caplog.at_level("WARNING"):
+                flags.load()
+
+        assert flags.is_enabled("MOCK_CAMERA") is True
+        assert "Legacy environment variable" not in caplog.text
+
+
+class TestFeatureFlagLegacyCompatibility:
+    """Backward-compatibility tests for legacy env-var aliases."""
+
+    def test_legacy_mock_camera_alias_emits_deprecation_warning(self, caplog):
         """Legacy MOCK_CAMERA alias usage should emit explicit deprecation warning."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
@@ -91,7 +107,7 @@ class TestFeatureFlagRegistry:
         assert "Legacy environment variable 'MOCK_CAMERA' is deprecated" in caplog.text
         assert "MIO_MOCK_CAMERA" in caplog.text
 
-    def test_deprecation_warning_emitted_for_legacy_cat_gif_alias(self, caplog):
+    def test_legacy_cat_gif_alias_emits_deprecation_warning(self, caplog):
         """Legacy CAT_GIF alias usage should emit explicit deprecation warning."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
@@ -104,20 +120,8 @@ class TestFeatureFlagRegistry:
         assert "Legacy environment variable 'CAT_GIF' is deprecated" in caplog.text
         assert "MIO_CAT_GIF" in caplog.text
 
-    def test_no_deprecation_warning_when_prefixed_alias_is_used(self, caplog):
-        """MIO_ prefixed variables should not produce legacy alias deprecation warnings."""
-        from pi_camera_in_docker.feature_flags import FeatureFlags
-
-        with mock.patch.dict(os.environ, {"MIO_MOCK_CAMERA": "true"}, clear=True):
-            flags = FeatureFlags()
-            with caplog.at_level("WARNING"):
-                flags.load()
-
-        assert flags.is_enabled("MOCK_CAMERA") is True
-        assert "Legacy environment variable" not in caplog.text
-
-    def test_prefixed_env_vars_take_precedence(self):
-        """Test that MIO_ prefixed vars take precedence over legacy vars."""
+    def test_canonical_mock_camera_env_takes_precedence_over_legacy_alias(self):
+        """MIO_MOCK_CAMERA should win when both canonical and legacy vars are present."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
         with mock.patch.dict(
@@ -129,22 +133,8 @@ class TestFeatureFlagRegistry:
             flags.load()
             assert flags.is_enabled("MOCK_CAMERA") is True
 
-    def test_backward_compatibility_octoprint_compatibility(self):
-        """Test OCTOPRINT_COMPATIBILITY supports both prefixed and legacy env vars."""
-        from pi_camera_in_docker.feature_flags import FeatureFlags
-
-        with mock.patch.dict(os.environ, {"MIO_OCTOPRINT_COMPATIBILITY": "true"}, clear=True):
-            flags = FeatureFlags()
-            flags.load()
-            assert flags.is_enabled("OCTOPRINT_COMPATIBILITY") is True
-
-        with mock.patch.dict(os.environ, {"OCTOPRINT_COMPATIBILITY": "true"}, clear=True):
-            flags = FeatureFlags()
-            flags.load()
-            assert flags.is_enabled("OCTOPRINT_COMPATIBILITY") is True
-
-    def test_prefixed_octoprint_env_var_takes_precedence(self):
-        """Test prefixed OCTOPRINT_COMPATIBILITY env var takes precedence over legacy."""
+    def test_canonical_octoprint_env_takes_precedence_over_legacy_alias(self):
+        """MIO_OCTOPRINT_COMPATIBILITY should win when both vars are present."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
         with mock.patch.dict(
@@ -158,6 +148,19 @@ class TestFeatureFlagRegistry:
             flags = FeatureFlags()
             flags.load()
             assert flags.is_enabled("OCTOPRINT_COMPATIBILITY") is True
+
+    def test_legacy_octoprint_alias_is_still_supported(self):
+        """Legacy OCTOPRINT_COMPATIBILITY should remain supported for compatibility."""
+        from pi_camera_in_docker.feature_flags import FeatureFlags
+
+        with mock.patch.dict(os.environ, {"OCTOPRINT_COMPATIBILITY": "true"}, clear=True):
+            flags = FeatureFlags()
+            flags.load()
+            assert flags.is_enabled("OCTOPRINT_COMPATIBILITY") is True
+
+
+class TestFeatureFlagBehavior:
+    """General feature-flag behavior tests."""
 
     def test_flag_defaults(self):
         """Test that flag defaults are correct."""
