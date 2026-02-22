@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.18.5] - 2026-02-22
+
+- [docker] Base image stages on raspbian trixie slim (#387)
+- [docker] Add arm64 camera install preflight diagnostics (#386)
+
 ## [1.18.4] - 2026-02-22
 
 - Add .pth file to bridge Debian's dist-packages into venv for Python compatibility
