@@ -63,6 +63,23 @@ cd containers/motioniocean-webcam && docker compose -f docker-compose.yml -f doc
 cd containers/motioniocean-webcam && docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
 ```
 
+
+## Canonical App Vars vs Docker/Compose Keys
+
+- **Canonical app env vars:** `MIO_*` (for example: `MIO_APP_MODE`, `MIO_PORT`, `MIO_BIND_HOST`).
+- **Standard Docker/Compose keys (not app env vars):** `image`, `ports`, `environment`, `volumes`, `networks`, `depends_on`, `restart`.
+
+### Legacy aliases still accepted temporarily
+
+| Canonical `MIO_*` var       | Legacy alias                           |
+| --------------------------- | -------------------------------------- |
+| `MIO_APP_MODE`              | `APP_MODE`, `MOTION_IN_OCEAN_MODE`     |
+| `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                 |
+| `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`            |
+| `MIO_RESOLUTION`            | `RESOLUTION`, `MOTION_IN_OCEAN_RESOLUTION` |
+| `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                |
+| `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                      |
+
 ## Configuration Model: Infrastructure vs. Runtime Settings
 
 **Motion In Ocean separates configuration into two distinct categories:**
@@ -73,10 +90,10 @@ These settings control deployment and system behavior, and are set at container 
 
 **Webcam mode:**
 
-- `MOTION_IN_OCEAN_PORT`, `MOTION_IN_OCEAN_BIND_HOST` — Network binding
+- `MIO_PORT`, `MIO_BIND_HOST` — Network binding
 - `MOCK_CAMERA`, `CAT_GIF`, `CATAAS_API_URL` — Mock camera for testing
-- `MOTION_IN_OCEAN_PI3_PROFILE`, `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` — Hardware/integration profiles
-- `MANAGEMENT_AUTH_TOKEN` — Security token for management hub access
+- `MIO_PI3_PROFILE`, `MIO_OCTOPRINT_COMPATIBILITY` — Hardware/integration profiles
+- `MIO_MANAGEMENT_AUTH_TOKEN` — Security token for management hub access
 - `APPLICATION_SETTINGS_PATH`, `NODE_REGISTRY_PATH` — Persistence locations
 - `SENTRY_DSN` — Error tracking
 - `LIMITER_STORAGE_URI`, `ALLOW_PYKMS_MOCK` — Advanced system settings
@@ -84,7 +101,7 @@ These settings control deployment and system behavior, and are set at container 
 **Management mode:**
 
 - Same network, persistence, and system settings as webcam
-- Plus: `NODE_DISCOVERY_SHARED_SECRET`, `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` — Discovery security
+- Plus: `NODE_DISCOVERY_SHARED_SECRET`, `MIO_ALLOW_PRIVATE_IPS` — Discovery security
 - Plus: `DOCKER_PROXY_PORT` — Docker transport support
 
 See [.env](motion-in-ocean-webcam/.env) and [.env.example](motion-in-ocean-webcam/.env.example) for complete documentation of each variable.
@@ -142,7 +159,7 @@ docker compose up -d
 
 ### Migration Note for Existing Deployments
 
-If you have environment variables set in `.env` for camera settings (RESOLUTION, FPS, etc.) or feature flags:
+If you have environment variables set in `.env` for camera settings (for example `MIO_RESOLUTION`, `MIO_FPS`) or feature flags:
 
 1. Remove them from your `.env` file (recommended)
 2. Start the container normally

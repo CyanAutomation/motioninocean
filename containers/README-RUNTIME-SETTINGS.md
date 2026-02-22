@@ -4,6 +4,23 @@
 
 Motion In Ocean supports **runtime configuration management** through the web UI 🎛️, allowing you to modify many settings without restarting containers or editing environment files.
 
+
+## Canonical App Vars vs Docker/Compose Keys
+
+- **Canonical app env vars:** `MIO_*` names for application behavior.
+- **Docker/Compose keys:** `image`, `ports`, `environment`, `volumes`, `networks`, and related compose schema keys are not env vars.
+
+### Legacy aliases still accepted temporarily
+
+| Canonical `MIO_*` var       | Legacy alias                           |
+| --------------------------- | -------------------------------------- |
+| `MIO_APP_MODE`              | `APP_MODE`, `MOTION_IN_OCEAN_MODE`     |
+| `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                 |
+| `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`            |
+| `MIO_RESOLUTION`            | `RESOLUTION`, `MOTION_IN_OCEAN_RESOLUTION` |
+| `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                |
+| `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                      |
+
 ## How It Works
 
 1. **Environment Variables as System Defaults**
@@ -27,10 +44,10 @@ Motion In Ocean supports **runtime configuration management** through the web UI
 
 Settings that affect video capture and streaming:
 
-- `MOTION_IN_OCEAN_RESOLUTION` - Video resolution
-- `MOTION_IN_OCEAN_FPS` - Frames per second
-- `MOTION_IN_OCEAN_JPEG_QUALITY` - Compression quality (1-100)
-- `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS` - Concurrent connections limit
+- `MIO_RESOLUTION` - Video resolution
+- `MIO_FPS` - Frames per second
+- `MIO_JPEG_QUALITY` - Compression quality (1-100)
+- `MIO_MAX_STREAM_CONNECTIONS` - Concurrent connections limit
 - `MAX_FRAME_AGE_SECONDS` - Frame cache duration
 
 **UI Location**: Settings tab → Camera Configuration
@@ -51,7 +68,7 @@ Settings for registering with a management node:
 
 - `DISCOVERY_ENABLED` - Enable/disable discovery
 - `DISCOVERY_MANAGEMENT_URL` - Management node URL
-- `DISCOVERY_TOKEN` - Authentication token
+- `MIO_DISCOVERY_TOKEN` - Authentication token
 - `DISCOVERY_INTERVAL_SECONDS` - Announcement frequency
 
 **UI Location**: Settings tab → Node Discovery
@@ -60,11 +77,11 @@ Settings for registering with a management node:
 
 Experimental features that can be toggled:
 
-- `MOTION_IN_OCEAN_QUALITY_ADAPTATION` - Auto JPEG quality adjustment
-- `MOTION_IN_OCEAN_FPS_THROTTLE_ADAPTIVE` - Adaptive frame rate
-- `MOTION_IN_OCEAN_FRAME_SIZE_OPTIMIZATION` - Client-aware resolution
-- `MOTION_IN_OCEAN_PI3_OPTIMIZATION` - Raspberry Pi 3 optimizations
-- `MOTION_IN_OCEAN_PI5_OPTIMIZATION` - Raspberry Pi 5 optimizations
+- `MIO_QUALITY_ADAPTATION` - Auto JPEG quality adjustment
+- `MIO_FPS_THROTTLE_ADAPTIVE` - Adaptive frame rate
+- `MIO_FRAME_SIZE_OPTIMIZATION` - Client-aware resolution
+- `MIO_PI3_OPTIMIZATION` - Raspberry Pi 3 optimizations
+- `MIO_PI5_OPTIMIZATION` - Raspberry Pi 5 optimizations
 - And more...
 
 **UI Location**: Settings tab → Feature Flags
@@ -75,23 +92,23 @@ These environment variables are **system configuration** and require container r
 
 ### Deployment & Infrastructure
 
-- `MOTION_IN_OCEAN_IMAGE_TAG` - Docker image version
-- `MOTION_IN_OCEAN_PORT` - Web server port
-- `MOTION_IN_OCEAN_BIND_HOST` - Network bind address
+- `MIO_IMAGE_TAG` - Docker image version
+- `MIO_PORT` - Web server port
+- `MIO_BIND_HOST` - Network bind address
 - `TZ` - Timezone
 - `BASE_URL` - Public URL (if using discovery with remote management)
 
 ### Security & Authentication
 
-- `MANAGEMENT_AUTH_TOKEN` - API authentication token (management mode)
+- `MIO_MANAGEMENT_AUTH_TOKEN` - API authentication token (management mode)
 - `NODE_DISCOVERY_SHARED_SECRET` - Discovery authentication (management mode)
 
 ### Hardware & Mode Configuration
 
-- `APP_MODE` - Application mode (webcam or management)
+- `MIO_APP_MODE` - Application mode (webcam or management)
 - `MOCK_CAMERA` - Enable synthetic camera
-- `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY` - OctoPrint mode
-- `MOTION_IN_OCEAN_PI3_PROFILE` - Raspberry Pi 3 mode
+- `MIO_OCTOPRINT_COMPATIBILITY` - OctoPrint mode
+- `MIO_PI3_PROFILE` - Raspberry Pi 3 mode
 
 ### Advanced Configuration
 
@@ -214,13 +231,13 @@ Example:
 # Camera FPS (Frames Per Second)
 # Default: 30
 # [UI MANAGEABLE] Runtime-editable via Settings tab
-MOTION_IN_OCEAN_FPS=30
+MIO_FPS=30
 ```
 
 ## Best Practices
 
 1. **Use Environment Variables for Infrastructure**
-   - Set `MOTION_IN_OCEAN_PORT`, `MOTION_IN_OCEAN_BIND_HOST` in `.env`
+   - Set `MIO_PORT`, `MIO_BIND_HOST` in `.env`
    - These rarely need to change
 
 2. **Use UI Settings for Tuning**

@@ -6,6 +6,23 @@ This guide covers deploying Motion in Ocean using the **recommended directory-ba
 
 ---
 
+
+## Canonical Variables and Migration
+
+- **Canonical app variables:** use `MIO_*` names (for example `MIO_APP_MODE`, `MIO_PORT`, `MIO_BIND_HOST`).
+- **Docker/Compose keys:** `image`, `ports`, `environment`, `volumes`, `networks`, `depends_on` remain standard compose keys and are not app env vars.
+
+### Legacy aliases still accepted temporarily
+
+| Canonical `MIO_*` var       | Legacy alias                           |
+| --------------------------- | -------------------------------------- |
+| `MIO_APP_MODE`              | `APP_MODE`, `MOTION_IN_OCEAN_MODE`     |
+| `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                 |
+| `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`            |
+| `MIO_RESOLUTION`            | `RESOLUTION`, `MOTION_IN_OCEAN_RESOLUTION` |
+| `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                |
+| `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                      |
+
 ## Recommended: Directory-Based Deployment
 
 Each deployment (webcam, management, etc.) lives in its own directory with a standard `docker-compose.yml` filename. This pattern is compatible with container orchestration tools and eliminates complexity from custom filenames and `-f` flags.
@@ -86,9 +103,9 @@ For a distributed setup with management hub + remote webcams:
    ```bash
    cd ~/containers/motioniocean-management
    cat > .env << EOF
-   MOTION_IN_OCEAN_PORT=8001
-   MOTION_IN_OCEAN_BIND_HOST=0.0.0.0  # Listen on all interfaces
-   MANAGEMENT_AUTH_TOKEN=secure_token
+   MIO_PORT=8001
+   MIO_BIND_HOST=0.0.0.0  # Listen on all interfaces
+   MIO_MANAGEMENT_AUTH_TOKEN=secure_token
    EOF
    docker compose up -d
    ```
@@ -98,9 +115,9 @@ For a distributed setup with management hub + remote webcams:
    ```bash
    cd ~/containers/motioniocean-webcam
    cat > .env << EOF
-   MOTION_IN_OCEAN_PORT=8000
-   MOTION_IN_OCEAN_BIND_HOST=0.0.0.0  # Listen on all interfaces
-   MANAGEMENT_AUTH_TOKEN=secure_token  # Same token as management
+   MIO_PORT=8000
+   MIO_BIND_HOST=0.0.0.0  # Listen on all interfaces
+   MIO_MANAGEMENT_AUTH_TOKEN=secure_token  # Same token as management
    EOF
    docker compose up -d
    ```
@@ -108,7 +125,7 @@ For a distributed setup with management hub + remote webcams:
 3. **Access the management UI:**
    - Open `http://<management-host>:8001/` in your browser
    - Add webcam nodes via the management interface
-   - Use the same `MANAGEMENT_AUTH_TOKEN` for secure communication
+   - Use the same `MIO_MANAGEMENT_AUTH_TOKEN` for secure communication
 
 ### LAN Self-Registration (Discovery Announcements)
 
@@ -117,19 +134,19 @@ Use discovery when webcam nodes should automatically register themselves with th
 **Management host `.env` (required settings):**
 
 ```bash
-MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
+MIO_BIND_HOST=0.0.0.0
 NODE_DISCOVERY_SHARED_SECRET=<strong-random-token>
 # Required only when webcam nodes announce private/LAN IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true
+MIO_ALLOW_PRIVATE_IPS=true
 ```
 
 **Webcam host `.env` (required settings):**
 
 ```bash
-MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
+MIO_BIND_HOST=0.0.0.0
 DISCOVERY_ENABLED=true
 DISCOVERY_MANAGEMENT_URL=http://<management-host>:8001
-DISCOVERY_TOKEN=<same-token-as-NODE_DISCOVERY_SHARED_SECRET>
+MIO_DISCOVERY_TOKEN=<same-token-as-NODE_DISCOVERY_SHARED_SECRET>
 DISCOVERY_INTERVAL_SECONDS=30
 # Optional explicit id:
 # DISCOVERY_WEBCAM_ID=node-kitchen-cam
@@ -137,9 +154,9 @@ DISCOVERY_INTERVAL_SECONDS=30
 
 **Security implications:**
 
-- Keep `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=false` unless you explicitly need private-IP announcements.
-- Enabling `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=true` relaxes SSRF safeguards for private ranges; use it only on trusted internal networks.
-- Always set a strong `NODE_DISCOVERY_SHARED_SECRET`/`DISCOVERY_TOKEN`; unauthenticated discovery announcements are rejected.
+- Keep `MIO_ALLOW_PRIVATE_IPS=false` unless you explicitly need private-IP announcements.
+- Enabling `MIO_ALLOW_PRIVATE_IPS=true` relaxes SSRF safeguards for private ranges; use it only on trusted internal networks.
+- Always set a strong `NODE_DISCOVERY_SHARED_SECRET`/`MIO_DISCOVERY_TOKEN`; unauthenticated discovery announcements are rejected.
 - This private-IP allowance applies to discovery registration policy only; do not use it as a substitute for perimeter firewall controls.
 
 ### Authentication Boundaries and Headers
@@ -157,7 +174,7 @@ sequenceDiagram
     rect rgb(232, 245, 255)
         Note over Browser,Mgmt: Path 1 — Browser accesses protected management routes
         Browser->>Mgmt: GET /api/nodes\nAuthorization: Bearer <management token>
-        alt Valid MANAGEMENT_AUTH_TOKEN
+        alt Valid MIO_MANAGEMENT_AUTH_TOKEN
             Mgmt-->>Browser: 200 OK
         else Missing/invalid token
             Mgmt-->>Browser: 401 Unauthorized
@@ -166,7 +183,7 @@ sequenceDiagram
 
     rect rgb(233, 252, 240)
         Note over Discovery,Mgmt: Path 2 — Webcam discovery announcement
-        Discovery->>Mgmt: POST /api/discovery/announce\nX-Discovery-Token: <DISCOVERY_TOKEN>
+        Discovery->>Mgmt: POST /api/discovery/announce\nX-Discovery-Token: <MIO_DISCOVERY_TOKEN>
         alt Token matches NODE_DISCOVERY_SHARED_SECRET and node URL is allowed
             Mgmt-->>Discovery: 200 OK (node registered/updated)
         else Invalid shared secret
@@ -193,9 +210,9 @@ sequenceDiagram
 
 **Legend (env var to auth path):**
 
-- `MANAGEMENT_AUTH_TOKEN`: bearer token expected on browser -> management protected routes.
+- `MIO_MANAGEMENT_AUTH_TOKEN`: bearer token expected on browser -> management protected routes.
 - `NODE_DISCOVERY_SHARED_SECRET`: management-side shared secret used to validate discovery announcements.
-- `DISCOVERY_TOKEN`: webcam/discovery-side secret sent to `/api/discovery/announce`; must match `NODE_DISCOVERY_SHARED_SECRET`.
+- `MIO_DISCOVERY_TOKEN`: webcam/discovery-side secret sent to `/api/discovery/announce`; must match `NODE_DISCOVERY_SHARED_SECRET`.
 - `node.auth.token` (node config): bearer token management sends to webcam endpoints like `/api/status` and `/api/actions/*`.
 
 ---
@@ -220,11 +237,11 @@ Motion in Ocean provides legacy compose files for different deployment patterns:
 All deployments use the same minimal `.env`:
 
 ```bash
-MOTION_IN_OCEAN_IMAGE_TAG=latest
-MOTION_IN_OCEAN_PORT=8000
+MIO_IMAGE_TAG=latest
+MIO_PORT=8000
 TZ=Europe/London
-MOTION_IN_OCEAN_MODE=webcam        # or 'management'
-MANAGEMENT_AUTH_TOKEN=              # Leave empty for LAN-only
+MIO_APP_MODE=webcam        # or 'management'
+MIO_MANAGEMENT_AUTH_TOKEN=              # Leave empty for LAN-only
 ```
 
 ---
@@ -285,12 +302,12 @@ On **each webcam host**, create `.env` with your configuration and run the webca
 cp .env.example .env
 
 # In .env, set:
-MOTION_IN_OCEAN_MODE=webcam
-MOTION_IN_OCEAN_PORT=8000
+MIO_APP_MODE=webcam
+MIO_PORT=8000
 # Optional camera settings:
-# MOTION_IN_OCEAN_RESOLUTION=1280x720
-# MOTION_IN_OCEAN_FPS=30
-# MOTION_IN_OCEAN_JPEG_QUALITY=80
+# MIO_RESOLUTION=1280x720
+# MIO_FPS=30
+# MIO_JPEG_QUALITY=80
 
 # Start in webcam mode
 docker compose -f docker-compose.webcam.yaml up -d
@@ -333,11 +350,11 @@ On the **management host**, run the management compose file:
 cp .env.example .env
 
 # In .env, set:
-MOTION_IN_OCEAN_MODE=management
-MOTION_IN_OCEAN_PORT=8000
+MIO_APP_MODE=management
+MIO_PORT=8000
 
 # Optionally enable authentication for production (after you've added nodes):
-# MANAGEMENT_AUTH_TOKEN=openssl_rand_hex_32_output_here
+# MIO_MANAGEMENT_AUTH_TOKEN=openssl_rand_hex_32_output_here
 
 # Start in management mode
 docker compose -f docker-compose.management.yaml up -d
@@ -393,13 +410,13 @@ For each remote webcam node:
 1. Set a token on the webcam host `.env`:
 
 ```bash
-MANAGEMENT_AUTH_TOKEN=replace-with-strong-random-token
+MIO_MANAGEMENT_AUTH_TOKEN=replace-with-strong-random-token
 ```
 
 1. Restart webcam profile to apply the token.
 2. In management UI, set node `auth.type` to `bearer` and set `auth.token` to the same value.
 
-When `MANAGEMENT_AUTH_TOKEN` is set in webcam mode, these endpoints require bearer auth:
+When `MIO_MANAGEMENT_AUTH_TOKEN` is set in webcam mode, these endpoints require bearer auth:
 
 - `/api/status` (required for management-mode node health contract)
 - `/health` (liveness-only)
@@ -428,7 +445,7 @@ Use API test mode on webcam nodes to force deterministic `/api/status` scenarios
 # webcam node
 API_TEST_MODE_ENABLED=true                  # enable deterministic status mode at startup
 API_TEST_CYCLE_INTERVAL_SECONDS=5           # seconds per automatic transition (must be > 0)
-MANAGEMENT_AUTH_TOKEN=<shared_webcam_token> # required when management probes are protected
+MIO_MANAGEMENT_AUTH_TOKEN=<shared_webcam_token> # required when management probes are protected
 ```
 
 #### Scenario Sequence and Action Endpoints
@@ -567,10 +584,10 @@ On **each webcam host**, enable docker-socket-proxy:
 
 ```bash
 # .env on webcam host
-MOTION_IN_OCEAN_MODE=webcam
+MIO_APP_MODE=webcam
 ENABLE_DOCKER_SOCKET_PROXY=true
 DOCKER_PROXY_PORT=2375
-MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
+MIO_BIND_HOST=0.0.0.0
 ```
 
 Then:
@@ -608,8 +625,8 @@ Then start management mode:
 
 ```bash
 # .env on management host
-MOTION_IN_OCEAN_MODE=management
-MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
+MIO_APP_MODE=management
+MIO_BIND_HOST=0.0.0.0
 
 docker-compose up -d
 ```
@@ -690,13 +707,13 @@ This retries camera package installation against Bookworm when the primary `RPI_
    sudo firewall-cmd --list-ports  # RedHat/CentOS
    ```
 
-4. Verify MOTION_IN_OCEAN_BIND_HOST is set to 0.0.0.0 or correct interface
+4. Verify MIO_BIND_HOST is set to 0.0.0.0 or correct interface
 
 **Solution**:
 
 ```bash
 # On webcam host, ensure port is not localhost-only
-export MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
+export MIO_BIND_HOST=0.0.0.0
 docker-compose restart motion-in-ocean
 ```
 
@@ -732,7 +749,7 @@ curl: (7) Failed to connect to 192.168.1.101 port 8000: Connection refused
 
 **Solution**:
 
-- Ensure `MOTION_IN_OCEAN_BIND_HOST` is set to 0.0.0.0, not 127.0.0.1
+- Ensure `MIO_BIND_HOST` is set to 0.0.0.0, not 127.0.0.1
 - Restart container: `docker-compose restart motion-in-ocean`
 
 ### Health/Ready Endpoint Returns 503
@@ -755,7 +772,7 @@ curl http://192.168.1.101:8000/ready
 - Wait 30-60 seconds for camera initialization
 - Check `docker logs motion-in-ocean` for device errors
 - Default behavior is graceful startup (service remains up in degraded mode) when camera init fails.
-- Set `MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR=true` (or legacy alias `MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED=true`) if you want startup to fail fast on camera init errors.
+- Set `MIO_FAIL_ON_CAMERA_INIT_ERROR=true` (or legacy alias `MIO_CAMERA_INIT_REQUIRED=true`) if you want startup to fail fast on camera init errors.
 - See [pi-camera-troubleshooting skill](/.github/skills/pi-camera-troubleshooting/SKILL.md) for detailed camera diagnostics
 
 ### Camera Enumerates as Zero Devices
@@ -884,7 +901,7 @@ Motion in Ocean uses **security-first defaults**:
 
 1. **Localhost Binding**: Services bind to `127.0.0.1` by default
    - Prevents accidental exposure to network
-   - Explicit opt-in required via `MOTION_IN_OCEAN_BIND_HOST=0.0.0.0`
+   - Explicit opt-in required via `MIO_BIND_HOST=0.0.0.0`
 
 2. **SSRF Protection**: Management mode blocks requests to:
    - Localhost and loopback addresses
@@ -917,7 +934,7 @@ Motion in Ocean uses **security-first defaults**:
 
      ```bash
      MANAGEMENT_AUTH_REQUIRED=true
-     MANAGEMENT_AUTH_TOKEN="$(openssl rand -hex 32)"
+     MIO_MANAGEMENT_AUTH_TOKEN="$(openssl rand -hex 32)"
      ```
 
    - Include tokens in node registry for HTTP transport nodes

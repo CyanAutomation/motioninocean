@@ -1,4 +1,8 @@
-# Cross-Container Communication: Implementation Strategies
+# Historical Reference: Cross-Container Communication Testing Strategies
+
+> ⚠️ This report is historical guidance. For current operator runbooks and canonical deployment flows, use `docs/guides/DEPLOYMENT.md` and `containers/README.md`.
+
+## Cross-Container Communication: Implementation Strategies
 
 This document outlines strategies for testing cross-container communication between management and webcam nodes in various deployment scenarios.
 
@@ -33,11 +37,11 @@ Home Network (192.168.1.0/24)
 
 ```bash
 # .env configuration
-MOTION_IN_OCEAN_MODE=webcam
-MOTION_IN_OCEAN_BIND_HOST=0.0.0.0    # Expose to network
-MOTION_IN_OCEAN_PORT=8000
-MOTION_IN_OCEAN_RESOLUTION=640x480
-MOTION_IN_OCEAN_FPS=30
+MIO_APP_MODE=webcam
+MIO_BIND_HOST=0.0.0.0    # Expose to network
+MIO_PORT=8000
+MIO_RESOLUTION=640x480
+MIO_FPS=30
 MOCK_CAMERA=false                      # Use real camera
 
 # Start service
@@ -56,8 +60,8 @@ curl http://192.168.1.102:8000/health
 
 ```bash
 # .env configuration
-MOTION_IN_OCEAN_MODE=management
-MOTION_IN_OCEAN_PORT=8001
+MIO_APP_MODE=management
+MIO_PORT=8001
 MANAGEMENT_AUTH_REQUIRED=false
 
 # Start service
@@ -149,7 +153,7 @@ services:
     image: motioninocean:latest
     network_mode: host
     environment:
-      APP_MODE: webcam
+      MIO_APP_MODE: webcam
       MOCK_CAMERA: "true"
     ports:
       - "127.0.0.1:8000:8000"
@@ -158,7 +162,7 @@ services:
     image: motioninocean:latest
     network_mode: host
     environment:
-      APP_MODE: management
+      MIO_APP_MODE: management
     ports:
       - "127.0.0.1:8001:8000"
     depends_on:
@@ -305,7 +309,7 @@ Only do this in a completely isolated test environment:
 ```python
 # In management_api.py (NOT FOR PRODUCTION)
 def _is_blocked_address(raw: str) -> bool:
-    if os.environ.get('MOTION_IN_OCEAN_TEST_MODE') == 'allow-private':
+    if os.environ.get('MIO_TEST_MODE') == 'allow-private':
         return False  # ⚠️ INSECURE - TESTING ONLY
     # ... standard checks ...
 ```
@@ -361,8 +365,8 @@ For Docker-specific validation:
 
 ```bash
 # Run individual containers to test APIs
-docker run -e APP_MODE=webcam motioninocean:latest
-docker run -e APP_MODE=management motioninocean:latest
+docker run -e MIO_APP_MODE=webcam motioninocean:latest
+docker run -e MIO_APP_MODE=management motioninocean:latest
 
 # Validate each container's endpoints independently
 curl http://localhost:8000/health      # Webcam
