@@ -371,30 +371,53 @@ def _merge_camera_settings(
         env_config: Environment configuration for fallback values.
     """
     if camera_settings.get("resolution") is not None:
-        try:
-            merged["resolution"] = parse_resolution(camera_settings["resolution"])
-        except ValueError:
-            logger.warning("Invalid persisted resolution, using env value")
+        resolution = camera_settings["resolution"]
+        if isinstance(resolution, str):
+            try:
+                merged["resolution"] = parse_resolution(resolution)
+            except ValueError:
+                logger.warning("Invalid persisted resolution, using env value")
+        else:
+            logger.warning("Invalid persisted resolution type, using env value")
 
     if camera_settings.get("fps") is not None:
-        merged["fps"] = camera_settings["fps"]
-        if merged.get("target_fps") == env_config.get("fps"):
-            merged["target_fps"] = camera_settings["fps"]
+        fps = camera_settings["fps"]
+        if isinstance(fps, int):
+            merged["fps"] = fps
+            if merged.get("target_fps") == env_config.get("fps"):
+                merged["target_fps"] = fps
+        else:
+            logger.warning("Invalid persisted fps type, using env value")
 
     if camera_settings.get("jpeg_quality") is not None:
         quality = camera_settings["jpeg_quality"]
-        if 1 <= quality <= 100:
-            merged["jpeg_quality"] = quality
+        if isinstance(quality, int):
+            if 1 <= quality <= 100:
+                merged["jpeg_quality"] = quality
+            else:
+                logger.warning("Invalid persisted jpeg_quality range, using env value")
+        else:
+            logger.warning("Invalid persisted jpeg_quality type, using env value")
 
     if camera_settings.get("max_stream_connections") is not None:
         conns = camera_settings["max_stream_connections"]
-        if 1 <= conns <= 100:
-            merged["max_stream_connections"] = conns
+        if isinstance(conns, int):
+            if 1 <= conns <= 100:
+                merged["max_stream_connections"] = conns
+            else:
+                logger.warning("Invalid persisted max_stream_connections range, using env value")
+        else:
+            logger.warning("Invalid persisted max_stream_connections type, using env value")
 
     if camera_settings.get("max_frame_age_seconds") is not None:
         age = camera_settings["max_frame_age_seconds"]
-        if age > 0:
-            merged["max_frame_age_seconds"] = age
+        if isinstance(age, (int, float)):
+            if age > 0:
+                merged["max_frame_age_seconds"] = age
+            else:
+                logger.warning("Invalid persisted max_frame_age_seconds range, using env value")
+        else:
+            logger.warning("Invalid persisted max_frame_age_seconds type, using env value")
 
 
 def _merge_discovery_settings(merged: Dict[str, Any], discovery_settings: Dict[str, Any]) -> None:
@@ -409,17 +432,35 @@ def _merge_discovery_settings(merged: Dict[str, Any], discovery_settings: Dict[s
         discovery_settings: Persisted discovery settings from application_settings.json.
     """
     if discovery_settings.get("discovery_enabled") is not None:
-        merged["discovery_enabled"] = discovery_settings["discovery_enabled"]
+        enabled = discovery_settings["discovery_enabled"]
+        if isinstance(enabled, bool):
+            merged["discovery_enabled"] = enabled
+        else:
+            logger.warning("Invalid persisted discovery_enabled type, using env value")
     if discovery_settings.get("discovery_management_url") is not None:
         url = discovery_settings["discovery_management_url"]
-        if url.strip():
-            merged["discovery_management_url"] = url
+        if isinstance(url, str):
+            if url.strip():
+                merged["discovery_management_url"] = url
+            else:
+                logger.warning("Invalid persisted discovery_management_url value, using env value")
+        else:
+            logger.warning("Invalid persisted discovery_management_url type, using env value")
     if discovery_settings.get("discovery_token") is not None:
-        merged["discovery_token"] = discovery_settings["discovery_token"]
+        token = discovery_settings["discovery_token"]
+        if isinstance(token, str):
+            merged["discovery_token"] = token
+        else:
+            logger.warning("Invalid persisted discovery_token type, using env value")
     if discovery_settings.get("discovery_interval_seconds") is not None:
         interval = discovery_settings["discovery_interval_seconds"]
-        if interval > 0:
-            merged["discovery_interval_seconds"] = interval
+        if isinstance(interval, (int, float)):
+            if interval > 0:
+                merged["discovery_interval_seconds"] = interval
+            else:
+                logger.warning("Invalid persisted discovery_interval_seconds range, using env value")
+        else:
+            logger.warning("Invalid persisted discovery_interval_seconds type, using env value")
 
 
 def _merge_logging_settings(merged: Dict[str, Any], logging_settings: Dict[str, Any]) -> None:
@@ -433,11 +474,23 @@ def _merge_logging_settings(merged: Dict[str, Any], logging_settings: Dict[str, 
         logging_settings: Persisted logging settings from application_settings.json.
     """
     if logging_settings.get("log_level") is not None:
-        merged["log_level"] = logging_settings["log_level"]
+        level = logging_settings["log_level"]
+        if isinstance(level, str):
+            merged["log_level"] = level
+        else:
+            logger.warning("Invalid persisted log_level type, using env value")
     if logging_settings.get("log_format") is not None:
-        merged["log_format"] = logging_settings["log_format"]
+        log_format = logging_settings["log_format"]
+        if isinstance(log_format, str):
+            merged["log_format"] = log_format
+        else:
+            logger.warning("Invalid persisted log_format type, using env value")
     if logging_settings.get("log_include_identifiers") is not None:
-        merged["log_include_identifiers"] = logging_settings["log_include_identifiers"]
+        include_identifiers = logging_settings["log_include_identifiers"]
+        if isinstance(include_identifiers, bool):
+            merged["log_include_identifiers"] = include_identifiers
+        else:
+            logger.warning("Invalid persisted log_include_identifiers type, using env value")
 
 
 def merge_config_with_persisted_settings(

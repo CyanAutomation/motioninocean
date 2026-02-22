@@ -240,7 +240,7 @@ def _collect_current_config() -> Dict[str, Any]:
     )
     mock_camera = is_flag_enabled("MOCK_CAMERA")
     cors_origins = os.environ.get("MIO_CORS_ORIGINS", "")
-    auth_token = os.environ.get("MIO_MANAGEMENT_AUTH_TOKEN", "")
+    auth_token_configured = bool(os.environ.get("MIO_MANAGEMENT_AUTH_TOKEN", ""))
 
     return {
         "resolution": f"{resolution[0]}x{resolution[1]}",
@@ -251,7 +251,7 @@ def _collect_current_config() -> Dict[str, Any]:
         "pi3_profile": pi3_profile,
         "mock_camera": mock_camera,
         "cors_origins": cors_origins,
-        "auth_token": auth_token,
+        "auth_token_configured": auth_token_configured,
     }
 
 
@@ -458,7 +458,7 @@ def _generate_env_content(config: Dict[str, Any]) -> str:
         "MIO_IMAGE_TAG=latest",
         "",
         "# Management/Security",
-        f"MANAGEMENT_AUTH_TOKEN={config.get('auth_token', '')}",
+        f"MIO_MANAGEMENT_AUTH_TOKEN={config.get('auth_token', '')}",
         "",
     ]
 

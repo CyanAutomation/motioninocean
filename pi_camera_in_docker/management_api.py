@@ -66,6 +66,16 @@ def _load_allow_private_ips_flag() -> bool:
 
 
 ALLOW_PRIVATE_IPS = _load_allow_private_ips_flag()
+def is_private_ip_allowed() -> bool:
+    """Return whether private IP targets are allowed for SSRF checks.
+
+    Reads the environment at call time so behavior can react to config changes
+    deterministically during runtime and tests.
+
+    Returns:
+        True when MIO_ALLOW_PRIVATE_IPS is truthy, False otherwise.
+    """
+    return os.environ.get("MIO_ALLOW_PRIVATE_IPS", "").lower() in {"true", "1", "yes"}
 
 # Request timeout used for proxied webcam HTTP calls.
 REQUEST_TIMEOUT_SECONDS = 5.0
@@ -170,7 +180,7 @@ def _is_blocked_address(raw: Any) -> bool:
         return True
 
     # Private IPs can be allowed if explicitly configured for internal networks
-    if ALLOW_PRIVATE_IPS:
+    if is_private_ip_allowed():
         return False
 
     return ip.is_private
@@ -223,7 +233,7 @@ def _discovery_private_ip_block_response(base_url: str, blocked_target: str):
 def _private_announcement_blocked(base_url: str) -> Optional[str]:
     parsed = urlparse(base_url)
     hostname = parsed.hostname
-    if not hostname or ALLOW_PRIVATE_IPS:
+    if not hostname or is_private_ip_allowed():
         return None
 
     try:
@@ -979,7 +989,7 @@ def _diagnose_http_transport(
                     "code": "SSRF_BLOCKED",
                 }
             )
-            if ALLOW_PRIVATE_IPS:
+            if is_private_ip_allowed():
                 add_recommendation(
                     "Code detected SSRF block despite ALLOW_PRIVATE_IPS=true. This is unexpected.",
                     "warn",
@@ -1030,7 +1040,7 @@ def _diagnose_http_transport(
                 "code": "SSRF_BLOCKED",
             }
         )
-        if ALLOW_PRIVATE_IPS:
+        if is_private_ip_allowed():
             add_recommendation(
                 f"Hostname '{hostname}' resolves to a non-private address type that is blocked ({ssrf_reason}).",
                 "warn",
