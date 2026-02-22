@@ -136,7 +136,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         echo "Verifying GPG key integrity..." && \
         gpg --dearmor -o /usr/share/keyrings/raspberrypi.gpg /tmp/raspberrypi.gpg.key && \
         rm /tmp/raspberrypi.gpg.key && \
-        echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ bookworm main" > /etc/apt/sources.list.d/raspi.list && \
+        echo "deb [signed-by=/usr/share/keyrings/raspberrypi.gpg] http://archive.raspberrypi.org/debian/ ${RPI_SUITE} main" > /etc/apt/sources.list.d/raspi.list && \
         mkdir -p /etc/apt/preferences.d && \
         printf "# Pin camera-related packages to Raspberry Pi repository\n\
 Package: libcamera* python3-libcamera python3-picamera2 rpicam*\n\
