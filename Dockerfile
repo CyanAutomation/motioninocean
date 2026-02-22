@@ -215,7 +215,16 @@ RUN /usr/local/bin/validate-stack.py
 # Layer 6 (continued): Validate libcamera install and Raspberry Pi pipeline/IPA locations (arm64 only)
 RUN echo "Detected architecture: $(dpkg --print-architecture)" && \
     if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
-    libcamera-hello --version && \
+    CAMERA_CLI=""; \
+    if command -v rpicam-hello >/dev/null 2>&1; then \
+    CAMERA_CLI="rpicam-hello"; \
+    elif command -v libcamera-hello >/dev/null 2>&1; then \
+    CAMERA_CLI="libcamera-hello"; \
+    else \
+    echo "ERROR: Neither rpicam-hello nor libcamera-hello is available in PATH." >&2; \
+    exit 1; \
+    fi && \
+    "${CAMERA_CLI}" --version && \
     test -d /usr/share/libcamera/pipeline/rpi/vc4 && \
     test -d /usr/share/libcamera/ipa/rpi/vc4; \
     else \
