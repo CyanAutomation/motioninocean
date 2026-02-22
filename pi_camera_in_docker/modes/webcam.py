@@ -765,25 +765,6 @@ def _register_compat_routes(
         is_flag_enabled: Feature flag check function.
     """
 
-    @app.route("/api/cat-gif/refresh", methods=["POST"])
-    def refresh_cat_gif() -> Response | Tuple[Response, int]:
-        state = builder.state
-        cat_generator = state.get("cat_gif_generator")
-        if cat_generator is None:
-            return jsonify(
-                {
-                    "status": "unavailable",
-                    "message": "Cat GIF mode is not enabled",
-                }
-            ), 400
-        cat_generator.request_refresh()
-        return jsonify(
-            {
-                "status": "requested",
-                "message": "Cat GIF refresh requested; new cat will load on next frame",
-            }
-        ), 200
-
     @app.route("/webcam")
     @app.route("/webcam/")
     def octoprint_compat_webcam() -> Response:
@@ -804,7 +785,7 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
     """Register webcam mode Flask routes for MJPEG streaming.
 
     Registers /stream.mjpg, /snapshot.jpg, /api/actions/<action>, and
-    OctoPrint compatibility endpoints (/webcam, /api/cat-gif/refresh) that
+    OctoPrint compatibility endpoints (/webcam) that
     serve MJPEG video stream from the frame buffer with connection tracking
     and max connection limits.
 
