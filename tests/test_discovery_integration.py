@@ -200,56 +200,53 @@ class TestDiscoveryEndToEnd:
             # Create management app
             app = Flask(__name__)
 
-            # Patch ALLOW_PRIVATE_IPS to allow private IP announcements for this test
-            with patch("pi_camera_in_docker.management_api.ALLOW_PRIVATE_IPS", True):
-                register_management_routes(
-                    app,
-                    registry_path,
-                    node_discovery_shared_secret="discovery-secret",
-                )
-                client = app.test_client()
+            monkeypatch.setenv("MIO_ALLOW_PRIVATE_IPS", "true")
+            register_management_routes(
+                app,
+                registry_path,
+                node_discovery_shared_secret="discovery-secret",
+            )
+            client = app.test_client()
 
-                # Step 1: Webcam announces itself
-                announce_payload = {
-                    "webcam_id": "node-webcam-1",
-                    "name": "kitchen-camera",
-                    "base_url": "http://192.168.1.100:8000",
-                    "transport": "http",
-                    "capabilities": ["stream", "snapshot"],
-                    "labels": {"location": "kitchen", "device_class": "webcam"},
-                }
+            # Step 1: Webcam announces itself
+            announce_payload = {
+                "webcam_id": "node-webcam-1",
+                "name": "kitchen-camera",
+                "base_url": "http://192.168.1.100:8000",
+                "transport": "http",
+                "capabilities": ["stream", "snapshot"],
+                "labels": {"location": "kitchen", "device_class": "webcam"},
+            }
 
-                response = client.post(
-                    "/api/discovery/announce",
-                    json=announce_payload,
-                    headers={"Authorization": "Bearer discovery-secret"},
-                )
+            response = client.post(
+                "/api/discovery/announce",
+                json=announce_payload,
+                headers={"Authorization": "Bearer discovery-secret"},
+            )
 
-                assert response.status_code == 201, response.json
-                node_data = response.json["node"]
-                assert node_data["id"] == "node-webcam-1"
-                assert node_data["discovery"]["source"] == "discovered"
-                assert node_data["discovery"]["approved"] is False, (
-                    "New discovery should start unapproved"
-                )
+            assert response.status_code == 201, response.json
+            node_data = response.json["node"]
+            assert node_data["id"] == "node-webcam-1"
+            assert node_data["discovery"]["source"] == "discovered"
+            assert node_data["discovery"]["approved"] is False, "New discovery should start unapproved"
 
-                # Step 2: Admin approves the discovered node
-                approval_response = client.post(
-                    f"/api/webcams/{node_data['id']}/discovery/approve",
-                    headers={"Authorization": "Bearer "},  # No auth needed if no token set
-                )
+            # Step 2: Admin approves the discovered node
+            approval_response = client.post(
+                f"/api/webcams/{node_data['id']}/discovery/approve",
+                headers={"Authorization": "Bearer "},  # No auth needed if no token set
+            )
 
-                assert approval_response.status_code == 200
-                approved_node = approval_response.json["node"]
-                assert approved_node["discovery"]["approved"] is True
+            assert approval_response.status_code == 200
+            approved_node = approval_response.json["node"]
+            assert approved_node["discovery"]["approved"] is True
 
-                # Step 3: Verify node is now in approved state in list
-                list_response = client.get("/api/webcams")
-                assert list_response.status_code == 200
-                nodes = list_response.json["webcams"]
-                approved_nodes = [n for n in nodes if n["id"] == "node-webcam-1"]
-                assert len(approved_nodes) == 1
-                assert approved_nodes[0]["discovery"]["approved"] is True
+            # Step 3: Verify node is now in approved state in list
+            list_response = client.get("/api/webcams")
+            assert list_response.status_code == 200
+            nodes = list_response.json["webcams"]
+            approved_nodes = [n for n in nodes if n["id"] == "node-webcam-1"]
+            assert len(approved_nodes) == 1
+            assert approved_nodes[0]["discovery"]["approved"] is True
 
     def test_webcam_announces_with_private_ip_blocked_without_opt_in(self, monkeypatch):
         """Verify private IP announcements are blocked unless explicitly allowed."""
@@ -299,32 +296,31 @@ class TestDiscoveryEndToEnd:
 
             app = Flask(__name__)
 
-            # Patch ALLOW_PRIVATE_IPS to allow private IP announcements
-            with patch("pi_camera_in_docker.management_api.ALLOW_PRIVATE_IPS", True):
-                register_management_routes(
-                    app,
-                    registry_path,
-                    node_discovery_shared_secret="discovery-secret",
-                )
-                client = app.test_client()
+            monkeypatch.setenv("MIO_ALLOW_PRIVATE_IPS", "true")
+            register_management_routes(
+                app,
+                registry_path,
+                node_discovery_shared_secret="discovery-secret",
+            )
+            client = app.test_client()
 
-                # Announce with private IP - should succeed
-                payload = {
-                    "webcam_id": "node-private-allowed",
-                    "name": "private-camera",
-                    "base_url": "http://192.168.1.100:8000",  # Private IP
-                    "transport": "http",
-                    "capabilities": ["stream"],
-                }
+            # Announce with private IP - should succeed
+            payload = {
+                "webcam_id": "node-private-allowed",
+                "name": "private-camera",
+                "base_url": "http://192.168.1.100:8000",  # Private IP
+                "transport": "http",
+                "capabilities": ["stream"],
+            }
 
-                response = client.post(
-                    "/api/discovery/announce",
-                    json=payload,
-                    headers={"Authorization": "Bearer discovery-secret"},
-                )
+            response = client.post(
+                "/api/discovery/announce",
+                json=payload,
+                headers={"Authorization": "Bearer discovery-secret"},
+            )
 
-                assert response.status_code == 201, response.json
-                assert response.json["node"]["base_url"] == "http://192.168.1.100:8000"
+            assert response.status_code == 201, response.json
+            assert response.json["node"]["base_url"] == "http://192.168.1.100:8000"
 
     def test_webcam_discovery_payload_structure(self):
         """Verify discovery payload has all required fields for proper management integration."""
@@ -362,56 +358,55 @@ class TestDiscoveryEndToEnd:
 
             app = Flask(__name__)
 
-            # Patch ALLOW_PRIVATE_IPS to allow private IP announcements
-            with patch("pi_camera_in_docker.management_api.ALLOW_PRIVATE_IPS", True):
-                register_management_routes(
-                    app,
-                    registry_path,
-                    node_discovery_shared_secret="discovery-secret",
+            monkeypatch.setenv("MIO_ALLOW_PRIVATE_IPS", "true")
+            register_management_routes(
+                app,
+                registry_path,
+                node_discovery_shared_secret="discovery-secret",
+            )
+            client = app.test_client()
+
+            # Announce three different webcams
+            cameras = [
+                {
+                    "webcam_id": "node-kitchen",
+                    "name": "kitchen-cam",
+                    "base_url": "http://192.168.1.50:8000",
+                },
+                {
+                    "webcam_id": "node-bedroom",
+                    "name": "bedroom-cam",
+                    "base_url": "http://192.168.1.51:8000",
+                },
+                {
+                    "webcam_id": "node-porch",
+                    "name": "porch-cam",
+                    "base_url": "http://192.168.1.52:8000",
+                },
+            ]
+
+            for camera in cameras:
+                payload = {
+                    **camera,
+                    "transport": "http",
+                    "capabilities": ["stream", "snapshot"],
+                }
+                response = client.post(
+                    "/api/discovery/announce",
+                    json=payload,
+                    headers={"Authorization": "Bearer discovery-secret"},
                 )
-                client = app.test_client()
+                assert response.status_code == 201, response.json
 
-                # Announce three different webcams
-                cameras = [
-                    {
-                        "webcam_id": "node-kitchen",
-                        "name": "kitchen-cam",
-                        "base_url": "http://192.168.1.50:8000",
-                    },
-                    {
-                        "webcam_id": "node-bedroom",
-                        "name": "bedroom-cam",
-                        "base_url": "http://192.168.1.51:8000",
-                    },
-                    {
-                        "webcam_id": "node-porch",
-                        "name": "porch-cam",
-                        "base_url": "http://192.168.1.52:8000",
-                    },
-                ]
-
-                for camera in cameras:
-                    payload = {
-                        **camera,
-                        "transport": "http",
-                        "capabilities": ["stream", "snapshot"],
-                    }
-                    response = client.post(
-                        "/api/discovery/announce",
-                        json=payload,
-                        headers={"Authorization": "Bearer discovery-secret"},
-                    )
-                    assert response.status_code == 201, response.json
-
-                # Verify all three cameras registered
-                list_response = client.get("/api/webcams")
-                assert list_response.status_code == 200
-                nodes = list_response.json["webcams"]
-                node_ids = {n["id"] for n in nodes}
-                assert "node-kitchen" in node_ids
-                assert "node-bedroom" in node_ids
-                assert "node-porch" in node_ids
-                assert len(node_ids) == 3
+            # Verify all three cameras registered
+            list_response = client.get("/api/webcams")
+            assert list_response.status_code == 200
+            nodes = list_response.json["webcams"]
+            node_ids = {n["id"] for n in nodes}
+            assert "node-kitchen" in node_ids
+            assert "node-bedroom" in node_ids
+            assert "node-porch" in node_ids
+            assert len(node_ids) == 3
 
     def test_discovery_announce_without_shared_secret_fails(self, monkeypatch):
         """Verify announcement fails if NODE_DISCOVERY_SHARED_SECRET not configured."""
@@ -460,47 +455,46 @@ class TestDiscoveryEndToEnd:
 
             app = Flask(__name__)
 
-            # Patch ALLOW_PRIVATE_IPS to allow private IP announcements
-            with patch("pi_camera_in_docker.management_api.ALLOW_PRIVATE_IPS", True):
-                register_management_routes(
-                    app,
-                    registry_path,
-                    node_discovery_shared_secret="discovery-secret",
-                )
-                client = app.test_client()
+            monkeypatch.setenv("MIO_ALLOW_PRIVATE_IPS", "true")
+            register_management_routes(
+                app,
+                registry_path,
+                node_discovery_shared_secret="discovery-secret",
+            )
+            client = app.test_client()
 
-                payload = {
-                    "webcam_id": "node-update-test",
-                    "name": "update-cam",
-                    "base_url": "http://192.168.1.100:8000",
-                    "transport": "http",
-                    "capabilities": ["stream"],
-                }
+            payload = {
+                "webcam_id": "node-update-test",
+                "name": "update-cam",
+                "base_url": "http://192.168.1.100:8000",
+                "transport": "http",
+                "capabilities": ["stream"],
+            }
 
-                # First announcement
-                response1 = client.post(
-                    "/api/discovery/announce",
-                    json=payload,
-                    headers={"Authorization": "Bearer discovery-secret"},
-                )
-                assert response1.status_code == 201, response1.json
-                first_announce = response1.json["node"]["discovery"]["last_announce_at"]
+            # First announcement
+            response1 = client.post(
+                "/api/discovery/announce",
+                json=payload,
+                headers={"Authorization": "Bearer discovery-secret"},
+            )
+            assert response1.status_code == 201, response1.json
+            first_announce = response1.json["node"]["discovery"]["last_announce_at"]
 
-                time.sleep(0.1)  # Small delay
+            time.sleep(0.1)  # Small delay
 
-                # Second announcement
-                response2 = client.post(
-                    "/api/discovery/announce",
-                    json=payload,
-                    headers={"Authorization": "Bearer discovery-secret"},
-                )
-                assert response2.status_code == 200, response2.json
-                second_announce = response2.json["node"]["discovery"]["last_announce_at"]
+            # Second announcement
+            response2 = client.post(
+                "/api/discovery/announce",
+                json=payload,
+                headers={"Authorization": "Bearer discovery-secret"},
+            )
+            assert response2.status_code == 200, response2.json
+            second_announce = response2.json["node"]["discovery"]["last_announce_at"]
 
-                # Timestamps should be different
-                assert second_announce != first_announce
-                # First seen should remain unchanged
-                assert (
-                    response2.json["node"]["discovery"]["first_seen"]
-                    == response1.json["node"]["discovery"]["first_seen"]
-                )
+            # Timestamps should be different
+            assert second_announce != first_announce
+            # First seen should remain unchanged
+            assert (
+                response2.json["node"]["discovery"]["first_seen"]
+                == response1.json["node"]["discovery"]["first_seen"]
+            )
