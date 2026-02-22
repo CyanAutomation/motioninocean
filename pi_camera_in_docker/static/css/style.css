@@ -501,3 +501,225 @@
     box-shadow: none;
   }
 }
+
+/* ==========================================
+   Webcam .pen Layout Overrides
+   ========================================== */
+
+.webcam-page {
+  position: relative;
+  min-height: 100vh;
+  background: var(--management-canvas);
+}
+
+.webcam-bg-pattern {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.85;
+  background-image: radial-gradient(circle at 1px 1px, var(--management-dot) 1px, transparent 0);
+  background-size: 100px 80px;
+}
+
+.webcam-topbar {
+  position: sticky;
+  top: var(--space-4);
+  z-index: 10;
+  margin: var(--space-4) var(--space-4) 0 98px;
+  width: calc(100% - 98px - (var(--space-4) * 2));
+  border: 1px solid var(--color-border-default);
+  border-radius: 16px;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+}
+
+.webcam-topbar .header-content {
+  max-width: none;
+  height: auto;
+  margin: 0;
+}
+
+.header-subtitle {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.webcam-topbar .header-title {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.webcam-topbar .header-title h1 {
+  margin: 0;
+  font-size: 1.625rem;
+  color: var(--management-text-strong);
+}
+
+.webcam-topbar .header-actions {
+  flex-wrap: wrap;
+}
+
+.webcam-topbar .connection-status {
+  border-radius: 999px;
+}
+
+.webcam-page .container {
+  position: relative;
+  z-index: 1;
+  margin: var(--space-5) var(--space-4) 0 98px;
+  max-width: none;
+  padding: 0;
+  gap: var(--space-3);
+}
+
+.webcam-page .video-container {
+  border-width: 1px;
+  border-radius: 20px;
+  background: var(--color-bg-surface);
+}
+
+.webcam-page .stats-panel {
+  width: 386px;
+  border-width: 1px;
+  border-radius: 20px;
+}
+
+.webcam-page #config-panel,
+.webcam-page #settings-panel,
+.webcam-page #setup-panel {
+  border-radius: 20px;
+}
+
+.webcam-side-rail {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 82px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-3);
+  border-right: 1px solid var(--color-border-strong);
+  background: var(--management-rail);
+}
+
+.webcam-side-rail .rail-btn {
+  width: 52px;
+  min-height: 52px;
+  border-radius: 999px;
+  padding: 0 var(--space-2);
+  background: var(--management-rail-muted);
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.webcam-side-rail .rail-btn.active {
+  background: var(--management-accent);
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-focus-ring);
+}
+
+.webcam-side-rail .rail-btn .tab-label {
+  display: inline;
+  line-height: 1.2;
+}
+
+.webcam-bottom-rail {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .webcam-topbar {
+    margin-left: var(--space-3);
+    margin-right: var(--space-3);
+    width: calc(100% - (var(--space-3) * 2));
+  }
+
+  .webcam-page .container {
+    margin-left: var(--space-3);
+    margin-right: var(--space-3);
+  }
+
+  .webcam-page .stats-panel {
+    width: 100%;
+  }
+}
+
+@media (max-width: 900px) {
+  .webcam-side-rail {
+    display: none;
+  }
+
+  .webcam-topbar {
+    top: var(--space-3);
+  }
+
+  .webcam-topbar .header-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  .webcam-page .container {
+    margin-left: var(--space-3);
+    margin-right: var(--space-3);
+    padding-bottom: 84px;
+  }
+
+  .webcam-bottom-rail {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-1);
+    padding: var(--space-2);
+    background: var(--management-rail);
+    border-top: 1px solid var(--color-border-strong);
+  }
+
+  .webcam-bottom-rail .mobile-rail-btn {
+    min-height: 40px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: var(--management-rail-muted);
+    color: var(--color-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .webcam-bottom-rail .mobile-rail-btn.active {
+    background: var(--management-accent);
+    color: var(--color-text-inverse);
+    box-shadow: var(--shadow-focus-ring);
+  }
+
+  .webcam-bottom-rail .mobile-rail-btn .tab-label {
+    display: inline;
+  }
+}
+
+@media (max-width: 480px) {
+  .webcam-topbar {
+    margin-left: var(--space-2);
+    margin-right: var(--space-2);
+    width: calc(100% - (var(--space-2) * 2));
+  }
+
+  .webcam-page .container {
+    margin-left: var(--space-2);
+    margin-right: var(--space-2);
+  }
+}

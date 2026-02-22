@@ -18,36 +18,36 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tabs-config.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}" />
   </head>
-  <body>
+  <body class="webcam-page">
+    <div class="webcam-bg-pattern" aria-hidden="true"></div>
+
+    <nav class="tab-navigation webcam-side-rail" aria-label="Webcam views">
+      <button class="tab-btn active rail-btn" data-tab="main" id="main-tab-btn" title="Stream">
+        <span class="tab-label">Stream</span>
+      </button>
+      <button class="tab-btn rail-btn" data-tab="config" id="config-tab-btn" title="Configuration">
+        <span class="tab-label">Configuration</span>
+      </button>
+      <button class="tab-btn rail-btn" data-tab="setup" id="setup-tab-btn" title="Set-Up">
+        <span class="tab-label">Set-Up</span>
+      </button>
+      <button class="tab-btn rail-btn" data-tab="settings" id="settings-tab-btn" title="Runtime Settings">
+        <span class="tab-label">Runtime Settings</span>
+      </button>
+    </nav>
+
     <!-- Header -->
-    <header class="header">
+    <header class="header webcam-topbar">
       <div class="header-content">
         <div class="header-title">
-          <div class="logo-icon">📹</div>
-          <h1>motion-in-ocean</h1>
-        </div>
-
-        <!-- Tab Navigation -->
-        <div class="tab-navigation">
-          <button class="tab-btn active" data-tab="main" id="main-tab-btn" title="Stream">
-            <span class="tab-icon">📹</span>
-            <span class="tab-label">Stream</span>
-          </button>
-          <button class="tab-btn" data-tab="config" id="config-tab-btn" title="Configuration">
-            <span class="tab-icon">⚙️</span>
-            <span class="tab-label">Configuration</span>
-          </button>
-          <button class="tab-btn" data-tab="settings" id="settings-tab-btn" title="Settings">
-            <span class="tab-icon">🎛️</span>
-            <span class="tab-label">Settings</span>
-          </button>
-          <button class="tab-btn" data-tab="setup" id="setup-tab-btn" title="Set-Up">
-            <span class="tab-icon">🔧</span>
-            <span class="tab-label">Set-Up</span>
-          </button>
+          <h1 id="webcam-view-title">Stream</h1>
+          <p id="webcam-view-subtitle" class="header-subtitle">Camera Live Stream</p>
         </div>
 
         <div class="header-actions">
+          <button id="start-meeting-btn" class="ui-btn ui-btn--secondary" type="button">
+            Start Meeting
+          </button>
           <div class="connection-status" aria-live="polite" role="status">
             <div id="status-indicator" class="status-indicator connecting"></div>
             <span id="status-text" class="status-text">Connecting...</span>
@@ -163,7 +163,7 @@
           <!-- Camera Settings Group (Editable) -->
           <div class="config-group editable-section ui-card config-group-block">
             <div class="config-group-header ui-panel-header">
-              <h3 class="config-group-title">📷 Camera Settings</h3>
+              <h3 class="config-group-title">Camera Settings</h3>
               <button class="config-group-toggle" data-group="camera" title="Toggle">▼</button>
             </div>
             <div class="config-group-content" data-group="camera">
@@ -191,7 +191,7 @@
           <!-- Stream Control Group (Read-only) -->
           <div class="config-group readonly-section ui-card config-group-block">
             <div class="config-group-header ui-panel-header">
-              <h3 class="config-group-title">📡 Stream Control</h3>
+              <h3 class="config-group-title">Stream Control</h3>
               <button class="config-group-toggle" data-group="stream" title="Toggle">▼</button>
             </div>
             <div class="config-group-content" data-group="stream">
@@ -226,7 +226,7 @@
           <!-- Health Check Group (Read-only) -->
           <div class="config-group readonly-section ui-card config-group-block">
             <div class="config-group-header ui-panel-header">
-              <h3 class="config-group-title">🩺 Health Check</h3>
+              <h3 class="config-group-title">Health Check</h3>
               <button class="config-group-toggle" data-group="health" title="Toggle">▼</button>
             </div>
             <div class="config-group-content" data-group="health">
@@ -278,7 +278,7 @@
           <!-- Runtime Info Group (Read-only) -->
           <div class="config-group readonly-section ui-card config-group-block">
             <div class="config-group-header ui-panel-header">
-              <h3 class="config-group-title">⚙️ Runtime Information</h3>
+              <h3 class="config-group-title">Health & Runtime Surface</h3>
               <button class="config-group-toggle" data-group="runtime" title="Toggle">▼</button>
             </div>
             <div class="config-group-content" data-group="runtime">
@@ -347,7 +347,7 @@
         <div class="settings-content">
           <!-- Settings Header -->
           <div class="settings-header ui-card">
-            <h2>Runtime Settings</h2>
+            <h2>Configuration</h2>
             <p class="settings-description">
               Edit these settings to customize your camera streaming experience. Changes are applied
               immediately or on next restart depending on the setting.
@@ -365,7 +365,7 @@
           <!-- Camera Settings Section -->
           <section id="settings-camera" class="settings-section ui-card">
             <div class="settings-section-header ui-panel-header">
-              <h3 class="settings-section-title">📷 Camera Configuration</h3>
+              <h3 class="settings-section-title">Camera Configuration</h3>
               <button class="settings-section-toggle" data-section="camera" title="Toggle">
                 ▼
               </button>
@@ -490,7 +490,7 @@
           <!-- Logging Settings Section -->
           <section id="settings-logging" class="settings-section ui-card">
             <div class="settings-section-header ui-panel-header">
-              <h3 class="settings-section-title">📝 Logging Configuration</h3>
+              <h3 class="settings-section-title">Logging Configuration</h3>
               <button class="settings-section-toggle" data-section="logging" title="Toggle">
                 ▼
               </button>
@@ -554,7 +554,7 @@
           <!-- Discovery Settings Section -->
           <section id="settings-discovery" class="settings-section ui-card">
             <div class="settings-section-header ui-panel-header">
-              <h3 class="settings-section-title">🔗 Node Discovery</h3>
+              <h3 class="settings-section-title">Node Discovery</h3>
               <button class="settings-section-toggle" data-section="discovery" title="Toggle">
                 ▼
               </button>
@@ -641,7 +641,7 @@
           <!-- Feature Flags Section -->
           <section id="settings-features" class="settings-section ui-card">
             <div class="settings-section-header ui-panel-header">
-              <h3 class="settings-section-title">✨ Feature Flags</h3>
+              <h3 class="settings-section-title">Feature Flags</h3>
               <button class="settings-section-toggle" data-section="features" title="Toggle">
                 ▼
               </button>
@@ -711,7 +711,7 @@
         <div class="setup-content">
           <div class="setup-section ui-card">
             <div class="setup-section-header ui-panel-header">
-              <h3 class="setup-section-title">🧭 Guided Setup</h3>
+              <h3 class="setup-section-title">Guided Setup</h3>
               <label class="field-label" for="expert-mode-toggle">
                 <input type="checkbox" id="expert-mode-toggle" /> Expert mode
               </label>
@@ -1012,6 +1012,21 @@
         </div>
       </div>
     </main>
+
+    <nav class="tab-navigation webcam-bottom-rail" aria-label="Webcam views mobile">
+      <button class="tab-btn mobile-rail-btn active" data-tab="main" id="mobile-main-tab-btn" title="Stream">
+        <span class="tab-label">Stream</span>
+      </button>
+      <button class="tab-btn mobile-rail-btn" data-tab="config" id="mobile-config-tab-btn" title="Configuration">
+        <span class="tab-label">Config</span>
+      </button>
+      <button class="tab-btn mobile-rail-btn" data-tab="setup" id="mobile-setup-tab-btn" title="Set-Up">
+        <span class="tab-label">Set-Up</span>
+      </button>
+      <button class="tab-btn mobile-rail-btn" data-tab="settings" id="mobile-settings-tab-btn" title="Runtime Settings">
+        <span class="tab-label">Settings</span>
+      </button>
+    </nav>
 
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>

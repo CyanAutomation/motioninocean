@@ -15,8 +15,9 @@
 .settings-header {
   padding: 1.5rem;
   border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--management-surface-muted);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-subtle);
 }
 
 .settings-header h2 {
@@ -49,8 +50,8 @@
 }
 
 .settings-actions .ui-btn--primary {
-  background: white;
-  color: #667eea;
+  background: var(--management-accent);
+  color: var(--color-text-inverse);
 }
 
 .settings-actions .ui-btn--primary:hover:not(:disabled) {
@@ -59,9 +60,9 @@
 }
 
 .settings-actions .ui-btn--secondary {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
 }
 
 .settings-actions .ui-btn--secondary:hover {
@@ -78,7 +79,7 @@
   padding: 0;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border-subtle);
 }
 
 .settings-section-header {
@@ -86,21 +87,21 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background-color: var(--color-bg-canvas);
+  border-bottom: 1px solid var(--color-border-subtle);
   cursor: pointer;
   user-select: none;
 }
 
 .settings-section-header:hover {
-  background-color: #f3f4f6;
+  background-color: var(--color-bg-subtle);
 }
 
 .settings-section-title {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text-primary);
 }
 
 .settings-section-toggle {
@@ -177,8 +178,8 @@
 
 .setting-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--management-accent);
+  box-shadow: var(--shadow-focus-ring);
 }
 
 .setting-select,
@@ -211,7 +212,7 @@
 
 .setting-current-value {
   font-weight: 600;
-  color: #667eea;
+  color: var(--management-accent);
   font-size: 1rem;
 }
 
@@ -220,7 +221,7 @@
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: #667eea;
+  accent-color: var(--management-accent);
 }
 
 .settings-control label.setting-label {
@@ -274,7 +275,7 @@
 }
 
 .feature-flag-item:hover {
-  border-color: #667eea;
+  border-color: var(--management-accent);
 }
 
 .feature-flag-toggle {

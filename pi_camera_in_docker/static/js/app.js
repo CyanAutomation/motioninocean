@@ -48,6 +48,9 @@ const state = {
     maxFrameAgeValue: null,
     resolutionValue: null,
     lastUpdated: null,
+    viewTitle: null,
+    viewSubtitle: null,
+    startMeetingBtn: null,
   },
 };
 
@@ -58,6 +61,7 @@ function init() {
   cacheElements();
   attachHandlers();
   initializeTheme();
+  updateViewMeta(state.currentTab);
   startStatsUpdate();
   updateStats().catch((error) => console.error("Initial stats update failed:", error));
   updateConfig().catch((error) => console.error("Initial config update failed:", error));
@@ -130,6 +134,9 @@ function cacheElements() {
   state.elements.maxFrameAgeValue = document.getElementById("max-frame-age-value");
   state.elements.resolutionValue = document.getElementById("resolution-value");
   state.elements.lastUpdated = document.getElementById("last-updated");
+  state.elements.viewTitle = document.getElementById("webcam-view-title");
+  state.elements.viewSubtitle = document.getElementById("webcam-view-subtitle");
+  state.elements.startMeetingBtn = document.getElementById("start-meeting-btn");
 
   // Config panel elements
   state.elements.configLoading = document.getElementById("config-loading");
@@ -162,6 +169,10 @@ function attachHandlers() {
 
   if (state.elements.configRefreshBtn) {
     state.elements.configRefreshBtn.addEventListener("click", refreshConfigPanel);
+  }
+
+  if (state.elements.startMeetingBtn) {
+    state.elements.startMeetingBtn.addEventListener("click", () => switchTab("setup"));
   }
 
   if (state.elements.videoStream) {
@@ -704,6 +715,8 @@ function switchTab(tabName) {
     }
   });
 
+  updateViewMeta(tabName);
+
   // Update visible panels
   const mainSection = document.querySelector(".video-section");
   const statsPanel = state.elements.statsPanel;
@@ -768,6 +781,34 @@ function switchTab(tabName) {
   }
 
   assertSinglePollingMode();
+}
+
+/**
+ * Update view title and subtitle to reflect active webcam view.
+ *
+ * @param {string} tabName - Active view key.
+ * @returns {void}
+ */
+function updateViewMeta(tabName) {
+  const titleByTab = {
+    main: "Stream",
+    config: "Configuration",
+    setup: "Set-Up",
+    settings: "Runtime Settings",
+  };
+  const subtitleByTab = {
+    main: "Camera Live Stream",
+    config: "Resolution, FPS, and JPEG tuning",
+    setup: "Guided setup and generated files",
+    settings: "Check changes before saving. Reset restores defaults.",
+  };
+
+  if (state.elements.viewTitle) {
+    state.elements.viewTitle.textContent = titleByTab[tabName] || "Stream";
+  }
+  if (state.elements.viewSubtitle) {
+    state.elements.viewSubtitle.textContent = subtitleByTab[tabName] || "Camera Live Stream";
+  }
 }
 
 /**
