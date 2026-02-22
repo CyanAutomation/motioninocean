@@ -21,9 +21,9 @@ Pillow>=12.1.1
 numpy==2.2.3
 
 # Camera support for Raspberry Pi
-# Note: picamera2 is now installed via apt from Raspberry Pi repository
-# (python3-picamera2) along with system packages (python3-libcamera, libcamera-dev)
-# The pip version is unreliable and not the recommended installation method for Bookworm
+# picamera2 is installed from PyPI (python3-picamera2 not available in Debian Trixie apt repo)
+# C extensions (libcamera, python3-libcamera) are still installed via apt in the final Dockerfile stage.
+picamera2==0.3.34
 
 # Development and testing dependencies
 # These are listed here for reference but installed separately in CI/dev environments

@@ -41,6 +41,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # This prevents conflicts between apt-managed (system) and pip-managed (application) dependencies
 # picamera2 (pure-Python wrapper) is pip-installed here on arm64:
 #   python3-picamera2 is only in the RPi bookworm apt repo, not trixie.
+#   pip install resolves all Python dependencies (videodev2, simplejpeg, etc.)
 #   The C extension (python3-libcamera) is still installed via apt in the final stage.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -48,7 +49,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     /opt/venv/bin/pip install --upgrade pip setuptools wheel && \
     if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
         echo "Installing picamera2 from PyPI (python3-picamera2 not in RPi trixie apt repo)..." && \
-        /opt/venv/bin/pip install --no-deps picamera2; \
+        /opt/venv/bin/pip install picamera2==0.3.34; \
     fi
 
 # ---- Layer 3: Python Dependencies (Volatile) ----
