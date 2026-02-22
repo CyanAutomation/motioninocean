@@ -136,6 +136,8 @@ Pin-Priority: 1001\n\
 Package: *\n\
 Pin: origin archive.raspberrypi.com\n\
 Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
+        echo "Configuring apt to use gpgv for RPi repo (RPi key uses SHA1 self-sig, rejected by sqv on trixie)..." && \
+        echo 'APT::Key::gpgvcommand "gpgv";' > /etc/apt/apt.conf.d/99use-gpgv-rpi && \
         apt-get update && \
         apt-get install -y --no-install-recommends \
           libcamera-dev \
@@ -143,6 +145,7 @@ Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
           python3-picamera2 \
           rpicam-apps \
           v4l-utils && \
+        rm -f /etc/apt/apt.conf.d/99use-gpgv-rpi && \
         echo "Camera packages installed successfully:" && \
         apt-cache policy libcamera-dev rpicam-apps python3-picamera2 python3-libcamera && \
         dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
