@@ -135,15 +135,17 @@ Pin: origin archive.raspberrypi.org\n\
 Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
         apt-get update && \
         apt-get install -y --no-install-recommends \
-          libcamera-apps \
+          libcamera0.6 \
+          libcamera-ipa \
           libcamera-dev \
           python3-libcamera \
           python3-picamera2 \
+          rpicam-apps \
           v4l-utils && \
         echo "Camera packages installed successfully:" && \
-        apt-cache policy libcamera-apps python3-picamera2 python3-libcamera && \
+        apt-cache policy libcamera0.6 rpicam-apps python3-picamera2 python3-libcamera && \
         dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
-          libcamera-apps python3-picamera2 python3-libcamera 2>/dev/null || true && \
+          libcamera0.6 rpicam-apps python3-picamera2 python3-libcamera 2>/dev/null || true && \
         rm -rf /var/lib/apt/lists/*; \
     else \
         echo "Skipping Raspberry Pi camera stack (non-arm64 build)"; \
@@ -212,7 +214,18 @@ RUN echo "Detected architecture: $(dpkg --print-architecture)" && \
     fi && \
     "${CAMERA_CLI}" --version && \
     test -d /usr/share/libcamera/pipeline/rpi/vc4 && \
-    test -d /usr/share/libcamera/ipa/rpi/vc4; \
+    test -d /usr/share/libcamera/ipa/rpi/vc4 && \
+    echo "--- ABI version assertion ---" && \
+    ldconfig -p | grep libcamera && \
+    ldconfig -p | grep -q 'libcamera.so.0.6' || { echo "ERROR: libcamera.so.0.6 not found — ABI mismatch (0.5 installed?). Rebuild required." >&2; exit 1; } && \
+    echo "libcamera.so.0.6 confirmed." && \
+    python3 -c "\
+import libcamera; \
+v = libcamera.__version__; \
+print('libcamera Python binding version:', v); \
+assert v.startswith('0.6'), f'Expected libcamera 0.6.x, got: {v}. ABI mismatch — rebuild required.' \
+" && \
+    echo "libcamera Python binding 0.6.x confirmed."; \
     else \
     echo "Skipping libcamera validation on amd64 (mock camera build)"; \
     fi
