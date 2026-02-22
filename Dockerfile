@@ -127,7 +127,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
-    if [ "$TARGETARCH" = "arm64" ]; then \
+    echo "Detected architecture: $(dpkg --print-architecture)" && \
+    if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
         echo "Installing Raspberry Pi camera stack for arm64..." && \
         curl -L --connect-timeout 10 --max-time 30 --retry 2 -f \
           "https://archive.raspberrypi.org/debian/raspberrypi.gpg.key" \
@@ -212,7 +213,8 @@ RUN mkdir -p /app && \
 RUN /usr/local/bin/validate-stack.py
 
 # Layer 6 (continued): Validate libcamera install and Raspberry Pi pipeline/IPA locations (arm64 only)
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
+RUN echo "Detected architecture: $(dpkg --print-architecture)" && \
+    if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
     libcamera-hello --version && \
     test -d /usr/share/libcamera/pipeline/rpi/vc4 && \
     test -d /usr/share/libcamera/ipa/rpi/vc4; \
