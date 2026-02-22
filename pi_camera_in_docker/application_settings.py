@@ -209,31 +209,34 @@ class ApplicationSettings:
         Raises:
             SettingsValidationError: If validation fails
         """
-        sentry_sdk.set_tag("component", "settings")
-        sentry_sdk.set_context(
-            "settings_operation",
-            {
+        # Enrich an isolated scope so these tags don't bleed into other events
+        # when save() is called from background threads or tests.
+        with sentry_sdk.new_scope() as scope:
+            scope.set_tag("component", "settings")
+            scope.set_context(
+                "settings_operation",
+                {
+                    "modified_by": modified_by,
+                },
+            )
+
+            data = {
+                "version": 1,
+                "settings": settings,
+                "last_modified": datetime.now(timezone.utc).isoformat(),
                 "modified_by": modified_by,
-            },
-        )
+            }
 
-        data = {
-            "version": 1,
-            "settings": settings,
-            "last_modified": datetime.now(timezone.utc).isoformat(),
-            "modified_by": modified_by,
-        }
+            try:
+                self._validate_settings_structure(data)
+            except Exception as exc:
+                logger.error("Settings validation failed: %s", exc)
+                message = f"Invalid settings structure: {exc}"
+                raise SettingsValidationError(message) from exc
 
-        try:
-            self._validate_settings_structure(data)
-        except Exception as exc:
-            logger.error("Settings validation failed: %s", exc)
-            message = f"Invalid settings structure: {exc}"
-            raise SettingsValidationError(message) from exc
-
-        with self._exclusive_lock():
-            self._save_atomic(data)
-            logger.info("Settings saved by %s", modified_by)
+            with self._exclusive_lock():
+                self._save_atomic(data)
+                logger.info("Settings saved by %s", modified_by)
 
     def get(self, category: str, key: str, default: Any = None) -> Any:
         """

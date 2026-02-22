@@ -17,6 +17,7 @@ from threading import Event, Lock, Thread
 from typing import Any, Dict, Optional
 from urllib.parse import urlsplit, urlunsplit
 
+import sentry_sdk
 
 logger = logging.getLogger(__name__)
 
@@ -184,6 +185,10 @@ class DiscoveryAnnouncer:
                 exc.code,
                 self.management_url_log,
             )
+            with sentry_sdk.new_scope() as scope:
+                scope.set_tag("component", "discovery")
+                scope.set_tag("webcam_id", self.webcam_id)
+                scope.capture_exception(exc)
             return False
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             logger.warning(
@@ -192,6 +197,10 @@ class DiscoveryAnnouncer:
                 str(exc),
                 self.management_url_log,
             )
+            with sentry_sdk.new_scope() as scope:
+                scope.set_tag("component", "discovery")
+                scope.set_tag("webcam_id", self.webcam_id)
+                scope.capture_exception(exc)
             return False
 
     def _run_loop(self) -> None:

@@ -7,6 +7,7 @@ Endpoints: GET /api/settings, PATCH /api/settings, POST /api/settings/reset, GET
 import os
 from typing import Any, Dict, Tuple
 
+import sentry_sdk
 from flask import Flask, current_app, jsonify, request
 
 from .config_validator import validate_settings_patch
@@ -126,6 +127,7 @@ def register_settings_routes(app: Flask) -> None:
             merged = get_effective_settings_payload(current_app.application_settings)
             return jsonify(merged), 200
         except Exception as exc:
+            sentry_sdk.capture_exception(exc)
             return (
                 jsonify({"error": "Failed to load settings", "details": str(exc)}),
                 500,
@@ -153,6 +155,7 @@ def register_settings_routes(app: Flask) -> None:
                 }
             ), 200
         except Exception as exc:
+            sentry_sdk.capture_exception(exc)
             return (
                 jsonify({"error": "Failed to generate settings schema", "details": str(exc)}),
                 500,
@@ -262,6 +265,7 @@ def register_settings_routes(app: Flask) -> None:
             return jsonify(result), 200
 
         except Exception as exc:
+            sentry_sdk.capture_exception(exc)
             return (
                 jsonify({"error": "Failed to update settings", "details": str(exc)}),
                 500,
@@ -286,6 +290,7 @@ def register_settings_routes(app: Flask) -> None:
                 }
             ), 200
         except Exception as exc:
+            sentry_sdk.capture_exception(exc)
             return (
                 jsonify({"error": "Failed to reset settings", "details": str(exc)}),
                 500,
@@ -305,6 +310,7 @@ def register_settings_routes(app: Flask) -> None:
             changes = current_app.application_settings.get_changes_from_env(env_defaults)
             return jsonify(changes), 200
         except Exception as exc:
+            sentry_sdk.capture_exception(exc)
             return (
                 jsonify({"error": "Failed to get settings changes", "details": str(exc)}),
                 500,

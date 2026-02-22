@@ -596,11 +596,12 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
     base_url = node["base_url"].rstrip("/")
     _validate_node_base_url(base_url)
 
-    # Set Sentry context for this webcam request
+    # Enrich the current request scope with this webcam's context.
     webcam_id = node.get("id", "unknown")
-    sentry_sdk.set_tag("component", "management")
-    sentry_sdk.set_tag("webcam_id", webcam_id)
-    sentry_sdk.set_context(
+    current_scope = sentry_sdk.get_current_scope()
+    current_scope.set_tag("component", "management")
+    current_scope.set_tag("webcam_id", webcam_id)
+    current_scope.set_context(
         "node_request",
         {
             "webcam_id": webcam_id,

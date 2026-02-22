@@ -196,8 +196,9 @@ def import_camera_components(allow_pykms_mock: bool):
     try:
         from picamera2 import Picamera2
     except (ModuleNotFoundError, AttributeError) as e:
-        sentry_sdk.set_tag("component", "camera")
-        sentry_sdk.capture_exception(e)
+        with sentry_sdk.new_scope() as scope:
+            scope.set_tag("component", "camera")
+            scope.capture_exception(e)
         if allow_pykms_mock and ("pykms" in str(e) or "kms" in str(e) or "PixelFormat" in str(e)):
             import sys
             import types
