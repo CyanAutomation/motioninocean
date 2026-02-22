@@ -1,7 +1,7 @@
 # ---- Build Arguments ----
 # DEBIAN_SUITE: Debian suite used for builder/final stages (defaults to trixie to match RPi OS trixie hosts)
-# RPI_SUITE: Raspberry Pi apt suite used for camera packages (defaults to trixie for libcamera0.6 availability)
-# Note: Motion In Ocean targets Debian Trixie to match Raspberry Pi OS Trixie and its libcamera0.6 stack.
+# RPI_SUITE: Raspberry Pi apt suite used for camera packages (defaults to trixie; must match DEBIAN_SUITE)
+# Note: Motion In Ocean targets Debian Trixie to match Raspberry Pi OS Trixie and its libcamera stack.
 # No suite overrides are supported. For alternative distros, fork and modify the Dockerfile.
 ARG DEBIAN_SUITE=trixie
 ARG RPI_SUITE=trixie
@@ -110,8 +110,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Install Raspberry Pi camera runtime packages (arm64 only, skipped for amd64).
 # On arm64: Downloads RPi GPG key, adds RPi repository, installs camera packages with strict GPG verification.
 # On amd64: Skipped entirely; prevents unnecessary package installation and repo setup on non-hardware architectures.
+# NOTE: Do NOT pin a specific libcamera0.x soname. libcamera0.x and libcamera-ipa share a strict
+# version-locked dependency (libcamera0.6 requires libcamera-ipa=0.6.x, libcamera0.7 requires
+# libcamera-ipa=0.7.x). Pinning a specific runtime makes co-installation of python3-libcamera
+# (which always tracks the newest soname) impossible. Let apt resolve the libcamera runtime version.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
     echo "Detected architecture: $(dpkg --print-architecture)" && \
     if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
@@ -135,17 +138,15 @@ Pin: origin archive.raspberrypi.org\n\
 Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
         apt-get update && \
         apt-get install -y --no-install-recommends \
-          libcamera0.6 \
-          libcamera-ipa \
           libcamera-dev \
           python3-libcamera \
           python3-picamera2 \
           rpicam-apps \
           v4l-utils && \
         echo "Camera packages installed successfully:" && \
-        apt-cache policy libcamera0.6 rpicam-apps python3-picamera2 python3-libcamera && \
+        apt-cache policy libcamera-dev rpicam-apps python3-picamera2 python3-libcamera && \
         dpkg-query -W -f='${Package}\t${Version}\t${Origin}\n' \
-          libcamera0.6 rpicam-apps python3-picamera2 python3-libcamera 2>/dev/null || true && \
+          libcamera-dev rpicam-apps python3-picamera2 python3-libcamera 2>/dev/null || true && \
         rm -rf /var/lib/apt/lists/*; \
     else \
         echo "Skipping Raspberry Pi camera stack (non-arm64 build)"; \
@@ -221,15 +222,17 @@ RUN echo "Detected architecture: $(dpkg --print-architecture)" && \
     test -d /usr/share/libcamera/ipa/rpi/vc4 && \
     echo "--- ABI version assertion ---" && \
     ldconfig -p | grep libcamera && \
-    ldconfig -p | grep -q 'libcamera.so.0.6' || { echo "ERROR: libcamera.so.0.6 not found — ABI mismatch (wrong version installed?). Rebuild required." >&2; exit 1; } && \
-    echo "libcamera.so.0.6 confirmed." && \
+    LIBCAM_SONAME=$(ldconfig -p | grep -oE 'libcamera.so.0.[0-9]+' | sort -t. -k3 -n | tail -1) && \
+    test -n "${LIBCAM_SONAME}" || { echo "ERROR: No libcamera.so.0.x found in ldconfig — camera library not installed." >&2; exit 1; } && \
+    echo "${LIBCAM_SONAME} confirmed." && \
     python3 -c "\
 import libcamera; \
 v = libcamera.__version__; \
 print('libcamera Python binding version:', v); \
-assert v.startswith('0.6'), f'Expected libcamera 0.6.x, got: {v}. ABI mismatch — rebuild required.' \
+parts = v.split('.'); \
+assert len(parts) >= 2 and int(parts[0]) == 0 and int(parts[1]) >= 5, f'Expected libcamera >= 0.5, got: {v}. Too old — rebuild required.' \
 " && \
-    echo "libcamera Python binding 0.6.x confirmed."; \
+    echo "libcamera Python binding confirmed."; \
     else \
     echo "Skipping libcamera validation on amd64 (mock camera build)"; \
     fi
