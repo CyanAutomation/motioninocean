@@ -23,7 +23,7 @@ LEGACY_ALIAS_REMOVAL_TARGET = "v1.0"
 """Target release for removing deprecated legacy feature-flag aliases."""
 
 
-LEGACY_ALIAS_DEPRECATION_FLAGS = {"MOCK_CAMERA", "CAT_GIF"}
+LEGACY_ALIAS_DEPRECATION_FLAGS = {"MOCK_CAMERA"}
 """Flags for which legacy env aliases should emit explicit deprecation warnings."""
 
 
@@ -136,16 +136,6 @@ class FeatureFlags:
                 category=FeatureFlagCategory.EXPERIMENTAL,
                 description="Enable frame recording/buffering to disk.",
                 backward_compat_vars=None,
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="CAT_GIF",
-                default=False,
-                category=FeatureFlagCategory.EXPERIMENTAL,
-                description="Enable animated cat GIFs as a mock camera stream.",
-                backward_compat_vars=["CAT_GIF"],
             )
         )
 

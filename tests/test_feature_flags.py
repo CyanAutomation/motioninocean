@@ -107,19 +107,6 @@ class TestFeatureFlagLegacyCompatibility:
         assert "Legacy environment variable 'MOCK_CAMERA' is deprecated" in caplog.text
         assert "MIO_MOCK_CAMERA" in caplog.text
 
-    def test_legacy_cat_gif_alias_emits_deprecation_warning(self, caplog):
-        """Legacy CAT_GIF alias usage should emit explicit deprecation warning."""
-        from pi_camera_in_docker.feature_flags import FeatureFlags
-
-        with mock.patch.dict(os.environ, {"CAT_GIF": "true"}, clear=True):
-            flags = FeatureFlags()
-            with caplog.at_level("WARNING"):
-                flags.load()
-
-        assert flags.is_enabled("CAT_GIF") is True
-        assert "Legacy environment variable 'CAT_GIF' is deprecated" in caplog.text
-        assert "MIO_CAT_GIF" in caplog.text
-
     def test_canonical_mock_camera_env_takes_precedence_over_legacy_alias(self):
         """MIO_MOCK_CAMERA should win when both canonical and legacy vars are present."""
         from pi_camera_in_docker.feature_flags import FeatureFlags

@@ -4,14 +4,11 @@
 # Usage (standard mock - black frames):
 #   docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
 #
-# Usage (with cat GIFs - recommended for fun!):
-#   MIO_MOCK_CAMERA=true MIO_CAT_GIF=true docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
 #
 # This is useful for testing on non-Pi environments or when hardware is not available
 #
 # Note: You can also use .env file with:
 #   MIO_MOCK_CAMERA=true
-#   MIO_CAT_GIF=true
 
 services:
   motion-in-ocean:

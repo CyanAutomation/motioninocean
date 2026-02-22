@@ -116,7 +116,6 @@ These environment variables are **system configuration** and require container r
 - `APPLICATION_SETTINGS_PATH` - Store path for runtime settings JSON/lock files
 - `ALLOW_PYKMS_MOCK` - Internal KMS configuration
 - `LIMITER_STORAGE_URI` - Rate limiter backend
-- `CAT_GIF_*` - Cat GIF testing features
 - `DOCKER_PROXY_PORT` - Docker connectivity settings
 
 ## Accessing Runtime Settings
