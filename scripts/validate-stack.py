@@ -71,7 +71,9 @@ def validate_amd64():
         return 1
 
 
-def _normalize_architecture(value: str | None) -> str | None:
+from typing import Optional
+
+def _normalize_architecture(value: Optional[str]) -> Optional[str]:
     """Normalize architecture labels used by this script."""
     if value is None:
         return None
