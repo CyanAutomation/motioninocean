@@ -170,6 +170,18 @@ WORKDIR /app
 # Isolation prevents conflicts between system apt-managed and app pip-managed packages
 COPY --from=builder /opt/venv /opt/venv
 
+# Explicitly bridge Debian's 'dist-packages' into the venv via a .pth file.
+# Python's --system-site-packages flag adds standard 'site-packages' paths, but Debian/Ubuntu
+# install apt-managed packages to 'dist-packages' (not 'site-packages'). In Python 3.13 on
+# trixie, the venv's site.py may not inherit Debian's dist-packages path customisation when
+# the venv is created in a separate builder stage and then COPY'd into the final stage.
+# A .pth file guarantees visibility regardless of that bridge working or not.
+RUN PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')") && \
+    VENV_SITE="/opt/venv/lib/python${PYVER}/site-packages" && \
+    printf '/usr/lib/python3/dist-packages\n/usr/lib/python%s/dist-packages\n' "${PYVER}" \
+        > "${VENV_SITE}/debian_dist_packages.pth" && \
+    echo "Added debian_dist_packages.pth for Python ${PYVER}"
+
 # Copy application code with explicit per-file/directory COPYs
 # Ordered by change frequency: stable → dynamic (requirements are pre-copied in builder)
 # Improves cache reuse, prevents accidental inclusion of non-essential files, enhances reproducibility
