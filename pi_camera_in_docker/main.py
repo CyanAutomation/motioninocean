@@ -458,7 +458,7 @@ def _generate_env_content(config: Dict[str, Any]) -> str:
         "MIO_IMAGE_TAG=latest",
         "",
         "# Management/Security",
-        f"MANAGEMENT_AUTH_TOKEN={config.get('auth_token', '')}",
+        f"MIO_MANAGEMENT_AUTH_TOKEN={config.get('auth_token', '')}",
         "",
     ]
 

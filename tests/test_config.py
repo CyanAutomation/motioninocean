@@ -618,6 +618,38 @@ print(json.dumps(results))
     assert results["invalid"]["status"] == 400
 
 
+def test_setup_generate_uses_mio_management_auth_token_in_env(monkeypatch, tmp_path):
+    """Setup generation should emit canonical management auth token env variable."""
+    from pi_camera_in_docker import main
+
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry-setup-generate.json"))
+    monkeypatch.setenv(
+        "MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-setup-generate.json")
+    )
+
+    app = main.create_app_from_env()
+    client = app.test_client()
+
+    response = client.post(
+        "/api/setup/generate",
+        json={
+            "resolution": "1280x720",
+            "fps": 24,
+            "target_fps": 24,
+            "jpeg_quality": 90,
+            "max_connections": 10,
+            "auth_token": "generated-token",
+        },
+    )
+
+    assert response.status_code == 200
+    env_content = response.get_json()["env_content"]
+    assert "MIO_MANAGEMENT_AUTH_TOKEN=generated-token" in env_content
+    assert "MANAGEMENT_AUTH_TOKEN=generated-token" not in env_content
+
+
 def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspace_root):
     """Verify setup UI device detection captures /dev/v4l-subdev* nodes."""
     original_path = sys.path.copy()
