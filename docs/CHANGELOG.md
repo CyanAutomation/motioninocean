@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.18.8] - 2026-02-22
+
+- Update libcamera validation in Dockerfile to check for CameraManager presence
+
 ## [1.18.7] - 2026-02-22
 
 - Add libcap-dev to Dockerfile for enhanced capabilities
