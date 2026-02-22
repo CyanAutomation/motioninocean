@@ -55,7 +55,12 @@ class TestSentryIntegration:
             },
             "contexts": {
                 "env": {
-                    "WEBCAM_CONTROL_PLANE_AUTH_TOKEN": "secret-value",
+                    "MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN": "secret-value",
+                    "MIO_MANAGEMENT_AUTH_TOKEN": "secret-value-2",
+                    "MIO_DISCOVERY_TOKEN": "secret-value-3",
+                    "MIO_SENTRY_DSN": "https://secret@example.com/1",
+                    "WEBCAM_CONTROL_PLANE_AUTH_TOKEN": "legacy-secret",
+                    "SENTRY_DSN": "https://legacy@example.com/1",
                     "OTHER_VAR": "visible",
                 }
             },
@@ -70,8 +75,13 @@ class TestSentryIntegration:
         assert "token=abc123" not in filtered["request"]["url"]
         assert "token=[REDACTED]" in filtered["request"]["url"]
 
-        # Verify env var is redacted
+        # Verify canonical and legacy env vars are redacted
+        assert filtered["contexts"]["env"]["MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN"] == "[REDACTED]"
+        assert filtered["contexts"]["env"]["MIO_MANAGEMENT_AUTH_TOKEN"] == "[REDACTED]"
+        assert filtered["contexts"]["env"]["MIO_DISCOVERY_TOKEN"] == "[REDACTED]"
+        assert filtered["contexts"]["env"]["MIO_SENTRY_DSN"] == "[REDACTED]"
         assert filtered["contexts"]["env"]["WEBCAM_CONTROL_PLANE_AUTH_TOKEN"] == "[REDACTED]"
+        assert filtered["contexts"]["env"]["SENTRY_DSN"] == "[REDACTED]"
 
         # Verify other vars are preserved
         assert filtered["request"]["headers"]["Content-Type"] == "application/json"

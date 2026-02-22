@@ -46,6 +46,11 @@ def _redact_auth_data(event: Dict[str, Any], _hint: Dict[str, Any]) -> Optional[
     # Redact environment variables containing auth tokens
     if "contexts" in event and "env" in event["contexts"]:
         env_keys_to_redact = {
+            "MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN",
+            "MIO_MANAGEMENT_AUTH_TOKEN",
+            "MIO_DISCOVERY_TOKEN",
+            "MIO_SENTRY_DSN",
+            # Legacy aliases retained during migration window
             "WEBCAM_CONTROL_PLANE_AUTH_TOKEN",
             "MANAGEMENT_AUTH_TOKEN",
             "DISCOVERY_TOKEN",
