@@ -134,7 +134,7 @@ When `APP_MODE=management`, backend exposes control-plane APIs.
 flowchart LR
     A["HTTP Request to<br/>/api/nodes/{id}/status"] --> B["Parse IP from<br/>node.base_url"]
     B --> C{{"IP in private set?<br/>RFC1918, loopback,<br/>link-local, reserved"}}
-    C -->|Yes| D{{"MOTION_IN_OCEAN<br/>_ALLOW_PRIVATE_IPS<br/>=true?"}}
+    C -->|Yes| D{{"MIO_ALLOW_<br/>PRIVATE_IPS<br/>=true?"}}
     C -->|No| E["Proxy request"]
     D -->|Yes| E
     D -->|No| F["403 Forbidden<br/>SSRF_BLOCKED"]
@@ -146,8 +146,9 @@ flowchart LR
 
 **Configuration:**
 
-- Default: `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS=false` (production-safe)
-- For LANs: Set to `true`
+- Default: `MIO_ALLOW_PRIVATE_IPS=false` (production-safe)
+- For LANs: Set `MIO_ALLOW_PRIVATE_IPS=true`
+- Legacy alias `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` is temporarily supported but deprecated
 - Bearer token in `Authorization: Bearer <token>` header
 - Error codes: `SSRF_BLOCKED`, `NODE_UNAUTHORIZED`, `NODE_UNREACHABLE`
 
