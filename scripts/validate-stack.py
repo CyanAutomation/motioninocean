@@ -103,7 +103,7 @@ def _detect_architecture_from_dpkg() -> str | None:
     return _normalize_architecture(result.stdout)
 
 
-def _select_target_architecture() -> tuple[str | None, str | None, str | None]:
+def _select_target_architecture() -> tuple[Optional[str], Optional[str], Optional[str]]:
     """Determine architecture from dpkg first, then env var, then platform.machine."""
     dpkg_arch = _detect_architecture_from_dpkg()
     env_arch = _normalize_architecture(os.environ.get("TARGETARCH"))
