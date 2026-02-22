@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Flask
+import pytest
 
 
 # Import workspace root path (WORKSPACE_ROOT is set in conftest.py)
@@ -1432,6 +1433,68 @@ def test_node_action_maps_invalid_upstream_payload_to_controlled_error(monkeypat
     assert response.json["error"]["details"]["action"] == "restart"
 
 
+
+
+def test_node_status_maps_non_object_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-non-object-status",
+        "name": "Non Object Status Node",
+        "base_url": "http://example.com",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+
+    def raise_invalid_response(node, method, path, body=None):
+        raise management_api.NodeInvalidResponseError("webcam returned non-object JSON")
+
+    monkeypatch.setattr(management_api, "_request_json", raise_invalid_response)
+
+    response = client.get("/api/webcams/node-non-object-status/status", headers=_auth_headers())
+    assert response.status_code == 502
+    assert response.json["error"]["code"] == "WEBCAM_INVALID_RESPONSE"
+    assert response.json["error"]["details"]["reason"] == "malformed json"
+
+
+def test_node_action_maps_non_object_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-non-object-action",
+        "name": "Non Object Action Node",
+        "base_url": "http://example.com",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+
+    created = client.post("/api/webcams", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+
+    def raise_invalid_response(node, method, path, body=None):
+        raise management_api.NodeInvalidResponseError("webcam returned non-object JSON")
+
+    monkeypatch.setattr(management_api, "_request_json", raise_invalid_response)
+
+    response = client.post(
+        "/api/webcams/node-non-object-action/actions/restart",
+        json={},
+        headers=_auth_headers(),
+    )
+    assert response.status_code == 502
+    assert response.json["error"]["code"] == "WEBCAM_INVALID_RESPONSE"
+    assert response.json["error"]["details"]["reason"] == "malformed json"
+    assert response.json["error"]["details"]["action"] == "restart"
+
 def test_create_node_migrates_legacy_auth_with_token(monkeypatch, tmp_path):
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
@@ -1568,6 +1631,85 @@ def test_request_json_retries_next_vetted_address_when_first_connection_fails(mo
     assert payload == {"ok": True}
     assert attempted_addresses == ["93.184.216.34", "93.184.216.35"]
 
+
+
+
+def test_request_json_raises_for_array_json_payload(monkeypatch):
+    from pi_camera_in_docker import management_api
+
+    class FakeResponse:
+        status = 200
+
+        def read(self):
+            return b'[1, 2, 3]'
+
+    class FakeHTTPConnection:
+        def __init__(self, host, port, connect_host, timeout):
+            _ = (host, port, connect_host, timeout)
+
+        def request(self, method, target, body=None, headers=None):
+            _ = (method, target, body, headers)
+
+        def getresponse(self):
+            return FakeResponse()
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(
+        management_api.socket,
+        "getaddrinfo",
+        lambda host, port, proto: [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))
+        ],
+    )
+    monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
+
+    with pytest.raises(management_api.NodeInvalidResponseError, match="non-object JSON"):
+        management_api._request_json(
+            {"base_url": "http://example.com", "auth": {"type": "none"}},
+            "GET",
+            "/api/status",
+        )
+
+
+def test_request_json_raises_for_scalar_json_payload(monkeypatch):
+    from pi_camera_in_docker import management_api
+
+    class FakeResponse:
+        status = 200
+
+        def read(self):
+            return b'"ok"'
+
+    class FakeHTTPConnection:
+        def __init__(self, host, port, connect_host, timeout):
+            _ = (host, port, connect_host, timeout)
+
+        def request(self, method, target, body=None, headers=None):
+            _ = (method, target, body, headers)
+
+        def getresponse(self):
+            return FakeResponse()
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(
+        management_api.socket,
+        "getaddrinfo",
+        lambda host, port, proto: [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))
+        ],
+    )
+    monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
+
+    with pytest.raises(management_api.NodeInvalidResponseError, match="non-object JSON"):
+        management_api._request_json(
+            {"base_url": "http://example.com", "auth": {"type": "none"}},
+            "GET",
+            "/api/status",
+        )
 
 def test_request_json_maps_name_resolution_failure_to_dns_category(monkeypatch):
     from pi_camera_in_docker import management_api
