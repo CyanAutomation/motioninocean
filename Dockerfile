@@ -1,14 +1,10 @@
 # ---- Build Arguments ----
 # DEBIAN_SUITE: Debian suite used for builder/final stages (locked to bookworm by default)
 # RPI_SUITE: Raspberry Pi apt suite used for camera packages (locked to bookworm by default)
-# INCLUDE_MOCK_CAMERA: Include Pillow for mock camera test frames (default: true)
-#   Set to false for production builds (excludes ffmpeg, scipy dependencies)
-#
 # Note: Motion In Ocean is locked to Debian Bookworm (stable distro rigidity for appliance containers).
 # No suite overrides are supported. For alternative distros, fork and modify the Dockerfile.
 ARG DEBIAN_SUITE=bookworm
 ARG RPI_SUITE=bookworm
-ARG INCLUDE_MOCK_CAMERA=true
 
 # ---- Builder Stage ----
 # Minimal Python packaging stage: installs build tools and creates isolated venv.
@@ -18,7 +14,6 @@ FROM debian:${DEBIAN_SUITE}-slim AS builder
 # Re-declare build args for this stage
 ARG DEBIAN_SUITE
 ARG RPI_SUITE
-ARG INCLUDE_MOCK_CAMERA
 
 # ---- Layer 1: System Build Tools (Stable) ----
 # Install base system dependencies and build toolchain
@@ -58,18 +53,11 @@ COPY requirements.txt /app/
 
 # Install Python packages into venv with BuildKit cache mount for faster rebuilds
 # Exclude numpy (use system python3-numpy for simplejpeg compatibility)
-# Conditionally install Pillow for mock camera support (controlled by INCLUDE_MOCK_CAMERA)
 RUN --mount=type=cache,target=/root/.cache/pip \
     set -e && \
     sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' requirements.txt | \
-      awk '!/^(numpy|Pillow)/' > /tmp/requirements-base.txt && \
+      awk '!/^(numpy)/' > /tmp/requirements-base.txt && \
     /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements-base.txt && \
-    if [ "$INCLUDE_MOCK_CAMERA" = "true" ]; then \
-        echo "Installing Pillow for mock camera support..." && \
-        grep "^Pillow" requirements.txt | /opt/venv/bin/pip install --no-cache-dir -r /dev/stdin; \
-    else \
-        echo "Skipping Pillow installation (INCLUDE_MOCK_CAMERA=false)"; \
-    fi && \
     rm -rf /tmp/requirements-base.txt /tmp/*
 
 # ---- Final Stage ----
@@ -81,7 +69,6 @@ FROM debian:${DEBIAN_SUITE}-slim
 # Re-declare build args for this stage
 ARG DEBIAN_SUITE
 ARG RPI_SUITE
-ARG INCLUDE_MOCK_CAMERA
 ARG TARGETARCH
 
 # Prevent Python bytecode generation and enable unbuffered output
@@ -97,7 +84,6 @@ LABEL org.opencontainers.image.source="https://github.com/CyanAutomation/motioni
 LABEL org.opencontainers.image.description="Raspberry Pi CSI camera streaming container (Picamera2/libcamera)"
 LABEL org.opencontainers.image.authors="CyanAutomation"
 LABEL org.opencontainers.image.vendor="CyanAutomation"
-LABEL org.opencontainers.image.build.include-mock-camera="${INCLUDE_MOCK_CAMERA}"
 
 # ---- Layer 1: System Dependencies (Stable) ----
 # Install base system packages from Debian repositories only.
@@ -200,7 +186,7 @@ RUN mkdir -p /app && \
     ( \
         echo "DEBIAN_SUITE=${DEBIAN_SUITE}"; \
         echo "RPI_SUITE=${RPI_SUITE}"; \
-        echo "INCLUDE_MOCK_CAMERA=${INCLUDE_MOCK_CAMERA}"; \
+        echo "TARGETARCH=${TARGETARCH}"; \
         echo "BUILD_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"; \
     ) > /app/BUILD_METADATA && \
     cat /app/BUILD_METADATA
