@@ -46,7 +46,7 @@ def test_management_endpoints_return_contract_payloads(monkeypatch, tmp_path):
     metrics = client.get("/metrics")
 
     assert health.status_code == 200
-    assert health.get_json()["status"] == "healthy"
+    assert health.get_json()["status"] == "ok"
     assert health.get_json()["app_mode"] == "management"
 
     assert ready.status_code == 200

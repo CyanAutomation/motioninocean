@@ -363,7 +363,7 @@ Webcam mode supports deterministic status simulation for management validation.
 
 ## Backend Acceptance Criteria
 
-- [ ] `/health` returns `200` with healthy liveness payload whenever process is running.
+- [ ] `/health` returns `200` with ok liveness payload whenever process is running.
 - [ ] `/ready` returns `200` only for active + fresh frame state; otherwise `503` with reason.
 - [ ] `/stream.mjpg` serves valid MJPEG multipart stream or `503` when not ready.
 - [ ] `/metrics` returns JSON with runtime counters and configuration-facing values.
