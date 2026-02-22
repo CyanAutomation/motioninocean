@@ -198,10 +198,11 @@ RUN mkdir -p /app && \
 # - arm64: Validates full camera stack (numpy, flask, flask_cors, picamera2, libcamera)
 # - amd64: Validates Python stack only (numpy, flask, flask_cors; no picamera2 or libcamera)
 # This ensures explicit behavior: arm64 fails if camera unavailable, amd64 fails if core Python unavailable
-# Use system Python explicitly: apt-installed python3-picamera2 lives in /usr/lib/python3/dist-packages/,
-# which is on the system Python's sys.path directly. The venv Python (on PATH) bridges via
-# --system-site-packages but only if pyvenv.cfg home pointers match exactly across build stages.
-RUN /usr/bin/python3 /usr/local/bin/validate-stack.py
+# Use venv Python: flask and flask_cors are pip-installed into /opt/venv only (not the system Python).
+# The venv was created with --system-site-packages so /opt/venv/bin/python3 also sees apt-installed
+# packages (picamera2, numpy, libcamera) via /usr/lib/python3/dist-packages/ — both stages share the
+# same debian:bookworm-slim base so pyvenv.cfg home pointers match correctly across build stages.
+RUN /opt/venv/bin/python3 /usr/local/bin/validate-stack.py
 
 # Layer 6 (continued): Validate libcamera install and Raspberry Pi pipeline/IPA locations (arm64 only)
 RUN echo "Detected architecture: $(dpkg --print-architecture)" && \
