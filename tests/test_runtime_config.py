@@ -286,6 +286,42 @@ def test_settings_api_env_defaults_use_runtime_fps_default(monkeypatch):
     assert env_defaults["camera"]["fps"] == runtime_default
 
 
+def test_load_fps_invalid_negative_falls_back_with_warning(monkeypatch, caplog):
+    """Negative FPS should be rejected and replaced with default fallback."""
+    monkeypatch.setenv("MIO_FPS", "-1")
+
+    with caplog.at_level("WARNING"):
+        camera_config = runtime_config._load_camera_config()
+
+    assert camera_config["fps"] == 24
+    assert camera_config["target_fps"] == 24
+    assert "Invalid MIO_FPS range" in caplog.text
+
+
+def test_load_fps_out_of_range_falls_back_with_warning(monkeypatch, caplog):
+    """FPS values above schema maximum should be rejected and replaced with default."""
+    monkeypatch.setenv("MIO_FPS", "9999")
+
+    with caplog.at_level("WARNING"):
+        camera_config = runtime_config._load_camera_config()
+
+    assert camera_config["fps"] == 24
+    assert camera_config["target_fps"] == 24
+    assert "Invalid MIO_FPS range" in caplog.text
+
+
+def test_load_fps_non_integer_falls_back_with_warning(monkeypatch, caplog):
+    """Non-integer FPS should be rejected and replaced with default fallback."""
+    monkeypatch.setenv("MIO_FPS", "not-an-int")
+
+    with caplog.at_level("WARNING"):
+        camera_config = runtime_config._load_camera_config()
+
+    assert camera_config["fps"] == 24
+    assert camera_config["target_fps"] == 24
+    assert "Invalid MIO_FPS value" in caplog.text
+
+
 def test_load_env_config_defaults_camera_init_failure_to_graceful(monkeypatch):
     """Camera init failure handling should default to graceful startup."""
     monkeypatch.delenv("MIO_FAIL_ON_CAMERA_INIT_ERROR", raising=False)

@@ -63,8 +63,13 @@ def _load_camera_config() -> Dict[str, Any]:
         resolution = (640, 480)
 
     try:
-        fps = int(os.environ.get("MIO_FPS", "24"))
+        fps_raw = os.environ.get("MIO_FPS", "24")
+        fps = int(fps_raw)
+        if not 0 <= fps <= 120:
+            logger.warning("Invalid MIO_FPS range '%s', using default 24", fps_raw)
+            fps = 24
     except ValueError:
+        logger.warning("Invalid MIO_FPS value '%s', using default 24", os.environ.get("MIO_FPS", "24"))
         fps = 24
 
     try:
