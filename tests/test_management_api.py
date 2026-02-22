@@ -1,4 +1,5 @@
 import importlib
+import json
 import socket
 import ssl
 import sys
@@ -771,6 +772,52 @@ def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
     assert updated.json["node"]["auth"]["type"] == "bearer"
     assert updated.json["node"]["discovery"]["first_seen"] == first_seen
     assert updated.json["node"]["discovery"]["last_announce_at"] != first_announce
+
+
+def test_discovery_announce_update_repairs_incomplete_discovery_metadata(monkeypatch, tmp_path):
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    client, _ = _new_management_client(monkeypatch, tmp_path)
+
+    create_payload = {
+        "webcam_id": "node-discovery-incomplete-metadata",
+        "name": "Discovery Incomplete",
+        "base_url": "http://example.com",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    created = client.post(
+        "/api/discovery/announce",
+        json=create_payload,
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+    assert created.status_code == 201
+
+    approve = client.post(
+        "/api/webcams/node-discovery-incomplete-metadata/discovery/approve",
+        headers=_auth_headers(),
+    )
+    assert approve.status_code == 200
+
+    registry_path = tmp_path / "registry.json"
+    registry_data = json.loads(registry_path.read_text())
+    node = registry_data["nodes"][0]
+    node["discovery"] = {
+        "source": "discovered",
+        "approved": True,
+    }
+    registry_path.write_text(json.dumps(registry_data, indent=2))
+
+    updated = client.post(
+        "/api/discovery/announce",
+        json={**create_payload, "name": "Discovery Incomplete Updated"},
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+    assert updated.status_code == 200
+    assert updated.json["upserted"] == "updated"
+    assert updated.json["node"]["discovery"]["first_seen"] is not None
+    assert updated.json["node"]["discovery"]["last_announce_at"] is not None
+    assert updated.json["node"]["discovery"]["approved"] is True
 
 
 def test_discovery_announce_parallel_requests_do_not_duplicate_error(monkeypatch, tmp_path):
