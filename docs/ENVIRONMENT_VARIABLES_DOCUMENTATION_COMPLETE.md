@@ -303,7 +303,7 @@ This is optional as users can always set BASE_URL explicitly if auto-detection d
 
 **Summary**: Configuration documentation is now complete, comprehensive, and user-friendly. Users can copy .env.example files and understand what each variable does without reading source code.
 
-## SENTRY_DSN
+## MIO_SENTRY_DSN
 
 **Type**: String  
 **Default**: Empty (Sentry disabled)  
@@ -319,13 +319,13 @@ camera networks.
 
 - Automatic exception capture (errors are sent to Sentry immediately)
 - Structured logging breadcrumbs (HTTP requests, errors, state changes)
-- Performance monitoring (traces for slow operations)
+- Performance monitoring (per-route traces — mutations always captured, polling suppressed)
 - Data redaction (auth tokens and sensitive headers automatically removed)
-- Low-overhead async transport (doesn't block request handling)
+- Release tagging for regression detection and suspect-commit linking
 
 **Security**:
 
-- Auth tokens (WEBCAM_CONTROL_PLANE_AUTH_TOKEN, MANAGEMENT_AUTH_TOKEN, DISCOVERY_TOKEN)
+- Auth tokens (MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN, MIO_MANAGEMENT_AUTH_TOKEN, MIO_DISCOVERY_TOKEN)
   are automatically redacted before sending to Sentry
 - Request URLs and environment variables containing tokens are filtered
 - PII (personal identifiable information) is not sent by default
@@ -333,8 +333,8 @@ camera networks.
 **Performance Impact**:
 
 - Minimal when disabled (no overhead)
-- ~10% event sampling rate when enabled (configurable in code)
-- Uses async background thread to avoid blocking
+- Mutations and actions always traced; high-frequency polling endpoints never traced
+- /stream endpoint (MJPEG) is never traced
 - Suitable for Raspberry Pi deployments
 
 **Example (Docker Compose)**:
@@ -342,14 +342,14 @@ camera networks.
 ```yaml
 environment:
   # Enable Sentry error tracking
-  SENTRY_DSN: "https://your-project-key@o0.ingest.sentry.io/your-project-id"
+  MIO_SENTRY_DSN: "https://your-project-key@o0.ingest.sentry.io/your-project-id"
 ```
 
 **Example (Kubernetes)**:
 
 ```yaml
 env:
-  - name: SENTRY_DSN
+  - name: MIO_SENTRY_DSN
     valueFrom:
       secretKeyRef:
         name: motion-in-ocean-secrets
