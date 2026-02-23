@@ -78,7 +78,6 @@ cd containers/motioniocean-webcam && docker compose -f docker-compose.yml -f doc
 cd containers/motioniocean-webcam && docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
 ```
 
-
 ## Canonical App Vars vs Docker/Compose Keys
 
 - **Canonical app env vars:** `MIO_*` (for example: `MIO_APP_MODE`, `MIO_PORT`, `MIO_BIND_HOST`).
