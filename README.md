@@ -43,7 +43,6 @@ docker pull ghcr.io/cyanautomation/motioninocean:latest
 
 Both registries publish the same multi-arch image (`linux/arm64`, `linux/amd64`) with identical tags (`latest`, `vX.Y.Z`, `X.Y.Z`, `X.Y`).
 
-## Docker Build
 
 Motion In Ocean is locked to **Debian Bookworm**. No suite overrides are supported.
 
@@ -56,21 +55,18 @@ docker build -t motion-in-ocean:local .
 ### Build for Raspberry Pi (ARM64)
 
 **Important:** Local `docker build` defaults to your host's CPU architecture:
-
 - On ARM64 hosts (Linux ARM, Raspberry Pi itself) → builds ARM64 ✅
 - On x86_64 hosts (Intel/AMD Mac, Linux x86) → builds x86, **won't work on Raspberry Pi** ❌
 
 Raspberry Pi-specific camera packages (libcamera, picamera2) are ARM-only. If building on non-ARM hardware for Raspberry Pi deployment, explicitly target ARM64:
 
 **Using Makefile (recommended):**
-
 ```bash
 make docker-build-arm64       # ARM64 image (mock support included)
 make docker-build-prod-arm64  # Production-tagged ARM64 image (same build profile)
 ```
 
 **Using docker buildx directly:**
-
 ```bash
 docker buildx build --platform linux/arm64 \
   -t motion-in-ocean:local .
