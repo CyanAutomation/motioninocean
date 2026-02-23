@@ -288,10 +288,11 @@ def test_dockerfile_runtime_contract_instructions(workspace_root):
 
     # Check for parameterized FROM statements (DEBIAN_SUITE build arg)
     assert dockerfile_content.count("FROM debian:${DEBIAN_SUITE}-slim") >= 2
-    # Check that build args are defined (Trixie is the target suite)
-    assert "ARG DEBIAN_SUITE=trixie" in dockerfile_content
-    assert "ARG RPI_SUITE=trixie" in dockerfile_content
-    assert "/opt/venv/bin/pip install --no-deps picamera2" in dockerfile_content
+    # Check that build args are defined (Bookworm is the pinned target suite)
+    assert "ARG DEBIAN_SUITE=bookworm" in dockerfile_content
+    assert "ARG RPI_SUITE=bookworm" in dockerfile_content
+    # picamera2 is installed from the RPi apt repo (not pip) on arm64
+    assert "python3-picamera2" in dockerfile_content
     assert "WORKDIR /app" in dockerfile_content
     assert "COPY pi_camera_in_docker/ /app/pi_camera_in_docker/" in dockerfile_content
     assert 'CMD ["python3", "-m", "pi_camera_in_docker.main"]' in dockerfile_content
