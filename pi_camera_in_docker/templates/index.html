@@ -23,15 +23,19 @@
 
     <nav class="tab-navigation webcam-side-rail" aria-label="Webcam views">
       <button class="tab-btn active rail-btn" data-tab="main" id="main-tab-btn" title="Stream">
+        <span class="rail-icon" data-icon="S" aria-hidden="true"></span>
         <span class="tab-label">Stream</span>
       </button>
       <button class="tab-btn rail-btn" data-tab="config" id="config-tab-btn" title="Configuration">
+        <span class="rail-icon" data-icon="C" aria-hidden="true"></span>
         <span class="tab-label">Configuration</span>
       </button>
       <button class="tab-btn rail-btn" data-tab="setup" id="setup-tab-btn" title="Set-Up">
+        <span class="rail-icon" data-icon="U" aria-hidden="true"></span>
         <span class="tab-label">Set-Up</span>
       </button>
       <button class="tab-btn rail-btn" data-tab="settings" id="settings-tab-btn" title="Runtime Settings">
+        <span class="rail-icon" data-icon="R" aria-hidden="true"></span>
         <span class="tab-label">Runtime Settings</span>
       </button>
     </nav>
@@ -48,10 +52,6 @@
           <button id="start-meeting-btn" class="ui-btn ui-btn--secondary" type="button">
             Start Meeting
           </button>
-          <div class="connection-status" aria-live="polite" role="status">
-            <div id="status-indicator" class="status-indicator connecting"></div>
-            <span id="status-text" class="status-text">Connecting...</span>
-          </div>
           <button id="theme-toggle-btn" class="ui-btn ui-btn--secondary" type="button">
             Dark Theme
           </button>
@@ -61,95 +61,148 @@
 
     <!-- Main Container -->
     <main class="container">
-      <!-- Video Section -->
+      <!-- Stream View Grid -->
       <section class="video-section" role="tabpanel">
-        <div class="video-container ui-card video-container-block">
-          <div class="video-wrapper">
-            <!-- Loading Overlay -->
-            <div class="loading-overlay">
-              <div class="loading-spinner"></div>
-              <div class="loading-text">Loading camera stream...</div>
+        <div class="webcam-stream-grid">
+          <section class="connection-strip ui-card" aria-label="Connection status">
+            <div class="connection-strip__header">
+              <div>
+                <p class="connection-strip__eyebrow">Connection Status</p>
+                <p id="last-updated" class="connection-strip__subtitle">Fetching stats...</p>
+              </div>
+              <div class="connection-status" aria-live="polite" role="status">
+                <div id="status-indicator" class="status-indicator connecting"></div>
+                <span id="status-text" class="status-text">Connecting...</span>
+              </div>
             </div>
 
-            <!-- Video Stream -->
-            <img
-              id="video-stream"
-              class="video-stream"
-              src="{{ url_for('video_feed') }}"
-              alt="Camera Live Stream"
-              width="{{ width }}"
-              height="{{ height }}"
-            />
-          </div>
+            <div class="connection-strip__chips">
+              <div class="connection-chip">
+                <span class="connection-chip__label">Frame Rate</span>
+                <span id="fps-value" class="connection-chip__value highlight">--</span>
+              </div>
+              <div class="connection-chip">
+                <span class="connection-chip__label">Connections</span>
+                <span id="connection-chip-value" class="connection-chip__value">--</span>
+              </div>
+              <div class="connection-chip">
+                <span class="connection-chip__label">Last Frame</span>
+                <span id="last-frame-age-value" class="connection-chip__value">--</span>
+              </div>
+              <div class="connection-chip">
+                <span class="connection-chip__label">Max Frame Age</span>
+                <span id="max-frame-age-value" class="connection-chip__value">--</span>
+              </div>
+            </div>
+          </section>
 
-          <!-- Video Controls -->
-          <div class="video-controls">
-            <button
-              id="refresh-btn"
-              class="control-btn ui-btn ui-btn--overlay"
-              title="Refresh Stream"
-            >
-              <span class="control-btn-icon">↻</span>
-              <span class="control-btn-text">Refresh</span>
-            </button>
-            <button
-              id="fullscreen-btn"
-              class="control-btn ui-btn ui-btn--overlay"
-              title="Toggle Fullscreen"
-            >
-              <span class="control-btn-icon">⛶</span>
-              <span class="control-btn-text">Fullscreen</span>
-            </button>
-          </div>
+          <section class="stream-surface ui-card" aria-label="Live stream surface">
+            <div class="stream-surface__header">
+              <div>
+                <p class="stream-surface__eyebrow">Primary Stream</p>
+                <h2>Live Stream Surface</h2>
+              </div>
+              <div class="stream-surface__meta">
+                <span id="resolution-value" class="stream-surface__resolution">
+                  {{ width }} × {{ height }}
+                </span>
+                <span class="stream-surface__badge">Realtime</span>
+              </div>
+            </div>
+
+            <div class="stream-surface__body">
+              <div class="video-container ui-card video-container-block">
+                <div class="video-wrapper">
+                  <div class="loading-overlay">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Loading camera stream...</div>
+                  </div>
+
+                  <img
+                    id="video-stream"
+                    class="video-stream"
+                    src="{{ url_for('video_feed') }}"
+                    alt="Camera Live Stream"
+                    width="{{ width }}"
+                    height="{{ height }}"
+                  />
+                </div>
+
+                <div class="video-controls">
+                  <button
+                    id="refresh-btn"
+                    class="control-btn ui-btn ui-btn--overlay"
+                    title="Refresh Stream"
+                  >
+                    <span class="control-btn-icon">↻</span>
+                    <span class="control-btn-text">Refresh</span>
+                  </button>
+                  <button
+                    id="fullscreen-btn"
+                    class="control-btn ui-btn ui-btn--overlay"
+                    title="Toggle Fullscreen"
+                  >
+                    <span class="control-btn-icon">⛶</span>
+                    <span class="control-btn-text">Fullscreen</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="stream-lane" aria-hidden="true">
+                <div class="lane-track">
+                  <div class="lane-marker lane-marker--green">
+                    <span class="lane-marker__label">Key frame</span>
+                  </div>
+                  <div class="lane-marker lane-marker--blue">
+                    <span class="lane-marker__label">Stable link</span>
+                  </div>
+                  <div class="lane-marker lane-marker--amber">
+                    <span class="lane-marker__label">Check-in</span>
+                  </div>
+                </div>
+                <div class="lane-labels">
+                  <span>Timeline</span>
+                  <span class="lane-duration">00:00 / 10:00</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside id="stats-panel" class="stats-panel ui-card risk-stack">
+            <div class="stats-header ui-panel-header">
+              <h2>Stream Intelligence</h2>
+              <button id="toggle-stats-btn" class="toggle-stats-btn" title="Toggle Stats">▲</button>
+            </div>
+            <div class="risk-cards">
+              <article id="performance-risk" class="risk-card" data-risk="performance">
+                <div class="risk-card__title">Performance</div>
+                <div class="risk-card__value" id="performance-risk-value">-- FPS</div>
+                <p class="risk-card__detail">
+                  <span class="risk-card__detail-label">Frames captured</span>
+                  <span id="frames-risk-detail">--</span>
+                </p>
+              </article>
+              <article id="stream-risk" class="risk-card" data-risk="stream">
+                <div class="risk-card__title">Stream Freshness</div>
+                <div class="risk-card__value" id="stream-risk-value">--</div>
+                <p class="risk-card__detail">
+                  Last Frame <span id="last-frame-risk-value">--</span>
+                  / Max <span id="max-frame-risk-value">--</span>
+                </p>
+              </article>
+              <article id="availability-risk" class="risk-card" data-risk="availability">
+                <div class="risk-card__title">Availability</div>
+                <div class="risk-card__value" id="availability-risk-value">--</div>
+                <p class="risk-card__detail">
+                  <span id="availability-detail">-- connections</span>
+                </p>
+              </article>
+            </div>
+          </aside>
         </div>
       </section>
 
-      <!-- Stats Panel -->
-      <aside id="stats-panel" class="stats-panel ui-card stats-panel-card">
-        <div class="stats-header ui-panel-header">
-          <h2>Stream Statistics</h2>
-          <button id="toggle-stats-btn" class="toggle-stats-btn" title="Toggle Stats">▲</button>
-        </div>
-
-        <div class="stats-content">
-          <!-- Performance Stats -->
-          <div class="stat-group ui-list-block stats-panel-card">
-            <div class="stat-group-title">Performance</div>
-            <div class="stat-item">
-              <span class="stat-label">Current FPS</span>
-              <span id="fps-value" class="stat-value highlight">--</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Frames Captured</span>
-              <span id="frames-value" class="stat-value">--</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Uptime</span>
-              <span id="uptime-value" class="stat-value">--</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Last Frame Age</span>
-              <span id="last-frame-age-value" class="stat-value">--</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Max Frame Age</span>
-              <span id="max-frame-age-value" class="stat-value">--</span>
-            </div>
-          </div>
-
-          <!-- Stream Configuration -->
-          <div class="stat-group ui-list-block stats-panel-card">
-            <div class="stat-group-title">Configuration</div>
-            <div class="stat-item">
-              <span class="stat-label">Resolution</span>
-              <span id="resolution-value" class="stat-value">{{ width }} × {{ height }}</span>
-            </div>
-          </div>
-
-          <!-- Last Updated -->
-          <div id="last-updated" class="last-updated">Fetching stats...</div>
-        </div>
-      </aside>
+      <!-- Configuration Panel -->
 
       <!-- Configuration Panel -->
       <div id="config-panel" class="config-panel hidden" role="tabpanel">

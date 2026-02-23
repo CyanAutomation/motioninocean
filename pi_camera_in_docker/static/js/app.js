@@ -29,6 +29,10 @@ const state = {
   setupLoadingVisible: false,
   setupFormState: {},
   setupDetectedDevices: {},
+  streamConnections: {
+    current: "--",
+    max: "--",
+  },
   elements: {
     videoStream: null,
     statsPanel: null,
@@ -43,7 +47,7 @@ const state = {
     configRefreshBtn: null,
     fpsValue: null,
     uptimeValue: null,
-    framesValue: null,
+    framesRiskDetail: null,
     lastFrameAgeValue: null,
     maxFrameAgeValue: null,
     resolutionValue: null,
@@ -51,6 +55,13 @@ const state = {
     viewTitle: null,
     viewSubtitle: null,
     startMeetingBtn: null,
+    connectionChipValue: null,
+    performanceRiskValue: null,
+    streamRiskValue: null,
+    lastFrameRiskValue: null,
+    maxFrameRiskValue: null,
+    availabilityRiskValue: null,
+    availabilityDetail: null,
   },
 };
 
@@ -129,7 +140,7 @@ function cacheElements() {
 
   state.elements.fpsValue = document.getElementById("fps-value");
   state.elements.uptimeValue = document.getElementById("uptime-value");
-  state.elements.framesValue = document.getElementById("frames-value");
+  state.elements.framesRiskDetail = document.getElementById("frames-risk-detail");
   state.elements.lastFrameAgeValue = document.getElementById("last-frame-age-value");
   state.elements.maxFrameAgeValue = document.getElementById("max-frame-age-value");
   state.elements.resolutionValue = document.getElementById("resolution-value");
@@ -137,6 +148,13 @@ function cacheElements() {
   state.elements.viewTitle = document.getElementById("webcam-view-title");
   state.elements.viewSubtitle = document.getElementById("webcam-view-subtitle");
   state.elements.startMeetingBtn = document.getElementById("start-meeting-btn");
+  state.elements.connectionChipValue = document.getElementById("connection-chip-value");
+  state.elements.performanceRiskValue = document.getElementById("performance-risk-value");
+  state.elements.streamRiskValue = document.getElementById("stream-risk-value");
+  state.elements.lastFrameRiskValue = document.getElementById("last-frame-risk-value");
+  state.elements.maxFrameRiskValue = document.getElementById("max-frame-risk-value");
+  state.elements.availabilityRiskValue = document.getElementById("availability-risk-value");
+  state.elements.availabilityDetail = document.getElementById("availability-detail");
 
   // Config panel elements
   state.elements.configLoading = document.getElementById("config-loading");
@@ -270,8 +288,8 @@ async function updateStats() {
         state.elements.uptimeValue.textContent = "--";
       }
 
-      if (state.elements.framesValue) {
-        state.elements.framesValue.textContent = "--";
+      if (state.elements.framesRiskDetail) {
+        state.elements.framesRiskDetail.textContent = "--";
       }
 
       if (state.elements.lastFrameAgeValue) {
@@ -289,6 +307,32 @@ async function updateStats() {
       if (state.elements.lastUpdated) {
         state.elements.lastUpdated.textContent = "--";
       }
+
+      if (state.elements.performanceRiskValue) {
+        state.elements.performanceRiskValue.textContent = "--";
+      }
+
+      if (state.elements.streamRiskValue) {
+        state.elements.streamRiskValue.textContent = "Offline";
+      }
+
+      if (state.elements.lastFrameRiskValue) {
+        state.elements.lastFrameRiskValue.textContent = "--";
+      }
+
+      if (state.elements.maxFrameRiskValue) {
+        state.elements.maxFrameRiskValue.textContent = "--";
+      }
+
+      if (state.elements.availabilityRiskValue) {
+        state.elements.availabilityRiskValue.textContent = "Offline";
+      }
+
+      if (state.elements.availabilityDetail) {
+        state.elements.availabilityDetail.textContent = "-- connections";
+      }
+
+      updateConnectionDisplays();
 
       return;
     }
@@ -594,20 +638,37 @@ function renderMetrics(data) {
     state.elements.fpsValue.textContent = data.current_fps ? data.current_fps.toFixed(1) : "0.0";
   }
 
+  if (state.elements.performanceRiskValue) {
+    const fpsText = data.current_fps ? data.current_fps.toFixed(1) : "0.0";
+    state.elements.performanceRiskValue.textContent = `${fpsText} FPS`;
+  }
+
   if (state.elements.uptimeValue) {
     state.elements.uptimeValue.textContent = formatUptime(data.uptime_seconds);
   }
 
-  if (state.elements.framesValue) {
-    state.elements.framesValue.textContent = formatNumber(data.frames_captured);
+  if (state.elements.framesRiskDetail) {
+    state.elements.framesRiskDetail.textContent = formatNumber(data.frames_captured);
   }
 
   if (state.elements.lastFrameAgeValue) {
     state.elements.lastFrameAgeValue.textContent = formatSeconds(data.last_frame_age_seconds);
   }
 
+  if (state.elements.lastFrameRiskValue) {
+    state.elements.lastFrameRiskValue.textContent = formatSeconds(data.last_frame_age_seconds);
+  }
+
   if (state.elements.maxFrameAgeValue) {
     state.elements.maxFrameAgeValue.textContent = formatSeconds(data.max_frame_age_seconds);
+  }
+
+  if (state.elements.maxFrameRiskValue) {
+    state.elements.maxFrameRiskValue.textContent = formatSeconds(data.max_frame_age_seconds);
+  }
+
+  if (state.elements.streamRiskValue) {
+    state.elements.streamRiskValue.textContent = statusText;
   }
 
   if (state.elements.resolutionValue) {
@@ -620,6 +681,53 @@ function renderMetrics(data) {
     const now = new Date();
     state.elements.lastUpdated.textContent = `Updated: ${now.toLocaleTimeString()}`;
   }
+
+  updateConnectionDisplays();
+}
+
+/**
+ * Update connection indicators using the latest stream connection counts.
+ *
+ * Synchronizes the chip text, availability detail, and availability badge.
+ *
+ * @returns {void}
+ */
+function updateConnectionDisplays() {
+  const current = formatConnectionValue(state.streamConnections.current);
+  const max = formatConnectionValue(state.streamConnections.max);
+  const label = `${current}/${max}`;
+
+  if (state.elements.connectionChipValue) {
+    state.elements.connectionChipValue.textContent = label;
+  }
+
+  if (state.elements.availabilityDetail) {
+    state.elements.availabilityDetail.textContent = `${label} connections`;
+  }
+
+  if (state.elements.availabilityRiskValue) {
+    state.elements.availabilityRiskValue.textContent = state.isConnected ? "Online" : "Offline";
+    state.elements.availabilityRiskValue.dataset.status = state.isConnected ? "online" : "offline";
+  }
+}
+
+/**
+ * Normalize connection values for display.
+ *
+ * @param {number|string|null|undefined} value
+ * @returns {string}
+ */
+function formatConnectionValue(value) {
+  if (value === null || value === undefined) {
+    return "--";
+  }
+  if (typeof value === "number") {
+    return value.toString();
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value;
+  }
+  return "--";
 }
 
 /**
@@ -1001,6 +1109,18 @@ function renderConfig(data) {
         ? sc.cors_origins
         : "disabled",
     );
+
+    const currentConnections =
+      typeof sc.current_stream_connections === "number"
+        ? sc.current_stream_connections
+        : sc.current_stream_connections ?? "--";
+    const maxConnections =
+      typeof sc.max_stream_connections === "number"
+        ? sc.max_stream_connections
+        : sc.max_stream_connections ?? "--";
+    state.streamConnections.current = currentConnections;
+    state.streamConnections.max = maxConnections;
+    updateConnectionDisplays();
   }
 
   // Runtime
@@ -1151,6 +1271,10 @@ function clearConfigDisplay() {
     }
     el.removeAttribute("title");
   });
+
+  state.streamConnections.current = "--";
+  state.streamConnections.max = "--";
+  updateConnectionDisplays();
 }
 
 /* ==========================================

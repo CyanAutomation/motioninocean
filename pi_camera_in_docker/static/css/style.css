@@ -567,6 +567,327 @@
   border-radius: 999px;
 }
 
+.rail-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 14px;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--management-rail-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-secondary);
+}
+
+.rail-icon::after {
+  content: attr(data-icon);
+}
+
+.webcam-stream-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.connection-strip {
+  grid-area: connection-strip;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: 20px;
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.connection-strip__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.connection-strip__eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.connection-strip__subtitle {
+  font-size: 0.95rem;
+  color: var(--color-text-primary);
+  margin: 0.125rem 0 0;
+}
+
+.connection-strip__chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-3);
+}
+
+.connection-chip {
+  padding: var(--space-3);
+  border-radius: 16px;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.connection-chip__label {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.connection-chip__value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.stream-surface {
+  grid-area: stream-surface;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: 20px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  box-shadow: var(--shadow-sm);
+}
+
+.stream-surface__header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.stream-surface__eyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.stream-surface__header h2 {
+  margin: 0.25rem 0 0;
+  font-size: 1.5rem;
+}
+
+.stream-surface__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.stream-surface__resolution {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.stream-surface__badge {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-subtle);
+}
+
+.stream-surface__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.stream-lane {
+  padding: var(--space-4);
+  border-radius: 16px;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+  width: 100%;
+}
+
+.lane-track {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.lane-marker {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.lane-marker--green {
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+}
+
+.lane-marker--blue {
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+}
+
+.lane-marker--amber {
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+}
+
+.lane-marker__label {
+  display: none;
+}
+
+.lane-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.lane-duration {
+  font-weight: 600;
+}
+
+.risk-stack {
+  grid-area: risk-stack;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border-default);
+  border-radius: 20px;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.risk-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.risk-card {
+  padding: var(--space-4);
+  border-radius: 16px;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.risk-card__title {
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.risk-card__value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.risk-card__value[data-status="online"] {
+  color: var(--color-success);
+}
+
+.risk-card__value[data-status="offline"] {
+  color: var(--color-error);
+}
+
+.risk-card__value[data-status="stale"] {
+  color: var(--color-warning);
+}
+
+.risk-card__detail {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.risk-card[data-risk="performance"] {
+  border-left: 4px solid var(--color-accent-primary);
+}
+
+.risk-card[data-risk="stream"] {
+  border-left: 4px solid var(--color-warning);
+}
+
+.risk-card[data-risk="availability"] {
+  border-left: 4px solid var(--color-success);
+}
+
+@media (min-width: 1180px) {
+  .webcam-stream-grid {
+    grid-template-columns: minmax(0, 1fr) 386px;
+    grid-template-areas:
+      "connection-strip connection-strip"
+      "stream-surface risk-stack";
+  }
+}
+
+@media (max-width: 1024px) {
+  .stream-surface__meta {
+    align-items: flex-start;
+  }
+
+  .risk-stack {
+    padding: var(--space-4);
+  }
+
+  .connection-strip__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stream-lane {
+    padding: var(--space-3);
+  }
+
+  .lane-track {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .webcam-page .container {
+    margin-top: var(--space-4);
+  }
+}
+
+@media (max-width: 640px) {
+  .webcam-stream-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .webcam-topbar {
+    margin-left: var(--space-3);
+    margin-right: var(--space-3);
+    width: auto;
+  }
+
+  .webcam-page .container {
+    margin-left: var(--space-3);
+    margin-right: var(--space-3);
+    padding-bottom: 120px;
+  }
+
+  .connection-strip__chips {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+}
+
 .webcam-page .container {
   position: relative;
   z-index: 1;
@@ -583,7 +904,7 @@
 }
 
 .webcam-page .stats-panel {
-  width: 386px;
+  width: 100%;
   border-width: 1px;
   border-radius: 20px;
 }
