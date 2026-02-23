@@ -240,7 +240,6 @@ def _collect_current_config() -> Dict[str, Any]:
         "pi3_profile": pi3_profile,
         "mock_camera": mock_camera,
         "cors_origins": cors_origins,
-        "auth_token": auth_token,
         "auth_token_configured": auth_token_configured,
     }
 
@@ -1479,12 +1478,13 @@ def _get_camera_info(picamera2_cls: Any) -> Tuple[list, str]:
     if callable(class_global_camera_info):
         try:
             class_result = class_global_camera_info()
-            return class_result, "Picamera2.global_camera_info"
         except Exception:
             logger.debug("Picamera2.global_camera_info call failed at runtime")
+        else:
+            return class_result, "Picamera2.global_camera_info"
 
     try:
-        import picamera2
+        import picamera2  # noqa: PLC0415
     except (ModuleNotFoundError, ImportError):
         logger.debug("picamera2 module import unavailable for runtime camera detection")
     else:
@@ -1492,9 +1492,10 @@ def _get_camera_info(picamera2_cls: Any) -> Tuple[list, str]:
         if callable(module_global_camera_info):
             try:
                 module_result = module_global_camera_info()
-                return module_result, "picamera2.global_camera_info"
             except Exception:
                 logger.debug("picamera2.global_camera_info call failed at runtime")
+            else:
+                return module_result, "picamera2.global_camera_info"
 
     logger.warning(
         "Unable to query camera inventory from picamera2. Proceeding with empty camera list. "

@@ -77,12 +77,32 @@ class ISO8601Formatter(logging.Formatter):
 
 # Standard LogRecord attribute names — excluded from structured `extra` passthrough
 # so that only user-supplied extra={} fields are forwarded into JSON output.
-_STDLIB_LOG_RECORD_KEYS = frozenset({
-    "name", "msg", "args", "levelname", "levelno", "pathname", "filename",
-    "module", "exc_info", "exc_text", "stack_info", "lineno", "funcName",
-    "created", "msecs", "relativeCreated", "thread", "threadName",
-    "processName", "process", "message", "taskName",
-})
+_STDLIB_LOG_RECORD_KEYS = frozenset(
+    {
+        "name",
+        "msg",
+        "args",
+        "levelname",
+        "levelno",
+        "pathname",
+        "filename",
+        "module",
+        "exc_info",
+        "exc_text",
+        "stack_info",
+        "lineno",
+        "funcName",
+        "created",
+        "msecs",
+        "relativeCreated",
+        "thread",
+        "threadName",
+        "processName",
+        "process",
+        "message",
+        "taskName",
+    }
+)
 
 
 class JSONFormatter(ISO8601Formatter):

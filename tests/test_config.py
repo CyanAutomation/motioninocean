@@ -649,7 +649,9 @@ def test_setup_generate_uses_mio_management_auth_token_in_env(monkeypatch, tmp_p
     assert "MIO_APP_MODE=management" in env_content
     assert "MIO_MODE=" not in env_content
     assert "MIO_MANAGEMENT_AUTH_TOKEN=generated-token" in env_content
-    assert "MANAGEMENT_AUTH_TOKEN=generated-token" not in env_content
+    # Ensure the bare (non-MIO-prefixed) name is not emitted as a standalone variable.
+    # Use a newline boundary so this doesn't false-match within MIO_MANAGEMENT_AUTH_TOKEN.
+    assert "\nMANAGEMENT_AUTH_TOKEN=generated-token" not in env_content
 
 
 def test_setup_templates_and_generate_propagates_management_auth_token(monkeypatch, tmp_path):
@@ -670,10 +672,14 @@ def test_setup_templates_and_generate_propagates_management_auth_token(monkeypat
     templates_response = client.get("/api/setup/templates")
     assert templates_response.status_code == 200
     current_config = templates_response.get_json()["current_config"]
-    assert current_config["auth_token"] == "token-from-env"
+    # Raw token must NOT be returned — only the configured boolean flag.
+    assert "auth_token" not in current_config
     assert current_config["auth_token_configured"] is True
 
-    generate_response = client.post("/api/setup/generate", json=current_config)
+    # Generate with an explicit auth_token in the POST body (user provides or re-enters it).
+    generate_payload = dict(current_config)
+    generate_payload["auth_token"] = "token-from-env"
+    generate_response = client.post("/api/setup/generate", json=generate_payload)
     assert generate_response.status_code == 200
     env_content = generate_response.get_json()["env_content"]
     assert "MIO_MANAGEMENT_AUTH_TOKEN=token-from-env" in env_content
