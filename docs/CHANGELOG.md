@@ -11,6 +11,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-02-23
+
+- Add VSCode settings for Python environment management
+- chore(deps): bump sentry-sdk[flask] from 2.19.0 to 2.53.0 (#397)
+- chore(deps-dev): bump ruff from 0.15.1 to 0.15.2 (#396)
+- chore(deps-dev): bump eslint from 10.0.0 to 10.0.1 (#395)
+- chore(deps-dev): bump pytest-mock from 3.14.0 to 3.15.1 (#394)
+- chore(deps): bump actions/setup-node from 5 to 6 (#393)
+- [webcam] Tighten camera detection-path attribution (#391)
+- [tests] Align camera info detection-path expectations (#390)
+- chore: automated code quality fixes [nightly] (#392)
+- [webcam] Move camera info probing to runtime (#389)
+
 ## [1.18.9] - 2026-02-22
 
 - Rename SENTRY_DSN to MIO_SENTRY_DSN in documentation and code for consistency
