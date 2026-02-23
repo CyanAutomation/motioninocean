@@ -1,5 +1,5 @@
-import globals from 'globals';
-import pluginJs from '@eslint/js';
+import globals from "globals";
+import pluginJs from "@eslint/js";
 
 export default [
   {
@@ -12,13 +12,13 @@ export default [
   },
   pluginJs.configs.recommended,
   {
-    ignores: ['node_modules/', 'htmlcov/', '__pycache__/', '.venv/', 'test_env/', 'coverage/'],
+    ignores: ["node_modules/", "htmlcov/", "__pycache__/", ".venv/", "test_env/", "coverage/"],
   },
   {
     rules: {
-      'no-unused-vars': [
-        'error',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' },
+      "no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrors: "none" },
       ],
       // JSDoc validation (soft rules - warn level for incomplete docs)
       // Ensures all public functions have JSDoc headers with @param/@returns/@async/@throws

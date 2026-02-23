@@ -155,9 +155,7 @@ class TestSentryIntegration:
         from pi_camera_in_docker.sentry_config import _traces_sampler
 
         for path in ["/stream", "/health", "/ready", "/metrics"]:
-            rate = _traces_sampler(
-                {"wsgi_environ": {"PATH_INFO": path, "REQUEST_METHOD": "GET"}}
-            )
+            rate = _traces_sampler({"wsgi_environ": {"PATH_INFO": path, "REQUEST_METHOD": "GET"}})
             assert rate == 0.0, f"Expected 0.0 for {path}, got {rate}"
 
     def test_traces_sampler_always_captures_mutations(self):
