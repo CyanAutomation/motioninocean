@@ -6,7 +6,14 @@ APP_GID="${APP_GID:-10001}"
 DATA_DIR="${DATA_DIR:-/data}"
 export DATA_DIR
 
+# Suppress libcamera C++ INFO/DEBUG lines which use a different timestamp format and
+# clutter docker logs. Override with: LIBCAMERA_LOG_LEVELS=*:DEBUG docker compose up
+export LIBCAMERA_LOG_LEVELS="${LIBCAMERA_LOG_LEVELS:-*:WARNING}"
+
 CAMERA_CLI_MISSING_ERROR="Neither rpicam-hello nor libcamera-hello is available in PATH."
+
+# UTC ISO-8601 timestamp helper for structured log line prefixes.
+ts() { date -u +"%Y-%m-%dT%H:%M:%SZ"; }
 
 detect_camera_cli() {
     if command -v rpicam-hello >/dev/null 2>&1; then
@@ -64,9 +71,9 @@ dump_provenance() {
 
 log_writable_status() {
     if [ -w "${DATA_DIR}" ]; then
-        echo "[entrypoint] ${DATA_DIR} writable=yes checked_as_uid=$(id -u)"
+        echo "[entrypoint] $(ts) INFO ${DATA_DIR} writable=yes checked_as_uid=$(id -u)"
     else
-        echo "[entrypoint] ${DATA_DIR} writable=no checked_as_uid=$(id -u)" >&2
+        echo "[entrypoint] $(ts) ERROR ${DATA_DIR} writable=no checked_as_uid=$(id -u)" >&2
     fi
 }
 
@@ -75,12 +82,12 @@ if [ "$(id -u)" -eq 0 ]; then
     
     mkdir -p "${DATA_DIR}"
     if chown -Rh "${APP_UID}:${APP_GID}" "${DATA_DIR}"; then
-        echo "[entrypoint] Updated ownership for ${DATA_DIR} to ${APP_UID}:${APP_GID}"
+        echo "[entrypoint] $(ts) INFO Updated ownership for ${DATA_DIR} to ${APP_UID}:${APP_GID}"
     else
-        echo "[entrypoint] WARNING: Failed to update ownership for ${DATA_DIR} to ${APP_UID}:${APP_GID}" >&2
+        echo "[entrypoint] $(ts) ERROR Failed to update ownership for ${DATA_DIR} to ${APP_UID}:${APP_GID}" >&2
     fi
 
-    gosu app sh -c 'log_writable_status(){ if [ -w "$DATA_DIR" ]; then echo "[entrypoint] $DATA_DIR writable=yes checked_as_uid=$(id -u)"; else echo "[entrypoint] $DATA_DIR writable=no checked_as_uid=$(id -u)" >&2; fi; }; log_writable_status'
+    gosu app sh -c 'ts(){ date -u +"%Y-%m-%dT%H:%M:%SZ"; }; log_writable_status(){ if [ -w "$DATA_DIR" ]; then echo "[entrypoint] $(ts) INFO $DATA_DIR writable=yes checked_as_uid=$(id -u)"; else echo "[entrypoint] $(ts) ERROR $DATA_DIR writable=no checked_as_uid=$(id -u)" >&2; fi; }; log_writable_status'
 
     exec gosu app "$@"
 fi

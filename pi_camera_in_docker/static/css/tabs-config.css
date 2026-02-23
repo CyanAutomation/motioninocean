@@ -1105,10 +1105,48 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
+  gap: 0;
   padding: var(--space-5) var(--space-3);
-  border-right: 1px solid var(--color-border-strong);
-  background: var(--management-rail);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0f172a;
+}
+
+/* Primary navigation items at top */
+.rail-primary-items {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+/* Utility items pinned to bottom */
+.rail-bottom-items {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.rail-util-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: 1px solid transparent;
+  color: rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.rail-util-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .webcam-side-rail .tab-btn {
@@ -1116,30 +1154,43 @@
   min-height: 52px;
   border-radius: 999px;
   padding: 0 var(--space-2);
-  background: var(--management-rail-muted);
-  color: var(--color-text-secondary);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
   border: 1px solid transparent;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
   text-align: center;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .webcam-side-rail .tab-btn:hover {
-  border-color: var(--management-accent);
-  color: var(--color-text-inverse);
-  background: var(--management-accent);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .webcam-side-rail .tab-btn.active {
   background: var(--management-accent);
   color: var(--color-text-inverse);
   border-color: var(--management-accent);
-  box-shadow: var(--shadow-focus-ring);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
 }
 
 .webcam-side-rail .tab-label {
   display: inline;
   line-height: 1.2;
+}
+
+/* SVG icon inside rail button */
+.rail-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.rail-icon svg {
+  display: block;
 }
 
 .webcam-bottom-rail.tab-navigation {

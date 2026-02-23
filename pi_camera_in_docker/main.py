@@ -1246,7 +1246,11 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
 
     if cfg["discovery_enabled"]:
         if not cfg["discovery_token"]:
-            logger.warning("Discovery enabled but DISCOVERY_TOKEN is empty; announcer disabled")
+            logger.warning(
+                "Discovery is enabled but no token is configured — announcer disabled. "
+                "Set MIO_DISCOVERY_TOKEN to enable self-registration with the management hub.",
+                extra={"event": "discovery_misconfigured", "discovery_token_present": False},
+            )
         else:
             try:
                 discovery_cfg = {
@@ -1302,7 +1306,33 @@ def create_app_from_env() -> Flask:
     init_sentry(sentry_dsn, cfg["app_mode"])
 
     app = create_management_app(cfg) if cfg["app_mode"] == "management" else create_webcam_app(cfg)
-    logger.info("Application started in %s mode", cfg["app_mode"])
+    resolution_str = "{}x{}".format(cfg["resolution"][0], cfg["resolution"][1])
+    auth_required = bool(
+        cfg.get("webcam_control_plane_auth_token") or cfg.get("management_auth_token")
+    )
+    logger.info(
+        "Application started: mode=%s bind=%s:%s resolution=%s fps=%d "
+        "jpeg_quality=%d mock=%s auth_required=%s",
+        cfg["app_mode"],
+        cfg["bind_host"],
+        cfg["bind_port"],
+        resolution_str,
+        cfg["fps"],
+        cfg["jpeg_quality"],
+        cfg["mock_camera"],
+        auth_required,
+        extra={
+            "event": "app_started",
+            "mode": cfg["app_mode"],
+            "bind_host": cfg["bind_host"],
+            "bind_port": cfg["bind_port"],
+            "resolution": resolution_str,
+            "fps": cfg["fps"],
+            "jpeg_quality": cfg["jpeg_quality"],
+            "mock": cfg["mock_camera"],
+            "auth_required": auth_required,
+        },
+    )
     return app
 
 
@@ -1349,11 +1379,16 @@ def _check_device_availability(cfg: Dict[str, Any]) -> None:
         ],
     }
 
-    preflight_summary = {
-        "counts": {name: len(paths) for name, paths in discovered_nodes.items()},
-        "samples": {name: paths[:3] for name, paths in discovered_nodes.items()},
-    }
-    logger.info("Camera preflight device summary: %s", preflight_summary)
+    preflight_str = (
+        f"video={len(discovered_nodes['video'])} "
+        f"media={len(discovered_nodes['media'])} "
+        f"v4l_subdev={len(discovered_nodes['v4l_subdev'])} "
+        f"dma_heap={len(discovered_nodes['dma_heap'])} "
+        f"samples_video={[str(p) for p in discovered_nodes['video'][:3]]} "
+        f"samples_media={[str(p) for p in discovered_nodes['media'][:3]]} "
+        f"samples_dma_heap={[str(p) for p in discovered_nodes['dma_heap'][:3]]}"
+    )
+    logger.info("Camera preflight: %s", preflight_str)
 
     missing_critical = [device for device in required_devices if not Path(device).exists()]
 
@@ -1530,7 +1565,7 @@ def _init_real_camera(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
             camera_info, detection_path = _get_camera_info(
                 picamera2_cls
             )  # global_camera_info() marker
-            logger.info("Camera inventory detection path: %s", detection_path)
+            logger.debug("Camera inventory detection path: %s", detection_path)
             if not camera_info:
                 logger.error(
                     "No cameras detected by picamera2 enumeration",

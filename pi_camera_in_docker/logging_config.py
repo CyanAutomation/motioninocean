@@ -75,6 +75,16 @@ class ISO8601Formatter(logging.Formatter):
         return dt.isoformat(timespec="milliseconds")
 
 
+# Standard LogRecord attribute names — excluded from structured `extra` passthrough
+# so that only user-supplied extra={} fields are forwarded into JSON output.
+_STDLIB_LOG_RECORD_KEYS = frozenset({
+    "name", "msg", "args", "levelname", "levelno", "pathname", "filename",
+    "module", "exc_info", "exc_text", "stack_info", "lineno", "funcName",
+    "created", "msecs", "relativeCreated", "thread", "threadName",
+    "processName", "process", "message", "taskName",
+})
+
+
 class JSONFormatter(ISO8601Formatter):
     """Structured JSON formatter for container log aggregation."""
 
@@ -95,6 +105,12 @@ class JSONFormatter(ISO8601Formatter):
 
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
+
+        # Attach structured fields supplied via extra={} on the log call so that
+        # AI agents and log aggregators can filter/alert on typed events.
+        for key, value in record.__dict__.items():
+            if key not in _STDLIB_LOG_RECORD_KEYS and not key.startswith("_"):
+                payload[key] = value
 
         return json.dumps(payload, ensure_ascii=False)
 
@@ -254,11 +270,30 @@ def log_provenance_info() -> None:
     origins = [info.get("origin", "unknown") for info in dpkg_info.values()]
     origin_summary = "/".join(set(origins)) if origins else "unknown"
 
-    info_summary = (
-        f"version={app_version} camera_cli={camera_cli_used} libcamera={libcamera_version} picamera2={picamera2_version} "
-        f"debian:suite={debian_suite} rpi:suite={rpi_suite} build_timestamp={build_time} "
-        f"package_origins={origin_summary}"
-    )
+    # Extract a short version token from the CLI version string, e.g.
+    # "rpicam-apps build: v1.9.0 eca9928b76c1 11-09-2025 (12:42:07)" -> "v1.9.0"
+    rpicam_apps_version = "unknown"
+    for token in libcamera_version.split():
+        if token.startswith("v") and len(token) > 1 and token[1:2].isdigit():
+            rpicam_apps_version = token
+            break
+
+    # Normalise "unknown" picamera2 version to "not_detected" for clarity
+    picamera2_display = picamera2_version if picamera2_version != "unknown" else "not_detected"
+
+    summary_parts = [
+        f"version={app_version}",
+        f"camera_cli={camera_cli_used}",
+        f"rpicam_apps={rpicam_apps_version}",
+        f"picamera2={picamera2_display}",
+        f"debian_suite={debian_suite}",
+        f"rpi_suite={rpi_suite}",
+        f"build_timestamp={build_time}",
+    ]
+    if origins:
+        summary_parts.append(f"package_origins={origin_summary}")
+
+    info_summary = " ".join(summary_parts)
     logger.info("Camera stack provenance: %s", info_summary)
 
     runtime_mock_camera = is_flag_enabled("MOCK_CAMERA")

@@ -59,11 +59,11 @@ def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch
 
     main._check_device_availability({"mock_camera": False})
 
-    preflight_logs = [entry for entry in logged_info if "Camera preflight device summary" in entry]
+    preflight_logs = [entry for entry in logged_info if "Camera preflight:" in entry]
     assert preflight_logs
-    assert "'video': 2" in preflight_logs[0]
-    assert "'/dev/video0'" in preflight_logs[0]
-    assert "'/dev/dma_heap/linux,cma'" in preflight_logs[0]
+    assert "video=2" in preflight_logs[0]
+    assert "/dev/video0" in preflight_logs[0]
+    assert "/dev/dma_heap/linux,cma" in preflight_logs[0]
 
 
 def test_check_device_availability_does_not_warn_when_video_nodes_exist(monkeypatch):

@@ -41,9 +41,12 @@ const state = {
     toggleStatsBtn: null,
     refreshBtn: null,
     fullscreenBtn: null,
+    refreshStreamHeaderBtn: null,
     statusIndicator: null,
     statusText: null,
     themeToggleBtn: null,
+    themeIconMoon: null,
+    themeIconSun: null,
     configRefreshBtn: null,
     fpsValue: null,
     uptimeValue: null,
@@ -54,7 +57,6 @@ const state = {
     lastUpdated: null,
     viewTitle: null,
     viewSubtitle: null,
-    startMeetingBtn: null,
     connectionChipValue: null,
     performanceRiskValue: null,
     streamRiskValue: null,
@@ -62,6 +64,11 @@ const state = {
     maxFrameRiskValue: null,
     availabilityRiskValue: null,
     availabilityDetail: null,
+    // Header status chips
+    chipConnected: null,
+    chipStale: null,
+    chipInactive: null,
+    chipFps: null,
   },
 };
 
@@ -92,9 +99,12 @@ function applyTheme(theme) {
   const resolvedTheme = theme === "dark" ? "dark" : "light";
   document.documentElement.setAttribute("data-theme", resolvedTheme);
 
-  if (state.elements.themeToggleBtn) {
-    state.elements.themeToggleBtn.textContent =
-      resolvedTheme === "dark" ? "Light Theme" : "Dark Theme";
+  // Toggle moon/sun icons
+  if (state.elements.themeIconMoon) {
+    state.elements.themeIconMoon.style.display = resolvedTheme === "dark" ? "none" : "";
+  }
+  if (state.elements.themeIconSun) {
+    state.elements.themeIconSun.style.display = resolvedTheme === "dark" ? "" : "none";
   }
 
   try {
@@ -133,9 +143,12 @@ function cacheElements() {
   state.elements.toggleStatsBtn = document.getElementById("toggle-stats-btn");
   state.elements.refreshBtn = document.getElementById("refresh-btn");
   state.elements.fullscreenBtn = document.getElementById("fullscreen-btn");
+  state.elements.refreshStreamHeaderBtn = document.getElementById("refresh-stream-header-btn");
   state.elements.statusIndicator = document.getElementById("status-indicator");
   state.elements.statusText = document.getElementById("status-text");
   state.elements.themeToggleBtn = document.getElementById("theme-toggle-btn");
+  state.elements.themeIconMoon = document.getElementById("theme-icon-moon");
+  state.elements.themeIconSun = document.getElementById("theme-icon-sun");
   state.elements.configRefreshBtn = document.getElementById("config-refresh-btn");
 
   state.elements.fpsValue = document.getElementById("fps-value");
@@ -147,7 +160,6 @@ function cacheElements() {
   state.elements.lastUpdated = document.getElementById("last-updated");
   state.elements.viewTitle = document.getElementById("webcam-view-title");
   state.elements.viewSubtitle = document.getElementById("webcam-view-subtitle");
-  state.elements.startMeetingBtn = document.getElementById("start-meeting-btn");
   state.elements.connectionChipValue = document.getElementById("connection-chip-value");
   state.elements.performanceRiskValue = document.getElementById("performance-risk-value");
   state.elements.streamRiskValue = document.getElementById("stream-risk-value");
@@ -155,6 +167,12 @@ function cacheElements() {
   state.elements.maxFrameRiskValue = document.getElementById("max-frame-risk-value");
   state.elements.availabilityRiskValue = document.getElementById("availability-risk-value");
   state.elements.availabilityDetail = document.getElementById("availability-detail");
+
+  // Header status chips
+  state.elements.chipConnected = document.getElementById("chip-connected");
+  state.elements.chipStale = document.getElementById("chip-stale");
+  state.elements.chipInactive = document.getElementById("chip-inactive");
+  state.elements.chipFps = document.getElementById("chip-fps");
 
   // Config panel elements
   state.elements.configLoading = document.getElementById("config-loading");
@@ -174,6 +192,10 @@ function attachHandlers() {
     state.elements.refreshBtn.addEventListener("click", refreshStream);
   }
 
+  if (state.elements.refreshStreamHeaderBtn) {
+    state.elements.refreshStreamHeaderBtn.addEventListener("click", refreshStream);
+  }
+
   if (state.elements.fullscreenBtn) {
     state.elements.fullscreenBtn.addEventListener("click", toggleFullscreen);
   }
@@ -187,10 +209,6 @@ function attachHandlers() {
 
   if (state.elements.configRefreshBtn) {
     state.elements.configRefreshBtn.addEventListener("click", refreshConfigPanel);
-  }
-
-  if (state.elements.startMeetingBtn) {
-    state.elements.startMeetingBtn.addEventListener("click", () => switchTab("setup"));
   }
 
   if (state.elements.videoStream) {
@@ -461,6 +479,11 @@ function onFullscreenChange() {
 function onStreamLoad() {
   hideLoading();
   setConnectionStatus("connected", "Stream Connected");
+  // Hide the status legend now that the stream is live
+  const legend = document.getElementById("stream-status-legend");
+  if (legend) {
+    legend.classList.add("hidden");
+  }
 }
 
 /**
@@ -496,6 +519,27 @@ function setConnectionStatus(status, text) {
 
   if (state.elements.statusText) {
     state.elements.statusText.textContent = text;
+  }
+
+  // Drive header chips
+  const isConnected = status === "connected";
+  const isStale = status === "stale";
+  const isInactive = status === "inactive" || status === "disconnected";
+
+  if (state.elements.chipConnected) {
+    state.elements.chipConnected.classList.toggle("hidden", !isConnected);
+  }
+  if (state.elements.chipStale) {
+    state.elements.chipStale.classList.toggle("hidden", !isStale);
+  }
+  if (state.elements.chipInactive) {
+    state.elements.chipInactive.classList.toggle("hidden", !isInactive);
+  }
+
+  // Update vc-connection item spin state
+  const vcConnection = document.getElementById("vc-connection");
+  if (vcConnection) {
+    vcConnection.classList.toggle("is-connected", isConnected);
   }
 }
 
@@ -636,6 +680,12 @@ function renderMetrics(data) {
 
   if (state.elements.fpsValue) {
     state.elements.fpsValue.textContent = data.current_fps ? data.current_fps.toFixed(1) : "0.0";
+  }
+
+  // Update FPS header chip
+  if (state.elements.chipFps) {
+    const fpsDisplay = data.current_fps ? data.current_fps.toFixed(1) : "0.0";
+    state.elements.chipFps.textContent = `Current FPS: ${fpsDisplay}`;
   }
 
   if (state.elements.performanceRiskValue) {

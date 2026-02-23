@@ -22,22 +22,40 @@
     <div class="webcam-bg-pattern" aria-hidden="true"></div>
 
     <nav class="tab-navigation webcam-side-rail" aria-label="Webcam views">
-      <button class="tab-btn active rail-btn" data-tab="main" id="main-tab-btn" title="Stream">
-        <span class="rail-icon" data-icon="S" aria-hidden="true"></span>
-        <span class="tab-label">Stream</span>
-      </button>
-      <button class="tab-btn rail-btn" data-tab="config" id="config-tab-btn" title="Configuration">
-        <span class="rail-icon" data-icon="C" aria-hidden="true"></span>
-        <span class="tab-label">Configuration</span>
-      </button>
-      <button class="tab-btn rail-btn" data-tab="setup" id="setup-tab-btn" title="Set-Up">
-        <span class="rail-icon" data-icon="U" aria-hidden="true"></span>
-        <span class="tab-label">Set-Up</span>
-      </button>
-      <button class="tab-btn rail-btn" data-tab="settings" id="settings-tab-btn" title="Runtime Settings">
-        <span class="rail-icon" data-icon="R" aria-hidden="true"></span>
-        <span class="tab-label">Runtime Settings</span>
-      </button>
+      <div class="rail-primary-items">
+        <button class="tab-btn active rail-btn" data-tab="main" id="main-tab-btn" title="Stream">
+          <span class="rail-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          </span>
+          <span class="tab-label">Stream</span>
+        </button>
+        <button class="tab-btn rail-btn" data-tab="config" id="config-tab-btn" title="Configuration">
+          <span class="rail-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </span>
+          <span class="tab-label">Config</span>
+        </button>
+        <button class="tab-btn rail-btn" data-tab="setup" id="setup-tab-btn" title="Set-Up">
+          <span class="rail-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </span>
+          <span class="tab-label">Set-Up</span>
+        </button>
+        <button class="tab-btn rail-btn" data-tab="settings" id="settings-tab-btn" title="Runtime Settings">
+          <span class="rail-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+          </span>
+          <span class="tab-label">Settings</span>
+        </button>
+      </div>
+      <div class="rail-bottom-items">
+        <button class="rail-util-btn" title="Changelog" aria-label="Changelog">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </button>
+        <button class="rail-util-btn" title="Help" aria-label="Help">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </button>
+      </div>
     </nav>
 
     <!-- Header -->
@@ -49,13 +67,27 @@
         </div>
 
         <div class="header-actions">
-          <button id="start-meeting-btn" class="ui-btn ui-btn--secondary" type="button">
-            Start Meeting
+          <button
+            id="theme-toggle-btn"
+            class="ui-btn ui-btn--icon"
+            type="button"
+            aria-label="Toggle theme"
+            title="Toggle theme"
+          >
+            <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
           </button>
-          <button id="theme-toggle-btn" class="ui-btn ui-btn--secondary" type="button">
-            Dark Theme
+          <button id="refresh-stream-header-btn" class="ui-btn ui-btn--primary" type="button">
+            Refresh Stream ↺
           </button>
         </div>
+      </div>
+      <div class="header-chips" role="status" aria-live="polite">
+        <span class="header-chip header-chip--neutral">Stream Statistics</span>
+        <span id="chip-connected" class="header-chip header-chip--connected">Stream Connected</span>
+        <span id="chip-stale" class="header-chip header-chip--stale hidden">Stale stream</span>
+        <span id="chip-inactive" class="header-chip header-chip--inactive hidden">Camera inactive</span>
+        <span id="chip-fps" class="header-chip header-chip--fps">Current FPS: --</span>
       </div>
     </header>
 
@@ -64,49 +96,25 @@
       <!-- Stream View Grid -->
       <section class="video-section" role="tabpanel">
         <div class="webcam-stream-grid">
-          <section class="connection-strip ui-card" aria-label="Connection status">
-            <div class="connection-strip__header">
-              <div>
-                <p class="connection-strip__eyebrow">Connection Status</p>
-                <p id="last-updated" class="connection-strip__subtitle">Fetching stats...</p>
-              </div>
-              <div class="connection-status" aria-live="polite" role="status">
-                <div id="status-indicator" class="status-indicator connecting"></div>
-                <span id="status-text" class="status-text">Connecting...</span>
-              </div>
-            </div>
+          <!-- hidden metrics sources (still updated by JS) -->
+          <span id="fps-value" class="sr-only" aria-hidden="true">--</span>
+          <span id="connection-chip-value" class="sr-only" aria-hidden="true">--</span>
+          <span id="last-frame-age-value" class="sr-only" aria-hidden="true">--</span>
+          <span id="max-frame-age-value" class="sr-only" aria-hidden="true">--</span>
+          <span id="last-updated" class="sr-only" aria-hidden="true"></span>
+          <div id="status-indicator" class="status-indicator connecting" style="display:none" aria-hidden="true"></div>
+          <span id="status-text" class="sr-only" aria-hidden="true">Connecting...</span>
 
-            <div class="connection-strip__chips">
-              <div class="connection-chip">
-                <span class="connection-chip__label">Frame Rate</span>
-                <span id="fps-value" class="connection-chip__value highlight">--</span>
-              </div>
-              <div class="connection-chip">
-                <span class="connection-chip__label">Connections</span>
-                <span id="connection-chip-value" class="connection-chip__value">--</span>
-              </div>
-              <div class="connection-chip">
-                <span class="connection-chip__label">Last Frame</span>
-                <span id="last-frame-age-value" class="connection-chip__value">--</span>
-              </div>
-              <div class="connection-chip">
-                <span class="connection-chip__label">Max Frame Age</span>
-                <span id="max-frame-age-value" class="connection-chip__value">--</span>
-              </div>
-            </div>
-          </section>
-
-          <section class="stream-surface ui-card" aria-label="Live stream surface">
+          <section class="stream-surface ui-card" aria-label="Camera live stream">
             <div class="stream-surface__header">
               <div>
+                <h2>Camera Live Stream</h2>
                 <p class="stream-surface__eyebrow">Primary Stream</p>
-                <h2>Live Stream Surface</h2>
               </div>
               <div class="stream-surface__meta">
                 <span id="resolution-value" class="stream-surface__resolution">
                   {{ width }} × {{ height }}
                 </span>
-                <span class="stream-surface__badge">Realtime</span>
               </div>
             </div>
 
@@ -116,6 +124,22 @@
                   <div class="loading-overlay">
                     <div class="loading-spinner"></div>
                     <div class="loading-text">Loading camera stream...</div>
+                  </div>
+
+                  <!-- Stream status legend (shown when no active video) -->
+                  <div class="stream-status-legend" id="stream-status-legend">
+                    <div class="stream-legend-item stream-legend-item--loading">
+                      <span class="legend-dot legend-dot--red"></span>
+                      <span>Loading camera stream...</span>
+                    </div>
+                    <div class="stream-legend-item stream-legend-item--connected">
+                      <span class="legend-dot legend-dot--blue"></span>
+                      <span>Stream Connected</span>
+                    </div>
+                    <div class="stream-legend-item stream-legend-item--stale">
+                      <span class="legend-dot legend-dot--amber"></span>
+                      <span>Use Refresh if stream appears stale</span>
+                    </div>
                   </div>
 
                   <img
@@ -147,56 +171,67 @@
                   </button>
                 </div>
               </div>
-
-              <div class="stream-lane" aria-hidden="true">
-                <div class="lane-track">
-                  <div class="lane-marker lane-marker--green">
-                    <span class="lane-marker__label">Key frame</span>
-                  </div>
-                  <div class="lane-marker lane-marker--blue">
-                    <span class="lane-marker__label">Stable link</span>
-                  </div>
-                  <div class="lane-marker lane-marker--amber">
-                    <span class="lane-marker__label">Check-in</span>
-                  </div>
-                </div>
-                <div class="lane-labels">
-                  <span>Timeline</span>
-                  <span class="lane-duration">00:00 / 10:00</span>
-                </div>
-              </div>
             </div>
           </section>
 
-          <aside id="stats-panel" class="stats-panel ui-card risk-stack">
+          <aside id="stats-panel" class="stats-panel ui-card video-controls-panel">
             <div class="stats-header ui-panel-header">
-              <h2>Stream Intelligence</h2>
-              <button id="toggle-stats-btn" class="toggle-stats-btn" title="Toggle Stats">▲</button>
+              <h2>Video Controls</h2>
             </div>
-            <div class="risk-cards">
-              <article id="performance-risk" class="risk-card" data-risk="performance">
-                <div class="risk-card__title">Performance</div>
-                <div class="risk-card__value" id="performance-risk-value">-- FPS</div>
-                <p class="risk-card__detail">
-                  <span class="risk-card__detail-label">Frames captured</span>
-                  <span id="frames-risk-detail">--</span>
-                </p>
-              </article>
-              <article id="stream-risk" class="risk-card" data-risk="stream">
-                <div class="risk-card__title">Stream Freshness</div>
-                <div class="risk-card__value" id="stream-risk-value">--</div>
-                <p class="risk-card__detail">
-                  Last Frame <span id="last-frame-risk-value">--</span>
-                  / Max <span id="max-frame-risk-value">--</span>
-                </p>
-              </article>
-              <article id="availability-risk" class="risk-card" data-risk="availability">
-                <div class="risk-card__title">Availability</div>
-                <div class="risk-card__value" id="availability-risk-value">--</div>
-                <p class="risk-card__detail">
-                  <span id="availability-detail">-- connections</span>
-                </p>
-              </article>
+            <div class="vc-items">
+              <div class="vc-item" id="vc-camera-status">
+                <div class="vc-item__icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </div>
+                <div class="vc-item__body">
+                  <div class="vc-item__label" id="availability-risk-value">Camera inactive</div>
+                  <div class="vc-item__detail">
+                    <span id="performance-risk-value">-- FPS</span>
+                    &middot;
+                    <span id="frames-risk-detail">-- frames</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="vc-item" id="vc-stream-actions">
+                <div class="vc-item__icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </div>
+                <div class="vc-item__body">
+                  <div class="vc-item__actions">
+                    <button id="vc-refresh-btn" class="vc-action-btn" title="Refresh stream" onclick="document.getElementById('refresh-btn').click()">
+                      Refresh
+                    </button>
+                    <span class="vc-action-sep">&middot;</span>
+                    <button id="vc-fullscreen-btn" class="vc-action-btn" title="Toggle fullscreen" onclick="document.getElementById('fullscreen-btn').click()">
+                      Fullscreen
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="vc-item" id="vc-connection">
+                <div class="vc-item__icon vc-item__icon--spin" id="vc-connection-spinner">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </div>
+                <div class="vc-item__body">
+                  <div class="vc-item__label" id="stream-risk-value">Connecting...</div>
+                  <div class="vc-item__detail">
+                    Last frame: <span id="last-frame-risk-value">--</span>
+                    &nbsp;/&nbsp;Max: <span id="max-frame-risk-value">--</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="vc-item" id="vc-availability">
+                <div class="vc-item__icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <div class="vc-item__body">
+                  <div class="vc-item__label">Connections</div>
+                  <div class="vc-item__detail" id="availability-detail">-- connections</div>
+                </div>
+              </div>
             </div>
           </aside>
         </div>

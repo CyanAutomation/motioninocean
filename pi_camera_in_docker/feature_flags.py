@@ -464,7 +464,15 @@ class FeatureFlags:
         if not self._loaded:
             return
 
-        logger.info("Feature Flags Loaded:")
+        non_default = sorted(
+            name for name, flag in self._flags.items() if flag.enabled != flag.default
+        )
+        non_default_str = ", ".join(non_default) if non_default else "none"
+        logger.info(
+            "Feature Flags Loaded: total=%d non_default=%s (set MIO_LOG_LEVEL=DEBUG for full listing)",
+            len(self._flags),
+            non_default_str,
+        )
         for category in FeatureFlagCategory:
             flags_in_category = self.get_flags_by_category(category)
             if flags_in_category:
