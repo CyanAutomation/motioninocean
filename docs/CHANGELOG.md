@@ -11,6 +11,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.19.1] - 2026-02-23
+
+- refactor: remove outdated Docker build instructions and clarify ARM64 build process
+- docs: update README with ARM64 build instructions and cleanup
+- feat: add Docker Hub support and update documentation for image registries
+- refactor: consolidate and enhance CSS styles for improved layout and theming
+- feat: enhance webcam stream interface with connection indicators and performance metrics
+
 ## [1.19.0] - 2026-02-23
 
 - Add VSCode settings for Python environment management
