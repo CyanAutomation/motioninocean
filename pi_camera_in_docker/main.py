@@ -21,6 +21,8 @@ from flask import Flask, g, jsonify, render_template, request
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from PIL import Image
+from werkzeug.serving import make_server
 
 from .application_settings import ApplicationSettings
 from .config_validator import ConfigValidationError, validate_all_config
@@ -41,10 +43,6 @@ from .runtime_config import (
     load_env_config,
     merge_config_with_settings,
 )
-
-from PIL import Image
-from werkzeug.serving import make_server
-
 from .sentry_config import init_sentry
 from .settings_api import register_settings_routes
 from .shared import register_shared_routes, register_webcam_control_plane_auth
