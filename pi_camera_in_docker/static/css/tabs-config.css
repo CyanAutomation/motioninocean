@@ -167,6 +167,9 @@
 .config-panel {
   padding: var(--space-6);
   background: var(--color-bg-canvas);
+  position: relative;
+  flex: 1;
+  min-width: 0;
 }
 
 .config-content {
@@ -509,6 +512,9 @@
 .setup-panel {
   padding: var(--space-6);
   background: var(--color-bg-canvas);
+  position: relative;
+  flex: 1;
+  min-width: 0;
 }
 
 .setup-content {

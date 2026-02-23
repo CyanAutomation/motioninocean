@@ -915,45 +915,7 @@
   border-radius: 20px;
 }
 
-.webcam-side-rail {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 82px;
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-5) var(--space-3);
-  border-right: 1px solid var(--color-border-strong);
-  background: var(--management-rail);
-}
-
-.webcam-side-rail .rail-btn {
-  width: 52px;
-  min-height: 52px;
-  border-radius: 999px;
-  padding: 0 var(--space-2);
-  background: var(--management-rail-muted);
-  color: var(--color-text-secondary);
-  border: 1px solid transparent;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-align: center;
-}
-
-.webcam-side-rail .rail-btn.active {
-  background: var(--management-accent);
-  color: var(--color-text-inverse);
-  box-shadow: var(--shadow-focus-ring);
-}
-
-.webcam-side-rail .rail-btn .tab-label {
-  display: inline;
-  line-height: 1.2;
-}
+/* Rail navigation styles consolidated in tabs-config.css */
 
 .webcam-bottom-rail {
   display: none;

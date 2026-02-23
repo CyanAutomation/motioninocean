@@ -90,6 +90,20 @@
   --spacing-md: var(--space-4);
   --spacing-lg: var(--space-5);
   --spacing-xl: var(--space-6);
+
+  /* Webcam page alias tokens — maps --management-* names to semantic tokens */
+  --management-canvas:        var(--color-bg-canvas);
+  --management-dot:           var(--color-border-default);
+  --management-rail:          var(--color-bg-surface);
+  --management-rail-muted:    var(--color-bg-subtle);
+  --management-accent:        var(--color-accent-primary);
+  --management-text-strong:   var(--color-text-primary);
+  --management-surface-muted: var(--color-bg-subtle);
+
+  /* Additional alpha tokens */
+  --success-08: rgba(22, 163, 74, 0.08);
+  --warning-08: rgba(217, 119, 6, 0.08);
+  --warning-15: rgba(217, 119, 6, 0.15);
 }
 
 :root[data-theme='dark'] {
@@ -130,4 +144,18 @@
   --error-15: rgba(244, 63, 94, 0.22);
   --muted-05: rgba(179, 190, 211, 0.08);
   --muted-20: rgba(179, 190, 211, 0.22);
+
+  /* Webcam page alias tokens (dark) */
+  --management-canvas:        var(--color-bg-canvas);
+  --management-dot:           var(--color-border-subtle);
+  --management-rail:          var(--color-bg-surface);
+  --management-rail-muted:    var(--color-bg-subtle);
+  --management-accent:        var(--color-accent-primary);
+  --management-text-strong:   var(--color-text-primary);
+  --management-surface-muted: var(--color-bg-subtle);
+
+  /* Additional alpha tokens (dark) */
+  --success-08: rgba(34, 197, 94, 0.10);
+  --warning-08: rgba(245, 158, 11, 0.10);
+  --warning-15: rgba(245, 158, 11, 0.18);
 }
