@@ -11,7 +11,7 @@ flask-cors==6.0.2
 Flask-Limiter==3.11.0
 
 # Error tracking and APM
-sentry-sdk[flask]==2.19.0
+sentry-sdk[flask]==2.53.0
 
 # Lightweight image generation for mock camera fallback
 # Included in all builds so runtime can switch to mock mode via MOCK_CAMERA=true when needed.
