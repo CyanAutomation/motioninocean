@@ -1443,7 +1443,8 @@ def _get_camera_info(picamera2_cls: Any) -> Tuple[list, str]:
     class_global_camera_info = getattr(picamera2_cls, "global_camera_info", None)
     if callable(class_global_camera_info):
         try:
-            return class_global_camera_info(), "Picamera2.global_camera_info"
+            class_result = class_global_camera_info()
+            return class_result, "Picamera2.global_camera_info"
         except Exception:
             logger.debug("Picamera2.global_camera_info call failed at runtime")
 
@@ -1455,7 +1456,8 @@ def _get_camera_info(picamera2_cls: Any) -> Tuple[list, str]:
         module_global_camera_info = getattr(picamera2, "global_camera_info", None)
         if callable(module_global_camera_info):
             try:
-                return module_global_camera_info(), "picamera2.global_camera_info"
+                module_result = module_global_camera_info()
+                return module_result, "picamera2.global_camera_info"
             except Exception:
                 logger.debug("picamera2.global_camera_info call failed at runtime")
 
