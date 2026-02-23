@@ -6,6 +6,7 @@
 [![CI](https://github.com/CyanAutomation/motioninocean/workflows/CI%20-%20Test%20and%20Lint/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/ci.yaml)
 [![Security Scan](https://github.com/CyanAutomation/motioninocean/workflows/Security%20-%20Docker%20Image%20Scan/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/security-scan.yaml)
 [![Docker Image](https://img.shields.io/badge/GHCR-motion--in--ocean-informational)](https://github.com/CyanAutomation/motioninocean/pkgs/container/motioninocean)
+[![Docker Hub](https://img.shields.io/docker/v/cyanautomation/motioninocean?label=Docker%20Hub&logo=docker)](https://hub.docker.com/r/cyanautomation/motioninocean)
 
 > **Doc ownership**
 >
@@ -22,6 +23,25 @@ docker compose up -d
 ```
 
 Open `http://localhost:8000`.
+
+## Docker Images
+
+Images are published to two registries on every release:
+
+| Registry | Image |
+| --- | --- |
+| GitHub Container Registry (GHCR) | `ghcr.io/cyanautomation/motioninocean` |
+| Docker Hub | `cyanautomation/motioninocean` |
+
+```bash
+# Docker Hub (no authentication required)
+docker pull cyanautomation/motioninocean:latest
+
+# GitHub Container Registry
+docker pull ghcr.io/cyanautomation/motioninocean:latest
+```
+
+Both registries publish the same multi-arch image (`linux/arm64`, `linux/amd64`) with identical tags (`latest`, `vX.Y.Z`, `X.Y.Z`, `X.Y`).
 
 ## Docker Build
 

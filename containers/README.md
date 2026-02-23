@@ -14,6 +14,21 @@ This directory defines the **deployment packaging pattern** used by Motion In Oc
 - Optional overlays for specialized behavior
 - Clear separation between webcam and management roles
 
+## Container Registry
+
+Images are published to both registries on every release tag:
+
+| Registry | Image |
+| --- | --- |
+| GitHub Container Registry (default) | `ghcr.io/cyanautomation/motioninocean` |
+| Docker Hub | `cyanautomation/motioninocean` |
+
+The compose files default to GHCR. To use Docker Hub instead, override `MIO_IMAGE_TAG` and change the `image:` value in your local copy:
+
+```yaml
+image: cyanautomation/motioninocean:${MIO_IMAGE_TAG:-latest}
+```
+
 ## Directory Pattern
 
 ```

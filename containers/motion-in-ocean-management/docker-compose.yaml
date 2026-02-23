@@ -22,6 +22,8 @@
 services:
   motion-in-ocean:
     container_name: motion-in-ocean
+    # Default: GitHub Container Registry. Docker Hub alternative:
+    # image: cyanautomation/motioninocean:${MIO_IMAGE_TAG:-latest}
     image: ghcr.io/cyanautomation/motioninocean:${MIO_IMAGE_TAG:-latest}
     platform: linux/arm64
     restart: unless-stopped
