@@ -7,31 +7,66 @@
 [![Security Scan](https://github.com/CyanAutomation/motioninocean/workflows/Security%20-%20Docker%20Image%20Scan/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/security-scan.yaml)
 [![Docker Image](https://img.shields.io/badge/GHCR-motion--in--ocean-informational)](https://github.com/CyanAutomation/motioninocean/pkgs/container/motioninocean)
 [![Docker Hub](https://img.shields.io/docker/v/cyanautomation/motioninocean?label=Docker%20Hub&logo=docker)](https://hub.docker.com/r/cyanautomation/motioninocean)
+[![GitHub Release](https://img.shields.io/github/v/release/CyanAutomation/motioninocean)](https://github.com/CyanAutomation/motioninocean/releases/latest)
 
-> **Doc ownership**
->
-> - **This file should contain:** a minimal quick-start and links to canonical docs.
-> - **This file should not contain:** full deployment, migration, or container-pattern walkthroughs.
+## About
+
+Motion In Ocean turns a Raspberry Pi CSI camera into a reliable, containerised MJPEG stream with a REST control plane. It runs in two modes:
+
+- **Webcam mode** – captures frames via Picamera2/libcamera and streams them over HTTP (port 8000), with a REST API for settings and actions.
+- **Management mode** – a hub (port 8001) that discovers and aggregates multiple webcam nodes, providing a single dashboard for multi-camera deployments.
+
+Common integrations: [Home Assistant](https://www.home-assistant.io/), [OctoPrint](https://octoprint.org/), and any MJPEG-capable viewer.
+
+## Requirements
+
+| Requirement       | Minimum                                               |
+| ----------------- | ----------------------------------------------------- |
+| Raspberry Pi      | Pi 3B+ or newer (Pi 4 / Pi 5 recommended)            |
+| OS                | Raspberry Pi OS Bookworm (64-bit)                     |
+| Docker            | 24.0+                                                 |
+| Docker Compose    | v2.20+                                                |
+| Architecture      | `linux/arm64` (Pi) or `linux/amd64` (dev / testing)  |
+
+> Both `linux/arm64` and `linux/amd64` images are published. **Mock camera mode** works on any architecture without hardware.
 
 ## Quick Start
 
+**Webcam mode (single camera):**
+
 ```bash
-cp -r containers/motioniocean-webcam ~/containers/motioniocean-webcam
-cd ~/containers/motioniocean-webcam
+cp -r containers/motion-in-ocean-webcam ~/containers/motion-in-ocean-webcam
+cd ~/containers/motion-in-ocean-webcam
 cp .env.example .env
 docker compose up -d
 ```
 
 Open `http://localhost:8000`.
 
+**Management mode (multi-camera hub):**
+
+```bash
+cp -r containers/motion-in-ocean-management ~/containers/motion-in-ocean-management
+cd ~/containers/motion-in-ocean-management
+cp .env.example .env
+docker compose up -d
+```
+
+Open `http://localhost:8001`.
+
+> No Raspberry Pi hardware? Use the mock camera overlay to try it out locally:
+> ```bash
+> docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
+> ```
+
 ## Docker Images
 
 Images are published to two registries on every release:
 
-| Registry | Image |
-| --- | --- |
-| GitHub Container Registry (GHCR) | `ghcr.io/cyanautomation/motioninocean` |
-| Docker Hub | `cyanautomation/motioninocean` |
+| Registry                          | Image                                          |
+| --------------------------------- | ---------------------------------------------- |
+| GitHub Container Registry (GHCR)  | `ghcr.io/cyanautomation/motioninocean`         |
+| Docker Hub                        | `cyanautomation/motioninocean`                 |
 
 ```bash
 # Docker Hub (no authentication required)
@@ -82,20 +117,12 @@ docker buildx build --platform linux/arm64 \
 - Feature flags reference: [docs/guides/FEATURE_FLAGS.md](docs/guides/FEATURE_FLAGS.md)
 - Container directory pattern specifics: [containers/README.md](containers/README.md)
 
-## Environment Variable Naming (Canonical)
+## Environment Variables
 
-- **Canonical app variables** use the `MIO_*` prefix (for example: `MIO_APP_MODE`, `MIO_PORT`, `MIO_BIND_HOST`).
-- **Docker/Compose schema keys** are separate and unchanged (`services`, `image`, `ports`, `environment`, `volumes`, `networks`, `depends_on`).
+Canonical app variables use the `MIO_*` prefix (e.g. `MIO_APP_MODE`, `MIO_PORT`, `MIO_BIND_HOST`). Legacy aliases (e.g. `APP_MODE`, `RESOLUTION`) are accepted temporarily during migration.
 
-### Legacy aliases still accepted temporarily
+See the [deployment guide](docs/guides/DEPLOYMENT.md) for the full variable reference, legacy alias mapping, and migration examples.
 
-| Canonical `MIO_*` var         | Legacy alias                    |
-| ----------------------------- | ------------------------------- |
-| `MIO_APP_MODE`                | `APP_MODE`, `MOTION_IN_OCEAN_MODE` |
-| `MIO_PORT`                    | `MOTION_IN_OCEAN_PORT`          |
-| `MIO_BIND_HOST`               | `MOTION_IN_OCEAN_BIND_HOST`     |
-| `MIO_RESOLUTION`              | `RESOLUTION`, `MOTION_IN_OCEAN_RESOLUTION` |
-| `MIO_MANAGEMENT_AUTH_TOKEN`   | `MANAGEMENT_AUTH_TOKEN`         |
-| `MIO_DISCOVERY_TOKEN`         | `DISCOVERY_TOKEN`               |
+## Contributing
 
-See the deployment guide for complete examples and migration details.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a pull request, and review the [Code of Conduct](CODE_OF_CONDUCT.md). Run `make ci` to reproduce all CI checks locally before pushing.
