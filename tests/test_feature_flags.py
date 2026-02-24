@@ -35,29 +35,10 @@ class TestFeatureFlagRegistry:
         flags = FeatureFlags()
         all_flags = flags.get_all_flags()
 
-        # Check that flags from each category are present
         expected_flags = {
             "MOCK_CAMERA",
             "CORS_SUPPORT",
-            "DEBUG_LOGGING",
-            "QUALITY_ADAPTATION",
-            "FPS_THROTTLE_ADAPTIVE",
-            "FRAME_SIZE_OPTIMIZATION",
-            "MOTION_DETECTION",
-            "FRAME_RECORDING",
-            "PI3_OPTIMIZATION",
-            "PI5_OPTIMIZATION",
-            "MULTI_CAMERA_SUPPORT",
-            "TRACE_LOGGING",
-            "PERFORMANCE_PROFILING",
-            "DEVELOPMENT_MODE",
             "OCTOPRINT_COMPATIBILITY",
-            "HOME_ASSISTANT_INTEGRATION",
-            "PROMETHEUS_METRICS",
-            "ENHANCED_FRAME_STATS",
-            "REQUEST_TRACING",
-            "NEW_STREAMING_API",
-            "ALTERNATIVE_PROTOCOLS",
         }
 
         assert expected_flags.issubset(set(all_flags.keys())), (
@@ -159,11 +140,9 @@ class TestFeatureFlagBehavior:
 
             # Most flags should be disabled by default
             assert flags.is_enabled("MOCK_CAMERA") is False
-            assert flags.is_enabled("DEBUG_LOGGING") is False
 
             # Some flags should be enabled by default
             assert flags.is_enabled("CORS_SUPPORT") is True
-            assert flags.is_enabled("FRAME_SIZE_OPTIMIZATION") is True
 
     def test_parse_bool_variations(self):
         """Test that various boolean string formats are parsed correctly."""
@@ -187,10 +166,10 @@ class TestFeatureFlagBehavior:
         ]
 
         for value, expected in test_cases:
-            with mock.patch.dict(os.environ, {"MIO_DEBUG_LOGGING": value}, clear=True):
+            with mock.patch.dict(os.environ, {"MIO_CORS_SUPPORT": value}, clear=True):
                 flags = FeatureFlags()
                 flags.load()
-                assert flags.is_enabled("DEBUG_LOGGING") == expected, f"Failed for value: {value}"
+                assert flags.is_enabled("CORS_SUPPORT") == expected, f"Failed for value: {value}"
 
     def test_unknown_flag_raises_error(self):
         """Test that querying unknown flag raises KeyError."""
@@ -208,8 +187,7 @@ class TestFeatureFlagBehavior:
         performance_flags = flags.get_flags_by_category(FeatureFlagCategory.PERFORMANCE)
 
         assert isinstance(performance_flags, dict)
-        assert "QUALITY_ADAPTATION" in performance_flags
-        assert "FPS_THROTTLE_ADAPTIVE" in performance_flags
+        assert performance_flags == {}
 
     def test_get_flag_info(self):
         """Test retrieving detailed flag information."""
@@ -238,11 +216,11 @@ class TestFeatureFlagBehavior:
         """Test the module-level is_flag_enabled convenience function."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
-        with mock.patch.dict(os.environ, {"MIO_DEBUG_LOGGING": "true"}, clear=True):
+        with mock.patch.dict(os.environ, {"MIO_CORS_SUPPORT": "true"}, clear=True):
             # Create a new instance and load it
             flags = FeatureFlags()
             flags.load()
-            assert flags.is_enabled("DEBUG_LOGGING") is True
+            assert flags.is_enabled("CORS_SUPPORT") is True
 
     def test_backward_compat_cors_not_mapped(self):
         """Test that CORS_SUPPORT doesn't have backward compat mapping (feature flag only)."""
@@ -284,15 +262,15 @@ class TestFeatureFlagsAPI:
 
         flags = get_feature_flags()
         summary = flags.get_summary()
-        debug_info = flags.get_flag_info("DEBUG_LOGGING")
+        cors_info = flags.get_flag_info("CORS_SUPPORT")
         mock_info = flags.get_flag_info("MOCK_CAMERA")
 
         expected_categories = {category.value for category in FeatureFlagCategory}
         assert expected_categories.issubset(set(summary.keys()))
-        assert "DEBUG_LOGGING" in summary[FeatureFlagCategory.DEVELOPER_TOOLS.value]
+        assert summary[FeatureFlagCategory.DEVELOPER_TOOLS.value] == {}
         assert "MOCK_CAMERA" in summary[FeatureFlagCategory.EXPERIMENTAL.value]
-        assert debug_info is not None
-        assert debug_info["category"] == "Developer Tools"
+        assert cors_info is not None
+        assert cors_info["category"] == "Integration Compatibility"
         assert mock_info is not None
         assert mock_info["name"] == "MOCK_CAMERA"
         assert mock_info["backward_compat_vars"] == ["MOCK_CAMERA"]

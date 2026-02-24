@@ -27,6 +27,14 @@ LEGACY_ALIAS_DEPRECATION_FLAGS = {"MOCK_CAMERA"}
 """Flags for which legacy env aliases should emit explicit deprecation warnings."""
 
 
+ACTIVE_RUNTIME_FLAGS = (
+    "MOCK_CAMERA",
+    "CORS_SUPPORT",
+    "OCTOPRINT_COMPATIBILITY",
+)
+"""Feature flags that currently have concrete runtime reads in production code."""
+
+
 class FeatureFlagCategory(Enum):
     """Categorization for feature flags."""
 
@@ -76,39 +84,7 @@ class FeatureFlags:
         self._define_flags()
 
     def _define_flags(self) -> None:
-        """Define all available feature flags."""
-        # PERFORMANCE FLAGS
-        self.register(
-            FeatureFlag(
-                name="QUALITY_ADAPTATION",
-                default=False,
-                category=FeatureFlagCategory.PERFORMANCE,
-                description="Enable automatic JPEG quality adaptation based on network conditions.",
-                backward_compat_vars=None,
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="FPS_THROTTLE_ADAPTIVE",
-                default=False,
-                category=FeatureFlagCategory.PERFORMANCE,
-                description="Enable adaptive FPS throttling based on client capabilities.",
-                backward_compat_vars=None,
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="FRAME_SIZE_OPTIMIZATION",
-                default=True,
-                category=FeatureFlagCategory.PERFORMANCE,
-                description="Enable frame size optimization for bandwidth-constrained networks.",
-                backward_compat_vars=None,
-            )
-        )
-
-        # OPTIONAL FEATURES
+        """Define all available feature flags with active runtime integrations only."""
         self.register(
             FeatureFlag(
                 name="MOCK_CAMERA",
@@ -119,99 +95,6 @@ class FeatureFlags:
             )
         )
 
-        self.register(
-            FeatureFlag(
-                name="MOTION_DETECTION",
-                default=False,
-                category=FeatureFlagCategory.EXPERIMENTAL,
-                description="Enable motion detection hooks for frame analysis.",
-                backward_compat_vars=None,
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="FRAME_RECORDING",
-                default=False,
-                category=FeatureFlagCategory.EXPERIMENTAL,
-                description="Enable frame recording/buffering to disk.",
-                backward_compat_vars=None,
-            )
-        )
-
-        # HARDWARE OPTIMIZATION FLAGS
-        self.register(
-            FeatureFlag(
-                name="PI3_OPTIMIZATION",
-                default=False,
-                category=FeatureFlagCategory.HARDWARE_OPTIMIZATION,
-                description="Enable Pi 3-specific optimizations (lower resolution, reduced FPS).",
-                backward_compat_vars=None,
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="PI5_OPTIMIZATION",
-                default=False,
-                category=FeatureFlagCategory.HARDWARE_OPTIMIZATION,
-                description="Enable Pi 5-specific optimizations (higher resolution, increased FPS).",
-                backward_compat_vars=None,
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="MULTI_CAMERA_SUPPORT",
-                default=False,
-                category=FeatureFlagCategory.HARDWARE_OPTIMIZATION,
-                description="Enable support for multiple camera inputs.",
-                backward_compat_vars=None,
-            )
-        )
-
-        # DEVELOPER TOOLS FLAGS
-        self.register(
-            FeatureFlag(
-                name="DEBUG_LOGGING",
-                default=False,
-                category=FeatureFlagCategory.DEVELOPER_TOOLS,
-                description="Enable DEBUG-level logging for detailed diagnostics.",
-                backward_compat_vars=None,
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="TRACE_LOGGING",
-                default=False,
-                category=FeatureFlagCategory.DEVELOPER_TOOLS,
-                description="Enable TRACE-level logging with function entry/exit points.",
-                backward_compat_vars=None,
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="PERFORMANCE_PROFILING",
-                default=False,
-                category=FeatureFlagCategory.DEVELOPER_TOOLS,
-                description="Enable CPU/memory profiling for performance analysis.",
-                backward_compat_vars=None,
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="DEVELOPMENT_MODE",
-                default=False,
-                category=FeatureFlagCategory.DEVELOPER_TOOLS,
-                description="Enable development mode with relaxed validation and verbose output.",
-                backward_compat_vars=None,
-            )
-        )
-
-        # INTEGRATION COMPATIBILITY FLAGS
         self.register(
             FeatureFlag(
                 name="CORS_SUPPORT",
@@ -229,68 +112,6 @@ class FeatureFlags:
                 category=FeatureFlagCategory.INTEGRATION_COMPATIBILITY,
                 description="Enable OctoPrint camera format compatibility mode.",
                 backward_compat_vars=["OCTOPRINT_COMPATIBILITY"],
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="HOME_ASSISTANT_INTEGRATION",
-                default=False,
-                category=FeatureFlagCategory.INTEGRATION_COMPATIBILITY,
-                description="Enable Home Assistant-specific endpoint optimizations.",
-                backward_compat_vars=None,
-            )
-        )
-
-        # OBSERVABILITY FLAGS
-        self.register(
-            FeatureFlag(
-                name="PROMETHEUS_METRICS",
-                default=False,
-                category=FeatureFlagCategory.OBSERVABILITY,
-                description="Enable Prometheus-format metrics export.",
-                backward_compat_vars=None,
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="ENHANCED_FRAME_STATS",
-                default=False,
-                category=FeatureFlagCategory.OBSERVABILITY,
-                description="Enable per-frame processing time statistics.",
-                backward_compat_vars=None,
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="REQUEST_TRACING",
-                default=False,
-                category=FeatureFlagCategory.OBSERVABILITY,
-                description="Enable detailed request lifecycle tracing.",
-                backward_compat_vars=None,
-            )
-        )
-
-        # GRADUAL ROLLOUT FLAGS
-        self.register(
-            FeatureFlag(
-                name="NEW_STREAMING_API",
-                default=False,
-                category=FeatureFlagCategory.GRADUAL_ROLLOUT,
-                description="Enable new streaming API endpoints (v2).",
-                backward_compat_vars=None,
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="ALTERNATIVE_PROTOCOLS",
-                default=False,
-                category=FeatureFlagCategory.GRADUAL_ROLLOUT,
-                description="Enable alternative streaming protocols (RTSP, HLS, WebRTC).",
-                backward_compat_vars=None,
             )
         )
 

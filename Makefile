@@ -7,7 +7,7 @@
 DEBIAN_SUITE ?= bookworm
 RPI_SUITE ?= bookworm
 
-.PHONY: help install install-dev install-node test test-frontend lint format type-check security clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
+.PHONY: help install install-dev install-node test test-frontend lint format type-check security check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
 help:
@@ -123,6 +123,10 @@ security-all:
 	bandit -r pi_camera_in_docker/ -c pyproject.toml
 	@echo "Checking for known vulnerabilities in dependencies..."
 	safety check --json || true
+
+check-feature-flag-usage:
+	@echo "Checking feature flag runtime usage..."
+	python -m pi_camera_in_docker.feature_flag_usage_check
 
 # Documentation targets
 docs-build:
@@ -353,7 +357,7 @@ docker-clean:
 	docker image prune -f
 
 # CI/CD targets
-ci: lint format-check type-check test
+ci: lint format-check type-check check-feature-flag-usage test
 	@echo "✓ All CI checks passed!"
 
 validate: ci security
