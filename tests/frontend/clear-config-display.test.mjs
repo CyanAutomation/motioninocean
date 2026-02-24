@@ -83,6 +83,10 @@ test("clearConfigDisplay only resets dedicated config value nodes", () => {
         return [];
       },
     },
+    state: {
+      streamConnections: { current: "5", max: "10" },
+    },
+    updateConnectionDisplays: () => {},
   };
 
   vm.runInNewContext(`${clearConfigDisplayFn}; clearConfigDisplay();`, context);
