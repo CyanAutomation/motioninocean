@@ -1,0 +1,104 @@
+- generic [ref=e1]:
+  - navigation "Webcam views" [ref=e2]:
+    - generic [ref=e3]:
+      - button "Stream" [ref=e4] [cursor=pointer]:
+        - img [ref=e6]
+        - generic [ref=e11]: Stream
+      - button "Config" [ref=e12] [cursor=pointer]:
+        - img [ref=e14]
+        - generic [ref=e17]: Config
+      - button "Set-Up" [active] [ref=e18] [cursor=pointer]:
+        - img [ref=e20]
+        - generic [ref=e23]: Set-Up
+      - button "Settings" [ref=e24] [cursor=pointer]:
+        - img [ref=e26]
+        - generic [ref=e29]: Settings
+    - generic [ref=e30]:
+      - button "Changelog" [ref=e31] [cursor=pointer]:
+        - img [ref=e32]
+      - button "Help" [ref=e35] [cursor=pointer]:
+        - img [ref=e36]
+  - banner [ref=e39]:
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - heading "Set-Up" [level=1] [ref=e206]
+        - paragraph [ref=e43]: Guided setup and generated files
+      - generic [ref=e44]:
+        - button "Toggle theme" [ref=e45] [cursor=pointer]:
+          - img [ref=e46]
+        - button "Refresh Stream ↺" [ref=e48] [cursor=pointer]
+    - status [ref=e49]:
+      - generic [ref=e50]: Stream Statistics
+      - generic [ref=e51]: Stream Connected
+      - generic [ref=e52]: "Current FPS: 23.2"
+  - main [ref=e53]:
+    - tabpanel [ref=e207]:
+      - generic [ref=e209]: Setup ready
+      - generic [ref=e211]:
+        - generic [ref=e212]:
+          - generic [ref=e213] [cursor=pointer]:
+            - heading "Guided Setup" [level=3] [ref=e214]
+            - generic [ref=e215]:
+              - checkbox "Expert mode" [ref=e216]
+              - text: Expert mode
+          - generic "Setup steps" [ref=e218]:
+            - button "Environment !" [ref=e219]
+            - button "Preset ✓" [ref=e220]
+            - button "Review ✓" [ref=e221]
+            - button "Generate ✓" [ref=e222]
+        - generic [ref=e223]:
+          - heading "1) Environment" [level=3] [ref=e225] [cursor=pointer]
+          - generic [ref=e226]:
+            - generic [ref=e227]:
+              - generic [ref=e228]: Which hardware are you running?
+              - combobox "Which hardware are you running?" [ref=e229]:
+                - option "Select hardware" [selected]
+                - option "Raspberry Pi 3"
+                - option "Raspberry Pi 4"
+                - option "Raspberry Pi 5"
+                - option "Not a Raspberry Pi / Unsure"
+            - generic [ref=e230]:
+              - generic [ref=e231]: What do you care most about?
+              - combobox "What do you care most about?" [ref=e232]:
+                - option "Select primary intent" [selected]
+                - option "Simple webcam streaming"
+                - option "Management/API control and integrations"
+            - generic [ref=e233]:
+              - generic [ref=e234]: Use mock camera for local development?
+              - combobox "Use mock camera for local development?" [ref=e235]:
+                - option "No, use real camera" [selected]
+                - option "Yes, use mock feed"
+            - generic [ref=e236]:
+              - heading "📱 Detected Devices" [level=3] [ref=e238] [cursor=pointer]
+              - generic [ref=e239]:
+                - button "Re-scan devices" [ref=e241]
+                - generic [ref=e242]:
+                  - generic [ref=e243]:
+                    - strong [ref=e244]: No camera detected
+                    - paragraph [ref=e245]: No camera interfaces were found. Check host device mounts and camera interface settings.
+                  - list [ref=e246]:
+                    - listitem [ref=e247]:
+                      - generic [ref=e248]: ⚪
+                      - generic [ref=e249]: Video devices (/dev/video*)
+                      - generic [ref=e250]: None
+                    - listitem [ref=e251]:
+                      - generic [ref=e252]: ⚪
+                      - generic [ref=e253]: Media devices (/dev/media*)
+                      - generic [ref=e254]: None
+                    - listitem [ref=e255]:
+                      - generic [ref=e256]: ⚪
+                      - generic [ref=e257]: DMA heap
+                      - generic [ref=e258]: None
+                    - listitem [ref=e259]:
+                      - generic [ref=e260]: ⚪
+                      - generic [ref=e261]: /dev/vchiq
+                      - generic [ref=e262]: Not detected
+                  - generic [ref=e263]:
+                    - paragraph [ref=e264]: Recommended next steps
+                    - list [ref=e265]:
+                      - listitem [ref=e266]: Verify /dev/vchiq exists on the host and is mounted into the container.
+                      - listitem [ref=e267]: For local development without hardware, set MOCK_CAMERA=true.
+                      - listitem [ref=e268]: If using Raspberry Pi, enable Camera in raspi-config and reboot.
+        - generic [ref=e270]:
+          - button "Previous" [disabled] [ref=e271] [cursor=pointer]
+          - button "Next" [disabled] [ref=e272] [cursor=pointer]

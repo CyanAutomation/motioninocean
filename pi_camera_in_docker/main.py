@@ -18,7 +18,6 @@ from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
 import yaml
-
 from flask import Flask, g, jsonify, render_template, request
 from flask_cors import CORS
 from flask_limiter import Limiter

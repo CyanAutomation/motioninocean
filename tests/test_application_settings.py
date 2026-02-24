@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
+
 from pi_camera_in_docker import runtime_config
 
 

@@ -1,0 +1,154 @@
+- generic [ref=e1]:
+  - navigation "Webcam views" [ref=e2]:
+    - generic [ref=e3]:
+      - button "Stream" [ref=e4] [cursor=pointer]:
+        - img [ref=e6]
+        - generic [ref=e11]: Stream
+      - button "Config" [ref=e12] [cursor=pointer]:
+        - img [ref=e14]
+        - generic [ref=e17]: Config
+      - button "Set-Up" [ref=e18] [cursor=pointer]:
+        - img [ref=e20]
+        - generic [ref=e23]: Set-Up
+      - button "Settings" [active] [ref=e24] [cursor=pointer]:
+        - img [ref=e26]
+        - generic [ref=e29]: Settings
+    - generic [ref=e30]:
+      - button "Changelog" [ref=e31] [cursor=pointer]:
+        - img [ref=e32]
+      - button "Help" [ref=e35] [cursor=pointer]:
+        - img [ref=e36]
+  - banner [ref=e39]:
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - heading "Runtime Settings" [level=1] [ref=e393]
+        - paragraph [ref=e43]: Check changes before saving. Reset restores defaults.
+      - generic [ref=e44]:
+        - button "Toggle theme" [ref=e45] [cursor=pointer]:
+          - img [ref=e46]
+        - button "Refresh Stream ↺" [ref=e48] [cursor=pointer]
+    - status [ref=e49]:
+      - generic [ref=e50]: Stream Statistics
+      - generic [ref=e51]: Stream Connected
+      - generic [ref=e52]: "Current FPS: 23.2"
+  - main [ref=e53]:
+    - tabpanel [ref=e274]:
+      - generic [ref=e275]:
+        - generic [ref=e276]:
+          - heading "Configuration" [level=2] [ref=e277]
+          - paragraph [ref=e278]: Edit these settings to customize your camera streaming experience. Changes are applied immediately or on next restart depending on the setting.
+          - generic [ref=e279]:
+            - button "Save Changes" [disabled] [ref=e280]
+            - button "Reset to Defaults" [ref=e281] [cursor=pointer]
+        - generic [ref=e282]:
+          - generic [ref=e283] [cursor=pointer]:
+            - heading "Camera Configuration" [level=3] [ref=e284]
+            - button "▼" [ref=e285]
+          - generic [ref=e286]:
+            - generic [ref=e287]:
+              - generic [ref=e288]:
+                - generic [ref=e289] [cursor=pointer]: Resolution
+                - generic [ref=e290]: Video resolution (WIDTHxHEIGHT)
+              - combobox "Resolution" [ref=e291]:
+                - option "Select resolution..."
+                - option "640x480 (VGA)" [selected]
+                - option "1280x720 (HD)"
+                - option "1920x1080 (Full HD)"
+                - option "2592x1944 (5MP)"
+              - generic [ref=e292]: Changing resolution requires camera restart
+            - generic [ref=e293]:
+              - generic [ref=e294]:
+                - generic [ref=e295] [cursor=pointer]: Frame Rate (FPS)
+                - generic [ref=e296]: Frames per second (0 = camera default)
+              - slider "Frame Rate (FPS)" [ref=e297] [cursor=pointer]: "24"
+              - generic [ref=e298]:
+                - generic [ref=e299]: "24"
+                - text: fps
+              - generic [ref=e300]: Changing FPS requires camera restart
+            - generic [ref=e301]:
+              - generic [ref=e302]:
+                - generic [ref=e303] [cursor=pointer]: JPEG Quality
+                - generic [ref=e304]: Compression level (1-100)
+              - slider "JPEG Quality" [ref=e305] [cursor=pointer]: "90"
+              - generic [ref=e307]: "90"
+              - generic [ref=e308]: Lower quality = smaller files, higher quality = better images
+            - generic [ref=e309]:
+              - generic [ref=e310]:
+                - generic [ref=e311] [cursor=pointer]: Max Stream Connections
+                - generic [ref=e312]: Maximum concurrent clients
+              - spinbutton "Max Stream Connections" [ref=e313]: "10"
+              - generic [ref=e314]: Limit concurrent streams to prevent overload
+            - generic [ref=e315]:
+              - generic [ref=e316]:
+                - generic [ref=e317] [cursor=pointer]: Frame Cache Age (seconds)
+                - generic [ref=e318]: How long to cache frames
+              - spinbutton "Frame Cache Age (seconds)" [ref=e319]: "10"
+              - generic [ref=e320]: Higher values = more frame reuse, potentially stale frames
+        - generic [ref=e321]:
+          - generic [ref=e322] [cursor=pointer]:
+            - heading "Logging Configuration" [level=3] [ref=e323]
+            - button "▼" [ref=e324]
+          - generic [ref=e325]:
+            - generic [ref=e326]:
+              - generic [ref=e327]:
+                - generic [ref=e328] [cursor=pointer]: Log Level
+                - generic [ref=e329]: Logging verbosity
+              - combobox "Log Level" [ref=e330]:
+                - option "DEBUG (Most verbose)"
+                - option "INFO (Standard)" [selected]
+                - option "WARNING"
+                - option "ERROR"
+                - option "CRITICAL (Least verbose)"
+            - generic [ref=e331]:
+              - generic [ref=e332]:
+                - generic [ref=e333] [cursor=pointer]: Log Format
+                - generic [ref=e334]: Output format
+              - combobox "Log Format" [ref=e335]:
+                - option "Human-Readable Text" [selected]
+                - option "Structured JSON"
+              - generic [ref=e336]: Changing log format requires server restart
+            - generic [ref=e337]:
+              - checkbox "Include Process/Thread IDs" [ref=e338] [cursor=pointer]
+              - generic [ref=e339] [cursor=pointer]: Include Process/Thread IDs
+              - generic [ref=e340]: Useful for debugging concurrency issues
+        - generic [ref=e341]:
+          - generic [ref=e342] [cursor=pointer]:
+            - heading "Node Discovery" [level=3] [ref=e343]
+            - button "▼" [ref=e344]
+          - generic [ref=e345]:
+            - generic [ref=e346]:
+              - checkbox "Enable Discovery" [ref=e347] [cursor=pointer]
+              - generic [ref=e348] [cursor=pointer]: Enable Discovery
+              - generic [ref=e349]: Announce this webcam to a management node automatically
+            - generic [ref=e350]:
+              - generic [ref=e351]:
+                - generic [ref=e352] [cursor=pointer]: Management Node URL
+                - generic [ref=e353]: e.g., http://192.168.1.10:8001
+              - textbox "Management Node URL" [ref=e354]:
+                - /placeholder: http://127.0.0.1:8001
+                - text: http://127.0.0.1:8001
+            - generic [ref=e355]:
+              - generic [ref=e356]:
+                - generic [ref=e357] [cursor=pointer]: Discovery Shared Token
+                - generic [ref=e358]: Must match management node's shared secret
+              - textbox "Discovery Shared Token" [ref=e359]:
+                - /placeholder: Leave empty to disable
+            - generic [ref=e360]:
+              - generic [ref=e361]:
+                - generic [ref=e362] [cursor=pointer]: Discovery Interval (seconds)
+                - generic [ref=e363]: Re-announce frequency
+              - spinbutton "Discovery Interval (seconds)" [ref=e364]: "30"
+        - generic [ref=e365]:
+          - generic [ref=e366] [cursor=pointer]:
+            - heading "Feature Flags" [level=3] [ref=e367]
+            - button "▼" [ref=e368]
+          - generic [ref=e370]: Loading feature flags...
+  - navigation "Webcam views mobile" [ref=e375]:
+    - button "Stream" [ref=e376] [cursor=pointer]:
+      - generic [ref=e377]: Stream
+    - button "Config" [ref=e378] [cursor=pointer]:
+      - generic [ref=e379]: Config
+    - button "Set-Up" [ref=e380] [cursor=pointer]:
+      - generic [ref=e381]: Set-Up
+    - button "Settings" [ref=e382] [cursor=pointer]:
+      - generic [ref=e383]: Settings
