@@ -1,0 +1,89 @@
+# Google Cloud Build — Motion In Ocean
+#
+# Purpose: Builds and deploys a demo instance to Google Cloud Run.
+#          This is NOT the production image — real users pull from GHCR/DockerHub.
+#
+# Trigger: Manual (configure trigger in GCP Console → Cloud Build → Triggers)
+# Platform: linux/amd64 (Cloud Run is amd64-only; no QEMU/Buildx needed)
+# Registry: Google Artifact Registry (GAR)
+#
+# Required substitutions (override in GCP trigger or --substitutions flag):
+#   _GAR_REGION      : Artifact Registry region       (e.g. us-central1)
+#   _GAR_REPO        : Artifact Registry repository   (e.g. motioninocean)
+#   _IMAGE_NAME      : Image name                     (default: motioninocean)
+#   _IMAGE_TAG       : Primary image tag              (default: latest)
+#   _CLOUD_RUN_REGION: Cloud Run deployment region    (e.g. us-central1)
+#   _SERVICE_NAME    : Cloud Run service name         (default: motioninocean-demo)
+#
+# Usage (manual via gcloud):
+#   gcloud builds submit \
+#     --config cloudbuild.yaml \
+#     --substitutions _GAR_REGION=us-central1,_GAR_REPO=motioninocean,_IMAGE_TAG=v1.19.2 \
+#     .
+
+substitutions:
+  _GAR_REGION: us-central1
+  _GAR_REPO: motioninocean
+  _IMAGE_NAME: motioninocean
+  _IMAGE_TAG: latest
+  _CLOUD_RUN_REGION: us-central1
+  _SERVICE_NAME: motioninocean-demo
+
+steps:
+  # ---- Step 1: Build and push amd64 image ----
+  # Plain docker build with BuildKit enabled — no Buildx or QEMU needed.
+  # Cloud Run only runs linux/amd64, so cross-compilation is unnecessary here.
+  - name: gcr.io/cloud-builders/docker
+    id: build-and-push
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - --platform
+      - linux/amd64
+      - --tag
+      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}:${_IMAGE_TAG}
+      - --tag
+      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
+      - --build-arg
+      - DEBIAN_SUITE=bookworm
+      - --build-arg
+      - RPI_SUITE=bookworm
+      - .
+
+  # ---- Step 2: Push image to GAR ----
+  - name: gcr.io/cloud-builders/docker
+    id: push-image
+    args:
+      - push
+      - --all-tags
+      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}
+    waitFor:
+      - build-and-push
+
+  # ---- Step 3: Deploy to Cloud Run (demo) ----
+  # Uses MOCK_CAMERA=true since Cloud Run has no CSI camera hardware.
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy-cloud-run
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE_NAME}
+      - --image
+      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}:${_IMAGE_TAG}
+      - --region
+      - ${_CLOUD_RUN_REGION}
+      - --platform
+      - managed
+      - --allow-unauthenticated
+      - --set-env-vars
+      - APP_MODE=webcam,MOCK_CAMERA=true,MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
+    waitFor:
+      - push-image
+
+options:
+  machineType: E2_HIGHCPU_8
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1800s
