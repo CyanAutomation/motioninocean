@@ -27,6 +27,12 @@ Example response:
 
 ## Active flags
 
+### `MIO_MOCK_CAMERA` (default: `false`)
+
+Uses mock camera frames in webcam mode when enabled.
+
+- Legacy alias removed: `MOCK_CAMERA` (no longer read)
+
 ## CORS configuration (migrated from feature flag)
 
 CORS is now configured via `MIO_CORS_ORIGINS` in runtime config, not the feature-flag registry.
@@ -37,20 +43,6 @@ CORS is now configured via `MIO_CORS_ORIGINS` in runtime config, not the feature
 
 `MIO_CORS_SUPPORT` is temporarily accepted for backward compatibility, logs a deprecation warning,
 and is mapped only when `MIO_CORS_ORIGINS` is unset.
-
-### `MIO_MOCK_CAMERA` (default: `false`)
-
-Uses mock camera frames in webcam mode when enabled.
-
-- Legacy alias removed: `MOCK_CAMERA` (no longer read)
-
-## OctoPrint compatibility
-
-OctoPrint compatibility behavior is always enabled and is no longer modeled as a
-feature flag.
-
-Deprecated env vars `MIO_OCTOPRINT_COMPATIBILITY` and `OCTOPRINT_COMPATIBILITY`
-are ignored and emit warnings when set.
 
 ## Registry policy
 
