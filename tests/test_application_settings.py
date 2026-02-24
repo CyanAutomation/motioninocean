@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
+from pi_camera_in_docker import runtime_config
 
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "pi_camera_in_docker"))
@@ -503,3 +504,36 @@ class TestApplicationSettingsFileCorruption:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestApplicationSettingsRuntimeEffects:
+    """Runtime behavior checks for persisted settings interactions."""
+
+    def test_persisted_feature_flag_does_not_change_effective_runtime_flag(
+        self, temp_settings_file, monkeypatch
+    ):
+        """Persisted feature flag values should not override runtime feature flags."""
+        settings = ApplicationSettings(temp_settings_file)
+        settings.save(
+            {
+                "camera": {"fps": 30},
+                "feature_flags": {"MOCK_CAMERA": False},
+                "logging": {},
+                "discovery": {},
+            },
+            "test",
+        )
+
+        monkeypatch.setattr(
+            runtime_config,
+            "is_flag_enabled",
+            lambda flag_name: {
+                "MOCK_CAMERA": True,
+                "CORS_SUPPORT": False,
+                "OCTOPRINT_COMPATIBILITY": False,
+            }[flag_name],
+        )
+
+        payload = runtime_config.get_effective_settings_payload(settings)
+
+        assert payload["settings"]["feature_flags"]["MOCK_CAMERA"] is True

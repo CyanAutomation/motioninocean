@@ -34,11 +34,20 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
     }
 
     monkeypatch.setattr(runtime_config, "load_env_config", lambda: env_config)
+    monkeypatch.setattr(
+        runtime_config,
+        "is_flag_enabled",
+        lambda flag_name: {
+            "MOCK_CAMERA": False,
+            "CORS_SUPPORT": True,
+            "OCTOPRINT_COMPATIBILITY": False,
+        }[flag_name],
+    )
 
     snapshot = {
         "settings": {
             "camera": {"fps": 42},
-            "feature_flags": {"FLAG_A": True},
+            "feature_flags": {"MOCK_CAMERA": False},
             "logging": {},
             "discovery": {},
         },
@@ -57,7 +66,7 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
             return {
                 "settings": {
                     "camera": {"fps": 7},
-                    "feature_flags": {"FLAG_A": False},
+                    "feature_flags": {"MOCK_CAMERA": True},
                     "logging": {},
                     "discovery": {},
                 },
@@ -71,7 +80,11 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
 
     assert settings_store.load_calls == 1
     assert payload["settings"]["camera"]["fps"] == 42
-    assert payload["settings"]["feature_flags"] == {"FLAG_A": True}
+    assert payload["settings"]["feature_flags"] == {
+        "MOCK_CAMERA": False,
+        "CORS_SUPPORT": True,
+        "OCTOPRINT_COMPATIBILITY": False,
+    }
     assert payload["last_modified"] == "2026-01-01T00:00:00+00:00"
     assert payload["modified_by"] == "api_patch"
 
@@ -400,3 +413,91 @@ def test_load_env_config_supports_legacy_camera_init_required_alias(monkeypatch)
     cfg = runtime_config.load_env_config()
 
     assert cfg["fail_on_camera_init_error"] is True
+
+
+def test_merge_config_with_persisted_settings_does_not_override_runtime_feature_flags():
+    """Persisted feature flags should not override runtime feature flag values."""
+    env_config = {
+        "fps": 24,
+        "target_fps": 24,
+        "jpeg_quality": 90,
+        "discovery_interval_seconds": 30.0,
+        "discovery_management_url": "http://127.0.0.1:8001",
+        "mock_camera": False,
+    }
+    persisted = {
+        "settings": {
+            "camera": {},
+            "feature_flags": {"MOCK_CAMERA": True},
+            "discovery": {},
+            "logging": {},
+        }
+    }
+
+    merged = runtime_config.merge_config_with_persisted_settings(env_config, persisted)
+
+    assert merged["mock_camera"] is False
+
+
+def test_get_effective_settings_payload_reads_feature_flags_from_runtime(monkeypatch):
+    """Effective payload should report runtime feature flags, not persisted values."""
+    env_config = {
+        "app_mode": "webcam",
+        "resolution": (640, 480),
+        "fps": 24,
+        "target_fps": 24,
+        "jpeg_quality": 90,
+        "max_frame_age_seconds": 10.0,
+        "max_stream_connections": 10,
+        "api_test_mode_enabled": False,
+        "api_test_cycle_interval_seconds": 5.0,
+        "discovery_enabled": False,
+        "discovery_management_url": "http://127.0.0.1:8001",
+        "discovery_token": "",
+        "discovery_interval_seconds": 30.0,
+        "discovery_webcam_id": "",
+        "log_level": "INFO",
+        "log_format": "text",
+        "log_include_identifiers": False,
+        "cors_enabled": True,
+        "cors_origins": "*",
+        "bind_host": "127.0.0.1",
+        "bind_port": 8000,
+        "pi3_profile_enabled": False,
+        "mock_camera": False,
+        "allow_pykms_mock": False,
+        "node_registry_path": "/data/node-registry.json",
+        "application_settings_path": "/data/application-settings.json",
+        "management_auth_token": "",
+        "webcam_control_plane_auth_token": "",
+    }
+
+    class StaticStore:
+        def load(self):
+            return {
+                "settings": {
+                    "camera": {},
+                    "feature_flags": {"MOCK_CAMERA": False, "CORS_SUPPORT": False},
+                    "logging": {},
+                    "discovery": {},
+                }
+            }
+
+    monkeypatch.setattr(runtime_config, "load_env_config", lambda: env_config)
+    monkeypatch.setattr(
+        runtime_config,
+        "is_flag_enabled",
+        lambda flag_name: {
+            "MOCK_CAMERA": True,
+            "CORS_SUPPORT": False,
+            "OCTOPRINT_COMPATIBILITY": True,
+        }[flag_name],
+    )
+
+    payload = runtime_config.get_effective_settings_payload(StaticStore())
+
+    assert payload["settings"]["feature_flags"] == {
+        "MOCK_CAMERA": True,
+        "CORS_SUPPORT": False,
+        "OCTOPRINT_COMPATIBILITY": True,
+    }

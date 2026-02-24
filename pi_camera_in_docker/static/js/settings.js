@@ -175,8 +175,6 @@ const SettingsUI = (() => {
     // Discovery Settings
     renderDiscoverySettings();
 
-    // Feature Flags
-    renderFeatureFlags();
 
     // Attach change event handlers to all inputs
     document.querySelectorAll('.setting-input').forEach((input) => {
@@ -289,86 +287,6 @@ const SettingsUI = (() => {
     const intervalInput = document.getElementById('setting-discovery-interval');
     if (intervalInput) {
       intervalInput.value = discoverySettings.discovery_interval_seconds || 30;
-    }
-  };
-
-  /**
-   * Render Feature Flags section.
-   *
-   * Dynamically creates feature flag checkboxes grouped by category.
-   * Includes flag descriptions and warnings from schema.
-   *
-   * @returns {void}
-   */
-  const renderFeatureFlags = () => {
-    const container = document.getElementById('feature-flags-container');
-    if (!container || !schema.feature_flags) return;
-
-    const flagSettings = currentSettings.feature_flags || {};
-    const flagSchema = schema.feature_flags.properties || {};
-
-    container.innerHTML = '';
-
-    // Group flags by category
-    const categories = {};
-    for (const [flagName, flagDef] of Object.entries(flagSchema)) {
-      const category = flagDef.category || 'Other';
-      if (!categories[category]) categories[category] = [];
-      categories[category].push({ name: flagName, def: flagDef });
-    }
-
-    // Render each category
-    for (const [category, flags] of Object.entries(categories)) {
-      const categoryDiv = document.createElement('div');
-      categoryDiv.style.gridColumn = 'span 1';
-
-      flags.forEach(({ name, def }) => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'feature-flag-item';
-
-        const toggleDiv = document.createElement('div');
-        toggleDiv.className = 'feature-flag-toggle';
-
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.className = 'setting-input setting-checkbox';
-        checkbox.id = `setting-flag-${name}`;
-        checkbox.dataset.category = 'feature_flags';
-        checkbox.dataset.property = name;
-        checkbox.checked = flagSettings[name] || def.default || false;
-        checkbox.addEventListener('change', onFieldChange);
-
-        const label = document.createElement('label');
-        label.className = 'feature-flag-label';
-        label.htmlFor = checkbox.id;
-        label.textContent = def.title || name;
-
-        toggleDiv.appendChild(checkbox);
-        toggleDiv.appendChild(label);
-
-        const categoryBadge = document.createElement('div');
-        categoryBadge.className = 'feature-flag-category';
-        categoryBadge.textContent = category;
-
-        const description = document.createElement('div');
-        description.className = 'feature-flag-description';
-        description.textContent = def.description || '';
-
-        itemDiv.appendChild(toggleDiv);
-        itemDiv.appendChild(categoryBadge);
-        itemDiv.appendChild(description);
-
-        if (def.warning) {
-          const warning = document.createElement('div');
-          warning.className = 'setting-hint';
-          warning.textContent = '⚠️ ' + def.warning;
-          itemDiv.appendChild(warning);
-        }
-
-        categoryDiv.appendChild(itemDiv);
-      });
-
-      container.appendChild(categoryDiv);
     }
   };
 

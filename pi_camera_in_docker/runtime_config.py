@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Tuple
 
 from .application_settings import ApplicationSettings, SettingsValidationError
-from .feature_flags import is_flag_enabled
+from .feature_flags import ACTIVE_RUNTIME_FLAGS, is_flag_enabled
 
 
 logger = logging.getLogger(__name__)
@@ -588,6 +588,10 @@ def get_effective_settings_payload(app_settings: ApplicationSettings) -> Dict[st
 
     merged = merge_config_with_persisted_settings(env_config, persisted)
 
+    runtime_feature_flags = {
+        flag_name: is_flag_enabled(flag_name) for flag_name in ACTIVE_RUNTIME_FLAGS
+    }
+
     return {
         "source": "merged",
         "settings": {
@@ -609,7 +613,7 @@ def get_effective_settings_payload(app_settings: ApplicationSettings) -> Dict[st
                 "discovery_token": merged["discovery_token"],
                 "discovery_interval_seconds": merged["discovery_interval_seconds"],
             },
-            "feature_flags": persisted.get("settings", {}).get("feature_flags", {}),
+            "feature_flags": runtime_feature_flags,
         },
         "last_modified": persisted.get("last_modified"),
         "modified_by": persisted.get("modified_by"),
