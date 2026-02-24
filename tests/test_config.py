@@ -686,6 +686,40 @@ def test_setup_templates_and_generate_propagates_management_auth_token(monkeypat
     assert "MIO_MANAGEMENT_AUTH_TOKEN=token-from-env" in env_content
 
 
+def test_setup_validate_rejects_zero_fps(monkeypatch, tmp_path):
+    """Setup validation should reject fps=0 and advertise 1..120 constraints."""
+    from pi_camera_in_docker import main
+
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry-setup-validate.json"))
+    monkeypatch.setenv(
+        "MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-setup-validate.json")
+    )
+
+    app = main.create_app_from_env()
+    client = app.test_client()
+
+    validate_response = client.post(
+        "/api/setup/validate",
+        json={
+            "resolution": "640x480",
+            "fps": 0,
+            "jpeg_quality": 90,
+            "max_connections": 10,
+            "target_fps": 24,
+        },
+    )
+    assert validate_response.status_code == 200
+    validate_payload = validate_response.get_json()
+    assert validate_payload["valid"] is False
+    assert "FPS must be an integer between 1 and 120" in validate_payload["errors"]
+
+    templates_response = client.get("/api/setup/templates")
+    assert templates_response.status_code == 200
+    assert templates_response.get_json()["constraints"]["fps_range"] == [1, 120]
+
+
 def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspace_root):
     """Verify setup UI device detection captures /dev/v4l-subdev* nodes."""
     original_path = sys.path.copy()
