@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from .transport_url_validation import validate_base_url_for_transport
 
@@ -710,6 +710,63 @@ class FileWebcamRegistry(WebcamRegistry):
                 if existing.get("id") != webcam_id:
                     continue
 
+                merged = {**existing, **validated_patch}
+                if isinstance(existing.get("discovery"), dict) and isinstance(
+                    validated_patch.get("discovery"), dict
+                ):
+                    merged["discovery"] = {**existing["discovery"], **validated_patch["discovery"]}
+                merged = validate_webcam(merged)
+                if any(
+                    other_index != index and other.get("id") == merged["id"]
+                    for other_index, other in enumerate(data["nodes"])
+                ):
+                    message = f"webcam {merged['id']} already exists"
+                    raise NodeValidationError(message)
+                data["nodes"][index] = merged
+                self._save(data)
+                return {"node": merged, "upserted": "updated"}
+
+            if any(existing.get("id") == candidate["id"] for existing in data["nodes"]):
+                message = f"webcam {candidate['id']} already exists"
+                raise NodeValidationError(message)
+            data["nodes"].append(candidate)
+            self._save(data)
+            return {"node": candidate, "upserted": "created"}
+
+    def upsert_webcam_from_current(
+        self,
+        webcam_id: str,
+        create_value: Dict[str, Any],
+        patch_builder: Callable[[Dict[str, Any]], Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Create or update webcam using an in-lock patch builder.
+
+        Computes the update patch from the currently persisted webcam record while
+        holding the exclusive registry lock. This avoids stale caller-side snapshots
+        when concurrent writers modify the same node between reads and writes.
+
+        Args:
+            webcam_id: Webcam ID to upsert.
+            create_value: Data for webcam creation (if new).
+            patch_builder: Callback that receives the in-lock existing webcam record
+                and returns a partial patch to apply.
+
+        Returns:
+            Dict with keys: 'node' (the node), 'upserted' ("created" or "updated").
+
+        Raises:
+            NodeValidationError: If validation or ID uniqueness check fails.
+        """
+        candidate = validate_webcam(create_value)
+
+        with self._exclusive_lock():
+            data = self._load()
+            for index, existing in enumerate(data["nodes"]):
+                if existing.get("id") != webcam_id:
+                    continue
+
+                patch_value = patch_builder(existing)
+                validated_patch = validate_webcam(patch_value, partial=True)
                 merged = {**existing, **validated_patch}
                 if isinstance(existing.get("discovery"), dict) and isinstance(
                     validated_patch.get("discovery"), dict

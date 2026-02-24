@@ -374,28 +374,6 @@ def _discovery_metadata(existing: Optional[Dict[str, Any]] = None) -> Dict[str, 
     }
 
 
-def _announce_discovery_patch(existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Build discovery patch metadata for announce upserts.
-
-    Ensures first_seen is always present in the patch payload, updates
-    last_announce_at on every announce, and preserves existing approval state
-    when present.
-
-    Args:
-        existing: Existing webcam entry, if one already exists in the registry.
-
-    Returns:
-        Discovery patch dictionary for upsert update path.
-    """
-    metadata = _discovery_metadata(existing)
-    return {
-        "source": "discovered",
-        "first_seen": metadata["first_seen"],
-        "last_announce_at": metadata["last_announce_at"],
-        "approved": metadata["approved"],
-    }
-
-
 def _build_headers(node: Dict[str, Any]) -> Dict[str, str]:
     auth = node.get("auth", {})
     if auth.get("type") == "bearer" and auth.get("token"):
@@ -1570,20 +1548,25 @@ def register_management_routes(
         if blocked_target:
             return _discovery_private_ip_block_response(validated["base_url"], blocked_target)
 
-        existing = registry.get_webcam(validated["id"])
+        def _build_discovery_upsert_patch(existing: Dict[str, Any]) -> Dict[str, Any]:
+            patch = {
+                "name": validated["name"],
+                "base_url": validated["base_url"],
+                "transport": validated["transport"],
+                "capabilities": validated["capabilities"],
+                "last_seen": validated["last_seen"],
+                "labels": validated["labels"],
+                "auth": validated["auth"],
+            }
+            patch["discovery"] = _discovery_metadata(existing)
+            return patch
 
-        patch = {
-            "name": validated["name"],
-            "base_url": validated["base_url"],
-            "transport": validated["transport"],
-            "capabilities": validated["capabilities"],
-            "last_seen": validated["last_seen"],
-            "labels": validated["labels"],
-            "auth": validated["auth"],
-            "discovery": _announce_discovery_patch(existing),
-        }
         try:
-            upserted = registry.upsert_webcam(validated["id"], validated, patch)
+            upserted = registry.upsert_webcam_from_current(
+                validated["id"],
+                validated,
+                _build_discovery_upsert_patch,
+            )
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
