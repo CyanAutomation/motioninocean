@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 ACTIVE_RUNTIME_FLAGS = (
     "MOCK_CAMERA",
-    "OCTOPRINT_COMPATIBILITY",
 )
 """Feature flags that currently have concrete runtime reads in production code."""
 
@@ -79,15 +78,6 @@ class FeatureFlags:
             )
         )
 
-        self.register(
-            FeatureFlag(
-                name="OCTOPRINT_COMPATIBILITY",
-                default=False,
-                category=FeatureFlagCategory.INTEGRATION_COMPATIBILITY,
-                description="Enable OctoPrint camera format compatibility mode.",
-            )
-        )
-
     def register(self, flag: FeatureFlag) -> None:
         """Register a feature flag.
 
@@ -113,6 +103,8 @@ class FeatureFlags:
             logger.warning("Feature flags already loaded, skipping reload")
             return
 
+        self._log_deprecated_octoprint_compatibility_envs()
+
         for flag_name, flag in self._flags.items():
             # Try MIO_ prefixed name first
             env_var = f"MIO_{flag_name}"
@@ -128,6 +120,20 @@ class FeatureFlags:
 
         self._loaded = True
         self._log_summary()
+
+    def _log_deprecated_octoprint_compatibility_envs(self) -> None:
+        """Warn when deprecated OctoPrint compatibility env vars are set.
+
+        OctoPrint compatibility behavior is always enabled and no longer controlled
+        via feature flag env vars.
+        """
+        for env_var in ("MIO_OCTOPRINT_COMPATIBILITY", "OCTOPRINT_COMPATIBILITY"):
+            if os.environ.get(env_var) is not None:
+                logger.warning(
+                    "Environment variable '%s' is deprecated and ignored because "
+                    "OctoPrint compatibility is always enabled.",
+                    env_var,
+                )
 
     def _parse_bool(self, value: str, flag_name: str) -> bool:
         """Parse a string value as boolean.
