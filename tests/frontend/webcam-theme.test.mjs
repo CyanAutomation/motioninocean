@@ -11,11 +11,13 @@ function extractFunction(source, functionName) {
   return match[0];
 }
 
-test("applyTheme updates document theme, button label, and storage", () => {
+test("applyTheme updates document theme, icons, and storage", () => {
   const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
   const applyThemeFn = extractFunction(appJs, "applyTheme");
 
   const writes = [];
+  const moonStyle = { display: "" };
+  const sunStyle = { display: "" };
   const context = {
     THEME_STORAGE_KEY: "webcam.theme",
     document: {
@@ -28,9 +30,8 @@ test("applyTheme updates document theme, button label, and storage", () => {
     },
     state: {
       elements: {
-        themeToggleBtn: {
-          textContent: "",
-        },
+        themeIconMoon: { style: moonStyle },
+        themeIconSun: { style: sunStyle },
       },
     },
     localStorage: {
@@ -44,7 +45,8 @@ test("applyTheme updates document theme, button label, and storage", () => {
   context.applyTheme("dark");
 
   assert.equal(context.document.documentElement.attributes["data-theme"], "dark");
-  assert.equal(context.state.elements.themeToggleBtn.textContent, "Light Theme");
+  assert.equal(moonStyle.display, "none");
+  assert.equal(sunStyle.display, "");
   assert.deepEqual(writes, [["webcam.theme", "dark"]]);
 });
 
