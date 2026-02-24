@@ -508,6 +508,9 @@
    ========================================== */
 
 .webcam-page {
+  --webcam-rail-width: 82px;
+  --webcam-layout-gap: var(--space-4);
+  --webcam-bottom-rail-height: 68px;
   position: relative;
   min-height: 100vh;
   background: var(--management-canvas);
@@ -527,8 +530,11 @@
   position: sticky;
   top: var(--space-4);
   z-index: 10;
-  margin: var(--space-4) var(--space-4) 0 98px;
-  width: calc(100% - 98px - (var(--space-4) * 2));
+  margin: var(--space-4) var(--webcam-layout-gap) 0
+    calc(var(--webcam-rail-width) + var(--webcam-layout-gap));
+  width: calc(
+    100% - var(--webcam-rail-width) - (var(--webcam-layout-gap) * 2)
+  );
   border: 1px solid var(--color-border-default);
   border-radius: 16px;
   background: var(--color-bg-surface);
@@ -1043,7 +1049,8 @@
 .webcam-page .container {
   position: relative;
   z-index: 1;
-  margin: var(--space-5) var(--space-4) 0 98px;
+  margin: var(--space-5) var(--webcam-layout-gap) 0
+    calc(var(--webcam-rail-width) + var(--webcam-layout-gap));
   max-width: none;
   padding: 0;
   gap: var(--space-3);
@@ -1067,11 +1074,7 @@
   border-radius: 20px;
 }
 
-/* Rail navigation styles consolidated in tabs-config.css */
-
-.webcam-bottom-rail {
-  display: none;
-}
+/* Rail navigation styles are defined in tabs-config.css */
 
 @media (max-width: 1024px) {
   .webcam-topbar {
@@ -1091,10 +1094,6 @@
 }
 
 @media (max-width: 900px) {
-  .webcam-side-rail {
-    display: none;
-  }
-
   .webcam-topbar {
     top: var(--space-3);
   }
@@ -1108,41 +1107,7 @@
   .webcam-page .container {
     margin-left: var(--space-3);
     margin-right: var(--space-3);
-    padding-bottom: 84px;
-  }
-
-  .webcam-bottom-rail {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 20;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--space-1);
-    padding: var(--space-2);
-    background: var(--management-rail);
-    border-top: 1px solid var(--color-border-strong);
-  }
-
-  .webcam-bottom-rail .mobile-rail-btn {
-    min-height: 40px;
-    border-radius: 999px;
-    border: 1px solid transparent;
-    background: var(--management-rail-muted);
-    color: var(--color-text-secondary);
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-
-  .webcam-bottom-rail .mobile-rail-btn.active {
-    background: var(--management-accent);
-    color: var(--color-text-inverse);
-    box-shadow: var(--shadow-focus-ring);
-  }
-
-  .webcam-bottom-rail .mobile-rail-btn .tab-label {
-    display: inline;
+    padding-bottom: calc(var(--webcam-bottom-rail-height) + var(--space-4));
   }
 }
 

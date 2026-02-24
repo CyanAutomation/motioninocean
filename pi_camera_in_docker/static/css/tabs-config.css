@@ -1197,23 +1197,35 @@
   display: none;
 }
 
+@media (min-width: 901px) {
+  .webcam-bottom-rail.tab-navigation {
+    display: none;
+  }
+}
+
 @media (max-width: 900px) {
+  .webcam-side-rail.tab-navigation {
+    display: none;
+  }
+
   .webcam-bottom-rail.tab-navigation {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
+    min-height: var(--webcam-bottom-rail-height, 68px);
     z-index: 20;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--space-1);
-    padding: var(--space-2);
+    padding: var(--space-2) var(--space-3);
     background: var(--management-rail);
     border-top: 1px solid var(--color-border-strong);
+    box-shadow: 0 -2px 8px rgba(15, 23, 42, 0.12);
   }
 
   .webcam-bottom-rail .tab-btn {
-    min-height: 40px;
+    min-height: 44px;
     border-radius: 999px;
     border: 1px solid transparent;
     background: var(--management-rail-muted);
