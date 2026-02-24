@@ -391,7 +391,6 @@ services:
       MAX_STREAM_CONNECTIONS: ${MIO_MAX_STREAM_CONNECTIONS:-2}
       # Canonical Pi 3 profile toggle consumed by runtime config loading.
       MIO_PI3_PROFILE: ${MIO_PI3_PROFILE:-false}
-      MIO_OCTOPRINT_COMPATIBILITY: ${MIO_OCTOPRINT_COMPATIBILITY:-false}
       MIO_CORS_ORIGINS: ${MIO_CORS_ORIGINS}
       MOCK_CAMERA: ${MOCK_CAMERA:-false}
       MIO_HEALTHCHECK_READY: ${MIO_HEALTHCHECK_READY:-true}
@@ -439,7 +438,6 @@ def _generate_env_content(config: Dict[str, Any]) -> str:
         f"MIO_PI3_PROFILE={'true' if config.get('pi3_profile') else 'false'}",
         "",
         "# Features and Integration",
-        "MIO_OCTOPRINT_COMPATIBILITY=false",
         f"MIO_CORS_ORIGINS={config.get('cors_origins', '')}",
         f"MOCK_CAMERA={'true' if config.get('mock_camera') else 'false'}",
         "MIO_HEALTHCHECK_READY=true",

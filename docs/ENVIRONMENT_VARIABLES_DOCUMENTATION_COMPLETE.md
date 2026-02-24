@@ -127,7 +127,8 @@ referenced in the codebase. Previously, only **23 variables were documented**, l
 **Legacy/Backward Compatibility**
 
 - `PI3_PROFILE` (legacy alias for `MIO_PI3_PROFILE`) ✗ removed
-- `OCTOPRINT_COMPATIBILITY` (legacy alias for `MIO_OCTOPRINT_COMPATIBILITY`) ✗ removed
+- `MIO_OCTOPRINT_COMPATIBILITY` (deprecated/ignored; OctoPrint compatibility is always enabled, remove this variable from deployments)
+- `OCTOPRINT_COMPATIBILITY` (legacy alias for deprecated `MIO_OCTOPRINT_COMPATIBILITY`) ✗ removed
 - `MOCK_CAMERA` (legacy alias for `MIO_MOCK_CAMERA`) ✗ removed
 - `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` (legacy alias for `MIO_ALLOW_PRIVATE_IPS`) ✗ removed
 
