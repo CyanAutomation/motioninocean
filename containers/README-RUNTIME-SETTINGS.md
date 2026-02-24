@@ -114,7 +114,6 @@ These environment variables are **system configuration** and require container r
 
 - `NODE_REGISTRY_PATH` - Store path for node registry
 - `APPLICATION_SETTINGS_PATH` - Store path for runtime settings JSON/lock files
-- `ALLOW_PYKMS_MOCK` - Internal KMS configuration
 - `LIMITER_STORAGE_URI` - Rate limiter backend
 - `DOCKER_PROXY_PORT` - Docker connectivity settings
 

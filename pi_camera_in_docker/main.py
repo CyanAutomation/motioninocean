@@ -1535,7 +1535,7 @@ def _init_real_camera(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     camera_lock: RLock = state["camera_lock"]
 
     picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(
-        cfg["allow_pykms_mock"]
+        cfg["pykms_mock_fallback_enabled"]
     )
 
     def _set_startup_error(

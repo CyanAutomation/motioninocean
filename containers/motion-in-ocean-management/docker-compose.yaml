@@ -52,7 +52,6 @@ services:
 
       # System Configuration
       MIO_LIMITER_STORAGE_URI: ${MIO_LIMITER_STORAGE_URI:-memory://}
-      MIO_ALLOW_PYKMS_MOCK: ${MIO_ALLOW_PYKMS_MOCK:-false}
 
       # Error tracking (optional)
       MIO_SENTRY_DSN: ${MIO_SENTRY_DSN:-}

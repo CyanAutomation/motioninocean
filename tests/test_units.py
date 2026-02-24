@@ -397,7 +397,7 @@ def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypa
 
     cfg = {
         "mock_camera": False,
-        "allow_pykms_mock": False,
+        "pykms_mock_fallback_enabled": False,
         "resolution": (640, 480),
         "fps": 0,
         "jpeg_quality": 90,
@@ -525,7 +525,7 @@ def test_shutdown_updates_ready_metrics_and_api_status_immediately():
             "pi3_profile_enabled": False,
             "mock_camera": True,
             "cors_enabled": False,
-            "allow_pykms_mock": False,
+            "pykms_mock_fallback_enabled": False,
             "webcam_registry_path": "/tmp/node-registry.json",
             "application_settings_path": "/tmp/application-settings.json",
             "management_auth_token": "",
@@ -580,7 +580,7 @@ def test_ready_reports_initializing_reason_when_camera_startup_error_absent():
             "pi3_profile_enabled": False,
             "mock_camera": True,
             "cors_enabled": False,
-            "allow_pykms_mock": False,
+            "pykms_mock_fallback_enabled": False,
             "webcam_registry_path": "/tmp/node-registry.json",
             "application_settings_path": "/tmp/application-settings.json",
             "management_auth_token": "",
@@ -655,7 +655,7 @@ def test_run_webcam_mode_camera_detection_supports_both_global_camera_info_modes
 
         cfg = {
             "mock_camera": False,
-            "allow_pykms_mock": False,
+            "pykms_mock_fallback_enabled": False,
             "resolution": (640, 480),
             "fps": 0,
             "jpeg_quality": 90,
@@ -727,7 +727,7 @@ def _build_base_app_config(cors_enabled=False, cors_origins="disabled"):
         "mock_camera": True,
         "cors_enabled": cors_enabled,
         "cors_origins": cors_origins,
-        "allow_pykms_mock": False,
+        "pykms_mock_fallback_enabled": False,
         "webcam_registry_path": "/tmp/node-registry.json",
         "application_settings_path": "/tmp/application-settings.json",
         "management_auth_token": "",

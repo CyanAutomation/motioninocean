@@ -110,7 +110,7 @@ These settings control deployment and system behavior, and are set at container 
 - `MIO_MANAGEMENT_AUTH_TOKEN` — Security token for management hub access
 - `APPLICATION_SETTINGS_PATH`, `NODE_REGISTRY_PATH` — Persistence locations
 - `MIO_SENTRY_DSN` — Error tracking
-- `LIMITER_STORAGE_URI`, `ALLOW_PYKMS_MOCK` — Advanced system settings
+- `LIMITER_STORAGE_URI` — Advanced system settings
 
 **Management mode:**
 
