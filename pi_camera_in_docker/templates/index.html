@@ -18,7 +18,13 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tabs-config.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}" />
   </head>
-  <body class="webcam-page">
+  <body
+    class="webcam-page"
+    data-mio-avatar="{{ url_for('static', filename='img/mio/mio_avatar.png') }}"
+    data-mio-happy="{{ url_for('static', filename='img/mio/mio_happy.png') }}"
+    data-mio-curious="{{ url_for('static', filename='img/mio/mio_curious.png') }}"
+    data-mio-sleeping="{{ url_for('static', filename='img/mio/mio_sleeping.png') }}"
+  >
     <div class="webcam-bg-pattern" aria-hidden="true"></div>
 
     <nav class="tab-navigation webcam-side-rail" aria-label="Webcam views">
@@ -164,6 +170,17 @@
         </div>
 
         <div class="header-actions">
+          <div class="webcam-mio webcam-mio--hero" aria-live="polite">
+            <img
+              id="mio-hero-image"
+              src="{{ url_for('static', filename='img/mio/mio_happy.png') }}"
+              alt="Mio mascot for Stream view"
+              width="56"
+              height="56"
+              loading="eager"
+              decoding="async"
+            />
+          </div>
           <button
             id="theme-toggle-btn"
             class="ui-btn ui-btn--icon"
@@ -254,6 +271,17 @@
                 <span id="resolution-value" class="stream-surface__resolution">
                   {{ width }} × {{ height }}
                 </span>
+                <div class="webcam-mio webcam-mio--context">
+                  <img
+                    id="mio-stream-image"
+                    src="{{ url_for('static', filename='img/mio/mio_happy.png') }}"
+                    alt="Mio mascot for Stream view"
+                    width="64"
+                    height="64"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
               </div>
             </div>
 
@@ -455,6 +483,19 @@
         </div>
 
         <div class="config-content">
+          <div class="webcam-panel-mio webcam-panel-mio--config">
+            <div class="webcam-mio webcam-mio--context">
+              <img
+                id="mio-config-image"
+                src="{{ url_for('static', filename='img/mio/mio_curious.png') }}"
+                alt="Mio mascot for Configuration view"
+                width="64"
+                height="64"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          </div>
           <!-- Camera Settings Group (Editable) -->
           <div class="config-group editable-section ui-card">
             <div class="config-group-header ui-panel-header">
@@ -640,6 +681,19 @@
         </div>
 
         <div class="settings-content">
+          <div class="webcam-panel-mio webcam-panel-mio--settings">
+            <div class="webcam-mio webcam-mio--context">
+              <img
+                id="mio-settings-image"
+                src="{{ url_for('static', filename='img/mio/mio_sleeping.png') }}"
+                alt="Mio mascot for Runtime Settings view"
+                width="64"
+                height="64"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          </div>
           <!-- Settings Header -->
           <div class="settings-header ui-card">
             <h2>Configuration</h2>
@@ -1004,6 +1058,19 @@
         </div>
 
         <div class="setup-content">
+          <div class="webcam-panel-mio webcam-panel-mio--setup">
+            <div class="webcam-mio webcam-mio--context">
+              <img
+                id="mio-setup-image"
+                src="{{ url_for('static', filename='img/mio/mio_avatar.png') }}"
+                alt="Mio mascot for Set-Up view"
+                width="64"
+                height="64"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          </div>
           <div class="setup-section ui-card">
             <div class="setup-section-header ui-panel-header">
               <h3 class="setup-section-title">Guided Setup</h3>

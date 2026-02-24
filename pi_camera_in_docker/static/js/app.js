@@ -6,6 +6,7 @@
 const REQUEST_TIMEOUT_MS = 5000;
 const CONFIG_POLL_INTERVAL_MS = 5000;
 const THEME_STORAGE_KEY = "webcam.theme";
+const DEFAULT_MIO_PATH = "/static/img/mio/mio_avatar.png";
 
 const state = {
   updateInterval: null,
@@ -69,6 +70,11 @@ const state = {
     chipStale: null,
     chipInactive: null,
     chipFps: null,
+    mioHeroImage: null,
+    mioStreamImage: null,
+    mioConfigImage: null,
+    mioSetupImage: null,
+    mioSettingsImage: null,
   },
 };
 
@@ -80,6 +86,7 @@ function init() {
   attachHandlers();
   initializeTheme();
   updateViewMeta(state.currentTab);
+  updateMascotForTab(state.currentTab);
   startStatsUpdate();
   updateStats().catch((error) => console.error("Initial stats update failed:", error));
   updateConfig().catch((error) => console.error("Initial config update failed:", error));
@@ -173,6 +180,11 @@ function cacheElements() {
   state.elements.chipStale = document.getElementById("chip-stale");
   state.elements.chipInactive = document.getElementById("chip-inactive");
   state.elements.chipFps = document.getElementById("chip-fps");
+  state.elements.mioHeroImage = document.getElementById("mio-hero-image");
+  state.elements.mioStreamImage = document.getElementById("mio-stream-image");
+  state.elements.mioConfigImage = document.getElementById("mio-config-image");
+  state.elements.mioSetupImage = document.getElementById("mio-setup-image");
+  state.elements.mioSettingsImage = document.getElementById("mio-settings-image");
 
   // Config panel elements
   state.elements.configLoading = document.getElementById("config-loading");
@@ -874,6 +886,7 @@ function switchTab(tabName) {
   });
 
   updateViewMeta(tabName);
+  updateMascotForTab(tabName);
 
   // Update visible panels
   const mainSection = document.querySelector(".video-section");
@@ -939,6 +952,64 @@ function switchTab(tabName) {
   }
 
   assertSinglePollingMode();
+}
+
+/**
+ * Resolve mascot image assets provided on the page.
+ *
+ * @returns {{avatar: string, happy: string, curious: string, sleeping: string}}
+ */
+function getMioAssets() {
+  const { dataset } = document.body;
+  return {
+    avatar: dataset.mioAvatar || DEFAULT_MIO_PATH,
+    happy: dataset.mioHappy || DEFAULT_MIO_PATH,
+    curious: dataset.mioCurious || DEFAULT_MIO_PATH,
+    sleeping: dataset.mioSleeping || DEFAULT_MIO_PATH,
+  };
+}
+
+/**
+ * Update mascot image(s) based on active tab.
+ *
+ * @param {string} tabName - Active view key.
+ * @returns {void}
+ */
+function updateMascotForTab(tabName) {
+  const assets = getMioAssets();
+  const mascotByTab = {
+    main: {
+      src: assets.happy,
+      alt: "Mio mascot for Stream view",
+    },
+    config: {
+      src: assets.curious,
+      alt: "Mio mascot for Configuration view",
+    },
+    setup: {
+      src: assets.avatar,
+      alt: "Mio mascot for Set-Up view",
+    },
+    settings: {
+      src: assets.sleeping,
+      alt: "Mio mascot for Runtime Settings view",
+    },
+  };
+
+  const mascot = mascotByTab[tabName] || mascotByTab.main;
+  const mascotImages = [
+    state.elements.mioHeroImage,
+    state.elements.mioStreamImage,
+    state.elements.mioConfigImage,
+    state.elements.mioSetupImage,
+    state.elements.mioSettingsImage,
+  ];
+
+  mascotImages.forEach((imageElement) => {
+    if (!imageElement) return;
+    imageElement.src = mascot.src;
+    imageElement.alt = mascot.alt;
+  });
 }
 
 /**

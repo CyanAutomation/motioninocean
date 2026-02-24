@@ -2972,6 +2972,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "kVxcN",
+                  "x": 286,
+                  "y": 16,
+                  "name": "Mio Hero Happy",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#59C7FF",
+                  "cornerRadius": 14
                 }
               ]
             },
@@ -3096,6 +3107,17 @@
                       "fontWeight": "normal"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "EDXak",
+                  "x": 16,
+                  "y": 16,
+                  "name": "Mio Context Happy",
+                  "width": 64,
+                  "height": 64,
+                  "fill": "#59C7FF",
+                  "cornerRadius": 18
                 }
               ]
             }
@@ -3770,6 +3792,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pb0YD",
+                  "x": 286,
+                  "y": 16,
+                  "name": "Mio Hero Happy",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#59C7FF",
+                  "cornerRadius": 14
                 }
               ]
             },
@@ -3894,6 +3927,17 @@
                       "fontWeight": "normal"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "hAhIj",
+                  "x": 16,
+                  "y": 16,
+                  "name": "Mio Context Happy",
+                  "width": 64,
+                  "height": 64,
+                  "fill": "#59C7FF",
+                  "cornerRadius": 18
                 }
               ]
             }
@@ -11294,6 +11338,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "kzv1v",
+                  "x": 286,
+                  "y": 16,
+                  "name": "Mio Hero Curious",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#7BC2FF",
+                  "cornerRadius": 14
                 }
               ]
             },
@@ -11418,6 +11473,17 @@
                       "fontWeight": "normal"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "HHByT",
+                  "x": 16,
+                  "y": 16,
+                  "name": "Mio Context Curious",
+                  "width": 64,
+                  "height": 64,
+                  "fill": "#7BC2FF",
+                  "cornerRadius": 18
                 }
               ]
             }
@@ -12092,6 +12158,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "dkmAi",
+                  "x": 286,
+                  "y": 16,
+                  "name": "Mio Hero Avatar",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#5FA6E8",
+                  "cornerRadius": 14
                 }
               ]
             },
@@ -12216,6 +12293,17 @@
                       "fontWeight": "normal"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "7EFVc",
+                  "x": 16,
+                  "y": 16,
+                  "name": "Mio Context Avatar",
+                  "width": 64,
+                  "height": 64,
+                  "fill": "#5FA6E8",
+                  "cornerRadius": 18
                 }
               ]
             }
@@ -12890,6 +12978,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wgZMd",
+                  "x": 286,
+                  "y": 16,
+                  "name": "Mio Hero Sleeping",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#8BB6D9",
+                  "cornerRadius": 14
                 }
               ]
             },
@@ -13014,6 +13113,17 @@
                       "fontWeight": "normal"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wpUtm",
+                  "x": 16,
+                  "y": 16,
+                  "name": "Mio Context Sleeping",
+                  "width": 64,
+                  "height": 64,
+                  "fill": "#8BB6D9",
+                  "cornerRadius": 18
                 }
               ]
             }
@@ -13688,6 +13798,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "SSlQ5",
+                  "x": 286,
+                  "y": 16,
+                  "name": "Mio Hero Curious",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#7BC2FF",
+                  "cornerRadius": 14
                 }
               ]
             },
@@ -13812,6 +13933,17 @@
                       "fontWeight": "normal"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Un4Pk",
+                  "x": 16,
+                  "y": 16,
+                  "name": "Mio Context Curious",
+                  "width": 64,
+                  "height": 64,
+                  "fill": "#7BC2FF",
+                  "cornerRadius": 18
                 }
               ]
             }
@@ -14486,6 +14618,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "yGXMM",
+                  "x": 286,
+                  "y": 16,
+                  "name": "Mio Hero Avatar",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#5FA6E8",
+                  "cornerRadius": 14
                 }
               ]
             },
@@ -14610,6 +14753,17 @@
                       "fontWeight": "normal"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "E8ThK",
+                  "x": 16,
+                  "y": 16,
+                  "name": "Mio Context Avatar",
+                  "width": 64,
+                  "height": 64,
+                  "fill": "#5FA6E8",
+                  "cornerRadius": 18
                 }
               ]
             }
@@ -15284,6 +15438,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MeRaT",
+                  "x": 286,
+                  "y": 16,
+                  "name": "Mio Hero Sleeping",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "#8BB6D9",
+                  "cornerRadius": 14
                 }
               ]
             },
@@ -15408,6 +15573,17 @@
                       "fontWeight": "normal"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "K6YF9",
+                  "x": 16,
+                  "y": 16,
+                  "name": "Mio Context Sleeping",
+                  "width": 64,
+                  "height": 64,
+                  "fill": "#8BB6D9",
+                  "cornerRadius": 18
                 }
               ]
             }
