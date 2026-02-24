@@ -218,7 +218,7 @@ def test_api_config_webcam_includes_render_config_keys_and_defaulted_values(monk
         }
         assert body["stream_control"]["max_stream_connections"] == 10
         assert body["stream_control"]["max_frame_age_seconds"] == 10.0
-        assert body["stream_control"]["cors_origins"] == "*"
+        assert body["stream_control"]["cors_origins"] == "disabled"
         assert isinstance(body["runtime"]["uptime_seconds"], float)
         assert body["runtime"]["uptime_seconds"] >= 0.0
         _assert_health_check_contract(body)
@@ -256,7 +256,7 @@ def test_api_config_management_includes_render_config_keys_and_defaulted_values(
         assert body["stream_control"]["max_stream_connections"] == 10
         assert body["stream_control"]["current_stream_connections"] == 0
         assert body["stream_control"]["max_frame_age_seconds"] == 10.0
-        assert body["stream_control"]["cors_origins"] == "*"
+        assert body["stream_control"]["cors_origins"] == "disabled"
         assert body["runtime"]["camera_active"] is False
         assert body["runtime"]["uptime_seconds"] is None
         _assert_health_check_contract(body)
