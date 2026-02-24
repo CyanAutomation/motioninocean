@@ -74,37 +74,6 @@ class SettingsSchema:
                 },
             },
         },
-        "feature_flags": {
-            "title": "Feature Flags",
-            "description": "Runtime-integrated feature toggles.",
-            "properties": {
-                "MOCK_CAMERA": {
-                    "type": "boolean",
-                    "title": "Mock Camera",
-                    "description": "Use mock camera frames when hardware camera is unavailable",
-                    "default": False,
-                    "category": "Experimental",
-                    "restartable": False,
-                },
-                "CORS_SUPPORT": {
-                    "type": "boolean",
-                    "title": "CORS Support",
-                    "description": "Enable Cross-Origin Resource Sharing for browser-based clients",
-                    "default": True,
-                    "category": "Integration",
-                    "restartable": True,
-                    "requires_restart": "Changing CORS requires server restart",
-                },
-                "OCTOPRINT_COMPATIBILITY": {
-                    "type": "boolean",
-                    "title": "OctoPrint Compatibility",
-                    "description": "Enable MJPEG multipart boundary formatting for OctoPrint clients",
-                    "default": False,
-                    "category": "Integration",
-                    "restartable": False,
-                },
-            },
-        },
         "logging": {
             "title": "Logging Configuration",
             "description": "Control logging output verbosity and format",
