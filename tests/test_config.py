@@ -161,6 +161,26 @@ def test_create_app_from_env_applies_resolution_and_fps_env(monkeypatch, tmp_pat
     assert app.motion_config["fps"] == 20
 
 
+def test_feature_flags_endpoint_excludes_octoprint_compatibility(monkeypatch, tmp_path):
+    """Feature flags API should expose only runtime-registered flags."""
+    from pi_camera_in_docker import main
+
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry-feature-flags.json"))
+    monkeypatch.setenv(
+        "MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-feature-flags.json")
+    )
+    monkeypatch.setenv("MIO_MANAGEMENT_AUTH_TOKEN", "")
+
+    app = main.create_app_from_env()
+    client = app.test_client()
+    response = client.get("/api/feature-flags")
+
+    assert response.status_code == 200
+    assert response.get_json() == {"MOCK_CAMERA": True}
+
+
 def test_create_app_from_env_defaults_invalid_resolution_to_safe_fallback(monkeypatch, tmp_path):
     """Invalid MIO_RESOLUTION env value should fall back to default tuple in app config."""
     from pi_camera_in_docker import main

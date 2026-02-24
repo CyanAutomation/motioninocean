@@ -35,10 +35,7 @@ class TestFeatureFlagRegistry:
         flags = FeatureFlags()
         all_flags = flags.get_all_flags()
 
-        expected_flags = {
-            "MOCK_CAMERA",
-            "OCTOPRINT_COMPATIBILITY",
-        }
+        expected_flags = {"MOCK_CAMERA"}
 
         assert expected_flags.issubset(set(all_flags.keys())), (
             f"Missing flags: {expected_flags - set(all_flags.keys())}"
@@ -69,6 +66,22 @@ class TestFeatureFlagRegistry:
 
         assert flags.is_enabled("MOCK_CAMERA") is True
         assert "Legacy environment variable" not in caplog.text
+
+    @pytest.mark.parametrize(
+        "env_var",
+        ["MIO_OCTOPRINT_COMPATIBILITY", "OCTOPRINT_COMPATIBILITY"],
+    )
+    def test_deprecated_octoprint_compatibility_env_vars_warn_and_are_ignored(self, caplog, env_var):
+        """Deprecated OctoPrint feature-flag env vars should emit warnings and have no effect."""
+        from pi_camera_in_docker.feature_flags import FeatureFlags
+
+        with mock.patch.dict(os.environ, {env_var: "true"}, clear=True):
+            flags = FeatureFlags()
+            with caplog.at_level("WARNING"):
+                flags.load()
+
+        assert "deprecated and ignored" in caplog.text
+        assert "OctoPrint compatibility is always enabled" in caplog.text
 
 
 class TestFeatureFlagBehavior:

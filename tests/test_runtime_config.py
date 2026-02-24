@@ -37,10 +37,7 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
     monkeypatch.setattr(
         runtime_config,
         "is_flag_enabled",
-        lambda flag_name: {
-            "MOCK_CAMERA": False,
-            "OCTOPRINT_COMPATIBILITY": False,
-        }[flag_name],
+        lambda flag_name: {"MOCK_CAMERA": False}[flag_name],
     )
 
     snapshot = {
@@ -79,10 +76,7 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
 
     assert settings_store.load_calls == 1
     assert payload["settings"]["camera"]["fps"] == 42
-    assert payload["settings"]["feature_flags"] == {
-        "MOCK_CAMERA": False,
-        "OCTOPRINT_COMPATIBILITY": False,
-    }
+    assert payload["settings"]["feature_flags"] == {"MOCK_CAMERA": False}
     assert payload["last_modified"] == "2026-01-01T00:00:00+00:00"
     assert payload["modified_by"] == "api_patch"
 
@@ -522,18 +516,12 @@ def test_get_effective_settings_payload_reads_feature_flags_from_runtime(monkeyp
     monkeypatch.setattr(
         runtime_config,
         "is_flag_enabled",
-        lambda flag_name: {
-            "MOCK_CAMERA": True,
-            "OCTOPRINT_COMPATIBILITY": True,
-        }[flag_name],
+        lambda flag_name: {"MOCK_CAMERA": True}[flag_name],
     )
 
     payload = runtime_config.get_effective_settings_payload(StaticStore())
 
-    assert payload["settings"]["feature_flags"] == {
-        "MOCK_CAMERA": True,
-        "OCTOPRINT_COMPATIBILITY": True,
-    }
+    assert payload["settings"]["feature_flags"] == {"MOCK_CAMERA": True}
 
 
 def test_load_env_config_enables_pykms_fallback_in_api_test_mode(monkeypatch):

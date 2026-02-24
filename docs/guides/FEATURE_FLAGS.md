@@ -21,8 +21,7 @@ Example response:
 
 ```json
 {
-  "MOCK_CAMERA": false,
-  "OCTOPRINT_COMPATIBILITY": false
+  "MOCK_CAMERA": false
 }
 ```
 
@@ -45,11 +44,13 @@ Uses mock camera frames in webcam mode when enabled.
 
 - Legacy alias removed: `MOCK_CAMERA` (no longer read)
 
-### `MIO_OCTOPRINT_COMPATIBILITY` (default: `false`)
+## OctoPrint compatibility
 
-Uses OctoPrint-friendly MJPEG boundary formatting.
+OctoPrint compatibility behavior is always enabled and is no longer modeled as a
+feature flag.
 
-- Legacy alias removed: `OCTOPRINT_COMPATIBILITY` (no longer read)
+Deprecated env vars `MIO_OCTOPRINT_COMPATIBILITY` and `OCTOPRINT_COMPATIBILITY`
+are ignored and emit warnings when set.
 
 ## Registry policy
 

@@ -528,10 +528,7 @@ class TestApplicationSettingsRuntimeEffects:
         monkeypatch.setattr(
             runtime_config,
             "is_flag_enabled",
-            lambda flag_name: {
-                "MOCK_CAMERA": True,
-                "OCTOPRINT_COMPATIBILITY": False,
-            }[flag_name],
+            lambda flag_name: {"MOCK_CAMERA": True}[flag_name],
         )
 
         payload = runtime_config.get_effective_settings_payload(settings)
