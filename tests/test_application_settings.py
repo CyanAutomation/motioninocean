@@ -529,7 +529,6 @@ class TestApplicationSettingsRuntimeEffects:
             "is_flag_enabled",
             lambda flag_name: {
                 "MOCK_CAMERA": True,
-                "CORS_SUPPORT": False,
                 "OCTOPRINT_COMPATIBILITY": False,
             }[flag_name],
         )

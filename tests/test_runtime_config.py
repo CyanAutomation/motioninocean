@@ -39,7 +39,6 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
         "is_flag_enabled",
         lambda flag_name: {
             "MOCK_CAMERA": False,
-            "CORS_SUPPORT": True,
             "OCTOPRINT_COMPATIBILITY": False,
         }[flag_name],
     )
@@ -82,7 +81,6 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
     assert payload["settings"]["camera"]["fps"] == 42
     assert payload["settings"]["feature_flags"] == {
         "MOCK_CAMERA": False,
-        "CORS_SUPPORT": True,
         "OCTOPRINT_COMPATIBILITY": False,
     }
     assert payload["last_modified"] == "2026-01-01T00:00:00+00:00"
@@ -291,10 +289,10 @@ def test_merge_config_with_settings_logs_actionable_permission_warning(caplog):
     assert "APPLICATION_SETTINGS_PATH" in caplog.text
 
 
-def test_load_networking_config_returns_disabled_origins_when_cors_disabled(monkeypatch):
-    """CORS origins should be disabled when CORS feature flag is off."""
-    monkeypatch.setenv("MIO_CORS_ORIGINS", "https://example.com")
-    monkeypatch.setattr(runtime_config, "is_flag_enabled", lambda flag_name: False)
+def test_load_networking_config_disables_cors_when_origins_unset(monkeypatch):
+    """Unset CORS origins should disable CORS."""
+    monkeypatch.delenv("MIO_CORS_ORIGINS", raising=False)
+    monkeypatch.delenv("MIO_CORS_SUPPORT", raising=False)
 
     cfg = runtime_config._load_networking_config()
 
@@ -302,10 +300,9 @@ def test_load_networking_config_returns_disabled_origins_when_cors_disabled(monk
     assert cfg["cors_origins"] == "disabled"
 
 
-def test_load_networking_config_defaults_origins_to_wildcard_when_enabled(monkeypatch):
-    """CORS origins should default to wildcard when enabled and unset."""
-    monkeypatch.delenv("MIO_CORS_ORIGINS", raising=False)
-    monkeypatch.setattr(runtime_config, "is_flag_enabled", lambda flag_name: True)
+def test_load_networking_config_enables_wildcard_cors(monkeypatch):
+    """Wildcard CORS origins should enable CORS for all origins."""
+    monkeypatch.setenv("MIO_CORS_ORIGINS", "*")
 
     cfg = runtime_config._load_networking_config()
 
@@ -313,15 +310,53 @@ def test_load_networking_config_defaults_origins_to_wildcard_when_enabled(monkey
     assert cfg["cors_origins"] == "*"
 
 
-def test_load_networking_config_uses_configured_origins_when_enabled(monkeypatch):
-    """CORS origins should use explicit environment value when enabled."""
-    monkeypatch.setenv("MIO_CORS_ORIGINS", "https://example.com")
-    monkeypatch.setattr(runtime_config, "is_flag_enabled", lambda flag_name: True)
+def test_load_networking_config_uses_configured_origins_csv(monkeypatch):
+    """Comma-separated origins should be preserved for CORS configuration."""
+    monkeypatch.setenv("MIO_CORS_ORIGINS", "https://example.com, https://foo.test")
 
     cfg = runtime_config._load_networking_config()
 
     assert cfg["cors_enabled"] is True
+    assert cfg["cors_origins"] == "https://example.com, https://foo.test"
+
+
+def test_load_networking_config_maps_deprecated_cors_support_enabled(monkeypatch, caplog):
+    """Deprecated MIO_CORS_SUPPORT=true should map to wildcard CORS when origins unset."""
+    monkeypatch.delenv("MIO_CORS_ORIGINS", raising=False)
+    monkeypatch.setenv("MIO_CORS_SUPPORT", "true")
+
+    with caplog.at_level("WARNING"):
+        cfg = runtime_config._load_networking_config()
+
+    assert cfg["cors_enabled"] is True
+    assert cfg["cors_origins"] == "*"
+    assert "MIO_CORS_SUPPORT is deprecated" in caplog.text
+
+
+def test_load_networking_config_maps_deprecated_cors_support_disabled(monkeypatch, caplog):
+    """Deprecated MIO_CORS_SUPPORT=false should disable CORS when origins unset."""
+    monkeypatch.delenv("MIO_CORS_ORIGINS", raising=False)
+    monkeypatch.setenv("MIO_CORS_SUPPORT", "false")
+
+    with caplog.at_level("WARNING"):
+        cfg = runtime_config._load_networking_config()
+
+    assert cfg["cors_enabled"] is False
+    assert cfg["cors_origins"] == "disabled"
+    assert "MIO_CORS_SUPPORT is deprecated" in caplog.text
+
+
+def test_load_networking_config_prefers_origins_over_deprecated_cors_support(monkeypatch, caplog):
+    """MIO_CORS_ORIGINS should take precedence over deprecated MIO_CORS_SUPPORT."""
+    monkeypatch.setenv("MIO_CORS_ORIGINS", "https://example.com")
+    monkeypatch.setenv("MIO_CORS_SUPPORT", "false")
+
+    with caplog.at_level("WARNING"):
+        cfg = runtime_config._load_networking_config()
+
+    assert cfg["cors_enabled"] is True
     assert cfg["cors_origins"] == "https://example.com"
+    assert "MIO_CORS_SUPPORT is deprecated" in caplog.text
 
 
 def test_camera_fps_default_matches_settings_schema(monkeypatch):
@@ -477,7 +512,7 @@ def test_get_effective_settings_payload_reads_feature_flags_from_runtime(monkeyp
             return {
                 "settings": {
                     "camera": {},
-                    "feature_flags": {"MOCK_CAMERA": False, "CORS_SUPPORT": False},
+                    "feature_flags": {"MOCK_CAMERA": False},
                     "logging": {},
                     "discovery": {},
                 }
@@ -489,7 +524,6 @@ def test_get_effective_settings_payload_reads_feature_flags_from_runtime(monkeyp
         "is_flag_enabled",
         lambda flag_name: {
             "MOCK_CAMERA": True,
-            "CORS_SUPPORT": False,
             "OCTOPRINT_COMPATIBILITY": True,
         }[flag_name],
     )
@@ -498,7 +532,6 @@ def test_get_effective_settings_payload_reads_feature_flags_from_runtime(monkeyp
 
     assert payload["settings"]["feature_flags"] == {
         "MOCK_CAMERA": True,
-        "CORS_SUPPORT": False,
         "OCTOPRINT_COMPATIBILITY": True,
     }
 

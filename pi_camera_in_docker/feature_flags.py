@@ -29,7 +29,6 @@ LEGACY_ALIAS_DEPRECATION_FLAGS = {"MOCK_CAMERA"}
 
 ACTIVE_RUNTIME_FLAGS = (
     "MOCK_CAMERA",
-    "CORS_SUPPORT",
     "OCTOPRINT_COMPATIBILITY",
 )
 """Feature flags that currently have concrete runtime reads in production code."""
@@ -92,16 +91,6 @@ class FeatureFlags:
                 category=FeatureFlagCategory.EXPERIMENTAL,
                 description="Use mock camera for testing without real hardware.",
                 backward_compat_vars=["MOCK_CAMERA"],
-            )
-        )
-
-        self.register(
-            FeatureFlag(
-                name="CORS_SUPPORT",
-                default=True,
-                category=FeatureFlagCategory.INTEGRATION_COMPATIBILITY,
-                description="Enable CORS headers for cross-origin requests.",
-                backward_compat_vars=None,
             )
         )
 

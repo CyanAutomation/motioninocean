@@ -25,24 +25,28 @@ Example response:
 ```json
 {
   "MOCK_CAMERA": false,
-  "CORS_SUPPORT": true,
   "OCTOPRINT_COMPATIBILITY": false
 }
 ```
 
 ## Active flags
 
+## CORS configuration (migrated from feature flag)
+
+CORS is now configured via `MIO_CORS_ORIGINS` in runtime config, not the feature-flag registry.
+
+- Empty/unset `MIO_CORS_ORIGINS` → CORS disabled
+- `MIO_CORS_ORIGINS=*` → allow all origins
+- `MIO_CORS_ORIGINS=https://a.example,https://b.example` → allow listed origins
+
+`MIO_CORS_SUPPORT` is temporarily accepted for backward compatibility, logs a deprecation warning,
+and is mapped only when `MIO_CORS_ORIGINS` is unset.
+
 ### `MIO_MOCK_CAMERA` (default: `false`)
 
 Uses mock camera frames in webcam mode when enabled.
 
 - Legacy alias currently supported: `MOCK_CAMERA`
-
-### `MIO_CORS_SUPPORT` (default: `true`)
-
-Controls CORS behavior in networking config.
-
-- Legacy alias: _none_
 
 ### `MIO_OCTOPRINT_COMPATIBILITY` (default: `false`)
 

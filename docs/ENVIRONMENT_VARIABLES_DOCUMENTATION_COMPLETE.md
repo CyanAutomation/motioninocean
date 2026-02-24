@@ -105,7 +105,8 @@ referenced in the codebase. Previously, only **23 variables were documented**, l
 
 **Feature Flags - Integration & Compatibility** (NEW)
 
-- `MOTION_IN_OCEAN_CORS_SUPPORT` ✓
+- `MIO_CORS_ORIGINS` ✓ (primary CORS control: empty/unset disable, `*` allow all, CSV allow-list)
+- `MIO_CORS_SUPPORT` ✓ (deprecated compatibility alias mapped to CORS origins when primary var is unset)
 - `MOTION_IN_OCEAN_HOME_ASSISTANT_INTEGRATION` ✓
 
 **Feature Flags - Observability** (NEW)

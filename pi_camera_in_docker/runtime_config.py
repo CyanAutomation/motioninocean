@@ -256,15 +256,27 @@ def _load_networking_config() -> Dict[str, Any]:
     - MIO_BIND_HOST (default: 127.0.0.1)
     - MIO_PORT (1-65535, default: 8000)
     - MIO_BASE_URL (default: http://hostname:8000)
-    - CORS_SUPPORT (feature flag, default: false)
-    - MIO_CORS_ORIGINS (default: * if enabled, else disabled)
+    - MIO_CORS_ORIGINS (empty/unset disables CORS; '*' allows all; CSV allows listed origins)
+    - MIO_CORS_SUPPORT (deprecated; temporary compatibility alias mapped to MIO_CORS_ORIGINS)
 
     Returns:
         Dict with keys: cors_enabled, cors_origins, bind_host, bind_port, base_url.
     """
-    cors_enabled = is_flag_enabled("CORS_SUPPORT")
     cors_origins_raw = os.environ.get("MIO_CORS_ORIGINS", "").strip()
-    cors_origins = (cors_origins_raw or "*") if cors_enabled else "disabled"
+    legacy_cors_support = os.environ.get("MIO_CORS_SUPPORT")
+
+    if legacy_cors_support is not None:
+        logger.warning(
+            "MIO_CORS_SUPPORT is deprecated and will be removed in a future release. "
+            "Use MIO_CORS_ORIGINS instead."
+        )
+
+        if not cors_origins_raw:
+            legacy_enabled = legacy_cors_support.strip().lower() in ("1", "true", "yes", "on")
+            cors_origins_raw = "*" if legacy_enabled else ""
+
+    cors_enabled = bool(cors_origins_raw)
+    cors_origins = cors_origins_raw if cors_enabled else "disabled"
 
     bind_host = os.environ.get("MIO_BIND_HOST", "127.0.0.1").strip()
     try:
