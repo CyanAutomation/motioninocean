@@ -163,7 +163,8 @@ def test_create_app_from_env_applies_resolution_and_fps_env(monkeypatch, tmp_pat
 
 def test_feature_flags_endpoint_excludes_octoprint_compatibility(monkeypatch, tmp_path):
     """Feature flags API should expose only runtime-registered flags."""
-    from pi_camera_in_docker import main
+    import importlib
+    import sys
 
     monkeypatch.setenv("MIO_APP_MODE", "management")
     monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
@@ -172,6 +173,11 @@ def test_feature_flags_endpoint_excludes_octoprint_compatibility(monkeypatch, tm
         "MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-feature-flags.json")
     )
     monkeypatch.setenv("MIO_MANAGEMENT_AUTH_TOKEN", "")
+
+    # Pop both modules to force a fresh singleton so MIO_MOCK_CAMERA is picked up
+    sys.modules.pop("pi_camera_in_docker.feature_flags", None)
+    sys.modules.pop("pi_camera_in_docker.main", None)
+    main = importlib.import_module("pi_camera_in_docker.main")
 
     app = main.create_app_from_env()
     client = app.test_client()

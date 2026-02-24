@@ -8,7 +8,6 @@ import importlib
 import sys
 from pathlib import Path
 
-import pytest
 
 workspace_root = Path(__file__).parent.parent
 
