@@ -7,6 +7,12 @@
 # Platform: linux/amd64 (Cloud Run is amd64-only; no QEMU/Buildx needed)
 # Registry: Google Artifact Registry (GAR)
 #
+# Pre-requisite: GAR repository must exist before running this build (one-time setup):
+#   gcloud artifacts repositories create motioninocean \
+#     --repository-format=docker \
+#     --location=us-central1 \
+#     --description="Motion In Ocean demo images"
+#
 # Required substitutions (override in GCP trigger or --substitutions flag):
 #   _GAR_REGION      : Artifact Registry region       (e.g. us-central1)
 #   _GAR_REPO        : Artifact Registry repository   (e.g. motioninocean)
@@ -30,7 +36,7 @@ substitutions:
   _SERVICE_NAME: motioninocean-demo
 
 steps:
-  # ---- Step 1: Build and push amd64 image ----
+  # ---- Step 1: Build image ----
   # Plain docker build with BuildKit enabled — no Buildx or QEMU needed.
   # Cloud Run only runs linux/amd64, so cross-compilation is unnecessary here.
   - name: gcr.io/cloud-builders/docker
@@ -51,28 +57,7 @@ steps:
       - RPI_SUITE=bookworm
       - .
 
-  # ---- Step 2: Ensure GAR repository exists ----
-  # Creates the Artifact Registry Docker repository if it doesn't already exist.
-  # Safe to re-run on subsequent builds (--if-not-exists is idempotent).
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
-    id: create-gar-repo
-    entrypoint: gcloud
-    args:
-      - artifacts
-      - repositories
-      - create
-      - ${_GAR_REPO}
-      - --repository-format
-      - docker
-      - --location
-      - ${_GAR_REGION}
-      - --description
-      - Motion In Ocean demo images
-      - --if-not-exists
-    waitFor:
-      - build-and-push
-
-  # ---- Step 3: Push image to GAR ----
+  # ---- Step 2: Push image to GAR ----
   - name: gcr.io/cloud-builders/docker
     id: push-image
     args:
@@ -80,9 +65,9 @@ steps:
       - --all-tags
       - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}
     waitFor:
-      - create-gar-repo
+      - build-and-push
 
-  # ---- Step 4: Deploy to Cloud Run (demo) ----
+  # ---- Step 3: Deploy to Cloud Run (demo) ----
   # Uses MOCK_CAMERA=true since Cloud Run has no CSI camera hardware.
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     id: deploy-cloud-run
