@@ -4,7 +4,6 @@
 
 Motion In Ocean supports **runtime configuration management** through the web UI 🎛️, allowing you to modify many settings without restarting containers or editing environment files.
 
-
 ## Canonical App Vars vs Docker/Compose Keys
 
 - **Canonical app env vars:** `MIO_*` names for application behavior.
@@ -12,14 +11,14 @@ Motion In Ocean supports **runtime configuration management** through the web UI
 
 ### Legacy aliases still accepted temporarily
 
-| Canonical `MIO_*` var       | Legacy alias                           |
-| --------------------------- | -------------------------------------- |
-| `MIO_APP_MODE`              | `APP_MODE`, `MOTION_IN_OCEAN_MODE`     |
-| `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                 |
-| `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`            |
+| Canonical `MIO_*` var       | Legacy alias                               |
+| --------------------------- | ------------------------------------------ |
+| `MIO_APP_MODE`              | `APP_MODE`, `MOTION_IN_OCEAN_MODE`         |
+| `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                     |
+| `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`                |
 | `MIO_RESOLUTION`            | `RESOLUTION`, `MOTION_IN_OCEAN_RESOLUTION` |
-| `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                |
-| `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                      |
+| `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                    |
+| `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                          |
 
 ## How It Works
 

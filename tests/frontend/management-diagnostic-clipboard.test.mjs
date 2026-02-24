@@ -22,7 +22,7 @@ function extractDiagnosticToggleHelpers(source) {
 }
 
 function extractCopyHandlerBody(source) {
-  const marker = "copyDiagnosticReportBtn.addEventListener('click', async () => {";
+  const marker = 'copyDiagnosticReportBtn.addEventListener("click", async () => {';
   const start = source.indexOf(marker);
   if (start === -1) {
     throw new Error("copy handler definition not found");

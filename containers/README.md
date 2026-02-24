@@ -18,10 +18,10 @@ This directory defines the **deployment packaging pattern** used by Motion In Oc
 
 Images are published to both registries on every release tag:
 
-| Registry | Image |
-| --- | --- |
+| Registry                            | Image                                  |
+| ----------------------------------- | -------------------------------------- |
 | GitHub Container Registry (default) | `ghcr.io/cyanautomation/motioninocean` |
-| Docker Hub | `cyanautomation/motioninocean` |
+| Docker Hub                          | `cyanautomation/motioninocean`         |
 
 The compose files default to GHCR. To use Docker Hub instead, override `MIO_IMAGE_TAG` and change the `image:` value in your local copy:
 
@@ -85,14 +85,14 @@ cd containers/motioniocean-webcam && docker compose -f docker-compose.yml -f doc
 
 ### Legacy aliases still accepted temporarily
 
-| Canonical `MIO_*` var       | Legacy alias                           |
-| --------------------------- | -------------------------------------- |
-| `MIO_APP_MODE`              | `APP_MODE`, `MOTION_IN_OCEAN_MODE`     |
-| `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                 |
-| `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`            |
+| Canonical `MIO_*` var       | Legacy alias                               |
+| --------------------------- | ------------------------------------------ |
+| `MIO_APP_MODE`              | `APP_MODE`, `MOTION_IN_OCEAN_MODE`         |
+| `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                     |
+| `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`                |
 | `MIO_RESOLUTION`            | `RESOLUTION`, `MOTION_IN_OCEAN_RESOLUTION` |
-| `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                |
-| `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                      |
+| `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                    |
+| `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                          |
 
 ## Configuration Model: Infrastructure vs. Runtime Settings
 

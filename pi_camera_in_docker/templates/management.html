@@ -12,10 +12,22 @@
   </head>
   <body>
     <nav class="management-side-rail" aria-label="Management quick navigation">
-      <button id="rail-overview-btn" class="rail-btn" type="button" aria-label="Overview" title="Overview">
+      <button
+        id="rail-overview-btn"
+        class="rail-btn"
+        type="button"
+        aria-label="Overview"
+        title="Overview"
+      >
         O
       </button>
-      <button id="rail-devices-btn" class="rail-btn" type="button" aria-label="Devices" title="Devices">
+      <button
+        id="rail-devices-btn"
+        class="rail-btn"
+        type="button"
+        aria-label="Devices"
+        title="Devices"
+      >
         D
       </button>
       <button
@@ -27,7 +39,13 @@
       >
         R
       </button>
-      <button id="rail-settings-btn" class="rail-btn" type="button" aria-label="Settings" title="Settings">
+      <button
+        id="rail-settings-btn"
+        class="rail-btn"
+        type="button"
+        aria-label="Settings"
+        title="Settings"
+      >
         S
       </button>
       <button
@@ -60,10 +78,18 @@
       </div>
 
       <nav class="management-view-nav" aria-label="Management dashboard views">
-        <button id="view-overview-btn" class="ui-btn ui-btn--secondary management-view-btn" type="button">
+        <button
+          id="view-overview-btn"
+          class="ui-btn ui-btn--secondary management-view-btn"
+          type="button"
+        >
           Overview
         </button>
-        <button id="view-devices-btn" class="ui-btn ui-btn--secondary management-view-btn" type="button">
+        <button
+          id="view-devices-btn"
+          class="ui-btn ui-btn--secondary management-view-btn"
+          type="button"
+        >
           Devices
         </button>
         <button
@@ -73,7 +99,11 @@
         >
           Discovered
         </button>
-        <button id="view-settings-btn" class="ui-btn ui-btn--secondary management-view-btn" type="button">
+        <button
+          id="view-settings-btn"
+          class="ui-btn ui-btn--secondary management-view-btn"
+          type="button"
+        >
           Settings
         </button>
       </nav>
@@ -233,7 +263,11 @@
                     <button type="submit" id="save-node-btn" class="ui-btn ui-btn--primary">
                       Save node
                     </button>
-                    <button type="button" id="cancel-edit-btn" class="ui-btn ui-btn--secondary hidden">
+                    <button
+                      type="button"
+                      id="cancel-edit-btn"
+                      class="ui-btn ui-btn--secondary hidden"
+                    >
                       Cancel edit
                     </button>
                   </div>
@@ -305,7 +339,9 @@
                   <span>Context: <strong id="diagnostic-context">No report loaded</strong></span>
                   <span>
                     Summary:
-                    <span id="diagnostic-summary-badge" class="diagnostic-pill diagnostic-pill--neutral"
+                    <span
+                      id="diagnostic-summary-badge"
+                      class="diagnostic-pill diagnostic-pill--neutral"
                       >Idle</span
                     >
                   </span>
@@ -326,7 +362,9 @@
                 </div>
 
                 <div id="diagnostic-checks-grid" class="diagnostic-checks-grid">
-                  <p class="diagnostic-empty">Run Diagnose on a webcam to view structured checks.</p>
+                  <p class="diagnostic-empty">
+                    Run Diagnose on a webcam to view structured checks.
+                  </p>
                 </div>
 
                 <div class="diagnostic-recommendations" id="diagnostic-recommendations">
@@ -387,7 +425,11 @@
           </button>
         </div>
         <div class="settings-tab-row">
-          <button class="ui-btn ui-btn--secondary settings-tab-btn" data-settings-tab="auth" type="button">
+          <button
+            class="ui-btn ui-btn--secondary settings-tab-btn"
+            data-settings-tab="auth"
+            type="button"
+          >
             Authentication
           </button>
           <button
@@ -397,7 +439,11 @@
           >
             Discovery
           </button>
-          <button class="ui-btn ui-btn--secondary settings-tab-btn" data-settings-tab="runtime" type="button">
+          <button
+            class="ui-btn ui-btn--secondary settings-tab-btn"
+            data-settings-tab="runtime"
+            type="button"
+          >
             Runtime Settings
           </button>
         </div>
@@ -405,7 +451,9 @@
           <h3>Management API auth</h3>
           <p>This token is stored in this browser and sent with management API requests.</p>
           <div class="ui-form-control">
-            <label for="settings-management-api-token">MANAGEMENT_AUTH_TOKEN (dashboard token)</label>
+            <label for="settings-management-api-token"
+              >MANAGEMENT_AUTH_TOKEN (dashboard token)</label
+            >
             <input
               id="settings-management-api-token"
               type="password"
@@ -414,7 +462,8 @@
             />
           </div>
           <small>
-            This does not modify server environment variables. It updates the token used by this dashboard UI.
+            This does not modify server environment variables. It updates the token used by this
+            dashboard UI.
           </small>
         </div>
         <div id="settings-discovery-panel" class="settings-panel hidden">
@@ -445,28 +494,62 @@
           </ul>
         </div>
         <div class="settings-footer-actions">
-          <button id="settings-save-btn" class="ui-btn ui-btn--primary" type="button">Save Changes</button>
-          <button id="settings-reset-btn" class="ui-btn ui-btn--secondary" type="button">Reset</button>
+          <button id="settings-save-btn" class="ui-btn ui-btn--primary" type="button">
+            Save Changes
+          </button>
+          <button id="settings-reset-btn" class="ui-btn ui-btn--secondary" type="button">
+            Reset
+          </button>
         </div>
         <p id="settings-feedback" class="feedback" aria-live="polite"></p>
       </section>
     </main>
 
-    <div id="utility-panel" class="utility-panel hidden" role="dialog" aria-modal="false" aria-label="Utilities">
+    <div
+      id="utility-panel"
+      class="utility-panel hidden"
+      role="dialog"
+      aria-modal="false"
+      aria-label="Utilities"
+    >
       <div class="utility-panel__header">
         <h3 id="utility-panel-title">Utilities</h3>
-        <button id="utility-panel-close-btn" class="ui-btn ui-btn--secondary" type="button">Close</button>
+        <button id="utility-panel-close-btn" class="ui-btn ui-btn--secondary" type="button">
+          Close
+        </button>
       </div>
       <div id="utility-panel-content" class="utility-panel__content"></div>
     </div>
 
     <nav class="management-bottom-rail" aria-label="Management mobile controls">
-      <button id="mobile-overview-btn" class="mobile-rail-btn" type="button" aria-label="Overview">O</button>
-      <button id="mobile-devices-btn" class="mobile-rail-btn" type="button" aria-label="Devices">D</button>
-      <button id="mobile-discovered-btn" class="mobile-rail-btn" type="button" aria-label="Discovered">R</button>
-      <button id="mobile-settings-btn" class="mobile-rail-btn" type="button" aria-label="Settings">S</button>
-      <button id="mobile-export-btn" class="mobile-rail-btn" type="button" aria-label="Export Report">F</button>
-      <button id="mobile-help-btn" class="mobile-rail-btn" type="button" aria-label="Help">?</button>
+      <button id="mobile-overview-btn" class="mobile-rail-btn" type="button" aria-label="Overview">
+        O
+      </button>
+      <button id="mobile-devices-btn" class="mobile-rail-btn" type="button" aria-label="Devices">
+        D
+      </button>
+      <button
+        id="mobile-discovered-btn"
+        class="mobile-rail-btn"
+        type="button"
+        aria-label="Discovered"
+      >
+        R
+      </button>
+      <button id="mobile-settings-btn" class="mobile-rail-btn" type="button" aria-label="Settings">
+        S
+      </button>
+      <button
+        id="mobile-export-btn"
+        class="mobile-rail-btn"
+        type="button"
+        aria-label="Export Report"
+      >
+        F
+      </button>
+      <button id="mobile-help-btn" class="mobile-rail-btn" type="button" aria-label="Help">
+        ?
+      </button>
     </nav>
 
     <script type="module" src="{{ url_for('static', filename='js/management.js') }}"></script>

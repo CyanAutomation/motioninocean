@@ -6,7 +6,6 @@ This guide covers deploying Motion in Ocean using the **recommended directory-ba
 
 ---
 
-
 ## Canonical Variables and Migration
 
 - **Canonical app variables:** use `MIO_*` names (for example `MIO_APP_MODE`, `MIO_PORT`, `MIO_BIND_HOST`).
@@ -14,14 +13,14 @@ This guide covers deploying Motion in Ocean using the **recommended directory-ba
 
 ### Legacy aliases still accepted temporarily
 
-| Canonical `MIO_*` var       | Legacy alias                           |
-| --------------------------- | -------------------------------------- |
-| `MIO_APP_MODE`              | `APP_MODE`, `MOTION_IN_OCEAN_MODE`     |
-| `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                 |
-| `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`            |
+| Canonical `MIO_*` var       | Legacy alias                               |
+| --------------------------- | ------------------------------------------ |
+| `MIO_APP_MODE`              | `APP_MODE`, `MOTION_IN_OCEAN_MODE`         |
+| `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                     |
+| `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`                |
 | `MIO_RESOLUTION`            | `RESOLUTION`, `MOTION_IN_OCEAN_RESOLUTION` |
-| `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                |
-| `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                      |
+| `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                    |
+| `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                          |
 
 ## Recommended: Directory-Based Deployment
 

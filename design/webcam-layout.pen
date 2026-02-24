@@ -714,7 +714,7 @@
                       "id": "nZx01",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Refresh Stream \u21bb",
+                      "content": "Refresh Stream ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -767,6 +767,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "R8ika",
+                  "x": 1238,
+                  "y": 8,
+                  "name": "Mio Hero Happy",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "#59C7FF",
+                  "cornerRadius": 16
                 }
               ]
             },
@@ -1091,7 +1102,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#1F2430",
-                          "content": "Refresh \u00b7 Fullscreen",
+                          "content": "Refresh · Fullscreen",
                           "fontFamily": "Inter",
                           "fontSize": 14,
                           "fontWeight": "600"
@@ -1124,6 +1135,17 @@
                       ]
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "WmVKT",
+                  "x": 20,
+                  "y": 20,
+                  "name": "Mio Context Happy",
+                  "width": 88,
+                  "height": 88,
+                  "fill": "#59C7FF",
+                  "cornerRadius": 24
                 }
               ]
             }
@@ -1844,7 +1866,7 @@
                       "id": "cEThr",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Refresh Stream \u21bb",
+                      "content": "Refresh Stream ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -1897,6 +1919,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "hKmum",
+                  "x": 1238,
+                  "y": 8,
+                  "name": "Mio Hero Happy",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "#59C7FF",
+                  "cornerRadius": 16
                 }
               ]
             },
@@ -2221,7 +2254,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#E7ECF6",
-                          "content": "Refresh \u00b7 Fullscreen",
+                          "content": "Refresh · Fullscreen",
                           "fontFamily": "Inter",
                           "fontSize": 14,
                           "fontWeight": "600"
@@ -2254,6 +2287,17 @@
                       ]
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "J2EdA",
+                  "x": 20,
+                  "y": 20,
+                  "name": "Mio Context Happy",
+                  "width": 88,
+                  "height": 88,
+                  "fill": "#59C7FF",
+                  "cornerRadius": 24
                 }
               ]
             }
@@ -2875,7 +2919,7 @@
                       "id": "gaGHX",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Refresh Stream \u21bb",
+                      "content": "Refresh Stream ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -3009,7 +3053,7 @@
                       "y": 54,
                       "name": "ovLmPending",
                       "fill": "#6B7280",
-                      "content": "Refresh \u00b7 Fullscreen",
+                      "content": "Refresh · Fullscreen",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -3673,7 +3717,7 @@
                       "id": "FQUrV",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Refresh Stream \u21bb",
+                      "content": "Refresh Stream ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -3807,7 +3851,7 @@
                       "y": 54,
                       "name": "ovDmPending",
                       "fill": "#B3BED3",
-                      "content": "Refresh \u00b7 Fullscreen",
+                      "content": "Refresh · Fullscreen",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -4570,7 +4614,7 @@
                       "id": "3l8kd",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Refresh Config \u21bb",
+                      "content": "Refresh Config ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -4623,6 +4667,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "60SZI",
+                  "x": 1238,
+                  "y": 8,
+                  "name": "Mio Hero Curious",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "#7BC2FF",
+                  "cornerRadius": 16
                 }
               ]
             },
@@ -4824,7 +4879,7 @@
                           "x": 14,
                           "y": 14,
                           "fill": "#6B7280",
-                          "content": "Max Connections \u00b7 Current Connections \u00b7 Max Frame Age (Timeout) \u00b7 CORS Origins",
+                          "content": "Max Connections · Current Connections · Max Frame Age (Timeout) · CORS Origins",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -4849,7 +4904,7 @@
                           "x": 14,
                           "y": 26,
                           "fill": "#1F2430",
-                          "content": "Max Connections \u00b7 Current Connections",
+                          "content": "Max Connections · Current Connections",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -4874,7 +4929,7 @@
                           "x": 14,
                           "y": 26,
                           "fill": "#1F2430",
-                          "content": "Max Frame Age (Timeout) \u00b7 CORS Origins",
+                          "content": "Max Frame Age (Timeout) · CORS Origins",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -4924,7 +4979,7 @@
                           "x": 14,
                           "y": 20,
                           "fill": "#1F2430",
-                          "content": "Overall Status \u00b7 Camera Pipeline \u00b7 Stream Freshness \u00b7 Connection Capacity \u00b7 Mock Mode",
+                          "content": "Overall Status · Camera Pipeline · Stream Freshness · Connection Capacity · Mock Mode",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -4932,6 +4987,17 @@
                       ]
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ktLUF",
+                  "x": 20,
+                  "y": 20,
+                  "name": "Mio Context Curious",
+                  "width": 88,
+                  "height": 88,
+                  "fill": "#7BC2FF",
+                  "cornerRadius": 24
                 }
               ]
             }
@@ -5705,6 +5771,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "q0DHi",
+                  "x": 1238,
+                  "y": 8,
+                  "name": "Mio Hero Avatar",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "#5FA6E8",
+                  "cornerRadius": 16
                 }
               ]
             },
@@ -5760,7 +5837,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#F59E0B",
-                          "content": "Environment \u00b7 Preset \u00b7 Review \u00b7 Generate",
+                          "content": "Environment · Preset · Review · Generate",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -5990,6 +6067,17 @@
                       ]
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "M9Gxc",
+                  "x": 20,
+                  "y": 20,
+                  "name": "Mio Context Avatar",
+                  "width": 88,
+                  "height": 88,
+                  "fill": "#5FA6E8",
+                  "cornerRadius": 24
                 }
               ]
             }
@@ -6710,7 +6798,7 @@
                       "id": "0Ghnu",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Save Changes \u2713",
+                      "content": "Save Changes ✓",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -6763,6 +6851,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "zfidq",
+                  "x": 1238,
+                  "y": 8,
+                  "name": "Mio Hero Sleeping",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "#8BB6D9",
+                  "cornerRadius": 16
                 }
               ]
             },
@@ -6915,7 +7014,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#6B7280",
-                          "content": "Resolution \u00b7 Frame Rate (FPS) \u00b7 JPEG Quality",
+                          "content": "Resolution · Frame Rate (FPS) · JPEG Quality",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -6965,7 +7064,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#6B7280",
-                          "content": "Log Level \u00b7 Log Format",
+                          "content": "Log Level · Log Format",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -7146,6 +7245,17 @@
                       ]
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "XURC6",
+                  "x": 20,
+                  "y": 20,
+                  "name": "Mio Context Sleeping",
+                  "width": 88,
+                  "height": 88,
+                  "fill": "#8BB6D9",
+                  "cornerRadius": 24
                 }
               ]
             }
@@ -7866,7 +7976,7 @@
                       "id": "7o6Gh",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Refresh Config \u21bb",
+                      "content": "Refresh Config ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -7919,6 +8029,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "HHiJK",
+                  "x": 1238,
+                  "y": 8,
+                  "name": "Mio Hero Curious",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "#7BC2FF",
+                  "cornerRadius": 16
                 }
               ]
             },
@@ -8110,7 +8231,7 @@
                           "x": 14,
                           "y": 14,
                           "fill": "#B3BED3",
-                          "content": "Max Connections \u00b7 Current Connections \u00b7 Max Frame Age (Timeout) \u00b7 CORS Origins",
+                          "content": "Max Connections · Current Connections · Max Frame Age (Timeout) · CORS Origins",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "600"
@@ -8135,7 +8256,7 @@
                           "x": 14,
                           "y": 26,
                           "fill": "#E7ECF6",
-                          "content": "Max Connections \u00b7 Current Connections",
+                          "content": "Max Connections · Current Connections",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -8160,7 +8281,7 @@
                           "x": 14,
                           "y": 26,
                           "fill": "#E7ECF6",
-                          "content": "Max Frame Age (Timeout) \u00b7 CORS Origins",
+                          "content": "Max Frame Age (Timeout) · CORS Origins",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -8222,7 +8343,7 @@
                           "x": 14,
                           "y": 20,
                           "fill": "#9AA3B2",
-                          "content": "Overall Status \u00b7 Camera Pipeline \u00b7 Stream Freshness \u00b7 Connection Capacity \u00b7 Mock Mode",
+                          "content": "Overall Status · Camera Pipeline · Stream Freshness · Connection Capacity · Mock Mode",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "normal"
@@ -8230,6 +8351,17 @@
                       ]
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gkWRF",
+                  "x": 20,
+                  "y": 20,
+                  "name": "Mio Context Curious",
+                  "width": 88,
+                  "height": 88,
+                  "fill": "#7BC2FF",
+                  "cornerRadius": 24
                 }
               ]
             }
@@ -9003,6 +9135,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "QX0cX",
+                  "x": 1238,
+                  "y": 8,
+                  "name": "Mio Hero Avatar",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "#5FA6E8",
+                  "cornerRadius": 16
                 }
               ]
             },
@@ -9058,7 +9201,7 @@
                           "x": 14,
                           "y": 18,
                           "fill": "#EEF1F5",
-                          "content": "Environment \u00b7 Preset \u00b7 Review \u00b7 Generate",
+                          "content": "Environment · Preset · Review · Generate",
                           "fontFamily": "Inter",
                           "fontSize": 13,
                           "fontWeight": "600"
@@ -9288,6 +9431,17 @@
                       ]
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Cgmbv",
+                  "x": 20,
+                  "y": 20,
+                  "name": "Mio Context Avatar",
+                  "width": 88,
+                  "height": 88,
+                  "fill": "#5FA6E8",
+                  "cornerRadius": 24
                 }
               ]
             }
@@ -10008,7 +10162,7 @@
                       "id": "JpxoW",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Save Changes \u2713",
+                      "content": "Save Changes ✓",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -10061,6 +10215,17 @@
                       "cornerRadius": 999
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "6TcYG",
+                  "x": 1238,
+                  "y": 8,
+                  "name": "Mio Hero Sleeping",
+                  "width": 56,
+                  "height": 56,
+                  "fill": "#8BB6D9",
+                  "cornerRadius": 16
                 }
               ]
             },
@@ -10213,7 +10378,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#B3BED3",
-                          "content": "Resolution \u00b7 Frame Rate (FPS) \u00b7 JPEG Quality",
+                          "content": "Resolution · Frame Rate (FPS) · JPEG Quality",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -10263,7 +10428,7 @@
                           "x": 12,
                           "y": 16,
                           "fill": "#B3BED3",
-                          "content": "Log Level \u00b7 Log Format",
+                          "content": "Log Level · Log Format",
                           "fontFamily": "Inter",
                           "fontSize": 12,
                           "fontWeight": "normal"
@@ -10444,6 +10609,17 @@
                       ]
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "cwsZc",
+                  "x": 20,
+                  "y": 20,
+                  "name": "Mio Context Sleeping",
+                  "width": 88,
+                  "height": 88,
+                  "fill": "#8BB6D9",
+                  "cornerRadius": 24
                 }
               ]
             }
@@ -11065,7 +11241,7 @@
                       "id": "J7rPy",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Refresh Config \u21bb",
+                      "content": "Refresh Config ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -11236,7 +11412,7 @@
                       "y": 54,
                       "name": "devLmDiagSub",
                       "fill": "#E11D48",
-                      "content": "Health: OK = normal \u00b7 Warn = attention \u00b7 Fail = action needed",
+                      "content": "Health: OK = normal · Warn = attention · Fail = action needed",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -11960,7 +12136,7 @@
                       "y": 54,
                       "name": "discLmQueueMeta",
                       "fill": "#6B7280",
-                      "content": "Environment \u00b7 Preset \u00b7 Review \u00b7 Generate",
+                      "content": "Environment · Preset · Review · Generate",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -12661,7 +12837,7 @@
                       "id": "gPlhE",
                       "name": "meetingTxt",
                       "fill": "#FFFFFF",
-                      "content": "Save Changes \u2713",
+                      "content": "Save Changes ✓",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -12795,7 +12971,7 @@
                       "y": 46,
                       "name": "setLmPanelsMeta",
                       "fill": "#6B7280",
-                      "content": "Camera \u00b7 Logging \u00b7 Node Discovery \u00b7 Feature Flags",
+                      "content": "Camera · Logging · Node Discovery · Feature Flags",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -13459,7 +13635,7 @@
                       "id": "UBTih",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Refresh Config \u21bb",
+                      "content": "Refresh Config ↻",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -13630,7 +13806,7 @@
                       "y": 54,
                       "name": "devDmDiagSub",
                       "fill": "#FF746F",
-                      "content": "Health: OK = normal \u00b7 Warn = attention \u00b7 Fail = action needed",
+                      "content": "Health: OK = normal · Warn = attention · Fail = action needed",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -14354,7 +14530,7 @@
                       "y": 54,
                       "name": "discDmQueueMeta",
                       "fill": "#B3BED3",
-                      "content": "Environment \u00b7 Preset \u00b7 Review \u00b7 Generate",
+                      "content": "Environment · Preset · Review · Generate",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"
@@ -15055,7 +15231,7 @@
                       "id": "0DAyb",
                       "name": "meetingTxt",
                       "fill": "#111A2E",
-                      "content": "Save Changes \u2713",
+                      "content": "Save Changes ✓",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "600"
@@ -15189,7 +15365,7 @@
                       "y": 46,
                       "name": "setDmPanelsMeta",
                       "fill": "#B3BED3",
-                      "content": "Camera \u00b7 Logging \u00b7 Node Discovery \u00b7 Feature Flags",
+                      "content": "Camera · Logging · Node Discovery · Feature Flags",
                       "fontFamily": "Inter",
                       "fontSize": 13,
                       "fontWeight": "normal"

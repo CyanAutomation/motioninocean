@@ -299,7 +299,7 @@
 }
 
 .health-indicator::before {
-  content: '';
+  content: "";
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
@@ -894,7 +894,7 @@
 }
 
 .output-filename {
-  font-family: 'Monaco', 'Courier New', monospace;
+  font-family: "Monaco", "Courier New", monospace;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -941,7 +941,7 @@
   border-radius: 0 0 var(--radius-md) var(--radius-md);
   background: var(--color-bg-canvas);
   color: var(--color-text-primary);
-  font-family: 'Monaco', 'Courier New', monospace;
+  font-family: "Monaco", "Courier New", monospace;
   font-size: 0.85rem;
   line-height: 1.5;
   overflow: auto;
@@ -997,7 +997,7 @@
   background: var(--color-bg-surface);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
-  font-family: 'Monaco', 'Courier New', monospace;
+  font-family: "Monaco", "Courier New", monospace;
   font-size: 0.85rem;
   color: var(--color-accent-primary);
 }
@@ -1140,7 +1140,9 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: color var(--transition-fast), background var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .rail-util-btn:hover {
@@ -1160,7 +1162,10 @@
   font-size: 0.65rem;
   font-weight: 600;
   text-align: center;
-  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .webcam-side-rail .tab-btn:hover {

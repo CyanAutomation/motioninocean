@@ -67,16 +67,17 @@ Expected behavior:
 
 Raspberry Pi camera access via libcamera requires specific device nodes, each with distinct role:
 
-| Device | Purpose | Required? | Typical Permissions |
-|--------|---------|-----------|-------------------|
-| `/dev/dma_heap/*` | Memory allocation for video buffers (ISP, codec) | ✓ Yes | Character device (253:*) |
-| `/dev/vchiq` | VideoCore Host Interface for camera control and power management | ✓ Yes | Character device (511:*) |
-| `/dev/video*` | V4L2 video capture nodes (ISP output, codec output) | ✓ Yes | Character device (81:*) |
-| `/dev/media*` | Media controller API for sensor/pipeline control (libcamera discovery) | ✓ Yes | Character device (250:*) |
-| `/dev/v4l-subdev*` | V4L2 sub-device interface for sensor and processing chains | ✓ Yes | Character device (81:*) |
-| `/dev/dri/` | GPU/graphics rendering (optional, for pykms mock support) | ✗ No | Various character devices |
+| Device             | Purpose                                                                | Required? | Typical Permissions       |
+| ------------------ | ---------------------------------------------------------------------- | --------- | ------------------------- |
+| `/dev/dma_heap/*`  | Memory allocation for video buffers (ISP, codec)                       | ✓ Yes     | Character device (253:\*) |
+| `/dev/vchiq`       | VideoCore Host Interface for camera control and power management       | ✓ Yes     | Character device (511:\*) |
+| `/dev/video*`      | V4L2 video capture nodes (ISP output, codec output)                    | ✓ Yes     | Character device (81:\*)  |
+| `/dev/media*`      | Media controller API for sensor/pipeline control (libcamera discovery) | ✓ Yes     | Character device (250:\*) |
+| `/dev/v4l-subdev*` | V4L2 sub-device interface for sensor and processing chains             | ✓ Yes     | Character device (81:\*)  |
+| `/dev/dri/`        | GPU/graphics rendering (optional, for pykms mock support)              | ✗ No      | Various character devices |
 
 **In containers:**
+
 - If using `privileged: true`: All devices are automatically exposed
 - If using hardened mode (recommended for production): Explicitly map detected devices using `detect-devices.sh` output
 
@@ -108,6 +109,7 @@ When container cannot enumerate cameras, the root cause is typically **missing d
 **If any devices are missing:**
 
 1. **Ensure camera is enabled:**
+
    ```bash
    raspi-config nonint get_camera
    # Returns 0 if enabled, 1 if disabled
@@ -245,7 +247,7 @@ graph TD
     P["Exit immediately<br/>(fail-fast)"]
     Q["Continue in degraded mode<br/>(mock fallback)"]
     R["/health returns 200<br/>/ready returns 503<br/>/stream returns 503"]
-    
+
     A --> B
     B --> C
     C -->|true| D
@@ -265,7 +267,7 @@ graph TD
     O -->|false| Q
     P --> R
     Q --> R
-    
+
     style I fill:#90EE90
     style L fill:#90EE90
     style M fill:#FFB6C6
@@ -296,17 +298,17 @@ graph TD
 
 Cross-reference specific error messages logged or returned to root causes and remediation:
 
-| Error Message | Where | Root Cause | Troubleshooting Branch |
-|---------------|-------|-----------|----------------------|
-| `No cameras detected by picamera2 enumeration` | `main.py:1553` (logs) | Device nodes exist but libcamera enumeration failed | Device mapping + libcamera pipeline (see below) |
-| `No cameras detected. Check device mappings and camera hardware.` | `/ready` response (503) | Same; returned when `/ready` is probed during degraded mode | Device mapping verification; if devices OK, check libcamera/IPA |
-| `RuntimeError: No cameras detected...` | Container logs (startup) | Camera initialization failed completely | Fail-fast branch (if MIO_FAIL_ON_CAMERA_INIT_ERROR=true) |
-| `Camera enumeration failed. Verify device mappings and permissions.` | Container logs | Picamera2 raised IndexError during camera detection | Run `./detect-devices.sh`; verify container device mappings |
-| `Permission denied accessing camera device` | Container logs | Camera device nodes mounted but container lacks read/execute permission | Add group_add: [video, render]; verify stat permissions match /dev/video* |
-| `Camera not initialized or recording not started` | `/ready` response (503) | _init_real_camera() did not complete successfully or recording_started event not set | Check container logs for specific error; probe /health |
-| `No frames captured yet` | `/ready` response (503) | Recording started but frame buffer still empty | Normal during startup; wait a few seconds and retry |
-| `stale_stream` | `/ready` response (503) | Last frame captured > max_frame_age_seconds ago (default 5s) | Check if camera is hung or FPS is too low for frame age threshold |
-| `HTTP 429 on /stream.mjpg` | Stream response | Max stream connections reached (default 5) | Increase MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS or close existing clients |
+| Error Message                                                        | Where                    | Root Cause                                                                            | Troubleshooting Branch                                                     |
+| -------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `No cameras detected by picamera2 enumeration`                       | `main.py:1553` (logs)    | Device nodes exist but libcamera enumeration failed                                   | Device mapping + libcamera pipeline (see below)                            |
+| `No cameras detected. Check device mappings and camera hardware.`    | `/ready` response (503)  | Same; returned when `/ready` is probed during degraded mode                           | Device mapping verification; if devices OK, check libcamera/IPA            |
+| `RuntimeError: No cameras detected...`                               | Container logs (startup) | Camera initialization failed completely                                               | Fail-fast branch (if MIO_FAIL_ON_CAMERA_INIT_ERROR=true)                   |
+| `Camera enumeration failed. Verify device mappings and permissions.` | Container logs           | Picamera2 raised IndexError during camera detection                                   | Run `./detect-devices.sh`; verify container device mappings                |
+| `Permission denied accessing camera device`                          | Container logs           | Camera device nodes mounted but container lacks read/execute permission               | Add group_add: [video, render]; verify stat permissions match /dev/video\* |
+| `Camera not initialized or recording not started`                    | `/ready` response (503)  | \_init_real_camera() did not complete successfully or recording_started event not set | Check container logs for specific error; probe /health                     |
+| `No frames captured yet`                                             | `/ready` response (503)  | Recording started but frame buffer still empty                                        | Normal during startup; wait a few seconds and retry                        |
+| `stale_stream`                                                       | `/ready` response (503)  | Last frame captured > max_frame_age_seconds ago (default 5s)                          | Check if camera is hung or FPS is too low for frame age threshold          |
+| `HTTP 429 on /stream.mjpg`                                           | Stream response          | Max stream connections reached (default 5)                                            | Increase MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS or close existing clients  |
 
 ---
 
@@ -392,12 +394,12 @@ docker compose -f docker-compose.yml up -d
 
 ### Reference: Libcamera Component Versions
 
-| Component | Bullseye | Bookworm | Notes |
-|-----------|----------|----------|--------|
-| libcamera | 0.0.x | 0.1.x+ | Different API/behavior |
-| libcamera-apps | 0.7.x | 1.1.x+ | OctoPrint compatibility varies |
-| picamera2 (Python) | 0.3.x | 0.6.x+ | Highly version-sensitive |
-| IPA modules | bullseye-specific | bookworm-specific | NOT backward compatible |
+| Component          | Bullseye          | Bookworm          | Notes                          |
+| ------------------ | ----------------- | ----------------- | ------------------------------ |
+| libcamera          | 0.0.x             | 0.1.x+            | Different API/behavior         |
+| libcamera-apps     | 0.7.x             | 1.1.x+            | OctoPrint compatibility varies |
+| picamera2 (Python) | 0.3.x             | 0.6.x+            | Highly version-sensitive       |
+| IPA modules        | bullseye-specific | bookworm-specific | NOT backward compatible        |
 
 If running bullseye kernel with bookworm IPA (or vice versa), libcamera will fail silently during enumeration.
 

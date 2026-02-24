@@ -532,9 +532,7 @@
   z-index: 10;
   margin: var(--space-4) var(--webcam-layout-gap) 0
     calc(var(--webcam-rail-width) + var(--webcam-layout-gap));
-  width: calc(
-    100% - var(--webcam-rail-width) - (var(--webcam-layout-gap) * 2)
-  );
+  width: calc(100% - var(--webcam-rail-width) - (var(--webcam-layout-gap) * 2));
   border: 1px solid var(--color-border-default);
   border-radius: 16px;
   background: var(--color-bg-surface);
@@ -583,7 +581,9 @@
   border: 1px solid var(--color-border-default);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .ui-btn--icon:hover {
@@ -868,7 +868,9 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-subtle);
   background: var(--color-bg-canvas);
-  transition: border-color var(--transition-fast), background var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .vc-item:hover {
@@ -898,8 +900,12 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .vc-item__body {
@@ -973,9 +979,15 @@
   font-weight: 500;
 }
 
-.stream-legend-item--loading { color: var(--color-error); }
-.stream-legend-item--connected { color: var(--color-accent-primary); }
-.stream-legend-item--stale { color: var(--color-warning); }
+.stream-legend-item--loading {
+  color: var(--color-error);
+}
+.stream-legend-item--connected {
+  color: var(--color-accent-primary);
+}
+.stream-legend-item--stale {
+  color: var(--color-warning);
+}
 
 .legend-dot {
   width: 10px;
@@ -984,15 +996,20 @@
   flex-shrink: 0;
 }
 
-.legend-dot--red   { background: var(--color-error); }
-.legend-dot--blue  { background: var(--color-accent-primary); }
-.legend-dot--amber { background: var(--color-warning); }
+.legend-dot--red {
+  background: var(--color-error);
+}
+.legend-dot--blue {
+  background: var(--color-accent-primary);
+}
+.legend-dot--amber {
+  background: var(--color-warning);
+}
 
 @media (min-width: 1180px) {
   .webcam-stream-grid {
     grid-template-columns: minmax(0, 1fr) 340px;
-    grid-template-areas:
-      "stream-surface risk-stack";
+    grid-template-areas: "stream-surface risk-stack";
   }
 }
 

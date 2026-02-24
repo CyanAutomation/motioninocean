@@ -47,4 +47,3 @@
   - `screenshots/live2-desktop-stream.png`
   - `screenshots/live2-desktop-config.png`
   - `screenshots/live2-desktop-settings.png`
-

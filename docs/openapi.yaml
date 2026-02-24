@@ -54,7 +54,6 @@ tags:
     description: Health, readiness, and status probes
 
 paths:
-
   # ── Operational probes (no auth) ────────────────────────────────────────────
 
   /health:
@@ -585,7 +584,6 @@ paths:
 # ── Components ──────────────────────────────────────────────────────────────────
 
 components:
-
   parameters:
     webcamId:
       name: webcamId
@@ -660,7 +658,6 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
 
   schemas:
-
     # ── Shared auth / discovery sub-objects ────────────────────────────────────
 
     WebcamAuth:

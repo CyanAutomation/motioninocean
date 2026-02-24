@@ -4,7 +4,9 @@ import fs from "node:fs";
 import vm from "node:vm";
 
 function extractFunction(source, functionName) {
-  const match = source.match(new RegExp(`function ${functionName}\\([^)]*\\) \\{[\\s\\S]*?\\n^}`, "m"));
+  const match = source.match(
+    new RegExp(`function ${functionName}\\([^)]*\\) \\{[\\s\\S]*?\\n^}`, "m"),
+  );
   if (!match) {
     throw new Error(`${functionName}() definition not found`);
   }
