@@ -219,7 +219,7 @@ class TestDiscoveryEndToEnd:
             }
 
             response = client.post(
-                "/api/discovery/announce",
+                "/api/v1/discovery/announce",
                 json=announce_payload,
                 headers={"Authorization": "Bearer discovery-secret"},
             )
@@ -234,7 +234,7 @@ class TestDiscoveryEndToEnd:
 
             # Step 2: Admin approves the discovered node
             approval_response = client.post(
-                f"/api/webcams/{node_data['id']}/discovery/approve",
+                f"/api/v1/webcams/{node_data['id']}/discovery/approve",
                 headers={"Authorization": "Bearer "},  # No auth needed if no token set
             )
 
@@ -243,7 +243,7 @@ class TestDiscoveryEndToEnd:
             assert approved_node["discovery"]["approved"] is True
 
             # Step 3: Verify node is now in approved state in list
-            list_response = client.get("/api/webcams")
+            list_response = client.get("/api/v1/webcams")
             assert list_response.status_code == 200
             nodes = list_response.json["webcams"]
             approved_nodes = [n for n in nodes if n["id"] == "node-webcam-1"]
@@ -279,7 +279,7 @@ class TestDiscoveryEndToEnd:
             }
 
             response = client.post(
-                "/api/discovery/announce",
+                "/api/v1/discovery/announce",
                 json=payload,
                 headers={"Authorization": "Bearer discovery-secret"},
             )
@@ -316,7 +316,7 @@ class TestDiscoveryEndToEnd:
             }
 
             response = client.post(
-                "/api/discovery/announce",
+                "/api/v1/discovery/announce",
                 json=payload,
                 headers={"Authorization": "Bearer discovery-secret"},
             )
@@ -394,14 +394,14 @@ class TestDiscoveryEndToEnd:
                     "capabilities": ["stream", "snapshot"],
                 }
                 response = client.post(
-                    "/api/discovery/announce",
+                    "/api/v1/discovery/announce",
                     json=payload,
                     headers={"Authorization": "Bearer discovery-secret"},
                 )
                 assert response.status_code == 201, response.json
 
             # Verify all three cameras registered
-            list_response = client.get("/api/webcams")
+            list_response = client.get("/api/v1/webcams")
             assert list_response.status_code == 200
             nodes = list_response.json["webcams"]
             node_ids = {n["id"] for n in nodes}
@@ -437,7 +437,7 @@ class TestDiscoveryEndToEnd:
             }
 
             response = client.post(
-                "/api/discovery/announce",
+                "/api/v1/discovery/announce",
                 json=payload,
                 headers={"Authorization": "Bearer anything"},
             )
@@ -475,7 +475,7 @@ class TestDiscoveryEndToEnd:
 
             # First announcement
             response1 = client.post(
-                "/api/discovery/announce",
+                "/api/v1/discovery/announce",
                 json=payload,
                 headers={"Authorization": "Bearer discovery-secret"},
             )
@@ -486,7 +486,7 @@ class TestDiscoveryEndToEnd:
 
             # Second announcement
             response2 = client.post(
-                "/api/discovery/announce",
+                "/api/v1/discovery/announce",
                 json=payload,
                 headers={"Authorization": "Bearer discovery-secret"},
             )

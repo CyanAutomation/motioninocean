@@ -882,7 +882,7 @@ function renderDiscoveredPanel() {
 
 async function fetchOverview() {
   try {
-    const response = await managementFetch('/api/management/overview');
+    const response = await managementFetch('/api/v1/management/overview');
     if (!response.ok) {
       return;
     }
@@ -972,8 +972,8 @@ function renderRuntimeSettingsChanges(changesPayload = {}) {
 async function fetchSettingsData() {
   try {
     const [settingsResponse, changesResponse] = await Promise.all([
-      managementFetch('/api/settings'),
-      managementFetch('/api/settings/changes'),
+      managementFetch('/api/v1/settings'),
+      managementFetch('/api/v1/settings/changes'),
     ]);
     if (!settingsResponse.ok) {
       throw new Error('Could not load settings.');
@@ -1027,7 +1027,7 @@ async function saveSettings() {
     },
   };
   try {
-    const response = await managementFetch('/api/settings', {
+    const response = await managementFetch('/api/v1/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patchPayload),
@@ -1058,7 +1058,7 @@ async function saveSettings() {
 async function resetSettings() {
   setSettingsFeedback('');
   try {
-    const response = await managementFetch('/api/settings/reset', { method: 'POST' });
+    const response = await managementFetch('/api/v1/settings/reset', { method: 'POST' });
     if (!response.ok) {
       setSettingsFeedback('Reset failed.', true);
       return;
@@ -1134,7 +1134,7 @@ function renderRows() {
  */
 async function fetchWebcams() {
   try {
-    const response = await managementFetch('/api/webcams');
+    const response = await managementFetch('/api/v1/webcams');
     if (!response.ok) {
       throw new Error('Failed to load nodes');
     }
@@ -1209,7 +1209,7 @@ async function refreshStatuses({ fromInterval = false } = {}) {
         webcams.map(async (node) => {
           try {
             const response = await managementFetch(
-              `/api/webcams/${encodeURIComponent(node.id)}/status`
+              `/api/v1/webcams/${encodeURIComponent(node.id)}/status`
             );
             if (!response.ok) {
               let errorPayload = {};
@@ -1380,7 +1380,7 @@ async function submitNodeForm(event) {
     return;
   }
 
-  const endpoint = isEdit ? `/api/webcams/${encodeURIComponent(editingNodeId)}` : '/api/webcams';
+  const endpoint = isEdit ? `/api/v1/webcams/${encodeURIComponent(editingNodeId)}` : '/api/v1/webcams';
   const method = isEdit ? 'PUT' : 'POST';
 
   try {
@@ -1446,7 +1446,7 @@ function beginEditNode(nodeId) {
  */
 async function diagnoseNode(nodeId) {
   try {
-    const response = await managementFetch(`/api/webcams/${encodeURIComponent(nodeId)}/diagnose`);
+    const response = await managementFetch(`/api/v1/webcams/${encodeURIComponent(nodeId)}/diagnose`);
     if (!response.ok) {
       const errorPayload = await response.json().catch(() => ({}));
       showFeedback(errorPayload?.error?.message || 'Diagnostic request failed', true);
@@ -1771,7 +1771,7 @@ function showDiagnosticResults(diagnosticResult) {
 async function setDiscoveryApproval(nodeId, decision) {
   try {
     const response = await managementFetch(
-      `/api/webcams/${encodeURIComponent(nodeId)}/discovery/${decision}`,
+      `/api/v1/webcams/${encodeURIComponent(nodeId)}/discovery/${decision}`,
       {
         method: 'POST',
       }
@@ -1806,7 +1806,7 @@ async function removeNode(nodeId) {
   }
 
   try {
-    const response = await managementFetch(`/api/webcams/${encodeURIComponent(nodeId)}`, {
+    const response = await managementFetch(`/api/v1/webcams/${encodeURIComponent(nodeId)}`, {
       method: 'DELETE',
     });
     if (!response.ok) {

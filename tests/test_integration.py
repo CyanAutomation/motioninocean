@@ -220,7 +220,7 @@ def test_settings_changes_reports_no_override_for_defaults(monkeypatch, tmp_path
     )
 
     # Make a request to the /api/settings/changes endpoint
-    response = client.get("/api/settings/changes")
+    response = client.get("/api/v1/settings/changes")
     assert response.status_code == 200
     changes = response.get_json()
 

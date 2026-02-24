@@ -8,7 +8,7 @@ import os
 from typing import Any, Dict, Tuple
 
 import sentry_sdk
-from flask import Flask, current_app, jsonify, request
+from flask import Blueprint, Flask, current_app, jsonify, redirect, request
 
 from .config_validator import validate_settings_patch
 from .runtime_config import (
@@ -103,19 +103,51 @@ def _load_env_settings_defaults() -> Dict[str, Dict[str, Any]]:
     }
 
 
-def register_settings_routes(app: Flask) -> None:
-    """
-    Register all settings management API routes.
+def _register_settings_deprecated_v0_aliases(app: Flask) -> None:
+    """Register legacy /api/settings* routes that redirect (HTTP 308) to /api/v1/settings* equivalents.
 
-    Routes:
-    - GET /api/settings — Current runtime settings (merged env + persisted)
-    - GET /api/settings/schema — JSON schema describing all editable settings
-    - PATCH /api/settings — Validate and persist setting changes
-    - POST /api/settings/reset — Clear persisted settings, revert to env defaults
-    - GET /api/settings/changes — Diff between env defaults and persisted overrides
+    These aliases exist for backward compatibility. All routes return HTTP 308 Permanent
+    Redirect with a ``Deprecation: true`` header. HTTP 308 preserves the request method
+    and body on redirect.
+
+    Args:
+        app: Flask application instance to register the deprecated routes on.
     """
 
-    @app.route("/api/settings", methods=["GET"])
+    def _deprecated_redirect(new_path: str):
+        resp = redirect(new_path, 308)
+        resp.headers["Deprecation"] = "true"
+        resp.headers["Link"] = f'<{new_path}>; rel="successor-version"'
+        return resp
+
+    @app.route("/api/settings", methods=["GET", "PATCH"])
+    def deprecated_settings():
+        return _deprecated_redirect("/api/v1/settings")
+
+    @app.route("/api/settings/schema", methods=["GET"])
+    def deprecated_settings_schema():
+        return _deprecated_redirect("/api/v1/settings/schema")
+
+    @app.route("/api/settings/reset", methods=["POST"])
+    def deprecated_settings_reset():
+        return _deprecated_redirect("/api/v1/settings/reset")
+
+    @app.route("/api/settings/changes", methods=["GET"])
+    def deprecated_settings_changes():
+        return _deprecated_redirect("/api/v1/settings/changes")
+
+
+def create_settings_blueprint() -> Blueprint:
+    """Create a Flask Blueprint containing all settings API routes at /settings/*.
+
+    Callers should register it on a Flask app with ``url_prefix="/api/v1"``.
+
+    Returns:
+        Flask Blueprint with all settings routes registered.
+    """
+    bp = Blueprint("settings_api", __name__)
+
+    @bp.route("/settings", methods=["GET"])
     def get_settings() -> Tuple[Dict[str, Any], int]:
         """
         Get current runtime settings (merged environment + persisted).
@@ -133,7 +165,7 @@ def register_settings_routes(app: Flask) -> None:
                 500,
             )
 
-    @app.route("/api/settings/schema", methods=["GET"])
+    @bp.route("/settings/schema", methods=["GET"])
     def get_settings_schema() -> Tuple[Dict[str, Any], int]:
         """
         Get JSON schema for all editable settings.
@@ -161,7 +193,7 @@ def register_settings_routes(app: Flask) -> None:
                 500,
             )
 
-    @app.route("/api/settings", methods=["PATCH"])
+    @bp.route("/settings", methods=["PATCH"])
     def patch_settings() -> Tuple[Dict[str, Any], int]:
         """
         Update runtime settings.
@@ -271,7 +303,7 @@ def register_settings_routes(app: Flask) -> None:
                 500,
             )
 
-    @app.route("/api/settings/reset", methods=["POST"])
+    @bp.route("/settings/reset", methods=["POST"])
     def reset_settings() -> Tuple[Dict[str, Any], int]:
         """
         Reset persisted settings to defaults (clear JSON file).
@@ -296,7 +328,7 @@ def register_settings_routes(app: Flask) -> None:
                 500,
             )
 
-    @app.route("/api/settings/changes", methods=["GET"])
+    @bp.route("/settings/changes", methods=["GET"])
     def get_settings_changes() -> Tuple[Dict[str, Any], int]:
         """
         Get diff between environment defaults and persisted overrides.
@@ -315,3 +347,27 @@ def register_settings_routes(app: Flask) -> None:
                 jsonify({"error": "Failed to get settings changes", "details": str(exc)}),
                 500,
             )
+
+    return bp
+
+
+def register_settings_routes(app: Flask) -> None:
+    """Register all settings management API routes.
+
+    Registers versioned routes under ``/api/v1/settings*`` via a Flask Blueprint, plus
+    deprecated ``/api/settings*`` aliases that return HTTP 308 redirects. New clients
+    should target ``/api/v1/settings*`` directly.
+
+    Routes (versioned):
+    - GET  /api/v1/settings         — Current runtime settings (merged env + persisted)
+    - GET  /api/v1/settings/schema  — JSON schema describing all editable settings
+    - PATCH /api/v1/settings        — Validate and persist setting changes
+    - POST /api/v1/settings/reset   — Clear persisted settings, revert to env defaults
+    - GET  /api/v1/settings/changes — Diff between env defaults and persisted overrides
+
+    Args:
+        app: Flask application instance.
+    """
+    bp = create_settings_blueprint()
+    app.register_blueprint(bp, url_prefix="/api/v1")
+    _register_settings_deprecated_v0_aliases(app)

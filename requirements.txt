@@ -20,6 +20,9 @@ Pillow>=12.1.1
 # NumPy for array processing
 numpy==2.2.3
 
+# YAML parsing (used to serve the OpenAPI specification at runtime)
+PyYAML>=6.0.2
+
 # Camera support for Raspberry Pi
 # picamera2 and python3-libcamera are installed from the Raspberry Pi Bookworm apt repo on arm64
 # via the Dockerfile (Layer 2, final stage). They are NOT installed from pip.

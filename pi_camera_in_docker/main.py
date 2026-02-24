@@ -17,6 +17,8 @@ from typing import Any, Dict, Optional, Tuple, cast
 from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
+import yaml
+
 from flask import Flask, g, jsonify, render_template, request
 from flask_cors import CORS
 from flask_limiter import Limiter
@@ -1025,6 +1027,69 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
     # @app.route("/ready") - not_ready, 503, ready, 200
     # @app.route("/metrics")
     # Metrics tracking: frames_captured, current_fps
+
+    # Resolve openapi.yaml relative to the project root (two levels above this file)
+    _openapi_spec_path = Path(__file__).parent.parent / "docs" / "openapi.yaml"
+
+    @app.route("/openapi.json", methods=["GET"])
+    def openapi_spec():
+        """Serve the OpenAPI 3.0 specification as JSON.
+
+        Unauthenticated endpoint that returns the full API spec. Intended for
+        native client code generation (e.g. swift-openapi-generator) and browser
+        tools such as Swagger UI.
+
+        Returns:
+            JSON representation of docs/openapi.yaml, or 404 if the file is absent.
+        """
+        if not _openapi_spec_path.exists():
+            return jsonify({"error": "OpenAPI spec not found"}), 404
+        try:
+            with _openapi_spec_path.open("r", encoding="utf-8") as fh:
+                spec = yaml.safe_load(fh)
+            return jsonify(spec), 200
+        except Exception as exc:
+            logger.exception("Failed to load OpenAPI spec")
+            return jsonify({"error": f"Failed to load OpenAPI spec: {exc!s}"}), 500
+
+    @app.route("/api/docs", methods=["GET"])
+    def api_docs():
+        """Serve Swagger UI for interactive API exploration.
+
+        Loads Swagger UI from the unpkg CDN and points it at /openapi.json.
+        No authentication required.
+
+        Returns:
+            HTML page embedding Swagger UI.
+        """
+        return (
+            """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Motion In Ocean API Docs</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    SwaggerUIBundle({
+      url: '/openapi.json',
+      dom_id: '#swagger-ui',
+      presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
+      layout: 'BaseLayout',
+      deepLinking: true,
+    });
+  </script>
+</body>
+</html>
+""",
+            200,
+            {"Content-Type": "text/html; charset=utf-8"},
+        )
 
     return app, limiter, state
 

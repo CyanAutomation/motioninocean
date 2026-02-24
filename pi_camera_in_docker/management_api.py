@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional, Tuple, cast
 from urllib.parse import urlparse, urlunparse
 
 import sentry_sdk
-from flask import Flask, jsonify, request
+from flask import Blueprint, Flask, jsonify, redirect, request
 
 from .node_registry import FileWebcamRegistry, NodeValidationError, validate_webcam
 from .transport_url_validation import parse_docker_url
@@ -1414,26 +1414,82 @@ def _status_for_webcam(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[T
     return _get_http_status(node)
 
 
-def register_management_routes(
-    app: Flask,
+def _register_management_deprecated_v0_aliases(app: Flask) -> None:
+    """Register legacy /api/* routes that redirect (HTTP 308) to /api/v1/* equivalents.
+
+    These aliases exist for backward compatibility with clients that have not yet
+    migrated to the versioned API. All routes return HTTP 308 Permanent Redirect with
+    a ``Deprecation: true`` header.  HTTP 308 preserves the request method and body on
+    redirect, so POST/PUT/DELETE clients that follow the redirect will work correctly.
+
+    Args:
+        app: Flask application instance to register the deprecated routes on.
+    """
+
+    def _deprecated_redirect(new_path: str):
+        resp = redirect(new_path, 308)
+        resp.headers["Deprecation"] = "true"
+        resp.headers["Link"] = f'<{new_path}>; rel="successor-version"'
+        return resp
+
+    @app.route("/api/webcams", methods=["GET", "POST"])
+    def deprecated_webcams_collection():
+        qs = f"?{request.query_string.decode()}" if request.query_string else ""
+        return _deprecated_redirect(f"/api/v1/webcams{qs}")
+
+    @app.route("/api/webcams/<webcam_id>", methods=["GET", "PUT", "DELETE"])
+    def deprecated_webcam(webcam_id: str):
+        return _deprecated_redirect(f"/api/v1/webcams/{webcam_id}")
+
+    @app.route("/api/webcams/<webcam_id>/status", methods=["GET"])
+    def deprecated_webcam_status(webcam_id: str):
+        return _deprecated_redirect(f"/api/v1/webcams/{webcam_id}/status")
+
+    @app.route("/api/webcams/<webcam_id>/diagnose", methods=["GET"])
+    def deprecated_webcam_diagnose(webcam_id: str):
+        return _deprecated_redirect(f"/api/v1/webcams/{webcam_id}/diagnose")
+
+    @app.route("/api/webcams/<webcam_id>/actions/<action>", methods=["POST"])
+    def deprecated_webcam_action(webcam_id: str, action: str):
+        return _deprecated_redirect(f"/api/v1/webcams/{webcam_id}/actions/{action}")
+
+    @app.route("/api/webcams/<webcam_id>/discovery/<decision>", methods=["POST"])
+    def deprecated_node_discovery_approval(webcam_id: str, decision: str):
+        return _deprecated_redirect(f"/api/v1/webcams/{webcam_id}/discovery/{decision}")
+
+    @app.route("/api/discovery/announce", methods=["POST"])
+    def deprecated_discovery_announce():
+        return _deprecated_redirect("/api/v1/discovery/announce")
+
+    @app.route("/api/management/overview", methods=["GET"])
+    def deprecated_management_overview():
+        qs = f"?{request.query_string.decode()}" if request.query_string else ""
+        return _deprecated_redirect(f"/api/v1/management/overview{qs}")
+
+
+def create_management_blueprint(
     registry_path: str,
     auth_token: Optional[str] = None,
     node_discovery_shared_secret: Optional[str] = None,
     limiter=None,
-) -> None:
-    """Register all management API endpoints to Flask app.
+) -> Blueprint:
+    """Create a Flask Blueprint containing all management API routes at /api/v1/*.
 
-    Registers routes for webcam CRUD, discovery announcements, webcam status queries,
-    diagnostics, and action proxying. Includes bearer token authentication,
-    rate limiting, and SSRF protection.
+    All webcam CRUD, discovery, and overview endpoints are registered on the returned
+    Blueprint. Callers should register it on a Flask app with ``url_prefix="/api/v1"``.
 
     Args:
-        app: Flask application instance.
         registry_path: Path to persistent webcam registry JSON file.
-        auth_token: Optional bearer token for API authentication. If None, auth disabled.
+        auth_token: Optional bearer token for management API authentication.
+            If None or empty, authentication is disabled.
         node_discovery_shared_secret: Optional token for discovery announcements.
+            Defaults to the ``MIO_NODE_DISCOVERY_SHARED_SECRET`` environment variable.
         limiter: Optional Flask-Limiter instance for rate limiting.
+
+    Returns:
+        Flask Blueprint with all management routes registered.
     """
+    bp = Blueprint("management_api", __name__)
     registry = FileWebcamRegistry(registry_path)
     discovery_secret = node_discovery_shared_secret
     if discovery_secret is None:
@@ -1463,17 +1519,14 @@ def register_management_routes(
             return _error_response("UNAUTHORIZED", "authentication required", 401)
         return None
 
-    @app.before_request
+    @bp.before_request
     def _management_auth_guard() -> Optional[Tuple[Any, int]]:
-        if (
-            request.path == "/api/management/overview"
-            or request.path.startswith("/api/webcams/")
-            or request.path == "/api/webcams"
-        ):
-            return _enforce_management_auth()
-        return None
+        # The discovery endpoint uses its own separate token — skip management auth.
+        if request.endpoint == "management_api.announce_webcam":
+            return None
+        return _enforce_management_auth()
 
-    @app.route("/api/webcams", methods=["GET"])
+    @bp.route("/webcams", methods=["GET"])
     @_maybe_limit("1000/minute")
     def list_webcams():
         """List all registered nodes.
@@ -1489,7 +1542,7 @@ def register_management_routes(
             raise
         return jsonify({"webcams": nodes}), 200
 
-    @app.route("/api/discovery/announce", methods=["POST"])
+    @bp.route("/discovery/announce", methods=["POST"])
     @_maybe_limit("10/minute")
     def announce_webcam():
         """Receive webcam self-registration announcement (discovery protocol).
@@ -1555,7 +1608,7 @@ def register_management_routes(
         status_code = 201 if upserted["upserted"] == "created" else 200
         return jsonify(upserted), status_code
 
-    @app.route("/api/webcams", methods=["POST"])
+    @bp.route("/webcams", methods=["POST"])
     @_maybe_limit("100/minute")
     def create_webcam():
         payload = request.get_json(silent=True) or {}
@@ -1569,7 +1622,7 @@ def register_management_routes(
             return _error_response("VALIDATION_ERROR", str(exc), 400)
         return jsonify(created), 201
 
-    @app.route("/api/webcams/<webcam_id>", methods=["GET"])
+    @bp.route("/webcams/<webcam_id>", methods=["GET"])
     @_maybe_limit("1000/minute")
     def get_webcam(webcam_id: str):
         try:
@@ -1584,7 +1637,7 @@ def register_management_routes(
             )
         return jsonify(webcam), 200
 
-    @app.route("/api/webcams/<webcam_id>", methods=["PUT"])
+    @bp.route("/webcams/<webcam_id>", methods=["PUT"])
     @_maybe_limit("100/minute")
     def update_webcam(webcam_id: str):
         payload = request.get_json(silent=True) or {}
@@ -1609,7 +1662,7 @@ def register_management_routes(
             return _error_response("VALIDATION_ERROR", str(exc), 400, webcam_id=webcam_id)
         return jsonify(updated), 200
 
-    @app.route("/api/webcams/<webcam_id>/discovery/<decision>", methods=["POST"])
+    @bp.route("/webcams/<webcam_id>/discovery/<decision>", methods=["POST"])
     @_maybe_limit("100/minute")
     def set_node_discovery_approval(webcam_id: str, decision: str):
         if decision not in {"approve", "reject"}:
@@ -1641,7 +1694,7 @@ def register_management_routes(
 
         return jsonify({"node": updated, "decision": decision}), 200
 
-    @app.route("/api/webcams/<webcam_id>", methods=["DELETE"])
+    @bp.route("/webcams/<webcam_id>", methods=["DELETE"])
     @_maybe_limit("100/minute")
     def delete_webcam(webcam_id: str):
         try:
@@ -1656,7 +1709,7 @@ def register_management_routes(
             )
         return "", 204
 
-    @app.route("/api/webcams/<webcam_id>/status", methods=["GET"])
+    @bp.route("/webcams/<webcam_id>/status", methods=["GET"])
     @_maybe_limit("1000/minute")
     def webcam_status(webcam_id: str):
         """Get current status of a registered webcam.
@@ -1685,7 +1738,7 @@ def register_management_routes(
             return _error_response(*error)
         return jsonify(result), 200
 
-    @app.route("/api/webcams/<webcam_id>/diagnose", methods=["GET"])
+    @bp.route("/webcams/<webcam_id>/diagnose", methods=["GET"])
     @_maybe_limit("100/minute")
     def diagnose_webcam(webcam_id: str):
         """
@@ -1693,7 +1746,7 @@ def register_management_routes(
         Returns structured diagnostic information and actionable guidance.
 
         Endpoints:
-        - /api/webcams/{webcam_id}/diagnose - comprehensive connectivity diagnostics
+        - /api/v1/webcams/{webcam_id}/diagnose - comprehensive connectivity diagnostics
 
         Response:
         - webcam_id: ID of the node
@@ -1719,7 +1772,7 @@ def register_management_routes(
         results = _diagnose_webcam(webcam)
         return jsonify(results), 200
 
-    @app.route("/api/webcams/<webcam_id>/actions/<action>", methods=["POST"])
+    @bp.route("/webcams/<webcam_id>/actions/<action>", methods=["POST"])
     @_maybe_limit("100/minute")
     def node_action(webcam_id: str, action: str):
         try:
@@ -1785,7 +1838,7 @@ def register_management_routes(
             }
         ), status_code
 
-    @app.route("/api/management/overview", methods=["GET"])
+    @bp.route("/management/overview", methods=["GET"])
     @_maybe_limit("100/minute")
     def management_overview():
         try:
@@ -1829,3 +1882,37 @@ def register_management_routes(
             "stream_available_webcams": stream_available_count,
         }
         return jsonify({"summary": summary, "webcams": statuses}), 200
+
+    return bp
+
+
+def register_management_routes(
+    app: Flask,
+    registry_path: str,
+    auth_token: Optional[str] = None,
+    node_discovery_shared_secret: Optional[str] = None,
+    limiter=None,
+) -> None:
+    """Register all management API endpoints to Flask app.
+
+    Registers versioned routes under ``/api/v1/`` via a Flask Blueprint, plus
+    deprecated ``/api/`` aliases that return HTTP 308 redirects.  New clients should
+    target ``/api/v1/*`` directly.  The deprecated routes will be removed in a future
+    release.
+
+    Args:
+        app: Flask application instance.
+        registry_path: Path to persistent webcam registry JSON file.
+        auth_token: Optional bearer token for API authentication. If None, auth disabled.
+        node_discovery_shared_secret: Optional token for discovery announcements.
+        limiter: Optional Flask-Limiter instance for rate limiting.
+    """
+    bp = create_management_blueprint(
+        registry_path=registry_path,
+        auth_token=auth_token,
+        node_discovery_shared_secret=node_discovery_shared_secret,
+        limiter=limiter,
+    )
+    app.register_blueprint(bp, url_prefix="/api/v1")
+    _register_management_deprecated_v0_aliases(app)
+

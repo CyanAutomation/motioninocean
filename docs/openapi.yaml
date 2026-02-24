@@ -1,0 +1,1129 @@
+openapi: "3.0.3"
+
+info:
+  title: Motion In Ocean Management API
+  version: "1.0.0"
+  description: |
+    REST API for the Motion In Ocean management hub.
+
+    Provides node registry management, discovery, status aggregation, and settings
+    for distributed Raspberry Pi camera deployments.
+
+    **Authentication**
+
+    Most endpoints require a bearer token supplied via the `Authorization: Bearer <token>`
+    header.  The token is configured on the server with the `MIO_MANAGEMENT_AUTH_TOKEN`
+    environment variable.  If no token is configured, authentication is disabled.
+
+    The discovery announcement endpoint (`POST /api/v1/discovery/announce`) uses a
+    separate token configured with `MIO_NODE_DISCOVERY_SHARED_SECRET`.
+
+    **Versioning**
+
+    All stable routes are served under `/api/v1/`.  The unversioned `/api/` paths (e.g.
+    `/api/webcams`) are deprecated aliases that return HTTP 308 Permanent Redirect to the
+    versioned equivalents.
+
+    **Swift client generation**
+
+    This spec is compatible with `swift-openapi-generator`.  Fetch it from
+    `GET /openapi.json` (no authentication required) and generate a typed URLSession
+    client with:
+
+    ```
+    swift package plugin generate-code-from-openapi --target MotionInOceanClient
+    ```
+
+servers:
+  - url: /
+    description: Current management hub (relative)
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Webcams
+    description: Webcam node registry — CRUD and live status
+  - name: Discovery
+    description: Node self-registration and manual approval
+  - name: Management
+    description: Aggregate overview across all nodes
+  - name: Settings
+    description: Runtime configuration management
+  - name: Operations
+    description: Health, readiness, and status probes
+
+paths:
+
+  # ── Operational probes (no auth) ────────────────────────────────────────────
+
+  /health:
+    get:
+      operationId: getHealth
+      summary: Liveness probe
+      description: |
+        Lightweight check that returns 200 as long as the process is running.
+        Used by Docker/k8s health checks.
+      tags: [Operations]
+      security: []
+      responses:
+        "200":
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /ready:
+    get:
+      operationId: getReady
+      summary: Readiness probe
+      description: |
+        Returns 200 when the service is ready to handle requests.
+        In management mode this is always 200 (no camera required).
+      tags: [Operations]
+      security: []
+      responses:
+        "200":
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ready
+
+  /api/status:
+    get:
+      operationId: getApiStatus
+      summary: Application status snapshot
+      description: |
+        Returns current runtime status including app mode, uptime, and stream availability.
+        In management mode `stream_available` is always false.
+      tags: [Operations]
+      security: []
+      responses:
+        "200":
+          description: Status snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppStatus"
+
+  # ── Webcam node registry ─────────────────────────────────────────────────────
+
+  /api/v1/webcams:
+    get:
+      operationId: listWebcams
+      summary: List all registered webcam nodes
+      description: Returns all nodes from the persistent registry, in insertion order.
+      tags: [Webcams]
+      responses:
+        "200":
+          description: List of webcam nodes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [webcams]
+                properties:
+                  webcams:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/WebcamNode"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createWebcam
+      summary: Register a new webcam node
+      description: |
+        Manually create a node record. Nodes created this way are automatically
+        approved (`discovery.approved: true`, `discovery.source: "manual"`).
+      tags: [Webcams]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebcamNodeCreate"
+      responses:
+        "201":
+          description: Webcam node created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebcamNode"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/v1/webcams/{webcamId}:
+    parameters:
+      - $ref: "#/components/parameters/webcamId"
+    get:
+      operationId: getWebcam
+      summary: Get a single webcam node
+      tags: [Webcams]
+      responses:
+        "200":
+          description: Webcam node detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebcamNode"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+    put:
+      operationId: updateWebcam
+      summary: Replace a webcam node record
+      description: Full replacement of the node record. Fields omitted from the request body revert to defaults.
+      tags: [Webcams]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebcamNodeCreate"
+      responses:
+        "200":
+          description: Updated webcam node
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebcamNode"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+    delete:
+      operationId: deleteWebcam
+      summary: Remove a webcam node
+      tags: [Webcams]
+      responses:
+        "204":
+          description: Node deleted successfully (no body)
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/v1/webcams/{webcamId}/status:
+    parameters:
+      - $ref: "#/components/parameters/webcamId"
+    get:
+      operationId: getWebcamStatus
+      summary: Fetch live status from a webcam node
+      description: |
+        Proxies a request to the remote webcam node's `/api/status` endpoint and
+        returns the result. Includes SSRF protection and DNS pinning on the outbound
+        request.
+      tags: [Webcams]
+      responses:
+        "200":
+          description: Webcam status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebcamStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/Unreachable"
+
+  /api/v1/webcams/{webcamId}/diagnose:
+    parameters:
+      - $ref: "#/components/parameters/webcamId"
+    get:
+      operationId: diagnoseWebcam
+      summary: Run connectivity diagnostics for a webcam node
+      description: |
+        Performs a multi-step diagnostic: URL validation, SSRF screening, DNS
+        resolution, TCP connectivity check, and `/api/status` endpoint accessibility.
+        Returns structured results and human-readable recommendations.
+      tags: [Webcams]
+      responses:
+        "200":
+          description: Diagnostic results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagnosticResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/v1/webcams/{webcamId}/actions/{action}:
+    parameters:
+      - $ref: "#/components/parameters/webcamId"
+      - name: action
+        in: path
+        required: true
+        description: Action name to proxy to the remote node (e.g. `restart`, `snapshot`).
+        schema:
+          type: string
+          example: restart
+    post:
+      operationId: triggerWebcamAction
+      summary: Proxy an action to a webcam node
+      description: |
+        Forwards a POST request to `{node.base_url}/api/actions/{action}` with the
+        supplied JSON body. Returns the HTTP status code and response body from the
+        remote node.
+      tags: [Webcams]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Action result from remote node
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/Unreachable"
+
+  # ── Discovery ────────────────────────────────────────────────────────────────
+
+  /api/v1/webcams/{webcamId}/discovery/{decision}:
+    parameters:
+      - $ref: "#/components/parameters/webcamId"
+      - name: decision
+        in: path
+        required: true
+        description: Approval decision for the discovered node.
+        schema:
+          type: string
+          enum: [approve, reject]
+    post:
+      operationId: setDiscoveryApproval
+      summary: Approve or reject a discovered webcam node
+      description: |
+        Sets `discovery.approved` to `true` (approve) or `false` (reject) for the
+        specified node. Discovered nodes default to `approved: false` until explicitly
+        approved by an operator.
+      tags: [Discovery]
+      responses:
+        "200":
+          description: Approval decision recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [node, decision]
+                properties:
+                  node:
+                    $ref: "#/components/schemas/WebcamNode"
+                  decision:
+                    type: string
+                    enum: [approve, reject]
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/v1/discovery/announce:
+    post:
+      operationId: announceWebcam
+      summary: Webcam node self-registration (discovery protocol)
+      description: |
+        Called by webcam nodes (via `DiscoveryAnnouncer`) to register or update
+        their presence in the management hub.  Uses a separate bearer token
+        (`MIO_NODE_DISCOVERY_SHARED_SECRET`) rather than the management token.
+
+        Newly announced nodes are created with `discovery.approved: false`.
+        An operator must call `POST /api/v1/webcams/{id}/discovery/approve` to
+        allow the node to appear in the active registry.
+      tags: [Discovery]
+      security:
+        - discoveryAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiscoveryAnnouncement"
+      responses:
+        "200":
+          description: Existing node updated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "201":
+          description: New node registered
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Private IP target blocked by SSRF protection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ── Management overview ──────────────────────────────────────────────────────
+
+  /api/v1/management/overview:
+    get:
+      operationId: getManagementOverview
+      summary: Aggregate status overview of all registered nodes
+      description: |
+        Fetches live status from every registered webcam node (in parallel) and
+        returns a combined summary plus per-node statuses.
+      tags: [Management]
+      responses:
+        "200":
+          description: Overview summary and per-node statuses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagementOverview"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  # ── Settings ─────────────────────────────────────────────────────────────────
+
+  /api/v1/settings:
+    get:
+      operationId: getSettings
+      summary: Get current runtime settings
+      description: |
+        Returns the merged result of environment variable defaults and any persisted
+        overrides stored in `/data/application-settings.json`.
+      tags: [Settings]
+      security: []
+      responses:
+        "200":
+          description: Merged environment + persisted settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsDocument"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    patch:
+      operationId: patchSettings
+      summary: Update runtime settings
+      description: |
+        Validates and persists a partial settings update. Only the supplied categories
+        and properties are changed; other settings are unaffected.
+
+        Properties marked as `restartable` are persisted but a container restart is
+        required for them to take effect. The response includes `requires_restart: true`
+        and a `modified_on_restart` list when this applies (HTTP 422).
+      tags: [Settings]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsPatch"
+      responses:
+        "200":
+          description: Settings updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsSaveResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "422":
+          description: Settings saved but one or more properties require a container restart
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsSaveResult"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/settings/schema:
+    get:
+      operationId: getSettingsSchema
+      summary: Get JSON schema for all editable settings
+      description: |
+        Returns the full JSON schema for all settings categories and properties,
+        including human-readable descriptions, types, constraints, defaults, and a
+        list of `restartable_properties` that require a container restart to take effect.
+        Intended for dynamic UI rendering.
+      tags: [Settings]
+      security: []
+      responses:
+        "200":
+          description: Settings schema with rendering metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [schema, defaults, restartable_properties]
+                properties:
+                  schema:
+                    type: object
+                    additionalProperties: true
+                  defaults:
+                    type: object
+                    additionalProperties: true
+                  restartable_properties:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: string
+
+  /api/v1/settings/reset:
+    post:
+      operationId: resetSettings
+      summary: Reset persisted settings to environment defaults
+      description: |
+        Clears the persisted settings JSON file. After reset, environment variables
+        become the sole source of truth until new settings are saved via PATCH.
+      tags: [Settings]
+      security: []
+      responses:
+        "200":
+          description: Settings reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reset, message]
+                properties:
+                  reset:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/v1/settings/changes:
+    get:
+      operationId: getSettingsChanges
+      summary: Get diff between environment defaults and persisted overrides
+      description: |
+        Returns a list of settings that have been overridden via the API, showing
+        both the current persisted value and the original environment variable value.
+      tags: [Settings]
+      security: []
+      responses:
+        "200":
+          description: List of overridden settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  overridden:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SettingsChange"
+
+# ── Components ──────────────────────────────────────────────────────────────────
+
+components:
+
+  parameters:
+    webcamId:
+      name: webcamId
+      in: path
+      required: true
+      description: Unique webcam node identifier (e.g. `node-abc12345`).
+      schema:
+        type: string
+        example: node-abc12345
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Management bearer token.  Set `MIO_MANAGEMENT_AUTH_TOKEN` on the server.
+        If the env var is not set, authentication is disabled and all management
+        endpoints are publicly accessible.
+    discoveryAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Discovery shared secret.  Set `MIO_NODE_DISCOVERY_SHARED_SECRET` on the
+        management hub.  Webcam nodes supply this token when calling
+        `POST /api/v1/discovery/announce`.
+
+  responses:
+    Unauthorized:
+      description: Authentication required or bearer token is invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: The requested resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ValidationError:
+      description: Request body failed validation
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    RateLimited:
+      description: Rate limit exceeded — retry after a short delay
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+    BadGateway:
+      description: Proxied request to remote node returned an invalid response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unreachable:
+      description: Remote webcam node is unreachable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+
+    # ── Shared auth / discovery sub-objects ────────────────────────────────────
+
+    WebcamAuth:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [none, bearer]
+          description: Authentication type to use when proxying requests to this node.
+        token:
+          type: string
+          description: Bearer token value (only present when `type` is `bearer`).
+
+    WebcamDiscovery:
+      type: object
+      required: [source, first_seen, approved]
+      properties:
+        source:
+          type: string
+          enum: [manual, discovered]
+          description: How the node was registered.
+        first_seen:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the node was first registered.
+        last_announce_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: ISO 8601 timestamp of the most recent discovery announcement, or null for manual nodes.
+        approved:
+          type: boolean
+          description: |
+            Whether the node has been approved by an operator.
+            Discovered nodes default to `false`; manually created nodes default to `true`.
+
+    # ── Webcam node ────────────────────────────────────────────────────────────
+
+    WebcamNode:
+      type: object
+      required: [id, name, base_url, transport, capabilities, last_seen, labels, auth, discovery]
+      properties:
+        id:
+          type: string
+          description: Unique node identifier (prefix `node-` followed by 16 hex characters).
+          example: node-aabb1122ccdd3344
+        name:
+          type: string
+          description: Human-readable display name.
+          example: Kitchen Pi
+        base_url:
+          type: string
+          format: uri
+          description: Base HTTP URL of the webcam node (e.g. `http://pi-kitchen:8000`).
+          example: "http://pi-kitchen:8000"
+        transport:
+          type: string
+          enum: [http, docker]
+          description: Transport protocol used to communicate with the node.
+        capabilities:
+          type: array
+          items:
+            type: string
+          description: List of capabilities the node advertises (e.g. `["stream", "snapshot"]`).
+          example: [stream, snapshot]
+        last_seen:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of the most recent interaction with this node.
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: Arbitrary key-value metadata attached to the node.
+          example:
+            hostname: pi-kitchen
+            device_class: webcam
+            app_mode: webcam
+        auth:
+          $ref: "#/components/schemas/WebcamAuth"
+        discovery:
+          $ref: "#/components/schemas/WebcamDiscovery"
+
+    WebcamNodeCreate:
+      type: object
+      required: [id, name, base_url]
+      properties:
+        id:
+          type: string
+          description: Unique node identifier. Must be globally unique within the registry.
+          example: node-aabb1122ccdd3344
+        name:
+          type: string
+          example: Kitchen Pi
+        base_url:
+          type: string
+          format: uri
+          example: "http://pi-kitchen:8000"
+        transport:
+          type: string
+          enum: [http, docker]
+          default: http
+        capabilities:
+          type: array
+          items:
+            type: string
+          default: [stream, snapshot]
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          default: {}
+        auth:
+          $ref: "#/components/schemas/WebcamAuth"
+
+    # ── Status ─────────────────────────────────────────────────────────────────
+
+    AppStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        app_mode:
+          type: string
+          enum: [webcam, management]
+        stream_available:
+          type: boolean
+        camera_active:
+          type: boolean
+        uptime_seconds:
+          type: number
+        fps:
+          type: number
+        connections:
+          type: object
+          properties:
+            current:
+              type: integer
+            max:
+              type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+    StatusProbe:
+      type: object
+      properties:
+        status_code:
+          type: integer
+          description: HTTP status code returned by the remote node's `/api/status` endpoint.
+        payload:
+          type: object
+          additionalProperties: true
+          description: Full JSON response body from the remote node.
+
+    WebcamStatus:
+      type: object
+      required: [webcam_id, status, stream_available]
+      properties:
+        webcam_id:
+          type: string
+        status:
+          type: string
+          enum: [ok, degraded, error]
+        stream_available:
+          type: boolean
+        status_probe:
+          $ref: "#/components/schemas/StatusProbe"
+        error:
+          type: object
+          description: Present only when `status` is `error`.
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+
+    # ── Management overview ────────────────────────────────────────────────────
+
+    ManagementSummary:
+      type: object
+      required: [total_webcams, unavailable_webcams, healthy_webcams, stream_available_webcams]
+      properties:
+        total_webcams:
+          type: integer
+        unavailable_webcams:
+          type: integer
+        healthy_webcams:
+          type: integer
+        stream_available_webcams:
+          type: integer
+
+    ManagementOverview:
+      type: object
+      required: [summary, webcams]
+      properties:
+        summary:
+          $ref: "#/components/schemas/ManagementSummary"
+        webcams:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebcamStatus"
+
+    # ── Discovery ──────────────────────────────────────────────────────────────
+
+    DiscoveryAnnouncement:
+      type: object
+      required: [webcam_id, name, base_url]
+      properties:
+        webcam_id:
+          type: string
+          description: |
+            Stable node identifier, typically `node-` + first 16 characters of
+            `sha256(hostname + MAC_address)`.
+          example: node-aabb1122ccdd3344
+        name:
+          type: string
+          description: Human-readable hostname or display name.
+          example: pi-kitchen
+        base_url:
+          type: string
+          format: uri
+          description: Base URL of the announcing webcam node.
+          example: "http://pi-kitchen:8000"
+        transport:
+          type: string
+          enum: [http, docker]
+          default: http
+        capabilities:
+          type: array
+          items:
+            type: string
+          default: [stream, snapshot]
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        auth:
+          $ref: "#/components/schemas/WebcamAuth"
+
+    # ── Action proxy ───────────────────────────────────────────────────────────
+
+    ActionResult:
+      type: object
+      required: [webcam_id, action, status_code, response]
+      properties:
+        webcam_id:
+          type: string
+        action:
+          type: string
+        status_code:
+          type: integer
+          description: HTTP status code returned by the remote node.
+        response:
+          type: object
+          additionalProperties: true
+          description: Full JSON response body from the remote node.
+
+    # ── Diagnostics ────────────────────────────────────────────────────────────
+
+    DiagnosticCheck:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pass, fail, warn]
+      additionalProperties: true
+
+    DiagnosticResult:
+      type: object
+      required: [webcam_id, diagnostics, guidance, recommendations]
+      properties:
+        webcam_id:
+          type: string
+        diagnostics:
+          type: object
+          properties:
+            registration:
+              $ref: "#/components/schemas/DiagnosticCheck"
+            url_validation:
+              $ref: "#/components/schemas/DiagnosticCheck"
+            dns_resolution:
+              $ref: "#/components/schemas/DiagnosticCheck"
+            network_connectivity:
+              $ref: "#/components/schemas/DiagnosticCheck"
+            api_endpoint:
+              $ref: "#/components/schemas/DiagnosticCheck"
+        guidance:
+          type: array
+          items:
+            type: string
+        recommendations:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    # ── Settings ───────────────────────────────────────────────────────────────
+
+    SettingsCamera:
+      type: object
+      properties:
+        resolution:
+          type: string
+          description: "Camera resolution as `WIDTHxHEIGHT` (e.g. `1280x720`)."
+          example: "640x480"
+        fps:
+          type: integer
+          minimum: 1
+          maximum: 120
+          description: Target capture frame rate.
+        jpeg_quality:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: JPEG encoding quality (1=lowest, 100=highest).
+        max_stream_connections:
+          type: integer
+          minimum: 1
+          description: Maximum simultaneous MJPEG stream clients.
+        max_frame_age_seconds:
+          type: number
+          description: Maximum age (seconds) of a frame before it is considered stale.
+
+    SettingsLogging:
+      type: object
+      properties:
+        log_level:
+          type: string
+          enum: [DEBUG, INFO, WARNING, ERROR, CRITICAL]
+        log_format:
+          type: string
+          enum: [text, json]
+        log_include_identifiers:
+          type: boolean
+          description: Include correlation IDs and request identifiers in log output.
+
+    SettingsDiscovery:
+      type: object
+      properties:
+        discovery_enabled:
+          type: boolean
+        discovery_management_url:
+          type: string
+          format: uri
+          example: "http://management-hub:8001"
+        discovery_token:
+          type: string
+          description: Bearer token sent when announcing to the management hub.
+        discovery_interval_seconds:
+          type: number
+          minimum: 1
+          description: Seconds between discovery announcement attempts.
+
+    SettingsDocument:
+      type: object
+      required: [version, settings]
+      properties:
+        version:
+          type: integer
+          example: 1
+        settings:
+          type: object
+          properties:
+            camera:
+              $ref: "#/components/schemas/SettingsCamera"
+            logging:
+              $ref: "#/components/schemas/SettingsLogging"
+            discovery:
+              $ref: "#/components/schemas/SettingsDiscovery"
+            feature_flags:
+              type: object
+              additionalProperties: true
+        last_modified:
+          type: string
+          format: date-time
+          nullable: true
+        modified_by:
+          type: string
+          nullable: true
+
+    SettingsPatch:
+      type: object
+      description: Partial settings update. Only the supplied categories/properties are changed.
+      properties:
+        camera:
+          $ref: "#/components/schemas/SettingsCamera"
+        logging:
+          $ref: "#/components/schemas/SettingsLogging"
+        discovery:
+          $ref: "#/components/schemas/SettingsDiscovery"
+
+    SettingsSaveResult:
+      type: object
+      required: [saved, settings]
+      properties:
+        saved:
+          type: boolean
+          example: true
+        settings:
+          type: object
+          additionalProperties: true
+          description: Complete persisted settings after the update.
+        last_modified:
+          type: string
+          format: date-time
+          nullable: true
+        modified_by:
+          type: string
+          nullable: true
+        requires_restart:
+          type: boolean
+          description: Present and `true` when one or more changed properties require a restart.
+        modified_on_restart:
+          type: array
+          description: List of `category.property` paths that require a restart to take effect.
+          items:
+            type: string
+          example: ["camera.resolution", "camera.fps"]
+
+    SettingsChange:
+      type: object
+      properties:
+        category:
+          type: string
+          example: camera
+        key:
+          type: string
+          example: fps
+        value:
+          description: Current persisted value.
+        env_value:
+          description: Original environment variable value.
+
+    # ── Error ──────────────────────────────────────────────────────────────────
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, details, timestamp]
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code (e.g. `WEBCAM_NOT_FOUND`).
+              example: WEBCAM_NOT_FOUND
+            message:
+              type: string
+              description: Human-readable error description.
+            details:
+              type: object
+              additionalProperties: true
+              description: Optional additional structured context.
+            timestamp:
+              type: string
+              format: date-time
+            webcam_id:
+              type: string
+              description: ID of the affected webcam node (when applicable).
