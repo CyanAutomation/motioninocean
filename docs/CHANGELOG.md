@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+- [feature-flags] Removed inert registry flags with no runtime reads; only MOCK_CAMERA, CORS_SUPPORT, and OCTOPRINT_COMPATIBILITY remain active.
+- [deprecation] Legacy aliases continue for MOCK_CAMERA and OCTOPRINT_COMPATIBILITY, and are scheduled for removal by v1.0 (after the existing deprecation window).
+
 ## [1.19.2] - 2026-02-23
 
 - style: adjust z-index for video stream to ensure proper layering

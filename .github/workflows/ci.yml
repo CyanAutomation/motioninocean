@@ -106,6 +106,10 @@ jobs:
         run: |
           ruff format --check .
 
+      - name: Check feature flag runtime usage
+        run: |
+          python -m pi_camera_in_docker.feature_flag_usage_check
+
   type-check:
     name: Type Check
     runs-on: ubuntu-latest
