@@ -43,13 +43,13 @@ referenced in the codebase. Previously, only **23 variables were documented**, l
 - `MOTION_IN_OCEAN_TARGET_FPS` ✓
 - `MOTION_IN_OCEAN_JPEG_QUALITY` ✓
 - `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS` ✓
-- `MOCK_CAMERA` ✓
+- `MIO_MOCK_CAMERA` ✓ (canonical; `MOCK_CAMERA` alias removed)
 
 **Authentication & Security**
 
 - `MANAGEMENT_AUTH_TOKEN` ✓
 - `NODE_DISCOVERY_SHARED_SECRET` ✓
-- `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` ✓
+- `MIO_ALLOW_PRIVATE_IPS` ✓ (canonical; `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` alias removed)
 
 **Discovery & Node Management**
 
@@ -126,8 +126,10 @@ referenced in the codebase. Previously, only **23 variables were documented**, l
 
 **Legacy/Backward Compatibility**
 
-- `PI3_PROFILE` (legacy for `MOTION_IN_OCEAN_PI3_PROFILE`) ✓
-- `OCTOPRINT_COMPATIBILITY` (legacy) ✓
+- `PI3_PROFILE` (legacy alias for `MIO_PI3_PROFILE`) ✗ removed
+- `OCTOPRINT_COMPATIBILITY` (legacy alias for `MIO_OCTOPRINT_COMPATIBILITY`) ✗ removed
+- `MOCK_CAMERA` (legacy alias for `MIO_MOCK_CAMERA`) ✗ removed
+- `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` (legacy alias for `MIO_ALLOW_PRIVATE_IPS`) ✗ removed
 
 ### Key Improvements
 

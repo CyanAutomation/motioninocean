@@ -10,10 +10,7 @@ Use canonical `MIO_` names:
 MIO_<FLAG_NAME>=true|false
 ```
 
-Legacy aliases are documented only for flags where code still supports them:
-
-- `MOCK_CAMERA` → `MIO_MOCK_CAMERA`
-- `OCTOPRINT_COMPATIBILITY` → `MIO_OCTOPRINT_COMPATIBILITY`
+Legacy aliases for feature flags have been removed. Use canonical `MIO_*` names only.
 
 ## API contract (`GET /api/feature-flags`)
 
@@ -46,13 +43,13 @@ and is mapped only when `MIO_CORS_ORIGINS` is unset.
 
 Uses mock camera frames in webcam mode when enabled.
 
-- Legacy alias currently supported: `MOCK_CAMERA`
+- Legacy alias removed: `MOCK_CAMERA` (no longer read)
 
 ### `MIO_OCTOPRINT_COMPATIBILITY` (default: `false`)
 
 Uses OctoPrint-friendly MJPEG boundary formatting.
 
-- Legacy alias currently supported: `OCTOPRINT_COMPATIBILITY`
+- Legacy alias removed: `OCTOPRINT_COMPATIBILITY` (no longer read)
 
 ## Registry policy
 
