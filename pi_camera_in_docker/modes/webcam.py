@@ -3,7 +3,7 @@ import logging
 import time
 from collections import deque
 from threading import Condition, Lock
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import sentry_sdk
 from flask import Flask, Response, jsonify, request
@@ -757,21 +757,18 @@ def _register_action_routes(app: Flask, handler: WebcamActionHandler) -> None:
 
 
 def _register_compat_routes(
-    app: Flask, builder: StreamResponseBuilder, is_flag_enabled: Callable[[str], bool]
+    app: Flask, builder: StreamResponseBuilder
 ) -> None:
     """Register OctoPrint compatibility routes.
 
     Args:
         app: Flask application instance.
         builder: StreamResponseBuilder instance for stream generation.
-        is_flag_enabled: Feature flag check function.
     """
 
     @app.route("/webcam")
     @app.route("/webcam/")
     def octoprint_compat_webcam() -> Response:
-        if not is_flag_enabled("OCTOPRINT_COMPATIBILITY"):
-            return Response("OctoPrint compatibility routes are disabled.", status=404)
         action = request.args.get("action", "").strip().lower()
         # Normalize malformed action values: strip anything after ? or & to handle legacy cache busters
         action = action.split("?")[0].split("&")[0]
@@ -783,7 +780,7 @@ def _register_compat_routes(
         return Response("Unsupported action", status=400)
 
 
-def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[str], bool]) -> None:
+def register_webcam_routes(app: Flask, state: dict) -> None:
     """Register webcam mode Flask routes for MJPEG streaming.
 
     Registers /stream.mjpg, /snapshot.jpg, /api/actions/<action>, and
@@ -797,7 +794,6 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
     Args:
         app: Flask application instance.
         state: Application state dict with frame buffer, tracker, stream stats, etc.
-        is_flag_enabled: Feature flag check function.
     """
     tracker = state["connection_tracker"]
     max_stream_connections = state["max_stream_connections"]
@@ -809,7 +805,7 @@ def register_webcam_routes(app: Flask, state: dict, is_flag_enabled: Callable[[s
     # Register all endpoint groups
     _register_stream_routes(app, stream_builder)
     _register_action_routes(app, action_handler)
-    _register_compat_routes(app, stream_builder, is_flag_enabled)
+    _register_compat_routes(app, stream_builder)
 
 
 def register_management_camera_error_routes(app: Flask) -> None:
