@@ -39,7 +39,7 @@ services:
 
       # Infrastructure / Deployment Configuration (NOT UI-configurable)
       MIO_PI3_PROFILE: ${MIO_PI3_PROFILE:-false}
-      MIO_OCTOPRINT_COMPATIBILITY: ${MIO_OCTOPRINT_COMPATIBILITY:-false}
+      # MIO_OCTOPRINT_COMPATIBILITY is deprecated/ignored; OctoPrint compatibility is now built in.
       MIO_CORS_ORIGINS: ${MIO_CORS_ORIGINS:-*}
       MIO_MOCK_CAMERA: ${MIO_MOCK_CAMERA:-false}
       MIO_APPLICATION_SETTINGS_PATH: ${MIO_APPLICATION_SETTINGS_PATH:-/data/application-settings.json}

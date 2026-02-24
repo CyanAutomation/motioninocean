@@ -80,8 +80,30 @@ class TestFeatureFlagRegistry:
             with caplog.at_level("WARNING"):
                 flags.load()
 
-        assert "deprecated and ignored" in caplog.text
-        assert "OctoPrint compatibility is always enabled" in caplog.text
+        warnings = [r.message for r in caplog.records if r.levelname == "WARNING"]
+        assert len(warnings) == 1
+        assert "Deprecated environment variable(s) detected and ignored" in warnings[0]
+        assert "OctoPrint compatibility is always enabled" in warnings[0]
+
+    def test_deprecated_octoprint_compatibility_logs_single_warning_for_multiple_vars(self, caplog):
+        """Multiple deprecated OctoPrint env vars should produce one startup warning."""
+        from pi_camera_in_docker.feature_flags import FeatureFlags
+
+        with mock.patch.dict(
+            os.environ,
+            {
+                "MIO_OCTOPRINT_COMPATIBILITY": "true",
+                "OCTOPRINT_COMPATIBILITY": "true",
+            },
+            clear=True,
+        ):
+            flags = FeatureFlags()
+            with caplog.at_level("WARNING"):
+                flags.load()
+
+        warnings = [r.message for r in caplog.records if r.levelname == "WARNING"]
+        assert len(warnings) == 1
+        assert "MIO_OCTOPRINT_COMPATIBILITY, OCTOPRINT_COMPATIBILITY" in warnings[0]
 
 
 class TestFeatureFlagBehavior:

@@ -127,13 +127,17 @@ class FeatureFlags:
         OctoPrint compatibility behavior is always enabled and no longer controlled
         via feature flag env vars.
         """
-        for env_var in ("MIO_OCTOPRINT_COMPATIBILITY", "OCTOPRINT_COMPATIBILITY"):
-            if os.environ.get(env_var) is not None:
-                logger.warning(
-                    "Environment variable '%s' is deprecated and ignored because "
-                    "OctoPrint compatibility is always enabled.",
-                    env_var,
-                )
+        deprecated_vars = [
+            env_var
+            for env_var in ("MIO_OCTOPRINT_COMPATIBILITY", "OCTOPRINT_COMPATIBILITY")
+            if os.environ.get(env_var) is not None
+        ]
+        if deprecated_vars:
+            logger.warning(
+                "Deprecated environment variable(s) detected and ignored: %s. "
+                "OctoPrint compatibility is always enabled; remove these variable(s).",
+                ", ".join(deprecated_vars),
+            )
 
     def _parse_bool(self, value: str, flag_name: str) -> bool:
         """Parse a string value as boolean.

@@ -107,7 +107,7 @@ These environment variables are **system configuration** and require container r
 
 - `MIO_APP_MODE` - Application mode (webcam or management)
 - `MOCK_CAMERA` - Enable synthetic camera
-- `MIO_OCTOPRINT_COMPATIBILITY` - OctoPrint mode
+- `MIO_OCTOPRINT_COMPATIBILITY` - **Deprecated/ignored** (OctoPrint compatibility is built in; remove this variable)
 - `MIO_PI3_PROFILE` - Raspberry Pi 3 mode
 
 ### Advanced Configuration
