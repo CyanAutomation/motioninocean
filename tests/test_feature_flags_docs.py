@@ -43,8 +43,8 @@ def test_feature_flags_docs_match_supported_legacy_aliases() -> None:
 
     registry = FeatureFlags()
     supported_aliases: dict[str, str] = {}
-    for flag_name, flag in registry._flags.items():
-        for alias in flag.backward_compat_vars or []:
+    for flag_name, flag_info in registry.get_all_flag_info().items():
+        for alias in flag_info.get("backward_compat_vars", []):
             supported_aliases[alias] = flag_name
 
     assert documented_aliases == supported_aliases

@@ -280,6 +280,18 @@ class FeatureFlags:
             "backward_compat_vars": flag.backward_compat_vars or [],
         }
 
+    def get_all_flag_info(self) -> Dict[str, Dict[str, Any]]:
+        """Get detailed metadata for all registered flags.
+
+        Returns:
+            Dict mapping flag names to metadata dictionaries.
+        """
+        return {
+            flag_name: flag_info
+            for flag_name in self._flags
+            if (flag_info := self.get_flag_info(flag_name)) is not None
+        }
+
     def _log_summary(self) -> None:
         """Log a summary of loaded feature flags grouped by category."""
         if not self._loaded:
