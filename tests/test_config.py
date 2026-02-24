@@ -522,7 +522,6 @@ print(json.dumps(results))
     env.update(
         {
             "MIO_MOCK_CAMERA": "true",
-            "MIO_OCTOPRINT_COMPATIBILITY": "true",
         }
     )
 
@@ -584,7 +583,6 @@ print(json.dumps(results))
     env.update(
         {
             "MIO_MOCK_CAMERA": "true",
-            "MIO_OCTOPRINT_COMPATIBILITY": "true",
         }
     )
 
