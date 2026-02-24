@@ -51,7 +51,28 @@ steps:
       - RPI_SUITE=bookworm
       - .
 
-  # ---- Step 2: Push image to GAR ----
+  # ---- Step 2: Ensure GAR repository exists ----
+  # Creates the Artifact Registry Docker repository if it doesn't already exist.
+  # Safe to re-run on subsequent builds (--if-not-exists is idempotent).
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: create-gar-repo
+    entrypoint: gcloud
+    args:
+      - artifacts
+      - repositories
+      - create
+      - ${_GAR_REPO}
+      - --repository-format
+      - docker
+      - --location
+      - ${_GAR_REGION}
+      - --description
+      - Motion In Ocean demo images
+      - --if-not-exists
+    waitFor:
+      - build-and-push
+
+  # ---- Step 3: Push image to GAR ----
   - name: gcr.io/cloud-builders/docker
     id: push-image
     args:
@@ -59,9 +80,9 @@ steps:
       - --all-tags
       - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}
     waitFor:
-      - build-and-push
+      - create-gar-repo
 
-  # ---- Step 3: Deploy to Cloud Run (demo) ----
+  # ---- Step 4: Deploy to Cloud Run (demo) ----
   # Uses MOCK_CAMERA=true since Cloud Run has no CSI camera hardware.
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     id: deploy-cloud-run
