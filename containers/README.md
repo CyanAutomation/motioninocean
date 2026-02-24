@@ -105,8 +105,9 @@ These settings control deployment and system behavior, and are set at container 
 **Webcam mode:**
 
 - `MIO_PORT`, `MIO_BIND_HOST` — Network binding
-- `MOCK_CAMERA` — Mock camera for testing
-- `MIO_PI3_PROFILE`, `MIO_OCTOPRINT_COMPATIBILITY` — Hardware/integration profiles
+- `MIO_MOCK_CAMERA` — Mock camera for testing
+- `MIO_PI3_PROFILE` — Hardware profile
+- OctoPrint compatibility is always enabled in webcam mode; `MIO_OCTOPRINT_COMPATIBILITY` and `OCTOPRINT_COMPATIBILITY` are deprecated/ignored.
 - `MIO_MANAGEMENT_AUTH_TOKEN` — Security token for management hub access
 - `APPLICATION_SETTINGS_PATH`, `NODE_REGISTRY_PATH` — Persistence locations
 - `MIO_SENTRY_DSN` — Error tracking

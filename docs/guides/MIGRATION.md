@@ -76,7 +76,6 @@ For step-by-step migration execution, use the canonical sections in `DEPLOYMENT.
 - `MOTION_IN_OCEAN_JPEG_QUALITY`
 - `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS`
 - `MOTION_IN_OCEAN_PI3_PROFILE`
-- `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY`
 - `MOTION_IN_OCEAN_CORS_ORIGINS`
 
 #### Removed legacy aliases (must migrate to canonical `MIO_*`)
@@ -85,6 +84,15 @@ For step-by-step migration execution, use the canonical sections in `DEPLOYMENT.
 - `MOCK_CAMERA` → `MIO_MOCK_CAMERA`
 - `OCTOPRINT_COMPATIBILITY` → `MIO_OCTOPRINT_COMPATIBILITY`
 - `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` → `MIO_ALLOW_PRIVATE_IPS`
+
+
+### OctoPrint Compatibility Model Change
+
+In webcam mode, OctoPrint compatibility is now always enabled.
+
+- `MIO_OCTOPRINT_COMPATIBILITY` is deprecated and ignored.
+- `OCTOPRINT_COMPATIBILITY` is deprecated and ignored.
+- Setting either variable has no runtime effect beyond emitting deprecation warnings.
 
 ### Authentication Delta
 
