@@ -1571,7 +1571,7 @@ function validateStep(step) {
   if (step === "review") {
     const resolution = document.getElementById("setup-resolution")?.value || "";
     const fps = Number.parseInt(document.getElementById("setup-fps")?.value || "", 10);
-    return /^\d+x\d+$/i.test(resolution) && Number.isInteger(fps) && fps >= 0 && fps <= 120;
+    return /^\d+x\d+$/i.test(resolution) && Number.isInteger(fps) && fps >= 1 && fps <= 120;
   }
 
   return true;

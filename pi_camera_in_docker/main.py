@@ -291,8 +291,8 @@ def _validate_setup_config(config: Dict[str, Any]) -> Tuple[bool, list]:
     # Validate FPS
     if "fps" in config:
         fps = config.get("fps", 0)
-        if not isinstance(fps, int) or fps < 0 or fps > 120:
-            errors.append("FPS must be an integer between 0 and 120")
+        if not isinstance(fps, int) or fps < 1 or fps > 120:
+            errors.append("FPS must be an integer between 1 and 120")
 
     # Validate target FPS
     if "target_fps" in config and config["target_fps"] is not None:
@@ -959,7 +959,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
                     "detected_devices": detected_devices,
                     "constraints": {
                         "resolution_examples": ["640x480", "1280x720", "1920x1080"],
-                        "fps_range": [0, 120],
+                        "fps_range": [1, 120],
                         "jpeg_quality_range": [1, 100],
                         "max_connections_range": [1, 100],
                     },
