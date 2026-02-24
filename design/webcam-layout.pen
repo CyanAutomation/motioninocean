@@ -699,7 +699,7 @@
                 {
                   "type": "frame",
                   "id": "7PJDI",
-                  "x": 1124,
+                  "x": 1080,
                   "y": 14,
                   "name": "Start Meeting",
                   "width": 170,
@@ -724,7 +724,7 @@
                 {
                   "type": "frame",
                   "id": "MT8bE",
-                  "x": 1068,
+                  "x": 1024,
                   "y": 14,
                   "name": "Theme Toggle",
                   "width": 44,
@@ -771,13 +771,18 @@
                 {
                   "type": "frame",
                   "id": "R8ika",
-                  "x": 1238,
-                  "y": 8,
+                  "x": 1258,
+                  "y": 18,
                   "name": "Mio Hero Happy",
-                  "width": 56,
-                  "height": 56,
-                  "fill": "#59C7FF",
-                  "cornerRadius": 16
+                  "width": 36,
+                  "height": 36,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_happy.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 12
                 }
               ]
             },
@@ -1135,17 +1140,6 @@
                       ]
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "WmVKT",
-                  "x": 20,
-                  "y": 20,
-                  "name": "Mio Context Happy",
-                  "width": 88,
-                  "height": 88,
-                  "fill": "#59C7FF",
-                  "cornerRadius": 24
                 }
               ]
             }
@@ -1851,7 +1845,7 @@
                 {
                   "type": "frame",
                   "id": "RRuqn",
-                  "x": 1124,
+                  "x": 1080,
                   "y": 14,
                   "name": "Start Meeting",
                   "width": 170,
@@ -1876,7 +1870,7 @@
                 {
                   "type": "frame",
                   "id": "GTkmZ",
-                  "x": 1068,
+                  "x": 1024,
                   "y": 14,
                   "name": "Theme Toggle",
                   "width": 44,
@@ -1923,13 +1917,18 @@
                 {
                   "type": "frame",
                   "id": "hKmum",
-                  "x": 1238,
-                  "y": 8,
+                  "x": 1258,
+                  "y": 18,
                   "name": "Mio Hero Happy",
-                  "width": 56,
-                  "height": 56,
-                  "fill": "#59C7FF",
-                  "cornerRadius": 16
+                  "width": 36,
+                  "height": 36,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_happy.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 12
                 }
               ]
             },
@@ -2287,17 +2286,6 @@
                       ]
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "J2EdA",
-                  "x": 20,
-                  "y": 20,
-                  "name": "Mio Context Happy",
-                  "width": 88,
-                  "height": 88,
-                  "fill": "#59C7FF",
-                  "cornerRadius": 24
                 }
               ]
             }
@@ -2976,13 +2964,18 @@
                 {
                   "type": "frame",
                   "id": "kVxcN",
-                  "x": 286,
-                  "y": 16,
+                  "x": 94,
+                  "y": 8,
                   "name": "Mio Hero Happy",
-                  "width": 44,
-                  "height": 44,
-                  "fill": "#59C7FF",
-                  "cornerRadius": 14
+                  "width": 28,
+                  "height": 28,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_happy.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 9
                 }
               ]
             },
@@ -3107,17 +3100,6 @@
                       "fontWeight": "normal"
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "EDXak",
-                  "x": 16,
-                  "y": 16,
-                  "name": "Mio Context Happy",
-                  "width": 64,
-                  "height": 64,
-                  "fill": "#59C7FF",
-                  "cornerRadius": 18
                 }
               ]
             }
@@ -3796,13 +3778,18 @@
                 {
                   "type": "frame",
                   "id": "pb0YD",
-                  "x": 286,
-                  "y": 16,
+                  "x": 94,
+                  "y": 8,
                   "name": "Mio Hero Happy",
-                  "width": 44,
-                  "height": 44,
-                  "fill": "#59C7FF",
-                  "cornerRadius": 14
+                  "width": 28,
+                  "height": 28,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_happy.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 9
                 }
               ]
             },
@@ -3927,17 +3914,6 @@
                       "fontWeight": "normal"
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "hAhIj",
-                  "x": 16,
-                  "y": 16,
-                  "name": "Mio Context Happy",
-                  "width": 64,
-                  "height": 64,
-                  "fill": "#59C7FF",
-                  "cornerRadius": 18
                 }
               ]
             }
@@ -4643,7 +4619,7 @@
                 {
                   "type": "frame",
                   "id": "jYqCo",
-                  "x": 1124,
+                  "x": 1080,
                   "y": 14,
                   "name": "Start Meeting",
                   "width": 170,
@@ -4668,7 +4644,7 @@
                 {
                   "type": "frame",
                   "id": "T6xmY",
-                  "x": 1068,
+                  "x": 1024,
                   "y": 14,
                   "name": "Theme Toggle",
                   "width": 44,
@@ -4715,13 +4691,18 @@
                 {
                   "type": "frame",
                   "id": "60SZI",
-                  "x": 1238,
-                  "y": 8,
+                  "x": 1258,
+                  "y": 18,
                   "name": "Mio Hero Curious",
-                  "width": 56,
-                  "height": 56,
-                  "fill": "#7BC2FF",
-                  "cornerRadius": 16
+                  "width": 36,
+                  "height": 36,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_curious.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 12
                 }
               ]
             },
@@ -5031,17 +5012,6 @@
                       ]
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "ktLUF",
-                  "x": 20,
-                  "y": 20,
-                  "name": "Mio Context Curious",
-                  "width": 88,
-                  "height": 88,
-                  "fill": "#7BC2FF",
-                  "cornerRadius": 24
                 }
               ]
             }
@@ -5747,7 +5717,7 @@
                 {
                   "type": "frame",
                   "id": "OhSS6",
-                  "x": 1124,
+                  "x": 1080,
                   "y": 14,
                   "name": "Start Meeting",
                   "width": 170,
@@ -5772,7 +5742,7 @@
                 {
                   "type": "frame",
                   "id": "NdMlM",
-                  "x": 1068,
+                  "x": 1024,
                   "y": 14,
                   "name": "Theme Toggle",
                   "width": 44,
@@ -5819,13 +5789,18 @@
                 {
                   "type": "frame",
                   "id": "q0DHi",
-                  "x": 1238,
-                  "y": 8,
+                  "x": 1258,
+                  "y": 18,
                   "name": "Mio Hero Avatar",
-                  "width": 56,
-                  "height": 56,
-                  "fill": "#5FA6E8",
-                  "cornerRadius": 16
+                  "width": 36,
+                  "height": 36,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_avatar.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 12
                 }
               ]
             },
@@ -6111,17 +6086,6 @@
                       ]
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "M9Gxc",
-                  "x": 20,
-                  "y": 20,
-                  "name": "Mio Context Avatar",
-                  "width": 88,
-                  "height": 88,
-                  "fill": "#5FA6E8",
-                  "cornerRadius": 24
                 }
               ]
             }
@@ -6827,7 +6791,7 @@
                 {
                   "type": "frame",
                   "id": "yL1Mt",
-                  "x": 1124,
+                  "x": 1080,
                   "y": 14,
                   "name": "Start Meeting",
                   "width": 170,
@@ -6852,7 +6816,7 @@
                 {
                   "type": "frame",
                   "id": "lQE4z",
-                  "x": 1068,
+                  "x": 1024,
                   "y": 14,
                   "name": "Theme Toggle",
                   "width": 44,
@@ -6899,13 +6863,18 @@
                 {
                   "type": "frame",
                   "id": "zfidq",
-                  "x": 1238,
-                  "y": 8,
+                  "x": 1258,
+                  "y": 18,
                   "name": "Mio Hero Sleeping",
-                  "width": 56,
-                  "height": 56,
-                  "fill": "#8BB6D9",
-                  "cornerRadius": 16
+                  "width": 36,
+                  "height": 36,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_sleeping.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 12
                 }
               ]
             },
@@ -7289,17 +7258,6 @@
                       ]
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "XURC6",
-                  "x": 20,
-                  "y": 20,
-                  "name": "Mio Context Sleeping",
-                  "width": 88,
-                  "height": 88,
-                  "fill": "#8BB6D9",
-                  "cornerRadius": 24
                 }
               ]
             }
@@ -8005,7 +7963,7 @@
                 {
                   "type": "frame",
                   "id": "TQHDs",
-                  "x": 1124,
+                  "x": 1080,
                   "y": 14,
                   "name": "Start Meeting",
                   "width": 170,
@@ -8030,7 +7988,7 @@
                 {
                   "type": "frame",
                   "id": "wjJC6",
-                  "x": 1068,
+                  "x": 1024,
                   "y": 14,
                   "name": "Theme Toggle",
                   "width": 44,
@@ -8077,13 +8035,18 @@
                 {
                   "type": "frame",
                   "id": "HHiJK",
-                  "x": 1238,
-                  "y": 8,
+                  "x": 1258,
+                  "y": 18,
                   "name": "Mio Hero Curious",
-                  "width": 56,
-                  "height": 56,
-                  "fill": "#7BC2FF",
-                  "cornerRadius": 16
+                  "width": 36,
+                  "height": 36,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_curious.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 12
                 }
               ]
             },
@@ -8395,17 +8358,6 @@
                       ]
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "gkWRF",
-                  "x": 20,
-                  "y": 20,
-                  "name": "Mio Context Curious",
-                  "width": 88,
-                  "height": 88,
-                  "fill": "#7BC2FF",
-                  "cornerRadius": 24
                 }
               ]
             }
@@ -9111,7 +9063,7 @@
                 {
                   "type": "frame",
                   "id": "GxjtJ",
-                  "x": 1124,
+                  "x": 1080,
                   "y": 14,
                   "name": "Start Meeting",
                   "width": 170,
@@ -9136,7 +9088,7 @@
                 {
                   "type": "frame",
                   "id": "NEas8",
-                  "x": 1068,
+                  "x": 1024,
                   "y": 14,
                   "name": "Theme Toggle",
                   "width": 44,
@@ -9183,13 +9135,18 @@
                 {
                   "type": "frame",
                   "id": "QX0cX",
-                  "x": 1238,
-                  "y": 8,
+                  "x": 1258,
+                  "y": 18,
                   "name": "Mio Hero Avatar",
-                  "width": 56,
-                  "height": 56,
-                  "fill": "#5FA6E8",
-                  "cornerRadius": 16
+                  "width": 36,
+                  "height": 36,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_avatar.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 12
                 }
               ]
             },
@@ -9475,17 +9432,6 @@
                       ]
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "Cgmbv",
-                  "x": 20,
-                  "y": 20,
-                  "name": "Mio Context Avatar",
-                  "width": 88,
-                  "height": 88,
-                  "fill": "#5FA6E8",
-                  "cornerRadius": 24
                 }
               ]
             }
@@ -10191,7 +10137,7 @@
                 {
                   "type": "frame",
                   "id": "0lyMS",
-                  "x": 1124,
+                  "x": 1080,
                   "y": 14,
                   "name": "Start Meeting",
                   "width": 170,
@@ -10216,7 +10162,7 @@
                 {
                   "type": "frame",
                   "id": "njxsR",
-                  "x": 1068,
+                  "x": 1024,
                   "y": 14,
                   "name": "Theme Toggle",
                   "width": 44,
@@ -10263,13 +10209,18 @@
                 {
                   "type": "frame",
                   "id": "6TcYG",
-                  "x": 1238,
-                  "y": 8,
+                  "x": 1258,
+                  "y": 18,
                   "name": "Mio Hero Sleeping",
-                  "width": 56,
-                  "height": 56,
-                  "fill": "#8BB6D9",
-                  "cornerRadius": 16
+                  "width": 36,
+                  "height": 36,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_sleeping.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 12
                 }
               ]
             },
@@ -10653,17 +10604,6 @@
                       ]
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "cwsZc",
-                  "x": 20,
-                  "y": 20,
-                  "name": "Mio Context Sleeping",
-                  "width": 88,
-                  "height": 88,
-                  "fill": "#8BB6D9",
-                  "cornerRadius": 24
                 }
               ]
             }
@@ -11342,13 +11282,18 @@
                 {
                   "type": "frame",
                   "id": "kzv1v",
-                  "x": 286,
-                  "y": 16,
+                  "x": 94,
+                  "y": 8,
                   "name": "Mio Hero Curious",
-                  "width": 44,
-                  "height": 44,
-                  "fill": "#7BC2FF",
-                  "cornerRadius": 14
+                  "width": 28,
+                  "height": 28,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_curious.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 9
                 }
               ]
             },
@@ -11473,17 +11418,6 @@
                       "fontWeight": "normal"
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "HHByT",
-                  "x": 16,
-                  "y": 16,
-                  "name": "Mio Context Curious",
-                  "width": 64,
-                  "height": 64,
-                  "fill": "#7BC2FF",
-                  "cornerRadius": 18
                 }
               ]
             }
@@ -12162,13 +12096,18 @@
                 {
                   "type": "frame",
                   "id": "dkmAi",
-                  "x": 286,
-                  "y": 16,
+                  "x": 94,
+                  "y": 8,
                   "name": "Mio Hero Avatar",
-                  "width": 44,
-                  "height": 44,
-                  "fill": "#5FA6E8",
-                  "cornerRadius": 14
+                  "width": 28,
+                  "height": 28,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_avatar.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 9
                 }
               ]
             },
@@ -12293,17 +12232,6 @@
                       "fontWeight": "normal"
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "7EFVc",
-                  "x": 16,
-                  "y": 16,
-                  "name": "Mio Context Avatar",
-                  "width": 64,
-                  "height": 64,
-                  "fill": "#5FA6E8",
-                  "cornerRadius": 18
                 }
               ]
             }
@@ -12982,13 +12910,18 @@
                 {
                   "type": "frame",
                   "id": "wgZMd",
-                  "x": 286,
-                  "y": 16,
+                  "x": 94,
+                  "y": 8,
                   "name": "Mio Hero Sleeping",
-                  "width": 44,
-                  "height": 44,
-                  "fill": "#8BB6D9",
-                  "cornerRadius": 14
+                  "width": 28,
+                  "height": 28,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_sleeping.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 9
                 }
               ]
             },
@@ -13113,17 +13046,6 @@
                       "fontWeight": "normal"
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "wpUtm",
-                  "x": 16,
-                  "y": 16,
-                  "name": "Mio Context Sleeping",
-                  "width": 64,
-                  "height": 64,
-                  "fill": "#8BB6D9",
-                  "cornerRadius": 18
                 }
               ]
             }
@@ -13802,13 +13724,18 @@
                 {
                   "type": "frame",
                   "id": "SSlQ5",
-                  "x": 286,
-                  "y": 16,
+                  "x": 94,
+                  "y": 8,
                   "name": "Mio Hero Curious",
-                  "width": 44,
-                  "height": 44,
-                  "fill": "#7BC2FF",
-                  "cornerRadius": 14
+                  "width": 28,
+                  "height": 28,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_curious.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 9
                 }
               ]
             },
@@ -13933,17 +13860,6 @@
                       "fontWeight": "normal"
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "Un4Pk",
-                  "x": 16,
-                  "y": 16,
-                  "name": "Mio Context Curious",
-                  "width": 64,
-                  "height": 64,
-                  "fill": "#7BC2FF",
-                  "cornerRadius": 18
                 }
               ]
             }
@@ -14622,13 +14538,18 @@
                 {
                   "type": "frame",
                   "id": "yGXMM",
-                  "x": 286,
-                  "y": 16,
+                  "x": 94,
+                  "y": 8,
                   "name": "Mio Hero Avatar",
-                  "width": 44,
-                  "height": 44,
-                  "fill": "#5FA6E8",
-                  "cornerRadius": 14
+                  "width": 28,
+                  "height": 28,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_avatar.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 9
                 }
               ]
             },
@@ -14753,17 +14674,6 @@
                       "fontWeight": "normal"
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "E8ThK",
-                  "x": 16,
-                  "y": 16,
-                  "name": "Mio Context Avatar",
-                  "width": 64,
-                  "height": 64,
-                  "fill": "#5FA6E8",
-                  "cornerRadius": 18
                 }
               ]
             }
@@ -15442,13 +15352,18 @@
                 {
                   "type": "frame",
                   "id": "MeRaT",
-                  "x": 286,
-                  "y": 16,
+                  "x": 94,
+                  "y": 8,
                   "name": "Mio Hero Sleeping",
-                  "width": 44,
-                  "height": 44,
-                  "fill": "#8BB6D9",
-                  "cornerRadius": 14
+                  "width": 28,
+                  "height": 28,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "./mio/mio_sleeping.png",
+                    "mode": "fit"
+                  },
+                  "cornerRadius": 9
                 }
               ]
             },
@@ -15573,17 +15488,6 @@
                       "fontWeight": "normal"
                     }
                   ]
-                },
-                {
-                  "type": "frame",
-                  "id": "K6YF9",
-                  "x": 16,
-                  "y": 16,
-                  "name": "Mio Context Sleeping",
-                  "width": 64,
-                  "height": 64,
-                  "fill": "#8BB6D9",
-                  "cornerRadius": 18
                 }
               ]
             }

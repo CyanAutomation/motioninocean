@@ -271,17 +271,6 @@
                 <span id="resolution-value" class="stream-surface__resolution">
                   {{ width }} × {{ height }}
                 </span>
-                <div class="webcam-mio webcam-mio--context">
-                  <img
-                    id="mio-stream-image"
-                    src="{{ url_for('static', filename='img/mio/mio_happy.png') }}"
-                    alt="Mio mascot for Stream view"
-                    width="64"
-                    height="64"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
               </div>
             </div>
 
@@ -483,19 +472,6 @@
         </div>
 
         <div class="config-content">
-          <div class="webcam-panel-mio webcam-panel-mio--config">
-            <div class="webcam-mio webcam-mio--context">
-              <img
-                id="mio-config-image"
-                src="{{ url_for('static', filename='img/mio/mio_curious.png') }}"
-                alt="Mio mascot for Configuration view"
-                width="64"
-                height="64"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-          </div>
           <!-- Camera Settings Group (Editable) -->
           <div class="config-group editable-section ui-card">
             <div class="config-group-header ui-panel-header">
@@ -681,19 +657,6 @@
         </div>
 
         <div class="settings-content">
-          <div class="webcam-panel-mio webcam-panel-mio--settings">
-            <div class="webcam-mio webcam-mio--context">
-              <img
-                id="mio-settings-image"
-                src="{{ url_for('static', filename='img/mio/mio_sleeping.png') }}"
-                alt="Mio mascot for Runtime Settings view"
-                width="64"
-                height="64"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-          </div>
           <!-- Settings Header -->
           <div class="settings-header ui-card">
             <h2>Configuration</h2>
@@ -1058,19 +1021,6 @@
         </div>
 
         <div class="setup-content">
-          <div class="webcam-panel-mio webcam-panel-mio--setup">
-            <div class="webcam-mio webcam-mio--context">
-              <img
-                id="mio-setup-image"
-                src="{{ url_for('static', filename='img/mio/mio_avatar.png') }}"
-                alt="Mio mascot for Set-Up view"
-                width="64"
-                height="64"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-          </div>
           <div class="setup-section ui-card">
             <div class="setup-section-header ui-panel-header">
               <h3 class="setup-section-title">Guided Setup</h3>

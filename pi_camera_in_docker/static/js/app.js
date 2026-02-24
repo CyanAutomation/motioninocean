@@ -71,10 +71,6 @@ const state = {
     chipInactive: null,
     chipFps: null,
     mioHeroImage: null,
-    mioStreamImage: null,
-    mioConfigImage: null,
-    mioSetupImage: null,
-    mioSettingsImage: null,
   },
 };
 
@@ -181,10 +177,6 @@ function cacheElements() {
   state.elements.chipInactive = document.getElementById("chip-inactive");
   state.elements.chipFps = document.getElementById("chip-fps");
   state.elements.mioHeroImage = document.getElementById("mio-hero-image");
-  state.elements.mioStreamImage = document.getElementById("mio-stream-image");
-  state.elements.mioConfigImage = document.getElementById("mio-config-image");
-  state.elements.mioSetupImage = document.getElementById("mio-setup-image");
-  state.elements.mioSettingsImage = document.getElementById("mio-settings-image");
 
   // Config panel elements
   state.elements.configLoading = document.getElementById("config-loading");
@@ -997,19 +989,10 @@ function updateMascotForTab(tabName) {
   };
 
   const mascot = mascotByTab[tabName] || mascotByTab.main;
-  const mascotImages = [
-    state.elements.mioHeroImage,
-    state.elements.mioStreamImage,
-    state.elements.mioConfigImage,
-    state.elements.mioSetupImage,
-    state.elements.mioSettingsImage,
-  ];
-
-  mascotImages.forEach((imageElement) => {
-    if (!imageElement) return;
-    imageElement.src = mascot.src;
-    imageElement.alt = mascot.alt;
-  });
+  const imageElement = state.elements.mioHeroImage;
+  if (!imageElement) return;
+  imageElement.src = mascot.src;
+  imageElement.alt = mascot.alt;
 }
 
 /**
