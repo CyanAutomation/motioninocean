@@ -1163,11 +1163,11 @@ function renderConfig(data) {
     const currentConnections =
       typeof sc.current_stream_connections === "number"
         ? sc.current_stream_connections
-        : sc.current_stream_connections ?? "--";
+        : (sc.current_stream_connections ?? "--");
     const maxConnections =
       typeof sc.max_stream_connections === "number"
         ? sc.max_stream_connections
-        : sc.max_stream_connections ?? "--";
+        : (sc.max_stream_connections ?? "--");
     state.streamConnections.current = currentConnections;
     state.streamConnections.max = maxConnections;
     updateConnectionDisplays();
