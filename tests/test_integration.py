@@ -18,7 +18,7 @@ def _build_webcam_status_app(main_module, stream_status_payload):
         "mock_camera": True,
         "cors_enabled": False,
         "cors_origins": "",
-        "allow_pykms_mock": False,
+        "pykms_mock_fallback_enabled": False,
         "webcam_registry_path": "/tmp/node-registry.json",
         "application_settings_path": "/tmp/application-settings.json",
         "management_auth_token": "",

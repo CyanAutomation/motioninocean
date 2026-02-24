@@ -178,14 +178,14 @@ class ConnectionTracker:
             return self._count
 
 
-def import_camera_components(allow_pykms_mock: bool):
+def import_camera_components(pykms_mock_fallback_enabled: bool):
     """Import Picamera2 and related encoder classes.
 
     Handles missing pykms dependencies by creating mock modules if allowed.
     This is necessary for development environments without full GPU support.
 
     Args:
-        allow_pykms_mock: If True, create mock pykms module for unsupported environments.
+        pykms_mock_fallback_enabled: If True, inject mock pykms modules for dev/test fallback.
 
     Returns:
         Tuple of (Picamera2 class, JpegEncoder class, FileOutput class).
@@ -199,7 +199,8 @@ def import_camera_components(allow_pykms_mock: bool):
         with sentry_sdk.new_scope() as scope:
             scope.set_tag("component", "camera")
             scope.capture_exception(e)
-        if allow_pykms_mock and ("pykms" in str(e) or "kms" in str(e) or "PixelFormat" in str(e)):
+        if pykms_mock_fallback_enabled and ("pykms" in str(e) or "kms" in str(e) or "PixelFormat" in str(e)):
+            logger.warning("Activating internal dev/test pykms fallback during Picamera2 import")
             import sys
             import types
 

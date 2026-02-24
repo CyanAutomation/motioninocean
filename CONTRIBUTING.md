@@ -139,6 +139,8 @@ This allows testing of:
 - `/health` and `/ready`
 - config and routing
 
+For automated tests and API test mode, an internal pykms fallback is enabled automatically to handle environments without GPU/KMS bindings. This is intentionally not an operator-facing runtime toggle.
+
 ---
 
 ## Coding standards

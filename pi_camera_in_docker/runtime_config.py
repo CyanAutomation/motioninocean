@@ -286,13 +286,24 @@ def _load_networking_config() -> Dict[str, Any]:
     }
 
 
-def _load_advanced_config() -> Dict[str, Any]:
+def _is_dev_test_mode_enabled(api_test_mode_enabled: bool) -> bool:
+    """Determine whether internal dev/test-only behavior should be enabled.
+
+    Args:
+        api_test_mode_enabled: Whether API test mode was enabled via runtime config.
+
+    Returns:
+        True when running in test context (pytest) or API test mode.
+    """
+    return api_test_mode_enabled or "PYTEST_CURRENT_TEST" in os.environ
+
+
+def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
     """Load advanced/internal configuration from environment variables.
 
     Env vars:
     - MIO_PI3_PROFILE or PI3_PROFILE (default: false)
     - MOCK_CAMERA (feature flag, default: false)
-    - MIO_ALLOW_PYKMS_MOCK (default: false)
     - MIO_NODE_REGISTRY_PATH (default: /data/node-registry.json)
     - MIO_APPLICATION_SETTINGS_PATH (default: /data/application-settings.json)
     - MIO_MANAGEMENT_AUTH_TOKEN (bearer token for management mode auth)
@@ -300,7 +311,7 @@ def _load_advanced_config() -> Dict[str, Any]:
     - MIO_FAIL_ON_CAMERA_INIT_ERROR (default: false)
 
     Returns:
-        Dict with keys: pi3_profile_enabled, mock_camera, allow_pykms_mock,
+        Dict with keys: pi3_profile_enabled, mock_camera, pykms_mock_fallback_enabled,
         webcam_registry_path, application_settings_path, management_auth_token,
         webcam_control_plane_auth_token, fail_on_camera_init_error.
     """
@@ -314,8 +325,7 @@ def _load_advanced_config() -> Dict[str, Any]:
     return {
         "pi3_profile_enabled": pi3_profile_raw.lower() in ("1", "true", "yes"),
         "mock_camera": is_flag_enabled("MOCK_CAMERA"),
-        "allow_pykms_mock": os.environ.get("MIO_ALLOW_PYKMS_MOCK", "false").lower()
-        in ("1", "true", "yes"),
+        "pykms_mock_fallback_enabled": _is_dev_test_mode_enabled(api_test_mode_enabled),
         "webcam_registry_path": os.environ.get(
             "MIO_NODE_REGISTRY_PATH", "/data/node-registry.json"
         ),
@@ -355,11 +365,12 @@ def load_env_config() -> Dict[str, Any]:
 
     config = {"app_mode": app_mode}
     config.update(_load_camera_config())
-    config.update(_load_stream_config())
+    stream_config = _load_stream_config()
+    config.update(stream_config)
     config.update(_load_discovery_config())
     config.update(_load_logging_config())
     config.update(_load_networking_config())
-    config.update(_load_advanced_config())
+    config.update(_load_advanced_config(stream_config["api_test_mode_enabled"]))
     return _apply_pi3_profile_defaults(config)
 
 

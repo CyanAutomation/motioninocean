@@ -75,7 +75,6 @@ referenced in the codebase. Previously, only **23 variables were documented**, l
 
 **Application Configuration** (NEW)
 
-- `ALLOW_PYKMS_MOCK` ✓
 - `NODE_REGISTRY_PATH` ✓
 - `MOTION_IN_OCEAN_FAIL_ON_CAMERA_INIT_ERROR` ✓ (strict startup on camera init errors; default graceful)
 - `MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED` ✓ (legacy alias for strict startup mode)

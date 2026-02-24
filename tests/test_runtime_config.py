@@ -26,7 +26,7 @@ def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypat
         "bind_port": 8000,
         "pi3_profile_enabled": False,
         "mock_camera": False,
-        "allow_pykms_mock": False,
+        "pykms_mock_fallback_enabled": False,
         "node_registry_path": "/data/node-registry.json",
         "application_settings_path": "/data/application-settings.json",
         "management_auth_token": "",
@@ -465,7 +465,7 @@ def test_get_effective_settings_payload_reads_feature_flags_from_runtime(monkeyp
         "bind_port": 8000,
         "pi3_profile_enabled": False,
         "mock_camera": False,
-        "allow_pykms_mock": False,
+        "pykms_mock_fallback_enabled": False,
         "node_registry_path": "/data/node-registry.json",
         "application_settings_path": "/data/application-settings.json",
         "management_auth_token": "",
@@ -501,3 +501,21 @@ def test_get_effective_settings_payload_reads_feature_flags_from_runtime(monkeyp
         "CORS_SUPPORT": False,
         "OCTOPRINT_COMPATIBILITY": True,
     }
+
+
+def test_load_env_config_enables_pykms_fallback_in_api_test_mode(monkeypatch):
+    """Internal pykms fallback should be enabled automatically in API test mode."""
+    monkeypatch.setenv("MIO_API_TEST_MODE_ENABLED", "true")
+
+    cfg = runtime_config.load_env_config()
+
+    assert cfg["pykms_mock_fallback_enabled"] is True
+
+
+def test_load_env_config_enables_pykms_fallback_under_pytest(monkeypatch):
+    """Internal pykms fallback should be enabled automatically during pytest runs."""
+    monkeypatch.setenv("PYTEST_CURRENT_TEST", "tests/test_runtime_config.py::test_example")
+
+    cfg = runtime_config.load_env_config()
+
+    assert cfg["pykms_mock_fallback_enabled"] is True
