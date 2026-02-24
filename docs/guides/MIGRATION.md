@@ -78,7 +78,13 @@ For step-by-step migration execution, use the canonical sections in `DEPLOYMENT.
 - `MOTION_IN_OCEAN_PI3_PROFILE`
 - `MOTION_IN_OCEAN_OCTOPRINT_COMPATIBILITY`
 - `MOTION_IN_OCEAN_CORS_ORIGINS`
-- `MOCK_CAMERA`
+
+#### Removed legacy aliases (must migrate to canonical `MIO_*`)
+
+- `PI3_PROFILE` → `MIO_PI3_PROFILE`
+- `MOCK_CAMERA` → `MIO_MOCK_CAMERA`
+- `OCTOPRINT_COMPATIBILITY` → `MIO_OCTOPRINT_COMPATIBILITY`
+- `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` → `MIO_ALLOW_PRIVATE_IPS`
 
 ### Authentication Delta
 

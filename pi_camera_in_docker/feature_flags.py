@@ -1,8 +1,7 @@
 """Feature flag system for Motion in Ocean.
 
-This module provides a centralized feature flag registry with automatic backward
-compatibility for existing environment variables. Feature flags enable gradual
-rollouts, experimental features, performance optimizations, and A/B testing.
+This module provides a centralized feature flag registry. Feature flags enable
+gradual rollouts, experimental features, performance optimizations, and A/B testing.
 """
 
 import logging
@@ -13,18 +12,6 @@ from typing import Any, Callable, Dict, Optional
 
 
 logger = logging.getLogger(__name__)
-
-
-LEGACY_ALIAS_DEPRECATION_RELEASE_WINDOW = 3
-"""Number of minor releases legacy aliases remain supported after warning starts."""
-
-
-LEGACY_ALIAS_REMOVAL_TARGET = "v1.0"
-"""Target release for removing deprecated legacy feature-flag aliases."""
-
-
-LEGACY_ALIAS_DEPRECATION_FLAGS = {"MOCK_CAMERA"}
-"""Flags for which legacy env aliases should emit explicit deprecation warnings."""
 
 
 ACTIVE_RUNTIME_FLAGS = (
@@ -79,7 +66,6 @@ class FeatureFlags:
         """Initialize the feature flag registry."""
         self._flags: Dict[str, FeatureFlag] = {}
         self._loaded = False
-        self._legacy_mappings: Dict[str, str] = {}  # Maps legacy var names to flag names
         self._define_flags()
 
     def _define_flags(self) -> None:
@@ -90,7 +76,6 @@ class FeatureFlags:
                 default=False,
                 category=FeatureFlagCategory.EXPERIMENTAL,
                 description="Use mock camera for testing without real hardware.",
-                backward_compat_vars=["MOCK_CAMERA"],
             )
         )
 
@@ -100,7 +85,6 @@ class FeatureFlags:
                 default=False,
                 category=FeatureFlagCategory.INTEGRATION_COMPATIBILITY,
                 description="Enable OctoPrint camera format compatibility mode.",
-                backward_compat_vars=["OCTOPRINT_COMPATIBILITY"],
             )
         )
 
@@ -123,23 +107,8 @@ class FeatureFlags:
 
         self._flags[flag.name] = flag
 
-        # Register backward compatibility mappings
-        if flag.backward_compat_vars:
-            for legacy_var in flag.backward_compat_vars:
-                if legacy_var in self._legacy_mappings:
-                    message = (
-                        f"Legacy variable '{legacy_var}' mapped to multiple flags: "
-                        f"'{self._legacy_mappings[legacy_var]}' and '{flag.name}'"
-                    )
-                    raise ValueError(message)
-                self._legacy_mappings[legacy_var] = flag.name
-
     def load(self) -> None:
-        """Load all feature flags from environment variables.
-
-        Supports both MIO_ prefixed and legacy variable names for
-        backward compatibility.
-        """
+        """Load all feature flags from environment variables."""
         if self._loaded:
             logger.warning("Feature flags already loaded, skipping reload")
             return
@@ -148,29 +117,6 @@ class FeatureFlags:
             # Try MIO_ prefixed name first
             env_var = f"MIO_{flag_name}"
             value = os.environ.get(env_var)
-
-            # Fall back to backward compatibility names
-            if value is None and flag.backward_compat_vars:
-                for legacy_var in flag.backward_compat_vars:
-                    value = os.environ.get(legacy_var)
-                    if value is not None:
-                        logger.debug(
-                            "Feature flag '%s' loaded from legacy variable '%s'",
-                            flag_name,
-                            legacy_var,
-                        )
-                        if flag_name in LEGACY_ALIAS_DEPRECATION_FLAGS:
-                            logger.warning(
-                                "Legacy environment variable '%s' is deprecated for feature flag '%s'. "
-                                "Use 'MIO_%s' instead. Legacy alias support is scheduled for removal "
-                                "after %s minor releases (target: %s).",
-                                legacy_var,
-                                flag_name,
-                                flag_name,
-                                LEGACY_ALIAS_DEPRECATION_RELEASE_WINDOW,
-                                LEGACY_ALIAS_REMOVAL_TARGET,
-                            )
-                        break
 
             # Parse the value
             if value is not None:

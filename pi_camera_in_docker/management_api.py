@@ -27,9 +27,7 @@ from .transport_url_validation import parse_docker_url
 
 # SSRF Protection Configuration
 # Canonical variable: MIO_ALLOW_PRIVATE_IPS
-# Legacy alias retained temporarily: MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS
 CANONICAL_ALLOW_PRIVATE_IPS_ENV_VAR = "MIO_ALLOW_PRIVATE_IPS"
-LEGACY_ALLOW_PRIVATE_IPS_ENV_VAR = "MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS"
 
 logger = logging.getLogger(__name__)
 
@@ -40,29 +38,11 @@ def _parse_env_bool(raw: str) -> bool:
 
 
 def _load_allow_private_ips_flag() -> bool:
-    """Load private-IP override flag with precedence and deprecation logging."""
+    """Load private-IP override flag from canonical environment variable."""
     canonical_raw = os.environ.get(CANONICAL_ALLOW_PRIVATE_IPS_ENV_VAR)
-    legacy_raw = os.environ.get(LEGACY_ALLOW_PRIVATE_IPS_ENV_VAR)
-
-    if canonical_raw is not None:
-        if legacy_raw is not None and _parse_env_bool(canonical_raw) != _parse_env_bool(legacy_raw):
-            logger.warning(
-                "Both %s and deprecated %s are set with different values; using %s.",
-                CANONICAL_ALLOW_PRIVATE_IPS_ENV_VAR,
-                LEGACY_ALLOW_PRIVATE_IPS_ENV_VAR,
-                CANONICAL_ALLOW_PRIVATE_IPS_ENV_VAR,
-            )
-        return _parse_env_bool(canonical_raw)
-
-    if legacy_raw is not None:
-        logger.warning(
-            "Environment variable %s is deprecated; please migrate to %s.",
-            LEGACY_ALLOW_PRIVATE_IPS_ENV_VAR,
-            CANONICAL_ALLOW_PRIVATE_IPS_ENV_VAR,
-        )
-        return _parse_env_bool(legacy_raw)
-
-    return False
+    if canonical_raw is None:
+        return False
+    return _parse_env_bool(canonical_raw)
 
 
 ALLOW_PRIVATE_IPS = _load_allow_private_ips_flag()

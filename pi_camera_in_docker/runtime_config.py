@@ -314,7 +314,7 @@ def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
     """Load advanced/internal configuration from environment variables.
 
     Env vars:
-    - MIO_PI3_PROFILE or PI3_PROFILE (default: false)
+    - MIO_PI3_PROFILE (default: false)
     - MOCK_CAMERA (feature flag, default: false)
     - MIO_NODE_REGISTRY_PATH (default: /data/node-registry.json)
     - MIO_APPLICATION_SETTINGS_PATH (default: /data/application-settings.json)
@@ -327,7 +327,7 @@ def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
         webcam_registry_path, application_settings_path, management_auth_token,
         webcam_control_plane_auth_token, fail_on_camera_init_error.
     """
-    pi3_profile_raw = os.environ.get("MIO_PI3_PROFILE", os.environ.get("PI3_PROFILE", "false"))
+    pi3_profile_raw = os.environ.get("MIO_PI3_PROFILE", "false")
 
     fail_on_camera_init_error_raw = os.environ.get(
         "MIO_FAIL_ON_CAMERA_INIT_ERROR",

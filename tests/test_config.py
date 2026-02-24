@@ -405,47 +405,6 @@ def test_manual_env_values_override_pi3_profile_defaults(workspace_root):
 # Legacy compatibility coverage
 
 
-def test_legacy_pi3_profile_compatibility_and_canonical_precedence(workspace_root):
-    """Legacy PI3_PROFILE remains supported and MIO_PI3_PROFILE takes precedence."""
-    data = _load_main_config_with_env(
-        workspace_root,
-        {
-            "MIO_MOCK_CAMERA": "true",
-            "PI3_PROFILE": "true",
-            "MIO_PI3_PROFILE": "false",
-            "MIO_PI3_OPTIMIZATION": "false",
-        },
-        unset_keys=[
-            "MIO_RESOLUTION",
-            "MIO_FPS",
-            "MIO_TARGET_FPS",
-            "MIO_JPEG_QUALITY",
-            "MIO_MAX_STREAM_CONNECTIONS",
-        ],
-    )
-
-    assert data["pi3_profile_enabled"] is False
-
-    data = _load_main_config_with_env(
-        workspace_root,
-        {
-            "MIO_MOCK_CAMERA": "true",
-            "PI3_PROFILE": "true",
-            "MIO_PI3_OPTIMIZATION": "false",
-        },
-        unset_keys=[
-            "MIO_RESOLUTION",
-            "MIO_FPS",
-            "MIO_TARGET_FPS",
-            "MIO_JPEG_QUALITY",
-            "MIO_MAX_STREAM_CONNECTIONS",
-        ],
-    )
-
-    assert data["pi3_profile_enabled"] is True
-    assert data["resolution"] == [640, 480]
-
-
 def test_metrics_remain_stable_under_pi3_target_fps_throttle(workspace_root):
     """/metrics should report sane FPS and low frame age with Pi 3 throttle settings."""
     script = """
