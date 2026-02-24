@@ -37,7 +37,6 @@ class TestFeatureFlagRegistry:
 
         expected_flags = {
             "MOCK_CAMERA",
-            "CORS_SUPPORT",
             "OCTOPRINT_COMPATIBILITY",
         }
 
@@ -141,9 +140,6 @@ class TestFeatureFlagBehavior:
             # Most flags should be disabled by default
             assert flags.is_enabled("MOCK_CAMERA") is False
 
-            # Some flags should be enabled by default
-            assert flags.is_enabled("CORS_SUPPORT") is True
-
     def test_parse_bool_variations(self):
         """Test that various boolean string formats are parsed correctly."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
@@ -166,10 +162,10 @@ class TestFeatureFlagBehavior:
         ]
 
         for value, expected in test_cases:
-            with mock.patch.dict(os.environ, {"MIO_CORS_SUPPORT": value}, clear=True):
+            with mock.patch.dict(os.environ, {"MIO_MOCK_CAMERA": value}, clear=True):
                 flags = FeatureFlags()
                 flags.load()
-                assert flags.is_enabled("CORS_SUPPORT") == expected, f"Failed for value: {value}"
+                assert flags.is_enabled("MOCK_CAMERA") == expected, f"Failed for value: {value}"
 
     def test_unknown_flag_raises_error(self):
         """Test that querying unknown flag raises KeyError."""
@@ -216,21 +212,20 @@ class TestFeatureFlagBehavior:
         """Test the module-level is_flag_enabled convenience function."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
-        with mock.patch.dict(os.environ, {"MIO_CORS_SUPPORT": "true"}, clear=True):
+        with mock.patch.dict(os.environ, {"MIO_MOCK_CAMERA": "true"}, clear=True):
             # Create a new instance and load it
             flags = FeatureFlags()
             flags.load()
-            assert flags.is_enabled("CORS_SUPPORT") is True
+            assert flags.is_enabled("MOCK_CAMERA") is True
 
-    def test_backward_compat_cors_not_mapped(self):
-        """Test that CORS_SUPPORT doesn't have backward compat mapping (feature flag only)."""
+    def test_cors_support_removed_from_feature_flag_registry(self):
+        """CORS support should no longer be represented as a feature flag."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
-        # CORS_SUPPORT should only respect MIO_CORS_SUPPORT, not legacy CORS_ORIGINS
-        with mock.patch.dict(os.environ, {"MIO_CORS_SUPPORT": "false"}, clear=True):
-            flags = FeatureFlags()
-            flags.load()
-            assert flags.is_enabled("CORS_SUPPORT") is False
+        flags = FeatureFlags()
+
+        with pytest.raises(KeyError):
+            flags.is_enabled("CORS_SUPPORT")
 
 
 class TestFeatureFlagsIntegration:
@@ -262,15 +257,12 @@ class TestFeatureFlagsAPI:
 
         flags = get_feature_flags()
         summary = flags.get_summary()
-        cors_info = flags.get_flag_info("CORS_SUPPORT")
         mock_info = flags.get_flag_info("MOCK_CAMERA")
 
         expected_categories = {category.value for category in FeatureFlagCategory}
         assert expected_categories.issubset(set(summary.keys()))
         assert summary[FeatureFlagCategory.DEVELOPER_TOOLS.value] == {}
         assert "MOCK_CAMERA" in summary[FeatureFlagCategory.EXPERIMENTAL.value]
-        assert cors_info is not None
-        assert cors_info["category"] == "Integration Compatibility"
         assert mock_info is not None
         assert mock_info["name"] == "MOCK_CAMERA"
         assert mock_info["backward_compat_vars"] == ["MOCK_CAMERA"]

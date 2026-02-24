@@ -491,7 +491,7 @@ def _register_middleware(app: Flask, config: Dict[str, Any]) -> None:
     _register_request_logging(app)
 
     if config["cors_enabled"]:
-        cors_origins_config = config.get("cors_origins", "*")
+        cors_origins_config = config.get("cors_origins", "")
 
         if isinstance(cors_origins_config, str):
             parsed_origins = [
@@ -500,24 +500,25 @@ def _register_middleware(app: Flask, config: Dict[str, Any]) -> None:
             cors_origins = (
                 parsed_origins
                 if len(parsed_origins) > 1
-                else (parsed_origins[0] if parsed_origins else "*")
+                else (parsed_origins[0] if parsed_origins else [])
             )
         elif isinstance(cors_origins_config, (list, tuple, set)):
             parsed_origins = [
                 str(origin).strip() for origin in cors_origins_config if str(origin).strip()
             ]
-            cors_origins = parsed_origins if parsed_origins else "*"
+            cors_origins = parsed_origins if parsed_origins else []
         else:
-            cors_origins = "*"
+            cors_origins = []
 
-        cors_options: Dict[str, Any] = {
-            "resources": {r"/*": {"origins": cors_origins}},
-            "send_wildcard": False,  # Default to False
-        }
-        if cors_origins == "*":
-            cors_options["send_wildcard"] = True  # Update to True if needed
+        if cors_origins:
+            cors_options: Dict[str, Any] = {
+                "resources": {r"/*": {"origins": cors_origins}},
+                "send_wildcard": False,
+            }
+            if cors_origins == "*":
+                cors_options["send_wildcard"] = True
 
-        CORS(app, **cors_options)
+            CORS(app, **cors_options)
 
 
 def _init_app_state(config: Dict[str, Any]) -> dict:
