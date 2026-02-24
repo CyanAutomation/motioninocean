@@ -11,6 +11,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.19.3] - 2026-02-24
+
+- Various UI updates
+- [docs] Align OctoPrint compatibility docs with always-on model (#412)
+- [tests] Make OctoPrint /webcam compatibility tests always-on (#411)
+- Refactor code structure for improved readability and maintainability
+- Refactor HTML structure and improve accessibility in management template
+- Refactor feature flags test to ensure fresh module imports and remove unused imports
+- [config] Deprecate OctoPrint compatibility env control (#410)
+- Enhance webcam layout and navigation styles for improved responsiveness and usability
+- Add state and updateConnectionDisplays to test context for clearConfigDisplay
+- Update test descriptions and refactor theme-related state handling in webcam-theme tests
+- Refactor code structure for improved readability and maintainability
+- [feature-flags] Remove OctoPrint compatibility toggle (#409)
+- Refactor code structure and remove redundant sections for improved readability and maintainability
+- [webcam] Always register OctoPrint compatibility routes (#408)
+- Add OpenAPI specification for Motion In Ocean Management API
+- [build] Simplify cloudbuild.yaml by removing GAR repository creation step and updating step descriptions
+- [build] Ensure GAR repository exists before pushing image
+- [build] Add cloudbuild.yaml for Google Cloud Build configuration
+- [config] remove legacy env aliases for feature flags and private-ip override (#407)
+- [config] Migrate CORS control to MIO_CORS_ORIGINS (#406)
+- [webcam] Internalize pykms fallback and remove operator toggle (#405)
+- [feature-flags] Add public metadata accessor for docs tests (#404)
+- [docs] Align feature-flags guide with runtime registry (#403)
+- [settings] Enforce environment-only runtime feature flags (#402)
+- [feature-flags] Remove inert flags and enforce runtime usage (#401)
+- [management] Make discovery announce upsert atomic (#400)
+- [setup] Enforce fps range as 1..120 (#399)
+- chore: automated code quality fixes [nightly] (#398)
+- fix: update Dockerfile build args to use 'bookworm' suite and install picamera2 from apt repo
+- Refactor code structure for improved readability and maintainability
+
 - [webcam] OctoPrint compatibility is now always enabled in webcam mode and no longer controllable via feature flag/env toggle.
 - [deprecation] `MIO_OCTOPRINT_COMPATIBILITY` and `OCTOPRINT_COMPATIBILITY` are deprecated, ignored at runtime, and emit warnings when set.
 - [removal-plan] OctoPrint compatibility warning/compatibility shim is planned for removal in v1.21.0.
