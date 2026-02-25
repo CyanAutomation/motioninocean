@@ -11,6 +11,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.19.4] - 2026-02-25
+
+- [webcam] Split rail button layout from shared tab button (#431)
+- [ui] Add WebKit webcam rail layout and theme regression test (#430)
+- [ui] Refactor webcam rail colors to semantic tokens (#429)
+- [management] Preserve discovery announce timestamps during approval (#428)
+- [management] Harden docker URL parsing and encoding (#425)
+- [management] Make discovery approval updates atomic (#426)
+- [webcam] Refine side rail tab button layout (#427)
+- [settings] Prevent patch validation from mutating live settings (#424)
+- [runtime_config] Validate MIO_TARGET_FPS range with fps fallback (#423)
+- [management] Harden upstream UTF-8 decode failures (#422)
+- [setup] Align auth token env handling by app mode (#421)
+- [discovery] Isolate announcer shutdown event lifecycle (#420)
+- [runtime-config] Use validated port in default base URL (#419)
+- [management] Make PUT webcam updates atomic with registry lock (#418)
+- [docs] Align env variable docs to runtime-supported reads (#414)
+- [config] Remove OctoPrint compatibility env warning aliases (#415)
+- [config] Remove MIO_CORS_SUPPORT runtime mapping (#416)
+- [runtime] Add explicit performance profile preset model (#417)
+- chore: automated code quality fixes [nightly] (#413)
+
 ## [1.19.3] - 2026-02-24
 
 - Various UI updates
