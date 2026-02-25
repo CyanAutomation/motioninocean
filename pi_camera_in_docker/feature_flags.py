@@ -101,8 +101,6 @@ class FeatureFlags:
             logger.warning("Feature flags already loaded, skipping reload")
             return
 
-        self._log_deprecated_octoprint_compatibility_envs()
-
         for flag_name, flag in self._flags.items():
             # Try MIO_ prefixed name first
             env_var = f"MIO_{flag_name}"
@@ -118,24 +116,6 @@ class FeatureFlags:
 
         self._loaded = True
         self._log_summary()
-
-    def _log_deprecated_octoprint_compatibility_envs(self) -> None:
-        """Warn when deprecated OctoPrint compatibility env vars are set.
-
-        OctoPrint compatibility behavior is always enabled and no longer controlled
-        via feature flag env vars.
-        """
-        deprecated_vars = [
-            env_var
-            for env_var in ("MIO_OCTOPRINT_COMPATIBILITY", "OCTOPRINT_COMPATIBILITY")
-            if os.environ.get(env_var) is not None
-        ]
-        if deprecated_vars:
-            logger.warning(
-                "Deprecated environment variable(s) detected and ignored: %s. "
-                "OctoPrint compatibility is always enabled; remove these variable(s).",
-                ", ".join(deprecated_vars),
-            )
 
     def _parse_bool(self, value: str, flag_name: str) -> bool:
         """Parse a string value as boolean.
