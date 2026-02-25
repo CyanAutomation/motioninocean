@@ -580,3 +580,84 @@
     font-size: 0.95rem;
   }
 }
+
+/* ==========================================
+   Management Side Rail
+   ========================================== */
+
+.management-side-rail {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 82px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-3);
+  border-right: 1px solid var(--webcam-rail-border);
+  background: var(--webcam-rail-bg);
+}
+
+.management-side-rail .rail-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  border-radius: var(--radius-xl);
+  padding: var(--space-2);
+  background: transparent;
+  color: var(--webcam-rail-text);
+  border: 1px solid transparent;
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.management-side-rail .rail-btn:hover {
+  background: var(--webcam-rail-hover-bg);
+  color: var(--webcam-rail-text-hover);
+  border-color: var(--webcam-rail-border);
+}
+
+.management-side-rail .rail-btn.active {
+  background: var(--webcam-rail-active-bg);
+  color: var(--color-text-inverse);
+  border-color: var(--webcam-rail-active-bg);
+  box-shadow: 0 0 0 3px var(--accent-primary-10);
+}
+
+/* Utility buttons (Export, Help) pinned to bottom */
+.management-side-rail .rail-btn--utility {
+  min-height: 36px;
+  font-size: 0.85rem;
+  margin-top: auto;
+}
+
+.management-side-rail .rail-btn--utility ~ .rail-btn--utility {
+  margin-top: 0;
+}
+
+/* Offset page content to clear the fixed 82px rail */
+.management-header,
+.management-main {
+  margin-left: 82px;
+}
+
+@media (max-width: 900px) {
+  .management-side-rail {
+    display: none;
+  }
+
+  .management-header,
+  .management-main {
+    margin-left: 0;
+  }
+}
