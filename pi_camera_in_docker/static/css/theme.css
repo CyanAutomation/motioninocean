@@ -100,6 +100,14 @@
   --management-text-strong: var(--color-text-primary);
   --management-surface-muted: var(--color-bg-subtle);
 
+  /* Webcam rail semantic tokens */
+  --webcam-rail-bg: #0f172a;
+  --webcam-rail-border: rgba(255, 255, 255, 0.08);
+  --webcam-rail-text: rgba(255, 255, 255, 0.68);
+  --webcam-rail-text-hover: #f8fafc;
+  --webcam-rail-hover-bg: rgba(255, 255, 255, 0.1);
+  --webcam-rail-active-bg: var(--color-accent-primary);
+
   /* Additional alpha tokens */
   --success-08: rgba(22, 163, 74, 0.08);
   --warning-08: rgba(217, 119, 6, 0.08);
@@ -153,6 +161,14 @@
   --management-accent: var(--color-accent-primary);
   --management-text-strong: var(--color-text-primary);
   --management-surface-muted: var(--color-bg-subtle);
+
+  /* Webcam rail semantic tokens (dark) */
+  --webcam-rail-bg: #020617;
+  --webcam-rail-border: rgba(148, 163, 184, 0.26);
+  --webcam-rail-text: rgba(226, 232, 240, 0.75);
+  --webcam-rail-text-hover: #f8fafc;
+  --webcam-rail-hover-bg: rgba(148, 163, 184, 0.16);
+  --webcam-rail-active-bg: #2d67eb;
 
   /* Additional alpha tokens (dark) */
   --success-08: rgba(34, 197, 94, 0.1);
