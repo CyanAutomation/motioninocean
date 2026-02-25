@@ -37,23 +37,17 @@ services:
       TZ: ${TZ:-Europe/London}
       MIO_APP_MODE: ${MIO_APP_MODE:-webcam}
 
-      # Infrastructure / Deployment Configuration (NOT UI-configurable)
-      MIO_PI3_PROFILE: ${MIO_PI3_PROFILE:-false}
-      # MIO_OCTOPRINT_COMPATIBILITY is deprecated/ignored; OctoPrint compatibility is now built in.
+      # Infrastructure / Deployment (NOT UI-configurable)
       MIO_CORS_ORIGINS: ${MIO_CORS_ORIGINS:-*}
       MIO_MOCK_CAMERA: ${MIO_MOCK_CAMERA:-false}
       MIO_APPLICATION_SETTINGS_PATH: ${MIO_APPLICATION_SETTINGS_PATH:-/data/application-settings.json}
+      MIO_LIMITER_STORAGE_URI: ${MIO_LIMITER_STORAGE_URI:-memory://}
       MIO_SENTRY_DSN: ${MIO_SENTRY_DSN:-}
       MIO_BASE_URL: ${MIO_BASE_URL:-}
 
-      # Authentication & Security
-      MIO_MANAGEMENT_AUTH_TOKEN: ${MIO_MANAGEMENT_AUTH_TOKEN:-}
+      # Authentication
       MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN: ${MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN:-}
-      MIO_ALLOW_PRIVATE_IPS: ${MIO_ALLOW_PRIVATE_IPS:-false}
-
-      # System Configuration
-      MIO_NODE_REGISTRY_PATH: ${MIO_NODE_REGISTRY_PATH:-/data/node-registry.json}
-      MIO_LIMITER_STORAGE_URI: ${MIO_LIMITER_STORAGE_URI:-memory://}
+      MIO_MANAGEMENT_AUTH_TOKEN: ${MIO_MANAGEMENT_AUTH_TOKEN:-}
 
     ports:
       - "${MIO_BIND_HOST:-127.0.0.1}:${MIO_PORT:-8000}:8000"

@@ -81,7 +81,7 @@ services:
   # Then register remote nodes with:
   #   docker://your-management-host:2375/container-name
   docker-socket-proxy:
-    image: ghcr.io/tecnativa/docker-socket-proxy:${MIO_IMAGE_TAG:-latest}
+    image: ghcr.io/tecnativa/docker-socket-proxy:latest
     container_name: docker-socket-proxy
     profiles: ["docker-socket-proxy"]
     restart: unless-stopped
