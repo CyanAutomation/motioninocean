@@ -83,7 +83,6 @@ test("refreshStatuses schedules a second pass for overlapping timer+manual calls
   assert.deepEqual(feedbackCalls[0], ["hint", true]);
 });
 
-
 test("refreshStatuses preserves manual feedback for the first manual unauthorized cycle", async () => {
   const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
   const refreshStatusesFn = extractRefreshStatuses(managementJs);

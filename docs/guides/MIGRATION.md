@@ -84,7 +84,6 @@ For step-by-step migration execution, use the canonical sections in `DEPLOYMENT.
 - `MOCK_CAMERA` → `MIO_MOCK_CAMERA`
 - `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` → `MIO_ALLOW_PRIVATE_IPS`
 
-
 ### OctoPrint Compatibility Model Change
 
 In webcam mode, OctoPrint compatibility is always enabled.
@@ -105,7 +104,6 @@ For canonical runtime/security setup details, use:
 - [Security Considerations](DEPLOYMENT.md#security-considerations)
 - [Scenario 2: Docker Socket Proxy (Advanced)](DEPLOYMENT.md#scenario-2-docker-socket-proxy-advanced)
 - [Troubleshooting](DEPLOYMENT.md#troubleshooting)
-
 
 ### Performance profile migration (Pi 3 tuning)
 

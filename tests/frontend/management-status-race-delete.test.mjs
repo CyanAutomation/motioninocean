@@ -56,10 +56,7 @@ test("refreshStatuses discards stale in-flight poll result when webcam dataset c
   };
 
   vm.runInNewContext(`${refreshStatusesFn};`, context);
-  vm.runInNewContext(
-    `managementFetch = async (path) => fetch(path);`,
-    context,
-  );
+  vm.runInNewContext(`managementFetch = async (path) => fetch(path);`, context);
 
   const refreshPromise = context.refreshStatuses();
   await new Promise((resolve) => setImmediate(resolve));

@@ -13,17 +13,15 @@ This guide covers deploying Motion in Ocean using the **recommended directory-ba
 
 ### Legacy aliases still accepted temporarily
 
-| Canonical `MIO_*` var       | Legacy alias                               |
-| --------------------------- | ------------------------------------------ |
-| `MIO_APP_MODE`              | `APP_MODE`, `MOTION_IN_OCEAN_MODE`         |
-| `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                     |
-| `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`                |
-| `MIO_RESOLUTION`            | `RESOLUTION`, `MOTION_IN_OCEAN_RESOLUTION` |
+| Canonical `MIO_*` var       | Legacy alias                                  |
+| --------------------------- | --------------------------------------------- |
+| `MIO_APP_MODE`              | `APP_MODE`, `MOTION_IN_OCEAN_MODE`            |
+| `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                        |
+| `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`                   |
+| `MIO_RESOLUTION`            | `RESOLUTION`, `MOTION_IN_OCEAN_RESOLUTION`    |
 | `MIO_PERFORMANCE_PROFILE`   | `MIO_PI3_PROFILE` (only `true` maps to `pi3`) |
-| `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                    |
-| `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                          |
-
-
+| `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                       |
+| `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                             |
 
 ### Performance presets (recommended over implicit Pi 3 toggles)
 
@@ -38,7 +36,6 @@ Explicit tuning variables (`MIO_FPS`, `MIO_RESOLUTION`, `MIO_TARGET_FPS`, `MIO_J
 
 - If `MIO_PERFORMANCE_PROFILE` is unset and `MIO_PI3_PROFILE=true`, Motion In Ocean uses `pi3` and emits a deprecation warning.
 - Planned removal: `MIO_PI3_PROFILE` in v4.0.
-
 
 ## Recommended: Directory-Based Deployment
 
