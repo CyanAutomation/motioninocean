@@ -514,7 +514,12 @@ def _attempt_pinned_connection(
 
         actual_connection.request(method, request_target, body=data, headers=headers)
         response = actual_connection.getresponse()
-        body_text = response.read().decode("utf-8")
+        raw_body = response.read()
+        try:
+            body_text = raw_body.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            message = "webcam returned non-UTF8 payload"
+            raise NodeInvalidResponseError(message) from exc
         if not body_text:
             return response.status, {}
         try:
@@ -660,7 +665,12 @@ def _get_docker_container_status(
     try:
         req = urllib.request.Request(url=api_url, method="GET", headers=headers)
         with urllib.request.urlopen(req, timeout=2.5) as response:  # nosec B310 - URL is pre-validated against SSRF
-            payload = response.read().decode("utf-8")
+            raw_payload = response.read()
+            try:
+                payload = raw_payload.decode("utf-8")
+            except UnicodeDecodeError as exc:
+                message = "webcam returned non-UTF8 payload"
+                raise NodeInvalidResponseError(message) from exc
             container_info = json.loads(payload) if payload else {}
 
             # Extract status from container info
@@ -683,7 +693,12 @@ def _get_docker_container_status(
             return 200, status_response
 
     except urllib.error.HTTPError as exc:
-        body_text = exc.read().decode("utf-8") if exc.fp else ""
+        body_bytes = exc.read() if exc.fp else b""
+        try:
+            body_text = body_bytes.decode("utf-8")
+        except UnicodeDecodeError as decode_exc:
+            message = "webcam returned non-UTF8 payload"
+            raise NodeInvalidResponseError(message) from decode_exc
         try:
             body_json = json.loads(body_text) if body_text else {}
         except json.JSONDecodeError:
@@ -1256,6 +1271,14 @@ def _get_docker_status(
                 "raw_error": _sanitize_error_text(exc.raw_error),
                 "proxy": f"{proxy_host}:{proxy_port}",
             },
+        )
+    except NodeInvalidResponseError:
+        return {}, (
+            "WEBCAM_INVALID_RESPONSE",
+            f"webcam {webcam_id} returned an invalid response",
+            502,
+            webcam_id,
+            {"reason": "malformed json"},
         )
 
 
