@@ -78,3 +78,33 @@ def test_merge_config_with_persisted_settings_env_logging_wins(monkeypatch):
     merged = runtime_config.merge_config_with_persisted_settings(env_config, persisted)
 
     assert merged["log_level"] == "ERROR"
+
+
+def test_merge_config_with_persisted_settings_persisted_used_when_env_unset(monkeypatch):
+    """Persisted editable settings should apply when env var is not explicitly set."""
+    monkeypatch.delenv("MIO_FPS", raising=False)
+
+    env_config = runtime_config.load_env_config()
+    persisted = {"settings": {"camera": {"fps": 12}}}
+
+    merged = runtime_config.merge_config_with_persisted_settings(env_config, persisted)
+
+    assert merged["fps"] == 12
+
+
+def test_merge_config_with_persisted_settings_uses_explicit_env_var_snapshot(monkeypatch):
+    """Explicit env snapshot should be authoritative for overlay behavior."""
+    monkeypatch.setenv("MIO_LOG_LEVEL", "ERROR")
+    env_config = runtime_config.load_env_config()
+    monkeypatch.delenv("MIO_LOG_LEVEL", raising=False)
+
+    persisted = {"settings": {"logging": {"log_level": "DEBUG"}}}
+    merged_without_snapshot = runtime_config.merge_config_with_persisted_settings(env_config, persisted)
+    merged_with_snapshot = runtime_config.merge_config_with_persisted_settings(
+        env_config,
+        persisted,
+        explicit_env_vars={"MIO_LOG_LEVEL"},
+    )
+
+    assert merged_without_snapshot["log_level"] == "DEBUG"
+    assert merged_with_snapshot["log_level"] == "ERROR"

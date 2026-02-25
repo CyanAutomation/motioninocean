@@ -10,6 +10,22 @@ from .feature_flags import ACTIVE_RUNTIME_FLAGS, is_flag_enabled
 
 logger = logging.getLogger(__name__)
 
+EDITABLE_ENV_TO_CONFIG_KEY = {
+    "MIO_RESOLUTION": "resolution",
+    "MIO_FPS": "fps",
+    "MIO_TARGET_FPS": "target_fps",
+    "MIO_JPEG_QUALITY": "jpeg_quality",
+    "MIO_MAX_STREAM_CONNECTIONS": "max_stream_connections",
+    "MIO_MAX_FRAME_AGE_SECONDS": "max_frame_age_seconds",
+    "MIO_DISCOVERY_ENABLED": "discovery_enabled",
+    "MIO_DISCOVERY_MANAGEMENT_URL": "discovery_management_url",
+    "MIO_DISCOVERY_TOKEN": "discovery_token",
+    "MIO_DISCOVERY_INTERVAL_SECONDS": "discovery_interval_seconds",
+    "MIO_LOG_LEVEL": "log_level",
+    "MIO_LOG_FORMAT": "log_format",
+    "MIO_LOG_INCLUDE_IDENTIFIERS": "log_include_identifiers",
+}
+
 ALLOWED_APP_MODES = {"webcam", "management"}
 DEFAULT_APP_MODE = "webcam"
 ALLOWED_PERFORMANCE_PROFILES = {"default", "pi3"}
@@ -593,7 +609,18 @@ def _merge_logging_settings(merged: Dict[str, Any], logging_settings: Dict[str, 
             logger.warning("Invalid persisted log_include_identifiers type, using env value")
 
 
-def _overlay_explicit_env_values(merged: Dict[str, Any], env_config: Dict[str, Any]) -> None:
+def _collect_explicit_editable_env_vars() -> set[str]:
+    """Capture editable environment variables explicitly provided by the runtime.
+
+    Returns:
+        Set of editable environment variable names present in os.environ.
+    """
+    return {env_var for env_var in EDITABLE_ENV_TO_CONFIG_KEY if env_var in os.environ}
+
+
+def _overlay_explicit_env_values(
+    merged: Dict[str, Any], env_config: Dict[str, Any], explicit_env_vars: set[str]
+) -> None:
     """Overlay values derived from explicitly set environment variables.
 
     Environment variables have highest precedence in effective configuration.
@@ -603,30 +630,16 @@ def _overlay_explicit_env_values(merged: Dict[str, Any], env_config: Dict[str, A
     Args:
         merged: Config dict to update in-place.
         env_config: Config produced by load_env_config().
+        explicit_env_vars: Editable env var names explicitly set in runtime env.
     """
-    env_to_key = {
-        "MIO_RESOLUTION": "resolution",
-        "MIO_FPS": "fps",
-        "MIO_TARGET_FPS": "target_fps",
-        "MIO_JPEG_QUALITY": "jpeg_quality",
-        "MIO_MAX_STREAM_CONNECTIONS": "max_stream_connections",
-        "MIO_MAX_FRAME_AGE_SECONDS": "max_frame_age_seconds",
-        "MIO_DISCOVERY_ENABLED": "discovery_enabled",
-        "MIO_DISCOVERY_MANAGEMENT_URL": "discovery_management_url",
-        "MIO_DISCOVERY_TOKEN": "discovery_token",
-        "MIO_DISCOVERY_INTERVAL_SECONDS": "discovery_interval_seconds",
-        "MIO_LOG_LEVEL": "log_level",
-        "MIO_LOG_FORMAT": "log_format",
-        "MIO_LOG_INCLUDE_IDENTIFIERS": "log_include_identifiers",
-    }
 
-    for env_var, key in env_to_key.items():
-        if env_var in os.environ and key in env_config:
+    for env_var, key in EDITABLE_ENV_TO_CONFIG_KEY.items():
+        if env_var in explicit_env_vars and key in env_config:
             merged[key] = env_config[key]
 
 
 def merge_config_with_persisted_settings(
-    env_config: Dict[str, Any], persisted: Dict[str, Any]
+    env_config: Dict[str, Any], persisted: Dict[str, Any], explicit_env_vars: set[str] | None = None
 ) -> Dict[str, Any]:
     """Merge persisted application settings with environment configuration.
 
@@ -638,6 +651,8 @@ def merge_config_with_persisted_settings(
     Args:
         env_config: Full environment configuration from load_env_config().
         persisted: Parsed JSON from ApplicationSettings.load() (or dict like {}).
+        explicit_env_vars: Optional set of env var names explicitly set by caller.
+            When omitted, this is derived from current process environment.
 
     Returns:
         Merged config dict with persisted settings applied first, then explicit
@@ -645,10 +660,11 @@ def merge_config_with_persisted_settings(
     """
     merged = dict(env_config)
     settings = persisted.get("settings", {}) if isinstance(persisted, dict) else {}
+    explicit_overrides = explicit_env_vars or _collect_explicit_editable_env_vars()
     _merge_camera_settings(merged, settings.get("camera", {}), env_config)
     _merge_discovery_settings(merged, settings.get("discovery", {}))
     _merge_logging_settings(merged, settings.get("logging", {}))
-    _overlay_explicit_env_values(merged, env_config)
+    _overlay_explicit_env_values(merged, env_config, explicit_overrides)
     return merged
 
 
@@ -669,12 +685,13 @@ def merge_config_with_settings(
     Returns:
         Merged configuration, or env_config if persisted settings unavailable.
     """
+    explicit_env_vars = _collect_explicit_editable_env_vars()
     try:
         settings_store = app_settings or ApplicationSettings(
             env_config.get("application_settings_path", "/data/application-settings.json")
         )
         persisted = settings_store.load()
-        return merge_config_with_persisted_settings(env_config, persisted)
+        return merge_config_with_persisted_settings(env_config, persisted, explicit_env_vars)
     except SettingsValidationError as exc:
         logger.warning("Could not load persisted settings: %s. Using env config only.", exc)
     except Exception as exc:
@@ -698,6 +715,7 @@ def get_effective_settings_payload(app_settings: ApplicationSettings) -> Dict[st
         Dict with keys: source, settings (camera/logging/discovery/feature_flags),
         last_modified, modified_by.
     """
+    explicit_env_vars = _collect_explicit_editable_env_vars()
     env_config = load_env_config()
     try:
         persisted = app_settings.load()
@@ -710,7 +728,7 @@ def get_effective_settings_payload(app_settings: ApplicationSettings) -> Dict[st
         )
         persisted = {}
 
-    merged = merge_config_with_persisted_settings(env_config, persisted)
+    merged = merge_config_with_persisted_settings(env_config, persisted, explicit_env_vars)
 
     runtime_feature_flags = {
         flag_name: is_flag_enabled(flag_name) for flag_name in ACTIVE_RUNTIME_FLAGS
