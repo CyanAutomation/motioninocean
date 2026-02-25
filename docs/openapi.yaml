@@ -1,22 +1,37 @@
 openapi: "3.0.3"
 
 info:
-  title: Motion In Ocean Management API
+  title: Motion In Ocean API
   version: "1.0.0"
   description: |
-    REST API for the Motion In Ocean management hub.
+    REST API for Motion In Ocean — a Raspberry Pi CSI camera streaming solution.
 
-    Provides node registry management, discovery, status aggregation, and settings
-    for distributed Raspberry Pi camera deployments.
+    The application runs in two modes that share the same image:
+
+    - **Webcam mode** (default, port 8000): captures frames via Picamera2/libcamera,
+      streams MJPEG video, and exposes a control-plane REST API.
+    - **Management mode** (port 8001): hub that discovers and aggregates multiple
+      webcam nodes, providing a unified dashboard and node registry.
+
+    This spec covers endpoints available in both modes.  Endpoints that only exist
+    in one mode are tagged with **Webcam** or **Management** accordingly.
 
     **Authentication**
 
-    Most endpoints require a bearer token supplied via the `Authorization: Bearer <token>`
-    header.  The token is configured on the server with the `MIO_MANAGEMENT_AUTH_TOKEN`
-    environment variable.  If no token is configured, authentication is disabled.
+    Two optional bearer token mechanisms are supported:
+
+    - **Webcam control-plane token** (`WEBCAM_CONTROL_PLANE_AUTH_TOKEN` env var):
+      when set, protects `/health`, `/ready`, `/metrics`, `/api/status`, and
+      `/api/actions/*` in webcam mode.
+    - **Management token** (`MIO_MANAGEMENT_AUTH_TOKEN` env var): when set, protects
+      all `/api/v1/*` routes in management mode (except the discovery announcement
+      endpoint, which uses its own secret).
 
     The discovery announcement endpoint (`POST /api/v1/discovery/announce`) uses a
     separate token configured with `MIO_NODE_DISCOVERY_SHARED_SECRET`.
+
+    If a token env var is not set, that authentication layer is disabled and the
+    relevant endpoints are publicly accessible.
 
     **Versioning**
 
@@ -43,15 +58,19 @@ security:
 
 tags:
   - name: Webcams
-    description: Webcam node registry — CRUD and live status
+    description: Webcam node registry — CRUD and live status (management mode)
   - name: Discovery
-    description: Node self-registration and manual approval
+    description: Node self-registration and manual approval (management mode)
   - name: Management
-    description: Aggregate overview across all nodes
+    description: Aggregate overview across all nodes (management mode)
   - name: Settings
-    description: Runtime configuration management
+    description: Runtime configuration management (both modes)
   - name: Operations
-    description: Health, readiness, and status probes
+    description: Health, readiness, and status probes (both modes)
+  - name: Stream
+    description: MJPEG video stream and snapshot endpoints (webcam mode only)
+  - name: Actions
+    description: Webcam control-plane actions (webcam mode only)
 
 paths:
   # ── Operational probes (no auth) ────────────────────────────────────────────
@@ -63,8 +82,13 @@ paths:
       description: |
         Lightweight check that returns 200 as long as the process is running.
         Used by Docker/k8s health checks.
+
+        In webcam mode this endpoint is optionally protected by
+        `WEBCAM_CONTROL_PLANE_AUTH_TOKEN`. In management mode it is always public.
       tags: [Operations]
-      security: []
+      security:
+        - {}
+        - bearerAuth: []
       responses:
         "200":
           description: Service is alive
@@ -72,10 +96,19 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [status]
                 properties:
                   status:
                     type: string
                     example: ok
+                  app_mode:
+                    type: string
+                    enum: [webcam, management]
+                  timestamp:
+                    type: string
+                    format: date-time
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /ready:
     get:
@@ -84,8 +117,12 @@ paths:
       description: |
         Returns 200 when the service is ready to handle requests.
         In management mode this is always 200 (no camera required).
+        In webcam mode returns 503 until the camera has captured at least one
+        non-stale frame. Optionally protected by `WEBCAM_CONTROL_PLANE_AUTH_TOKEN`.
       tags: [Operations]
-      security: []
+      security:
+        - {}
+        - bearerAuth: []
       responses:
         "200":
           description: Service is ready
@@ -93,10 +130,41 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [status]
                 properties:
                   status:
                     type: string
+                    enum: [ready]
                     example: ready
+                  app_mode:
+                    type: string
+                    enum: [webcam, management]
+                  reason:
+                    type: string
+                    description: Present in management mode (value&#58; `no_camera_required`).
+                  timestamp:
+                    type: string
+                    format: date-time
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          description: |
+            Service not yet ready — camera is initialising or producing stale frames
+            (webcam mode only).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [not_ready]
+                  app_mode:
+                    type: string
+                  reason:
+                    type: string
+                    description: Human-readable reason code (e.g. `camera_not_started`).
 
   /api/status:
     get:
@@ -105,8 +173,13 @@ paths:
       description: |
         Returns current runtime status including app mode, uptime, and stream availability.
         In management mode `stream_available` is always false.
+
+        In webcam mode this endpoint is optionally protected by
+        `WEBCAM_CONTROL_PLANE_AUTH_TOKEN`. In management mode it is always public.
       tags: [Operations]
-      security: []
+      security:
+        - {}
+        - bearerAuth: []
       responses:
         "200":
           description: Status snapshot
@@ -114,6 +187,227 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /metrics:
+    get:
+      operationId: getMetrics
+      summary: Prometheus-style metrics snapshot
+      description: |
+        Returns runtime metrics as a JSON object: app mode, camera state, FPS,
+        uptime, frame age, and connection counts. Suitable for polling-based
+        monitoring. For a streaming alternative see `GET /api/metrics/stream`.
+
+        In webcam mode optionally protected by `WEBCAM_CONTROL_PLANE_AUTH_TOKEN`.
+      tags: [Operations]
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Metrics snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricsSnapshot"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/metrics/stream:
+    get:
+      operationId: streamMetrics
+      summary: Server-Sent Events metrics stream
+      description: |
+        Pushes the same payload as `GET /metrics` every ~3 seconds over a
+        persistent HTTP connection using the Server-Sent Events protocol.
+        The browser `EventSource` API reconnects automatically on disconnect.
+        Use this instead of polling `/metrics` to reduce overhead.
+      tags: [Operations]
+      security: []
+      responses:
+        "200":
+          description: SSE stream of metrics frames
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  Newline-delimited SSE frames. Each frame is `data: <JSON>\n\n`
+                  where the JSON payload matches the `MetricsSnapshot` schema.
+
+  /openapi.json:
+    get:
+      operationId: getOpenApiSpec
+      summary: OpenAPI 3.0 specification (JSON)
+      description: |
+        Returns the full OpenAPI specification for this instance as JSON.
+        Suitable for client code generation (e.g. `swift-openapi-generator`) or
+        loading directly into Swagger UI.
+      tags: [Operations]
+      security: []
+      responses:
+        "200":
+          description: OpenAPI specification as JSON
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "404":
+          description: Specification file not found on server
+
+  /api/docs:
+    get:
+      operationId: getApiDocs
+      summary: Swagger UI (interactive API explorer)
+      description: |
+        Serves an HTML page embedding Swagger UI, loaded from the unpkg CDN and
+        pointed at `GET /openapi.json`. No authentication required.
+      tags: [Operations]
+      security: []
+      responses:
+        "200":
+          description: Swagger UI HTML page
+          content:
+            text/html:
+              schema:
+                type: string
+
+  # ── Webcam mode — stream, snapshot, actions ──────────────────────────────────
+
+  /stream.mjpg:
+    get:
+      operationId: getMjpegStream
+      summary: MJPEG video stream
+      description: |
+        Continuous multipart MJPEG stream captured from the CSI camera.
+        Compatible with browsers (`<img>` tag), VLC, Home Assistant camera entities,
+        and OctoPrint stream URL.
+
+        **Webcam mode only.** Optionally protected by `WEBCAM_CONTROL_PLANE_AUTH_TOKEN`.
+      tags: [Stream]
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Multipart MJPEG stream
+          content:
+            multipart/x-mixed-replace:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          description: Camera not ready or stream unavailable
+
+  /snapshot.jpg:
+    get:
+      operationId: getSnapshot
+      summary: Single JPEG frame snapshot
+      description: |
+        Returns one JPEG frame from the live camera buffer.
+        Useful for integrations that need a still image rather than a stream.
+
+        **Webcam mode only.** Optionally protected by `WEBCAM_CONTROL_PLANE_AUTH_TOKEN`.
+      tags: [Stream]
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        "200":
+          description: JPEG image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          description: No frame available yet
+
+  /webcam:
+    get:
+      operationId: getOctoPrintCompatStream
+      summary: OctoPrint-compatible stream/snapshot endpoint
+      description: |
+        Compatibility shim for OctoPrint. Dispatches based on the `action` query parameter:
+        - `?action=stream` → equivalent to `GET /stream.mjpg`
+        - `?action=snapshot` → equivalent to `GET /snapshot.jpg`
+
+        **Webcam mode only.**
+      tags: [Stream]
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [stream, snapshot]
+      responses:
+        "200":
+          description: Stream or snapshot depending on `action`
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/actions/{action}:
+    parameters:
+      - name: action
+        in: path
+        required: true
+        description: |
+          Control-plane action to execute. Built-in actions include `api-test-start`,
+          `api-test-stop`, `api-test-step`, `api-test-reset`. Additional actions may
+          be registered by the running configuration.
+        schema:
+          type: string
+          example: api-test-start
+    post:
+      operationId: triggerLocalAction
+      summary: Execute a webcam control-plane action
+      description: |
+        Triggers an action on the local webcam node. Protected by
+        `WEBCAM_CONTROL_PLANE_AUTH_TOKEN` when set.
+
+        **Webcam mode only.**
+      tags: [Actions]
+      security:
+        - {}
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              example:
+                interval_seconds: 5
+                scenario_order: [0, 1, 2]
+      responses:
+        "200":
+          description: Action executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Unknown action name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   # ── Webcam node registry ─────────────────────────────────────────────────────
 
@@ -778,9 +1072,11 @@ components:
 
     AppStatus:
       type: object
+      required: [status, app_mode, stream_available]
       properties:
         status:
           type: string
+          enum: [ok, degraded]
           example: ok
         app_mode:
           type: string
@@ -789,17 +1085,57 @@ components:
           type: boolean
         camera_active:
           type: boolean
+          description: Present in webcam mode only.
         uptime_seconds:
           type: number
         fps:
           type: number
+          description: Current capture FPS. Present in webcam mode only.
         connections:
           type: object
+          description: Present in webcam mode only.
           properties:
             current:
               type: integer
             max:
               type: integer
+        timestamp:
+          type: string
+          format: date-time
+        api_test:
+          type: object
+          description: Present when API test mode is active.
+          properties:
+            enabled:
+              type: boolean
+            state_index:
+              type: integer
+            next_transition_seconds:
+              type: number
+              nullable: true
+
+    MetricsSnapshot:
+      type: object
+      required: [app_mode, camera_mode_enabled, camera_active, uptime_seconds, timestamp]
+      properties:
+        app_mode:
+          type: string
+          enum: [webcam, management]
+        camera_mode_enabled:
+          type: boolean
+        camera_active:
+          type: boolean
+        uptime_seconds:
+          type: number
+        max_frame_age_seconds:
+          type: number
+        frames_captured:
+          type: integer
+        current_fps:
+          type: number
+        last_frame_age_seconds:
+          type: number
+          nullable: true
         timestamp:
           type: string
           format: date-time
