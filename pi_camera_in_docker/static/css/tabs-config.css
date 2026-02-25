@@ -1151,7 +1151,11 @@
   border-color: var(--webcam-rail-border);
 }
 
-.webcam-side-rail .tab-btn {
+/*
+ * Desktop left rail buttons own their layout so they do not rely on base
+ * .tab-btn geometry. Supports icon-only and icon+label variants.
+ */
+.webcam-side-rail .rail-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1173,13 +1177,13 @@
     border-color var(--transition-fast);
 }
 
-.webcam-side-rail .tab-btn:hover {
+.webcam-side-rail .rail-btn:hover {
   background: var(--webcam-rail-hover-bg);
   color: var(--webcam-rail-text-hover);
   border-color: var(--webcam-rail-border);
 }
 
-.webcam-side-rail .tab-btn.active {
+.webcam-side-rail .rail-btn.active {
   background: var(--webcam-rail-active-bg);
   color: var(--color-text-inverse);
   border-color: var(--webcam-rail-active-bg);
@@ -1225,6 +1229,7 @@
     display: none;
   }
 
+  /* Mobile bottom rail keeps labels visible for fast thumb navigation. */
   .webcam-bottom-rail.tab-navigation {
     position: fixed;
     left: 0;
@@ -1241,9 +1246,14 @@
     box-shadow: 0 -2px 8px rgba(15, 23, 42, 0.12);
   }
 
-  .webcam-bottom-rail .tab-btn {
+  .webcam-bottom-rail .mobile-rail-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
     min-height: 44px;
     border-radius: 999px;
+    padding: var(--space-2) var(--space-3);
     border: 1px solid transparent;
     background: var(--management-rail-muted);
     color: var(--color-text-secondary);
@@ -1251,7 +1261,7 @@
     font-weight: 600;
   }
 
-  .webcam-bottom-rail .tab-btn.active {
+  .webcam-bottom-rail .mobile-rail-btn.active {
     background: var(--management-accent);
     color: var(--color-text-inverse);
     box-shadow: var(--shadow-focus-ring);
