@@ -16,7 +16,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple, cast
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import quote, urlparse, urlunparse
 
 import sentry_sdk
 from flask import Blueprint, Flask, jsonify, redirect, request
@@ -658,7 +658,8 @@ def _get_docker_container_status(
     Returns: (status_code, status_dict)
     """
     # Use the proxy to get container info
-    api_url = f"http://{proxy_host}:{proxy_port}/containers/{container_id}/json"
+    encoded_container_id = quote(container_id, safe="")
+    api_url = f"http://{proxy_host}:{proxy_port}/containers/{encoded_container_id}/json"
 
     headers = {"Content-Type": "application/json", **auth_headers}
 

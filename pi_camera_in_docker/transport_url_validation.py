@@ -1,5 +1,9 @@
+import re
 from typing import Tuple
 from urllib.parse import urlparse
+
+
+_DOCKER_CONTAINER_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 def parse_docker_url(base_url: str) -> Tuple[str, int, str]:
@@ -19,9 +23,28 @@ def parse_docker_url(base_url: str) -> Tuple[str, int, str]:
     if not port:
         raise ValueError(error_message)
 
-    container_id = parsed.path.lstrip("/")
-    error_message = "docker URL must include container ID (e.g., docker://proxy:2375/container-id)"
-    if not container_id:
+    if parsed.query or parsed.fragment:
+        error_message = "docker URL must not include query or fragment"
+        raise ValueError(error_message)
+
+    if not parsed.path or parsed.path == "/":
+        error_message = "docker URL must include container ID (e.g., docker://proxy:2375/container-id)"
+        raise ValueError(error_message)
+
+    path_segments = [segment for segment in parsed.path.split("/") if segment]
+    if len(path_segments) != 1 or parsed.path != f"/{path_segments[0]}":
+        error_message = "docker URL must include exactly one container ID path segment"
+        raise ValueError(error_message)
+
+    container_id = path_segments[0]
+    lowered_container_id = container_id.lower()
+    disallowed_tokens = ("..", "\\", "%2f", "%2e", "?", "#")
+    if any(token in lowered_container_id for token in disallowed_tokens):
+        error_message = "docker URL container ID contains forbidden characters"
+        raise ValueError(error_message)
+
+    if not _DOCKER_CONTAINER_ID_PATTERN.fullmatch(container_id):
+        error_message = "docker URL container ID must match [A-Za-z0-9][A-Za-z0-9._-]*"
         raise ValueError(error_message)
 
     return hostname, port, container_id
