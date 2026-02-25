@@ -71,8 +71,13 @@ const state = {
     chipInactive: null,
     chipFps: null,
     mioHeroImage: null,
+    // Cached tab buttons (set in cacheElements)
+    tabButtons: null,
   },
 };
+
+/** @type {EventSource|null} Active SSE connection for metrics streaming. */
+let metricsEventSource = null;
 
 /**
  * Initialize the application
@@ -84,8 +89,11 @@ function init() {
   updateViewMeta(state.currentTab);
   updateMascotForTab(state.currentTab);
   startStatsUpdate();
+  // Fetch initial stats immediately so the panel is populated on first paint.
+  // Ongoing updates are driven by the SSE connection opened in startStatsUpdate().
   updateStats().catch((error) => console.error("Initial stats update failed:", error));
-  updateConfig().catch((error) => console.error("Initial config update failed:", error));
+  // Config data is only fetched when the user first switches to the config tab;
+  // skip the cold-start pre-fetch to avoid a wasted API call on the main tab.
 
   console.log("motion-in-ocean camera stream initialized");
 }
@@ -182,7 +190,9 @@ function cacheElements() {
   state.elements.configLoading = document.getElementById("config-loading");
   state.elements.configErrorAlert = document.getElementById("config-error-alert");
   state.elements.configErrorMessage = document.getElementById("config-error-message");
-}
+
+  // Cache tab buttons to avoid a repeated DOM query on every tab switch
+  state.elements.tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
 
 /**
  * Attach event listeners
@@ -213,6 +223,17 @@ function attachHandlers() {
 
   if (state.elements.configRefreshBtn) {
     state.elements.configRefreshBtn.addEventListener("click", refreshConfigPanel);
+  }
+
+  // Proxy buttons inside the video controls that mirror the main action buttons
+  const vcRefreshBtn = document.getElementById("vc-refresh-btn");
+  if (vcRefreshBtn) {
+    vcRefreshBtn.addEventListener("click", refreshStream);
+  }
+
+  const vcFullscreenBtn = document.getElementById("vc-fullscreen-btn");
+  if (vcFullscreenBtn) {
+    vcFullscreenBtn.addEventListener("click", toggleFullscreen);
   }
 
   if (state.elements.videoStream) {
@@ -255,12 +276,12 @@ function attachHandlers() {
  * Ensure only one polling mode is active at a time.
  */
 function assertSinglePollingMode() {
-  const statsPollingActive = state.updateInterval !== null;
+  const statsPollingActive = metricsEventSource !== null;
   const configPollingActive = state.configPollingInterval !== null;
 
   console.assert(
     !(statsPollingActive && configPollingActive),
-    "Invalid polling state: stats and config polling are both active.",
+    "Invalid polling state: stats (SSE) and config polling are both active.",
   );
 }
 
@@ -282,7 +303,7 @@ async function updateStats() {
     state.statsInFlight = true;
     try {
       const data = await fetchMetrics();
-      renderMetrics(data);
+      requestAnimationFrame(() => renderMetrics(data));
     } catch (error) {
       if (error && error.name === "AbortError") {
         console.warn("Stats request timed out, will retry.");
@@ -540,10 +561,58 @@ function setConnectionStatus(status, text) {
 }
 
 /**
- * Start stats update interval.
+ * Open a Server-Sent Events connection to /api/metrics/stream.
  *
- * Sets up periodic updateStats() calls at current frequency.
- * Skips if interval already running, stats collapsed, or page hidden.
+ * Replaces the setInterval polling loop. The server pushes a metrics event every
+ * 3 seconds over a single persistent HTTP connection (~30× fewer requests/min).
+ * EventSource reconnects automatically on transient failures. DOM updates are
+ * scheduled via requestAnimationFrame to batch all writes into a single paint frame.
+ *
+ * @returns {void}
+ */
+function startMetricsStream() {
+  if (metricsEventSource) return;
+  if (state.statsCollapsed || document.hidden) return;
+
+  metricsEventSource = new EventSource("/api/metrics/stream");
+
+  metricsEventSource.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      // Batch all DOM writes into a single paint frame
+      requestAnimationFrame(() => renderMetrics(data));
+    } catch (e) {
+      console.error("Failed to parse metrics SSE data:", e);
+    }
+  };
+
+  metricsEventSource.onerror = () => {
+    setConnectionStatus("disconnected", "Reconnecting...");
+    // EventSource.CLOSED means it will NOT reconnect; clear our reference so
+    // the next startMetricsStream() call creates a fresh connection.
+    if (metricsEventSource && metricsEventSource.readyState === EventSource.CLOSED) {
+      metricsEventSource = null;
+    }
+  };
+}
+
+/**
+ * Close the Server-Sent Events metrics stream connection.
+ *
+ * @returns {void}
+ */
+function stopMetricsStream() {
+  if (metricsEventSource) {
+    metricsEventSource.close();
+    metricsEventSource = null;
+  }
+}
+
+/**
+ * Start stats update connection.
+ *
+ * Opens the SSE stream for ongoing metric pushes.
+ * Skips if stream already open, stats collapsed, or page hidden.
  *
  * @returns {void}
  */
@@ -551,40 +620,35 @@ function startStatsUpdate() {
   if (state.updateInterval) return;
   if (state.statsCollapsed || document.hidden) return;
 
-  state.updateInterval = setInterval(() => {
-    updateStats().catch((error) => console.error("Stats update failed:", error));
-  }, state.updateFrequency);
+  // Sentinel so assertSinglePollingMode() stays consistent with legacy callers
+  state.updateInterval = true;
+  startMetricsStream();
 }
 
 /**
- * Stop stats update interval.
+ * Stop stats update connection.
  *
- * Clears interval timer and resets interval ID.
+ * Closes the SSE stream and clears the sentinel interval flag.
  *
  * @returns {void}
  */
 function stopStatsUpdate() {
-  if (state.updateInterval) {
-    clearInterval(state.updateInterval);
-    state.updateInterval = null;
-  }
+  stopMetricsStream();
+  state.updateInterval = null;
 }
 
 /**
  * Set stats polling frequency and restart timer if active.
  *
- * Allows dynamic frequency adjustment. Stops and restarts interval if already running.
+ * Retained for backoff compatibility; has no effect on the SSE stream interval
+ * which is controlled server-side.
  *
- * @param {number} nextFrequency - Polling frequency in milliseconds.
+ * @param {number} nextFrequency - Polling frequency in milliseconds (unused by SSE).
  * @returns {void}
  */
 function setUpdateFrequency(nextFrequency) {
   if (state.updateFrequency === nextFrequency) return;
   state.updateFrequency = nextFrequency;
-  if (state.updateInterval) {
-    stopStatsUpdate();
-    startStatsUpdate();
-  }
 }
 
 /**
@@ -861,8 +925,8 @@ function switchTab(tabName) {
   const wasSetupTab = state.currentTab === "setup";
   state.currentTab = tabName;
 
-  // Update tab buttons
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
+  // Update tab buttons using the cached list from cacheElements()
+  (state.elements.tabButtons || document.querySelectorAll(".tab-btn")).forEach((btn) => {
     btn.classList.remove("active");
     if (btn.getAttribute("data-tab") === tabName) {
       btn.classList.add("active");
