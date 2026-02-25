@@ -11,6 +11,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.19.5] - 2026-02-25
+
+- fix: enhance error message for docker URL validation in test case
+- style: format code for improved readability and consistency across multiple files
+- fix: update ESLint ignores to include specific JS file and optimize ETag caching in settings API
+- refactor: clean up formatting in deployment and migration guides, and streamline HTML button elements
+- feat: enhance button transitions and improve settings section animations
+- feat: implement Server-Sent Events for metrics streaming and optimize tab button handling
+- feat: implement event delegation for input handling and enhance section toggle animations
+- feat: add gzip compression and ETag caching for improved performance
+- [management] Update interactivity tests for always-expanded sections and add webcam dataset version to test setup
+- [refactor] Remove config group toggle functionality and associated styles
+- [style] Add management side rail styles and update border-radius variables
+- [design] Update curious, happy, and sleeping images in the mio theme
+- [management] Preserve manual refresh unauthorized feedback (#436)
+- [management] Prevent stale status restore after node deletion (#435)
+- [runtime] Ensure env config overrides persisted settings (#434)
+- [management] Reject unsupported transport in base URL validation (#433)
+- [management] Allow discovery announce for mixed DNS results (#432)
+
 ## [1.19.4] - 2026-02-25
 
 - [webcam] Split rail button layout from shared tab button (#431)
