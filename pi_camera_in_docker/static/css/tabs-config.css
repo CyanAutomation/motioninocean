@@ -1152,10 +1152,15 @@
 }
 
 .webcam-side-rail .tab-btn {
-  width: 52px;
-  min-height: 52px;
-  border-radius: 999px;
-  padding: 0 var(--space-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 100%;
+  min-height: 64px;
+  border-radius: var(--radius-xl);
+  padding: var(--space-2);
   background: transparent;
   color: rgba(255, 255, 255, 0.45);
   border: 1px solid transparent;
@@ -1183,7 +1188,14 @@
 
 .webcam-side-rail .tab-label {
   display: inline;
-  line-height: 1.2;
+  line-height: 1.1;
+  text-align: center;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.webcam-side-rail .rail-icon {
+  width: auto;
 }
 
 /* SVG icon inside rail button */
