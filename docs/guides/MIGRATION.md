@@ -75,12 +75,12 @@ For step-by-step migration execution, use the canonical sections in `DEPLOYMENT.
 - `MOTION_IN_OCEAN_TARGET_FPS`
 - `MOTION_IN_OCEAN_JPEG_QUALITY`
 - `MOTION_IN_OCEAN_MAX_STREAM_CONNECTIONS`
-- `MOTION_IN_OCEAN_PI3_PROFILE`
+- `MOTION_IN_OCEAN_PI3_PROFILE` (deprecated; map to `MIO_PERFORMANCE_PROFILE=pi3`)
 - `MOTION_IN_OCEAN_CORS_ORIGINS`
 
 #### Removed legacy aliases (must migrate to canonical `MIO_*`)
 
-- `PI3_PROFILE` → `MIO_PI3_PROFILE`
+- `PI3_PROFILE` → `MIO_PI3_PROFILE` (deprecated compatibility alias)
 - `MOCK_CAMERA` → `MIO_MOCK_CAMERA`
 - `OCTOPRINT_COMPATIBILITY` → `MIO_OCTOPRINT_COMPATIBILITY`
 - `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` → `MIO_ALLOW_PRIVATE_IPS`
@@ -106,3 +106,22 @@ For canonical runtime/security setup details, use:
 - [Security Considerations](DEPLOYMENT.md#security-considerations)
 - [Scenario 2: Docker Socket Proxy (Advanced)](DEPLOYMENT.md#scenario-2-docker-socket-proxy-advanced)
 - [Troubleshooting](DEPLOYMENT.md#troubleshooting)
+
+
+### Performance profile migration (Pi 3 tuning)
+
+Motion In Ocean now models hardware tuning as an explicit preset:
+
+- `MIO_PERFORMANCE_PROFILE=default|pi3` (**new canonical setting**)
+- `MIO_PI3_PROFILE=true|false` (**deprecated compatibility alias**)
+
+Behavior and precedence:
+
+1. Explicit camera env vars such as `MIO_FPS`, `MIO_RESOLUTION`, and `MIO_JPEG_QUALITY` always win.
+2. `MIO_PERFORMANCE_PROFILE` supplies baseline defaults when those explicit vars are unset.
+3. If `MIO_PERFORMANCE_PROFILE` is unset and `MIO_PI3_PROFILE=true`, runtime maps to `pi3` and logs a deprecation warning.
+
+Removal timeline:
+
+- **v3.x:** `MIO_PI3_PROFILE` supported with deprecation warning.
+- **v4.0 (planned):** `MIO_PI3_PROFILE` removed; use `MIO_PERFORMANCE_PROFILE=pi3`.

@@ -1,3 +1,5 @@
+import pytest
+
 from pi_camera_in_docker import runtime_config
 
 
@@ -412,6 +414,74 @@ def test_load_fps_non_integer_falls_back_with_warning(monkeypatch, caplog):
     assert camera_config["fps"] == 24
     assert camera_config["target_fps"] == 24
     assert "Invalid MIO_FPS value" in caplog.text
+
+
+def test_load_env_config_defaults_to_default_performance_profile(monkeypatch):
+    """Runtime config should expose the explicit default performance profile."""
+    monkeypatch.delenv("MIO_PERFORMANCE_PROFILE", raising=False)
+    monkeypatch.delenv("MIO_PI3_PROFILE", raising=False)
+
+    cfg = runtime_config.load_env_config()
+
+    assert cfg["performance_profile"] == "default"
+    assert cfg["pi3_profile_enabled"] is False
+    assert cfg["fps"] == 24
+
+
+def test_load_env_config_applies_pi3_performance_profile_defaults(monkeypatch):
+    """pi3 performance profile should apply conservative camera defaults."""
+    monkeypatch.setenv("MIO_PERFORMANCE_PROFILE", "pi3")
+    monkeypatch.delenv("MIO_FPS", raising=False)
+    monkeypatch.delenv("MIO_TARGET_FPS", raising=False)
+    monkeypatch.delenv("MIO_JPEG_QUALITY", raising=False)
+    monkeypatch.delenv("MIO_MAX_STREAM_CONNECTIONS", raising=False)
+
+    cfg = runtime_config.load_env_config()
+
+    assert cfg["performance_profile"] == "pi3"
+    assert cfg["pi3_profile_enabled"] is True
+    assert cfg["fps"] == 12
+    assert cfg["target_fps"] == 12
+    assert cfg["jpeg_quality"] == 75
+    assert cfg["max_stream_connections"] == 3
+
+
+def test_load_env_config_env_values_override_profile_defaults(monkeypatch):
+    """Explicit env vars must override profile-provided defaults."""
+    monkeypatch.setenv("MIO_PERFORMANCE_PROFILE", "pi3")
+    monkeypatch.setenv("MIO_FPS", "20")
+    monkeypatch.setenv("MIO_TARGET_FPS", "8")
+    monkeypatch.setenv("MIO_JPEG_QUALITY", "88")
+    monkeypatch.setenv("MIO_MAX_STREAM_CONNECTIONS", "9")
+
+    cfg = runtime_config.load_env_config()
+
+    assert cfg["performance_profile"] == "pi3"
+    assert cfg["fps"] == 20
+    assert cfg["target_fps"] == 8
+    assert cfg["jpeg_quality"] == 88
+    assert cfg["max_stream_connections"] == 9
+
+
+def test_load_env_config_legacy_pi3_profile_maps_to_preset_with_warning(monkeypatch, caplog):
+    """Legacy MIO_PI3_PROFILE should map to pi3 preset and emit deprecation warning."""
+    monkeypatch.delenv("MIO_PERFORMANCE_PROFILE", raising=False)
+    monkeypatch.setenv("MIO_PI3_PROFILE", "true")
+
+    with caplog.at_level("WARNING"):
+        cfg = runtime_config.load_env_config()
+
+    assert cfg["performance_profile"] == "pi3"
+    assert cfg["pi3_profile_enabled"] is True
+    assert "MIO_PI3_PROFILE is deprecated" in caplog.text
+
+
+def test_load_env_config_invalid_performance_profile_raises(monkeypatch):
+    """Unknown performance profile values should fail fast with clear error."""
+    monkeypatch.setenv("MIO_PERFORMANCE_PROFILE", "turbo")
+
+    with pytest.raises(ValueError, match="Invalid MIO_PERFORMANCE_PROFILE"):
+        runtime_config.load_env_config()
 
 
 def test_load_env_config_defaults_camera_init_failure_to_graceful(monkeypatch):
