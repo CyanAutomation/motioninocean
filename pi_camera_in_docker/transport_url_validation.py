@@ -63,7 +63,8 @@ def validate_base_url_for_transport(base_url: str, transport: str) -> None:
         transport: Transport type ('http' or 'docker').
 
     Raises:
-        ValueError: If URL scheme doesn't match transport type or docker:// URL is malformed.
+        ValueError: If transport is unsupported, URL scheme doesn't match transport type,
+            or docker:// URL is malformed.
     """
     if transport == "http":
         error_message = "base_url must start with http:// or https://"
@@ -76,3 +77,7 @@ def validate_base_url_for_transport(base_url: str, transport: str) -> None:
         if not base_url.startswith("docker://"):
             raise ValueError(error_message)
         parse_docker_url(base_url)
+        return
+
+    error_message = f"Unsupported transport '{transport}'. Expected one of: http, docker"
+    raise ValueError(error_message)

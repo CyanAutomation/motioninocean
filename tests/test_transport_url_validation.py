@@ -3,7 +3,12 @@ import json
 import pytest
 
 from pi_camera_in_docker import management_api
-from pi_camera_in_docker.transport_url_validation import parse_docker_url
+from pi_camera_in_docker import node_registry
+from pi_camera_in_docker.node_registry import NodeValidationError, validate_webcam
+from pi_camera_in_docker.transport_url_validation import (
+    parse_docker_url,
+    validate_base_url_for_transport,
+)
 
 
 @pytest.mark.parametrize(
@@ -56,3 +61,27 @@ def test_get_docker_container_status_url_encodes_container_id(monkeypatch):
     assert status_code == 200
     assert payload["status"] == "ok"
     assert captured["url"] == "http://proxy:2375/containers/container%20id/json"
+
+
+@pytest.mark.parametrize("transport", ["ssh", "https", "", "HTTP"])
+def test_validate_base_url_for_transport_rejects_unknown_transport(transport):
+    with pytest.raises(ValueError, match=rf"Unsupported transport '{transport}'"):
+        validate_base_url_for_transport("http://example.com", transport)
+
+
+def test_validate_webcam_propagates_unknown_transport_base_url_validation_failure(monkeypatch):
+    monkeypatch.setattr(node_registry, "ALLOWED_TRANSPORTS", {"http", "docker", "ssh"})
+
+    with pytest.raises(NodeValidationError, match="Unsupported transport 'ssh'"):
+        validate_webcam(
+            {
+                "id": "node-unknown-transport",
+                "name": "Unknown Transport Node",
+                "base_url": "http://example.com",
+                "auth": {"type": "none"},
+                "labels": {},
+                "last_seen": "2024-01-01T00:00:00+00:00",
+                "capabilities": ["stream"],
+                "transport": "ssh",
+            }
+        )
