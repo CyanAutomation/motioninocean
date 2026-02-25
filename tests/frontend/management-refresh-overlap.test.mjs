@@ -103,6 +103,7 @@ test("refreshStatuses preserves manual feedback for the first manual unauthorize
     statusRefreshPending: false,
     statusRefreshPendingManual: false,
     statusRefreshToken: 0,
+    webcamDatasetVersion: 0,
     API_AUTH_HINT: "hint",
     renderRows: () => {},
     showFeedback: (...args) => feedbackCalls.push(args),

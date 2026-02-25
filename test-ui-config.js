@@ -123,67 +123,45 @@ async function runTest() {
     });
 
     // ========== INTERACTIVITY TEST ==========
-    console.log("\n⚡ Testing Collapsible Sections...");
+    console.log("\n⚡ Testing Always-Expanded Sections...");
 
-    // Get initial state of toggle buttons
+    // Verify no toggle buttons exist (collapse feature removed)
     const toggleButtons = await page.locator(".config-group-toggle").all();
-    console.log(`Found ${toggleButtons.length} toggle buttons`);
-
-    // Test collapsing and expanding sections
-    for (let i = 0; i < Math.min(2, toggleButtons.length); i++) {
-      const button = await page.locator(".config-group-toggle").nth(i);
-
-      // Get the parent section title
-      const title = await button.locator("..").locator("h3").textContent();
-
-      console.log(`\n  Testing collapse/expand for: ${title}`);
-
-      // Get content height before collapse
-      const contentBefore = await button
-        .locator("..")
-        .locator(".config-group-content")
-        .boundingBox();
-
-      // Click toggle to collapse
-      await button.click();
-      await page.waitForTimeout(200);
-
-      const contentAfter = await button
-        .locator("..")
-        .locator(".config-group-content")
-        .boundingBox();
-
-      if (contentBefore && contentAfter) {
-        if (contentAfter.height < contentBefore.height) {
-          findings.interactivity.push({
-            status: "✓",
-            test: `Collapse "${title}"`,
-            details: "Section collapsed successfully (height decreased)",
-          });
-        } else {
-          findings.interactivity.push({
-            status: "⚠",
-            test: `Collapse "${title}"`,
-            details: "Section may not have collapsed (height unchanged)",
-          });
-        }
-      }
-
-      // Click toggle to expand
-      await button.click();
-      await page.waitForTimeout(200);
-
+    if (toggleButtons.length === 0) {
       findings.interactivity.push({
         status: "✓",
-        test: `Expand "${title}"`,
-        details: "Section expanded successfully",
+        test: "No collapse toggle buttons",
+        details: "Config sections are permanently expanded — no toggle buttons present",
+      });
+    } else {
+      findings.interactivity.push({
+        status: "⚠",
+        test: "Unexpected toggle buttons",
+        details: `Found ${toggleButtons.length} toggle button(s) that should have been removed`,
       });
     }
 
+    // Verify all config-group-content sections are visible
+    const contentSections = await page.locator(".config-group-content").all();
+    let allVisible = true;
+    for (const section of contentSections) {
+      const visible = await section.isVisible();
+      if (!visible) {
+        allVisible = false;
+      }
+    }
+    findings.interactivity.push({
+      status: allVisible ? "✓" : "⚠",
+      test: "Config sections always visible",
+      details: allVisible
+        ? `All ${contentSections.length} config sections are permanently expanded`
+        : "One or more config sections are hidden unexpectedly",
+    });
+
     await takeAndLogScreenshot(
       page,
-      "desktop-03-config-collapsed",
-      "Config tab with collapsed sections (desktop)",
+      "desktop-03-config-expanded",
+      "Config tab with all sections expanded (desktop)",
     );
 
     // ========== DATA VERIFICATION ==========
