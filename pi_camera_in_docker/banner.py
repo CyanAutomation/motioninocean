@@ -13,6 +13,8 @@ mode metadata without having to parse decorated text.
 
 import os
 import sys
+from pathlib import Path
+from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Mio ASCII art
@@ -40,12 +42,37 @@ MIO_ASCII: str = r"""
 _REPO_URL = "https://github.com/CyanAutomation/motioninocean"
 _SEPARATOR = "-" * 54
 
+# Candidate paths for the VERSION file: Docker image path first, then repo root.
+_VERSION_FILE_CANDIDATES = [
+    Path("/app/VERSION"),
+    Path(__file__).parent.parent / "VERSION",
+]
+
+
+def _read_app_version() -> str:
+    """Read the application version from the VERSION file.
+
+    Tries ``/app/VERSION`` (Docker image path) first, then falls back to the
+    repository root ``VERSION`` file relative to this module.
+
+    Returns:
+        Version string (e.g. ``"1.19.5"``), or ``"unknown"`` if no readable
+        file is found.
+    """
+    for candidate in _VERSION_FILE_CANDIDATES:
+        if candidate.exists():
+            try:
+                return candidate.read_text(encoding="utf-8").strip()
+            except OSError:
+                continue
+    return "unknown"
+
 
 def print_startup_banner(
-    version: str,
     mode: str,
     host: str,
     port: int,
+    version: Optional[str] = None,
 ) -> None:
     """Print the Mio startup banner to stderr.
 
@@ -62,24 +89,27 @@ def print_startup_banner(
     to suppress informational messages.
 
     Args:
-        version: Application version string (e.g. ``"1.19.5"``).
         mode: Application mode — ``"webcam"`` or ``"management"``.
         host: Bind host address (e.g. ``"0.0.0.0"`` or ``"127.0.0.1"``).
         port: Bind port number (e.g. ``8000`` or ``8001``).
+        version: Application version string.  If ``None`` (default) the version
+            is read automatically from the ``VERSION`` file via
+            :func:`_read_app_version`.
 
     Returns:
         None
 
     Examples:
-        >>> print_startup_banner("1.19.5", "webcam", "0.0.0.0", 8000)
+        >>> print_startup_banner("webcam", "0.0.0.0", 8000, version="1.19.5")
         # (writes to stderr)
     """
+    resolved_version = version if version is not None else _read_app_version()
     log_format = os.environ.get("MIO_LOG_FORMAT", "text").lower().strip()
 
     if log_format == "json":
         # Single-line fallback — parseable but not decorative.
         line = (
-            f"# Motion In Ocean v{version} | mode={mode} | "
+            f"# Motion In Ocean v{resolved_version} | mode={mode} | "
             f"http://{host}:{port} | {_REPO_URL}"
         )
         print(line, file=sys.stderr, flush=True)
@@ -89,7 +119,7 @@ def print_startup_banner(
     banner_lines = [
         _SEPARATOR,
         MIO_ASCII.rstrip("\n"),
-        f"  Motion In Ocean  v{version}",
+        f"  Motion In Ocean  v{resolved_version}",
         f"  Mode     : {mode}",
         f"  Address  : http://{host}:{port}",
         f"  Repo     : {_REPO_URL}",

@@ -27,6 +27,7 @@ from PIL import Image
 from werkzeug.serving import make_server
 
 from .application_settings import ApplicationSettings
+from .banner import print_startup_banner
 from .config_validator import ConfigValidationError, validate_all_config
 from .discovery import DiscoveryAnnouncer, build_discovery_payload
 from .feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
@@ -1420,6 +1421,13 @@ def create_app_from_env() -> Flask:
             error_msg += f" ({e.hint})"
         logger.error("Configuration validation failed: %s", error_msg)
         raise ValueError(error_msg) from e
+
+    # Print Mio startup banner to stderr (bypasses JSON log pipeline)
+    print_startup_banner(
+        mode=cfg["app_mode"],
+        host=cfg["bind_host"],
+        port=cfg["bind_port"],
+    )
 
     # Initialize Sentry error tracking if DSN is provided
     sentry_dsn = os.environ.get("MIO_SENTRY_DSN")
