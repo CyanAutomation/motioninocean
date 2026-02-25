@@ -1692,16 +1692,25 @@ def create_management_blueprint(
                 "VALIDATION_ERROR", "decision must be approve or reject", 400, webcam_id=webcam_id
             )
 
+        def _build_discovery_approval_patch(existing: Dict[str, Any]) -> Dict[str, Any]:
+            existing_discovery = existing.get("discovery")
+            if not isinstance(existing_discovery, dict):
+                existing_discovery = _manual_discovery_defaults(existing)
+
+            discovery_patch = {
+                **existing_discovery,
+                "approved": decision == "approve",
+            }
+
+            if "first_seen" in existing_discovery:
+                discovery_patch["first_seen"] = existing_discovery["first_seen"]
+            if "last_announce_at" in existing_discovery:
+                discovery_patch["last_announce_at"] = existing_discovery["last_announce_at"]
+
+            return {"discovery": discovery_patch}
+
         try:
-            updated = registry.update_webcam_from_current(
-                webcam_id,
-                lambda existing: {
-                    "discovery": {
-                        **existing.get("discovery", _manual_discovery_defaults(existing)),
-                        "approved": decision == "approve",
-                    }
-                },
-            )
+            updated = registry.update_webcam_from_current(webcam_id, _build_discovery_approval_patch)
         except KeyError:
             return _error_response(
                 "WEBCAM_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id

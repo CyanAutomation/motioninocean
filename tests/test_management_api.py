@@ -1212,6 +1212,78 @@ def test_discovery_announce_preserves_rejected_state_when_rejection_happens_befo
     assert updated.json["node"]["discovery"]["approved"] is False
 
 
+def test_discovery_approval_does_not_roll_back_last_announce_at_during_concurrent_announce(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    announce_payload = {
+        "webcam_id": "node-discovery-last-announce-race",
+        "name": "Discovery Pending",
+        "base_url": "http://example.com",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    created = client.post(
+        "/api/v1/discovery/announce",
+        json=announce_payload,
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+    assert created.status_code == 201
+    initial_last_announce = created.json["node"]["discovery"]["last_announce_at"]
+
+    original_update_from_current = management_api.FileWebcamRegistry.update_webcam_from_current
+    update_started = threading.Event()
+    allow_update = threading.Event()
+
+    def delayed_update_from_current(self, webcam_id, patch_builder):
+        if webcam_id == "node-discovery-last-announce-race":
+            update_started.set()
+            allow_update.wait(timeout=2)
+        return original_update_from_current(self, webcam_id, patch_builder)
+
+    monkeypatch.setattr(
+        management_api.FileWebcamRegistry,
+        "update_webcam_from_current",
+        delayed_update_from_current,
+    )
+
+    approval_response = {}
+
+    def do_approval():
+        approval_response["response"] = client.post(
+            "/api/v1/webcams/node-discovery-last-announce-race/discovery/approve",
+            headers=_auth_headers(),
+        )
+
+    approval_thread = threading.Thread(target=do_approval)
+    approval_thread.start()
+    update_started.wait(timeout=2)
+
+    announced = client.post(
+        "/api/v1/discovery/announce",
+        json={**announce_payload, "name": "Discovery Pending Updated"},
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+    assert announced.status_code == 200
+    concurrent_last_announce = announced.json["node"]["discovery"]["last_announce_at"]
+    assert concurrent_last_announce != initial_last_announce
+
+    allow_update.set()
+    approval_thread.join()
+
+    approved = approval_response["response"]
+    assert approved.status_code == 200
+    assert approved.json["node"]["discovery"]["approved"] is True
+    assert approved.json["node"]["discovery"]["last_announce_at"] == concurrent_last_announce
+
+    fetched = client.get("/api/v1/webcams/node-discovery-last-announce-race", headers=_auth_headers())
+    assert fetched.status_code == 200
+    assert fetched.json["discovery"]["last_announce_at"] == concurrent_last_announce
+
+
 def test_request_json_sets_authorization_header_by_auth_mode(monkeypatch):
     from pi_camera_in_docker import management_api
 
