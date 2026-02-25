@@ -4,11 +4,13 @@ Provides runtime configuration management via REST API.
 Endpoints: GET /api/settings, PATCH /api/settings, POST /api/settings/reset, GET /api/settings/schema
 """
 
+import hashlib
+import json as _json
 import os
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import sentry_sdk
-from flask import Blueprint, Flask, current_app, jsonify, redirect, request
+from flask import Blueprint, Flask, Response, current_app, jsonify, redirect, request
 
 from .config_validator import validate_settings_patch
 from .runtime_config import (
@@ -17,6 +19,28 @@ from .runtime_config import (
     parse_resolution,
 )
 from .settings_schema import SettingsSchema
+
+
+# Module-level ETag cache for the settings schema.
+# The schema is immutable at runtime so it is hashed once and reused.
+_schema_etag: Optional[str] = None
+
+
+def _get_schema_etag() -> str:
+    """Compute and cache a stable ETag for the settings schema.
+
+    Hashes the schema JSON once per process lifetime.
+
+    Returns:
+        MD5 hex digest suitable for use as an HTTP ETag value.
+    """
+    global _schema_etag
+    if _schema_etag is None:
+        schema = SettingsSchema.get_schema()
+        _schema_etag = hashlib.md5(
+            _json.dumps(schema, sort_keys=True).encode()
+        ).hexdigest()
+    return _schema_etag
 
 
 def _safe_int_env(name: str, default: int) -> int:
@@ -166,26 +190,34 @@ def create_settings_blueprint() -> Blueprint:
             )
 
     @bp.route("/settings/schema", methods=["GET"])
-    def get_settings_schema() -> Tuple[Dict[str, Any], int]:
+    def get_settings_schema() -> Any:
         """
         Get JSON schema for all editable settings.
         Describes: property names, types, defaults, constraints, descriptions, categories.
 
         Returns:
-            JSON schema with metadata for UI rendering
+            JSON schema with metadata for UI rendering; cached via ETag.
         """
         try:
+            etag = _get_schema_etag()
+            client_etag = request.headers.get("If-None-Match", "")
+            if client_etag == etag:
+                return Response(status=304)
+
             schema = SettingsSchema.get_schema()
             defaults = SettingsSchema.get_defaults()
             restartable = SettingsSchema.get_restartable_properties()
 
-            return jsonify(
+            resp = jsonify(
                 {
                     "schema": schema,
                     "defaults": defaults,
                     "restartable_properties": restartable,
                 }
-            ), 200
+            )
+            resp.headers["ETag"] = etag
+            resp.headers["Cache-Control"] = "public, max-age=3600"
+            return resp, 200
         except Exception as exc:
             sentry_sdk.capture_exception(exc)
             return (

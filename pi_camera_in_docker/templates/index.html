@@ -386,7 +386,6 @@
                       id="vc-refresh-btn"
                       class="vc-action-btn"
                       title="Refresh stream"
-                      onclick="document.getElementById('refresh-btn').click()"
                     >
                       Refresh
                     </button>
@@ -395,7 +394,6 @@
                       id="vc-fullscreen-btn"
                       class="vc-action-btn"
                       title="Toggle fullscreen"
-                      onclick="document.getElementById('fullscreen-btn').click()"
                     >
                       Fullscreen
                     </button>
@@ -1357,7 +1355,7 @@
     </nav>
 
     <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/settings.js') }}"></script>
   </body>
 </html>

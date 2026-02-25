@@ -593,6 +593,8 @@ class StreamResponseBuilder:
         response = Response(
             gen_with_tracking(), mimetype="multipart/x-mixed-replace; boundary=frame"
         )
+        # Prevent nginx from buffering the MJPEG stream, which would delay frames.
+        response.headers["X-Accel-Buffering"] = "no"
         response.call_on_close(release_stream_slot)
         return response
 

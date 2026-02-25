@@ -1,8 +1,9 @@
+import json as _json
 import time
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
 
 
 def extract_bearer_token(auth_header: str) -> Optional[str]:
@@ -352,6 +353,53 @@ def register_shared_routes(
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         ), 200
+
+    @app.route("/api/metrics/stream")
+    def metrics_stream() -> Response:
+        """Stream metrics as Server-Sent Events.
+
+        Pushes the same payload as GET /metrics every 3 seconds over a persistent
+        HTTP connection. Replaces the browser's polling setInterval loop with a
+        single long-lived connection, eliminating ~30 HTTP requests/minute.
+        The browser EventSource API reconnects automatically on disconnect.
+
+        Returns:
+            Streaming text/event-stream response with JSON metrics data frames.
+        """
+
+        def _generate():  # type: ignore[return]
+            try:
+                while True:
+                    stream_status = (
+                        get_stream_status()
+                        if get_stream_status
+                        else {
+                            "frames_captured": 0,
+                            "current_fps": 0.0,
+                            "last_frame_age_seconds": None,
+                        }
+                    )
+                    payload = {
+                        "app_mode": state["app_mode"],
+                        "camera_mode_enabled": state["app_mode"] == "webcam",
+                        "camera_active": state["recording_started"].is_set(),
+                        "max_frame_age_seconds": state["max_frame_age_seconds"],
+                        "uptime_seconds": round(
+                            time.monotonic() - app.start_time_monotonic, 2
+                        ),
+                        **stream_status,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                    yield f"data: {_json.dumps(payload)}\n\n"
+                    time.sleep(3)
+            except GeneratorExit:
+                pass
+
+        sse_response = Response(_generate(), mimetype="text/event-stream")
+        sse_response.headers["Cache-Control"] = "no-cache"
+        sse_response.headers["X-Accel-Buffering"] = "no"
+        sse_response.headers["Connection"] = "keep-alive"
+        return sse_response
 
     @app.route("/api/status")
     def api_status():

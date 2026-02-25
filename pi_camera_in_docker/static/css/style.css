@@ -11,9 +11,6 @@
   border-bottom: 2px solid var(--color-border-default);
   padding: var(--space-5) var(--space-6);
   box-shadow: var(--shadow-md);
-  position: sticky;
-  top: 0;
-  z-index: 100;
 }
 
 .header-content {
@@ -527,9 +524,6 @@
 }
 
 .webcam-topbar {
-  position: sticky;
-  top: var(--space-4);
-  z-index: 10;
   margin: var(--space-4) var(--webcam-layout-gap) 0
     calc(var(--webcam-rail-width) + var(--webcam-layout-gap));
   width: calc(100% - var(--webcam-rail-width) - (var(--webcam-layout-gap) * 2));
