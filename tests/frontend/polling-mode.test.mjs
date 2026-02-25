@@ -25,8 +25,8 @@ test("assertSinglePollingMode only allows one polling mode at a time", () => {
 
   const consoleAssertCalls = [];
   const context = {
+    metricsEventSource: null,
     state: {
-      updateInterval: null,
       configPollingInterval: null,
       configTimestampInterval: null,
     },
@@ -40,16 +40,16 @@ test("assertSinglePollingMode only allows one polling mode at a time", () => {
   vm.runInNewContext(`${assertSinglePollingModeFn};`, context);
 
   context.assertSinglePollingMode();
-  context.state.updateInterval = 1;
+  context.metricsEventSource = {};
   context.assertSinglePollingMode();
-  context.state.updateInterval = null;
+  context.metricsEventSource = null;
   context.state.configPollingInterval = 1;
   context.assertSinglePollingMode();
   context.state.configPollingInterval = null;
   context.state.configTimestampInterval = 1;
   context.assertSinglePollingMode();
 
-  context.state.updateInterval = 1;
+  context.metricsEventSource = {};
   context.state.configPollingInterval = 1;
   context.assertSinglePollingMode();
 
@@ -57,7 +57,7 @@ test("assertSinglePollingMode only allows one polling mode at a time", () => {
   assert.equal(lastCall.condition, false);
   assert.equal(
     lastCall.message,
-    "Invalid polling state: stats and config polling are both active.",
+    "Invalid polling state: stats (SSE) and config polling are both active.",
   );
 });
 

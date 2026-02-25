@@ -1,7 +1,5 @@
 """Unit tests for pi_camera_in_docker.banner."""
 
-import pytest
-
 from pi_camera_in_docker.banner import MIO_ASCII, _read_app_version, print_startup_banner
 
 

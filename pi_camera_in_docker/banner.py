@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+
 # ---------------------------------------------------------------------------
 # Mio ASCII art
 # ---------------------------------------------------------------------------
@@ -112,7 +113,7 @@ def print_startup_banner(
             f"# Motion In Ocean v{resolved_version} | mode={mode} | "
             f"http://{host}:{port} | {_REPO_URL}"
         )
-        print(line, file=sys.stderr, flush=True)
+        print(line, file=sys.stderr, flush=True)  # noqa: T201
         return
 
     # Full text-mode banner
@@ -126,4 +127,4 @@ def print_startup_banner(
         _SEPARATOR,
         "",
     ]
-    print("\n".join(banner_lines), file=sys.stderr, flush=True)
+    print("\n".join(banner_lines), file=sys.stderr, flush=True)  # noqa: T201
