@@ -127,15 +127,19 @@
   flex-direction: column;
   gap: 1.5rem;
   background: var(--color-bg-surface);
-  max-height: 2000px;
+  overflow: hidden;
+  /* Use explicit pixel height transition (set via JS) instead of max-height.
+     max-height animation interpolates over the full 2000px range regardless of
+     actual content height, making the timing feel wrong. JS measures scrollHeight
+     before collapse and sets an explicit target height. */
   transition:
-    max-height 0.3s ease,
+    height 0.3s ease,
     visibility 0.3s ease,
     padding 0.3s ease;
 }
 
 .settings-section-content.collapsed {
-  max-height: 0;
+  height: 0;
   overflow: hidden;
   visibility: hidden;
   padding: 0 1.5rem;

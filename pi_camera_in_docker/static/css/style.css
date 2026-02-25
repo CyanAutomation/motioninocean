@@ -72,6 +72,7 @@
   height: 0.625rem;
   border-radius: 50%;
   animation: pulse 2s ease-in-out infinite;
+  will-change: opacity;
 }
 
 .status-indicator.connected {
@@ -239,7 +240,9 @@
   cursor: pointer;
   padding: var(--space-2);
   border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
   font-size: 1.25rem;
   display: none; /* Hidden on desktop */
 }
@@ -344,6 +347,7 @@
   border-top-color: var(--color-accent-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  will-change: transform;
 }
 
 @keyframes spin {

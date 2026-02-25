@@ -26,14 +26,17 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  transition: all var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .ui-btn--overlay {
-  background: var(--color-bg-overlay);
+  background: rgba(0, 0, 0, 0.45);
   color: var(--color-text-primary);
   padding: var(--space-2) var(--space-4);
-  backdrop-filter: blur(10px);
 }
 
 .ui-btn--overlay:hover {
@@ -117,7 +120,9 @@
   background: var(--color-bg-canvas);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
 }
 
 .ui-form-control:hover {
