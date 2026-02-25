@@ -314,34 +314,21 @@ def test_load_networking_config_uses_configured_origins_csv(monkeypatch):
     assert cfg["cors_origins"] == "https://example.com, https://foo.test"
 
 
-def test_load_networking_config_maps_deprecated_cors_support_enabled(monkeypatch, caplog):
-    """Deprecated MIO_CORS_SUPPORT=true should map to wildcard CORS when origins unset."""
+def test_load_networking_config_ignores_removed_cors_support_alias(monkeypatch, caplog):
+    """Removed MIO_CORS_SUPPORT should not affect CORS behavior and should warn."""
     monkeypatch.delenv("MIO_CORS_ORIGINS", raising=False)
     monkeypatch.setenv("MIO_CORS_SUPPORT", "true")
 
     with caplog.at_level("WARNING"):
         cfg = runtime_config._load_networking_config()
 
-    assert cfg["cors_enabled"] is True
-    assert cfg["cors_origins"] == "*"
-    assert "MIO_CORS_SUPPORT is deprecated" in caplog.text
-
-
-def test_load_networking_config_maps_deprecated_cors_support_disabled(monkeypatch, caplog):
-    """Deprecated MIO_CORS_SUPPORT=false should disable CORS when origins unset."""
-    monkeypatch.delenv("MIO_CORS_ORIGINS", raising=False)
-    monkeypatch.setenv("MIO_CORS_SUPPORT", "false")
-
-    with caplog.at_level("WARNING"):
-        cfg = runtime_config._load_networking_config()
-
     assert cfg["cors_enabled"] is False
     assert cfg["cors_origins"] == "disabled"
-    assert "MIO_CORS_SUPPORT is deprecated" in caplog.text
+    assert "MIO_CORS_SUPPORT has been removed and is ignored" in caplog.text
 
 
-def test_load_networking_config_prefers_origins_over_deprecated_cors_support(monkeypatch, caplog):
-    """MIO_CORS_ORIGINS should take precedence over deprecated MIO_CORS_SUPPORT."""
+def test_load_networking_config_keeps_origins_when_removed_cors_support_present(monkeypatch, caplog):
+    """MIO_CORS_ORIGINS should fully determine behavior even if removed alias is set."""
     monkeypatch.setenv("MIO_CORS_ORIGINS", "https://example.com")
     monkeypatch.setenv("MIO_CORS_SUPPORT", "false")
 
@@ -350,7 +337,7 @@ def test_load_networking_config_prefers_origins_over_deprecated_cors_support(mon
 
     assert cfg["cors_enabled"] is True
     assert cfg["cors_origins"] == "https://example.com"
-    assert "MIO_CORS_SUPPORT is deprecated" in caplog.text
+    assert "MIO_CORS_SUPPORT has been removed and is ignored" in caplog.text
 
 
 def test_camera_fps_default_matches_settings_schema(monkeypatch):
