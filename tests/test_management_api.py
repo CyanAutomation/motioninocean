@@ -2463,3 +2463,102 @@ def test_diagnose_recommendations_reference_canonical_private_ip_variable(monkey
     ssrf_messages = [entry["message"] for entry in ssrf_payload["recommendations"]]
     assert any("MIO_ALLOW_PRIVATE_IPS=true" in message for message in ssrf_messages)
     assert all("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS" not in message for message in ssrf_messages)
+
+
+def test_request_json_raises_for_non_utf8_payload(monkeypatch):
+    from pi_camera_in_docker import management_api
+
+    class FakeResponse:
+        status = 200
+
+        def read(self):
+            return b"\xff\xfe\xfa"
+
+    class FakeHTTPConnection:
+        def __init__(self, host, port, connect_host, timeout):
+            _ = (host, port, connect_host, timeout)
+
+        def request(self, method, target, body=None, headers=None):
+            _ = (method, target, body, headers)
+
+        def getresponse(self):
+            return FakeResponse()
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(
+        management_api.socket,
+        "getaddrinfo",
+        lambda host, port, proto: [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 80))
+        ],
+    )
+    monkeypatch.setattr(management_api, "_PinnedHTTPConnection", FakeHTTPConnection)
+
+    with pytest.raises(management_api.NodeInvalidResponseError, match="non-UTF8 payload"):
+        management_api._request_json(
+            {"base_url": "http://example.com", "auth": {"type": "none"}},
+            "GET",
+            "/api/status",
+        )
+
+
+def test_node_status_maps_non_utf8_upstream_payload_to_controlled_error(monkeypatch, tmp_path):
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-non-utf8-status",
+        "name": "Non UTF8 Status Node",
+        "base_url": "http://example.com",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+
+    created = client.post("/api/v1/webcams", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+
+    def raise_invalid_response(node, method, path, body=None):
+        raise management_api.NodeInvalidResponseError("webcam returned non-UTF8 payload")
+
+    monkeypatch.setattr(management_api, "_request_json", raise_invalid_response)
+
+    response = client.get("/api/v1/webcams/node-non-utf8-status/status", headers=_auth_headers())
+    assert response.status_code == 502
+    assert response.json["error"]["code"] == "WEBCAM_INVALID_RESPONSE"
+    assert response.json["error"]["details"]["reason"] == "malformed json"
+
+
+def test_docker_status_maps_non_utf8_payload_to_controlled_error(monkeypatch, tmp_path):
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "docker-non-utf8",
+        "name": "Docker Non UTF8",
+        "base_url": "docker://docker-proxy:2375/motion-in-ocean-webcam",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "docker",
+    }
+
+    created = client.post("/api/v1/webcams", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+
+    def raise_invalid_response(proxy_host, proxy_port, container_id, auth_headers):
+        raise management_api.NodeInvalidResponseError("webcam returned non-UTF8 payload")
+
+    monkeypatch.setattr(
+        management_api,
+        "_get_docker_container_status",
+        raise_invalid_response,
+    )
+
+    response = client.get("/api/v1/webcams/docker-non-utf8/status", headers=_auth_headers())
+    assert response.status_code == 502
+    assert response.json["error"]["code"] == "WEBCAM_INVALID_RESPONSE"
+    assert response.json["error"]["details"]["reason"] == "malformed json"
