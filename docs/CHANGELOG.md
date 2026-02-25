@@ -11,6 +11,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.19.6] - 2026-02-25
+
+- refactor: remove unused import of pytest in unit tests for banner
+- fix: clean up comments and reformat environment variable section in .env.example
+- fix: update docker-socket-proxy image tag and clean up environment variable comments
+- feat: implement version reading from VERSION file and update startup banner
+- feat: add startup banner with ASCII art and logging format options
+
 ## [1.19.5] - 2026-02-25
 
 - fix: enhance error message for docker URL validation in test case
