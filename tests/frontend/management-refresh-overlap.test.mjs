@@ -81,3 +81,58 @@ test("refreshStatuses schedules a second pass for overlapping timer+manual calls
   assert.equal(feedbackCalls.length, 1);
   assert.deepEqual(feedbackCalls[0], ["hint", true]);
 });
+
+
+test("refreshStatuses preserves manual feedback for the first manual unauthorized cycle", async () => {
+  const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
+  const refreshStatusesFn = extractRefreshStatuses(managementJs);
+
+  const feedbackCalls = [];
+
+  const unauthorizedResponse = {
+    ok: false,
+    status: 401,
+    json: async () => ({ error: { code: "NODE_UNAUTHORIZED" } }),
+  };
+
+  const context = {
+    webcams: [{ id: "node-a" }],
+    webcamStatusMap: new Map(),
+    statusRefreshInFlight: false,
+    statusRefreshPending: false,
+    statusRefreshPendingManual: false,
+    statusRefreshToken: 0,
+    API_AUTH_HINT: "hint",
+    renderRows: () => {},
+    showFeedback: (...args) => feedbackCalls.push(args),
+    normalizeWebcamStatusError: (error = {}) => ({
+      status: "error",
+      stream_available: false,
+      error_code: error.code || "UNKNOWN_ERROR",
+      error_message: error.message || "Webcam status request failed.",
+      error_details: error.details || null,
+    }),
+    enrichStatusWithAggregation: (_webcamId, status) => status,
+    fetch: () => Promise.resolve(unauthorizedResponse),
+  };
+
+  vm.runInNewContext(`${refreshStatusesFn};`, context);
+  vm.runInNewContext(
+    `managementFetch = async (path) => {
+      const response = await fetch(path);
+      if (response.status === 401) {
+        const unauthorizedError = new Error(API_AUTH_HINT);
+        unauthorizedError.isUnauthorized = true;
+        unauthorizedError.response = response;
+        throw unauthorizedError;
+      }
+      return response;
+    };`,
+    context,
+  );
+
+  await context.refreshStatuses();
+
+  assert.equal(feedbackCalls.length, 1);
+  assert.deepEqual(feedbackCalls[0], ["hint", true]);
+});

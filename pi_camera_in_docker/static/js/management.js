@@ -1193,13 +1193,15 @@ async function refreshStatuses({ fromInterval = false } = {}) {
   }
 
   statusRefreshInFlight = true;
-  let allowManualFeedback = !fromInterval;
+  const isManualCycle = !fromInterval;
+  let allowManualFeedback = isManualCycle;
   let showedUnauthorizedFeedback = false;
   try {
     do {
       statusRefreshPending = false;
-      allowManualFeedback = statusRefreshPendingManual;
+      const pendingManualRerun = statusRefreshPendingManual;
       statusRefreshPendingManual = false;
+      allowManualFeedback = allowManualFeedback || pendingManualRerun;
       showedUnauthorizedFeedback = false;
 
       const currentToken = ++statusRefreshToken;
