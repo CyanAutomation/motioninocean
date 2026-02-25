@@ -12,6 +12,25 @@ logger = logging.getLogger(__name__)
 
 ALLOWED_APP_MODES = {"webcam", "management"}
 DEFAULT_APP_MODE = "webcam"
+ALLOWED_PERFORMANCE_PROFILES = {"default", "pi3"}
+DEFAULT_PERFORMANCE_PROFILE = "default"
+
+PERFORMANCE_PROFILE_DEFAULTS = {
+    "default": {
+        "resolution": (640, 480),
+        "fps": 24,
+        "target_fps": 24,
+        "jpeg_quality": 90,
+        "max_stream_connections": 10,
+    },
+    "pi3": {
+        "resolution": (640, 480),
+        "fps": 12,
+        "target_fps": 12,
+        "jpeg_quality": 75,
+        "max_stream_connections": 3,
+    },
+}
 
 
 def parse_resolution(resolution_str: str) -> Tuple[int, int]:
@@ -110,46 +129,82 @@ def _load_camera_config() -> Dict[str, Any]:
     }
 
 
-def _apply_pi3_profile_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
-    """Apply Raspberry Pi 3 resource optimization defaults.
+def _apply_performance_profile_defaults(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Apply profile defaults only when explicit env vars are not set.
 
-    When PI3_PROFILE=true and environment variables are NOT explicitly set,
-    applies conservative defaults for Pi 3 limited resources:
-    - Resolution: 640x480
-    - FPS: 12
-    - Target FPS: 12
-    - JPEG Quality: 75
-    - Max Connections: 3
+    Performance profiles model default values for resource tiers:
+    - default: general-purpose baseline
+    - pi3: conservative settings for Raspberry Pi 3-class hardware
 
-    Skips any setting that was explicitly provided via environment variable.
+    Explicit camera env vars (MIO_FPS, MIO_RESOLUTION, MIO_JPEG_QUALITY, etc.)
+    always have higher precedence than profile defaults.
 
     Args:
         config: Configuration dict from load_env_config().
 
     Returns:
-        Config dict with Pi3 defaults applied where env vars weren't set.
+        Config dict with selected performance-profile defaults applied.
     """
-    if not config.get("pi3_profile_enabled", False):
-        return config
+    performance_profile = config.get("performance_profile", DEFAULT_PERFORMANCE_PROFILE)
+    profile_defaults = PERFORMANCE_PROFILE_DEFAULTS.get(
+        performance_profile,
+        PERFORMANCE_PROFILE_DEFAULTS[DEFAULT_PERFORMANCE_PROFILE],
+    )
 
-    has_resolution = "MIO_RESOLUTION" in os.environ
-    has_fps = "MIO_FPS" in os.environ
-    has_target_fps = "MIO_TARGET_FPS" in os.environ
-    has_jpeg_quality = "MIO_JPEG_QUALITY" in os.environ
-    has_max_stream_connections = "MIO_MAX_STREAM_CONNECTIONS" in os.environ
-
-    if not has_resolution:
-        config["resolution"] = (640, 480)
-    if not has_fps:
-        config["fps"] = 12
-    if not has_target_fps:
-        config["target_fps"] = 12
-    if not has_jpeg_quality:
-        config["jpeg_quality"] = 75
-    if not has_max_stream_connections:
-        config["max_stream_connections"] = 3
+    env_to_key = {
+        "MIO_RESOLUTION": "resolution",
+        "MIO_FPS": "fps",
+        "MIO_TARGET_FPS": "target_fps",
+        "MIO_JPEG_QUALITY": "jpeg_quality",
+        "MIO_MAX_STREAM_CONNECTIONS": "max_stream_connections",
+    }
+    for env_var, config_key in env_to_key.items():
+        if env_var not in os.environ:
+            config[config_key] = profile_defaults[config_key]
 
     return config
+
+
+def _resolve_performance_profile() -> str:
+    """Resolve active performance profile with legacy compatibility mapping.
+
+    Precedence:
+    1. MIO_PERFORMANCE_PROFILE (default|pi3)
+    2. Deprecated MIO_PI3_PROFILE=true -> pi3
+    3. default profile
+
+    Returns:
+        Resolved profile name.
+
+    Raises:
+        ValueError: If MIO_PERFORMANCE_PROFILE is not recognized.
+    """
+    performance_profile_raw = (
+        os.environ.get("MIO_PERFORMANCE_PROFILE", DEFAULT_PERFORMANCE_PROFILE).strip().lower()
+    )
+    if performance_profile_raw not in ALLOWED_PERFORMANCE_PROFILES:
+        message = (
+            f"Invalid MIO_PERFORMANCE_PROFILE {performance_profile_raw}; "
+            "expected one of: default, pi3"
+        )
+        raise ValueError(message)
+
+    legacy_pi3_profile_raw = os.environ.get("MIO_PI3_PROFILE")
+    if legacy_pi3_profile_raw is None:
+        return performance_profile_raw
+
+    logger.warning(
+        "MIO_PI3_PROFILE is deprecated and will be removed in a future release. "
+        "Use MIO_PERFORMANCE_PROFILE=pi3 instead."
+    )
+
+    if "MIO_PERFORMANCE_PROFILE" in os.environ:
+        return performance_profile_raw
+
+    if legacy_pi3_profile_raw.strip().lower() in ("1", "true", "yes"):
+        return "pi3"
+
+    return performance_profile_raw
 
 
 def _load_stream_config() -> Dict[str, Any]:
@@ -314,7 +369,8 @@ def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
     """Load advanced/internal configuration from environment variables.
 
     Env vars:
-    - MIO_PI3_PROFILE (default: false)
+    - MIO_PERFORMANCE_PROFILE (default: default; values: default|pi3)
+    - MIO_PI3_PROFILE (deprecated compatibility alias)
     - MOCK_CAMERA (feature flag, default: false)
     - MIO_NODE_REGISTRY_PATH (default: /data/node-registry.json)
     - MIO_APPLICATION_SETTINGS_PATH (default: /data/application-settings.json)
@@ -323,11 +379,12 @@ def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
     - MIO_FAIL_ON_CAMERA_INIT_ERROR (default: false)
 
     Returns:
-        Dict with keys: pi3_profile_enabled, mock_camera, pykms_mock_fallback_enabled,
+        Dict with keys: performance_profile, pi3_profile_enabled,
+        mock_camera, pykms_mock_fallback_enabled,
         webcam_registry_path, application_settings_path, management_auth_token,
         webcam_control_plane_auth_token, fail_on_camera_init_error.
     """
-    pi3_profile_raw = os.environ.get("MIO_PI3_PROFILE", "false")
+    performance_profile = _resolve_performance_profile()
 
     fail_on_camera_init_error_raw = os.environ.get(
         "MIO_FAIL_ON_CAMERA_INIT_ERROR",
@@ -335,7 +392,8 @@ def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
     )
 
     return {
-        "pi3_profile_enabled": pi3_profile_raw.lower() in ("1", "true", "yes"),
+        "performance_profile": performance_profile,
+        "pi3_profile_enabled": performance_profile == "pi3",
         "mock_camera": is_flag_enabled("MOCK_CAMERA"),
         "pykms_mock_fallback_enabled": _is_dev_test_mode_enabled(api_test_mode_enabled),
         "webcam_registry_path": os.environ.get(
@@ -357,7 +415,7 @@ def load_env_config() -> Dict[str, Any]:
 
     Assembles complete config by calling all _load_*_config() helpers.
     APP_MODE must be 'webcam' or 'management'.
-    Applies Pi3 profile defaults if enabled.
+    Applies explicit performance profile defaults.
 
     Env vars:
     - APP_MODE (default: webcam, required: must be 'webcam' or 'management')
@@ -365,7 +423,7 @@ def load_env_config() -> Dict[str, Any]:
 
     Returns:
         Complete flattened configuration dict with all keys from all
-        _load_*_config() functions, plus pi3_profile_enabled flag.
+        _load_*_config() functions, plus performance profile fields.
 
     Raises:
         ValueError: If APP_MODE is invalid.
@@ -383,7 +441,7 @@ def load_env_config() -> Dict[str, Any]:
     config.update(_load_logging_config())
     config.update(_load_networking_config())
     config.update(_load_advanced_config(stream_config["api_test_mode_enabled"]))
-    return _apply_pi3_profile_defaults(config)
+    return _apply_performance_profile_defaults(config)
 
 
 def _merge_camera_settings(
