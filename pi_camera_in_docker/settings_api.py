@@ -4,10 +4,11 @@ Provides runtime configuration management via REST API.
 Endpoints: GET /api/settings, PATCH /api/settings, POST /api/settings/reset, GET /api/settings/schema
 """
 
+import functools
 import hashlib
 import json as _json
 import os
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Tuple
 
 import sentry_sdk
 from flask import Blueprint, Flask, Response, current_app, jsonify, redirect, request
@@ -23,24 +24,21 @@ from .settings_schema import SettingsSchema
 
 # Module-level ETag cache for the settings schema.
 # The schema is immutable at runtime so it is hashed once and reused.
-_schema_etag: Optional[str] = None
 
 
+@functools.lru_cache(maxsize=1)
 def _get_schema_etag() -> str:
     """Compute and cache a stable ETag for the settings schema.
 
-    Hashes the schema JSON once per process lifetime.
+    Hashes the schema JSON once per process lifetime using lru_cache.
 
     Returns:
         MD5 hex digest suitable for use as an HTTP ETag value.
     """
-    global _schema_etag
-    if _schema_etag is None:
-        schema = SettingsSchema.get_schema()
-        _schema_etag = hashlib.md5(
-            _json.dumps(schema, sort_keys=True).encode()
-        ).hexdigest()
-    return _schema_etag
+    schema = SettingsSchema.get_schema()
+    return hashlib.md5(
+        _json.dumps(schema, sort_keys=True).encode()
+    ).hexdigest()
 
 
 def _safe_int_env(name: str, default: int) -> int:
@@ -217,13 +215,14 @@ def create_settings_blueprint() -> Blueprint:
             )
             resp.headers["ETag"] = etag
             resp.headers["Cache-Control"] = "public, max-age=3600"
-            return resp, 200
         except Exception as exc:
             sentry_sdk.capture_exception(exc)
             return (
                 jsonify({"error": "Failed to generate settings schema", "details": str(exc)}),
                 500,
             )
+        else:
+            return resp, 200
 
     @bp.route("/settings", methods=["PATCH"])
     def patch_settings() -> Tuple[Dict[str, Any], int]:

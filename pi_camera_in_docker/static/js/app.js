@@ -2313,3 +2313,4 @@ function showSetupSuccess(message) {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
