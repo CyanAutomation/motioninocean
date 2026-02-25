@@ -99,6 +99,7 @@ let statusRefreshInFlight = false;
 let statusRefreshPending = false;
 let statusRefreshPendingManual = false;
 let statusRefreshToken = 0;
+let webcamDatasetVersion = 0;
 let statusRefreshIntervalId;
 let latestDiagnosticResult = null;
 let overviewSnapshot = null;
@@ -1140,6 +1141,7 @@ async function fetchWebcams() {
     }
     const payload = await response.json();
     webcams = payload.webcams || payload.nodes || [];
+    webcamDatasetVersion += 1;
     const activeNodeIds = new Set(webcams.map((node) => node.id));
     for (const nodeId of webcamStatusMap.keys()) {
       if (!activeNodeIds.has(nodeId)) {
@@ -1203,13 +1205,15 @@ async function refreshStatuses({ fromInterval = false } = {}) {
       showedUnauthorizedFeedback = false;
 
       const currentToken = ++statusRefreshToken;
+      const pollDatasetVersion = webcamDatasetVersion;
+      const activeNodeIdsAtPollStart = new Set(webcams.map((node) => node.id));
       const nextStatusMap = new Map();
 
       await Promise.all(
-        webcams.map(async (node) => {
+        Array.from(activeNodeIdsAtPollStart).map(async (nodeId) => {
           try {
             const response = await managementFetch(
-              `/api/v1/webcams/${encodeURIComponent(node.id)}/status`,
+              `/api/v1/webcams/${encodeURIComponent(nodeId)}/status`,
             );
             if (!response.ok) {
               let errorPayload = {};
@@ -1220,22 +1224,22 @@ async function refreshStatuses({ fromInterval = false } = {}) {
                 errorPayload = {};
               }
               nextStatusMap.set(
-                node.id,
-                enrichStatusWithAggregation(node.id, normalizeWebcamStatusError(errorPayload)),
+                nodeId,
+                enrichStatusWithAggregation(nodeId, normalizeWebcamStatusError(errorPayload)),
               );
               return;
             }
             const payload = await response.json();
-            nextStatusMap.set(node.id, enrichStatusWithAggregation(node.id, payload));
+            nextStatusMap.set(nodeId, enrichStatusWithAggregation(nodeId, payload));
           } catch (error) {
             if (allowManualFeedback && error?.isUnauthorized && !showedUnauthorizedFeedback) {
               showFeedback(API_AUTH_HINT, true);
               showedUnauthorizedFeedback = true;
             }
             nextStatusMap.set(
-              node.id,
+              nodeId,
               enrichStatusWithAggregation(
-                node.id,
+                nodeId,
                 normalizeWebcamStatusError({
                   message: error?.message || "Failed to refresh webcam status.",
                 }),
@@ -1246,7 +1250,16 @@ async function refreshStatuses({ fromInterval = false } = {}) {
       );
 
       if (currentToken === statusRefreshToken) {
-        for (const [nodeId, nextStatus] of nextStatusMap.entries()) {
+        if (pollDatasetVersion !== webcamDatasetVersion) {
+          continue;
+        }
+
+        const latestNodeIds = new Set(webcams.map((node) => node.id));
+        const filteredNextStatusMap = new Map(
+          Array.from(nextStatusMap.entries()).filter(([nodeId]) => latestNodeIds.has(nodeId)),
+        );
+
+        for (const [nodeId, nextStatus] of filteredNextStatusMap.entries()) {
           const previous = statusHistoryMap.get(nodeId);
           const nextCode = String(nextStatus.error_code || "").toUpperCase();
           const nextState = String(nextStatus.status || "unknown").toLowerCase();
@@ -1275,7 +1288,7 @@ async function refreshStatuses({ fromInterval = false } = {}) {
           statusHistoryMap.set(nodeId, nextStatus);
         }
 
-        webcamStatusMap = nextStatusMap;
+        webcamStatusMap = filteredNextStatusMap;
         if (typeof renderRows === "function") {
           renderRows();
         }

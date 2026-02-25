@@ -33,6 +33,7 @@ test("refreshStatuses schedules a second pass for overlapping timer+manual calls
     statusRefreshPending: false,
     statusRefreshPendingManual: false,
     statusRefreshToken: 0,
+    webcamDatasetVersion: 1,
     API_AUTH_HINT: "hint",
     renderRows: () => {},
     showFeedback: (...args) => feedbackCalls.push(args),
