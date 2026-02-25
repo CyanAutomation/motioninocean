@@ -28,7 +28,9 @@ def parse_docker_url(base_url: str) -> Tuple[str, int, str]:
         raise ValueError(error_message)
 
     if not parsed.path or parsed.path == "/":
-        error_message = "docker URL must include container ID (e.g., docker://proxy:2375/container-id)"
+        error_message = (
+            "docker URL must include container ID (e.g., docker://proxy:2375/container-id)"
+        )
         raise ValueError(error_message)
 
     path_segments = [segment for segment in parsed.path.split("/") if segment]

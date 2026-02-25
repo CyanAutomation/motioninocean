@@ -1714,7 +1714,9 @@ def create_management_blueprint(
             return {"discovery": discovery_patch}
 
         try:
-            updated = registry.update_webcam_from_current(webcam_id, _build_discovery_approval_patch)
+            updated = registry.update_webcam_from_current(
+                webcam_id, _build_discovery_approval_patch
+            )
         except KeyError:
             return _error_response(
                 "WEBCAM_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id

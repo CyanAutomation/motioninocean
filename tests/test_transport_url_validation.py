@@ -2,8 +2,7 @@ import json
 
 import pytest
 
-from pi_camera_in_docker import management_api
-from pi_camera_in_docker import node_registry
+from pi_camera_in_docker import management_api, node_registry
 from pi_camera_in_docker.node_registry import NodeValidationError, validate_webcam
 from pi_camera_in_docker.transport_url_validation import (
     parse_docker_url,

@@ -97,6 +97,7 @@ line-ending = "auto"
 "pi_camera_in_docker/discovery.py" = ["PLR0913"]
 "pi_camera_in_docker/modes/webcam.py" = ["PLC0415"]
 "scripts/migrate_node_registry_auth.py" = ["T201"]
+"scripts/validate-stack.py" = ["T201", "PLC0415", "F401", "ICN001", "TRY300", "RET505"]
 
 [tool.ruff.lint.isort]
 # Organize imports

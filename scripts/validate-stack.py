@@ -16,9 +16,9 @@ import sys
 def validate_arm64():
     """Validate full camera stack for ARM64 Raspberry Pi builds."""
     try:
-        import numpy
         import flask
         import flask_cors
+        import numpy
         import picamera2
 
         # Validate picamera2 API contract
@@ -36,19 +36,18 @@ def validate_arm64():
                 "camera-info API via picamera2.global_camera_info"
             )
             return 0
-        elif callable(class_fn):
+        if callable(class_fn):
             print(
                 "ARM64 camera stack validation passed; "
                 "camera-info API via Picamera2.global_camera_info"
             )
             return 0
-        else:
-            print(
-                "ERROR: Incompatible python3-picamera2 package revision: "
-                "expected picamera2.global_camera_info or "
-                "picamera2.Picamera2.global_camera_info"
-            )
-            return 1
+        print(
+            "ERROR: Incompatible python3-picamera2 package revision: "
+            "expected picamera2.global_camera_info or "
+            "picamera2.Picamera2.global_camera_info"
+        )
+        return 1
     except ImportError as e:
         print(f"ERROR: Failed to import required camera modules: {e}")
         return 1
@@ -57,9 +56,9 @@ def validate_arm64():
 def validate_amd64():
     """Validate Python stack for AMD64 mock camera builds."""
     try:
-        import numpy
         import flask
         import flask_cors
+        import numpy
 
         print(
             "AMD64 mock build: core Python stack validation passed; "
@@ -72,6 +71,7 @@ def validate_amd64():
 
 
 from typing import Optional
+
 
 def _normalize_architecture(value: Optional[str]) -> Optional[str]:
     """Normalize architecture labels used by this script."""
@@ -119,15 +119,14 @@ def main():
 
     if targetarch == "arm64":
         return validate_arm64()
-    elif targetarch == "amd64":
+    if targetarch == "amd64":
         return validate_amd64()
-    else:
-        print(
-            "ERROR: Unknown architecture. "
-            f"detected_from_dpkg={detected_arch or 'unknown'}, "
-            f"fallback_value={fallback_arch or 'unknown'}"
-        )
-        return 1
+    print(
+        "ERROR: Unknown architecture. "
+        f"detected_from_dpkg={detected_arch or 'unknown'}, "
+        f"fallback_value={fallback_arch or 'unknown'}"
+    )
+    return 1
 
 
 if __name__ == "__main__":

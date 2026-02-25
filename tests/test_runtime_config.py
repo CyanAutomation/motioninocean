@@ -328,7 +328,6 @@ def test_load_networking_config_default_base_url_uses_parsed_bind_port(monkeypat
     assert cfg["base_url"] == "http://test-host:9000"
 
 
-
 def test_load_networking_config_default_base_url_keeps_legacy_default_port(monkeypatch):
     """Unset MIO_PORT should retain the existing base URL default of :8000."""
     monkeypatch.delenv("MIO_BASE_URL", raising=False)
@@ -354,7 +353,9 @@ def test_load_networking_config_ignores_removed_cors_support_alias(monkeypatch, 
     assert "MIO_CORS_SUPPORT has been removed and is ignored" in caplog.text
 
 
-def test_load_networking_config_keeps_origins_when_removed_cors_support_present(monkeypatch, caplog):
+def test_load_networking_config_keeps_origins_when_removed_cors_support_present(
+    monkeypatch, caplog
+):
     """MIO_CORS_ORIGINS should fully determine behavior even if removed alias is set."""
     monkeypatch.setenv("MIO_CORS_ORIGINS", "https://example.com")
     monkeypatch.setenv("MIO_CORS_SUPPORT", "false")

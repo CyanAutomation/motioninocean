@@ -36,9 +36,7 @@ def _get_schema_etag() -> str:
         MD5 hex digest suitable for use as an HTTP ETag value.
     """
     schema = SettingsSchema.get_schema()
-    return hashlib.md5(
-        _json.dumps(schema, sort_keys=True).encode()
-    ).hexdigest()
+    return hashlib.md5(_json.dumps(schema, sort_keys=True).encode()).hexdigest()
 
 
 def _safe_int_env(name: str, default: int) -> int:

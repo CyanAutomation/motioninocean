@@ -537,8 +537,9 @@ def test_handle_shutdown_stops_discovery_without_touching_camera_shutdown_flag()
         observed["shutdown_requested_before"] = state["shutdown_requested"].is_set()
         observed["discovery_shutdown_before"] = state["discovery_shutdown_event"].is_set()
 
-    with pytest.raises(SystemExit) as excinfo, patch.object(
-        main, "_shutdown_camera", side_effect=fake_shutdown_camera
+    with (
+        pytest.raises(SystemExit) as excinfo,
+        patch.object(main, "_shutdown_camera", side_effect=fake_shutdown_camera),
     ):
         main.handle_shutdown(app, 15, None)
 

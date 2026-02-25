@@ -38,7 +38,7 @@ test("webcam side rail keeps tab buttons separated and updates theme colors", as
     for (let j = i + 1; j < boxes.length; j += 1) {
       expect(
         intersects(boxes[i], boxes[j]),
-        `Buttons overlap: \"${boxes[i].label}\" intersects \"${boxes[j].label}\"`,
+        `Buttons overlap: "${boxes[i].label}" intersects "${boxes[j].label}"`,
       ).toBe(false);
     }
   }

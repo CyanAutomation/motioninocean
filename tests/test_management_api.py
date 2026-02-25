@@ -1046,7 +1046,6 @@ def test_discovery_approval_endpoint(monkeypatch, tmp_path):
     assert rejected.json["node"]["discovery"]["approved"] is False
 
 
-
 @pytest.mark.parametrize("decision", ["approve", "reject"])
 def test_discovery_approval_returns_404_when_node_deleted_during_update(
     monkeypatch, tmp_path, decision
@@ -1313,7 +1312,9 @@ def test_discovery_approval_does_not_roll_back_last_announce_at_during_concurren
     assert approved.json["node"]["discovery"]["approved"] is True
     assert approved.json["node"]["discovery"]["last_announce_at"] == concurrent_last_announce
 
-    fetched = client.get("/api/v1/webcams/node-discovery-last-announce-race", headers=_auth_headers())
+    fetched = client.get(
+        "/api/v1/webcams/node-discovery-last-announce-race", headers=_auth_headers()
+    )
     assert fetched.status_code == 200
     assert fetched.json["discovery"]["last_announce_at"] == concurrent_last_announce
 

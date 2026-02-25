@@ -265,8 +265,6 @@ def test_create_webcam_app_initializes_discovery_with_webcam_id(full_config, mon
     assert captured["shutdown_event"] is not app.motion_state["shutdown_requested"]
 
 
-
-
 def test_discovery_announcer_restart_does_not_reset_app_shutdown_event(monkeypatch):
     from discovery import DiscoveryAnnouncer
 
@@ -288,6 +286,7 @@ def test_discovery_announcer_restart_does_not_reset_app_shutdown_event(monkeypat
 
     announcer.stop(timeout_seconds=1.0)
     assert app_shutdown_event.is_set()
+
 
 def test_discovery_announcer_can_restart_after_stop(monkeypatch):
     from discovery import DiscoveryAnnouncer

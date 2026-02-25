@@ -333,8 +333,7 @@ def _load_networking_config() -> Dict[str, Any]:
     cors_origins_raw = os.environ.get("MIO_CORS_ORIGINS", "").strip()
     if os.environ.get("MIO_CORS_SUPPORT") is not None:
         logger.warning(
-            "MIO_CORS_SUPPORT has been removed and is ignored. "
-            "Use MIO_CORS_ORIGINS instead."
+            "MIO_CORS_SUPPORT has been removed and is ignored. Use MIO_CORS_ORIGINS instead."
         )
 
     cors_enabled = bool(cors_origins_raw)

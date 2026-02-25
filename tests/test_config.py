@@ -669,8 +669,6 @@ def test_setup_templates_and_generate_propagates_management_auth_token(monkeypat
     assert "MIO_MANAGEMENT_AUTH_TOKEN=token-from-env" in env_content
 
 
-
-
 def test_setup_templates_auth_token_status_uses_mode_specific_env_var_webcam(monkeypatch, tmp_path):
     """Setup templates should report auth token status from webcam token in webcam mode."""
     from pi_camera_in_docker import main
@@ -696,7 +694,9 @@ def test_setup_templates_auth_token_status_uses_mode_specific_env_var_webcam(mon
     assert "auth_token" not in current_config
 
 
-def test_setup_templates_auth_token_status_uses_mode_specific_env_var_management(monkeypatch, tmp_path):
+def test_setup_templates_auth_token_status_uses_mode_specific_env_var_management(
+    monkeypatch, tmp_path
+):
     """Setup templates should report auth token status from management token in management mode."""
     from pi_camera_in_docker import main
 
@@ -727,7 +727,9 @@ def test_setup_generate_emits_webcam_auth_token_for_webcam_mode(monkeypatch, tmp
 
     monkeypatch.setenv("MIO_APP_MODE", "webcam")
     monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
-    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry-setup-generate-webcam.json"))
+    monkeypatch.setenv(
+        "MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry-setup-generate-webcam.json")
+    )
     monkeypatch.setenv(
         "MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "app-settings-setup-generate-webcam.json")
     )
@@ -753,6 +755,7 @@ def test_setup_generate_emits_webcam_auth_token_for_webcam_mode(monkeypatch, tmp
     assert "MIO_APP_MODE=webcam" in env_content
     assert "MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN=generated-webcam-token" in env_content
     assert "\nMIO_MANAGEMENT_AUTH_TOKEN=\n" in f"\n{env_content}\n"
+
 
 def test_setup_validate_rejects_zero_fps(monkeypatch, tmp_path):
     """Setup validation should reject fps=0 and advertise 1..120 constraints."""
