@@ -19,7 +19,7 @@ from pi_camera_in_docker.transport_url_validation import (
     ],
 )
 def test_parse_docker_url_rejects_malicious_container_paths(docker_url):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="docker URL container ID contains forbidden characters"):
         parse_docker_url(docker_url)
 
 
