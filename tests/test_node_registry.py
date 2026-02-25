@@ -1,5 +1,6 @@
 import threading
 
+from pi_camera_in_docker.management_api import _manual_discovery_defaults
 from pi_camera_in_docker.node_registry import FileWebcamRegistry, NodeValidationError
 
 
@@ -237,3 +238,57 @@ def test_list_webcams_is_serialized_with_concurrent_upserts(tmp_path):
         thread.join()
 
     assert failures == []
+
+
+def test_update_from_current_preserves_discovery_announce_fields(tmp_path):
+    registry = FileWebcamRegistry(str(tmp_path / "registry.json"))
+    registry.create_webcam(
+        {
+            **_node("node-race", "Initial"),
+            "discovery": {
+                "source": "discovered",
+                "first_seen": "2024-01-01T00:00:00+00:00",
+                "last_announce_at": "2024-01-01T00:00:00+00:00",
+                "approved": False,
+            },
+        }
+    )
+
+    stale_existing = registry.get_webcam("node-race")
+    assert stale_existing is not None
+
+    # Simulate a discovery announcement that lands between a stale read and write.
+    upserted = registry.upsert_webcam_from_current(
+        "node-race",
+        _node("node-race", "Discovery"),
+        lambda existing: {
+            "name": "Discovery",
+            "base_url": existing["base_url"],
+            "transport": existing["transport"],
+            "capabilities": existing["capabilities"],
+            "last_seen": "2024-01-02T00:00:00+00:00",
+            "labels": existing["labels"],
+            "auth": existing["auth"],
+            "discovery": {
+                "source": "discovered",
+                "first_seen": existing["discovery"]["first_seen"],
+                "last_announce_at": "2024-01-02T00:00:00+00:00",
+                "approved": existing["discovery"]["approved"],
+            },
+        },
+    )
+    assert upserted["upserted"] == "updated"
+
+    # Manual update computes defaults from the in-lock current record, not stale_existing.
+    updated = registry.update_webcam_from_current(
+        "node-race",
+        lambda existing: {
+            "name": "Manual",
+            "discovery": _manual_discovery_defaults(existing),
+        },
+    )
+
+    assert stale_existing["discovery"]["last_announce_at"] == "2024-01-01T00:00:00+00:00"
+    assert updated["discovery"]["source"] == "manual"
+    assert updated["discovery"]["approved"] is True
+    assert updated["discovery"]["last_announce_at"] == "2024-01-02T00:00:00+00:00"
