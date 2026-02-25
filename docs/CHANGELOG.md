@@ -11,6 +11,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.19.7] - 2026-02-25
+
+- docs: update OpenAPI specification with detailed descriptions and authentication mechanisms
+- feat: add OpenAPI documentation file to Docker image
+- docs: add API documentation endpoints to README and AGENTS.md
+- fix: remove unused environment variable MIO_MOCK_CAMERA from tests
+
 ## [1.19.6] - 2026-02-25
 
 - refactor: remove unused import of pytest in unit tests for banner
