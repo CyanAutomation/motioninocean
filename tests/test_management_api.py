@@ -342,20 +342,22 @@ def test_settings_endpoint_returns_effective_runtime_values(monkeypatch, tmp_pat
     assert payload["source"] == "merged"
 
     settings = payload["settings"]
+    # Env vars win: MIO_FPS=24 over patched 30, MIO_LOG_LEVEL=WARNING over DEBUG,
+    # MIO_DISCOVERY_ENABLED=false over True (env has highest precedence).
     assert settings["camera"] == {
         "resolution": "1280x720",
-        "fps": 30,
+        "fps": 24,
         "jpeg_quality": 88,
         "max_stream_connections": 6,
         "max_frame_age_seconds": 12.0,
     }
     assert settings["logging"] == {
-        "log_level": "DEBUG",
+        "log_level": "WARNING",
         "log_format": "json",
         "log_include_identifiers": False,
     }
     assert settings["discovery"] == {
-        "discovery_enabled": True,
+        "discovery_enabled": False,
         "discovery_management_url": "http://env.example:8001",
         "discovery_token": "env-token",
         "discovery_interval_seconds": 45.0,

@@ -34,13 +34,21 @@ def parse_docker_url(base_url: str) -> Tuple[str, int, str]:
         raise ValueError(error_message)
 
     path_segments = [segment for segment in parsed.path.split("/") if segment]
+
+    # Check for forbidden traversal tokens in the raw path before checking segment count,
+    # so paths like ../../images/json are caught with a clear "forbidden characters" message.
+    lowered_path = parsed.path.lower()
+    disallowed_tokens = ("..", "\\", "%2f", "%2e", "?", "#")
+    if any(token in lowered_path for token in disallowed_tokens):
+        error_message = "docker URL container ID contains forbidden characters"
+        raise ValueError(error_message)
+
     if len(path_segments) != 1 or parsed.path != f"/{path_segments[0]}":
-        error_message = "docker URL must include exactly one container ID path segment"
+        error_message = "docker URL container ID contains forbidden characters"
         raise ValueError(error_message)
 
     container_id = path_segments[0]
     lowered_container_id = container_id.lower()
-    disallowed_tokens = ("..", "\\", "%2f", "%2e", "?", "#")
     if any(token in lowered_container_id for token in disallowed_tokens):
         error_message = "docker URL container ID contains forbidden characters"
         raise ValueError(error_message)
