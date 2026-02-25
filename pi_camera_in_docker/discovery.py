@@ -115,6 +115,7 @@ class DiscoveryAnnouncer:
         self.webcam_id = webcam_id
         self.payload = payload
         self.shutdown_event = shutdown_event
+        self._stop_event = Event()
         self._thread: Optional[Thread] = None
         self._thread_lock = Lock()
 
@@ -126,7 +127,7 @@ class DiscoveryAnnouncer:
         with self._thread_lock:
             if self._thread and self._thread.is_alive():
                 return
-            self.shutdown_event.clear()
+            self._stop_event.clear()
             self._thread = Thread(target=self._run_loop, name="discovery-announcer", daemon=True)
             self._thread.start()
 
@@ -137,7 +138,7 @@ class DiscoveryAnnouncer:
             timeout_seconds: Maximum time to wait for thread termination.
         """
         with self._thread_lock:
-            self.shutdown_event.set()
+            self._stop_event.set()
             if self._thread and self._thread.is_alive():
                 self._thread.join(timeout=timeout_seconds)
             if self._thread and not self._thread.is_alive():
@@ -213,7 +214,11 @@ class DiscoveryAnnouncer:
         """
         failures = 0
         wait_seconds = 0.0
-        while not self.shutdown_event.wait(wait_seconds):
+        while True:
+            if self._stop_event.wait(wait_seconds):
+                return
+            if self.shutdown_event.is_set():
+                return
             success = self._announce_once()
             if success:
                 failures = 0

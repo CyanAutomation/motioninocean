@@ -526,6 +526,7 @@ def _init_app_state(config: Dict[str, Any]) -> dict:
         "app_mode": config["app_mode"],
         "recording_started": Event(),
         "shutdown_requested": Event(),
+        "discovery_shutdown_event": Event(),
         "camera_lock": RLock(),
         "max_frame_age_seconds": config["max_frame_age_seconds"],
         "picam2_instance": None,
@@ -1326,7 +1327,7 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
                     interval_seconds=cfg["discovery_interval_seconds"],
                     webcam_id=payload["webcam_id"],
                     payload=payload,
-                    shutdown_event=state["shutdown_requested"],
+                    shutdown_event=state["discovery_shutdown_event"],
                 )
                 announcer.start()
                 state["discovery_announcer"] = announcer
@@ -1808,6 +1809,9 @@ def handle_shutdown(app: Flask, signum: int, _frame: Optional[object]) -> None:
         announcer = app_state.get("discovery_announcer")
         if announcer is not None:
             announcer.stop()
+        discovery_shutdown_event = app_state.get("discovery_shutdown_event")
+        if isinstance(discovery_shutdown_event, Event):
+            discovery_shutdown_event.set()
         _shutdown_camera(app_state)
     raise SystemExit(signum)
 

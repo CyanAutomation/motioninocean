@@ -508,6 +508,46 @@ def test_shutdown_camera_clears_recording_started_for_real_camera_path():
     assert state["picam2_instance"] is None
 
 
+def test_handle_shutdown_stops_discovery_without_touching_camera_shutdown_flag():
+    """Shutdown handler should stop discovery announcer explicitly before camera shutdown."""
+    from threading import Event
+    from unittest.mock import patch
+
+    from flask import Flask
+
+    from pi_camera_in_docker import main
+
+    class FakeAnnouncer:
+        def __init__(self):
+            self.stop_calls = 0
+
+        def stop(self):
+            self.stop_calls += 1
+
+    app = Flask(__name__)
+    app.motion_state = {
+        "discovery_announcer": FakeAnnouncer(),
+        "discovery_shutdown_event": Event(),
+        "shutdown_requested": Event(),
+    }
+
+    observed = {}
+
+    def fake_shutdown_camera(state):
+        observed["shutdown_requested_before"] = state["shutdown_requested"].is_set()
+        observed["discovery_shutdown_before"] = state["discovery_shutdown_event"].is_set()
+
+    with pytest.raises(SystemExit) as excinfo, patch.object(
+        main, "_shutdown_camera", side_effect=fake_shutdown_camera
+    ):
+        main.handle_shutdown(app, 15, None)
+
+    assert excinfo.value.code == 15
+    assert app.motion_state["discovery_announcer"].stop_calls == 1
+    assert observed["shutdown_requested_before"] is False
+    assert observed["discovery_shutdown_before"] is True
+
+
 def test_shutdown_updates_ready_metrics_and_api_status_immediately():
     """Control-plane status routes should reflect shutdown without waiting for frame thread teardown."""
     from pi_camera_in_docker import main

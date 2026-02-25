@@ -72,7 +72,7 @@ def test_build_discovery_payload_uses_override_node_id():
     assert "snapshot" in payload["capabilities"]
 
 
-def test_discovery_announcer_stop_sets_shutdown_event():
+def test_discovery_announcer_stop_does_not_set_external_shutdown_event():
     from discovery import DiscoveryAnnouncer
 
     shutdown_event = threading.Event()
@@ -87,7 +87,7 @@ def test_discovery_announcer_stop_sets_shutdown_event():
 
     announcer.stop()
 
-    assert shutdown_event.is_set()
+    assert not shutdown_event.is_set()
 
 
 def test_build_discovery_payload_requires_base_url():
@@ -187,7 +187,7 @@ def test_discovery_announcer_start_is_thread_safe_and_idempotent():
         barrier.wait()
         announcer.start()
 
-    with patch.object(announcer, "_run_loop", side_effect=shutdown_event.wait):
+    with patch.object(announcer, "_run_loop", side_effect=announcer._stop_event.wait):
         for _ in range(8):
             worker = threading.Thread(target=start_from_worker)
             started_threads.append(worker)
@@ -207,7 +207,7 @@ def test_discovery_announcer_start_is_thread_safe_and_idempotent():
         announcer.stop(timeout_seconds=1.0)
         announcer.stop(timeout_seconds=1.0)
 
-        assert shutdown_event.is_set()
+        assert not shutdown_event.is_set()
         assert not thread_ref.is_alive()
 
 
@@ -261,7 +261,33 @@ def test_create_webcam_app_initializes_discovery_with_webcam_id(full_config, mon
     assert captured["started"] is True
     assert captured["webcam_id"] == payload["webcam_id"]
     assert captured["payload"] == payload
+    assert captured["shutdown_event"] is app.motion_state["discovery_shutdown_event"]
+    assert captured["shutdown_event"] is not app.motion_state["shutdown_requested"]
 
+
+
+
+def test_discovery_announcer_restart_does_not_reset_app_shutdown_event(monkeypatch):
+    from discovery import DiscoveryAnnouncer
+
+    app_shutdown_event = threading.Event()
+    app_shutdown_event.set()
+    announcer = DiscoveryAnnouncer(
+        management_url="http://127.0.0.1:8001",
+        token="token",
+        interval_seconds=1,
+        webcam_id="node-1",
+        payload={"webcam_id": "node-1"},
+        shutdown_event=app_shutdown_event,
+    )
+
+    monkeypatch.setattr(announcer, "_announce_once", lambda: True)
+
+    announcer.start()
+    assert app_shutdown_event.is_set()
+
+    announcer.stop(timeout_seconds=1.0)
+    assert app_shutdown_event.is_set()
 
 def test_discovery_announcer_can_restart_after_stop(monkeypatch):
     from discovery import DiscoveryAnnouncer
@@ -291,7 +317,7 @@ def test_discovery_announcer_can_restart_after_stop(monkeypatch):
     assert len(announce_calls) > 0
 
     announcer.stop(timeout_seconds=1.0)
-    assert shutdown_event.is_set()
+    assert not shutdown_event.is_set()
 
     announcer.start()
     assert not shutdown_event.is_set()
