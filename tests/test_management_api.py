@@ -933,6 +933,40 @@ def test_discovery_announce_allows_private_ip_with_opt_in(monkeypatch, tmp_path)
     assert created.json["node"]["id"] == "node-discovery-private-allowed"
 
 
+def test_discovery_announce_allows_hostname_with_mixed_resolved_addresses(monkeypatch, tmp_path):
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.delenv("MIO_ALLOW_PRIVATE_IPS", raising=False)
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "webcam_id": "node-discovery-mixed-resolution",
+        "name": "Discovery Node Mixed Resolution",
+        "base_url": "http://mixed-resolution.example:8000",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    def fake_getaddrinfo(host, port, proto):
+        assert host == "mixed-resolution.example"
+        assert port == 8000
+        assert proto == socket.IPPROTO_TCP
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("192.168.1.10", 8000)),
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("8.8.8.8", 8000)),
+        ]
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+
+    allowed = client.post(
+        "/api/v1/discovery/announce",
+        json=payload,
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+
+    assert allowed.status_code == 201
+    assert allowed.json["node"]["id"] == "node-discovery-mixed-resolution"
+
+
 def test_discovery_private_ip_policy_updates_between_requests(monkeypatch, tmp_path):
     monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     monkeypatch.delenv("MIO_ALLOW_PRIVATE_IPS", raising=False)

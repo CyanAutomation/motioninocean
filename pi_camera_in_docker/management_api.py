@@ -228,11 +228,15 @@ def _private_announcement_blocked(base_url: str) -> Optional[str]:
         except socket.gaierror:
             # Keep existing registration behavior for unresolved hosts.
             return None
+        blocked_resolved_ips: list[str] = []
         for record in records:
             resolved_ip = record[4][0]
             assert isinstance(resolved_ip, str)  # Assert type for MyPy
             if _is_blocked_address(resolved_ip):
-                return resolved_ip
+                blocked_resolved_ips.append(resolved_ip)
+
+        if blocked_resolved_ips and len(blocked_resolved_ips) == len(records):
+            return blocked_resolved_ips[0]
     return None
 
 
