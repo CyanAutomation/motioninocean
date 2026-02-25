@@ -312,23 +312,17 @@ def _load_networking_config() -> Dict[str, Any]:
     - MIO_PORT (1-65535, default: 8000)
     - MIO_BASE_URL (default: http://hostname:8000)
     - MIO_CORS_ORIGINS (empty/unset disables CORS; '*' allows all; CSV allows listed origins)
-    - MIO_CORS_SUPPORT (deprecated; temporary compatibility alias mapped to MIO_CORS_ORIGINS)
+    - MIO_CORS_SUPPORT (removed alias; ignored, warning-only when present)
 
     Returns:
         Dict with keys: cors_enabled, cors_origins, bind_host, bind_port, base_url.
     """
     cors_origins_raw = os.environ.get("MIO_CORS_ORIGINS", "").strip()
-    legacy_cors_support = os.environ.get("MIO_CORS_SUPPORT")
-
-    if legacy_cors_support is not None:
+    if os.environ.get("MIO_CORS_SUPPORT") is not None:
         logger.warning(
-            "MIO_CORS_SUPPORT is deprecated and will be removed in a future release. "
+            "MIO_CORS_SUPPORT has been removed and is ignored. "
             "Use MIO_CORS_ORIGINS instead."
         )
-
-        if not cors_origins_raw:
-            legacy_enabled = legacy_cors_support.strip().lower() in ("1", "true", "yes", "on")
-            cors_origins_raw = "*" if legacy_enabled else ""
 
     cors_enabled = bool(cors_origins_raw)
     cors_origins = cors_origins_raw if cors_enabled else "disabled"
