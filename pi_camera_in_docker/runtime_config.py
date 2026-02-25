@@ -335,7 +335,7 @@ def _load_networking_config() -> Dict[str, Any]:
     if not 1 <= bind_port <= 65535:
         bind_port = 8000
 
-    default_base_url = f"http://{socket.gethostname()}:8000"
+    default_base_url = f"http://{socket.gethostname()}:{bind_port}"
     base_url = os.environ.get("MIO_BASE_URL", default_base_url).strip() or default_base_url
 
     return {

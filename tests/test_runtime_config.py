@@ -316,6 +316,31 @@ def test_load_networking_config_uses_configured_origins_csv(monkeypatch):
     assert cfg["cors_origins"] == "https://example.com, https://foo.test"
 
 
+def test_load_networking_config_default_base_url_uses_parsed_bind_port(monkeypatch):
+    """Default base URL should reuse validated bind_port when MIO_BASE_URL is unset."""
+    monkeypatch.delenv("MIO_BASE_URL", raising=False)
+    monkeypatch.setenv("MIO_PORT", "9000")
+    monkeypatch.setattr(runtime_config.socket, "gethostname", lambda: "test-host")
+
+    cfg = runtime_config._load_networking_config()
+
+    assert cfg["bind_port"] == 9000
+    assert cfg["base_url"] == "http://test-host:9000"
+
+
+
+def test_load_networking_config_default_base_url_keeps_legacy_default_port(monkeypatch):
+    """Unset MIO_PORT should retain the existing base URL default of :8000."""
+    monkeypatch.delenv("MIO_BASE_URL", raising=False)
+    monkeypatch.delenv("MIO_PORT", raising=False)
+    monkeypatch.setattr(runtime_config.socket, "gethostname", lambda: "test-host")
+
+    cfg = runtime_config._load_networking_config()
+
+    assert cfg["bind_port"] == 8000
+    assert cfg["base_url"] == "http://test-host:8000"
+
+
 def test_load_networking_config_ignores_removed_cors_support_alias(monkeypatch, caplog):
     """Removed MIO_CORS_SUPPORT should not affect CORS behavior and should warn."""
     monkeypatch.delenv("MIO_CORS_ORIGINS", raising=False)
