@@ -700,14 +700,16 @@ def test_docker_transport_allows_any_valid_token(monkeypatch, tmp_path):
 def test_update_node_returns_404_when_node_disappears_during_update(monkeypatch, tmp_path):
     from pi_camera_in_docker import management_api
 
-    original_update_webcam = management_api.FileWebcamRegistry.update_webcam
+    original_update_from_current = management_api.FileWebcamRegistry.update_webcam_from_current
 
-    def flaky_update_node(self, webcam_id, patch):
+    def flaky_update_node(self, webcam_id, patch_builder):
         if webcam_id == "node-race":
             raise KeyError(webcam_id)
-        return original_update_webcam(self, webcam_id, patch)
+        return original_update_from_current(self, webcam_id, patch_builder)
 
-    monkeypatch.setattr(management_api.FileWebcamRegistry, "update_webcam", flaky_update_node)
+    monkeypatch.setattr(
+        management_api.FileWebcamRegistry, "update_webcam_from_current", flaky_update_node
+    )
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     payload = {
@@ -1008,6 +1010,70 @@ def test_discovery_approval_endpoint(monkeypatch, tmp_path):
     )
     assert rejected.status_code == 200
     assert rejected.json["node"]["discovery"]["approved"] is False
+
+
+
+@pytest.mark.parametrize("decision", ["approve", "reject"])
+def test_discovery_approval_returns_404_when_node_deleted_during_update(
+    monkeypatch, tmp_path, decision
+):
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    announce_payload = {
+        "webcam_id": "node-discovery-approval-delete-race",
+        "name": "Discovery Pending",
+        "base_url": "http://example.com",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    created = client.post(
+        "/api/v1/discovery/announce",
+        json=announce_payload,
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+    assert created.status_code == 201
+
+    original_update_from_current = management_api.FileWebcamRegistry.update_webcam_from_current
+    update_started = threading.Event()
+    allow_update = threading.Event()
+
+    def delayed_update_from_current(self, webcam_id, patch_builder):
+        if webcam_id == "node-discovery-approval-delete-race":
+            update_started.set()
+            allow_update.wait(timeout=2)
+        return original_update_from_current(self, webcam_id, patch_builder)
+
+    monkeypatch.setattr(
+        management_api.FileWebcamRegistry,
+        "update_webcam_from_current",
+        delayed_update_from_current,
+    )
+
+    approval_response = {}
+
+    def do_approval():
+        approval_response["response"] = client.post(
+            f"/api/v1/webcams/node-discovery-approval-delete-race/discovery/{decision}",
+            headers=_auth_headers(),
+        )
+
+    approval_thread = threading.Thread(target=do_approval)
+    approval_thread.start()
+    update_started.wait(timeout=2)
+
+    deleted = client.delete(
+        "/api/v1/webcams/node-discovery-approval-delete-race", headers=_auth_headers()
+    )
+    assert deleted.status_code == 204
+
+    allow_update.set()
+    approval_thread.join()
+
+    response = approval_response["response"]
+    assert response.status_code == 404
+    assert response.json["error"]["code"] == "WEBCAM_NOT_FOUND"
 
 
 def test_discovery_announce_preserves_approved_state_when_approval_happens_before_upsert(

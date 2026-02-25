@@ -1692,22 +1692,19 @@ def create_management_blueprint(
             )
 
         try:
-            webcam = registry.get_webcam(webcam_id)
-        except NodeValidationError as exc:
-            if _is_registry_corruption_error(exc):
-                return _registry_corruption_response(exc)
-            raise
-
-        if webcam is None:
+            updated = registry.update_webcam_from_current(
+                webcam_id,
+                lambda existing: {
+                    "discovery": {
+                        **existing.get("discovery", _manual_discovery_defaults(existing)),
+                        "approved": decision == "approve",
+                    }
+                },
+            )
+        except KeyError:
             return _error_response(
                 "WEBCAM_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
-
-        discovery = webcam.get("discovery", _manual_discovery_defaults(webcam))
-        discovery["approved"] = decision == "approve"
-
-        try:
-            updated = registry.update_webcam(webcam_id, {"discovery": discovery})
         except NodeValidationError as exc:
             if _is_registry_corruption_error(exc):
                 return _registry_corruption_response(exc)
