@@ -423,6 +423,39 @@ class TestApplicationSettingsConcurrency:
         loaded = settings.load()
         assert loaded == settings._clone_schema()
 
+    def test_apply_patch_atomic_invalid_patch_does_not_mutate_live_state(
+        self, temp_settings_file, monkeypatch
+    ):
+        """Validation failures must not mutate in-memory or persisted settings."""
+        settings = ApplicationSettings(temp_settings_file)
+        settings.save(
+            {
+                "camera": {"fps": 30},
+                "feature_flags": {},
+                "logging": {},
+                "discovery": {},
+            },
+            "test",
+        )
+
+        before = settings.load()
+
+        def fail_validation(_data):
+            raise SettingsValidationError("invalid patch")
+
+        monkeypatch.setattr(settings, "_validate_settings_structure", fail_validation)
+
+        with pytest.raises(SettingsValidationError, match="invalid patch"):
+            settings.apply_patch_atomic({"camera": {"fps": 60}}, "test")
+
+        after = settings.load()
+
+        # In-memory state from a fresh load should be unchanged.
+        assert after["settings"]["camera"]["fps"] == before["settings"]["camera"]["fps"]
+        # Persisted file content should also remain unchanged.
+        persisted = json.loads(Path(temp_settings_file).read_text(encoding="utf-8"))
+        assert persisted["settings"]["camera"]["fps"] == before["settings"]["camera"]["fps"]
+
 
 class TestApplicationSettingsPermissionErrors:
     """Test permission-denied error guidance for settings paths."""
