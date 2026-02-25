@@ -1183,7 +1183,7 @@
   background: var(--webcam-rail-active-bg);
   color: var(--color-text-inverse);
   border-color: var(--webcam-rail-active-bg);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 0 0 3px var(--accent-primary-10);
 }
 
 .webcam-side-rail .tab-label {
