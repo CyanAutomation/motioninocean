@@ -8,7 +8,7 @@ This guide covers deploying Motion in Ocean using the **recommended directory-ba
 
 ## Canonical Variables and Migration
 
-- **Canonical app variables:** use `MIO_*` names (for example `MIO_APP_MODE`, `MIO_PORT`, `MIO_BIND_HOST`).
+- **Canonical app variables:** use `MIO_*` names (for example `MIO_APP_MODE`, `MIO_PORT`, `MIO_BIND_HOST`, `MIO_PERFORMANCE_PROFILE`).
 - **Docker/Compose keys:** `image`, `ports`, `environment`, `volumes`, `networks`, `depends_on` remain standard compose keys and are not app env vars.
 
 ### Legacy aliases still accepted temporarily
@@ -19,8 +19,26 @@ This guide covers deploying Motion in Ocean using the **recommended directory-ba
 | `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                     |
 | `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`                |
 | `MIO_RESOLUTION`            | `RESOLUTION`, `MOTION_IN_OCEAN_RESOLUTION` |
+| `MIO_PERFORMANCE_PROFILE`   | `MIO_PI3_PROFILE` (only `true` maps to `pi3`) |
 | `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                    |
 | `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                          |
+
+
+
+### Performance presets (recommended over implicit Pi 3 toggles)
+
+Use `MIO_PERFORMANCE_PROFILE` to select a baseline runtime preset:
+
+- `MIO_PERFORMANCE_PROFILE=default` (default behavior)
+- `MIO_PERFORMANCE_PROFILE=pi3` (resource-constrained Raspberry Pi 3 tuning)
+
+Explicit tuning variables (`MIO_FPS`, `MIO_RESOLUTION`, `MIO_TARGET_FPS`, `MIO_JPEG_QUALITY`, `MIO_MAX_STREAM_CONNECTIONS`) always override preset defaults.
+
+`MIO_PI3_PROFILE` remains accepted temporarily for migration compatibility:
+
+- If `MIO_PERFORMANCE_PROFILE` is unset and `MIO_PI3_PROFILE=true`, Motion In Ocean uses `pi3` and emits a deprecation warning.
+- Planned removal: `MIO_PI3_PROFILE` in v4.0.
+
 
 ## Recommended: Directory-Based Deployment
 

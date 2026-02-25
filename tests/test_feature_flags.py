@@ -71,10 +71,10 @@ class TestFeatureFlagRegistry:
         "env_var",
         ["MIO_OCTOPRINT_COMPATIBILITY", "OCTOPRINT_COMPATIBILITY"],
     )
-    def test_deprecated_octoprint_compatibility_env_vars_warn_and_are_ignored(
+    def test_deprecated_octoprint_compatibility_env_vars_are_ignored_silently(
         self, caplog, env_var
     ):
-        """Deprecated OctoPrint feature-flag env vars should emit warnings and have no effect."""
+        """Deprecated OctoPrint env vars should be ignored without startup warnings."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
         with mock.patch.dict(os.environ, {env_var: "true"}, clear=True):
@@ -82,13 +82,11 @@ class TestFeatureFlagRegistry:
             with caplog.at_level("WARNING"):
                 flags.load()
 
-        warnings = [r.message for r in caplog.records if r.levelname == "WARNING"]
-        assert len(warnings) == 1
-        assert "Deprecated environment variable(s) detected and ignored" in warnings[0]
-        assert "OctoPrint compatibility is always enabled" in warnings[0]
+        assert flags.is_enabled("MOCK_CAMERA") is False
+        assert not [r.message for r in caplog.records if r.levelname == "WARNING"]
 
-    def test_deprecated_octoprint_compatibility_logs_single_warning_for_multiple_vars(self, caplog):
-        """Multiple deprecated OctoPrint env vars should produce one startup warning."""
+    def test_deprecated_octoprint_compatibility_vars_are_ignored_silently_together(self, caplog):
+        """Multiple deprecated OctoPrint env vars should still be ignored silently."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
         with mock.patch.dict(
@@ -103,9 +101,8 @@ class TestFeatureFlagRegistry:
             with caplog.at_level("WARNING"):
                 flags.load()
 
-        warnings = [r.message for r in caplog.records if r.levelname == "WARNING"]
-        assert len(warnings) == 1
-        assert "MIO_OCTOPRINT_COMPATIBILITY, OCTOPRINT_COMPATIBILITY" in warnings[0]
+        assert flags.is_enabled("MOCK_CAMERA") is False
+        assert not [r.message for r in caplog.records if r.levelname == "WARNING"]
 
 
 class TestFeatureFlagBehavior:

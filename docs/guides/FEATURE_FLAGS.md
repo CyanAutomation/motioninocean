@@ -41,8 +41,8 @@ CORS is now configured via `MIO_CORS_ORIGINS` in runtime config, not the feature
 - `MIO_CORS_ORIGINS=*` → allow all origins
 - `MIO_CORS_ORIGINS=https://a.example,https://b.example` → allow listed origins
 
-`MIO_CORS_SUPPORT` is temporarily accepted for backward compatibility, logs a deprecation warning,
-and is mapped only when `MIO_CORS_ORIGINS` is unset.
+`MIO_CORS_SUPPORT` has been removed. If present, it is ignored and only emits a warning.
+Use `MIO_CORS_ORIGINS` to control CORS behavior.
 
 ## Registry policy
 
