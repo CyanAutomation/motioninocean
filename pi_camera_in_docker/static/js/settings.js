@@ -86,6 +86,18 @@ const SettingsUI = (() => {
     document.querySelectorAll(".settings-section-header").forEach((header) => {
       header.addEventListener("click", onSectionHeaderClick);
     });
+
+    // Single delegated listener for all setting inputs.
+    // Avoids attaching N listeners on every renderForm() call and accumulating
+    // duplicates when the user switches tabs or re-opens the settings panel.
+    const settingsPanel = document.getElementById("settings-panel");
+    if (settingsPanel) {
+      settingsPanel.addEventListener("input", (e) => {
+        if (e.target.classList.contains("setting-input")) {
+          onFieldChange(e);
+        }
+      });
+    }
   };
 
   /**
@@ -125,8 +137,8 @@ const SettingsUI = (() => {
 
       // Fetch schema and current settings in parallel
       const [schemaResp, settingsResp] = await Promise.all([
-        fetch("/api/settings/schema"),
-        fetch("/api/settings"),
+        fetch("/api/v1/settings/schema"),
+        fetch("/api/v1/settings"),
       ]);
 
       if (!schemaResp.ok || !settingsResp.ok) {
@@ -175,11 +187,7 @@ const SettingsUI = (() => {
     // Discovery Settings
     renderDiscoverySettings();
 
-    // Attach change event handlers to all inputs
-    document.querySelectorAll(".setting-input").forEach((input) => {
-      input.addEventListener("change", onFieldChange);
-      input.addEventListener("input", onFieldChange);
-    });
+    // Note: change/input listeners are registered once via event delegation in init().
   };
 
   /**
@@ -305,29 +313,38 @@ const SettingsUI = (() => {
     }
   };
 
+  let _fieldChangeDebounce = null;
+
   /**
    * Handle field change event.
    *
-   * Marks field as dirty, enables save button, updates slider display if applicable.
-   * Builds dirty field tracking key from category.property.
+   * Updates slider display immediately for live feedback. Debounces dirty tracking
+   * and save button updates to avoid redundant synchronous DOM writes on rapid
+   * keystrokes or slider drags.
    *
-   * @param {Event} e - Change/input event from form input.
+   * @param {Event} e - Input event from delegated form listener.
    * @returns {void}
    */
   const onFieldChange = (e) => {
     const input = e.target;
-    const category = input.dataset.category;
-    const property = input.dataset.property;
-    const fieldKey = `${category}.${property}`;
 
-    dirtyFields.add(fieldKey);
-    formDirty = true;
-    updateSaveButton();
-
-    // Update slider display if applicable
+    // Immediate visual feedback for sliders
     if (input.classList.contains("setting-slider")) {
       updateSliderDisplay(input);
     }
+
+    // Debounce dirty-state tracking so rapid events collapse into one update
+    clearTimeout(_fieldChangeDebounce);
+    _fieldChangeDebounce = setTimeout(() => {
+      const category = input.dataset.category;
+      const property = input.dataset.property;
+      if (!category || !property) return;
+
+      const fieldKey = `${category}.${property}`;
+      dirtyFields.add(fieldKey);
+      formDirty = true;
+      updateSaveButton();
+    }, 150);
   };
 
   /**
@@ -346,7 +363,8 @@ const SettingsUI = (() => {
   /**
    * Handle section toggle button click.
    *
-   * Toggles collapse state of settings section and toggle button classes.
+   * Uses explicit pixel-height transitions instead of max-height for smooth,
+   * correctly-timed collapse/expand animation on any content size.
    *
    * @param {Event} e - Click event from toggle button.
    * @returns {void}
@@ -356,11 +374,34 @@ const SettingsUI = (() => {
     const toggle = e.currentTarget;
     const section = toggle.dataset.section;
     const content = document.querySelector(`.settings-section-content[data-section="${section}"]`);
+    if (!content) return;
 
-    if (content) {
-      content.classList.toggle("collapsed");
-      toggle.classList.toggle("collapsed");
+    const isExpanded = !content.classList.contains("collapsed");
+
+    if (isExpanded) {
+      // Collapsing: lock to explicit pixel height, then animate to 0
+      content.style.height = content.scrollHeight + "px";
+      // Force reflow so the subsequent height change triggers a CSS transition
+      void content.offsetHeight;
+      content.style.height = "0";
+      content.classList.add("collapsed");
+    } else {
+      // Expanding: begin from 0, animate to measured target, then unlock to auto
+      content.classList.remove("collapsed");
+      const targetHeight = content.scrollHeight;
+      content.style.height = "0";
+      void content.offsetHeight;
+      content.style.height = targetHeight + "px";
+      content.addEventListener(
+        "transitionend",
+        () => {
+          content.style.height = "auto";
+        },
+        { once: true },
+      );
     }
+
+    toggle.classList.toggle("collapsed");
   };
 
   /**
@@ -424,7 +465,7 @@ const SettingsUI = (() => {
       }
 
       // Send PATCH request
-      const response = await fetch("/api/settings", {
+      const response = await fetch("/api/v1/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
@@ -483,7 +524,7 @@ const SettingsUI = (() => {
     }
 
     try {
-      const response = await fetch("/api/settings/reset", { method: "POST" });
+      const response = await fetch("/api/v1/settings/reset", { method: "POST" });
 
       if (response.ok) {
         formDirty = false;
@@ -593,7 +634,7 @@ const SettingsUI = (() => {
    */
   const refreshChangesSummary = async () => {
     try {
-      const response = await fetch("/api/settings/changes");
+      const response = await fetch("/api/v1/settings/changes");
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
