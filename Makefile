@@ -7,7 +7,7 @@
 DEBIAN_SUITE ?= bookworm
 RPI_SUITE ?= bookworm
 
-.PHONY: help install install-dev install-node test test-frontend lint format type-check security check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
+.PHONY: help install install-dev install-node test test-frontend test-ui-webcam-rail lint format type-check security check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
 help:
@@ -43,6 +43,7 @@ help:
 	@echo "Testing:"
 	@echo "  make test             Run all tests with coverage"
 	@echo "  make test-frontend    Run frontend JavaScript unit tests"
+	@echo "  make test-ui-webcam-rail Run WebKit UI test for webcam rail layout/theme"
 	@echo "  make test-unit        Run unit tests only"
 	@echo "  make test-integration Run integration tests only"
 	@echo "  make coverage         Generate coverage report"
@@ -201,6 +202,7 @@ audit-ui-webcam:
 		exit 1; \
 	fi
 	MIO_MODE=webcam node audit-template.js
+	$(MAKE) test-ui-webcam-rail
 	@echo "✓ Webcam UI audit complete. See audit-results/ for details."
 
 audit-ui-management:
@@ -219,6 +221,7 @@ audit-ui:
 		exit 1; \
 	fi
 	MIO_MODE=both node audit-template.js
+	$(MAKE) test-ui-webcam-rail
 	@echo "✓ Full UI audit complete. See audit-results/ for details."
 
 audit-ui-interactive:
@@ -239,6 +242,10 @@ test:
 test-frontend:
 	@echo "Running frontend JavaScript tests..."
 	node --test tests/frontend/*.test.mjs
+
+test-ui-webcam-rail:
+	@echo "Running WebKit webcam rail layout/theme UI test..."
+	npx playwright test --config=playwright.ui.config.mjs --project=webkit-desktop tests/ui/webcam-rail-layout-theme.spec.mjs
 
 test-unit:
 	@echo "Running unit tests..."
