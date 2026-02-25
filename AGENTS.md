@@ -464,6 +464,8 @@ curl -H "Authorization: Bearer <token>" http://localhost:8000/api/status
 GET  /health              → {"status": "ok"}
 GET  /ready               → {"status": "ready"} / {"status": "waiting"}
 GET  /metrics             → Prometheus-style metrics
+GET  /api/docs            → Swagger UI (HTML, no auth required)
+GET  /openapi.json        → OpenAPI 3.0 spec as JSON (no auth required)
 ```
 
 **Webcam mode:**

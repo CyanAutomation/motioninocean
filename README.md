@@ -112,6 +112,19 @@ docker buildx build --platform linux/arm64 \
 
 **Note:** Multi-arch images (used in releases) are published with both `linux/arm64` and `linux/amd64` via CI automation; local builds default to your host architecture.
 
+## API Documentation
+
+Both webcam and management modes expose interactive API docs at runtime — no extra dependencies required:
+
+| Endpoint | Description |
+| -------- | ----------- |
+| `GET /api/docs` | Swagger UI (browser, no auth required) |
+| `GET /openapi.json` | OpenAPI 3.0 spec as JSON (for client generation) |
+
+Open `http://localhost:8000/api/docs` (webcam) or `http://localhost:8001/api/docs` (management) after starting the container.
+
+The raw spec lives at [docs/openapi.yaml](docs/openapi.yaml) and is served directly from disk at runtime.
+
 ## Full Documentation
 
 - Documentation hub: [docs/README.md](docs/README.md)
@@ -119,6 +132,7 @@ docker buildx build --platform linux/arm64 \
 - Migration deltas only: [docs/guides/MIGRATION.md](docs/guides/MIGRATION.md)
 - Feature flags reference: [docs/guides/FEATURE_FLAGS.md](docs/guides/FEATURE_FLAGS.md)
 - Container directory pattern specifics: [containers/README.md](containers/README.md)
+- OpenAPI specification: [docs/openapi.yaml](docs/openapi.yaml)
 
 ## Environment Variables
 
