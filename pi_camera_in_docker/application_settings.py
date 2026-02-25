@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import tempfile
+from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -337,7 +338,7 @@ class ApplicationSettings:
             # Validate structure before applying any updates
             temp_data = {
                 "version": data.get("version", 1),
-                "settings": {**current_settings},
+                "settings": deepcopy(current_settings),
                 "last_modified": datetime.now(timezone.utc).isoformat(),
                 "modified_by": modified_by,
             }
