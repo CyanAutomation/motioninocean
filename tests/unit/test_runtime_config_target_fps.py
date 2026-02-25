@@ -1,0 +1,56 @@
+import pytest
+
+from pi_camera_in_docker import runtime_config
+
+
+def test_load_target_fps_non_numeric_falls_back_to_fps(monkeypatch, caplog):
+    """Non-numeric target FPS should fall back to parsed fps value."""
+    monkeypatch.setenv("MIO_FPS", "30")
+    monkeypatch.setenv("MIO_TARGET_FPS", "not-a-number")
+
+    with caplog.at_level("WARNING"):
+        camera_config = runtime_config._load_camera_config()
+
+    assert camera_config["fps"] == 30
+    assert camera_config["target_fps"] == 30
+    assert "Invalid MIO_TARGET_FPS value" in caplog.text
+
+
+@pytest.mark.parametrize("invalid_target", ["0", "-5"])
+def test_load_target_fps_non_positive_falls_back_to_fps(monkeypatch, caplog, invalid_target):
+    """Zero and negative target FPS values should fall back to fps."""
+    monkeypatch.setenv("MIO_FPS", "28")
+    monkeypatch.setenv("MIO_TARGET_FPS", invalid_target)
+
+    with caplog.at_level("WARNING"):
+        camera_config = runtime_config._load_camera_config()
+
+    assert camera_config["fps"] == 28
+    assert camera_config["target_fps"] == 28
+    assert "Invalid MIO_TARGET_FPS range" in caplog.text
+
+
+def test_load_target_fps_over_limit_falls_back_to_fps(monkeypatch, caplog):
+    """Target FPS values over max range should fall back to fps."""
+    monkeypatch.setenv("MIO_FPS", "26")
+    monkeypatch.setenv("MIO_TARGET_FPS", "121")
+
+    with caplog.at_level("WARNING"):
+        camera_config = runtime_config._load_camera_config()
+
+    assert camera_config["fps"] == 26
+    assert camera_config["target_fps"] == 26
+    assert "Invalid MIO_TARGET_FPS range" in caplog.text
+
+
+def test_load_target_fps_valid_value_is_preserved(monkeypatch, caplog):
+    """Valid target FPS should be applied and should not trigger fallback warnings."""
+    monkeypatch.setenv("MIO_FPS", "20")
+    monkeypatch.setenv("MIO_TARGET_FPS", "15")
+
+    with caplog.at_level("WARNING"):
+        camera_config = runtime_config._load_camera_config()
+
+    assert camera_config["fps"] == 20
+    assert camera_config["target_fps"] == 15
+    assert "Invalid MIO_TARGET_FPS" not in caplog.text

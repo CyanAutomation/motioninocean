@@ -94,8 +94,21 @@ def _load_camera_config() -> Dict[str, Any]:
         fps = 24
 
     try:
-        target_fps = int(os.environ.get("MIO_TARGET_FPS", str(fps)))
+        target_fps_raw = os.environ.get("MIO_TARGET_FPS", str(fps))
+        target_fps = int(target_fps_raw)
+        if not 1 <= target_fps <= 120:
+            logger.warning(
+                "Invalid MIO_TARGET_FPS range '%s', falling back to fps=%s",
+                target_fps_raw,
+                fps,
+            )
+            target_fps = fps
     except ValueError:
+        logger.warning(
+            "Invalid MIO_TARGET_FPS value '%s', falling back to fps=%s",
+            os.environ.get("MIO_TARGET_FPS", str(fps)),
+            fps,
+        )
         target_fps = fps
 
     try:
