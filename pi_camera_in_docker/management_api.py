@@ -1642,16 +1642,14 @@ def create_management_blueprint(
     def update_webcam(webcam_id: str):
         payload = request.get_json(silent=True) or {}
 
+        def _build_update_patch(existing: Dict[str, Any]) -> Dict[str, Any]:
+            patch = dict(payload)
+            if "discovery" not in patch:
+                patch["discovery"] = _manual_discovery_defaults(existing)
+            return patch
+
         try:
-            existing = registry.get_webcam(webcam_id)
-        except NodeValidationError as exc:
-            if _is_registry_corruption_error(exc):
-                return _registry_corruption_response(exc)
-            raise
-        if existing and "discovery" not in payload:
-            payload["discovery"] = _manual_discovery_defaults(existing)
-        try:
-            updated = registry.update_webcam(webcam_id, payload)
+            updated = registry.update_webcam_from_current(webcam_id, _build_update_patch)
         except KeyError:
             return _error_response(
                 "WEBCAM_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id

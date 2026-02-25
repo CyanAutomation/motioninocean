@@ -790,6 +790,54 @@ class FileWebcamRegistry(WebcamRegistry):
             self._save(data)
             return {"node": candidate, "upserted": "created"}
 
+    def update_webcam_from_current(
+        self,
+        webcam_id: str,
+        patch_builder: Callable[[Dict[str, Any]], Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Update webcam using an in-lock patch builder.
+
+        Computes the patch from the currently persisted webcam record while holding
+        the registry lock so derived fields cannot race with concurrent writers.
+
+        Args:
+            webcam_id: Webcam ID to update.
+            patch_builder: Callback receiving the in-lock existing webcam record and
+                returning a partial patch to apply.
+
+        Returns:
+            Updated webcam dictionary.
+
+        Raises:
+            KeyError: If webcam_id not found.
+            NodeValidationError: If validation or ID uniqueness check fails.
+        """
+        with self._exclusive_lock():
+            data = self._load()
+            for index, existing in enumerate(data["nodes"]):
+                if existing.get("id") != webcam_id:
+                    continue
+
+                patch_value = patch_builder(existing)
+                validated_patch = validate_webcam(patch_value, partial=True)
+                merged = {**existing, **validated_patch}
+                if isinstance(existing.get("discovery"), dict) and isinstance(
+                    validated_patch.get("discovery"), dict
+                ):
+                    merged["discovery"] = {**existing["discovery"], **validated_patch["discovery"]}
+                merged = validate_webcam(merged)
+                if any(
+                    other_index != index and other.get("id") == merged["id"]
+                    for other_index, other in enumerate(data["nodes"])
+                ):
+                    message = f"webcam {merged['id']} already exists"
+                    raise NodeValidationError(message)
+                data["nodes"][index] = merged
+                self._save(data)
+                return merged
+
+            raise KeyError(webcam_id)
+
     def delete_webcam(self, webcam_id: str) -> bool:
         """Delete webcam by ID with exclusive lock.
 
