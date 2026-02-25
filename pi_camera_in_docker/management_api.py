@@ -1915,4 +1915,3 @@ def register_management_routes(
     )
     app.register_blueprint(bp, url_prefix="/api/v1")
     _register_management_deprecated_v0_aliases(app)
-

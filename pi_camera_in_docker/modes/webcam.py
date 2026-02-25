@@ -199,7 +199,9 @@ def import_camera_components(pykms_mock_fallback_enabled: bool):
         with sentry_sdk.new_scope() as scope:
             scope.set_tag("component", "camera")
             scope.capture_exception(e)
-        if pykms_mock_fallback_enabled and ("pykms" in str(e) or "kms" in str(e) or "PixelFormat" in str(e)):
+        if pykms_mock_fallback_enabled and (
+            "pykms" in str(e) or "kms" in str(e) or "PixelFormat" in str(e)
+        ):
             logger.warning("Activating internal dev/test pykms fallback during Picamera2 import")
             import sys
             import types
@@ -756,9 +758,7 @@ def _register_action_routes(app: Flask, handler: WebcamActionHandler) -> None:
         return handler.handle_action(action)
 
 
-def _register_compat_routes(
-    app: Flask, builder: StreamResponseBuilder
-) -> None:
+def _register_compat_routes(app: Flask, builder: StreamResponseBuilder) -> None:
     """Register OctoPrint compatibility routes.
 
     Args:

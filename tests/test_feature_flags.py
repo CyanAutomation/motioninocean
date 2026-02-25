@@ -71,7 +71,9 @@ class TestFeatureFlagRegistry:
         "env_var",
         ["MIO_OCTOPRINT_COMPATIBILITY", "OCTOPRINT_COMPATIBILITY"],
     )
-    def test_deprecated_octoprint_compatibility_env_vars_warn_and_are_ignored(self, caplog, env_var):
+    def test_deprecated_octoprint_compatibility_env_vars_warn_and_are_ignored(
+        self, caplog, env_var
+    ):
         """Deprecated OctoPrint feature-flag env vars should emit warnings and have no effect."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
