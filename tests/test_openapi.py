@@ -124,18 +124,14 @@ class TestDeprecatedAliases:
     def test_deprecated_webcams_list_returns_308(self, monkeypatch, tmp_path):
         """GET /api/webcams redirects with 308 to /api/v1/webcams."""
         client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get(
-            "/api/webcams", headers={"Authorization": "Bearer test-token"}
-        )
+        response = client.get("/api/webcams", headers={"Authorization": "Bearer test-token"})
         assert response.status_code == 308
         assert response.headers.get("Location", "").endswith("/api/v1/webcams")
 
     def test_deprecated_webcams_redirect_has_deprecation_header(self, monkeypatch, tmp_path):
         """308 redirect for /api/webcams includes Deprecation: true header."""
         client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get(
-            "/api/webcams", headers={"Authorization": "Bearer test-token"}
-        )
+        response = client.get("/api/webcams", headers={"Authorization": "Bearer test-token"})
         assert response.headers.get("Deprecation") == "true"
 
     def test_deprecated_management_overview_returns_308(self, monkeypatch, tmp_path):
@@ -151,9 +147,7 @@ class TestDeprecatedAliases:
     def test_deprecated_settings_returns_308(self, monkeypatch, tmp_path):
         """GET /api/settings redirects with 308 to /api/v1/settings."""
         client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get(
-            "/api/settings", headers={"Authorization": "Bearer test-token"}
-        )
+        response = client.get("/api/settings", headers={"Authorization": "Bearer test-token"})
         assert response.status_code == 308
         assert "/api/v1/settings" in response.headers.get("Location", "")
 

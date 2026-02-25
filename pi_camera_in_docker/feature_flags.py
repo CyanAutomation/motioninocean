@@ -14,9 +14,7 @@ from typing import Any, Callable, Dict, Optional
 logger = logging.getLogger(__name__)
 
 
-ACTIVE_RUNTIME_FLAGS = (
-    "MOCK_CAMERA",
-)
+ACTIVE_RUNTIME_FLAGS = ("MOCK_CAMERA",)
 """Feature flags that currently have concrete runtime reads in production code."""
 
 
