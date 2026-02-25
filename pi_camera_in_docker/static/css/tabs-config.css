@@ -199,13 +199,7 @@
 .config-group-header {
   padding: var(--space-5);
   background: var(--color-bg-canvas);
-  cursor: pointer;
-  user-select: none;
   transition: background var(--transition-fast);
-}
-
-.config-group-header:hover {
-  background: var(--color-bg-subtle);
 }
 
 .config-group-title {
@@ -216,25 +210,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-}
-
-.config-group-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  padding: 0;
-  background: transparent;
-  border: none;
-  color: var(--color-accent-primary);
-  cursor: pointer;
-  font-size: 0.8rem;
-  transition: transform var(--transition-fast);
-}
-
-.config-group-toggle:hover {
-  transform: scale(1.2);
 }
 
 .config-group-content {

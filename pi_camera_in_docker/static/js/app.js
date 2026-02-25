@@ -228,14 +228,6 @@ function attachHandlers() {
     });
   });
 
-  // Config group toggle handlers
-  document.querySelectorAll(".config-group-toggle").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const group = btn.getAttribute("data-group");
-      toggleConfigGroup(group);
-    });
-  });
-
   document.addEventListener("fullscreenchange", onFullscreenChange);
   document.addEventListener("webkitfullscreenchange", onFullscreenChange);
   document.addEventListener("mozfullscreenchange", onFullscreenChange);
@@ -1054,20 +1046,6 @@ function stopConfigPolling() {
 function refreshConfigPanel() {
   state.configInitialLoadPending = true;
   updateConfig().catch((error) => console.error("Config update failed:", error));
-}
-
-/**
- * Toggle config group expansion/collapse
- */
-function toggleConfigGroup(groupName) {
-  const content = document.querySelector(`.config-group-content[data-group="${groupName}"]`);
-  const btn = document.querySelector(`.config-group-toggle[data-group="${groupName}"]`);
-
-  if (content && btn) {
-    const isHidden = content.classList.contains("hidden");
-    content.classList.toggle("hidden", !isHidden);
-    btn.textContent = isHidden ? "▼" : "▶";
-  }
 }
 
 /**
