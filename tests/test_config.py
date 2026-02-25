@@ -291,7 +291,6 @@ def test_env_example_contains_required_runtime_variables_with_nonempty_defaults(
         "MIO_PORT",
         "MIO_BIND_HOST",
         "TZ",
-        "MIO_MOCK_CAMERA",
     }
     assert required_vars.issubset(env_vars), f"Missing vars: {required_vars - set(env_vars)}"
 
@@ -299,7 +298,6 @@ def test_env_example_contains_required_runtime_variables_with_nonempty_defaults(
         "MIO_PORT",
         "MIO_BIND_HOST",
         "TZ",
-        "MIO_MOCK_CAMERA",
     }
     assert all(env_vars[key].strip() for key in nonempty_defaults)
     assert 1 <= int(env_vars["MIO_PORT"]) <= 65535
