@@ -54,3 +54,27 @@ def test_load_target_fps_valid_value_is_preserved(monkeypatch, caplog):
     assert camera_config["fps"] == 20
     assert camera_config["target_fps"] == 15
     assert "Invalid MIO_TARGET_FPS" not in caplog.text
+
+
+def test_merge_config_with_persisted_settings_env_fps_wins(monkeypatch):
+    """Explicit MIO_FPS should override persisted camera fps."""
+    monkeypatch.setenv("MIO_FPS", "33")
+
+    env_config = runtime_config.load_env_config()
+    persisted = {"settings": {"camera": {"fps": 12}}}
+
+    merged = runtime_config.merge_config_with_persisted_settings(env_config, persisted)
+
+    assert merged["fps"] == 33
+
+
+def test_merge_config_with_persisted_settings_env_logging_wins(monkeypatch):
+    """Explicit MIO_LOG_LEVEL should override persisted logging level."""
+    monkeypatch.setenv("MIO_LOG_LEVEL", "ERROR")
+
+    env_config = runtime_config.load_env_config()
+    persisted = {"settings": {"logging": {"log_level": "DEBUG"}}}
+
+    merged = runtime_config.merge_config_with_persisted_settings(env_config, persisted)
+
+    assert merged["log_level"] == "ERROR"

@@ -593,27 +593,62 @@ def _merge_logging_settings(merged: Dict[str, Any], logging_settings: Dict[str, 
             logger.warning("Invalid persisted log_include_identifiers type, using env value")
 
 
+def _overlay_explicit_env_values(merged: Dict[str, Any], env_config: Dict[str, Any]) -> None:
+    """Overlay values derived from explicitly set environment variables.
+
+    Environment variables have highest precedence in effective configuration.
+    This helper reapplies environment-derived keys on top of the merged
+    defaults+persisted payload for editable settings.
+
+    Args:
+        merged: Config dict to update in-place.
+        env_config: Config produced by load_env_config().
+    """
+    env_to_key = {
+        "MIO_RESOLUTION": "resolution",
+        "MIO_FPS": "fps",
+        "MIO_TARGET_FPS": "target_fps",
+        "MIO_JPEG_QUALITY": "jpeg_quality",
+        "MIO_MAX_STREAM_CONNECTIONS": "max_stream_connections",
+        "MIO_MAX_FRAME_AGE_SECONDS": "max_frame_age_seconds",
+        "MIO_DISCOVERY_ENABLED": "discovery_enabled",
+        "MIO_DISCOVERY_MANAGEMENT_URL": "discovery_management_url",
+        "MIO_DISCOVERY_TOKEN": "discovery_token",
+        "MIO_DISCOVERY_INTERVAL_SECONDS": "discovery_interval_seconds",
+        "MIO_LOG_LEVEL": "log_level",
+        "MIO_LOG_FORMAT": "log_format",
+        "MIO_LOG_INCLUDE_IDENTIFIERS": "log_include_identifiers",
+    }
+
+    for env_var, key in env_to_key.items():
+        if env_var in os.environ and key in env_config:
+            merged[key] = env_config[key]
+
+
 def merge_config_with_persisted_settings(
     env_config: Dict[str, Any], persisted: Dict[str, Any]
 ) -> Dict[str, Any]:
     """Merge persisted application settings with environment configuration.
 
     Precedence (high to low):
-    1. Persisted settings from application_settings.json (if valid)
-    2. Environment variables (fallback)
+    1. Explicit environment variables
+    2. Persisted settings from application_settings.json (if valid)
+    3. Default values from env_config (schema/runtime defaults)
 
     Args:
         env_config: Full environment configuration from load_env_config().
         persisted: Parsed JSON from ApplicationSettings.load() (or dict like {}).
 
     Returns:
-        Merged config dict with persisted settings overriding env values where present.
+        Merged config dict with persisted settings applied first, then explicit
+        environment overrides re-applied.
     """
     merged = dict(env_config)
     settings = persisted.get("settings", {}) if isinstance(persisted, dict) else {}
     _merge_camera_settings(merged, settings.get("camera", {}), env_config)
     _merge_discovery_settings(merged, settings.get("discovery", {}))
     _merge_logging_settings(merged, settings.get("logging", {}))
+    _overlay_explicit_env_values(merged, env_config)
     return merged
 
 
@@ -624,7 +659,8 @@ def merge_config_with_settings(
 
     Attempts to load persisted settings from file. If loading fails (validation error,
     file not found, parse error), logs warning and returns env_config unchanged.
-    Merging uses merge_config_with_persisted_settings().
+    Merging uses merge_config_with_persisted_settings() where precedence is
+    explicit environment variables > persisted settings > defaults.
 
     Args:
         env_config: Full environment configuration from load_env_config().
