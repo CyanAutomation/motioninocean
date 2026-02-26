@@ -33,10 +33,12 @@ async function assertUtilityModalGeometry(page) {
 
   const panelRect = await page.locator("#utility-modal .utility-modal__panel").boundingBox();
   expect(panelRect).not.toBeNull();
-  expect(panelRect.x).toBeGreaterThanOrEqual(0);
-  expect(panelRect.y).toBeGreaterThanOrEqual(0);
-  expect(panelRect.x + panelRect.width).toBeLessThanOrEqual(geometry.viewport.width);
-  expect(panelRect.y + panelRect.height).toBeLessThanOrEqual(geometry.viewport.height);
+  if (panelRect) {
+    expect(panelRect.x).toBeGreaterThanOrEqual(0);
+    expect(panelRect.y).toBeGreaterThanOrEqual(0);
+    expect(panelRect.x + panelRect.width).toBeLessThanOrEqual(geometry.viewport.width);
+    expect(panelRect.y + panelRect.height).toBeLessThanOrEqual(geometry.viewport.height);
+  }
 
   const railRect = await page.locator(".webcam-side-rail").boundingBox();
   if (railRect && railRect.width > 0 && railRect.height > 0) {
