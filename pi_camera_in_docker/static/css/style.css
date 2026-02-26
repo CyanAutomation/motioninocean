@@ -858,7 +858,14 @@
 .stream-surface__body {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--space-3);
+}
+
+.stream-surface__body .video-container {
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
 }
 
 .stream-lane {
