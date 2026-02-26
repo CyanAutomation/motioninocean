@@ -324,17 +324,18 @@ def _utc_now_iso() -> str:
 def _manual_discovery_defaults(existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     now_iso = _utc_now_iso()
     existing_discovery = existing.get("discovery", {}) if isinstance(existing, dict) else {}
+    if not isinstance(existing_discovery, dict):
+        existing_discovery = {}
     first_seen = (
-        existing_discovery.get("first_seen") or existing.get("last_seen")
+        existing_discovery.get("first_seen")
+        or (existing.get("last_seen") if isinstance(existing, dict) else None)
         if isinstance(existing, dict)
         else now_iso
     )
     return {
         "source": "manual",
         "first_seen": first_seen or now_iso,
-        "last_announce_at": existing_discovery.get("last_announce_at")
-        if isinstance(existing_discovery, dict)
-        else None,
+        "last_announce_at": existing_discovery.get("last_announce_at"),
         "approved": True,
     }
 
@@ -342,8 +343,11 @@ def _manual_discovery_defaults(existing: Optional[Dict[str, Any]] = None) -> Dic
 def _discovery_metadata(existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     now_iso = _utc_now_iso()
     existing_discovery = existing.get("discovery", {}) if isinstance(existing, dict) else {}
+    if not isinstance(existing_discovery, dict):
+        existing_discovery = {}
     first_seen = (
-        existing_discovery.get("first_seen") or existing.get("last_seen")
+        existing_discovery.get("first_seen")
+        or (existing.get("last_seen") if isinstance(existing, dict) else None)
         if isinstance(existing, dict)
         else now_iso
     )
