@@ -35,7 +35,7 @@ const state = {
     max: "--",
   },
   previouslyFocusedElement: null,
-  changelogModalOpen: false,
+  utilityModalOpen: false,
   elements: {
     videoStream: null,
     statsPanel: null,
@@ -74,9 +74,10 @@ const state = {
     chipFps: null,
     mioHeroImage: null,
     railChangelogBtn: null,
-    changelogModal: null,
-    changelogModalCloseBtn: null,
-    changelogModalContent: null,
+    utilityModal: null,
+    utilityModalCloseBtn: null,
+    utilityModalTitle: null,
+    utilityModalContent: null,
     // Cached tab buttons (set in cacheElements)
     tabButtons: null,
   },
@@ -192,9 +193,10 @@ function cacheElements() {
   state.elements.chipFps = document.getElementById("chip-fps");
   state.elements.mioHeroImage = document.getElementById("mio-hero-image");
   state.elements.railChangelogBtn = document.getElementById("rail-changelog-btn");
-  state.elements.changelogModal = document.getElementById("changelog-modal");
-  state.elements.changelogModalCloseBtn = document.getElementById("changelog-modal-close-btn");
-  state.elements.changelogModalContent = document.getElementById("changelog-modal-content");
+  state.elements.utilityModal = document.getElementById("utility-modal");
+  state.elements.utilityModalCloseBtn = document.getElementById("utility-modal-close-btn");
+  state.elements.utilityModalTitle = document.getElementById("utility-modal-title");
+  state.elements.utilityModalContent = document.getElementById("utility-modal-content");
 
   // Config panel elements
   state.elements.configLoading = document.getElementById("config-loading");
@@ -251,14 +253,14 @@ function attachHandlers() {
     state.elements.railChangelogBtn.addEventListener("click", openChangelogModal);
   }
 
-  if (state.elements.changelogModalCloseBtn) {
-    state.elements.changelogModalCloseBtn.addEventListener("click", closeChangelogModal);
+  if (state.elements.utilityModalCloseBtn) {
+    state.elements.utilityModalCloseBtn.addEventListener("click", closeUtilityModal);
   }
 
-  if (state.elements.changelogModal) {
-    state.elements.changelogModal.addEventListener("click", (event) => {
-      if (event.target === state.elements.changelogModal) {
-        closeChangelogModal();
+  if (state.elements.utilityModal) {
+    state.elements.utilityModal.addEventListener("click", (event) => {
+      if (event.target === state.elements.utilityModal) {
+        closeUtilityModal();
       }
     });
   }
@@ -282,8 +284,13 @@ function attachHandlers() {
   document.addEventListener("MSFullscreenChange", onFullscreenChange);
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && state.changelogModalOpen) {
-      closeChangelogModal();
+    if (event.key === "Escape" && state.utilityModalOpen) {
+      closeUtilityModal();
+      return;
+    }
+
+    if (event.key === "Tab" && state.utilityModalOpen) {
+      trapUtilityModalTabCycle(event);
     }
   });
 
@@ -306,10 +313,15 @@ function attachHandlers() {
 }
 
 /**
- * Open changelog modal and move focus to close button.
+ * Open the shared utility modal with dynamic title and content.
+ *
+ * @param {{title: string, htmlContent: string}} options - Modal display options.
+ * @param {string} options.title - Dialog heading text.
+ * @param {string} options.htmlContent - HTML content to render in the modal body.
+ * @returns {void}
  */
-function openChangelogModal() {
-  if (!state.elements.changelogModal) {
+function openUtilityModal({ title, htmlContent }) {
+  if (!state.elements.utilityModal || !state.elements.utilityModalTitle || !state.elements.utilityModalContent) {
     return;
   }
 
@@ -317,31 +329,83 @@ function openChangelogModal() {
     ? document.activeElement
     : null;
 
-  state.elements.changelogModal.classList.remove("hidden");
-  state.elements.changelogModal.hidden = false;
-  state.changelogModalOpen = true;
+  state.elements.utilityModalTitle.textContent = title;
+  state.elements.utilityModalContent.innerHTML = htmlContent;
 
-  if (state.elements.changelogModalCloseBtn) {
-    state.elements.changelogModalCloseBtn.focus();
+  state.elements.utilityModal.classList.remove("hidden");
+  state.elements.utilityModal.hidden = false;
+  state.utilityModalOpen = true;
+
+  if (state.elements.utilityModalCloseBtn) {
+    state.elements.utilityModalCloseBtn.focus();
   }
 }
 
 /**
- * Close changelog modal and restore previous focus target.
+ * Close the utility modal and restore previous focus target.
+ *
+ * @returns {void}
  */
-function closeChangelogModal() {
-  if (!state.elements.changelogModal) {
+function closeUtilityModal() {
+  if (!state.elements.utilityModal) {
     return;
   }
 
-  state.elements.changelogModal.classList.add("hidden");
-  state.elements.changelogModal.hidden = true;
-  state.changelogModalOpen = false;
+  state.elements.utilityModal.classList.add("hidden");
+  state.elements.utilityModal.hidden = true;
+  state.utilityModalOpen = false;
 
   if (state.previouslyFocusedElement && typeof state.previouslyFocusedElement.focus === "function") {
     state.previouslyFocusedElement.focus();
   }
   state.previouslyFocusedElement = null;
+}
+
+/**
+ * Keep keyboard tab navigation within the open utility modal.
+ *
+ * @param {KeyboardEvent} event - Keydown event for Tab navigation.
+ * @returns {void}
+ */
+function trapUtilityModalTabCycle(event) {
+  if (!state.elements.utilityModal) {
+    return;
+  }
+
+  const focusableElements = state.elements.utilityModal.querySelectorAll(
+    'a[href], area[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+  );
+
+  if (focusableElements.length === 0) {
+    return;
+  }
+
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+  const activeElement = document.activeElement;
+
+  if (event.shiftKey && activeElement === firstElement) {
+    event.preventDefault();
+    lastElement.focus();
+    return;
+  }
+
+  if (!event.shiftKey && activeElement === lastElement) {
+    event.preventDefault();
+    firstElement.focus();
+  }
+}
+
+/**
+ * Open the changelog utility modal.
+ *
+ * @returns {void}
+ */
+function openChangelogModal() {
+  openUtilityModal({
+    title: "Changelog",
+    htmlContent: '<p>Changelog entries will appear here in a future update.</p>',
+  });
 }
 
 /**

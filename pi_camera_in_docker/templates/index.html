@@ -1352,26 +1352,31 @@
     </nav>
 
     <div
-      id="changelog-modal"
-      class="changelog-modal hidden"
+      id="utility-modal"
+      class="utility-modal changelog-modal hidden"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="changelog-modal-title"
+      aria-labelledby="utility-modal-title"
+      aria-describedby="utility-modal-content"
       hidden
     >
-      <div class="changelog-modal__panel">
-        <div class="changelog-modal__header">
-          <h2 id="changelog-modal-title">Changelog</h2>
+      <div class="utility-modal__panel changelog-modal__panel" role="document">
+        <div class="utility-modal__header changelog-modal__header">
+          <h2 id="utility-modal-title" class="utility-modal__title">Utility</h2>
           <button
-            id="changelog-modal-close-btn"
-            class="ui-btn"
+            id="utility-modal-close-btn"
+            class="utility-modal__close ui-btn"
             type="button"
-            aria-label="Close changelog"
+            aria-label="Close utility dialog"
           >
             ×
           </button>
         </div>
-        <div id="changelog-modal-content" class="changelog-modal__content"></div>
+        <div
+          id="utility-modal-content"
+          class="utility-modal__content changelog-modal__content"
+          tabindex="-1"
+        ></div>
       </div>
     </div>
 
