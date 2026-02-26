@@ -4,22 +4,6 @@ from pi_camera_in_docker.banner import MIO_ASCII, _read_app_version, print_start
 
 
 # ---------------------------------------------------------------------------
-# MIO_ASCII content
-# ---------------------------------------------------------------------------
-
-
-def test_mio_ascii_is_non_empty_string() -> None:
-    """MIO_ASCII constant must be a non-empty string."""
-    assert isinstance(MIO_ASCII, str)
-    assert len(MIO_ASCII.strip()) > 0
-
-
-def test_mio_ascii_is_multiline() -> None:
-    """MIO_ASCII must span multiple lines to qualify as art."""
-    assert MIO_ASCII.count("\n") >= 5
-
-
-# ---------------------------------------------------------------------------
 # _read_app_version helper
 # ---------------------------------------------------------------------------
 

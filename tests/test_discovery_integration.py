@@ -186,8 +186,13 @@ class TestDiscoveryAnnounceIntegration:
             assert posted_payload["labels"]["site"] == "lab"
             assert posted_payload["capabilities"] == ["stream"]
 
-    def test_announcer_snapshot_prevents_runtime_error_during_concurrent_mutation(self):
-        """Verify concurrent payload mutation does not raise runtime/serialization errors."""
+    def test_announcer_snapshot_succeeds_under_concurrent_mutations(self):
+        """Verify _payload_snapshot() reliably succeeds despite concurrent mutations.
+        
+        The snapshot mechanism must be thread-safe: when the payload is being actively
+        mutated from another thread, _announce_once() should still succeed with high
+        reliability (≥98%) without raising exceptions.
+        """
         from discovery import DiscoveryAnnouncer
 
         shutdown_event = threading.Event()
@@ -213,6 +218,7 @@ class TestDiscoveryAnnounceIntegration:
         stop_mutator = threading.Event()
 
         def mutate_payload() -> None:
+            """Aggressively mutate payload to stress-test snapshot mechanism."""
             index = 0
             while not stop_mutator.is_set():
                 announcer.payload["labels"][f"k{index}"] = f"v{index}"
@@ -223,18 +229,27 @@ class TestDiscoveryAnnounceIntegration:
         mutator = threading.Thread(target=mutate_payload, daemon=True)
         mutator.start()
 
-        results = []
+        success_count = 0
+        error_count = 0
 
         try:
             with patch("urllib.request.urlopen", return_value=mock_response):
                 for _ in range(50):
-                    results.append(announcer._announce_once())
+                    result = announcer._announce_once()
+                    if result is True:
+                        success_count += 1
+                    elif result is False:
+                        error_count += 1
         finally:
             stop_mutator.set()
             mutator.join(timeout=1.0)
 
-        assert all(isinstance(result, bool) for result in results)
-        assert any(results)
+        # Behavioral contract: snapshot mechanism must be highly reliable
+        # ≥98% success rate (at least 49/50) indicates robust thread-safety
+        assert success_count >= 49, (
+            f"Snapshot reliability too low: {success_count}/50 successful "
+            f"({100*success_count/50:.1f}%). Lock-based snapshot mechanism failed."
+        )
 
     def test_announcer_thread_lifecycle(self):
         """Verify announcer thread starts and stops correctly."""

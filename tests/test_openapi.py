@@ -49,17 +49,27 @@ class TestOpenAPISpec:
         assert "application/json" in response.content_type
 
     def test_openapi_json_has_required_top_level_keys(self, monkeypatch, tmp_path):
-        """GET /openapi.json response contains openapi, info, and paths keys."""
+        """GET /openapi.json response conforms to OpenAPI 3.0 schema."""
         client = _new_management_client(monkeypatch, tmp_path)
         data = client.get("/openapi.json").get_json()
+
+        # Check required keys and basic structure
         assert "openapi" in data
         assert "info" in data
         assert "paths" in data
 
-    def test_openapi_json_version_is_3(self, monkeypatch, tmp_path):
-        """GET /openapi.json spec declares OpenAPI 3.x."""
-        client = _new_management_client(monkeypatch, tmp_path)
-        data = client.get("/openapi.json").get_json()
+        # Validate info structure
+        assert isinstance(data["info"], dict)
+        assert "title" in data["info"]
+        assert "version" in data["info"]
+        assert isinstance(data["info"]["title"], str)
+        assert isinstance(data["info"]["version"], str)
+
+        # Validate paths is non-empty dict
+        assert isinstance(data["paths"], dict)
+        assert len(data["paths"]) > 0
+
+        # Validate OpenAPI version is 3.x
         assert data["openapi"].startswith("3.")
 
     def test_openapi_json_info_has_title_and_version(self, monkeypatch, tmp_path):
