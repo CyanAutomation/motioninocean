@@ -4,8 +4,12 @@
   width="100%"
   height="100%"
   role="img"
-  aria-label="Mio animated mola mola mascot"
+  aria-labelledby="mioTitle mioDesc"
 >
+  <!-- Accessibility Enhancements -->
+  <title id="mioTitle">Mio the Mola Mola</title>
+  <desc id="mioDesc">A cute, animated sunfish mascot floating gently with a tech-friendly aesthetic.</desc>
+
   <defs>
     <!-- Soft ocean-ish body gradients -->
     <linearGradient id="mioBody" x1="0%" y1="10%" x2="100%" y2="90%">
@@ -25,8 +29,15 @@
       <stop offset="100%" stop-color="#0B2C4D"/>
     </radialGradient>
 
-    <!-- GPU-Optimized Sticker Border -->
-    <filter id="sticker-border" filterUnits="objectBoundingBox" x="-12%" y="-12%" width="124%" height="124%">
+    <!-- Volume gradient for the belly to give a 3D spherical feel -->
+    <linearGradient id="bellyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="85%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E2F2FF"/>
+    </linearGradient>
+
+    <!-- GPU-Optimized Sticker Border (with sRGB fix for Safari/iOS) -->
+    <filter id="sticker-border" color-interpolation-filters="sRGB" filterUnits="objectBoundingBox" x="-12%" y="-12%" width="124%" height="124%">
       <feMorphology in="SourceAlpha" operator="dilate" radius="10" result="dilated"/>
       <feGaussianBlur in="dilated" stdDeviation="3" result="blurred"/>
       <feComponentTransfer in="blurred" result="sharpened">
@@ -102,8 +113,8 @@
       <!-- ========================================== -->
       
       <use href="#body-shape" fill="url(#mioBody)"/>
-      <ellipse cx="250" cy="380" rx="160" ry="100" fill="#FFFFFF" clip-path="url(#belly-clip)" opacity="0.96"/>
-      <!-- Reduced stroke-width from 10 to 8 -->
+      <!-- Updated Belly: Using subtle 3D gradient instead of flat white -->
+      <ellipse cx="250" cy="380" rx="160" ry="100" fill="url(#bellyGrad)" clip-path="url(#belly-clip)" opacity="0.96"/>
       <use href="#body-shape" fill="none" stroke="#0A0A0A" stroke-width="8" stroke-linejoin="round"/>
 
       <!-- ========================================== -->
@@ -112,7 +123,6 @@
       <g>
         <animateTransform attributeName="transform" type="translate" dur="1.7s" repeatCount="indefinite" begin="0.6s" values="0 0; -2 1; 0 0" calcMode="spline" keySplines=".4 0 .2 1; .4 0 .2 1"/>
         <g>
-          <!-- Reduced rotation magnitude -->
           <animateTransform attributeName="transform" type="rotate" dur="1.7s" repeatCount="indefinite" begin="0.6s" values="-8 330 290; 5 330 290; -8 330 290" calcMode="spline" keySplines=".4 0 .2 1; .4 0 .2 1"/>
           <path d="M 310 280 C 350 270, 370 300, 350 330 C 330 340, 310 320, 310 280 Z" fill="url(#mioFin)" stroke="#0A0A0A" stroke-width="8" stroke-linejoin="round"/>
         </g>
@@ -124,7 +134,7 @@
       
       <g transform="translate(220, 250)">
         <g>
-          <!-- Decisive Pixar-style blink (0.05) -->
+          <!-- Decisive Pixar-style blink -->
           <animateTransform attributeName="transform" type="scale" dur="4.2s" repeatCount="indefinite"
             values="1 1; 1 1; 1 0.05; 1 1; 1 1"
             keyTimes="0; 0.92; 0.95; 0.98; 1" />
@@ -139,14 +149,14 @@
         </g>
       </g>
 
-      <!-- Clean, straight mouth -->
-      <path d="M 170 290 H 210" fill="none" stroke="#0A0A0A" stroke-width="8" stroke-linecap="round"/>
+      <!-- Subtle Mola Beak Mouth -->
+      <path d="M 175 288 Q 185 285 195 288 Q 185 295 175 288 Z" fill="#0A0A0A"/>
       
-      <!-- Gills / Cheek Details -->
-      <path d="M 280 240 Q 295 250 280 260" fill="none" stroke="#0A0A0A" stroke-width="8" stroke-linecap="round"/>
-      <path d="M 290 265 Q 305 275 290 285" fill="none" stroke="#0A0A0A" stroke-width="8" stroke-linecap="round"/>
+      <!-- Gills / Cheek Details (Using dark blue #0B2C4D instead of pure black for softer contrast) -->
+      <path d="M 280 240 Q 295 250 280 260" fill="none" stroke="#0B2C4D" stroke-width="8" stroke-linecap="round"/>
+      <path d="M 290 265 Q 305 275 290 285" fill="none" stroke="#0B2C4D" stroke-width="8" stroke-linecap="round"/>
 
-      <!-- Head Lighting/Gloss (Reduced opacity to 0.25) -->
+      <!-- Head Lighting/Gloss -->
       <ellipse cx="230" cy="170" rx="30" ry="15" transform="rotate(-15 230 170)" fill="#FFFFFF" opacity="0.25"/>
       <circle cx="330" cy="200" r="8" fill="#FFFFFF" opacity="0.25"/>
       
