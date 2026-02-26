@@ -40,6 +40,7 @@ const state = {
   changelogCache: null,
   elements: {
     videoStream: null,
+    mockStreamPlaceholder: null,
     statsPanel: null,
     configPanel: null,
     setupPanel: null,
@@ -157,6 +158,7 @@ function initializeTheme() {
  */
 function cacheElements() {
   state.elements.videoStream = document.getElementById("video-stream");
+  state.elements.mockStreamPlaceholder = document.getElementById("mock-stream-placeholder");
   state.elements.statsPanel = document.getElementById("stats-panel");
   state.elements.configPanel = document.getElementById("config-panel");
   state.elements.settingsPanel = document.getElementById("settings-panel");
@@ -1580,10 +1582,13 @@ function renderConfig(data) {
   // Runtime
   if (data.runtime) {
     const rt = data.runtime;
+    const mockEnabled = rt.mock_camera === true;
+    const fallbackActive = rt.active_mock_fallback === true;
 
     setConfigValue("config-camera-active", formatBoolean(rt.camera_active));
     setConfigValue("config-mock-camera", formatBoolean(rt.mock_camera));
     setConfigValue("config-uptime", formatUptime(rt.uptime_seconds));
+    applyMockStreamMode(mockEnabled || fallbackActive, fallbackActive);
   }
 
   // Health Check
@@ -1625,6 +1630,59 @@ function renderConfig(data) {
   if (data.timestamp) {
     const date = new Date(data.timestamp);
     setConfigValue("config-timestamp", date.toLocaleTimeString());
+  }
+}
+
+/**
+ * Toggle stream/placeholder visibility based on runtime mock camera state.
+ *
+ * @param {boolean} isMockModeActive - Whether mock camera mode should be shown.
+ * @param {boolean} isFallbackActive - Whether active mock fallback is currently in use.
+ * @returns {void}
+ */
+function applyMockStreamMode(isMockModeActive, isFallbackActive) {
+  const video = state.elements.videoStream;
+  const placeholder = state.elements.mockStreamPlaceholder;
+  const refreshTitle = isMockModeActive
+    ? "Refresh stream (mock mode active)"
+    : "Refresh stream";
+  const fullscreenTitle = isMockModeActive
+    ? "Toggle fullscreen (mock preview)"
+    : "Toggle fullscreen";
+
+  if (placeholder) {
+    placeholder.hidden = !isMockModeActive;
+  }
+
+  if (video) {
+    video.style.opacity = isMockModeActive ? "0.2" : "1";
+    video.style.filter = isMockModeActive ? "grayscale(1)" : "none";
+    video.setAttribute("aria-hidden", isMockModeActive ? "true" : "false");
+  }
+
+  if (state.elements.refreshBtn) {
+    state.elements.refreshBtn.title = refreshTitle;
+  }
+
+  if (state.elements.fullscreenBtn) {
+    state.elements.fullscreenBtn.title = fullscreenTitle;
+  }
+
+  const vcRefreshBtn = document.getElementById("vc-refresh-btn");
+  if (vcRefreshBtn) {
+    vcRefreshBtn.title = refreshTitle;
+  }
+
+  const vcFullscreenBtn = document.getElementById("vc-fullscreen-btn");
+  if (vcFullscreenBtn) {
+    vcFullscreenBtn.title = fullscreenTitle;
+  }
+
+  if (isMockModeActive) {
+    setConnectionStatus(
+      "inactive",
+      isFallbackActive ? "Mock fallback active (camera unavailable)" : "Mock camera mode active",
+    );
   }
 }
 
