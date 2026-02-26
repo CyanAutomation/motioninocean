@@ -30,7 +30,7 @@
 
 substitutions:
   _GAR_REGION: europe-west1
-  _GAR_REPO: motioninocean-demo
+  _GAR_REPO: motion-in-ocean-demo
   _IMAGE_NAME: motion-in-ocean
   _IMAGE_TAG: latest
   _CLOUD_RUN_REGION: europe-west1
@@ -50,9 +50,9 @@ steps:
       - --platform
       - linux/amd64
       - --tag
-      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_IMAGE_NAME}:${_IMAGE_TAG}
+      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}:${_IMAGE_TAG}
       - --tag
-      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_IMAGE_NAME}:$SHORT_SHA
+      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
       - --build-arg
       - DEBIAN_SUITE=bookworm
       - --build-arg
@@ -65,7 +65,7 @@ steps:
     args:
       - push
       - --all-tags
-      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_IMAGE_NAME}
+      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}
     waitFor:
       - build-and-push
 
@@ -79,7 +79,7 @@ steps:
       - deploy
       - ${_SERVICE_NAME}
       - --image
-      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_IMAGE_NAME}:${_IMAGE_TAG}
+      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}:${_IMAGE_TAG}
       - --region
       - ${_CLOUD_RUN_REGION}
       - --platform
