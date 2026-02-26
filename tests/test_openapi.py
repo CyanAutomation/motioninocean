@@ -118,6 +118,31 @@ class TestSwaggerUI:
         assert response.status_code == 200
 
 
+class TestReadmeHelpEndpoint:
+    """Tests for GET /api/help/readme."""
+
+    def test_readme_help_returns_200(self, monkeypatch, tmp_path):
+        """GET /api/help/readme returns HTTP 200."""
+        client = _new_management_client(monkeypatch, tmp_path)
+        response = client.get("/api/help/readme")
+        assert response.status_code == 200
+
+    def test_readme_help_returns_json_with_content(self, monkeypatch, tmp_path):
+        """GET /api/help/readme returns content in JSON payload."""
+        client = _new_management_client(monkeypatch, tmp_path)
+        response = client.get("/api/help/readme")
+        data = response.get_json()
+        assert "application/json" in response.content_type
+        assert isinstance(data.get("content"), str)
+        assert len(data["content"]) > 0
+
+    def test_readme_help_unauthenticated(self, monkeypatch, tmp_path):
+        """GET /api/help/readme is publicly accessible without auth token."""
+        client = _new_management_client(monkeypatch, tmp_path)
+        response = client.get("/api/help/readme")
+        assert response.status_code == 200
+
+
 class TestDeprecatedAliases:
     """Tests for 308 redirect aliases covering pre-v1 /api/* paths."""
 
