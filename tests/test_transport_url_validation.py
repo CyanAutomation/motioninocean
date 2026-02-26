@@ -68,6 +68,27 @@ def test_validate_base_url_for_transport_rejects_unknown_transport(transport):
         validate_base_url_for_transport("http://example.com", transport)
 
 
+@pytest.mark.parametrize(
+    ("base_url", "expected_message"),
+    [
+        ("ftp://example.com", "base_url scheme must be http or https"),
+        ("http://", "base_url must include a valid hostname"),
+        ("https:///path", "base_url must include a valid hostname"),
+        ("http://exa mple.com", "base_url hostname is invalid"),
+        ("http://example.com?mode=debug", "base_url must not include query or fragment"),
+        ("https://example.com#stream", "base_url must not include query or fragment"),
+    ],
+)
+def test_validate_base_url_for_transport_rejects_malformed_http_urls(base_url, expected_message):
+    with pytest.raises(ValueError, match=expected_message):
+        validate_base_url_for_transport(base_url, "http")
+
+
+@pytest.mark.parametrize("base_url", ["http://example.com", "https://example.com/root/path"])
+def test_validate_base_url_for_transport_accepts_valid_http_urls(base_url):
+    validate_base_url_for_transport(base_url, "http")
+
+
 def test_validate_webcam_propagates_unknown_transport_base_url_validation_failure(monkeypatch):
     monkeypatch.setattr(node_registry, "ALLOWED_TRANSPORTS", {"http", "docker", "ssh"})
 
@@ -82,5 +103,29 @@ def test_validate_webcam_propagates_unknown_transport_base_url_validation_failur
                 "last_seen": "2024-01-01T00:00:00+00:00",
                 "capabilities": ["stream"],
                 "transport": "ssh",
+            }
+        )
+
+
+@pytest.mark.parametrize(
+    ("base_url", "expected_message"),
+    [
+        ("http://", "base_url must include a valid hostname"),
+        ("https:///path", "base_url must include a valid hostname"),
+        ("http://exa mple.com", "base_url hostname is invalid"),
+    ],
+)
+def test_validate_webcam_rejects_malformed_http_base_urls(base_url, expected_message):
+    with pytest.raises(NodeValidationError, match=expected_message):
+        validate_webcam(
+            {
+                "id": "node-invalid-base-url",
+                "name": "Invalid Base URL Node",
+                "base_url": base_url,
+                "auth": {"type": "none"},
+                "labels": {},
+                "last_seen": "2024-01-01T00:00:00+00:00",
+                "capabilities": ["stream"],
+                "transport": "http",
             }
         )
