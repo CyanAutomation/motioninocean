@@ -233,7 +233,7 @@ function describeApiError(errorPayload = {}) {
   }
 
   if (code === "WEBCAM_UNAUTHORIZED") {
-    return "Token/auth mismatch: the remote webcam rejected credentials. Update this node's bearer token to match MANAGEMENT_AUTH_TOKEN on the webcam node.";
+    return "Token/auth mismatch: the remote webcam rejected credentials. Update this node's webcam bearer token to match WEBCAM_CONTROL_PLANE_AUTH_TOKEN on the webcam node.";
   }
 
   if (code === "SSRF_BLOCKED") {
@@ -327,7 +327,8 @@ function openHelpPanel() {
     "Connection Help",
     `
       <ul class="overview-list">
-        <li>Use the dashboard token to authenticate management API requests.</li>
+        <li>Browser → Management: use the dashboard token (MANAGEMENT_AUTH_TOKEN) for management API requests.</li>
+        <li>Management → Webcam: configure each node's webcam bearer token to match that webcam's WEBCAM_CONTROL_PLANE_AUTH_TOKEN.</li>
         <li>Use Diagnose on a node to inspect DNS, network, and API endpoint health.</li>
         <li>Discovery approvals activate announced nodes; reject keeps them pending.</li>
         <li>Private-IP and SSRF protections can block unsafe targets by policy.</li>
@@ -575,7 +576,7 @@ function getStatusReason(status = {}) {
     },
     WEBCAM_UNAUTHORIZED: {
       title: "Token/auth mismatch with remote node.",
-      hint: "Set this webcam bearer token to match the webcam webcam MANAGEMENT_AUTH_TOKEN, then refresh.",
+      hint: "Set this webcam bearer token to match WEBCAM_CONTROL_PLANE_AUTH_TOKEN on the remote webcam, then refresh.",
     },
     WEBCAM_INVALID_RESPONSE: {
       title: "Node returned an invalid response.",
@@ -1658,7 +1659,7 @@ function getDiagnosticSummaryBanner(summary, checkRows = [], diagnostics = {}) {
   if (diagnostics.registration?.code === "WEBCAM_UNAUTHORIZED") {
     return {
       interpretation:
-        "Node authentication failed. The configured token does not match the node's expected credentials.",
+        "Node authentication failed. The configured webcam bearer token does not match WEBCAM_CONTROL_PLANE_AUTH_TOKEN on the node.",
       cta: "Set auth token",
     };
   }
