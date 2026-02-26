@@ -50,7 +50,11 @@ from .runtime_config import (
 )
 from .sentry_config import init_sentry
 from .settings_api import register_settings_routes
-from .shared import register_shared_routes, register_webcam_control_plane_auth
+from .shared import (
+    _safe_api_test_scenario,
+    register_shared_routes,
+    register_webcam_control_plane_auth,
+)
 
 
 ALLOWED_APP_MODES = {"webcam", "management"}
@@ -1334,9 +1338,13 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
             return None
 
         with lock:
-            scenario_list = api_test_state.get("scenario_list") or default_api_test_scenarios
-            if not api_test_state.get("scenario_list"):
+            scenario_list = api_test_state.get("scenario_list")
+            if not isinstance(scenario_list, list) or not scenario_list:
+                scenario_list = default_api_test_scenarios
                 api_test_state["scenario_list"] = scenario_list
+
+            if not scenario_list:
+                return None
 
             interval = api_test_state.get("cycle_interval_seconds", 5.0)
             now = time.monotonic()
@@ -1353,6 +1361,10 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
 
             current_state_index = api_test_state.get("current_state_index", 0) % len(scenario_list)
             scenario = scenario_list[current_state_index]
+            if not isinstance(scenario, dict):
+                scenario = default_api_test_scenarios[0] if default_api_test_scenarios else None
+                if scenario is None:
+                    return None
             state_name = scenario.get("status", f"state-{current_state_index}")
 
             next_transition_seconds = None
@@ -1360,15 +1372,19 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
                 elapsed = max(0.0, now - api_test_state.get("last_transition_monotonic", now))
                 next_transition_seconds = round(max(0.0, interval - elapsed), 3)
 
+        safe_scenario = _safe_api_test_scenario(scenario)
+        if safe_scenario is None:
+            return None
+
         return {
-            "status": scenario["status"],
+            "status": safe_scenario["status"],
             "app_mode": state["app_mode"],
-            "stream_available": scenario["stream_available"],
-            "camera_active": scenario["camera_active"],
+            "stream_available": safe_scenario["stream_available"],
+            "camera_active": safe_scenario["camera_active"],
             "uptime_seconds": uptime_seconds,
-            "fps": scenario["fps"],
+            "fps": safe_scenario["fps"],
             "connections": {
-                "current": scenario["connections"]["current"],
+                "current": safe_scenario["connections"]["current"],
                 "max": max_connections,
             },
             "timestamp": datetime.now(timezone.utc).isoformat(),

@@ -98,9 +98,13 @@ def _get_api_test_payload(
         return None
 
     with lock:
-        scenario_list = api_test_state.get("scenario_list") or api_test_scenarios
-        if not api_test_state.get("scenario_list"):
+        scenario_list = api_test_state.get("scenario_list")
+        if not isinstance(scenario_list, list) or not scenario_list:
+            scenario_list = api_test_scenarios
             api_test_state["scenario_list"] = scenario_list
+
+        if not scenario_list:
+            return None
 
         interval = api_test_state.get("cycle_interval_seconds", 5.0)
         now = time.monotonic()
@@ -116,6 +120,10 @@ def _get_api_test_payload(
 
         current_state_index = api_test_state.get("current_state_index", 0) % len(scenario_list)
         scenario = scenario_list[current_state_index]
+        if not isinstance(scenario, dict):
+            scenario = api_test_scenarios[0] if api_test_scenarios else None
+            if scenario is None:
+                return None
         state_name = scenario.get("status", f"state-{current_state_index}")
 
         next_transition_seconds = None
@@ -123,17 +131,21 @@ def _get_api_test_payload(
             elapsed = max(0.0, now - api_test_state.get("last_transition_monotonic", now))
             next_transition_seconds = round(max(0.0, interval - elapsed), 3)
 
+    safe_scenario = _safe_api_test_scenario(scenario)
+    if safe_scenario is None:
+        return None
+
     connections = {
-        "current": scenario["connections"]["current"],
+        "current": safe_scenario["connections"]["current"],
         "max": max_connections,
     }
     return {
-        "status": scenario["status"],
+        "status": safe_scenario["status"],
         "app_mode": state["app_mode"],
-        "stream_available": scenario["stream_available"],
-        "camera_active": scenario["camera_active"],
+        "stream_available": safe_scenario["stream_available"],
+        "camera_active": safe_scenario["camera_active"],
         "uptime_seconds": uptime_seconds,
-        "fps": scenario["fps"],
+        "fps": safe_scenario["fps"],
         "connections": connections,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "api_test": {
@@ -143,6 +155,37 @@ def _get_api_test_payload(
             "state_name": state_name,
             "next_transition_seconds": next_transition_seconds,
         },
+    }
+
+
+def _safe_api_test_scenario(scenario: Any) -> Optional[dict[str, Any]]:
+    """Validate required scenario keys and return a safe normalized shape.
+
+    Args:
+        scenario: Candidate scenario object.
+
+    Returns:
+        Normalized scenario dict containing required keys, or None if invalid.
+    """
+    if not isinstance(scenario, dict):
+        return None
+
+    connections = scenario.get("connections")
+    if not isinstance(connections, dict):
+        return None
+
+    required_fields = ["status", "stream_available", "camera_active", "fps"]
+    if any(field not in scenario for field in required_fields):
+        return None
+    if "current" not in connections:
+        return None
+
+    return {
+        "status": scenario["status"],
+        "stream_available": scenario["stream_available"],
+        "camera_active": scenario["camera_active"],
+        "fps": scenario["fps"],
+        "connections": {"current": connections["current"]},
     }
 
 
