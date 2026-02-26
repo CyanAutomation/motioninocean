@@ -128,13 +128,14 @@ class TestThreadSafety:
         # Verify exact frame count (no data loss or duplication)
         frame_count, last_timestamp, _ = stats.snapshot()
         expected_count = num_threads * frames_per_thread
-        assert frame_count == expected_count, f"Frame count mismatch: expected {expected_count}, got {frame_count}"
+        assert frame_count == expected_count, (
+            f"Frame count mismatch: expected {expected_count}, got {frame_count}"
+        )
 
         # Verify last timestamp is valid (proof of correct ordering)
         assert last_timestamp is not None
         assert last_timestamp > base_time, (
-            "Last frame timestamp should be later than base time "
-            "(verifies frames were recorded)"
+            "Last frame timestamp should be later than base time (verifies frames were recorded)"
         )
 
     def test_stream_stats_concurrent_reads(self):
@@ -166,7 +167,7 @@ class TestThreadSafety:
 
         # Verify no exceptions during concurrent reads (thread safety)
         assert len(errors) == 0, f"Errors during concurrent reads: {errors}"
-        
+
         # Verify all threads completed (deterministic, not timing-based)
         assert all(not t.is_alive() for t in threads), "Some reader threads did not complete"
 
@@ -212,14 +213,14 @@ class TestThreadSafety:
 
         # Wait for writer to complete
         assert write_complete.wait(timeout=5.0), "Writer did not complete within timeout"
-        
+
         # Wait for readers to finish
         for thread in reader_threads:
             thread.join(timeout=5.0)
 
         # Verify no exceptions occurred
         assert len(errors) == 0, f"Errors during concurrent read/write: {errors}"
-        
+
         # Verify frames were processed (deterministic, not timing-based)
         assert frames_written[0] == 100, f"Expected all 100 frames written, got {frames_written[0]}"
         assert frames_read[0] > 0, "Readers should have read at least one frame"

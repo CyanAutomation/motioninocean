@@ -276,7 +276,9 @@ def test_healthcheck_url_validation_allows_valid_hostname(monkeypatch):
         ),
     ],
 )
-def test_get_camera_info_precedence(monkeypatch, has_module_func, class_result, expected_result, expected_path):
+def test_get_camera_info_precedence(
+    monkeypatch, has_module_func, class_result, expected_result, expected_path
+):
     """Camera detection should prefer class method and fallback appropriately."""
     import importlib
     import sys
@@ -301,7 +303,7 @@ def test_get_camera_info_precedence(monkeypatch, has_module_func, class_result, 
         if has_module_func:
             FakePicamera2.global_camera_info = staticmethod(module_global_camera_info)
             fake_module.global_camera_info = module_global_camera_info
-        
+
         fake_module.Picamera2 = FakePicamera2
         sys.modules["picamera2"] = fake_module
 
@@ -376,12 +378,15 @@ def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypa
 
     # Capture logger calls
     error_calls = []
+
     def fake_error(msg, *args, **kwargs):
         error_calls.append((msg, kwargs))
 
     # Setup mocks for all external dependencies
     monkeypatch.setattr(main, "_check_device_availability", lambda _cfg: None)
-    monkeypatch.setattr(main, "import_camera_components", lambda _: (FakePicamera2, FakeJpegEncoder, FakeFileOutput))
+    monkeypatch.setattr(
+        main, "import_camera_components", lambda _: (FakePicamera2, FakeJpegEncoder, FakeFileOutput)
+    )
     monkeypatch.setattr(main, "_detect_camera_devices", lambda: inventory)
     monkeypatch.setattr(main, "_get_camera_info", lambda _cls: ([], "test.path"))
     monkeypatch.setattr(main.logger, "error", fake_error)
@@ -399,7 +404,7 @@ def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypa
     # Verify structured error logging includes inventory
     assert error_calls, "Expected error logging when cameras unavailable"
     assert error_calls[0][0] == "No cameras detected by picamera2 enumeration"
-    
+
     logged_extra = error_calls[0][1].get("extra", {})
     assert logged_extra["camera_info_detection_path"] == "test.path"
     assert logged_extra["camera_device_inventory"] == {
@@ -936,7 +941,9 @@ def test_init_mock_camera_frames_generates_non_empty_frames_from_mio_renderer(mo
     rendered_frame = b"\xff\xd8\xffmio-jpeg-bytes"
 
     monkeypatch.setattr(main, "render_mio_mock_frame", lambda *_args, **_kwargs: rendered_frame)
-    monkeypatch.setattr(main.time, "sleep", lambda *_args, **_kwargs: state["shutdown_requested"].set())
+    monkeypatch.setattr(
+        main.time, "sleep", lambda *_args, **_kwargs: state["shutdown_requested"].set()
+    )
     monkeypatch.setattr(main, "Thread", ImmediateThread)
 
     main._init_mock_camera_frames(state, cfg)
@@ -979,7 +986,9 @@ def test_init_mock_camera_frames_uses_black_frame_fallback_on_render_failure(mon
         raise MockStreamRenderError("boom")
 
     monkeypatch.setattr(main, "render_mio_mock_frame", raise_render_error)
-    monkeypatch.setattr(main.time, "sleep", lambda *_args, **_kwargs: state["shutdown_requested"].set())
+    monkeypatch.setattr(
+        main.time, "sleep", lambda *_args, **_kwargs: state["shutdown_requested"].set()
+    )
     monkeypatch.setattr(main, "Thread", ImmediateThread)
 
     main._init_mock_camera_frames(state, cfg)

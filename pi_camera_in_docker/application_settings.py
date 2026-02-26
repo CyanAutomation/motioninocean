@@ -178,12 +178,18 @@ class ApplicationSettings:
             # Merge persisted settings, keeping schema structure
             schema["settings"]["camera"] = {
                 **schema["settings"]["camera"],
-                **{k: v for k, v in settings["camera"].items() if k in schema["settings"]["camera"]},
+                **{
+                    k: v for k, v in settings["camera"].items() if k in schema["settings"]["camera"]
+                },
             }
             schema["settings"]["feature_flags"] = settings["feature_flags"]
             schema["settings"]["logging"] = {
                 **schema["settings"]["logging"],
-                **{k: v for k, v in settings["logging"].items() if k in schema["settings"]["logging"]},
+                **{
+                    k: v
+                    for k, v in settings["logging"].items()
+                    if k in schema["settings"]["logging"]
+                },
             }
             schema["settings"]["discovery"] = {
                 **schema["settings"]["discovery"],

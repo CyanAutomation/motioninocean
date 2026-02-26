@@ -50,8 +50,7 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
         raise ConfigValidationError(
             msg,
             hint=(
-                "Use a valid URL such as "
-                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
+                "Use a valid URL such as MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
             ),
         ) from exc
 
@@ -60,8 +59,7 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
         raise ConfigValidationError(
             msg,
             hint=(
-                "Use a valid URL such as "
-                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
+                "Use a valid URL such as MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
             ),
         )
 
@@ -70,8 +68,7 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
         raise ConfigValidationError(
             msg,
             hint=(
-                "Use a valid URL such as "
-                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
+                "Use a valid URL such as MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
             ),
         )
 
@@ -92,8 +89,7 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
         raise ConfigValidationError(
             msg,
             hint=(
-                "Use a valid URL such as "
-                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
+                "Use a valid URL such as MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
             ),
         ) from exc
 
@@ -102,8 +98,7 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
         raise ConfigValidationError(
             msg,
             hint=(
-                "Use a valid URL such as "
-                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
+                "Use a valid URL such as MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
             ),
         )
 

@@ -59,7 +59,9 @@ def test_validate_discovery_config_accepts_valid_management_urls(
     validate_discovery_config(config)
 
 
-@pytest.mark.parametrize("config", [{}, {"discovery_enabled": False}], ids=["empty-config", "disabled"])
+@pytest.mark.parametrize(
+    "config", [{}, {"discovery_enabled": False}], ids=["empty-config", "disabled"]
+)
 def test_validate_discovery_config_skips_management_url_when_discovery_disabled(
     config: dict[str, object],
 ) -> None:

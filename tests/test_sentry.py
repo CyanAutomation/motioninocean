@@ -122,18 +122,9 @@ class TestSentryIntegration:
     @pytest.mark.parametrize(
         "crumb,expected_result",
         [
-            (
-                {"data": {"url": "http://localhost:8000/api/status"}},
-                "pass_through"
-            ),
-            (
-                {"category": "http.client"},
-                "pass_through"
-            ),
-            (
-                {"category": "http.client", "data": "not-a-dict"},
-                "pass_through"
-            ),
+            ({"data": {"url": "http://localhost:8000/api/status"}}, "pass_through"),
+            ({"category": "http.client"}, "pass_through"),
+            ({"category": "http.client", "data": "not-a-dict"}, "pass_through"),
         ],
     )
     def test_sentry_breadcrumb_filter_handles_edge_cases(self, crumb, expected_result):

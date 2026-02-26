@@ -148,7 +148,6 @@ class TestDiscoveryAnnounceIntegration:
             # Should have attempted at least 2 times - first 2 failures
             assert mock_urlopen.call_count >= 2
 
-
     def test_announcer_snapshot_succeeds_under_concurrent_mutations(self):
         """Verify _payload_snapshot() reliably succeeds despite concurrent mutations.
 
@@ -215,7 +214,7 @@ class TestDiscoveryAnnounceIntegration:
         # ≥98% success rate (at least 49/50) indicates robust thread-safety
         assert success_count >= 49, (
             f"Snapshot reliability too low: {success_count}/50 successful "
-            f"({100*success_count/50:.1f}%). Lock-based snapshot mechanism failed."
+            f"({100 * success_count / 50:.1f}%). Lock-based snapshot mechanism failed."
         )
 
     def test_announcer_thread_lifecycle(self):

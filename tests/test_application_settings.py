@@ -230,7 +230,9 @@ class TestApplicationSettingsChanges:
                 f,
             )
 
-        with pytest.raises(SettingsValidationError, match=r"'settings\.feature_flags' must be a dict"):
+        with pytest.raises(
+            SettingsValidationError, match=r"'settings\.feature_flags' must be a dict"
+        ):
             settings.get_changes_from_env({"feature_flags": "bad-env-type"})
 
 
