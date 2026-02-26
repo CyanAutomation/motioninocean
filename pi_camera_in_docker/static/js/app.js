@@ -450,7 +450,7 @@ function trapUtilityModalTabCycle(event) {
 /**
  * Load changelog entries from API with in-memory caching.
  *
- * @returns {Promise<{status: string, entries: Array<{version: string, release_date: string|null, changes: string[]}>, message?: string}>} Changelog payload.
+ * @returns {Promise<{status: string, entries: Array<{version: string, release_date: string|null, changes: string[]}>, message?: string, full_changelog_url?: string}>} Changelog payload.
  * @throws {Error} If the API request fails.
  * @async
  */
@@ -477,7 +477,7 @@ async function fetchChangelogData() {
 /**
  * Render changelog entries as release cards for modal display.
  *
- * @param {{status: string, entries: Array<{version: string, release_date: string|null, changes: string[]}>, message?: string}} payload - Changelog API payload.
+ * @param {{status: string, entries: Array<{version: string, release_date: string|null, changes: string[]}>, message?: string, full_changelog_url?: string}} payload - Changelog API payload.
  * @returns {string} Safe HTML string for modal content.
  */
 function renderChangelogHtml(payload) {
@@ -509,11 +509,16 @@ function renderChangelogHtml(payload) {
       ? `<p class="utility-subtle">${escapeHtml(payload.message || "Changelog temporarily unavailable.")}</p>`
       : "";
 
+  const fullChangelogUrl =
+    typeof payload.full_changelog_url === "string" && payload.full_changelog_url.trim()
+      ? payload.full_changelog_url
+      : "/docs/CHANGELOG.md";
+
   return [
     '<section class="changelog-list">',
     statusNote,
     cardsHtml || "<p>No changelog entries available.</p>",
-    '<p><a href="/docs/CHANGELOG.md" target="_blank" rel="noopener noreferrer">View full changelog</a></p>',
+    `<p><a href="${escapeHtml(fullChangelogUrl)}" target="_blank" rel="noopener noreferrer">View full changelog</a></p>`,
     "</section>",
   ].join("");
 }

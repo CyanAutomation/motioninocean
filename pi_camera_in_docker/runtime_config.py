@@ -399,19 +399,37 @@ def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
     - MIO_MANAGEMENT_AUTH_TOKEN (bearer token for management mode auth)
     - MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN (bearer token for webcam control-plane auth)
     - MIO_FAIL_ON_CAMERA_INIT_ERROR (default: false)
+    - MIO_CHANGELOG_REMOTE_URL (default: repository CHANGELOG.md raw URL)
+    - MIO_CHANGELOG_REMOTE_TIMEOUT_SECONDS (default: 3.0, minimum: >0)
 
     Returns:
         Dict with keys: performance_profile, pi3_profile_enabled,
         mock_camera, pykms_mock_fallback_enabled,
         webcam_registry_path, application_settings_path, management_auth_token,
-        webcam_control_plane_auth_token, fail_on_camera_init_error.
+        webcam_control_plane_auth_token, fail_on_camera_init_error,
+        changelog_remote_url, changelog_remote_timeout_seconds.
     """
     performance_profile = _resolve_performance_profile()
+    default_changelog_url = (
+        "https://raw.githubusercontent.com/CyanAutomation/motioninocean/main/docs/CHANGELOG.md"
+    )
 
     fail_on_camera_init_error_raw = os.environ.get(
         "MIO_FAIL_ON_CAMERA_INIT_ERROR",
         "false",
     )
+    changelog_remote_url = os.environ.get("MIO_CHANGELOG_REMOTE_URL", default_changelog_url).strip()
+    if not changelog_remote_url:
+        changelog_remote_url = default_changelog_url
+
+    try:
+        changelog_remote_timeout_seconds = float(
+            os.environ.get("MIO_CHANGELOG_REMOTE_TIMEOUT_SECONDS", "3")
+        )
+    except ValueError:
+        changelog_remote_timeout_seconds = 3.0
+    if changelog_remote_timeout_seconds <= 0:
+        changelog_remote_timeout_seconds = 3.0
 
     return {
         "performance_profile": performance_profile,
@@ -429,6 +447,8 @@ def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
             "MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", ""
         ),
         "fail_on_camera_init_error": fail_on_camera_init_error_raw.lower() in ("1", "true", "yes"),
+        "changelog_remote_url": changelog_remote_url,
+        "changelog_remote_timeout_seconds": changelog_remote_timeout_seconds,
     }
 
 

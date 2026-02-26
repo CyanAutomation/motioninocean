@@ -4,12 +4,16 @@ from pathlib import Path
 
 from flask import Flask
 
+from pi_camera_in_docker import changelog_api
 from pi_camera_in_docker.changelog_api import register_changelog_routes
 
 
 def _build_test_app(changelog_path: str) -> Flask:
     app = Flask(__name__)
     app.config["CHANGELOG_PATH"] = changelog_path
+    app.config["CHANGELOG_FULL_URL"] = changelog_api.DEFAULT_FULL_CHANGELOG_URL
+    app.config["CHANGELOG_REMOTE_URL"] = changelog_api.DEFAULT_REMOTE_CHANGELOG_URL
+    app.config["CHANGELOG_REMOTE_TIMEOUT_SECONDS"] = 0.1
     register_changelog_routes(app)
     return app
 
@@ -38,6 +42,8 @@ def test_api_changelog_returns_newest_first_from_file_order(tmp_path: Path) -> N
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["status"] == "ok"
+    assert payload["source_type"] == "local"
+    assert payload["full_changelog_url"] == changelog_api.DEFAULT_FULL_CHANGELOG_URL
     assert [entry["version"] for entry in payload["entries"]] == ["2.0.0", "1.0.0"]
     assert payload["entries"][0]["changes"] == ["Newest item"]
 
@@ -52,3 +58,24 @@ def test_api_changelog_missing_file_returns_degraded() -> None:
     payload = response.get_json()
     assert payload["status"] == "degraded"
     assert payload["entries"] == []
+    assert payload["full_changelog_url"] == changelog_api.DEFAULT_FULL_CHANGELOG_URL
+
+
+def test_api_changelog_missing_file_falls_back_to_remote(monkeypatch) -> None:
+    """Endpoint should return remote changelog when local file is unavailable."""
+    app = _build_test_app("/tmp/definitely-missing-changelog-file.md")
+    client = app.test_client()
+
+    monkeypatch.setattr(
+        changelog_api,
+        "_fetch_remote_changelog_markdown",
+        lambda remote_url, timeout_seconds: "## [3.0.0] - 2026-03-01\n- Remote fallback\n",
+    )
+
+    response = client.get("/api/changelog")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["status"] == "ok"
+    assert payload["source_type"] == "remote"
+    assert payload["entries"][0]["version"] == "3.0.0"

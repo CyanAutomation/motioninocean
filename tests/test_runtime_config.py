@@ -623,3 +623,23 @@ def test_load_env_config_enables_pykms_fallback_under_pytest(monkeypatch):
     cfg = runtime_config.load_env_config()
 
     assert cfg["pykms_mock_fallback_enabled"] is True
+
+
+def test_load_env_config_supports_changelog_remote_config(monkeypatch):
+    """Changelog remote URL and timeout should be exposed in runtime configuration."""
+    monkeypatch.setenv("MIO_CHANGELOG_REMOTE_URL", "https://example.com/CHANGELOG.md")
+    monkeypatch.setenv("MIO_CHANGELOG_REMOTE_TIMEOUT_SECONDS", "7.5")
+
+    cfg = runtime_config.load_env_config()
+
+    assert cfg["changelog_remote_url"] == "https://example.com/CHANGELOG.md"
+    assert cfg["changelog_remote_timeout_seconds"] == 7.5
+
+
+def test_load_env_config_changelog_timeout_invalid_falls_back(monkeypatch):
+    """Invalid changelog timeout should fallback to default value."""
+    monkeypatch.setenv("MIO_CHANGELOG_REMOTE_TIMEOUT_SECONDS", "bad")
+
+    cfg = runtime_config.load_env_config()
+
+    assert cfg["changelog_remote_timeout_seconds"] == 3.0
