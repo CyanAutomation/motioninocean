@@ -3,6 +3,8 @@
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
 
 class TestSentryIntegration:
     """Test Sentry error tracking initialization and behavior."""
@@ -118,20 +120,17 @@ class TestSentryIntegration:
         assert _breadcrumb_filter(normal_crumb, {}) is not None
 
     @pytest.mark.parametrize(
-        "test_case_name,crumb,expected_result",
+        "crumb,expected_result",
         [
             (
-                "missing_category",
                 {"data": {"url": "http://localhost:8000/api/status"}},
                 "pass_through"
             ),
             (
-                "missing_data",
                 {"category": "http.client"},
                 "pass_through"
             ),
             (
-                "non_dict_data",
                 {"category": "http.client", "data": "not-a-dict"},
                 "pass_through"
             ),
