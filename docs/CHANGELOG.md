@@ -11,6 +11,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.19.9] - 2026-02-26
+
+- Enhance snapshot reliability under concurrent mutations with improved test assertions
+- Enhance payload snapshot reliability with synchronized deepcopy and escalating retry delays
+- Refactor code structure for improved readability and maintainability
+- Enhance payload snapshot stability with retry logic and delays; update README test assertions for accuracy
+- [webcam] Harden API test status scenario parsing (#470)
+- [management] Clarify webcam token auth help text (#469)
+- [settings] Reject unknown categories and fixed-schema keys in patches (#468)
+- [build] Add git SHA provenance to image metadata and startup logs (#467)
+- [tests] Add config validator import and disabled discovery coverage (#466)
+- [lint] Fix Ruff issues and run Prettier (#465)
+- [tests] Add targeted mock UI and frame generation coverage (#464)
+- [webcam] Toggle mock placeholder visibility from runtime config (#463)
+- [webcam] Add mock stream placeholder to index template (#462)
+- [webcam] Render Mio SVG for mock stream frames (#461)
+- [frontend] Remove duplicate fetchReadmeContent declaration (#460)
+- [tests] Add README help endpoint and modal coverage (#459)
+- Improve accessibility and visual details in SVG
+- Create mio_floating.svg
+- [webcam] Load README content in help modal (#458)
+- [webcam] Add unauthenticated README help endpoint (#457)
+- [ui] Limit changelog preview to three entries (#456)
+- [webcam] Sanitize changelog unreadable-file response (#455)
+- [webcam] Add rail help button modal handler (#454)
+- [webcam] Add changelog API and modal rendering (#453)
+- [config] Validate discovery management URL structure (#450)
+- [webcam] Add reusable utility modal helpers (#452)
+- [config] Validate discovery management URL structure (#451)
+- [management] Support legacy private IP env fallback (#449)
+- [webcam] Add changelog modal wiring and accessibility (#447)
+- [discovery] Guard stop against self-join deadlock (#448)
+- [discovery] Snapshot payload before announce serialization (#446)
+- [management] Harden HTTP base_url transport validation (#445)
+- fix: update file extensions from .yaml to .yml in README.md
+
 ## [1.19.8] - 2026-02-26
 
 - [settings] Validate category object types in settings payload (#444)
