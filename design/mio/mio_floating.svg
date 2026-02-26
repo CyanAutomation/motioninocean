@@ -1,0 +1,155 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  width="100%"
+  height="100%"
+  role="img"
+  aria-label="Mio animated mola mola mascot"
+>
+  <defs>
+    <!-- Soft ocean-ish body gradients -->
+    <linearGradient id="mioBody" x1="0%" y1="10%" x2="100%" y2="90%">
+      <stop offset="0%" stop-color="#A7DDFF"/>
+      <stop offset="50%" stop-color="#5FB7F2"/>
+      <stop offset="100%" stop-color="#2F78C6"/>
+    </linearGradient>
+
+    <linearGradient id="mioFin" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5FB7F2"/>
+      <stop offset="100%" stop-color="#2B69B4"/>
+    </linearGradient>
+
+    <radialGradient id="mioEye" cx="35%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#6FE6FF"/>
+      <stop offset="45%" stop-color="#1F7BD3"/>
+      <stop offset="100%" stop-color="#0B2C4D"/>
+    </radialGradient>
+
+    <!-- GPU-Optimized Sticker Border -->
+    <filter id="sticker-border" filterUnits="objectBoundingBox" x="-12%" y="-12%" width="124%" height="124%">
+      <feMorphology in="SourceAlpha" operator="dilate" radius="10" result="dilated"/>
+      <feGaussianBlur in="dilated" stdDeviation="3" result="blurred"/>
+      <feComponentTransfer in="blurred" result="sharpened">
+        <feFuncA type="linear" slope="15" intercept="-6"/>
+      </feComponentTransfer>
+      <feFlood flood-color="#FFFFFF" result="whiteColor"/>
+      <feComposite in="whiteColor" in2="sharpened" operator="in" result="whiteOutline"/>
+      <feDropShadow in="whiteOutline" dx="0" dy="8" stdDeviation="6" flood-color="#000" flood-opacity="0.15" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="whiteOutline"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Base Body Path Definition (used for fill, clip, and outline) -->
+    <path id="body-shape" d="
+      M 160 256
+      C 160 160, 240 130, 310 140
+      C 360 145, 380 180, 390 200
+      C 420 190, 440 210, 420 230
+      C 460 240, 460 280, 430 290
+      C 450 310, 430 330, 400 320
+      C 380 370, 340 400, 270 390
+      C 200 380, 160 320, 160 256 Z" 
+    />
+
+    <clipPath id="belly-clip">
+      <use href="#body-shape"/>
+    </clipPath>
+  </defs>
+
+  <!-- Filter applied globally -->
+  <g filter="url(#sticker-border)">
+    
+    <!-- Organic Buoyant Float -->
+    <g id="mio-character">
+      <animateTransform
+        attributeName="transform"
+        type="translate"
+        dur="3.6s"
+        repeatCount="indefinite"
+        values="0 0; 0 -12; 0 -6; 0 0"
+        keyTimes="0; 0.4; 0.7; 1"
+        calcMode="spline"
+        keySplines=".4 0 .2 1; .4 0 .2 1; .4 0 .2 1"
+      />
+
+      <!-- ========================================== -->
+      <!-- BACKGROUND FINS (Dorsal & Anal)            -->
+      <!-- ========================================== -->
+      
+      <!-- Top Fin (Staggered start, combined rotate + subtle translate) -->
+      <g>
+        <animateTransform attributeName="transform" type="translate" dur="2.1s" repeatCount="indefinite" begin="0s" values="0 0; -1 2; 0 0" calcMode="spline" keySplines=".4 0 .2 1; .4 0 .2 1"/>
+        <g>
+          <animateTransform attributeName="transform" type="rotate" dur="2.1s" repeatCount="indefinite" begin="0s" values="-4 350 160; 4 350 160; -4 350 160" calcMode="spline" keySplines=".4 0 .2 1; .4 0 .2 1"/>
+          <path d="M 330 142 C 370 70, 410 40, 420 60 C 420 100, 390 150, 375 180 Z" fill="url(#mioFin)" stroke="#0A0A0A" stroke-width="8" stroke-linejoin="round"/>
+        </g>
+      </g>
+
+      <!-- Bottom Fin -->
+      <g>
+        <animateTransform attributeName="transform" type="translate" dur="2.4s" repeatCount="indefinite" begin="0.3s" values="0 0; 1 -2; 0 0" calcMode="spline" keySplines=".4 0 .2 1; .4 0 .2 1"/>
+        <g>
+          <animateTransform attributeName="transform" type="rotate" dur="2.4s" repeatCount="indefinite" begin="0.3s" values="4 320 380; -4 320 380; 4 320 380" calcMode="spline" keySplines=".4 0 .2 1; .4 0 .2 1"/>
+          <path d="M 290 385 C 330 450, 360 480, 370 460 C 360 420, 350 380, 335 365 Z" fill="url(#mioFin)" stroke="#0A0A0A" stroke-width="8" stroke-linejoin="round"/>
+        </g>
+      </g>
+
+      <!-- ========================================== -->
+      <!-- MAIN BODY LAYER                            -->
+      <!-- ========================================== -->
+      
+      <use href="#body-shape" fill="url(#mioBody)"/>
+      <ellipse cx="250" cy="380" rx="160" ry="100" fill="#FFFFFF" clip-path="url(#belly-clip)" opacity="0.96"/>
+      <!-- Reduced stroke-width from 10 to 8 -->
+      <use href="#body-shape" fill="none" stroke="#0A0A0A" stroke-width="8" stroke-linejoin="round"/>
+
+      <!-- ========================================== -->
+      <!-- FOREGROUND FIN (Pectoral / Side Flipper)   -->
+      <!-- ========================================== -->
+      <g>
+        <animateTransform attributeName="transform" type="translate" dur="1.7s" repeatCount="indefinite" begin="0.6s" values="0 0; -2 1; 0 0" calcMode="spline" keySplines=".4 0 .2 1; .4 0 .2 1"/>
+        <g>
+          <!-- Reduced rotation magnitude -->
+          <animateTransform attributeName="transform" type="rotate" dur="1.7s" repeatCount="indefinite" begin="0.6s" values="-8 330 290; 5 330 290; -8 330 290" calcMode="spline" keySplines=".4 0 .2 1; .4 0 .2 1"/>
+          <path d="M 310 280 C 350 270, 370 300, 350 330 C 330 340, 310 320, 310 280 Z" fill="url(#mioFin)" stroke="#0A0A0A" stroke-width="8" stroke-linejoin="round"/>
+        </g>
+      </g>
+
+      <!-- ========================================== -->
+      <!-- FACE & DETAILS                             -->
+      <!-- ========================================== -->
+      
+      <g transform="translate(220, 250)">
+        <g>
+          <!-- Decisive Pixar-style blink (0.05) -->
+          <animateTransform attributeName="transform" type="scale" dur="4.2s" repeatCount="indefinite"
+            values="1 1; 1 1; 1 0.05; 1 1; 1 1"
+            keyTimes="0; 0.92; 0.95; 0.98; 1" />
+          
+          <g transform="translate(-220, -250)">
+            <circle cx="220" cy="250" r="38" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="8"/>
+            <circle cx="226" cy="250" r="24" fill="url(#mioEye)"/>
+            <circle cx="230" cy="250" r="14" fill="#061A2D"/>
+            <circle cx="214" cy="235" r="8" fill="#FFFFFF" opacity="0.95"/>
+            <circle cx="236" cy="264" r="4" fill="#BFF3FF" opacity="0.9"/>
+          </g>
+        </g>
+      </g>
+
+      <!-- Clean, straight mouth -->
+      <path d="M 170 290 H 210" fill="none" stroke="#0A0A0A" stroke-width="8" stroke-linecap="round"/>
+      
+      <!-- Gills / Cheek Details -->
+      <path d="M 280 240 Q 295 250 280 260" fill="none" stroke="#0A0A0A" stroke-width="8" stroke-linecap="round"/>
+      <path d="M 290 265 Q 305 275 290 285" fill="none" stroke="#0A0A0A" stroke-width="8" stroke-linecap="round"/>
+
+      <!-- Head Lighting/Gloss (Reduced opacity to 0.25) -->
+      <ellipse cx="230" cy="170" rx="30" ry="15" transform="rotate(-15 230 170)" fill="#FFFFFF" opacity="0.25"/>
+      <circle cx="330" cy="200" r="8" fill="#FFFFFF" opacity="0.25"/>
+      
+    </g>
+  </g>
+</svg>
