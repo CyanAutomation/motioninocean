@@ -41,6 +41,7 @@ const state = {
   elements: {
     videoStream: null,
     mockStreamPlaceholder: null,
+    mockStreamAnimation: null,
     statsPanel: null,
     configPanel: null,
     setupPanel: null,
@@ -159,6 +160,7 @@ function initializeTheme() {
 function cacheElements() {
   state.elements.videoStream = document.getElementById("video-stream");
   state.elements.mockStreamPlaceholder = document.getElementById("mock-stream-placeholder");
+  state.elements.mockStreamAnimation = document.getElementById("mock-stream-animation");
   state.elements.statsPanel = document.getElementById("stats-panel");
   state.elements.configPanel = document.getElementById("config-panel");
   state.elements.settingsPanel = document.getElementById("settings-panel");
@@ -211,6 +213,16 @@ function cacheElements() {
 
   // Cache tab buttons to avoid a repeated DOM query on every tab switch
   state.elements.tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+
+  if (state.elements.mockStreamAnimation) {
+    state.elements.mockStreamAnimation.onerror = () => {
+      state.elements.mockStreamAnimation?.classList.add("mock-stream-animation--failed");
+    };
+
+    state.elements.mockStreamAnimation.onload = () => {
+      state.elements.mockStreamAnimation?.classList.remove("mock-stream-animation--failed");
+    };
+  }
 }
 
 /**
@@ -1648,6 +1660,7 @@ function renderConfig(data) {
 function applyMockStreamMode(isMockModeActive, isFallbackActive) {
   const video = state.elements.videoStream;
   const placeholder = state.elements.mockStreamPlaceholder;
+  const placeholderAnimation = state.elements.mockStreamAnimation;
   const refreshTitle = isMockModeActive ? "Refresh stream (mock mode active)" : "Refresh stream";
   const fullscreenTitle = isMockModeActive
     ? "Toggle fullscreen (mock preview)"
@@ -1655,6 +1668,18 @@ function applyMockStreamMode(isMockModeActive, isFallbackActive) {
 
   if (placeholder) {
     placeholder.hidden = !isMockModeActive;
+  }
+
+  if (placeholderAnimation) {
+    placeholderAnimation.classList.toggle("mock-stream-animation--failed", false);
+
+    if (isMockModeActive) {
+      const source = placeholderAnimation.getAttribute("data");
+      if (source) {
+        placeholderAnimation.removeAttribute("data");
+        placeholderAnimation.setAttribute("data", source);
+      }
+    }
   }
 
   if (video) {
