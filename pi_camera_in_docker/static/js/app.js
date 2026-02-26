@@ -7,6 +7,7 @@ const REQUEST_TIMEOUT_MS = 5000;
 const CONFIG_POLL_INTERVAL_MS = 5000;
 const THEME_STORAGE_KEY = "webcam.theme";
 const DEFAULT_MIO_PATH = "/static/img/mio/mio_avatar.png";
+const CHANGELOG_MAX_VISIBLE_ENTRIES = 8;
 
 const state = {
   updateInterval: null,
@@ -36,6 +37,7 @@ const state = {
   },
   previouslyFocusedElement: null,
   utilityModalOpen: false,
+  changelogCache: null,
   elements: {
     videoStream: null,
     statsPanel: null,
@@ -401,15 +403,108 @@ function trapUtilityModalTabCycle(event) {
 }
 
 /**
+ * Load changelog entries from API with in-memory caching.
+ *
+ * @returns {Promise<{status: string, entries: Array<{version: string, release_date: string|null, changes: string[]}>, message?: string}>} Changelog payload.
+ * @throws {Error} If the API request fails.
+ * @async
+ */
+async function fetchChangelogData() {
+  if (state.changelogCache) {
+    return state.changelogCache;
+  }
+
+  const response = await fetch("/api/changelog", {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  const payload = await response.json();
+  if (!response.ok && payload.status !== "degraded") {
+    throw new Error(payload.message || "Failed to load changelog");
+  }
+
+  state.changelogCache = payload;
+  return payload;
+}
+
+/**
+ * Render changelog entries as release cards for modal display.
+ *
+ * @param {{status: string, entries: Array<{version: string, release_date: string|null, changes: string[]}>, message?: string}} payload - Changelog API payload.
+ * @returns {string} Safe HTML string for modal content.
+ */
+function renderChangelogHtml(payload) {
+  const entries = Array.isArray(payload.entries) ? payload.entries : [];
+  const visibleEntries = entries.slice(0, CHANGELOG_MAX_VISIBLE_ENTRIES);
+
+  const cardsHtml = visibleEntries.map((entry) => {
+    const releaseDate = entry.release_date || "Unknown date";
+    const releaseTitle = `v${entry.version}`;
+    const changes = Array.isArray(entry.changes) ? entry.changes : [];
+    const itemsHtml = changes.length > 0
+      ? changes.map((change) => `<li>${escapeHtml(change)}</li>`).join("")
+      : "<li>No release notes available.</li>";
+
+    return [
+      '<article class="changelog-card">',
+      `<h3>${escapeHtml(releaseTitle)}</h3>`,
+      `<p class="utility-subtle">${escapeHtml(releaseDate)}</p>`,
+      `<ul>${itemsHtml}</ul>`,
+      '</article>',
+    ].join("");
+  }).join("");
+
+  const statusNote = payload.status === "degraded"
+    ? `<p class="utility-subtle">${escapeHtml(payload.message || "Changelog temporarily unavailable.")}</p>`
+    : "";
+
+  return [
+    '<section class="changelog-list">',
+    statusNote,
+    cardsHtml || '<p>No changelog entries available.</p>',
+    '<p><a href="/docs/CHANGELOG.md" target="_blank" rel="noopener noreferrer">View full changelog</a></p>',
+    '</section>',
+  ].join("");
+}
+
+/**
+ * Escape a string for safe HTML display.
+ *
+ * @param {string} value - Raw string value.
+ * @returns {string} Escaped string.
+ */
+function escapeHtml(value) {
+  const div = document.createElement("div");
+  div.textContent = String(value || "");
+  return div.innerHTML;
+}
+
+/**
  * Open the changelog utility modal.
  *
- * @returns {void}
+ * @returns {Promise<void>} Promise resolving when changelog is rendered.
+ * @async
  */
-function openChangelogModal() {
+async function openChangelogModal() {
   openUtilityModal({
     title: "Changelog",
-    htmlContent: '<p>Changelog entries will appear here in a future update.</p>',
+    htmlContent: "<p>Loading changelog…</p>",
   });
+
+  try {
+    const payload = await fetchChangelogData();
+    openUtilityModal({
+      title: "Changelog",
+      htmlContent: renderChangelogHtml(payload),
+    });
+  } catch (error) {
+    openUtilityModal({
+      title: "Changelog",
+      htmlContent: `<p>Unable to load changelog: ${escapeHtml(error instanceof Error ? error.message : String(error))}</p>`,
+    });
+  }
 }
 
 /**
