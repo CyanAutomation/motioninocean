@@ -3,8 +3,6 @@
 import re
 from pathlib import Path
 
-from pi_camera_in_docker.feature_flags import FeatureFlags
-
 
 FEATURE_FLAGS_DOC_PATH = Path("docs/guides/FEATURE_FLAGS.md")
 

@@ -175,7 +175,7 @@ class DiscoveryAnnouncer:
                     if attempt < 100:
                         time.sleep(0.0001)  # Brief pause before retry
                     continue
-                
+
                 try:
                     return copy.deepcopy(self.payload)
                 finally:
@@ -190,7 +190,7 @@ class DiscoveryAnnouncer:
                     time.sleep(0.001)  # 1ms
                 else:
                     time.sleep(0.002)  # 2ms for stubborn cases
-        
+
         error_message = "payload snapshot failed due to concurrent mutation"
         raise RuntimeError(error_message)
 

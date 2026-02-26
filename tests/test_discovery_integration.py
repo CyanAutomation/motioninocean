@@ -188,7 +188,7 @@ class TestDiscoveryAnnounceIntegration:
 
     def test_announcer_snapshot_succeeds_under_concurrent_mutations(self):
         """Verify _payload_snapshot() reliably succeeds despite concurrent mutations.
-        
+
         The snapshot mechanism must be thread-safe: when the payload is being actively
         mutated from another thread, _announce_once() should still succeed with high
         reliability (≥98%) without raising exceptions.

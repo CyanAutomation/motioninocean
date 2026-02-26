@@ -74,8 +74,9 @@ def test_build_discovery_payload_uses_override_node_id():
 
 def test_discovery_announcer_stop_gracefully_shuts_down_background_thread():
     """DiscoveryAnnouncer.stop() causes background thread to terminate cleanly."""
-    from discovery import DiscoveryAnnouncer
     import time
+
+    from discovery import DiscoveryAnnouncer
 
     shutdown_event = threading.Event()
     announcer = DiscoveryAnnouncer(
