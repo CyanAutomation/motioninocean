@@ -330,7 +330,11 @@ function openUtilityModal({ title, htmlContent }) {
     : null;
 
   state.elements.utilityModalTitle.textContent = title;
-  state.elements.utilityModalContent.innerHTML = htmlContent;
+  state.elements.utilityModalContent.textContent = '';
+  // Use DOMParser for safe HTML rendering
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlContent, 'text/html');
+  state.elements.utilityModalContent.appendChild(doc.body.firstChild || document.createTextNode(htmlContent));
 
   state.elements.utilityModal.classList.remove("hidden");
   state.elements.utilityModal.hidden = false;
