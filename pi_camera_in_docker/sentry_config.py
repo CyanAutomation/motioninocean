@@ -116,7 +116,8 @@ def _traces_sampler(sampling_context: Dict[str, Any]) -> float:
     do not consume Sentry quota, while mutations are always captured.
 
     Sample rates:
-    - /stream          → 0.0  (infinite MJPEG response, never sample)
+    - /stream, /stream.mjpg, /webcam, /webcam/ → 0.0
+      (infinite MJPEG response/compat aliases, never sample)
     - /health, /ready, /metrics → 0.0 (polling noise)
     - PATCH / POST / DELETE     → 1.0 (always capture mutations and actions)
     - Everything else           → 0.1 (10% of read traffic)
@@ -132,8 +133,10 @@ def _traces_sampler(sampling_context: Dict[str, Any]) -> float:
     path = wsgi_environ.get("PATH_INFO", "")
     method = wsgi_environ.get("REQUEST_METHOD", "GET")
 
-    # Never sample infinite-duration MJPEG stream — would pin a Sentry envelope open.
-    if path == "/stream":
+    stream_paths = {"/stream", "/stream.mjpg", "/webcam", "/webcam/"}
+
+    # Never sample infinite-duration MJPEG stream routes — would pin a Sentry envelope open.
+    if path in stream_paths:
         return 0.0
 
     # Never sample high-frequency polling noise.
@@ -187,7 +190,8 @@ def init_sentry(sentry_dsn: Optional[str], app_mode: str) -> None:
                 event_level=logging.ERROR,
             ),
         ],
-        # Per-route sampler: never traces /stream or health polling;
+        # Per-route sampler: never traces stream routes (/stream, /stream.mjpg, /webcam)
+        # or health polling;
         # always traces mutations; 10% of remaining read traffic.
         traces_sampler=_traces_sampler,
         # Release tag enables regression detection and suspect-commit linking.

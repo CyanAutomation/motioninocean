@@ -151,10 +151,10 @@ class TestSentryIntegration:
                 assert call_kwargs["release"] == "unknown"
 
     def test_traces_sampler_suppresses_noise_endpoints(self):
-        """_traces_sampler should return 0.0 for /stream, /health, /ready, /metrics."""
+        """_traces_sampler should return 0.0 for stream and polling noise endpoints."""
         from pi_camera_in_docker.sentry_config import _traces_sampler
 
-        for path in ["/stream", "/health", "/ready", "/metrics"]:
+        for path in ["/stream", "/stream.mjpg", "/webcam", "/webcam/", "/health", "/ready", "/metrics"]:
             rate = _traces_sampler({"wsgi_environ": {"PATH_INFO": path, "REQUEST_METHOD": "GET"}})
             assert rate == 0.0, f"Expected 0.0 for {path}, got {rate}"
 
