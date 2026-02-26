@@ -1425,7 +1425,7 @@ function switchTab(tabName) {
 /**
  * Resolve mascot image assets provided on the page.
  *
- * @returns {{avatar: string, happy: string, curious: string, sleeping: string}}
+ * @returns {{avatar: string, happy: string, curious: string, sleeping: string, winking: string, floating: string}}
  */
 function getMioAssets() {
   const { dataset } = document.body;
@@ -1434,6 +1434,8 @@ function getMioAssets() {
     happy: dataset.mioHappy || DEFAULT_MIO_PATH,
     curious: dataset.mioCurious || DEFAULT_MIO_PATH,
     sleeping: dataset.mioSleeping || DEFAULT_MIO_PATH,
+    winking: dataset.mioWinking || DEFAULT_MIO_PATH,
+    floating: dataset.mioFloating || DEFAULT_MIO_PATH,
   };
 }
 

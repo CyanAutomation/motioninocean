@@ -204,6 +204,8 @@ RUN PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.versio
 # Ordered by change frequency: stable → dynamic (requirements are pre-copied in builder)
 # Improves cache reuse, prevents accidental inclusion of non-essential files, enhances reproducibility
 COPY pi_camera_in_docker/ /app/pi_camera_in_docker/
+COPY design/mio/*.png /app/pi_camera_in_docker/static/img/mio/
+COPY design/mio/*.svg /app/pi_camera_in_docker/static/img/mio/
 COPY docs/openapi.yaml /app/docs/openapi.yaml
 COPY docs/CHANGELOG.md /app/docs/CHANGELOG.md
 COPY VERSION /app/

@@ -28,6 +28,8 @@ test("updateMascotForTab updates only topbar hero mascot image", () => {
           mioHappy: "/static/img/mio/mio_happy.png",
           mioCurious: "/static/img/mio/mio_curious.png",
           mioSleeping: "/static/img/mio/mio_sleeping.png",
+          mioWinking: "/static/img/mio/mio_winking.png",
+          mioFloating: "/static/img/mio/mio_floating.svg",
         },
       },
     },
