@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from pi_camera_in_docker import changelog_api
 from pi_camera_in_docker.changelog_api import load_changelog_entries, parse_changelog_markdown
 
 
@@ -43,8 +44,7 @@ def test_parse_changelog_markdown_returns_released_versions_only_by_default() ->
 
     # Verify second entry exists and is not Unreleased
     assert entries[1]["version"] == "1.1.0"
-    assert "Unreleased" not in str(entries), \
-        "Unreleased should not appear in any returned entry"
+    assert "Unreleased" not in str(entries), "Unreleased should not appear in any returned entry"
 
 
 def test_parse_changelog_markdown_can_include_unreleased() -> None:
@@ -61,10 +61,50 @@ def test_parse_changelog_markdown_can_include_unreleased() -> None:
     assert entries[0]["changes"] == ["Planned work"]
 
 
-def test_load_changelog_entries_missing_file_returns_degraded(tmp_path: Path) -> None:
-    """Missing changelog file returns degraded payload with empty entries."""
+def test_load_changelog_entries_reads_local_file_and_sets_metadata(tmp_path: Path) -> None:
+    """Local changelog reads return source metadata and full URL."""
+    changelog_path = tmp_path / "CHANGELOG.md"
+    changelog_path.write_text("## [1.0.0] - 2026-01-01\n- Initial release\n", encoding="utf-8")
+
+    payload = load_changelog_entries(changelog_path)
+
+    assert payload["status"] == "ok"
+    assert payload["source_type"] == "local"
+    assert payload["entries"][0]["version"] == "1.0.0"
+    assert payload["full_changelog_url"] == changelog_api.DEFAULT_FULL_CHANGELOG_URL
+
+
+def test_load_changelog_entries_missing_file_uses_remote_fallback(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Missing local changelog should fallback to remote markdown parsing."""
+    monkeypatch.setattr(
+        changelog_api,
+        "_fetch_remote_changelog_markdown",
+        lambda remote_url, timeout_seconds: "## [2.0.0] - 2026-02-01\n- Remote release\n",
+    )
+
+    payload = load_changelog_entries(tmp_path / "missing.md")
+
+    assert payload["status"] == "ok"
+    assert payload["source_type"] == "remote"
+    assert payload["entries"][0]["version"] == "2.0.0"
+    assert payload["full_changelog_url"] == changelog_api.DEFAULT_FULL_CHANGELOG_URL
+
+
+def test_load_changelog_entries_remote_failure_returns_degraded_with_link(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """When local and remote fail, degraded payload still includes full URL."""
+
+    def _raise_remote_error(remote_url: str, timeout_seconds: float) -> str:
+        raise OSError("network down")
+
+    monkeypatch.setattr(changelog_api, "_fetch_remote_changelog_markdown", _raise_remote_error)
+
     payload = load_changelog_entries(tmp_path / "missing.md")
 
     assert payload["status"] == "degraded"
     assert payload["entries"] == []
-    assert "not found" in payload["message"]
+    assert payload["source_type"] == "remote"
+    assert payload["full_changelog_url"] == changelog_api.DEFAULT_FULL_CHANGELOG_URL
