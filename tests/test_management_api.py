@@ -409,6 +409,47 @@ def _auth_headers(token="test-token"):
     return {"Authorization": f"Bearer {token}"}
 
 
+def test_manual_discovery_defaults_handles_malformed_discovery_metadata():
+    from pi_camera_in_docker.management_api import _manual_discovery_defaults
+
+    for malformed_discovery in ([], "invalid", None):
+        existing = {
+            "last_seen": "2024-01-01T00:00:00+00:00",
+            "discovery": malformed_discovery,
+        }
+
+        result = _manual_discovery_defaults(existing)
+
+        assert result == {
+            "source": "manual",
+            "first_seen": "2024-01-01T00:00:00+00:00",
+            "last_announce_at": None,
+            "approved": True,
+        }
+
+
+def test_discovery_metadata_handles_malformed_discovery_metadata(monkeypatch):
+    from pi_camera_in_docker.management_api import _discovery_metadata
+
+    fixed_now = "2024-02-02T00:00:00+00:00"
+    monkeypatch.setattr("pi_camera_in_docker.management_api._utc_now_iso", lambda: fixed_now)
+
+    for malformed_discovery in ([], "invalid", None):
+        existing = {
+            "last_seen": "2024-01-01T00:00:00+00:00",
+            "discovery": malformed_discovery,
+        }
+
+        result = _discovery_metadata(existing)
+
+        assert result == {
+            "source": "discovered",
+            "first_seen": "2024-01-01T00:00:00+00:00",
+            "last_announce_at": fixed_now,
+            "approved": False,
+        }
+
+
 def test_node_crud_and_overview(monkeypatch, tmp_path):
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
