@@ -33,6 +33,10 @@ logger = logging.getLogger(__name__)
 # Error messages for settings validation
 _ERROR_ROOT_NOT_DICT = "Root must be a dict"
 _ERROR_SETTINGS_NOT_DICT = "'settings' must be a dict"
+_ERROR_CAMERA_NOT_DICT = "'settings.camera' must be a dict"
+_ERROR_FEATURE_FLAGS_NOT_DICT = "'settings.feature_flags' must be a dict"
+_ERROR_LOGGING_NOT_DICT = "'settings.logging' must be a dict"
+_ERROR_DISCOVERY_NOT_DICT = "'settings.discovery' must be a dict"
 
 
 class SettingsValidationError(ValueError):
@@ -147,45 +151,30 @@ class ApplicationSettings:
 
             raw = json.loads(content)
 
-            # Validate version
-            if raw.get("version") != 1:
-                version = raw.get("version")
-                message = f"Unsupported schema version: {version}"
-                raise SettingsValidationError(message)
+            self._validate_settings_structure(raw)
 
             schema = self._clone_schema()
 
             settings = raw.get("settings", {})
-            if isinstance(settings, dict):
-                # Merge persisted settings, keeping schema structure
-                schema["settings"]["camera"] = {
-                    **schema["settings"]["camera"],
-                    **{
-                        k: v
-                        for k, v in settings.get("camera", {}).items()
-                        if k in schema["settings"]["camera"]
-                    },
-                }
-                persisted_feature_flags = settings.get("feature_flags", {})
-                schema["settings"]["feature_flags"] = (
-                    persisted_feature_flags if isinstance(persisted_feature_flags, dict) else {}
-                )
-                schema["settings"]["logging"] = {
-                    **schema["settings"]["logging"],
-                    **{
-                        k: v
-                        for k, v in settings.get("logging", {}).items()
-                        if k in schema["settings"]["logging"]
-                    },
-                }
-                schema["settings"]["discovery"] = {
-                    **schema["settings"]["discovery"],
-                    **{
-                        k: v
-                        for k, v in settings.get("discovery", {}).items()
-                        if k in schema["settings"]["discovery"]
-                    },
-                }
+
+            # Merge persisted settings, keeping schema structure
+            schema["settings"]["camera"] = {
+                **schema["settings"]["camera"],
+                **{k: v for k, v in settings["camera"].items() if k in schema["settings"]["camera"]},
+            }
+            schema["settings"]["feature_flags"] = settings["feature_flags"]
+            schema["settings"]["logging"] = {
+                **schema["settings"]["logging"],
+                **{k: v for k, v in settings["logging"].items() if k in schema["settings"]["logging"]},
+            }
+            schema["settings"]["discovery"] = {
+                **schema["settings"]["discovery"],
+                **{
+                    k: v
+                    for k, v in settings["discovery"].items()
+                    if k in schema["settings"]["discovery"]
+                },
+            }
 
             if raw.get("last_modified"):
                 schema["last_modified"] = raw["last_modified"]
@@ -454,6 +443,16 @@ class ApplicationSettings:
             if category not in settings:
                 message = f"Missing required category: {category}"
                 raise SettingsValidationError(message)
+
+        category_error_messages = {
+            "camera": _ERROR_CAMERA_NOT_DICT,
+            "feature_flags": _ERROR_FEATURE_FLAGS_NOT_DICT,
+            "logging": _ERROR_LOGGING_NOT_DICT,
+            "discovery": _ERROR_DISCOVERY_NOT_DICT,
+        }
+        for category, error_message in category_error_messages.items():
+            if not isinstance(settings[category], dict):
+                raise SettingsValidationError(error_message)
 
     def _save_atomic(self, data: Dict[str, Any]) -> None:
         """Save data to file atomically using temp file + rename."""
