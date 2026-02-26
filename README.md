@@ -3,8 +3,8 @@
 **Raspberry Pi CSI Camera Streaming in Docker (Picamera2 / libcamera)**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/CyanAutomation/motioninocean/workflows/CI%20-%20Test%20and%20Lint/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/ci.yaml)
-[![Security Scan](https://github.com/CyanAutomation/motioninocean/workflows/Security%20-%20Docker%20Image%20Scan/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/security-scan.yaml)
+[![CI](https://github.com/CyanAutomation/motioninocean/workflows/CI%20-%20Test%20and%20Lint/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/ci.yml)
+[![Security Scan](https://github.com/CyanAutomation/motioninocean/workflows/Security%20-%20Docker%20Image%20Scan/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/security-scan.yml)
 [![Docker Image](https://img.shields.io/badge/GHCR-motion--in--ocean-informational)](https://github.com/CyanAutomation/motioninocean/pkgs/container/motioninocean)
 [![Docker Hub](https://img.shields.io/docker/v/cyanautomation/motioninocean?label=Docker%20Hub&logo=docker)](https://hub.docker.com/r/cyanautomation/motioninocean)
 [![GitHub Release](https://img.shields.io/github/v/release/CyanAutomation/motioninocean)](https://github.com/CyanAutomation/motioninocean/releases/latest)
@@ -57,7 +57,7 @@ Open `http://localhost:8001`.
 > No Raspberry Pi hardware? Use the mock camera overlay to try it out locally:
 >
 > ```bash
-> docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
+> docker compose -f docker-compose.yaml -f docker-compose.mock.yaml up -d
 > ```
 
 ## Docker Images
