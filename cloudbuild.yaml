@@ -30,11 +30,11 @@
 
 substitutions:
   _GAR_REGION: europe-west1
-  _GAR_REPO: motion-in-ocean-demo
+  _GAR_REPO: motion-in-ocean
   _IMAGE_NAME: motion-in-ocean
   _IMAGE_TAG: latest
   _CLOUD_RUN_REGION: europe-west1
-  _SERVICE_NAME: motioninocean-demo
+  _SERVICE_NAME: motioninocean
   _SERVICE_PORT: "8080"
 
 steps:
