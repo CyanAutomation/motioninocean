@@ -111,6 +111,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         gnupg \
         gpgv \
         gosu \
+        libcairo2 \
         python3 \
         python3-venv \
         python3-numpy && \
@@ -239,6 +240,9 @@ RUN mkdir -p /app && \
 # packages (numpy, libcamera C extensions) via /usr/lib/python3/dist-packages/ — both stages share the
 # same debian:bookworm-slim base so pyvenv.cfg home pointers match correctly across build stages.
 RUN /opt/venv/bin/python3 /usr/local/bin/validate-stack.py
+
+# Layer 6 (continued): Validate Cairo runtime library presence for CairoSVG compatibility.
+RUN ldconfig -p | grep "libcairo.so.2"
 
 # Layer 6 (continued): Validate libcamera install and Raspberry Pi pipeline/IPA locations (arm64 only)
 RUN echo "Detected architecture: $(dpkg --print-architecture)" && \
