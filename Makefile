@@ -249,7 +249,7 @@ test-ui-webcam-rail:
 
 test-unit:
 	@echo "Running unit tests..."
-	pytest tests/test_units.py -v
+	pytest tests/test_units.py tests/unit -v
 
 test-integration:
 	@echo "Running integration tests..."

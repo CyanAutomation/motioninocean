@@ -1,8 +1,26 @@
 """Unit tests for discovery URL validation in config validator."""
 
+import importlib
+import sys
+
 import pytest
 
 from pi_camera_in_docker.config_validator import ConfigValidationError, validate_discovery_config
+
+
+def test_config_validator_module_imports_without_name_error() -> None:
+    """config_validator imports cleanly when loaded in isolation."""
+    module_name = "pi_camera_in_docker.config_validator"
+    original_module = sys.modules.pop(module_name, None)
+
+    try:
+        imported_module = importlib.import_module(module_name)
+        importlib.reload(imported_module)
+    finally:
+        if original_module is not None:
+            sys.modules[module_name] = original_module
+        else:
+            sys.modules.pop(module_name, None)
 
 
 @pytest.fixture
@@ -56,4 +74,12 @@ def test_validate_discovery_config_accepts_valid_management_urls(
     config = dict(valid_discovery_config)
     config["discovery_management_url"] = management_url
 
+    validate_discovery_config(config)
+
+
+@pytest.mark.parametrize("config", [{}, {"discovery_enabled": False}], ids=["empty-config", "disabled"])
+def test_validate_discovery_config_skips_management_url_when_discovery_disabled(
+    config: dict[str, object],
+) -> None:
+    """validate_discovery_config allows missing management URL unless discovery is enabled."""
     validate_discovery_config(config)
