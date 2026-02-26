@@ -193,6 +193,7 @@ function cacheElements() {
 
   // Cache tab buttons to avoid a repeated DOM query on every tab switch
   state.elements.tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+}
 
 /**
  * Attach event listeners
@@ -2313,4 +2314,3 @@ function showSetupSuccess(message) {
 }
 
 document.addEventListener("DOMContentLoaded", init);
-
