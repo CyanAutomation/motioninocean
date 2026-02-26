@@ -34,6 +34,8 @@ const state = {
     current: "--",
     max: "--",
   },
+  previouslyFocusedElement: null,
+  changelogModalOpen: false,
   elements: {
     videoStream: null,
     statsPanel: null,
@@ -71,6 +73,10 @@ const state = {
     chipInactive: null,
     chipFps: null,
     mioHeroImage: null,
+    railChangelogBtn: null,
+    changelogModal: null,
+    changelogModalCloseBtn: null,
+    changelogModalContent: null,
     // Cached tab buttons (set in cacheElements)
     tabButtons: null,
   },
@@ -185,6 +191,10 @@ function cacheElements() {
   state.elements.chipInactive = document.getElementById("chip-inactive");
   state.elements.chipFps = document.getElementById("chip-fps");
   state.elements.mioHeroImage = document.getElementById("mio-hero-image");
+  state.elements.railChangelogBtn = document.getElementById("rail-changelog-btn");
+  state.elements.changelogModal = document.getElementById("changelog-modal");
+  state.elements.changelogModalCloseBtn = document.getElementById("changelog-modal-close-btn");
+  state.elements.changelogModalContent = document.getElementById("changelog-modal-content");
 
   // Config panel elements
   state.elements.configLoading = document.getElementById("config-loading");
@@ -237,6 +247,22 @@ function attachHandlers() {
     vcFullscreenBtn.addEventListener("click", toggleFullscreen);
   }
 
+  if (state.elements.railChangelogBtn) {
+    state.elements.railChangelogBtn.addEventListener("click", openChangelogModal);
+  }
+
+  if (state.elements.changelogModalCloseBtn) {
+    state.elements.changelogModalCloseBtn.addEventListener("click", closeChangelogModal);
+  }
+
+  if (state.elements.changelogModal) {
+    state.elements.changelogModal.addEventListener("click", (event) => {
+      if (event.target === state.elements.changelogModal) {
+        closeChangelogModal();
+      }
+    });
+  }
+
   if (state.elements.videoStream) {
     state.elements.videoStream.addEventListener("load", onStreamLoad);
     state.elements.videoStream.addEventListener("error", onStreamError);
@@ -255,6 +281,12 @@ function attachHandlers() {
   document.addEventListener("mozfullscreenchange", onFullscreenChange);
   document.addEventListener("MSFullscreenChange", onFullscreenChange);
 
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && state.changelogModalOpen) {
+      closeChangelogModal();
+    }
+  });
+
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       stopStatsUpdate();
@@ -271,6 +303,45 @@ function attachHandlers() {
       assertSinglePollingMode();
     }
   });
+}
+
+/**
+ * Open changelog modal and move focus to close button.
+ */
+function openChangelogModal() {
+  if (!state.elements.changelogModal) {
+    return;
+  }
+
+  state.previouslyFocusedElement = document.activeElement instanceof HTMLElement
+    ? document.activeElement
+    : null;
+
+  state.elements.changelogModal.classList.remove("hidden");
+  state.elements.changelogModal.hidden = false;
+  state.changelogModalOpen = true;
+
+  if (state.elements.changelogModalCloseBtn) {
+    state.elements.changelogModalCloseBtn.focus();
+  }
+}
+
+/**
+ * Close changelog modal and restore previous focus target.
+ */
+function closeChangelogModal() {
+  if (!state.elements.changelogModal) {
+    return;
+  }
+
+  state.elements.changelogModal.classList.add("hidden");
+  state.elements.changelogModal.hidden = true;
+  state.changelogModalOpen = false;
+
+  if (state.previouslyFocusedElement && typeof state.previouslyFocusedElement.focus === "function") {
+    state.previouslyFocusedElement.focus();
+  }
+  state.previouslyFocusedElement = null;
 }
 
 /**
