@@ -11,7 +11,6 @@ import json
 import logging
 import random
 import socket
-import time
 import urllib.error
 import urllib.request
 import uuid
@@ -120,6 +119,7 @@ class DiscoveryAnnouncer:
         self._stop_event = Event()
         self._thread: Optional[Thread] = None
         self._thread_lock = Lock()
+        self._payload_lock = Lock()
 
     def start(self) -> None:
         """Start the discovery announcement daemon thread.
@@ -152,8 +152,8 @@ class DiscoveryAnnouncer:
     def _payload_snapshot(self) -> Dict[str, Any]:
         """Create a best-effort immutable payload snapshot for serialization.
 
-        Retries snapshot creation up to 10 times to handle concurrent mutations.
-        Uses brief delays between retries to allow mutations to stabilize.
+        Retries snapshot creation multiple times to handle concurrent mutations.
+        Without delays, concurrent mutations eventually complete between attempts.
 
         Returns:
             Deep-copied payload snapshot safe to serialize.
@@ -161,15 +161,17 @@ class DiscoveryAnnouncer:
         Raises:
             RuntimeError: If a stable payload snapshot cannot be copied after retries.
         """
-        max_retries = 10
+        max_retries = 20
         for attempt in range(max_retries):
             try:
                 return copy.deepcopy(self.payload)
             except Exception:
                 if attempt == max_retries - 1:
                     break
-                # Small delay to allow mutations to complete
-                time.sleep(0.001 * (attempt + 1))
+        error_message = "payload snapshot failed due to concurrent mutation"
+        raise RuntimeError(error_message)
+        error_message = "payload snapshot failed due to concurrent mutation"
+        raise RuntimeError(error_message)
         error_message = "payload snapshot failed due to concurrent mutation"
         raise RuntimeError(error_message)
 

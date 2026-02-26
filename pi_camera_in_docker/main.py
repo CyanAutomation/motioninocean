@@ -67,6 +67,10 @@ logger = logging.getLogger(__name__)
 feature_flags: FeatureFlags = get_feature_flags()
 feature_flags.load()
 
+# Resolve paths relative to the project root (two levels above this file)
+_openapi_spec_path = Path(__file__).parent.parent / "docs" / "openapi.yaml"
+_readme_path = Path(__file__).parent.parent / "README.md"
+
 
 def _redacted_url_for_logs(url: str) -> str:
     """Redact query parameters and fragments from URL for safe logging.
@@ -1093,8 +1097,6 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
     # Metrics tracking: frames_captured, current_fps
 
     # Resolve openapi.yaml relative to the project root (two levels above this file)
-    _openapi_spec_path = Path(__file__).parent.parent / "docs" / "openapi.yaml"
-    _readme_path = Path(__file__).parent.parent / "README.md"
 
     @app.route("/openapi.json", methods=["GET"])
     def openapi_spec():
