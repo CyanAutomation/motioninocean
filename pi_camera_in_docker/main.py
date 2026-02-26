@@ -28,6 +28,7 @@ from werkzeug.serving import make_server
 
 from .application_settings import ApplicationSettings
 from .banner import print_startup_banner
+from .changelog_api import register_changelog_routes
 from .config_validator import ConfigValidationError, validate_all_config
 from .discovery import DiscoveryAnnouncer, build_discovery_payload
 from .feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
@@ -1077,6 +1078,8 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
         except Exception as e:
             logger.exception("Setup generation endpoint failed")
             return jsonify({"error": f"Failed to generate configuration: {e!s}"}), 500
+
+    register_changelog_routes(app)
 
     # NOTE: The following endpoints are defined in shared.py via register_shared_routes:
     # @app.route("/health")
