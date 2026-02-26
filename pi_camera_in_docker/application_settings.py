@@ -38,6 +38,24 @@ _ERROR_FEATURE_FLAGS_NOT_DICT = "'settings.feature_flags' must be a dict"
 _ERROR_LOGGING_NOT_DICT = "'settings.logging' must be a dict"
 _ERROR_DISCOVERY_NOT_DICT = "'settings.discovery' must be a dict"
 
+_KNOWN_SETTINGS_CATEGORIES = {"camera", "feature_flags", "logging", "discovery"}
+_FIXED_SCHEMA_CATEGORY_KEYS = {
+    "camera": {
+        "resolution",
+        "fps",
+        "jpeg_quality",
+        "max_stream_connections",
+        "max_frame_age_seconds",
+    },
+    "logging": {"log_level", "log_format", "log_include_identifiers"},
+    "discovery": {
+        "discovery_enabled",
+        "discovery_management_url",
+        "discovery_token",
+        "discovery_interval_seconds",
+    },
+}
+
 
 class SettingsValidationError(ValueError):
     """Raised when settings validation fails."""
@@ -438,11 +456,17 @@ class ApplicationSettings:
         if not isinstance(settings, dict):
             raise SettingsValidationError(_ERROR_SETTINGS_NOT_DICT)
 
-        # Check known categories exist
-        for category in ["camera", "feature_flags", "logging", "discovery"]:
+        # Check known categories exist.
+        for category in _KNOWN_SETTINGS_CATEGORIES:
             if category not in settings:
                 message = f"Missing required category: {category}"
                 raise SettingsValidationError(message)
+
+        # Reject unknown top-level settings categories.
+        unknown_categories = sorted(set(settings.keys()) - _KNOWN_SETTINGS_CATEGORIES)
+        if unknown_categories:
+            message = f"Unknown settings categories: {', '.join(unknown_categories)}"
+            raise SettingsValidationError(message)
 
         category_error_messages = {
             "camera": _ERROR_CAMERA_NOT_DICT,
@@ -453,6 +477,13 @@ class ApplicationSettings:
         for category, error_message in category_error_messages.items():
             if not isinstance(settings[category], dict):
                 raise SettingsValidationError(error_message)
+
+        # Enforce fixed schema keys for known static categories.
+        for category, allowed_keys in _FIXED_SCHEMA_CATEGORY_KEYS.items():
+            unknown_keys = sorted(set(settings[category].keys()) - allowed_keys)
+            if unknown_keys:
+                message = f"Unknown settings keys in '{category}': {', '.join(unknown_keys)}"
+                raise SettingsValidationError(message)
 
     def _save_atomic(self, data: Dict[str, Any]) -> None:
         """Save data to file atomically using temp file + rename."""

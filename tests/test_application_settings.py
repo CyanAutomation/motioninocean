@@ -328,6 +328,60 @@ class TestApplicationSettingsValidation:
         with pytest.raises(SettingsValidationError, match=expected_message):
             settings.load()
 
+    def test_apply_patch_atomic_rejects_unknown_top_level_category(self, temp_settings_file):
+        """Patch should reject unknown top-level settings categories."""
+        settings = ApplicationSettings(temp_settings_file)
+
+        with pytest.raises(SettingsValidationError, match="Unknown settings categories: unknown"):
+            settings.apply_patch_atomic({"unknown": {"any": "value"}}, "test")
+
+    @pytest.mark.parametrize(
+        ("category", "bad_key"),
+        [
+            ("camera", "not_a_camera_key"),
+            ("logging", "not_a_logging_key"),
+            ("discovery", "not_a_discovery_key"),
+        ],
+    )
+    def test_apply_patch_atomic_rejects_unknown_keys_for_fixed_schema_categories(
+        self, temp_settings_file, category, bad_key
+    ):
+        """Patch should reject unknown keys in fixed-schema categories."""
+        settings = ApplicationSettings(temp_settings_file)
+
+        with pytest.raises(
+            SettingsValidationError,
+            match=rf"Unknown settings keys in '{category}': {bad_key}",
+        ):
+            settings.apply_patch_atomic({category: {bad_key: "value"}}, "test")
+
+    def test_apply_patch_atomic_accepts_valid_fixed_schema_patch(self, temp_settings_file):
+        """Patch should still succeed for valid fixed-schema keys."""
+        settings = ApplicationSettings(temp_settings_file)
+
+        updated = settings.apply_patch_atomic(
+            {
+                "camera": {"fps": 60},
+                "logging": {"log_level": "DEBUG"},
+            },
+            "test",
+        )
+
+        assert updated["settings"]["camera"]["fps"] == 60
+        assert updated["settings"]["logging"]["log_level"] == "DEBUG"
+
+    def test_apply_patch_atomic_keeps_feature_flags_dynamic(self, temp_settings_file):
+        """Feature flags should continue accepting dynamic keys through patches."""
+        settings = ApplicationSettings(temp_settings_file)
+
+        updated = settings.apply_patch_atomic(
+            {"feature_flags": {"MY_DYNAMIC_FLAG": True, "ANOTHER_DYNAMIC_FLAG": False}},
+            "test",
+        )
+
+        assert updated["settings"]["feature_flags"]["MY_DYNAMIC_FLAG"] is True
+        assert updated["settings"]["feature_flags"]["ANOTHER_DYNAMIC_FLAG"] is False
+
 
 class TestApplicationSettingsConcurrency:
     """Test file locking for concurrent access."""
