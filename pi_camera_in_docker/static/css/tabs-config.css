@@ -392,19 +392,25 @@
   font-size: 1.15rem;
 }
 
-/* Health indicator styling */
+/* Shared badge geometry */
+.config-badge,
 .health-indicator {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: center;
   width: fit-content;
   padding: 0.2rem 0.55rem;
-  border-radius: var(--radius-pill, 999px);
-  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
   font-size: 0.84rem;
-  font-weight: 700;
-  letter-spacing: 0.2px;
   line-height: 1.2;
+  font-weight: 700;
+}
+
+/* Health indicator styling */
+.health-indicator {
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  letter-spacing: 0.2px;
 }
 
 .health-indicator::before {
@@ -483,12 +489,8 @@
 }
 
 .config-badge {
-  display: inline-flex;
-  font-size: 0.8rem;
-  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  width: fit-content;
 }
 
 .config-badge.enabled {
@@ -609,6 +611,7 @@
     font-size: 0.9rem;
   }
 
+  .config-badge,
   .health-indicator {
     font-size: 0.78rem;
   }
