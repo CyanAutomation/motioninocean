@@ -274,6 +274,51 @@ paths:
               schema:
                 type: string
 
+  /api/help/readme:
+    get:
+      operationId: getHelpReadme
+      summary: In-app README help content
+      description: |
+        Returns README markdown content used by the web UI help modal.
+        The endpoint first attempts to read a local `README.md`, then falls back
+        to a remote repository source.
+
+        When both sources are unavailable, a degraded payload is returned with
+        a `documentation_url` and descriptive `message` so clients can still
+        direct users to documentation.
+      tags: [Operations]
+      security: []
+      responses:
+        "200":
+          description: README payload (normal or degraded)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/HelpReadmeSuccessResponse"
+                  - $ref: "#/components/schemas/HelpReadmeDegradedResponse"
+              examples:
+                local_readme:
+                  summary: Local README source
+                  value:
+                    status: ok
+                    content: "# Motion In Ocean\n\nLocal README content served from container filesystem."
+                    source: local
+                remote_readme:
+                  summary: Remote README source
+                  value:
+                    status: ok
+                    content: "# Motion In Ocean\n\nREADME fetched from the upstream repository."
+                    source: remote
+                fallback_link_only:
+                  summary: Fallback link-only response
+                  value:
+                    status: degraded
+                    content: null
+                    documentation_url: https://github.com/CyanAutomation/motioninocean#readme
+                    message: README content is currently unavailable. Visit the documentation URL for guidance.
+                    source: fallback_link
+
   # ── Webcam mode — stream, snapshot, actions ──────────────────────────────────
 
   /stream.mjpg:
@@ -952,6 +997,44 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
 
   schemas:
+    HelpReadmeSuccessResponse:
+      type: object
+      required: [status, content, source]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        content:
+          type: string
+          description: Raw README markdown content.
+        source:
+          type: string
+          enum: [local, remote]
+          description: Indicates whether README content came from local disk or remote fetch.
+
+    HelpReadmeDegradedResponse:
+      type: object
+      required: [status, content, documentation_url, message, source]
+      properties:
+        status:
+          type: string
+          enum: [degraded, error]
+        content:
+          type: string
+          nullable: true
+          description: Content is unavailable in degraded mode and may be null.
+        documentation_url:
+          type: string
+          format: uri
+          description: External documentation URL clients should present to users.
+        message:
+          type: string
+          description: Human-readable degraded/error explanation.
+        source:
+          type: string
+          enum: [fallback_link]
+          description: Indicates fallback-only response with no inline README content.
+
     # ── Shared auth / discovery sub-objects ────────────────────────────────────
 
     WebcamAuth:
