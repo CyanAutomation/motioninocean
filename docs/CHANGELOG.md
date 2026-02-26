@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.20.2] - 2026-02-26
+
+- Refactor code structure for improved readability and maintainability
+- [webcam] Add utility modal and changelog card styles (#481)
+
 ## [1.20.1] - 2026-02-26
 
 - [tests] Harden mock placeholder embedding and viewport bounds coverage (#480)
