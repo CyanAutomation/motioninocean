@@ -1,6 +1,7 @@
 """Configuration validation and startup checks."""
 
 from typing import Any, Dict, Optional
+from urllib.parse import urlparse
 
 from .settings_schema import SettingsSchema
 
@@ -39,6 +40,54 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
             hint=(
                 "Docker Compose example: environment: "
                 """["MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"]"""
+            ),
+        )
+
+    try:
+        parsed_management_url = urlparse(management_url)
+        parsed_port = parsed_management_url.port
+    except ValueError as exc:
+        raise ConfigValidationError(
+            "MIO_DISCOVERY_MANAGEMENT_URL is malformed",
+            hint=(
+                "Use a valid URL such as "
+                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
+            ),
+        ) from exc
+
+    if parsed_management_url.scheme not in {"http", "https"}:
+        raise ConfigValidationError(
+            "MIO_DISCOVERY_MANAGEMENT_URL must start with http:// or https://",
+            hint=(
+                "Use a valid URL such as "
+                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
+            ),
+        )
+
+    if not parsed_management_url.hostname:
+        raise ConfigValidationError(
+            "MIO_DISCOVERY_MANAGEMENT_URL must include a hostname",
+            hint=(
+                "Use a valid URL such as "
+                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
+            ),
+        )
+
+    if parsed_management_url.username or parsed_management_url.password:
+        raise ConfigValidationError(
+            "MIO_DISCOVERY_MANAGEMENT_URL must not include embedded credentials",
+            hint=(
+                "Move credentials to environment variables and use a URL like "
+                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
+            ),
+        )
+
+    if parsed_port is not None and not (0 < parsed_port <= 65535):
+        raise ConfigValidationError(
+            "MIO_DISCOVERY_MANAGEMENT_URL has an invalid port",
+            hint=(
+                "Use a valid URL such as "
+                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
             ),
         )
 
