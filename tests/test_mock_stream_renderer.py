@@ -48,3 +48,22 @@ def test_render_mio_mock_frame_raises_without_cairosvg(monkeypatch):
 
     with pytest.raises(mock_stream_renderer.MockStreamRenderError):
         mock_stream_renderer.render_mio_mock_frame(320, 240, 85)
+
+
+def test_render_mio_mock_frame_raises_when_cairosvg_import_raises_oserror(monkeypatch):
+    """Renderer should wrap cairosvg import OSError in MockStreamRenderError."""
+
+    mock_stream_renderer.render_mio_mock_frame.cache_clear()
+    monkeypatch.delitem(sys.modules, "cairosvg", raising=False)
+
+    original_import = __import__("builtins").__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "cairosvg":
+            raise OSError("libcairo.so.2: cannot open shared object file: No such file or directory")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.__import__", fake_import)
+
+    with pytest.raises(mock_stream_renderer.MockStreamRenderError):
+        mock_stream_renderer.render_mio_mock_frame(320, 240, 85)
