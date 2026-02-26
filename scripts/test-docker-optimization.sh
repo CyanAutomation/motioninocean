@@ -89,6 +89,36 @@ docker exec "$CONTAINER_ID" python3 -c "import numpy, flask, flask_cors, picamer
     exit 1
 }
 
+# Verify changelog is present in image runtime docs path
+echo "[INFO] Verifying bundled changelog file..."
+docker exec "$CONTAINER_ID" test -f /app/docs/CHANGELOG.md && {
+    echo "[INFO] Changelog file exists at /app/docs/CHANGELOG.md"
+} || {
+    echo "[ERROR] Missing /app/docs/CHANGELOG.md"
+    docker stop "$CONTAINER_ID" 2>/dev/null || true
+    exit 1
+}
+
+# Validate changelog API endpoint is available in running container
+echo "[INFO] Verifying /api/changelog endpoint..."
+# Wait for server to be ready (retry with timeout)
+MAX_RETRIES=10
+RETRY_COUNT=0
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    if docker exec "$CONTAINER_ID" curl -fsS  >/dev/null 2>&1; then
+        echo "[INFO] /api/changelog endpoint is available"
+        break
+    fi
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+        echo "[ERROR] /api/changelog endpoint check failed after ${MAX_RETRIES} attempts"
+        docker stop "$CONTAINER_ID" 2>/dev/null || true
+        exit 1
+    fi
+    sleep 1
+done
+
+
 # Run healthcheck
 echo "[INFO] Running healthcheck..."
 docker exec "$CONTAINER_ID" python3 /app/healthcheck.py 2>&1 | grep -q "Server is running" && {

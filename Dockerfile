@@ -205,6 +205,7 @@ RUN PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.versio
 # Improves cache reuse, prevents accidental inclusion of non-essential files, enhances reproducibility
 COPY pi_camera_in_docker/ /app/pi_camera_in_docker/
 COPY docs/openapi.yaml /app/docs/openapi.yaml
+COPY docs/CHANGELOG.md /app/docs/CHANGELOG.md
 COPY VERSION /app/
 COPY scripts/healthcheck.py /app/healthcheck.py
 COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
