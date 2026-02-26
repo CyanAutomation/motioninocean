@@ -34,6 +34,7 @@ from .discovery import DiscoveryAnnouncer, build_discovery_payload
 from .feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 from .logging_config import configure_logging, log_provenance_info
 from .management_api import register_management_routes
+from .mock_stream_renderer import MockStreamRenderError, render_mio_mock_frame
 from .modes.webcam import (
     ConnectionTracker,
     FrameBuffer,
@@ -1673,10 +1674,18 @@ def _init_mock_camera_frames(state: Dict[str, Any], cfg: Dict[str, Any]) -> None
     output: FrameBuffer = state["output"]
     shutdown_requested: Event = state["shutdown_requested"]
 
-    fallback = Image.new("RGB", cfg["resolution"], color=(0, 0, 0))
-    buf = io.BytesIO()
-    fallback.save(buf, format="JPEG", quality=cfg["jpeg_quality"])
-    frame = buf.getvalue()
+    width, height = cfg["resolution"]
+    try:
+        frame = render_mio_mock_frame(width, height, cfg["jpeg_quality"])
+    except MockStreamRenderError:
+        logger.warning(
+            "Mock stream SVG rasterization failed; using black-frame fallback",
+            exc_info=True,
+        )
+        fallback = Image.new("RGB", cfg["resolution"], color=(0, 0, 0))
+        buf = io.BytesIO()
+        fallback.save(buf, format="JPEG", quality=cfg["jpeg_quality"])
+        frame = buf.getvalue()
 
     def generate_mock_frames() -> None:
         recording_started.set()

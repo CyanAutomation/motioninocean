@@ -20,6 +20,9 @@ sentry-sdk[flask]==2.53.0
 # Included in all builds so runtime can switch to mock mode via MOCK_CAMERA=true when needed.
 Pillow>=12.1.1
 
+# SVG rasterization for mock stream rendering
+CairoSVG>=2.7.1
+
 # NumPy for array processing
 numpy==2.2.3
 
