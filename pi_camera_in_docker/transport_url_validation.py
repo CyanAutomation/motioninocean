@@ -1,9 +1,42 @@
 import re
+from ipaddress import ip_address
 from typing import Tuple
 from urllib.parse import urlparse
 
 
 _DOCKER_CONTAINER_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+_HOSTNAME_LABEL_PATTERN = re.compile(r"^[A-Za-z0-9-]{1,63}$")
+
+
+def _is_valid_http_hostname(hostname: str) -> bool:
+    """Return True when hostname is a valid DNS label sequence, localhost, or IP literal."""
+    try:
+        ip_address(hostname)
+        return True
+    except ValueError:
+        pass
+
+    lowered = hostname.lower()
+    if lowered == "localhost":
+        return True
+
+    if lowered.endswith("."):
+        lowered = lowered[:-1]
+
+    if not lowered:
+        return False
+
+    labels = lowered.split(".")
+    if any(not label for label in labels):
+        return False
+
+    for label in labels:
+        if not _HOSTNAME_LABEL_PATTERN.fullmatch(label):
+            return False
+        if label.startswith("-") or label.endswith("-"):
+            return False
+
+    return True
 
 
 def parse_docker_url(base_url: str) -> Tuple[str, int, str]:
@@ -77,9 +110,32 @@ def validate_base_url_for_transport(base_url: str, transport: str) -> None:
             or docker:// URL is malformed.
     """
     if transport == "http":
-        error_message = "base_url must start with http:// or https://"
-        if not base_url.startswith(("http://", "https://")):
+        parsed = urlparse(base_url)
+
+        if parsed.scheme not in {"http", "https"}:
+            error_message = "base_url scheme must be http or https"
             raise ValueError(error_message)
+
+        if not parsed.hostname:
+            error_message = "base_url must include a valid hostname"
+            raise ValueError(error_message)
+
+        if not _is_valid_http_hostname(parsed.hostname):
+            error_message = "base_url hostname is invalid"
+            raise ValueError(error_message)
+
+        if parsed.query or parsed.fragment:
+            error_message = "base_url must not include query or fragment"
+            raise ValueError(error_message)
+
+        if parsed.path and not parsed.path.startswith("/"):
+            error_message = "base_url path must start with '/'"
+            raise ValueError(error_message)
+
+        if "/../" in parsed.path or parsed.path.startswith("../") or parsed.path.endswith("/.."):
+            error_message = "base_url path must not include parent-directory traversal"
+            raise ValueError(error_message)
+
         return
 
     if transport == "docker":
