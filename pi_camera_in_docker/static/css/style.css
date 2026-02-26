@@ -166,8 +166,6 @@
   z-index: 4;
   display: grid;
   place-items: center;
-  align-content: center;
-  justify-items: center;
   gap: var(--space-4);
   padding: var(--space-5);
   text-align: center;
