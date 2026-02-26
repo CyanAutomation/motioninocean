@@ -242,7 +242,7 @@ RUN mkdir -p /app && \
 RUN /opt/venv/bin/python3 /usr/local/bin/validate-stack.py
 
 # Layer 6 (continued): Validate Cairo runtime library presence for CairoSVG compatibility.
-RUN ldconfig -p | grep "libcairo.so.2"
+RUN ldconfig -p | grep -q "libcairo.so.2" || { echo "ERROR: libcairo.so.2 not found in ldconfig — Cairo library not installed." >&2; exit 1; }
 
 # Layer 6 (continued): Validate libcamera install and Raspberry Pi pipeline/IPA locations (arm64 only)
 RUN echo "Detected architecture: $(dpkg --print-architecture)" && \
