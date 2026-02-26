@@ -14,7 +14,7 @@ import socket
 import urllib.error
 import urllib.request
 import uuid
-from threading import Event, Lock, Thread
+from threading import Event, Lock, Thread, current_thread
 from typing import Any, Dict, Optional
 from urllib.parse import urlsplit, urlunsplit
 
@@ -140,6 +140,9 @@ class DiscoveryAnnouncer:
         """
         with self._thread_lock:
             self._stop_event.set()
+            if self._thread is current_thread():
+                self._thread = None
+                return
             if self._thread and self._thread.is_alive():
                 self._thread.join(timeout=timeout_seconds)
             if self._thread and not self._thread.is_alive():

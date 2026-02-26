@@ -34,6 +34,8 @@ const state = {
     current: "--",
     max: "--",
   },
+  previouslyFocusedElement: null,
+  utilityModalOpen: false,
   elements: {
     videoStream: null,
     statsPanel: null,
@@ -71,6 +73,11 @@ const state = {
     chipInactive: null,
     chipFps: null,
     mioHeroImage: null,
+    railChangelogBtn: null,
+    utilityModal: null,
+    utilityModalCloseBtn: null,
+    utilityModalTitle: null,
+    utilityModalContent: null,
     // Cached tab buttons (set in cacheElements)
     tabButtons: null,
   },
@@ -185,6 +192,11 @@ function cacheElements() {
   state.elements.chipInactive = document.getElementById("chip-inactive");
   state.elements.chipFps = document.getElementById("chip-fps");
   state.elements.mioHeroImage = document.getElementById("mio-hero-image");
+  state.elements.railChangelogBtn = document.getElementById("rail-changelog-btn");
+  state.elements.utilityModal = document.getElementById("utility-modal");
+  state.elements.utilityModalCloseBtn = document.getElementById("utility-modal-close-btn");
+  state.elements.utilityModalTitle = document.getElementById("utility-modal-title");
+  state.elements.utilityModalContent = document.getElementById("utility-modal-content");
 
   // Config panel elements
   state.elements.configLoading = document.getElementById("config-loading");
@@ -237,6 +249,22 @@ function attachHandlers() {
     vcFullscreenBtn.addEventListener("click", toggleFullscreen);
   }
 
+  if (state.elements.railChangelogBtn) {
+    state.elements.railChangelogBtn.addEventListener("click", openChangelogModal);
+  }
+
+  if (state.elements.utilityModalCloseBtn) {
+    state.elements.utilityModalCloseBtn.addEventListener("click", closeUtilityModal);
+  }
+
+  if (state.elements.utilityModal) {
+    state.elements.utilityModal.addEventListener("click", (event) => {
+      if (event.target === state.elements.utilityModal) {
+        closeUtilityModal();
+      }
+    });
+  }
+
   if (state.elements.videoStream) {
     state.elements.videoStream.addEventListener("load", onStreamLoad);
     state.elements.videoStream.addEventListener("error", onStreamError);
@@ -255,6 +283,17 @@ function attachHandlers() {
   document.addEventListener("mozfullscreenchange", onFullscreenChange);
   document.addEventListener("MSFullscreenChange", onFullscreenChange);
 
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && state.utilityModalOpen) {
+      closeUtilityModal();
+      return;
+    }
+
+    if (event.key === "Tab" && state.utilityModalOpen) {
+      trapUtilityModalTabCycle(event);
+    }
+  });
+
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       stopStatsUpdate();
@@ -270,6 +309,106 @@ function attachHandlers() {
 
       assertSinglePollingMode();
     }
+  });
+}
+
+/**
+ * Open the shared utility modal with dynamic title and content.
+ *
+ * @param {{title: string, htmlContent: string}} options - Modal display options.
+ * @param {string} options.title - Dialog heading text.
+ * @param {string} options.htmlContent - HTML content to render in the modal body.
+ * @returns {void}
+ */
+function openUtilityModal({ title, htmlContent }) {
+  if (!state.elements.utilityModal || !state.elements.utilityModalTitle || !state.elements.utilityModalContent) {
+    return;
+  }
+
+  state.previouslyFocusedElement = document.activeElement instanceof HTMLElement
+    ? document.activeElement
+    : null;
+
+  state.elements.utilityModalTitle.textContent = title;
+  state.elements.utilityModalContent.textContent = '';
+  // Use DOMParser for safe HTML rendering
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlContent, 'text/html');
+  state.elements.utilityModalContent.appendChild(doc.body.firstChild || document.createTextNode(htmlContent));
+
+  state.elements.utilityModal.classList.remove("hidden");
+  state.elements.utilityModal.hidden = false;
+  state.utilityModalOpen = true;
+
+  if (state.elements.utilityModalCloseBtn) {
+    state.elements.utilityModalCloseBtn.focus();
+  }
+}
+
+/**
+ * Close the utility modal and restore previous focus target.
+ *
+ * @returns {void}
+ */
+function closeUtilityModal() {
+  if (!state.elements.utilityModal) {
+    return;
+  }
+
+  state.elements.utilityModal.classList.add("hidden");
+  state.elements.utilityModal.hidden = true;
+  state.utilityModalOpen = false;
+
+  if (state.previouslyFocusedElement && typeof state.previouslyFocusedElement.focus === "function") {
+    state.previouslyFocusedElement.focus();
+  }
+  state.previouslyFocusedElement = null;
+}
+
+/**
+ * Keep keyboard tab navigation within the open utility modal.
+ *
+ * @param {KeyboardEvent} event - Keydown event for Tab navigation.
+ * @returns {void}
+ */
+function trapUtilityModalTabCycle(event) {
+  if (!state.elements.utilityModal) {
+    return;
+  }
+
+  const focusableElements = state.elements.utilityModal.querySelectorAll(
+    'a[href], area[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+  );
+
+  if (focusableElements.length === 0) {
+    return;
+  }
+
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+  const activeElement = document.activeElement;
+
+  if (event.shiftKey && activeElement === firstElement) {
+    event.preventDefault();
+    lastElement.focus();
+    return;
+  }
+
+  if (!event.shiftKey && activeElement === lastElement) {
+    event.preventDefault();
+    firstElement.focus();
+  }
+}
+
+/**
+ * Open the changelog utility modal.
+ *
+ * @returns {void}
+ */
+function openChangelogModal() {
+  openUtilityModal({
+    title: "Changelog",
+    htmlContent: '<p>Changelog entries will appear here in a future update.</p>',
   });
 }
 
