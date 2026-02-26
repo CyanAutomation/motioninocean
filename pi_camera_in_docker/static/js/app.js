@@ -74,6 +74,7 @@ const state = {
     chipFps: null,
     mioHeroImage: null,
     railChangelogBtn: null,
+    railHelpBtn: null,
     utilityModal: null,
     utilityModalCloseBtn: null,
     utilityModalTitle: null,
@@ -193,6 +194,7 @@ function cacheElements() {
   state.elements.chipFps = document.getElementById("chip-fps");
   state.elements.mioHeroImage = document.getElementById("mio-hero-image");
   state.elements.railChangelogBtn = document.getElementById("rail-changelog-btn");
+  state.elements.railHelpBtn = document.getElementById("rail-help-btn");
   state.elements.utilityModal = document.getElementById("utility-modal");
   state.elements.utilityModalCloseBtn = document.getElementById("utility-modal-close-btn");
   state.elements.utilityModalTitle = document.getElementById("utility-modal-title");
@@ -251,6 +253,10 @@ function attachHandlers() {
 
   if (state.elements.railChangelogBtn) {
     state.elements.railChangelogBtn.addEventListener("click", openChangelogModal);
+  }
+
+  if (state.elements.railHelpBtn) {
+    state.elements.railHelpBtn.addEventListener("click", openHelpModal);
   }
 
   if (state.elements.utilityModalCloseBtn) {
@@ -409,6 +415,18 @@ function openChangelogModal() {
   openUtilityModal({
     title: "Changelog",
     htmlContent: '<p>Changelog entries will appear here in a future update.</p>',
+  });
+}
+
+/**
+ * Open the help utility modal.
+ *
+ * @returns {void}
+ */
+function openHelpModal() {
+  openUtilityModal({
+    title: "Help",
+    htmlContent: '<p>Help documentation will appear here in a future update.</p>',
   });
 }
 
