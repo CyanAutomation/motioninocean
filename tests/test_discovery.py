@@ -211,6 +211,76 @@ def test_discovery_announcer_start_is_thread_safe_and_idempotent():
         assert not thread_ref.is_alive()
 
 
+def test_discovery_announcer_stop_from_external_thread_joins():
+    from discovery import DiscoveryAnnouncer
+
+    shutdown_event = threading.Event()
+    announcer = DiscoveryAnnouncer(
+        management_url="http://127.0.0.1:8001",
+        token="token",
+        interval_seconds=30,
+        webcam_id="node-1",
+        payload={"webcam_id": "node-1"},
+        shutdown_event=shutdown_event,
+    )
+
+    with patch.object(announcer, "_run_loop", side_effect=announcer._stop_event.wait):
+        announcer.start()
+        thread_ref = announcer._thread
+        assert thread_ref is not None
+        assert thread_ref.is_alive()
+
+        join_calls = []
+        original_join = thread_ref.join
+
+        def tracked_join(*args, **kwargs):
+            join_calls.append((args, kwargs))
+            return original_join(*args, **kwargs)
+
+        with patch.object(thread_ref, "join", side_effect=tracked_join):
+            announcer.stop(timeout_seconds=1.0)
+
+        assert join_calls
+        assert not thread_ref.is_alive()
+        assert announcer._thread is None
+
+
+def test_discovery_announcer_stop_from_same_thread_skips_join_and_exits_gracefully():
+    from discovery import DiscoveryAnnouncer
+
+    shutdown_event = threading.Event()
+    announcer = DiscoveryAnnouncer(
+        management_url="http://127.0.0.1:8001",
+        token="token",
+        interval_seconds=30,
+        webcam_id="node-1",
+        payload={"webcam_id": "node-1"},
+        shutdown_event=shutdown_event,
+    )
+
+    stop_completed = threading.Event()
+    errors = []
+
+    def run_and_stop() -> None:
+        announcer._thread = threading.current_thread()
+        try:
+            announcer.stop(timeout_seconds=1.0)
+        except Exception as exc:  # pragma: no cover - asserts below verify none raised
+            errors.append(exc)
+        finally:
+            stop_completed.set()
+
+    worker = threading.Thread(target=run_and_stop, name="self-stop-worker")
+    worker.start()
+
+    assert stop_completed.wait(timeout=2.0)
+    worker.join(timeout=2.0)
+
+    assert not errors
+    assert announcer._stop_event.is_set()
+    assert announcer._thread is None
+
+
 def test_create_webcam_app_initializes_discovery_with_webcam_id(full_config, monkeypatch):
     from pi_camera_in_docker import main
 
