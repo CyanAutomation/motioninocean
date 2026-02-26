@@ -171,6 +171,7 @@
   gap: var(--space-4);
   padding: var(--space-5);
   text-align: center;
+  background: rgba(var(--color-bg-subtle-rgb, 245, 245, 245), 0.94);
   background: color-mix(in srgb, var(--color-bg-subtle) 94%, transparent);
 }
 
