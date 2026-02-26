@@ -1643,9 +1643,7 @@ function renderConfig(data) {
 function applyMockStreamMode(isMockModeActive, isFallbackActive) {
   const video = state.elements.videoStream;
   const placeholder = state.elements.mockStreamPlaceholder;
-  const refreshTitle = isMockModeActive
-    ? "Refresh stream (mock mode active)"
-    : "Refresh stream";
+  const refreshTitle = isMockModeActive ? "Refresh stream (mock mode active)" : "Refresh stream";
   const fullscreenTitle = isMockModeActive
     ? "Toggle fullscreen (mock preview)"
     : "Toggle fullscreen";

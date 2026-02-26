@@ -12,11 +12,10 @@ def _is_valid_http_hostname(hostname: str) -> bool:
     """Return True when hostname is a valid DNS label sequence, localhost, or IP literal."""
     try:
         ip_address(hostname)
-        return True
     except ValueError:
-        pass
-
-    lowered = hostname.lower()
+        lowered = hostname.lower()
+    else:
+        return True
     if lowered == "localhost":
         return True
 
