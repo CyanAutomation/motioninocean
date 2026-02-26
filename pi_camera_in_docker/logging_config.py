@@ -285,6 +285,7 @@ def log_provenance_info() -> None:
     debian_suite = build_metadata.get("DEBIAN_SUITE", "unknown")
     rpi_suite = build_metadata.get("RPI_SUITE", "unknown")
     build_time = build_metadata.get("BUILD_TIMESTAMP", "unknown")
+    git_sha = build_metadata.get("GIT_SHA", "unknown")
 
     # Extract origin summary from dpkg_info
     origins = [info.get("origin", "unknown") for info in dpkg_info.values()]
@@ -308,6 +309,7 @@ def log_provenance_info() -> None:
         f"picamera2={picamera2_display}",
         f"debian_suite={debian_suite}",
         f"rpi_suite={rpi_suite}",
+        f"git_sha={git_sha}",
         f"build_timestamp={build_time}",
     ]
     if origins:
@@ -341,6 +343,7 @@ def log_provenance_info() -> None:
                 "package_info": dpkg_info,
                 "debian_suite": debian_suite,
                 "rpi_suite": rpi_suite,
+                "git_sha": git_sha,
                 "build_timestamp": build_time,
                 "package_origins": origin_summary,
             },

@@ -7,6 +7,7 @@
 # No suite overrides are supported. For alternative distros, fork and modify the Dockerfile.
 ARG DEBIAN_SUITE=bookworm
 ARG RPI_SUITE=bookworm
+ARG VCS_REF=unknown
 
 # ---- Builder Stage ----
 # Minimal Python packaging stage: installs build tools and creates isolated venv.
@@ -73,6 +74,7 @@ FROM debian:${DEBIAN_SUITE}-slim
 # Re-declare build args for this stage
 ARG DEBIAN_SUITE
 ARG RPI_SUITE
+ARG VCS_REF
 ARG TARGETARCH
 
 # Prevent Python bytecode generation and enable unbuffered output
@@ -88,6 +90,7 @@ LABEL org.opencontainers.image.source="https://github.com/CyanAutomation/motioni
 LABEL org.opencontainers.image.description="Raspberry Pi CSI camera streaming container (Picamera2/libcamera)"
 LABEL org.opencontainers.image.authors="CyanAutomation"
 LABEL org.opencontainers.image.vendor="CyanAutomation"
+LABEL org.opencontainers.image.revision="${VCS_REF}"
 
 # ---- Layer 1: System Dependencies (Stable) ----
 # Install base system packages from Debian repositories only.
@@ -218,6 +221,7 @@ RUN mkdir -p /app && \
         echo "DEBIAN_SUITE=${DEBIAN_SUITE}"; \
         echo "RPI_SUITE=${RPI_SUITE}"; \
         echo "TARGETARCH=${TARGETARCH}"; \
+        echo "GIT_SHA=${VCS_REF}"; \
         echo "BUILD_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"; \
     ) > /app/BUILD_METADATA && \
     cat /app/BUILD_METADATA
