@@ -132,7 +132,7 @@ def validate_base_url_for_transport(base_url: str, transport: str) -> None:
             error_message = "base_url path must start with '/'"
             raise ValueError(error_message)
 
-        if "/../" in parsed.path or parsed.path.endswith("/.."):
+        if "/../" in parsed.path or parsed.path.startswith("../") or parsed.path.endswith("/.."):
             error_message = "base_url path must not include parent-directory traversal"
             raise ValueError(error_message)
 
