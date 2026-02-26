@@ -11,6 +11,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-02-26
+
+- Refactor: Improve assertion clarity in concurrency and changelog tests; remove unused imports in config validator tests
+- Refactor: Remove obsolete tests for README help endpoint, DiscoveryAnnouncer, and banner output
+- Refactor code for improved clarity and maintainability in discovery and test files
+- Refactor test parameterization in Sentry integration tests for clarity and consistency
+
 ## [1.19.9] - 2026-02-26
 
 - Enhance snapshot reliability under concurrent mutations with improved test assertions
