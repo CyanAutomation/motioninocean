@@ -405,6 +405,38 @@ def test_settings_patch_concurrent_overlapping_updates_are_merged(monkeypatch, t
     assert final_settings["jpeg_quality"] == 72
 
 
+def test_load_allow_private_ips_flag_canonical_only(monkeypatch):
+    from pi_camera_in_docker import management_api
+
+    monkeypatch.setenv("MIO_ALLOW_PRIVATE_IPS", "true")
+    monkeypatch.delenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", raising=False)
+
+    assert management_api._load_allow_private_ips_flag() is True
+
+
+def test_load_allow_private_ips_flag_legacy_only(monkeypatch, caplog):
+    from pi_camera_in_docker import management_api
+
+    monkeypatch.delenv("MIO_ALLOW_PRIVATE_IPS", raising=False)
+    monkeypatch.setenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "yes")
+
+    with caplog.at_level("WARNING"):
+        assert management_api._load_allow_private_ips_flag() is True
+
+    assert any(
+        "deprecated MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS" in message for message in caplog.messages
+    )
+
+
+def test_load_allow_private_ips_flag_canonical_wins_over_legacy(monkeypatch):
+    from pi_camera_in_docker import management_api
+
+    monkeypatch.setenv("MIO_ALLOW_PRIVATE_IPS", "false")
+    monkeypatch.setenv("MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS", "true")
+
+    assert management_api._load_allow_private_ips_flag() is False
+
+
 def _auth_headers(token="test-token"):
     return {"Authorization": f"Bearer {token}"}
 
