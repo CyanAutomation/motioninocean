@@ -56,7 +56,7 @@ def render_mio_mock_frame(width: int, height: int, jpeg_quality: int) -> bytes:
 
     try:
         import cairosvg  # noqa: PLC0415
-    except ModuleNotFoundError as exc:
+    except (ModuleNotFoundError, OSError) as exc:
         raise MockStreamRenderError(MSG_CAIROSVG_UNAVAILABLE) from exc
 
     try:
