@@ -311,6 +311,19 @@
                     width="{{ width }}"
                     height="{{ height }}"
                   />
+                  <div
+                    id="mock-stream-placeholder"
+                    class="mock-stream-placeholder"
+                    aria-label="Mock camera mode enabled — no real camera stream"
+                    hidden
+                  >
+                    <img
+                      src="{{ url_for('static', filename='img/mio/mio_mock_stream.svg') }}"
+                      alt=""
+                      role="presentation"
+                    />
+                    <p>Mock camera mode enabled — no real camera stream.</p>
+                  </div>
                 </div>
 
                 <div class="video-controls">
