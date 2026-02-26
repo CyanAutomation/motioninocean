@@ -1089,6 +1089,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
 
     # Resolve openapi.yaml relative to the project root (two levels above this file)
     _openapi_spec_path = Path(__file__).parent.parent / "docs" / "openapi.yaml"
+    _readme_path = Path(__file__).parent.parent / "README.md"
 
     @app.route("/openapi.json", methods=["GET"])
     def openapi_spec():
@@ -1149,6 +1150,36 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
             200,
             {"Content-Type": "text/html; charset=utf-8"},
         )
+
+    @app.route("/api/help/readme", methods=["GET"])
+    def api_help_readme():
+        """Serve project README markdown content as JSON.
+
+        Unauthenticated endpoint returning raw README markdown text for
+        lightweight in-app help and future doc integrations.
+
+        Returns:
+            JSON payload with README content, or JSON error response.
+        """
+        if not _readme_path.exists():
+            return jsonify({"error": "README_NOT_FOUND", "message": "README.md was not found"}), 404
+
+        try:
+            with _readme_path.open("r", encoding="utf-8") as fh:
+                readme_content = fh.read()
+        except Exception:
+            logger.exception("Failed to read README.md")
+            return (
+                jsonify(
+                    {
+                        "error": "README_READ_FAILED",
+                        "message": "Failed to read README.md",
+                    }
+                ),
+                500,
+            )
+
+        return jsonify({"content": readme_content}), 200
 
     return app, limiter, state
 
