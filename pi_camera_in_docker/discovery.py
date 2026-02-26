@@ -157,7 +157,7 @@ class DiscoveryAnnouncer:
         for _ in range(3):
             try:
                 return copy.deepcopy(self.payload)
-            except RuntimeError:
+            except Exception:
                 continue
         error_message = "payload snapshot failed due to concurrent mutation"
         raise RuntimeError(error_message)
