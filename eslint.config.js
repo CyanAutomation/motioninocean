@@ -12,7 +12,15 @@ export default [
   },
   pluginJs.configs.recommended,
   {
-    ignores: ["node_modules/", "htmlcov/", "__pycache__/", ".venv/", "test_env/", "coverage/", "pi_camera_in_docker/static/js/app.js"],
+    ignores: [
+      "node_modules/",
+      "htmlcov/",
+      "__pycache__/",
+      ".venv/",
+      "test_env/",
+      "coverage/",
+      "pi_camera_in_docker/static/js/app.js",
+    ],
   },
   {
     rules: {
