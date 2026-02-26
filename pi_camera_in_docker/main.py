@@ -10,6 +10,8 @@ import logging
 import os
 import signal
 import time
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path  # Moved here
 from threading import Event, RLock, Thread
@@ -70,6 +72,9 @@ feature_flags.load()
 # Resolve paths relative to the project root (two levels above this file)
 _openapi_spec_path = Path(__file__).parent.parent / "docs" / "openapi.yaml"
 _readme_path = Path(__file__).parent.parent / "README.md"
+_readme_remote_url = "https://raw.githubusercontent.com/CyanAutomation/motioninocean/main/README.md"
+_readme_documentation_url = "https://github.com/CyanAutomation/motioninocean#readme"
+_readme_remote_timeout_seconds = 2.5
 
 
 def _redacted_url_for_logs(url: str) -> str:
@@ -1168,25 +1173,46 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
         Returns:
             JSON payload with README content, or JSON error response.
         """
-        if not _readme_path.exists():
-            return jsonify({"error": "README_NOT_FOUND", "message": "README.md was not found"}), 404
+        if _readme_path.exists():
+            try:
+                with _readme_path.open("r", encoding="utf-8") as fh:
+                    readme_content = fh.read()
+                logger.info("README help endpoint served", extra={"readme_source": "local"})
+                return jsonify({"status": "ok", "content": readme_content, "source": "local"}), 200
+            except Exception:
+                logger.exception("Failed to read local README.md", extra={"readme_source": "local"})
 
+        request = urllib.request.Request(url=_readme_remote_url, method="GET")
         try:
-            with _readme_path.open("r", encoding="utf-8") as fh:
-                readme_content = fh.read()
-        except Exception:
-            logger.exception("Failed to read README.md")
-            return (
-                jsonify(
-                    {
-                        "error": "README_READ_FAILED",
-                        "message": "Failed to read README.md",
-                    }
-                ),
-                500,
+            with urllib.request.urlopen(
+                request, timeout=_readme_remote_timeout_seconds
+            ) as response:
+                charset = response.headers.get_content_charset("utf-8")
+                readme_content = response.read().decode(charset)
+            logger.info("README help endpoint served", extra={"readme_source": "remote"})
+            return jsonify({"status": "ok", "content": readme_content, "source": "remote"}), 200
+        except (urllib.error.URLError, TimeoutError, UnicodeDecodeError, OSError):
+            logger.warning(
+                "README help endpoint degraded; remote README unavailable",
+                extra={
+                    "readme_source": "fallback_link",
+                    "remote_url": _redacted_url_for_logs(_readme_remote_url),
+                },
+                exc_info=True,
             )
 
-        return jsonify({"content": readme_content}), 200
+        return (
+            jsonify(
+                {
+                    "status": "degraded",
+                    "content": None,
+                    "documentation_url": _readme_documentation_url,
+                    "message": "README content is currently unavailable. Visit the documentation URL for guidance.",
+                    "source": "fallback_link",
+                }
+            ),
+            200,
+        )
 
     return app, limiter, state
 
