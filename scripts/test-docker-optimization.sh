@@ -89,6 +89,26 @@ docker exec "$CONTAINER_ID" python3 -c "import numpy, flask, flask_cors, picamer
     exit 1
 }
 
+# Verify changelog is present in image runtime docs path
+echo "[INFO] Verifying bundled changelog file..."
+docker exec "$CONTAINER_ID" test -f /app/docs/CHANGELOG.md && {
+    echo "[INFO] Changelog file exists at /app/docs/CHANGELOG.md"
+} || {
+    echo "[ERROR] Missing /app/docs/CHANGELOG.md"
+    docker stop "$CONTAINER_ID" 2>/dev/null || true
+    exit 1
+}
+
+# Validate changelog API endpoint is available in running container
+echo "[INFO] Verifying /api/changelog endpoint..."
+docker exec "$CONTAINER_ID" curl -fsS http://127.0.0.1:8000/api/changelog >/dev/null && {
+    echo "[INFO] /api/changelog endpoint is available"
+} || {
+    echo "[ERROR] /api/changelog endpoint check failed"
+    docker stop "$CONTAINER_ID" 2>/dev/null || true
+    exit 1
+}
+
 # Run healthcheck
 echo "[INFO] Running healthcheck..."
 docker exec "$CONTAINER_ID" python3 /app/healthcheck.py 2>&1 | grep -q "Server is running" && {
