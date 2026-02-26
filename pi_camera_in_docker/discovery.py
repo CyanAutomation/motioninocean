@@ -11,6 +11,7 @@ import json
 import logging
 import random
 import socket
+import time
 import urllib.error
 import urllib.request
 import uuid
@@ -152,8 +153,9 @@ class DiscoveryAnnouncer:
     def _payload_snapshot(self) -> Dict[str, Any]:
         """Create a best-effort immutable payload snapshot for serialization.
 
-        Retries snapshot creation multiple times to handle concurrent mutations.
-        Without delays, concurrent mutations eventually complete between attempts.
+        Uses a lock to synchronize deepcopy with concurrent mutations. Holding the lock
+        during deepcopy prevents mutations from interfering with the dict iteration.
+        High retry count with escalating delays ensures success even under stress.
 
         Returns:
             Deep-copied payload snapshot safe to serialize.
@@ -161,17 +163,34 @@ class DiscoveryAnnouncer:
         Raises:
             RuntimeError: If a stable payload snapshot cannot be copied after retries.
         """
-        max_retries = 20
+        max_retries = 500
         for attempt in range(max_retries):
             try:
-                return copy.deepcopy(self.payload)
+                # Acquire lock to prevent mutations during deepcopy
+                # Higher timeout for early attempts, lower for later ones
+                timeout = 0.05 if attempt < 100 else 0.01
+                acquired = self._payload_lock.acquire(timeout=timeout)
+                if not acquired:
+                    # Lock contention detected, retry
+                    if attempt < 100:
+                        time.sleep(0.0001)  # Brief pause before retry
+                    continue
+                
+                try:
+                    return copy.deepcopy(self.payload)
+                finally:
+                    self._payload_lock.release()
             except Exception:
                 if attempt == max_retries - 1:
                     break
-        error_message = "payload snapshot failed due to concurrent mutation"
-        raise RuntimeError(error_message)
-        error_message = "payload snapshot failed due to concurrent mutation"
-        raise RuntimeError(error_message)
+                # Escalating delays: let mutations settle between attempts
+                if attempt < 50:
+                    time.sleep(0.00001 * (attempt + 1))  # 10µs to 500µs
+                elif attempt < 200:
+                    time.sleep(0.001)  # 1ms
+                else:
+                    time.sleep(0.002)  # 2ms for stubborn cases
+        
         error_message = "payload snapshot failed due to concurrent mutation"
         raise RuntimeError(error_message)
 
