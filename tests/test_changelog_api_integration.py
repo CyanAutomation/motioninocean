@@ -48,8 +48,8 @@ def test_api_changelog_returns_newest_first_from_file_order(tmp_path: Path) -> N
     assert payload["entries"][0]["changes"] == ["Newest item"]
 
 
-def test_api_changelog_missing_file_returns_degraded() -> None:
-    """Endpoint degrades gracefully when changelog file is absent."""
+def test_api_changelog_missing_file_returns_degraded_with_source_metadata() -> None:
+    """Endpoint degrades gracefully and includes source metadata for UI diagnostics."""
     app = _build_test_app("/tmp/definitely-missing-changelog-file.md")
     client = app.test_client()
     response = client.get("/api/changelog")
@@ -58,6 +58,8 @@ def test_api_changelog_missing_file_returns_degraded() -> None:
     payload = response.get_json()
     assert payload["status"] == "degraded"
     assert payload["entries"] == []
+    assert payload["source_type"] == "remote"
+    assert payload["source"] == "/tmp/definitely-missing-changelog-file.md"
     assert payload["full_changelog_url"] == changelog_api.DEFAULT_FULL_CHANGELOG_URL
 
 
@@ -79,3 +81,24 @@ def test_api_changelog_missing_file_falls_back_to_remote(monkeypatch) -> None:
     assert payload["status"] == "ok"
     assert payload["source_type"] == "remote"
     assert payload["entries"][0]["version"] == "3.0.0"
+
+
+def test_api_changelog_remote_fallback_includes_source_metadata(monkeypatch) -> None:
+    """Remote fallback response preserves source metadata expected by UI."""
+    app = _build_test_app("/tmp/another-missing-changelog-file.md")
+    client = app.test_client()
+
+    monkeypatch.setattr(
+        changelog_api,
+        "_fetch_remote_changelog_markdown",
+        lambda remote_url, timeout_seconds: "## [3.1.0] - 2026-03-02\n- Remote source metadata\n",
+    )
+
+    response = client.get("/api/changelog")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["status"] == "ok"
+    assert payload["source_type"] == "remote"
+    assert payload["source"] == "/tmp/another-missing-changelog-file.md"
+    assert payload["full_changelog_url"] == changelog_api.DEFAULT_FULL_CHANGELOG_URL

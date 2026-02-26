@@ -9,6 +9,8 @@ test("changelog modal renders newest release first with API-provided full link",
       contentType: "application/json",
       body: JSON.stringify({
         status: "ok",
+        source_type: "remote",
+        source: "/tmp/missing-local-changelog.md",
         entries: [
           {
             version: "2.0.0",
@@ -45,6 +47,7 @@ test("changelog modal renders newest release first with API-provided full link",
   expect(firstVersion).not.toBe(secondVersion);
 
   await expect(page.locator(`#utility-modal-content a[href="${expectedFullChangelogUrl}"]`)).toBeVisible();
+  await expect(page.locator('#utility-modal-content a[href="/docs/CHANGELOG.md"]')).toHaveCount(0);
 });
 
 test("changelog modal hides full link and shows user-friendly degraded note when URL missing", async ({
@@ -56,8 +59,10 @@ test("changelog modal hides full link and shows user-friendly degraded note when
       contentType: "application/json",
       body: JSON.stringify({
         status: "degraded",
+        source_type: "remote",
         message: "Unable to read /app/docs/CHANGELOG.md",
         source: "/app/docs/CHANGELOG.md",
+        full_changelog_url: "https://example.invalid/full-changelog",
         entries: [
           {
             version: "1.8.0",
@@ -76,5 +81,8 @@ test("changelog modal hides full link and shows user-friendly degraded note when
   await expect(modalContent.locator(".changelog-card")).toBeVisible();
   await expect(modalContent.getByText("We couldn't load the latest changelog details right now.")).toBeVisible();
   await expect(modalContent.getByText("/app/docs/CHANGELOG.md")).toHaveCount(0);
-  await expect(modalContent.getByRole("link", { name: "View full changelog" })).toHaveCount(0);
+  await expect(
+    modalContent.getByRole("link", { name: "View full changelog" }),
+  ).toHaveAttribute("href", "https://example.invalid/full-changelog");
+  await expect(modalContent.locator('a[href="/docs/CHANGELOG.md"]')).toHaveCount(0);
 });
