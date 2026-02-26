@@ -7,7 +7,7 @@ const REQUEST_TIMEOUT_MS = 5000;
 const CONFIG_POLL_INTERVAL_MS = 5000;
 const THEME_STORAGE_KEY = "webcam.theme";
 const DEFAULT_MIO_PATH = "/static/img/mio/mio_avatar.png";
-const CHANGELOG_MAX_VISIBLE_ENTRIES = 8;
+const CHANGELOG_MAX_VISIBLE_ENTRIES = 3;
 
 const state = {
   updateInterval: null,
