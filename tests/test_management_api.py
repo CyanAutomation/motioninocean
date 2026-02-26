@@ -151,6 +151,80 @@ def test_api_status_returns_current_api_test_scenario_when_inactive():
     assert state["api_test"]["current_state_index"] == 1
 
 
+def test_api_status_skips_malformed_api_test_scenario_in_shared_route():
+    from pi_camera_in_docker import shared
+
+    app = Flask(__name__)
+    state = {
+        "app_mode": "webcam",
+        "recording_started": threading.Event(),
+        "max_frame_age_seconds": 10.0,
+        "max_stream_connections": 8,
+        "connection_tracker": None,
+        "api_test": {
+            "enabled": True,
+            "active": False,
+            "lock": threading.RLock(),
+            "scenario_list": [
+                {
+                    "status": "ok",
+                    "stream_available": True,
+                    "camera_active": True,
+                    "fps": 30.0,
+                    # Missing connections.current to verify defensive handling
+                    "connections": {"max": 8},
+                }
+            ],
+            "current_state_index": 0,
+            "cycle_interval_seconds": 1.0,
+            "last_transition_monotonic": 0.0,
+        },
+    }
+
+    shared.register_shared_routes(
+        app,
+        state,
+        get_stream_status=lambda: {"current_fps": 0.0, "last_frame_age_seconds": None},
+    )
+    response = app.test_client().get("/api/status")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["status"] == "degraded"
+    assert payload["camera_active"] is False
+    assert "api_test" not in payload
+
+
+def test_api_status_skips_malformed_api_test_scenario_in_webcam_app(monkeypatch, tmp_path):
+    monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "application-settings.json"))
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MIO_APP_MODE", "webcam")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_API_TEST_MODE_ENABLED", "true")
+
+    sys.modules.pop("pi_camera_in_docker.main", None)
+    main = importlib.import_module("pi_camera_in_docker.main")
+
+    app = main.create_webcam_app(main._load_config())
+    app.motion_state["api_test"]["scenario_list"] = [
+        {
+            "status": "ok",
+            # Missing stream_available to verify defensive handling in main override path
+            "camera_active": True,
+            "fps": 24.0,
+            "connections": {"current": 1},
+        }
+    ]
+    app.motion_state["api_test"]["active"] = False
+
+    response = app.test_client().get("/api/status")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["status"] in {"ok", "degraded"}
+    assert "api_test" not in payload
+
+
 def test_settings_changes_endpoint_compares_resolution_values(monkeypatch, tmp_path):
     monkeypatch.setenv("MIO_RESOLUTION", "1280x720")
     client, _ = _new_management_client(monkeypatch, tmp_path)
