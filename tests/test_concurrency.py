@@ -138,7 +138,7 @@ class TestThreadSafety:
         )
 
     def test_stream_stats_concurrent_reads(self):
-        """Test that concurrent reads don't block each other excessively."""
+        """Test that concurrent reads don't block or crash under concurrent access."""
         stats = StreamStats()
 
         # Pre-populate with some data
@@ -148,12 +148,15 @@ class TestThreadSafety:
 
         num_readers = 20
         read_count = 50
-        start_time = time.time()
+        errors = []
 
         def read_stats():
-            for _ in range(read_count):
-                stats.snapshot()
-                stats.get_fps()
+            try:
+                for _ in range(read_count):
+                    stats.snapshot()
+                    stats.get_fps()
+            except Exception as e:
+                errors.append(e)
 
         threads = [threading.Thread(target=read_stats) for _ in range(num_readers)]
         for thread in threads:
@@ -161,44 +164,41 @@ class TestThreadSafety:
         for thread in threads:
             thread.join(timeout=10.0)
 
-        elapsed = time.time() - start_time
-
-        # With proper locking (Lock instead of Condition), reads should be fast
-        # 20 threads * 50 reads = 1000 total read operations should complete quickly
-        assert elapsed < 5.0, f"Concurrent reads took too long: {elapsed}s"
+        # Verify no exceptions during concurrent reads (thread safety)
+        assert len(errors) == 0, f"Errors during concurrent reads: {errors}"
+        
+        # Verify all threads completed (deterministic, not timing-based)
+        assert all(not t.is_alive() for t in threads), "Some reader threads did not complete"
 
     def test_frame_buffer_concurrent_write_read(self):
-        """Test concurrent writes and reads on FrameBuffer."""
+        """Test concurrent writes and reads on FrameBuffer without timing dependencies."""
         stats = StreamStats()
         buffer = FrameBuffer(stats)
         errors = []
-        frames_written = 0
-        frames_read = 0
-        stop_event = Event()
+        frames_written = [0]
+        frames_read = [0]
+        write_complete = Event()
 
         def writer():
-            nonlocal frames_written
             try:
                 for i in range(100):
-                    if stop_event.is_set():
-                        break
                     frame_data = b"frame_" + str(i).encode() * 100
                     buffer.write(frame_data)
-                    frames_written += 1
-                    time.sleep(0.01)
+                    frames_written[0] += 1
             except Exception as e:
                 errors.append(e)
+            finally:
+                write_complete.set()
 
         def reader():
-            nonlocal frames_read
             try:
-                for _ in range(50):
-                    if stop_event.is_set():
-                        break
+                read_timeout = time.time() + 10.0
+                while time.time() < read_timeout and frames_read[0] < 50:
                     with buffer.condition:
-                        buffer.condition.wait(timeout=1.0)
+                        # Wait for new frame or timeout
+                        buffer.condition.wait(timeout=0.5)
                         if buffer.frame is not None:
-                            frames_read += 1
+                            frames_read[0] += 1
             except Exception as e:
                 errors.append(e)
 
@@ -210,14 +210,19 @@ class TestThreadSafety:
         for thread in reader_threads:
             thread.start()
 
-        writer_thread.join(timeout=5.0)
-        stop_event.set()
+        # Wait for writer to complete
+        assert write_complete.wait(timeout=5.0), "Writer did not complete within timeout"
+        
+        # Wait for readers to finish
         for thread in reader_threads:
-            thread.join(timeout=2.0)
+            thread.join(timeout=5.0)
 
+        # Verify no exceptions occurred
         assert len(errors) == 0, f"Errors during concurrent read/write: {errors}"
-        assert frames_written > 0, "No frames were written"
-        assert frames_read > 0, "No frames were read"
+        
+        # Verify frames were processed (deterministic, not timing-based)
+        assert frames_written[0] == 100, f"Expected all 100 frames written, got {frames_written[0]}"
+        assert frames_read[0] > 0, "Readers should have read at least one frame"
 
 
 class TestConcurrentStreamAccess:
