@@ -11,6 +11,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.19.8] - 2026-02-26
+
+- [settings] Validate category object types in settings payload (#444)
+- [sentry] Harden breadcrumb filter for missing fields (#443)
+- [webcam] Fix missing closing brace in app.js cacheElements (#442)
+- chore: automated code quality fixes [nightly] (#441)
+- [sentry] Suppress stream aliases in traces sampler (#440)
+- [discovery] Wake retry loop promptly on shutdown (#439)
+- [management] Normalize malformed discovery metadata handling (#438)
+- Add user and group configuration to docker-compose
+- [runtime] Fix explicit env overlay precedence (#437)
+- feat: add Motion In Ocean ASCII art to startup banner
+- fix: update healthcheck command to use Python for improved reliability
+
 ## [1.19.7] - 2026-02-25
 
 - docs: update OpenAPI specification with detailed descriptions and authentication mechanisms
