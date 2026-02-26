@@ -329,20 +329,32 @@ function attachHandlers() {
  * @returns {void}
  */
 function openUtilityModal({ title, htmlContent }) {
-  if (!state.elements.utilityModal || !state.elements.utilityModalTitle || !state.elements.utilityModalContent) {
+  if (
+    !state.elements.utilityModal ||
+    !state.elements.utilityModalTitle ||
+    !state.elements.utilityModalContent
+  ) {
     return;
   }
 
-  state.previouslyFocusedElement = document.activeElement instanceof HTMLElement
-    ? document.activeElement
-    : null;
+  state.previouslyFocusedElement =
+    document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
   state.elements.utilityModalTitle.textContent = title;
-  state.elements.utilityModalContent.textContent = '';
+  state.elements.utilityModalContent.textContent = "";
   // Use DOMParser for safe HTML rendering
   const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlContent, 'text/html');
-  state.elements.utilityModalContent.appendChild(doc.body.firstChild || document.createTextNode(htmlContent));
+  const doc = parser.parseFromString(htmlContent, "text/html");
+  const fragment = document.createDocumentFragment();
+  Array.from(doc.body.childNodes).forEach((node) => {
+    fragment.appendChild(node.cloneNode(true));
+  });
+
+  if (fragment.childNodes.length > 0) {
+    state.elements.utilityModalContent.appendChild(fragment);
+  } else {
+    state.elements.utilityModalContent.appendChild(document.createTextNode(htmlContent));
+  }
 
   state.elements.utilityModal.classList.remove("hidden");
   state.elements.utilityModal.hidden = false;
@@ -351,6 +363,28 @@ function openUtilityModal({ title, htmlContent }) {
   if (state.elements.utilityModalCloseBtn) {
     state.elements.utilityModalCloseBtn.focus();
   }
+}
+
+/**
+ * Load README help content from API.
+ *
+ * @returns {Promise<string>} README text payload.
+ * @throws {Error} If the API request fails.
+ * @async
+ */
+async function fetchReadmeContent() {
+  const response = await fetch("/api/help/readme", {
+    headers: {
+      Accept: "text/plain, application/json",
+    },
+  });
+
+  const readmeContent = await response.text();
+  if (!response.ok) {
+    throw new Error(readmeContent || "Failed to load help documentation");
+  }
+
+  return readmeContent;
 }
 
 /**
@@ -367,7 +401,10 @@ function closeUtilityModal() {
   state.elements.utilityModal.hidden = true;
   state.utilityModalOpen = false;
 
-  if (state.previouslyFocusedElement && typeof state.previouslyFocusedElement.focus === "function") {
+  if (
+    state.previouslyFocusedElement &&
+    typeof state.previouslyFocusedElement.focus === "function"
+  ) {
     state.previouslyFocusedElement.focus();
   }
   state.previouslyFocusedElement = null;
@@ -445,33 +482,37 @@ function renderChangelogHtml(payload) {
   const entries = Array.isArray(payload.entries) ? payload.entries : [];
   const visibleEntries = entries.slice(0, CHANGELOG_MAX_VISIBLE_ENTRIES);
 
-  const cardsHtml = visibleEntries.map((entry) => {
-    const releaseDate = entry.release_date || "Unknown date";
-    const releaseTitle = `v${entry.version}`;
-    const changes = Array.isArray(entry.changes) ? entry.changes : [];
-    const itemsHtml = changes.length > 0
-      ? changes.map((change) => `<li>${escapeHtml(change)}</li>`).join("")
-      : "<li>No release notes available.</li>";
+  const cardsHtml = visibleEntries
+    .map((entry) => {
+      const releaseDate = entry.release_date || "Unknown date";
+      const releaseTitle = `v${entry.version}`;
+      const changes = Array.isArray(entry.changes) ? entry.changes : [];
+      const itemsHtml =
+        changes.length > 0
+          ? changes.map((change) => `<li>${escapeHtml(change)}</li>`).join("")
+          : "<li>No release notes available.</li>";
 
-    return [
-      '<article class="changelog-card">',
-      `<h3>${escapeHtml(releaseTitle)}</h3>`,
-      `<p class="utility-subtle">${escapeHtml(releaseDate)}</p>`,
-      `<ul>${itemsHtml}</ul>`,
-      '</article>',
-    ].join("");
-  }).join("");
+      return [
+        '<article class="changelog-card">',
+        `<h3>${escapeHtml(releaseTitle)}</h3>`,
+        `<p class="utility-subtle">${escapeHtml(releaseDate)}</p>`,
+        `<ul>${itemsHtml}</ul>`,
+        "</article>",
+      ].join("");
+    })
+    .join("");
 
-  const statusNote = payload.status === "degraded"
-    ? `<p class="utility-subtle">${escapeHtml(payload.message || "Changelog temporarily unavailable.")}</p>`
-    : "";
+  const statusNote =
+    payload.status === "degraded"
+      ? `<p class="utility-subtle">${escapeHtml(payload.message || "Changelog temporarily unavailable.")}</p>`
+      : "";
 
   return [
     '<section class="changelog-list">',
     statusNote,
-    cardsHtml || '<p>No changelog entries available.</p>',
+    cardsHtml || "<p>No changelog entries available.</p>",
     '<p><a href="/docs/CHANGELOG.md" target="_blank" rel="noopener noreferrer">View full changelog</a></p>',
-    '</section>',
+    "</section>",
   ].join("");
 }
 
@@ -516,13 +557,27 @@ async function openChangelogModal() {
 /**
  * Open the help utility modal.
  *
- * @returns {void}
+ * @returns {Promise<void>} Promise resolving when help content is rendered.
+ * @async
  */
-function openHelpModal() {
+async function openHelpModal() {
   openUtilityModal({
     title: "Help",
-    htmlContent: '<p>Help documentation will appear here in a future update.</p>',
+    htmlContent: "<p>Loading help documentation…</p>",
   });
+
+  try {
+    const readmeContent = await fetchReadmeContent();
+    openUtilityModal({
+      title: "Help",
+      htmlContent: `<pre class="utility-modal__readme">${escapeHtml(readmeContent)}</pre>`,
+    });
+  } catch (error) {
+    openUtilityModal({
+      title: "Help",
+      htmlContent: `<p>Unable to load help documentation: ${escapeHtml(error instanceof Error ? error.message : String(error))}</p>`,
+    });
+  }
 }
 
 /**

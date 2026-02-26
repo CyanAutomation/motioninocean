@@ -155,6 +155,12 @@
   display: none;
 }
 
+.utility-modal__readme {
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: min(70vh, 40rem);
+}
+
 /* ==========================================
    Configuration Panel
    ========================================== */
