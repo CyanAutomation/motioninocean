@@ -324,3 +324,41 @@ def test_discovery_announcer_can_restart_after_stop(monkeypatch):
     assert len(announce_calls) >= 2
 
     announcer.stop(timeout_seconds=1.0)
+
+
+def test_discovery_announcer_exits_quickly_when_shutdown_event_set_during_retry_delay(monkeypatch):
+    from discovery import DiscoveryAnnouncer
+
+    shutdown_event = threading.Event()
+    announcer = DiscoveryAnnouncer(
+        management_url="http://127.0.0.1:8001",
+        token="token",
+        interval_seconds=30,
+        webcam_id="node-1",
+        payload={"webcam_id": "node-1"},
+        shutdown_event=shutdown_event,
+    )
+
+    announce_attempted = threading.Event()
+
+    def fail_once_then_wait_for_shutdown() -> bool:
+        if not announce_attempted.is_set():
+            announce_attempted.set()
+            return False
+        return True
+
+    monkeypatch.setattr(announcer, "_announce_once", fail_once_then_wait_for_shutdown)
+    monkeypatch.setattr("discovery.random.uniform", lambda _low, _high: 0.0)
+
+    announcer.start()
+    assert announce_attempted.wait(timeout=1.0)
+    assert announcer._thread is not None
+    thread_ref = announcer._thread
+    assert thread_ref.is_alive()
+
+    shutdown_event.set()
+    thread_ref.join(timeout=0.75)
+
+    assert not thread_ref.is_alive()
+
+    announcer.stop(timeout_seconds=1.0)

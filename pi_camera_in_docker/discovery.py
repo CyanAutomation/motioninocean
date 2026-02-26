@@ -215,9 +215,7 @@ class DiscoveryAnnouncer:
         failures = 0
         wait_seconds = 0.0
         while True:
-            if self._stop_event.wait(wait_seconds):
-                return
-            if self.shutdown_event.is_set():
+            if self._wait_for_next_attempt(wait_seconds):
                 return
             success = self._announce_once()
             if success:
@@ -235,6 +233,27 @@ class DiscoveryAnnouncer:
                 failures,
                 wait_seconds,
             )
+
+    def _wait_for_next_attempt(self, wait_seconds: float) -> bool:
+        """Wait for next attempt while remaining responsive to shutdown signals.
+
+        Args:
+            wait_seconds: Total wait time before next announcement attempt.
+
+        Returns:
+            ``True`` when the loop should exit due to stop/shutdown signal.
+        """
+        remaining_seconds = max(0.0, wait_seconds)
+        wait_slice_seconds = 0.25
+
+        while remaining_seconds > 0.0:
+            if self._stop_event.wait(min(wait_slice_seconds, remaining_seconds)):
+                return True
+            if self.shutdown_event.is_set():
+                return True
+            remaining_seconds -= min(wait_slice_seconds, remaining_seconds)
+
+        return self._stop_event.is_set() or self.shutdown_event.is_set()
 
 
 def build_discovery_payload(config: Dict[str, Any]) -> Dict[str, Any]:
