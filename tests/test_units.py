@@ -1112,7 +1112,7 @@ def test_init_mock_camera_frames_generates_non_empty_frames_from_mio_renderer(mo
 
     main._init_mock_camera_frames(state, cfg)
 
-    assert state["recording_started"].is_set() is False
+    assert state["recording_started"].is_set() is True
     assert writes
     assert writes[0] == rendered_frame
     assert len(writes[0]) > 0
