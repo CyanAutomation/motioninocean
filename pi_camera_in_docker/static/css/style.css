@@ -173,7 +173,7 @@
   background: color-mix(in srgb, var(--color-bg-subtle) 94%, transparent);
 }
 
-.mock-stream-placeholder img {
+.mock-stream-placeholder object {
   max-width: 100%;
   max-height: 100%;
   width: min(100%, 24rem);
@@ -181,6 +181,10 @@
   object-fit: contain;
 }
 
+
+.mock-stream-placeholder .mock-stream-animation--failed {
+  display: none;
+}
 .mock-stream-placeholder p {
   margin: 0;
   max-width: 42ch;
