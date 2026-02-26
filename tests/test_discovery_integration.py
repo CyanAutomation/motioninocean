@@ -148,6 +148,94 @@ class TestDiscoveryAnnounceIntegration:
             # Should have attempted at least 2 times - first 2 failures
             assert mock_urlopen.call_count >= 2
 
+
+    def test_announcer_payload_is_immutable_after_init(self):
+        """Verify posted payload is unaffected by external mutations after initialization."""
+        from discovery import DiscoveryAnnouncer
+
+        shutdown_event = threading.Event()
+        source_payload = {
+            "webcam_id": "node-test-immutable",
+            "labels": {"site": "lab"},
+            "capabilities": ["stream"],
+        }
+
+        mock_response = MagicMock()
+        mock_response.status = 201
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.__exit__ = MagicMock(return_value=False)
+
+        with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
+            announcer = DiscoveryAnnouncer(
+                management_url="http://management.local:8001",
+                token="test-token",
+                interval_seconds=30,
+                webcam_id=source_payload["webcam_id"],
+                payload=source_payload,
+                shutdown_event=shutdown_event,
+            )
+
+            source_payload["labels"]["site"] = "prod"
+            source_payload["capabilities"].append("snapshot")
+
+            result = announcer._announce_once()
+
+            assert result is True
+            request = mock_urlopen.call_args[0][0]
+            posted_payload = json.loads(request.data.decode("utf-8"))
+            assert posted_payload["labels"]["site"] == "lab"
+            assert posted_payload["capabilities"] == ["stream"]
+
+    def test_announcer_snapshot_prevents_runtime_error_during_concurrent_mutation(self):
+        """Verify concurrent payload mutation does not raise runtime/serialization errors."""
+        from discovery import DiscoveryAnnouncer
+
+        shutdown_event = threading.Event()
+        payload = {
+            "webcam_id": "node-test-concurrent",
+            "labels": {"k0": "v0"},
+        }
+
+        mock_response = MagicMock()
+        mock_response.status = 201
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.__exit__ = MagicMock(return_value=False)
+
+        announcer = DiscoveryAnnouncer(
+            management_url="http://management.local:8001",
+            token="test-token",
+            interval_seconds=30,
+            webcam_id=payload["webcam_id"],
+            payload=payload,
+            shutdown_event=shutdown_event,
+        )
+
+        stop_mutator = threading.Event()
+
+        def mutate_payload() -> None:
+            index = 0
+            while not stop_mutator.is_set():
+                announcer.payload["labels"][f"k{index}"] = f"v{index}"
+                if index % 3 == 0:
+                    announcer.payload["labels"].pop(f"k{max(0, index - 1)}", None)
+                index += 1
+
+        mutator = threading.Thread(target=mutate_payload, daemon=True)
+        mutator.start()
+
+        results = []
+
+        try:
+            with patch("urllib.request.urlopen", return_value=mock_response):
+                for _ in range(50):
+                    results.append(announcer._announce_once())
+        finally:
+            stop_mutator.set()
+            mutator.join(timeout=1.0)
+
+        assert all(isinstance(result, bool) for result in results)
+        assert any(results)
+
     def test_announcer_thread_lifecycle(self):
         """Verify announcer thread starts and stops correctly."""
         from discovery import DiscoveryAnnouncer

@@ -5,6 +5,7 @@ their availability to a management hub. Includes exponential backoff retry logic
 secure HTTP request handling, and graceful shutdown.
 """
 
+import copy
 import hashlib
 import json
 import logging
@@ -113,7 +114,7 @@ class DiscoveryAnnouncer:
         self.token = token
         self.interval_seconds = max(1.0, float(interval_seconds))
         self.webcam_id = webcam_id
-        self.payload = payload
+        self.payload = copy.deepcopy(payload)
         self.shutdown_event = shutdown_event
         self._stop_event = Event()
         self._thread: Optional[Thread] = None
@@ -144,13 +145,40 @@ class DiscoveryAnnouncer:
             if self._thread and not self._thread.is_alive():
                 self._thread = None
 
+    def _payload_snapshot(self) -> Dict[str, Any]:
+        """Create a best-effort immutable payload snapshot for serialization.
+
+        Returns:
+            Deep-copied payload snapshot safe to serialize.
+
+        Raises:
+            RuntimeError: If a stable payload snapshot cannot be copied after retries.
+        """
+        for _ in range(3):
+            try:
+                return copy.deepcopy(self.payload)
+            except RuntimeError:
+                continue
+        error_message = "payload snapshot failed due to concurrent mutation"
+        raise RuntimeError(error_message)
+
     def _announce_once(self) -> bool:
         """Attempt a single announcement to management hub.
 
         Returns:
             True on success (HTTP 200/201), False on any error.
         """
-        body = json.dumps(self.payload).encode("utf-8")
+        try:
+            payload_snapshot = self._payload_snapshot()
+        except RuntimeError as exc:
+            logger.warning(
+                "discovery_announce_payload_snapshot_error: webcam_id=%s reason=%s",
+                self.webcam_id,
+                str(exc),
+            )
+            return False
+
+        body = json.dumps(payload_snapshot).encode("utf-8")
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.token}",
