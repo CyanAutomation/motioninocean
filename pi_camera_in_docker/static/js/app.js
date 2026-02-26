@@ -483,6 +483,7 @@ async function fetchChangelogData() {
 function renderChangelogHtml(payload) {
   const entries = Array.isArray(payload.entries) ? payload.entries : [];
   const visibleEntries = entries.slice(0, CHANGELOG_MAX_VISIBLE_ENTRIES);
+  const debugModeEnabled = isDebugModeEnabled();
 
   const cardsHtml = visibleEntries
     .map((entry) => {
@@ -506,21 +507,57 @@ function renderChangelogHtml(payload) {
 
   const statusNote =
     payload.status === "degraded"
-      ? `<p class="utility-subtle">${escapeHtml(payload.message || "Changelog temporarily unavailable.")}</p>`
+      ? renderDegradedChangelogNote(payload, debugModeEnabled)
       : "";
 
   const fullChangelogUrl =
-    typeof payload.full_changelog_url === "string" && payload.full_changelog_url.trim()
-      ? payload.full_changelog_url
-      : "/docs/CHANGELOG.md";
+    typeof payload.full_changelog_url === "string" ? payload.full_changelog_url.trim() : "";
+
+  const fullChangelogLink = fullChangelogUrl
+    ? `<p><a href="${escapeHtml(fullChangelogUrl)}" target="_blank" rel="noopener noreferrer">View full changelog</a></p>`
+    : "";
 
   return [
     '<section class="changelog-list">',
     statusNote,
     cardsHtml || "<p>No changelog entries available.</p>",
-    `<p><a href="${escapeHtml(fullChangelogUrl)}" target="_blank" rel="noopener noreferrer">View full changelog</a></p>`,
+    fullChangelogLink,
     "</section>",
   ].join("");
+}
+
+/**
+ * Determine whether debug mode is enabled for the current page.
+ *
+ * @returns {boolean} True when debug query parameter is truthy.
+ */
+function isDebugModeEnabled() {
+  const debugParam = new URLSearchParams(window.location.search).get("debug");
+  return ["1", "true", "yes", "on"].includes((debugParam || "").toLowerCase());
+}
+
+/**
+ * Render a user-friendly degraded changelog note.
+ *
+ * Includes diagnostic details only when debug mode is enabled.
+ *
+ * @param {{message?: string, source?: string}} payload - Changelog API payload.
+ * @param {boolean} debugModeEnabled - Whether debug diagnostics should be shown.
+ * @returns {string} Safe degraded status note markup.
+ */
+function renderDegradedChangelogNote(payload, debugModeEnabled) {
+  const userFriendlyMessage =
+    "We couldn't load the latest changelog details right now. Try again shortly.";
+
+  if (!debugModeEnabled) {
+    return `<p class="utility-subtle">${escapeHtml(userFriendlyMessage)}</p>`;
+  }
+
+  const debugDetails = [payload.message, payload.source].filter(Boolean).join(" | ");
+  const debugLine = debugDetails
+    ? `<br><span class="utility-subtle">Debug: ${escapeHtml(debugDetails)}</span>`
+    : "";
+  return `<p class="utility-subtle">${escapeHtml(userFriendlyMessage)}${debugLine}</p>`;
 }
 
 /**
