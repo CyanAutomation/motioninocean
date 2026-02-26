@@ -11,6 +11,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.20.1] - 2026-02-26
+
+- [tests] Harden mock placeholder embedding and viewport bounds coverage (#480)
+- [tests] Expand changelog API fallback and modal coverage (#479)
+- [docs] Add /api/help/readme OpenAPI schemas and examples (#478)
+- [webcam] Refactor mock stream placeholder embedding (#477)
+- [webcam] Refactor help modal JSON response handling (#476)
+- [webcam] Use API changelog link and improve degraded modal copy (#475)
+- [webcam] Add remote changelog fallback and metadata (#474)
+- [webcam] Bound mock stream placeholder overlay (#473)
+- [webcam] Add resilient README help endpoint fallbacks (#472)
+- [docker] Include changelog in runtime image and validate /api/changelog (#471)
+- Refactor: Remove obsolete tests for management refresh and status handling; add new E2E tests for dashboard recovery and error display
+
 ## [1.20.0] - 2026-02-26
 
 - Refactor: Improve assertion clarity in concurrency and changelog tests; remove unused imports in config validator tests
