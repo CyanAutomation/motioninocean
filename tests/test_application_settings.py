@@ -179,27 +179,6 @@ class TestApplicationSettingsReset:
         loaded = settings.load()
         assert loaded["settings"]["camera"]["fps"] is None
 
-    def test_load_coerces_invalid_feature_flags_to_empty_dict(self, temp_settings_file):
-        """Invalid persisted feature_flags values are treated as empty maps."""
-        settings = ApplicationSettings(temp_settings_file)
-
-        with open(temp_settings_file, "w") as f:
-            json.dump(
-                {
-                    "version": 1,
-                    "settings": {
-                        "camera": {},
-                        "feature_flags": ["invalid"],
-                        "logging": {},
-                        "discovery": {},
-                    },
-                },
-                f,
-            )
-
-        loaded = settings.load()
-        assert loaded["settings"]["feature_flags"] == {}
-
 
 class TestApplicationSettingsChanges:
     """Test change tracking."""
@@ -233,8 +212,8 @@ class TestApplicationSettingsChanges:
         assert override["value"] == 60
         assert override["env_value"] == 30
 
-    def test_get_changes_handles_invalid_feature_flag_maps(self, temp_settings_file):
-        """Non-dict feature flag maps are treated as empty during diffing."""
+    def test_get_changes_rejects_invalid_feature_flag_maps(self, temp_settings_file):
+        """Non-dict persisted feature_flags must fail validation before diffing."""
         settings = ApplicationSettings(temp_settings_file)
 
         with open(temp_settings_file, "w") as f:
@@ -251,11 +230,8 @@ class TestApplicationSettingsChanges:
                 f,
             )
 
-        changes = settings.get_changes_from_env({"feature_flags": "bad-env-type"})
-        feature_flag_changes = [
-            c for c in changes["overridden"] if c["category"] == "feature_flags"
-        ]
-        assert feature_flag_changes == []
+        with pytest.raises(SettingsValidationError, match="'settings.feature_flags' must be a dict"):
+            settings.get_changes_from_env({"feature_flags": "bad-env-type"})
 
 
 class TestApplicationSettingsValidation:
@@ -291,6 +267,65 @@ class TestApplicationSettingsValidation:
 
         # Trying to load invalid version should raise
         with pytest.raises(SettingsValidationError):
+            settings.load()
+
+    @pytest.mark.parametrize(
+        ("category", "bad_value", "expected_message"),
+        [
+            ("camera", [], "'settings.camera' must be a dict"),
+            ("feature_flags", [], "'settings.feature_flags' must be a dict"),
+            ("logging", "bad", "'settings.logging' must be a dict"),
+            ("discovery", 123, "'settings.discovery' must be a dict"),
+        ],
+    )
+    def test_save_rejects_non_dict_category_values(
+        self, temp_settings_file, category, bad_value, expected_message
+    ):
+        """Save should reject malformed category types with precise errors."""
+        settings = ApplicationSettings(temp_settings_file)
+
+        payload = {
+            "camera": {},
+            "feature_flags": {},
+            "logging": {},
+            "discovery": {},
+        }
+        payload[category] = bad_value
+
+        with pytest.raises(SettingsValidationError, match=expected_message):
+            settings.save(payload, "test")
+
+    @pytest.mark.parametrize(
+        ("category", "bad_value", "expected_message"),
+        [
+            ("camera", [], "'settings.camera' must be a dict"),
+            ("feature_flags", [], "'settings.feature_flags' must be a dict"),
+            ("logging", "bad", "'settings.logging' must be a dict"),
+            ("discovery", 123, "'settings.discovery' must be a dict"),
+        ],
+    )
+    def test_load_rejects_non_dict_category_values(
+        self, temp_settings_file, category, bad_value, expected_message
+    ):
+        """Load should reject malformed category types before completion."""
+        settings = ApplicationSettings(temp_settings_file)
+
+        with open(temp_settings_file, "w") as f:
+            json.dump(
+                {
+                    "version": 1,
+                    "settings": {
+                        "camera": {},
+                        "feature_flags": {},
+                        "logging": {},
+                        "discovery": {},
+                        category: bad_value,
+                    },
+                },
+                f,
+            )
+
+        with pytest.raises(SettingsValidationError, match=expected_message):
             settings.load()
 
 
@@ -444,9 +479,9 @@ class TestApplicationSettingsConcurrency:
             raise SettingsValidationError("invalid patch")
 
         monkeypatch.setattr(settings, "_validate_settings_structure", fail_validation)
-
         with pytest.raises(SettingsValidationError, match="invalid patch"):
             settings.apply_patch_atomic({"camera": {"fps": 60}}, "test")
+        monkeypatch.undo()
 
         after = settings.load()
 
