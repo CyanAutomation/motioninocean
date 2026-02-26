@@ -28,11 +28,11 @@
 #     .
 
 substitutions:
-  _GAR_REGION: us-central1
+  _GAR_REGION: europe-west1
   _GAR_REPO: motioninocean
   _IMAGE_NAME: motioninocean
   _IMAGE_TAG: latest
-  _CLOUD_RUN_REGION: us-central1
+  _CLOUD_RUN_REGION: europe-west1
   _SERVICE_NAME: motioninocean-demo
 
 steps:
