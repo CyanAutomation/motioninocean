@@ -43,20 +43,22 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
             ),
         )
 
-try:
-    parsed_management_url = urlparse(management_url)
-except ValueError as exc:
-    raise ConfigValidationError(
-        "MIO_DISCOVERY_MANAGEMENT_URL is malformed",
-        hint=(
-            "Use a valid URL such as "
-            "MIO_DISCOVERY_MANAGEMENT_URL="
-        ),
-    ) from exc
+    try:
+        parsed_management_url = urlparse(management_url)
+    except ValueError as exc:
+        msg = "MIO_DISCOVERY_MANAGEMENT_URL is malformed"
+        raise ConfigValidationError(
+            msg,
+            hint=(
+                "Use a valid URL such as "
+                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
+            ),
+        ) from exc
 
     if parsed_management_url.scheme not in {"http", "https"}:
+        msg = "MIO_DISCOVERY_MANAGEMENT_URL must start with http:// or https://"
         raise ConfigValidationError(
-            "MIO_DISCOVERY_MANAGEMENT_URL must start with http:// or https://",
+            msg,
             hint=(
                 "Use a valid URL such as "
                 "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
@@ -64,8 +66,9 @@ except ValueError as exc:
         )
 
     if not parsed_management_url.hostname:
+        msg = "MIO_DISCOVERY_MANAGEMENT_URL must include a hostname"
         raise ConfigValidationError(
-            "MIO_DISCOVERY_MANAGEMENT_URL must include a hostname",
+            msg,
             hint=(
                 "Use a valid URL such as "
                 "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
@@ -73,17 +76,31 @@ except ValueError as exc:
         )
 
     if parsed_management_url.username or parsed_management_url.password:
+        msg = "MIO_DISCOVERY_MANAGEMENT_URL must not include embedded credentials"
         raise ConfigValidationError(
-            "MIO_DISCOVERY_MANAGEMENT_URL must not include embedded credentials",
+            msg,
             hint=(
                 "Move credentials to environment variables and use a URL like "
                 "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
             ),
         )
 
-    if parsed_port is not None and not (0 < parsed_port <= 65535):
+    try:
+        parsed_port = parsed_management_url.port
+    except ValueError as exc:
+        msg = "MIO_DISCOVERY_MANAGEMENT_URL has an invalid port"
         raise ConfigValidationError(
-            "MIO_DISCOVERY_MANAGEMENT_URL has an invalid port",
+            msg,
+            hint=(
+                "Use a valid URL such as "
+                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
+            ),
+        ) from exc
+
+    if parsed_port is not None and not (0 < parsed_port <= 65535):
+        msg = "MIO_DISCOVERY_MANAGEMENT_URL has an invalid port"
+        raise ConfigValidationError(
+            msg,
             hint=(
                 "Use a valid URL such as "
                 "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"

@@ -116,9 +116,9 @@ docker buildx build --platform linux/arm64 \
 
 Both webcam and management modes expose interactive API docs at runtime — no extra dependencies required:
 
-| Endpoint | Description |
-| -------- | ----------- |
-| `GET /api/docs` | Swagger UI (browser, no auth required) |
+| Endpoint            | Description                                      |
+| ------------------- | ------------------------------------------------ |
+| `GET /api/docs`     | Swagger UI (browser, no auth required)           |
 | `GET /openapi.json` | OpenAPI 3.0 spec as JSON (for client generation) |
 
 Open `http://localhost:8000/api/docs` (webcam) or `http://localhost:8001/api/docs` (management) after starting the container.
