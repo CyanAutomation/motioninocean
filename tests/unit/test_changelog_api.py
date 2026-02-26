@@ -88,6 +88,7 @@ def test_load_changelog_entries_missing_file_uses_remote_fallback(
 
     assert payload["status"] == "ok"
     assert payload["source_type"] == "remote"
+    assert "remote source" in payload["message"]
     assert payload["entries"][0]["version"] == "2.0.0"
     assert payload["full_changelog_url"] == changelog_api.DEFAULT_FULL_CHANGELOG_URL
 
@@ -107,4 +108,17 @@ def test_load_changelog_entries_remote_failure_returns_degraded_with_link(
     assert payload["status"] == "degraded"
     assert payload["entries"] == []
     assert payload["source_type"] == "remote"
+    assert payload["full_changelog_url"] == changelog_api.DEFAULT_FULL_CHANGELOG_URL
+
+
+def test_load_changelog_entries_includes_ui_expected_source_metadata(tmp_path: Path) -> None:
+    """Payload includes source metadata consumed by API/UI contracts."""
+    changelog_path = tmp_path / "CHANGELOG.md"
+    changelog_path.write_text("## [1.0.0] - 2026-01-01\n- Initial release\n", encoding="utf-8")
+
+    payload = load_changelog_entries(changelog_path)
+
+    assert payload["status"] == "ok"
+    assert payload["source_type"] == "local"
+    assert "source" not in payload
     assert payload["full_changelog_url"] == changelog_api.DEFAULT_FULL_CHANGELOG_URL
