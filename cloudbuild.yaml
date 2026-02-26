@@ -20,11 +20,12 @@
 #   _IMAGE_TAG       : Primary image tag              (default: latest)
 #   _CLOUD_RUN_REGION: Cloud Run deployment region    (e.g. us-central1)
 #   _SERVICE_NAME    : Cloud Run service name         (default: motioninocean-demo)
+#   _SERVICE_PORT    : Cloud Run container port        (default: 8080)
 #
 # Usage (manual via gcloud):
 #   gcloud builds submit \
 #     --config cloudbuild.yaml \
-#     --substitutions _GAR_REGION=us-central1,_GAR_REPO=motioninocean,_IMAGE_TAG=v1.19.2 \
+#     --substitutions _GAR_REGION=us-central1,_GAR_REPO=motioninocean,_IMAGE_TAG=v1.19.2,_SERVICE_PORT=8080 \
 #     .
 
 substitutions:
@@ -34,6 +35,7 @@ substitutions:
   _IMAGE_TAG: latest
   _CLOUD_RUN_REGION: europe-west1
   _SERVICE_NAME: motioninocean-demo
+  _SERVICE_PORT: "8080"
 
 steps:
   # ---- Step 1: Build image ----
@@ -82,9 +84,11 @@ steps:
       - ${_CLOUD_RUN_REGION}
       - --platform
       - managed
+      - --port
+      - ${_SERVICE_PORT}
       - --allow-unauthenticated
       - --set-env-vars
-      - APP_MODE=webcam,MOCK_CAMERA=true,MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
+      - MIO_APP_MODE=webcam,MIO_MOCK_CAMERA=true,MIO_BIND_HOST=0.0.0.0,MIO_PORT=${_SERVICE_PORT}
     waitFor:
       - push-image
 
