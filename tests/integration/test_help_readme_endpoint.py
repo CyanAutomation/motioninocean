@@ -26,7 +26,9 @@ def _new_management_client(monkeypatch, tmp_path, management_token="test-token",
         sys.modules.pop("pi_camera_in_docker.management_api", None)
         main = importlib.import_module("pi_camera_in_docker.main")
         if path_type is not None:
-            monkeypatch.setattr(main, "Path", path_type)
+            # Create a fake non-existent path
+            fake_path = path_type(__file__).parent / "README_DOES_NOT_EXIST_FOR_TEST.md"
+            monkeypatch.setattr(main, "_readme_path", fake_path)
         return main.create_management_app(main._load_config()).test_client()
     finally:
         sys.path = original_sys_path
@@ -44,7 +46,7 @@ class TestReadmeHelpEndpointIntegration:
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data.get("content"), str)
-        assert "**Motion In Ocean**" in data["content"]
+        assert "Motion In Ocean turns" in data["content"]
 
     def test_help_readme_returns_404_when_readme_path_missing(self, monkeypatch, tmp_path):
         """Endpoint returns README_NOT_FOUND when path resolution points to missing README."""
