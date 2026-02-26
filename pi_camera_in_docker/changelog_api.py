@@ -84,8 +84,9 @@ def load_changelog_entries(
 
     try:
         markdown_text = changelog_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        message = f"Changelog file is unreadable: {exc!s}"
+    except OSError:
+        logger.exception("changelog_file_read_failed", extra={"path": str(changelog_path)})
+        message = "Changelog file is unreadable."
         return {"status": "degraded", "entries": [], "message": message}
 
     entries = parse_changelog_markdown(markdown_text, include_unreleased=include_unreleased)
