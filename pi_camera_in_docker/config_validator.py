@@ -43,17 +43,16 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
             ),
         )
 
-    try:
-        parsed_management_url = urlparse(management_url)
-        parsed_port = parsed_management_url.port
-    except ValueError as exc:
-        raise ConfigValidationError(
-            "MIO_DISCOVERY_MANAGEMENT_URL is malformed",
-            hint=(
-                "Use a valid URL such as "
-                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
-            ),
-        ) from exc
+try:
+    parsed_management_url = urlparse(management_url)
+except ValueError as exc:
+    raise ConfigValidationError(
+        "MIO_DISCOVERY_MANAGEMENT_URL is malformed",
+        hint=(
+            "Use a valid URL such as "
+            "MIO_DISCOVERY_MANAGEMENT_URL="
+        ),
+    ) from exc
 
     if parsed_management_url.scheme not in {"http", "https"}:
         raise ConfigValidationError(
