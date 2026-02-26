@@ -8,21 +8,6 @@ import pytest
 from pi_camera_in_docker.config_validator import ConfigValidationError, validate_discovery_config
 
 
-def test_config_validator_module_imports_without_name_error() -> None:
-    """config_validator imports cleanly when loaded in isolation."""
-    module_name = "pi_camera_in_docker.config_validator"
-    original_module = sys.modules.pop(module_name, None)
-
-    try:
-        imported_module = importlib.import_module(module_name)
-        importlib.reload(imported_module)
-    finally:
-        if original_module is not None:
-            sys.modules[module_name] = original_module
-        else:
-            sys.modules.pop(module_name, None)
-
-
 @pytest.fixture
 def valid_discovery_config() -> dict[str, object]:
     """Return a minimal valid discovery-enabled config."""

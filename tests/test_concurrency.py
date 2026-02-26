@@ -93,33 +93,46 @@ class TestThreadSafety:
     """Test thread safety of core components."""
 
     def test_stream_stats_concurrent_writes(self):
-        """Test that concurrent frame recording is thread-safe."""
+        """Verify StreamStats.record_frame is thread-safe under concurrent writes.
+
+        Contract: Multiple threads can safely record frames simultaneously without:
+        - Data loss (all frames counted)
+        - Crashes (no exceptions)
+        - Corruption (frame count matches input exactly)
+        """
         stats = StreamStats()
         num_threads = 10
         frames_per_thread = 100
         errors = []
+        base_time = time.monotonic()
 
-        def record_frames():
+        def record_frames(thread_id: int) -> None:
             try:
-                for _ in range(frames_per_thread):
-                    stats.record_frame(time.monotonic())
-                    time.sleep(0.001)  # Small delay to increase contention
+                for frame_num in range(frames_per_thread):
+                    # Use deterministic timestamps; no sleep to test actual contention
+                    timestamp = base_time + (thread_id * frames_per_thread + frame_num) * 0.001
+                    stats.record_frame(timestamp)
             except Exception as e:
-                errors.append(e)
+                errors.append((thread_id, frame_num, e))
 
         # Start multiple threads recording frames concurrently
-        threads = [threading.Thread(target=record_frames) for _ in range(num_threads)]
+        threads = [threading.Thread(target=record_frames, args=(i,)) for i in range(num_threads)]
         for thread in threads:
             thread.start()
         for thread in threads:
             thread.join(timeout=10.0)
 
-        # Verify no errors occurred
+        # Verify no exceptions during concurrent writes
         assert len(errors) == 0, f"Errors during concurrent writes: {errors}"
 
-        # Verify correct frame count
-        frame_count, _, _ = stats.snapshot()
-        assert frame_count == num_threads * frames_per_thread
+        # Verify exact frame count (no data loss or duplication)
+        frame_count, last_timestamp, _ = stats.snapshot()
+        expected_count = num_threads * frames_per_thread
+        assert frame_count == expected_count, f"Frame count mismatch: expected {expected_count}, got {frame_count}"
+
+        # Verify last timestamp is valid (proof of correct ordering)
+        assert last_timestamp is not None and last_timestamp > base_time, \
+            "Last frame timestamp should be later than base time (verifies frames were recorded)"
 
     def test_stream_stats_concurrent_reads(self):
         """Test that concurrent reads don't block each other excessively."""

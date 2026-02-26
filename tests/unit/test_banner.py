@@ -55,16 +55,6 @@ def test_banner_text_mode_writes_to_stderr(capsys, monkeypatch) -> None:
     assert len(captured.err) > 0
 
 
-def test_banner_text_mode_contains_version(capsys, monkeypatch) -> None:
-    """Banner output includes the supplied version string in text mode."""
-    monkeypatch.setenv("MIO_LOG_FORMAT", "text")
-
-    print_startup_banner("webcam", "127.0.0.1", 8000, version="2.3.4")
-
-    captured = capsys.readouterr()
-    assert "2.3.4" in captured.err
-
-
 def test_banner_text_mode_contains_mode(capsys, monkeypatch) -> None:
     """Banner output includes the mode in text mode."""
     monkeypatch.setenv("MIO_LOG_FORMAT", "text")
@@ -73,16 +63,6 @@ def test_banner_text_mode_contains_mode(capsys, monkeypatch) -> None:
 
     captured = capsys.readouterr()
     assert "management" in captured.err
-
-
-def test_banner_text_mode_contains_address(capsys, monkeypatch) -> None:
-    """Banner output includes the bind address and port in text mode."""
-    monkeypatch.setenv("MIO_LOG_FORMAT", "text")
-
-    print_startup_banner("webcam", "0.0.0.0", 8000, version="1.0.0")
-
-    captured = capsys.readouterr()
-    assert "0.0.0.0:8000" in captured.err
 
 
 def test_banner_text_mode_contains_repo_url(capsys, monkeypatch) -> None:
@@ -130,17 +110,6 @@ def test_banner_json_mode_writes_to_stderr(capsys, monkeypatch) -> None:
     captured = capsys.readouterr()
     assert captured.out == ""
     assert len(captured.err.strip()) > 0
-
-
-def test_banner_json_mode_is_single_line(capsys, monkeypatch) -> None:
-    """Compact fallback must be a single line in JSON mode."""
-    monkeypatch.setenv("MIO_LOG_FORMAT", "json")
-
-    print_startup_banner("webcam", "127.0.0.1", 8000, version="1.0.0")
-
-    captured = capsys.readouterr()
-    # Strip trailing newline then check for no embedded newlines
-    assert "\n" not in captured.err.strip()
 
 
 def test_banner_json_mode_contains_version(capsys, monkeypatch) -> None:

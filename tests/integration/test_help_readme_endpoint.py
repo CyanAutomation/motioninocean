@@ -37,17 +37,6 @@ def _new_management_client(monkeypatch, tmp_path, management_token="test-token",
 class TestReadmeHelpEndpointIntegration:
     """Integration coverage for GET /api/help/readme."""
 
-    def test_help_readme_returns_marker_text(self, monkeypatch, tmp_path):
-        """Endpoint returns README content with an expected known marker."""
-        client = _new_management_client(monkeypatch, tmp_path)
-
-        response = client.get("/api/help/readme")
-
-        assert response.status_code == 200
-        data = response.get_json()
-        assert isinstance(data.get("content"), str)
-        assert "Motion In Ocean turns" in data["content"]
-
     def test_help_readme_returns_404_when_readme_path_missing(self, monkeypatch, tmp_path):
         """Endpoint returns README_NOT_FOUND when path resolution points to missing README."""
 

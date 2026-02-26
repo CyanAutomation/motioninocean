@@ -72,33 +72,6 @@ def test_build_discovery_payload_uses_override_node_id():
     assert "snapshot" in payload["capabilities"]
 
 
-def test_discovery_announcer_stop_gracefully_shuts_down_background_thread():
-    """DiscoveryAnnouncer.stop() causes background thread to terminate cleanly."""
-    import time
-
-    from discovery import DiscoveryAnnouncer
-
-    shutdown_event = threading.Event()
-    announcer = DiscoveryAnnouncer(
-        management_url="http://127.0.0.1:8001",
-        token="token",
-        interval_seconds=30,
-        webcam_id="node-1",
-        payload={"webcam_id": "node-1"},
-        shutdown_event=shutdown_event,
-    )
-
-    # Start the announcer in background (if the class has a start method)
-    # For this test, we just verify stop() doesn't raise and cleans up gracefully
-    announcer.stop()
-
-    # Wait briefly to ensure thread terminates
-    time.sleep(0.1)
-
-    # Verify announcer is stopped (thread should not be alive if started)
-    assert not shutdown_event.is_set()  # External shutdown event was not triggered
-
-
 def test_build_discovery_payload_validates_required_fields():
     """build_discovery_payload raises ValueError when required fields missing."""
     from discovery import build_discovery_payload

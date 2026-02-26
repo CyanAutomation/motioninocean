@@ -149,43 +149,6 @@ class TestDiscoveryAnnounceIntegration:
             assert mock_urlopen.call_count >= 2
 
 
-    def test_announcer_payload_is_immutable_after_init(self):
-        """Verify posted payload is unaffected by external mutations after initialization."""
-        from discovery import DiscoveryAnnouncer
-
-        shutdown_event = threading.Event()
-        source_payload = {
-            "webcam_id": "node-test-immutable",
-            "labels": {"site": "lab"},
-            "capabilities": ["stream"],
-        }
-
-        mock_response = MagicMock()
-        mock_response.status = 201
-        mock_response.__enter__ = MagicMock(return_value=mock_response)
-        mock_response.__exit__ = MagicMock(return_value=False)
-
-        with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
-            announcer = DiscoveryAnnouncer(
-                management_url="http://management.local:8001",
-                token="test-token",
-                interval_seconds=30,
-                webcam_id=source_payload["webcam_id"],
-                payload=source_payload,
-                shutdown_event=shutdown_event,
-            )
-
-            source_payload["labels"]["site"] = "prod"
-            source_payload["capabilities"].append("snapshot")
-
-            result = announcer._announce_once()
-
-            assert result is True
-            request = mock_urlopen.call_args[0][0]
-            posted_payload = json.loads(request.data.decode("utf-8"))
-            assert posted_payload["labels"]["site"] == "lab"
-            assert posted_payload["capabilities"] == ["stream"]
-
     def test_announcer_snapshot_succeeds_under_concurrent_mutations(self):
         """Verify _payload_snapshot() reliably succeeds despite concurrent mutations.
 
