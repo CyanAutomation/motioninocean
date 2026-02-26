@@ -373,7 +373,6 @@ function openUtilityModal({ title, htmlContent }) {
  * @async
  */
 async function fetchReadmeContent() {
-async function fetchReadmeContent() {
   const response = await fetch("/api/help/readme", {
     headers: {
       Accept: "text/plain, application/json",
@@ -386,7 +385,6 @@ async function fetchReadmeContent() {
   }
 
   return await response.text();
-}
 }
 
 /**
