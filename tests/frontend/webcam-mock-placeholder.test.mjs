@@ -31,6 +31,19 @@ test("applyMockStreamMode toggles placeholder visibility for mock runtime states
       elements: {
         videoStream: video,
         mockStreamPlaceholder: placeholder,
+        mockStreamAnimation: {
+          attributes: { data: "/static/img/mio/mio_mock_stream.svg" },
+          classList: { toggle() {} },
+          getAttribute(name) {
+            return this.attributes[name] ?? null;
+          },
+          removeAttribute(name) {
+            delete this.attributes[name];
+          },
+          setAttribute(name, value) {
+            this.attributes[name] = value;
+          },
+        },
         refreshBtn: { title: "" },
         fullscreenBtn: { title: "" },
       },
@@ -52,6 +65,33 @@ test("applyMockStreamMode toggles placeholder visibility for mock runtime states
   assert.equal(placeholder.hidden, true);
   assert.equal(video.style.opacity, "1");
   assert.equal(video.attributes["aria-hidden"], "false");
+});
+
+test("mock placeholder template preserves animation host contract", () => {
+  const template = fs.readFileSync("pi_camera_in_docker/templates/index.html", "utf8");
+
+  const placeholderMatch = template.match(
+    /<div\s+id="mock-stream-placeholder"[\s\S]*?<\/div>/,
+  );
+
+  assert.ok(placeholderMatch, "mock placeholder container should exist");
+  const placeholderMarkup = placeholderMatch[0];
+
+  assert.match(
+    placeholderMarkup,
+    /<object\s+id="mock-stream-animation"[\s\S]*?type="image\/svg\+xml"/,
+    "mock placeholder should include an embedded object animation host",
+  );
+  assert.match(
+    placeholderMarkup,
+    /class="mock-stream-placeholder"/,
+    "mock placeholder should keep stable class contract",
+  );
+  assert.doesNotMatch(
+    placeholderMarkup,
+    /<img\b/,
+    "mock placeholder should avoid legacy unbounded image-only embedding",
+  );
 });
 
 test("mock stream visibility updates do not alter hero mascot behavior", () => {
