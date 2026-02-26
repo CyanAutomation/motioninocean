@@ -34,10 +34,12 @@ def test_parse_changelog_markdown_returns_released_versions_only_by_default() ->
     assert versions == ["1.2.0", "1.1.0"], f"Expected [1.2.0, 1.1.0], got {versions}"
 
     # Verify first entry has correct metadata
-    assert entries[0]["release_date"] == "2026-02-26", \
-        f"First entry should be v1.2.0 with date 2026-02-26"
-    assert entries[0]["changes"] == ["Added feature A", "Fixed issue B"], \
-        f"First entry changes should match exactly"
+    assert entries[0]["release_date"] == "2026-02-26", (
+        "First entry should be v1.2.0 with date 2026-02-26"
+    )
+    assert entries[0]["changes"] == ["Added feature A", "Fixed issue B"], (
+        "First entry changes should match exactly"
+    )
 
     # Verify second entry exists and is not Unreleased
     assert entries[1]["version"] == "1.1.0"

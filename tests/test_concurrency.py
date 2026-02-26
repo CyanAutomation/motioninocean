@@ -131,8 +131,11 @@ class TestThreadSafety:
         assert frame_count == expected_count, f"Frame count mismatch: expected {expected_count}, got {frame_count}"
 
         # Verify last timestamp is valid (proof of correct ordering)
-        assert last_timestamp is not None and last_timestamp > base_time, \
-            "Last frame timestamp should be later than base time (verifies frames were recorded)"
+        assert last_timestamp is not None
+        assert last_timestamp > base_time, (
+            "Last frame timestamp should be later than base time "
+            "(verifies frames were recorded)"
+        )
 
     def test_stream_stats_concurrent_reads(self):
         """Test that concurrent reads don't block each other excessively."""

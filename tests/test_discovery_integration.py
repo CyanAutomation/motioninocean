@@ -183,11 +183,15 @@ class TestDiscoveryAnnounceIntegration:
         def mutate_payload() -> None:
             """Aggressively mutate payload to stress-test snapshot mechanism."""
             index = 0
+            keyspace = 64
             while not stop_mutator.is_set():
-                announcer.payload["labels"][f"k{index}"] = f"v{index}"
+                key = f"k{index % keyspace}"
+                announcer.payload["labels"][key] = f"v{index}"
                 if index % 3 == 0:
-                    announcer.payload["labels"].pop(f"k{max(0, index - 1)}", None)
+                    announcer.payload["labels"].pop(f"k{(index - 1) % keyspace}", None)
                 index += 1
+                # Keep stress high but prevent runaway payload growth/CPU starvation.
+                time.sleep(0.0001)
 
         mutator = threading.Thread(target=mutate_payload, daemon=True)
         mutator.start()

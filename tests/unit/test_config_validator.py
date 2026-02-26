@@ -1,8 +1,5 @@
 """Unit tests for discovery URL validation in config validator."""
 
-import importlib
-import sys
-
 import pytest
 
 from pi_camera_in_docker.config_validator import ConfigValidationError, validate_discovery_config
