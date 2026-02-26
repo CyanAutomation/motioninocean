@@ -99,7 +99,9 @@ def test_merge_config_with_persisted_settings_uses_explicit_env_var_snapshot(mon
     monkeypatch.delenv("MIO_LOG_LEVEL", raising=False)
 
     persisted = {"settings": {"logging": {"log_level": "DEBUG"}}}
-    merged_without_snapshot = runtime_config.merge_config_with_persisted_settings(env_config, persisted)
+    merged_without_snapshot = runtime_config.merge_config_with_persisted_settings(
+        env_config, persisted
+    )
     merged_with_snapshot = runtime_config.merge_config_with_persisted_settings(
         env_config,
         persisted,
