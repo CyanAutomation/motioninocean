@@ -31,7 +31,7 @@
 substitutions:
   _GAR_REGION: europe-west1
   _GAR_REPO: motioninocean-demo
-  _IMAGE_NAME: motioninocean
+  _IMAGE_NAME: motion-in-ocean
   _IMAGE_TAG: latest
   _CLOUD_RUN_REGION: europe-west1
   _SERVICE_NAME: motioninocean-demo
