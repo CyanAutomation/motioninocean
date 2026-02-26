@@ -84,8 +84,9 @@ def _breadcrumb_filter(crumb: Dict[str, Any], _hint: Dict[str, Any]) -> Optional
     Returns:
         Breadcrumb (or None to drop)
     """
-    if crumb["category"] == "http.client":
-        url = crumb.get("data", {}).get("url", "")
+    if crumb.get("category") == "http.client":
+        data = crumb.get("data")
+        url = data.get("url", "") if isinstance(data, dict) else ""
         # Skip noisy health/ready/metrics endpoints
         if any(endpoint in url for endpoint in ["/health", "/ready", "/metrics"]):
             return None

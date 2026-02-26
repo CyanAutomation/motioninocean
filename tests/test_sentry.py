@@ -117,6 +117,23 @@ class TestSentryIntegration:
         }
         assert _breadcrumb_filter(normal_crumb, {}) is not None
 
+    def test_sentry_breadcrumb_filter_handles_missing_category(self):
+        """Breadcrumb filter should never raise when category is missing."""
+        from pi_camera_in_docker.sentry_config import _breadcrumb_filter
+
+        crumb = {"data": {"url": "http://localhost:8000/api/status"}}
+        assert _breadcrumb_filter(crumb, {}) == crumb
+
+    def test_sentry_breadcrumb_filter_handles_missing_or_non_dict_data(self):
+        """Breadcrumb filter should never raise when data is missing or malformed."""
+        from pi_camera_in_docker.sentry_config import _breadcrumb_filter
+
+        missing_data_crumb = {"category": "http.client"}
+        assert _breadcrumb_filter(missing_data_crumb, {}) == missing_data_crumb
+
+        non_dict_data_crumb = {"category": "http.client", "data": "not-a-dict"}
+        assert _breadcrumb_filter(non_dict_data_crumb, {}) == non_dict_data_crumb
+
     def test_sentry_release_reads_version_file(self, tmp_path: Path):
         """release= should use the VERSION file when present."""
         from pi_camera_in_docker import sentry_config
