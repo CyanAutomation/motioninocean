@@ -373,18 +373,20 @@ function openUtilityModal({ title, htmlContent }) {
  * @async
  */
 async function fetchReadmeContent() {
+async function fetchReadmeContent() {
   const response = await fetch("/api/help/readme", {
     headers: {
       Accept: "text/plain, application/json",
     },
   });
 
-  const readmeContent = await response.text();
   if (!response.ok) {
+    const readmeContent = await response.text();
     throw new Error(readmeContent || "Failed to load help documentation");
   }
 
-  return readmeContent;
+  return await response.text();
+}
 }
 
 /**
