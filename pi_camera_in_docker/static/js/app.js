@@ -370,23 +370,48 @@ function openUtilityModal({ title, htmlContent }) {
 /**
  * Load README help content from API.
  *
- * @returns {Promise<string>} README text payload.
+ * @returns {Promise<{status: string, content: string, message: string, documentation_url: string, source: string}>} Normalized help payload.
  * @throws {Error} If the API request fails.
  * @async
  */
 async function fetchReadmeContent() {
   const response = await fetch("/api/help/readme", {
     headers: {
-      Accept: "text/plain, application/json",
+      Accept: "application/json, text/plain",
     },
   });
 
-  if (!response.ok) {
-    const readmeContent = await response.text();
-    throw new Error(readmeContent || "Failed to load help documentation");
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
   }
 
-  return await response.text();
+  const normalizedPayload = {
+    status:
+      payload && typeof payload.status === "string" && payload.status.trim()
+        ? payload.status
+        : response.ok
+          ? "ok"
+          : "error",
+    content: payload && typeof payload.content === "string" ? payload.content : "",
+    message:
+      payload && typeof payload.message === "string" && payload.message.trim()
+        ? payload.message
+        : response.ok
+          ? ""
+          : "Failed to load help documentation",
+    documentation_url:
+      payload && typeof payload.documentation_url === "string" ? payload.documentation_url : "",
+    source: payload && typeof payload.source === "string" ? payload.source : "",
+  };
+
+  if (!response.ok && normalizedPayload.status !== "degraded") {
+    throw new Error(normalizedPayload.message || "Failed to load help documentation");
+  }
+
+  return normalizedPayload;
 }
 
 /**
@@ -574,15 +599,46 @@ async function openHelpModal() {
   });
 
   try {
-    const readmeContent = await fetchReadmeContent();
+    const helpPayload = await fetchReadmeContent();
+    const readmeContent =
+      typeof helpPayload.content === "string" ? helpPayload.content.trim() : "";
+    const documentationUrl =
+      typeof helpPayload.documentation_url === "string"
+        ? helpPayload.documentation_url.trim()
+        : "";
+    const helpMessage =
+      typeof helpPayload.message === "string" && helpPayload.message.trim()
+        ? helpPayload.message
+        : "Help documentation is temporarily unavailable.";
+
+    if (readmeContent) {
+      openUtilityModal({
+        title: "Help",
+        htmlContent: `<pre class="utility-modal__readme">${escapeHtml(helpPayload.content)}</pre>`,
+      });
+      return;
+    }
+
+    if (documentationUrl) {
+      openUtilityModal({
+        title: "Help",
+        htmlContent: [
+          `<p>${escapeHtml(helpMessage)}</p>`,
+          `<p><a href="${escapeHtml(documentationUrl)}" target="_blank" rel="noopener noreferrer">Open documentation</a></p>`,
+        ].join(""),
+      });
+      return;
+    }
+
     openUtilityModal({
       title: "Help",
-      htmlContent: `<pre class="utility-modal__readme">${escapeHtml(readmeContent)}</pre>`,
+      htmlContent: `<p>${escapeHtml(helpMessage)}</p>`,
     });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     openUtilityModal({
       title: "Help",
-      htmlContent: `<p>Unable to load help documentation: ${escapeHtml(error instanceof Error ? error.message : String(error))}</p>`,
+      htmlContent: `<p>${escapeHtml(errorMessage || "Unable to load help documentation.")}</p>`,
     });
   }
 }

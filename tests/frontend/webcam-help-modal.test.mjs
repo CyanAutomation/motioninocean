@@ -37,5 +37,34 @@ test("openHelpModal shows fallback messaging when README fetch fails", async () 
   assert.match(modalCalls[0].htmlContent, /Loading help documentation/);
 
   assert.equal(modalCalls[1].title, "Help");
-  assert.match(modalCalls[1].htmlContent, /Unable to load help documentation: network down/);
+  assert.match(modalCalls[1].htmlContent, /^<p>network down<\/p>$/);
+});
+
+test("openHelpModal shows documentation link when README content is unavailable", async () => {
+  const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
+  const openHelpModalFn = extractFunction(appJs, "openHelpModal");
+
+  const modalCalls = [];
+  const context = {
+    fetchReadmeContent: async () => ({
+      status: "degraded",
+      content: "",
+      message: "README unavailable in container image",
+      documentation_url: "https://github.com/CyanAutomation/motioninocean/blob/main/README.md",
+      source: "github_fallback",
+    }),
+    openUtilityModal: (payload) => {
+      modalCalls.push(payload);
+    },
+    escapeHtml: (value) => String(value),
+  };
+
+  vm.runInNewContext(`${openHelpModalFn};`, context);
+  await context.openHelpModal();
+
+  assert.equal(modalCalls.length, 2);
+  assert.equal(modalCalls[1].title, "Help");
+  assert.match(modalCalls[1].htmlContent, /README unavailable in container image/);
+  assert.match(modalCalls[1].htmlContent, /href="https:\/\/github.com\/CyanAutomation\/motioninocean\/blob\/main\/README.md"/);
+  assert.match(modalCalls[1].htmlContent, />Open documentation</);
 });
