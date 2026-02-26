@@ -179,6 +179,27 @@ def test_webcam_metrics_and_status_reflect_stream_activity():
     assert status_payload["fps"] == 14.0
 
 
+def test_api_config_runtime_mock_camera_reflects_env_for_ui_state(monkeypatch, tmp_path):
+    """/api/config runtime.mock_camera should mirror env for frontend mock-state rendering."""
+    from pi_camera_in_docker import main
+
+    monkeypatch.setenv("MIO_APP_MODE", "webcam")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "application-settings.json"))
+
+    monkeypatch.setattr(main, "_run_webcam_mode", lambda _state, _cfg: None)
+
+    app = main.create_webcam_app()
+    response = app.test_client().get("/api/config")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["runtime"]["mock_camera"] is True
+    assert payload["runtime"]["configured_mock_camera"] is True
+    assert payload["runtime"]["active_mock_fallback"] is False
+
+
 def test_settings_changes_reports_no_override_for_defaults(monkeypatch, tmp_path):
     """
     Verify that /api/settings/changes reports no override when persisted values

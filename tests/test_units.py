@@ -1078,6 +1078,88 @@ def test_api_config_runtime_includes_mock_fallback_observability_fields(monkeypa
     assert runtime["active_mock_fallback"] is True
 
 
+def test_init_mock_camera_frames_generates_non_empty_frames_from_mio_renderer(monkeypatch):
+    """Mock frame init should publish non-empty JPEG bytes from Mio renderer output."""
+    from threading import Event
+
+    from pi_camera_in_docker import main
+
+    writes = []
+
+    class OutputStub:
+        def write(self, frame):
+            writes.append(frame)
+
+    class ImmediateThread:
+        def __init__(self, target, daemon):
+            self._target = target
+            self._daemon = daemon
+
+        def start(self):
+            self._target()
+
+    state = {
+        "recording_started": Event(),
+        "shutdown_requested": Event(),
+        "output": OutputStub(),
+    }
+    cfg = {"resolution": (640, 480), "jpeg_quality": 88, "fps": 30}
+    rendered_frame = b"\xff\xd8\xffmio-jpeg-bytes"
+
+    monkeypatch.setattr(main, "render_mio_mock_frame", lambda *_args, **_kwargs: rendered_frame)
+    monkeypatch.setattr(main.time, "sleep", lambda *_args, **_kwargs: state["shutdown_requested"].set())
+    monkeypatch.setattr(main, "Thread", ImmediateThread)
+
+    main._init_mock_camera_frames(state, cfg)
+
+    assert state["recording_started"].is_set() is False
+    assert writes
+    assert writes[0] == rendered_frame
+    assert len(writes[0]) > 0
+
+
+def test_init_mock_camera_frames_uses_black_frame_fallback_on_render_failure(monkeypatch):
+    """Mock frame init should switch to black-frame JPEG fallback when rendering fails."""
+    from threading import Event
+
+    from pi_camera_in_docker import main
+    from pi_camera_in_docker.mock_stream_renderer import MockStreamRenderError
+
+    writes = []
+
+    class OutputStub:
+        def write(self, frame):
+            writes.append(frame)
+
+    class ImmediateThread:
+        def __init__(self, target, daemon):
+            self._target = target
+            self._daemon = daemon
+
+        def start(self):
+            self._target()
+
+    state = {
+        "recording_started": Event(),
+        "shutdown_requested": Event(),
+        "output": OutputStub(),
+    }
+    cfg = {"resolution": (640, 480), "jpeg_quality": 75, "fps": 20}
+
+    def raise_render_error(*_args, **_kwargs):
+        raise MockStreamRenderError("boom")
+
+    monkeypatch.setattr(main, "render_mio_mock_frame", raise_render_error)
+    monkeypatch.setattr(main.time, "sleep", lambda *_args, **_kwargs: state["shutdown_requested"].set())
+    monkeypatch.setattr(main, "Thread", ImmediateThread)
+
+    main._init_mock_camera_frames(state, cfg)
+
+    assert writes
+    assert writes[0][:3] == b"\xff\xd8\xff"
+    assert len(writes[0]) > 3
+
+
 def test_run_webcam_mode_raises_unexpected_camera_exception_even_when_not_strict(monkeypatch):
     """Unexpected camera init exceptions should propagate even when strict mode is disabled."""
     from threading import Event, RLock
