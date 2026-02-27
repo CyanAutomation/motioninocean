@@ -596,15 +596,134 @@ function renderDegradedChangelogNote(payload, debugModeEnabled) {
 }
 
 /**
- * Escape a string for safe HTML display.
+ * Render trusted README markdown into sanitized HTML for modal display.
  *
- * @param {string} value - Raw string value.
- * @returns {string} Escaped string.
+ * Supports a lightweight subset used by project README documents:
+ * headings, paragraphs, fenced code blocks, unordered/ordered lists,
+ * inline code, emphasis, and links.
+ *
+ * @param {string} markdown - Trusted markdown content returned by /api/help/readme.
+ * @returns {string} Sanitized HTML output for modal rendering.
  */
-function escapeHtml(value) {
-  const div = document.createElement("div");
-  div.textContent = String(value || "");
-  return div.innerHTML;
+function renderMarkdownContent(markdown) {
+  const lines = String(markdown || "")
+    .replace(/\r\n/g, "\n")
+    .split("\n");
+  const htmlChunks = [];
+
+  let inCodeBlock = false;
+  let listType = null;
+  let paragraphBuffer = [];
+
+  const flushParagraph = () => {
+    if (paragraphBuffer.length === 0) {
+      return;
+    }
+    const paragraphText = paragraphBuffer.join(" ").trim();
+    paragraphBuffer = [];
+    if (!paragraphText) {
+      return;
+    }
+    htmlChunks.push(`<p>${renderMarkdownInline(paragraphText)}</p>`);
+  };
+
+  const closeList = () => {
+    if (!listType) {
+      return;
+    }
+    htmlChunks.push(listType === "ul" ? "</ul>" : "</ol>");
+    listType = null;
+  };
+
+  for (const line of lines) {
+    const fenceMatch = line.match(/^```/);
+    if (fenceMatch) {
+      flushParagraph();
+      closeList();
+      if (inCodeBlock) {
+        htmlChunks.push("</code></pre>");
+      } else {
+        htmlChunks.push("<pre><code>");
+      }
+      inCodeBlock = !inCodeBlock;
+      continue;
+    }
+
+    if (inCodeBlock) {
+      htmlChunks.push(`${escapeHtml(line)}\n`);
+      continue;
+    }
+
+    if (!line.trim()) {
+      flushParagraph();
+      closeList();
+      continue;
+    }
+
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (headingMatch) {
+      flushParagraph();
+      closeList();
+      const level = Math.min(headingMatch[1].length, 6);
+      htmlChunks.push(`<h${level}>${renderMarkdownInline(headingMatch[2].trim())}</h${level}>`);
+      continue;
+    }
+
+    const unorderedListMatch = line.match(/^\s*[-*]\s+(.+)$/);
+    if (unorderedListMatch) {
+      flushParagraph();
+      if (listType !== "ul") {
+        closeList();
+        htmlChunks.push("<ul>");
+        listType = "ul";
+      }
+      htmlChunks.push(`<li>${renderMarkdownInline(unorderedListMatch[1].trim())}</li>`);
+      continue;
+    }
+
+    const orderedListMatch = line.match(/^\s*\d+[.)]\s+(.+)$/);
+    if (orderedListMatch) {
+      flushParagraph();
+      if (listType !== "ol") {
+        closeList();
+        htmlChunks.push("<ol>");
+        listType = "ol";
+      }
+      htmlChunks.push(`<li>${renderMarkdownInline(orderedListMatch[1].trim())}</li>`);
+      continue;
+    }
+
+    closeList();
+    paragraphBuffer.push(line.trim());
+  }
+
+  flushParagraph();
+  closeList();
+
+  if (inCodeBlock) {
+    htmlChunks.push("</code></pre>");
+  }
+
+  return `<article class="utility-modal__markdown">${htmlChunks.join("")}</article>`;
+}
+
+/**
+ * Render inline markdown tokens into escaped HTML.
+ *
+ * @param {string} text - Single-line markdown text.
+ * @returns {string} Escaped and transformed inline HTML.
+ */
+function renderMarkdownInline(text) {
+  let rendered = escapeHtml(text);
+
+  rendered = rendered.replace(/`([^`]+)`/g, "<code>$1</code>");
+  rendered = rendered.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  rendered = rendered.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+  rendered = rendered.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_match, label, url) => {
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  });
+
+  return rendered;
 }
 
 /**
@@ -658,7 +777,7 @@ async function openHelpModal() {
     if (readmeContent) {
       openUtilityModal({
         title: "Help",
-        htmlContent: `<pre class="utility-modal__readme">${escapeHtml(helpPayload.content)}</pre>`,
+        htmlContent: renderMarkdownContent(helpPayload.content),
       });
       return;
     }

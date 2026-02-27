@@ -252,10 +252,45 @@
   font-size: var(--font-size-sm);
 }
 
-.utility-modal__readme {
-  white-space: pre-wrap;
+.utility-modal__markdown {
   overflow: auto;
   max-height: min(70vh, 40rem);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.utility-modal__markdown :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0;
+}
+
+.utility-modal__markdown :is(p, ul, ol, pre) {
+  margin: 0;
+}
+
+.utility-modal__markdown :is(ul, ol) {
+  padding-left: 1.25rem;
+}
+
+.utility-modal__markdown pre {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-canvas);
+  overflow: auto;
+}
+
+.utility-modal__markdown code {
+  font-family: var(
+    --font-family-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    "Courier New",
+    monospace
+  );
 }
 
 @media (max-width: 768px) {
