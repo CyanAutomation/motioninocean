@@ -543,9 +543,7 @@ function renderChangelogHtml(payload) {
     .join("");
 
   const statusNote =
-    payload.status === "degraded"
-      ? renderDegradedChangelogNote(payload, debugModeEnabled)
-      : "";
+    payload.status === "degraded" ? renderDegradedChangelogNote(payload, debugModeEnabled) : "";
 
   const fullChangelogUrl =
     typeof payload.full_changelog_url === "string" ? payload.full_changelog_url.trim() : "";
@@ -649,12 +647,9 @@ async function openHelpModal() {
 
   try {
     const helpPayload = await fetchReadmeContent();
-    const readmeContent =
-      typeof helpPayload.content === "string" ? helpPayload.content.trim() : "";
+    const readmeContent = typeof helpPayload.content === "string" ? helpPayload.content.trim() : "";
     const documentationUrl =
-      typeof helpPayload.documentation_url === "string"
-        ? helpPayload.documentation_url.trim()
-        : "";
+      typeof helpPayload.documentation_url === "string" ? helpPayload.documentation_url.trim() : "";
     const helpMessage =
       typeof helpPayload.message === "string" && helpPayload.message.trim()
         ? helpPayload.message

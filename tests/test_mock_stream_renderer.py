@@ -60,7 +60,9 @@ def test_render_mio_mock_frame_raises_when_cairosvg_import_raises_oserror(monkey
 
     def fake_import(name, *args, **kwargs):
         if name == "cairosvg":
-            raise OSError("libcairo.so.2: cannot open shared object file: No such file or directory")
+            raise OSError(
+                "libcairo.so.2: cannot open shared object file: No such file or directory"
+            )
         return original_import(name, *args, **kwargs)
 
     monkeypatch.setattr("builtins.__import__", fake_import)
