@@ -82,6 +82,7 @@ test("openHelpModal sanitizes rendered markdown before showing help content", as
   const openHelpModalFn = extractFunction(appJs, "openHelpModal");
 
   const modalCalls = [];
+  let sanitizerInput = "";
   const context = {
     fetchReadmeContent: async () => ({
       status: "ok",
@@ -92,10 +93,10 @@ test("openHelpModal sanitizes rendered markdown before showing help content", as
     }),
     renderMarkdownContent: () =>
       '<article><script>alert(1)</script><a href="https://example.com" onclick="evil()">safe</a></article>',
-    sanitizeUtilityHtml: (html) =>
-      html
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-        .replace(/\son[a-z]+="[^"]*"/gi, ""),
+    sanitizeUtilityHtml: (html) => {
+      sanitizerInput = html;
+      return '<article><a href="https://example.com">safe</a></article>';
+    },
     openUtilityModal: (payload) => {
       modalCalls.push(payload);
     },
@@ -109,6 +110,10 @@ test("openHelpModal sanitizes rendered markdown before showing help content", as
   await context.openHelpModal();
 
   assert.equal(modalCalls.length, 2);
+  assert.equal(
+    sanitizerInput,
+    '<article><script>alert(1)</script><a href="https://example.com" onclick="evil()">safe</a></article>',
+  );
   assert.doesNotMatch(modalCalls[1].htmlContent, /<script/i);
   assert.doesNotMatch(modalCalls[1].htmlContent, /onclick=/i);
   assert.match(modalCalls[1].htmlContent, /href="https:\/\/example\.com"/);
