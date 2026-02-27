@@ -708,6 +708,150 @@ function renderMarkdownContent(markdown) {
 }
 
 /**
+ * Sanitize rendered utility HTML with an allowlist-based policy.
+ *
+ * Removes disallowed tags/attributes, strips event handler attributes,
+ * rejects unsafe link protocols, and enforces rel protections for
+ * external links.
+ *
+ * @param {string} html - Potentially unsafe HTML content.
+ * @returns {string} Sanitized HTML safe for modal rendering.
+ */
+function sanitizeUtilityHtml(html) {
+  const allowedTags = new Set([
+    "a",
+    "article",
+    "blockquote",
+    "br",
+    "code",
+    "em",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "hr",
+    "li",
+    "ol",
+    "p",
+    "pre",
+    "strong",
+    "table",
+    "tbody",
+    "td",
+    "th",
+    "thead",
+    "tr",
+    "ul",
+  ]);
+
+  const parser = new DOMParser();
+  const parsedDocument = parser.parseFromString(String(html || ""), "text/html");
+  const outputDocument = document.implementation.createHTMLDocument("");
+
+  const sanitizeNode = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return outputDocument.createTextNode(node.textContent || "");
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return null;
+    }
+
+    const sourceElement = /** @type {Element} */ (node);
+    const tagName = sourceElement.tagName.toLowerCase();
+    const childNodes = Array.from(sourceElement.childNodes)
+      .map((child) => sanitizeNode(child))
+      .filter(Boolean);
+
+    if (!allowedTags.has(tagName)) {
+      const fragment = outputDocument.createDocumentFragment();
+      childNodes.forEach((child) => fragment.appendChild(child));
+      return fragment;
+    }
+
+    const sanitizedElement = outputDocument.createElement(tagName);
+
+    if (tagName === "article" && sourceElement.classList.contains("utility-modal__markdown")) {
+      sanitizedElement.setAttribute("class", "utility-modal__markdown");
+    }
+
+    if (tagName === "a") {
+      const safeHref = sanitizeAnchorHref(sourceElement.getAttribute("href") || "");
+      if (safeHref) {
+        sanitizedElement.setAttribute("href", safeHref);
+
+        if (isExternalNavigationLink(safeHref)) {
+          sanitizedElement.setAttribute("target", "_blank");
+          sanitizedElement.setAttribute("rel", "noopener noreferrer");
+        }
+      }
+    }
+
+    childNodes.forEach((child) => sanitizedElement.appendChild(child));
+    return sanitizedElement;
+  };
+
+  const wrapper = outputDocument.createElement("div");
+  Array.from(parsedDocument.body.childNodes)
+    .map((child) => sanitizeNode(child))
+    .filter(Boolean)
+    .forEach((child) => wrapper.appendChild(child));
+
+  return wrapper.innerHTML;
+}
+
+/**
+ * Validate anchor href values for safe navigation.
+ *
+ * @param {string} href - Link href candidate.
+ * @returns {string} Safe href value, or empty string when rejected.
+ */
+function sanitizeAnchorHref(href) {
+  const raw = String(href || "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  const normalized = raw.replace(/[\u0000-\u001F\u007F\s]+/g, "");
+  if (!normalized) {
+    return "";
+  }
+
+  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(normalized)) {
+    try {
+      const parsed = new URL(normalized);
+      return ["http:", "https:"].includes(parsed.protocol) ? raw : "";
+    } catch {
+      return "";
+    }
+  }
+
+  return raw;
+}
+
+/**
+ * Determine whether a link points to an external destination.
+ *
+ * @param {string} href - Sanitized anchor href value.
+ * @returns {boolean} True for external absolute HTTP(S) URLs.
+ */
+function isExternalNavigationLink(href) {
+  if (!href) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(href, window.location.origin);
+    const isHttp = ["http:", "https:"].includes(parsed.protocol);
+    return isHttp && parsed.origin !== window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Render inline markdown tokens into escaped HTML.
  *
  * @param {string} text - Single-line markdown text.
@@ -775,9 +919,18 @@ async function openHelpModal() {
         : "Help documentation is temporarily unavailable.";
 
     if (readmeContent) {
+      let safeHelpHtml = "";
+      try {
+        const renderedMarkdownHtml = renderMarkdownContent(helpPayload.content);
+        safeHelpHtml = sanitizeUtilityHtml(renderedMarkdownHtml);
+      } catch (error) {
+        console.warn("Help markdown rendering failed; using plain-text fallback.", error);
+        safeHelpHtml = `<pre>${escapeHtml(readmeContent)}</pre>`;
+      }
+
       openUtilityModal({
         title: "Help",
-        htmlContent: renderMarkdownContent(helpPayload.content),
+        htmlContent: safeHelpHtml,
       });
       return;
     }
