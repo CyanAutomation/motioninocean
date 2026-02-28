@@ -239,7 +239,9 @@
         </div>
       </div>
       <div class="header-chips" role="status" aria-live="polite">
-        <span class="header-chip header-chip--neutral">Stream Statistics</span>
+        <span class="header-chip header-chip--neutral header-chip--static" aria-disabled="true"
+          >Stream Statistics</span
+        >
         <span id="chip-connected" class="header-chip header-chip--connected">Stream Connected</span>
         <span id="chip-stale" class="header-chip header-chip--stale hidden">Stale stream</span>
         <span id="chip-inactive" class="header-chip header-chip--inactive hidden"
@@ -333,6 +335,7 @@
                   <button
                     id="refresh-btn"
                     class="control-btn ui-btn ui-btn--overlay"
+                    type="button"
                     title="Refresh Stream"
                   >
                     <span class="control-btn-icon">↻</span>
@@ -341,6 +344,7 @@
                   <button
                     id="fullscreen-btn"
                     class="control-btn ui-btn ui-btn--overlay"
+                    type="button"
                     title="Toggle Fullscreen"
                   >
                     <span class="control-btn-icon">⛶</span>
@@ -403,11 +407,21 @@
                 </div>
                 <div class="vc-item__body">
                   <div class="vc-item__actions">
-                    <button id="vc-refresh-btn" class="vc-action-btn" title="Refresh stream">
+                    <button
+                      id="vc-refresh-btn"
+                      class="vc-action-btn"
+                      type="button"
+                      title="Refresh stream"
+                    >
                       Refresh
                     </button>
                     <span class="vc-action-sep">&middot;</span>
-                    <button id="vc-fullscreen-btn" class="vc-action-btn" title="Toggle fullscreen">
+                    <button
+                      id="vc-fullscreen-btn"
+                      class="vc-action-btn"
+                      type="button"
+                      title="Toggle fullscreen"
+                    >
                       Fullscreen
                     </button>
                   </div>

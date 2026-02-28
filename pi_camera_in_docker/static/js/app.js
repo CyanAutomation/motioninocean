@@ -1120,33 +1120,44 @@ function refreshStream() {
  *
  * @returns {void}
  */
-function toggleFullscreen() {
-  const container = document.querySelector(".video-container");
+async function toggleFullscreen() {
+  const container = state.elements.videoStream?.closest(".video-container");
   if (!container) return;
 
-  if (
-    !document.fullscreenElement &&
-    !document.webkitFullscreenElement &&
-    !document.mozFullScreenElement &&
-    !document.msFullscreenElement
-  ) {
-    if (container.requestFullscreen) {
-      container.requestFullscreen();
-    } else if (container.webkitRequestFullscreen) {
-      container.webkitRequestFullscreen();
-    } else if (container.mozRequestFullScreen) {
-      container.mozRequestFullScreen();
-    } else if (container.msRequestFullscreen) {
-      container.msRequestFullscreen();
+  const isFullscreen = !!(
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement
+  );
+
+  try {
+    if (!isFullscreen) {
+      if (container.requestFullscreen) {
+        await container.requestFullscreen();
+      } else if (container.webkitRequestFullscreen) {
+        container.webkitRequestFullscreen();
+      } else if (container.mozRequestFullScreen) {
+        container.mozRequestFullScreen();
+      } else if (container.msRequestFullscreen) {
+        container.msRequestFullscreen();
+      } else {
+        console.warn("Fullscreen API is not supported in this browser");
+      }
+      return;
     }
-  } else if (document.exitFullscreen) {
-    document.exitFullscreen();
-  } else if (document.webkitExitFullscreen) {
-    document.webkitExitFullscreen();
-  } else if (document.mozCancelFullScreen) {
-    document.mozCancelFullScreen();
-  } else if (document.msExitFullscreen) {
-    document.msExitFullscreen();
+
+    if (document.exitFullscreen) {
+      await document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  } catch (error) {
+    console.error("Failed to toggle fullscreen:", error);
   }
 }
 
@@ -1168,8 +1179,13 @@ function onFullscreenChange() {
     }
     const btnIcon = state.elements.fullscreenBtn.querySelector(".control-btn-icon");
     if (btnIcon) {
-      btnIcon.textContent = isFullscreen ? "⛶" : "⛶";
+      btnIcon.textContent = "⛶";
     }
+  }
+
+  const vcFullscreenBtn = document.getElementById("vc-fullscreen-btn");
+  if (vcFullscreenBtn) {
+    vcFullscreenBtn.textContent = isFullscreen ? "Exit Fullscreen" : "Fullscreen";
   }
 }
 
