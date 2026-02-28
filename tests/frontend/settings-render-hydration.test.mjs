@@ -5,7 +5,7 @@ import vm from "node:vm";
 
 function extractArrowFunction(source, functionName) {
   const pattern = new RegExp(
-    `const ${functionName} = \\(\\) => \\{[\\s\\S]*?\\n  \\};`,
+    `const ${functionName} = \\(\\) => \\{[\\s\\S]*?\n  \\};`,
     "m",
   );
   const match = source.match(pattern);
