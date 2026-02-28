@@ -52,6 +52,11 @@ const SettingsUI = (() => {
   const errorAlert = () => document.getElementById("settings-error-alert");
   const successAlert = () => document.getElementById("settings-success-alert");
   const undoAlert = () => document.getElementById("settings-undo-alert");
+  const saveStatus = () => document.getElementById("settings-save-status");
+  const saveStatusTime = () => document.getElementById("settings-save-status-time");
+  const saveStatusOutcome = () => document.getElementById("settings-save-status-outcome");
+  const saveStatusDetailsRow = () => document.getElementById("settings-save-status-details-row");
+  const saveStatusDetails = () => document.getElementById("settings-save-status-details");
   const undoMessage = () => document.getElementById("settings-undo-message");
   const undoBtn = () => document.getElementById("settings-undo-btn");
   const confirmModal = () => document.getElementById("settings-confirm-modal");
@@ -198,7 +203,7 @@ const SettingsUI = (() => {
       updateSaveButton();
       await refreshChangesSummary();
 
-      showSuccess("Settings loaded successfully");
+      showSuccess("Settings loaded successfully", { skipStatus: true });
     } catch (error) {
       console.error("Error loading settings:", error);
       showError("Failed to load settings: " + error.message);
@@ -509,7 +514,7 @@ const SettingsUI = (() => {
         setUndoState(snapshotPatch, pendingChanges);
         updateSaveButton();
         await refreshChangesSummary();
-        showSuccess("Settings saved successfully!");
+        showSuccess("Settings saved successfully!", { outcome: "saved" });
       } else if (response.status === 422) {
         // Requires restart
         const result = await response.json();
@@ -519,9 +524,12 @@ const SettingsUI = (() => {
         setUndoState(snapshotPatch, pendingChanges);
         updateSaveButton();
         await refreshChangesSummary();
+        const restartDetails = Array.isArray(result.modified_on_restart)
+          ? result.modified_on_restart.join("\n")
+          : "Server restart required to apply some settings.";
         showWarning(
-          "Settings saved! Some changes require server restart:\n" +
-            result.modified_on_restart.join("\n"),
+          "Settings saved! Some changes require server restart:\n" + restartDetails,
+          { outcome: "restart-required", details: restartDetails },
         );
       } else if (response.status === 400) {
         const result = await response.json();
@@ -529,13 +537,13 @@ const SettingsUI = (() => {
         const errorList = Object.entries(errors)
           .map(([key, msg]) => `${key}: ${msg}`)
           .join("\n");
-        showError("Validation error:\n" + errorList);
+        showError("Validation error:\n" + errorList, { outcome: "failed", details: errorList });
       } else {
         throw new Error(`HTTP ${response.status}`);
       }
     } catch (error) {
       console.error("Error saving settings:", error);
-      showError("Failed to save settings: " + error.message);
+      showError("Failed to save settings: " + error.message, { outcome: "failed", details: error.message });
       saveBtn().disabled = false;
     }
   };
@@ -564,7 +572,7 @@ const SettingsUI = (() => {
         updateSaveButton();
         await loadSettings();
         await refreshChangesSummary();
-        showSuccess("Settings reset to defaults!");
+        showSuccess("Settings reset to defaults!", { details: "Defaults restored from runtime configuration." });
       } else {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -575,51 +583,117 @@ const SettingsUI = (() => {
   };
 
   /**
-   * Display error alert message.
+   * Build ISO-localized display text for status timestamps.
    *
-   * Shows error alert with message, auto-hides after 8 seconds.
+   * @param {Date} timestamp - Status event timestamp.
+   * @returns {string} Localized timestamp string.
+   */
+  const formatStatusTimestamp = (timestamp) => {
+    return timestamp.toLocaleString();
+  };
+
+  /**
+   * Render the persistent save status region metadata.
    *
-   * @param {string} message - Error message to display.
+   * @param {{outcome: string, details?: string}} metadata - Structured status metadata.
    * @returns {void}
    */
-  const showError = (message) => {
+  const updateSaveStatus = (metadata) => {
+    if (!saveStatus() || !saveStatusTime() || !saveStatusOutcome()) {
+      return;
+    }
+
+    const timestamp = new Date();
+    const outcomeLabels = {
+      saved: "Saved",
+      failed: "Failed",
+      "restart-required": "Saved (restart required)",
+    };
+    const outcomeClassNames = {
+      saved: "settings-save-status--saved",
+      failed: "settings-save-status--failed",
+      "restart-required": "settings-save-status--restart-required",
+    };
+
+    saveStatus().classList.remove(
+      "hidden",
+      "settings-save-status--saved",
+      "settings-save-status--failed",
+      "settings-save-status--restart-required",
+    );
+
+    const normalizedOutcome =
+      typeof metadata?.outcome === "string" ? metadata.outcome : "saved";
+    const outcomeClass = outcomeClassNames[normalizedOutcome] || outcomeClassNames.saved;
+    saveStatus().classList.add(outcomeClass);
+    saveStatusTime().textContent = formatStatusTimestamp(timestamp);
+    saveStatusOutcome().textContent = outcomeLabels[normalizedOutcome] || outcomeLabels.saved;
+
+    if (metadata?.details && saveStatusDetails() && saveStatusDetailsRow()) {
+      saveStatusDetails().textContent = metadata.details;
+      saveStatusDetailsRow().classList.remove("hidden");
+    } else if (saveStatusDetails() && saveStatusDetailsRow()) {
+      saveStatusDetails().textContent = "";
+      saveStatusDetailsRow().classList.add("hidden");
+    }
+  };
+
+  /**
+   * Display error alert message.
+   *
+   * @param {string} message - Error message to display.
+   * @param {{outcome?: string, details?: string, skipStatus?: boolean}} metadata - Structured save status metadata.
+   * @returns {void}
+   */
+  const showError = (message, metadata = {}) => {
     const alert = errorAlert();
     const msgElement = document.getElementById("settings-error-message");
     if (alert && msgElement) {
       msgElement.textContent = message;
       alert.classList.remove("hidden");
-      setTimeout(() => alert.classList.add("hidden"), 8000);
+    }
+    if (!metadata.skipStatus) {
+      updateSaveStatus({
+        outcome: metadata.outcome || "failed",
+        details: metadata.details || message,
+      });
     }
   };
 
   /**
    * Display success alert message.
    *
-   * Shows success alert with message, auto-hides after 6 seconds.
-   *
    * @param {string} message - Success message to display.
+   * @param {{outcome?: string, details?: string, skipStatus?: boolean}} metadata - Structured save status metadata.
    * @returns {void}
    */
-  const showSuccess = (message) => {
+  const showSuccess = (message, metadata = {}) => {
     const alert = successAlert();
     const msgElement = document.getElementById("settings-success-message");
     if (alert && msgElement) {
       msgElement.textContent = message;
       alert.classList.remove("hidden");
-      setTimeout(() => alert.classList.add("hidden"), 6000);
+    }
+    if (!metadata.skipStatus) {
+      updateSaveStatus({
+        outcome: metadata.outcome || "saved",
+        details: metadata.details,
+      });
     }
   };
 
   /**
    * Display warning alert message.
    *
-   * Shows info/warning message via showSuccess with ℹ️ prefix.
-   *
    * @param {string} message - Warning message to display.
+   * @param {{outcome?: string, details?: string, skipStatus?: boolean}} metadata - Structured save status metadata.
    * @returns {void}
    */
-  const showWarning = (message) => {
-    showSuccess("ℹ️ " + message);
+  const showWarning = (message, metadata = {}) => {
+    showSuccess("ℹ️ " + message, {
+      outcome: metadata.outcome || "restart-required",
+      details: metadata.details || message,
+    });
   };
 
   /**
@@ -710,23 +784,17 @@ const SettingsUI = (() => {
     changes.forEach((change) => {
       const li = document.createElement("li");
       li.className = "settings-confirm-change-item";
-    confirmList().innerHTML = "";
-    changes.forEach((change) => {
-      const li = document.createElement("li");
-      li.className = "settings-confirm-change-item";
-      
+
       const pathSpan = document.createElement("span");
       pathSpan.className = "settings-confirm-change-path";
       pathSpan.textContent = `${change.category}.${change.property}`;
-      
+
       const valuesSpan = document.createElement("span");
       valuesSpan.className = "settings-confirm-change-values";
       valuesSpan.textContent = `${formatSettingValue(change.oldValue)} → ${formatSettingValue(change.newValue)}`;
-      
+
       li.appendChild(pathSpan);
       li.appendChild(valuesSpan);
-      confirmList().appendChild(li);
-    });
       confirmList().appendChild(li);
     });
 
@@ -832,7 +900,7 @@ const SettingsUI = (() => {
       updateSaveButton();
       await refreshChangesSummary();
       clearUndoState();
-      showSuccess("Last save undone successfully");
+      showSuccess("Last save undone successfully", { details: "Reverted the most recent saved settings patch." });
     } catch (error) {
       console.error("Error undoing save:", error);
       showError("Failed to undo save: " + error.message);
