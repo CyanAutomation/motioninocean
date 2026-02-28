@@ -701,10 +701,23 @@ const SettingsUI = (() => {
     changes.forEach((change) => {
       const li = document.createElement("li");
       li.className = "settings-confirm-change-item";
-      li.innerHTML = `
-        <span class="settings-confirm-change-path">${change.category}.${change.property}</span>
-        <span class="settings-confirm-change-values">${formatSettingValue(change.oldValue)} → ${formatSettingValue(change.newValue)}</span>
-      `;
+    confirmList().innerHTML = "";
+    changes.forEach((change) => {
+      const li = document.createElement("li");
+      li.className = "settings-confirm-change-item";
+      
+      const pathSpan = document.createElement("span");
+      pathSpan.className = "settings-confirm-change-path";
+      pathSpan.textContent = `${change.category}.${change.property}`;
+      
+      const valuesSpan = document.createElement("span");
+      valuesSpan.className = "settings-confirm-change-values";
+      valuesSpan.textContent = `${formatSettingValue(change.oldValue)} → ${formatSettingValue(change.newValue)}`;
+      
+      li.appendChild(pathSpan);
+      li.appendChild(valuesSpan);
+      confirmList().appendChild(li);
+    });
       confirmList().appendChild(li);
     });
 
