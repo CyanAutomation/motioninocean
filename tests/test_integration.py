@@ -2,6 +2,8 @@
 Integration tests - verify startup sequence, error recovery, and health checks.
 """
 
+import json
+
 from pi_camera_in_docker.shared import register_shared_routes
 
 
@@ -57,8 +59,17 @@ def test_management_endpoints_return_contract_payloads(monkeypatch, tmp_path):
     metrics_payload = metrics.get_json()
     assert metrics_payload["app_mode"] == "management"
     assert metrics_payload["camera_active"] is False
-    assert "current_fps" in metrics_payload
-    assert "frames_captured" in metrics_payload
+    assert set(metrics_payload) == {
+        "app_mode",
+        "camera_mode_enabled",
+        "camera_active",
+        "max_frame_age_seconds",
+        "uptime_seconds",
+        "frames_captured",
+        "current_fps",
+        "last_frame_age_seconds",
+        "timestamp",
+    }
 
 
 def test_webcam_ready_transitions_from_not_ready_to_ready():
@@ -170,6 +181,17 @@ def test_webcam_metrics_and_status_reflect_stream_activity():
     assert metrics_payload["camera_active"] is True
     assert metrics_payload["frames_captured"] == 21
     assert metrics_payload["current_fps"] == 14.0
+    assert set(metrics_payload) == {
+        "app_mode",
+        "camera_mode_enabled",
+        "camera_active",
+        "max_frame_age_seconds",
+        "uptime_seconds",
+        "frames_captured",
+        "current_fps",
+        "last_frame_age_seconds",
+        "timestamp",
+    }
 
     assert status.status_code == 200
     status_payload = status.get_json()
@@ -177,6 +199,44 @@ def test_webcam_metrics_and_status_reflect_stream_activity():
     assert status_payload["stream_available"] is True
     assert status_payload["camera_active"] is True
     assert status_payload["fps"] == 14.0
+
+
+def test_webcam_metrics_stream_matches_metrics_snapshot_contract():
+    """Webcam SSE /api/metrics/stream payload should match /metrics schema keys."""
+    from pi_camera_in_docker import main
+
+    app, state = _build_webcam_status_app(
+        main,
+        {
+            "frames_captured": 33,
+            "current_fps": 11.5,
+            "last_frame_age_seconds": 0.7,
+            "resolution": [640, 480],
+        },
+    )
+    state["recording_started"].set()
+    client = app.test_client()
+
+    response = client.get("/api/metrics/stream", buffered=False)
+    first_chunk = next(response.response).decode("utf-8")
+    response.close()
+
+    assert first_chunk.startswith("data: ")
+    payload = json.loads(first_chunk.removeprefix("data: ").strip())
+    assert payload["frames_captured"] == 33
+    assert payload["current_fps"] == 11.5
+    assert payload["last_frame_age_seconds"] == 0.7
+    assert set(payload) == {
+        "app_mode",
+        "camera_mode_enabled",
+        "camera_active",
+        "max_frame_age_seconds",
+        "uptime_seconds",
+        "frames_captured",
+        "current_fps",
+        "last_frame_age_seconds",
+        "timestamp",
+    }
 
 
 def test_api_config_runtime_mock_camera_reflects_env_for_ui_state(monkeypatch, tmp_path):
