@@ -302,6 +302,90 @@ def test_settings_patch_rejects_malformed_json(monkeypatch, tmp_path):
     }
 
 
+@pytest.mark.parametrize("payload", [["camera"], "camera", 123])
+def test_settings_patch_rejects_non_object_json_payload(monkeypatch, tmp_path, payload):
+    client, _ = _new_management_client(monkeypatch, tmp_path)
+
+    response = client.patch("/api/v1/settings", json=payload)
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "INVALID_PAYLOAD",
+        "message": "Request body must be a JSON object.",
+    }
+
+
+def test_settings_patch_rejects_empty_object_payload(monkeypatch, tmp_path):
+    client, _ = _new_management_client(monkeypatch, tmp_path)
+
+    response = client.patch("/api/v1/settings", json={})
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "INVALID_PAYLOAD",
+        "message": "Request body must not be empty.",
+    }
+
+
+def test_settings_patch_rejects_invalid_category_shape(monkeypatch, tmp_path):
+    client, _ = _new_management_client(monkeypatch, tmp_path)
+
+    response = client.patch("/api/v1/settings", json={"camera": 123})
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "Validation failed",
+        "validation_errors": {
+            "camera": "Category must contain property objects",
+        },
+    }
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_errors"),
+    [
+        ({"camera": {"fps": "fast"}}, {"camera.fps": "Expected integer, got str"}),
+        (
+            {"camera": {"jpeg_quality": 101}},
+            {"camera.jpeg_quality": "Value 101 is greater than maximum 100"},
+        ),
+    ],
+)
+def test_settings_patch_rejects_invalid_property_value_type_or_range(
+    monkeypatch, tmp_path, payload, expected_errors
+):
+    client, _ = _new_management_client(monkeypatch, tmp_path)
+
+    response = client.patch("/api/v1/settings", json=payload)
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "Validation failed",
+        "validation_errors": expected_errors,
+    }
+
+
+def test_settings_patch_rejects_unknown_category_and_property(monkeypatch, tmp_path):
+    client, _ = _new_management_client(monkeypatch, tmp_path)
+
+    response = client.patch(
+        "/api/v1/settings",
+        json={
+            "camera": {"unknown_setting": True},
+            "unknown_category": {"enabled": True},
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "error": "Validation failed",
+        "validation_errors": {
+            "camera.unknown_setting": "Unknown property: camera.unknown_setting",
+            "unknown_category.enabled": "Unknown property: unknown_category.enabled",
+        },
+    }
+
+
 def test_settings_patch_response_reflects_persisted_state(monkeypatch, tmp_path):
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
