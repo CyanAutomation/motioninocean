@@ -209,27 +209,27 @@ const SettingsUI = (() => {
     // FPS
     const fpsSlider = document.getElementById("setting-fps");
     if (fpsSlider) {
-      fpsSlider.value = cameraSettings.fps || 30;
+      fpsSlider.value = cameraSettings.fps ?? 30;
       updateSliderDisplay(fpsSlider);
     }
 
     // JPEG Quality
     const qualitySlider = document.getElementById("setting-jpeg-quality");
     if (qualitySlider) {
-      qualitySlider.value = cameraSettings.jpeg_quality || 85;
+      qualitySlider.value = cameraSettings.jpeg_quality ?? 85;
       updateSliderDisplay(qualitySlider);
     }
 
     // Max Connections
     const maxConnInput = document.getElementById("setting-max-connections");
     if (maxConnInput) {
-      maxConnInput.value = cameraSettings.max_stream_connections || 2;
+      maxConnInput.value = cameraSettings.max_stream_connections ?? 2;
     }
 
     // Max Frame Age
     const frameAgeInput = document.getElementById("setting-max-frame-age");
     if (frameAgeInput) {
-      frameAgeInput.value = cameraSettings.max_frame_age_seconds || 10;
+      frameAgeInput.value = cameraSettings.max_frame_age_seconds ?? 10;
     }
   };
 
@@ -258,7 +258,7 @@ const SettingsUI = (() => {
     // Include Identifiers
     const identifiersCheckbox = document.getElementById("setting-log-identifiers");
     if (identifiersCheckbox) {
-      identifiersCheckbox.checked = loggingSettings.log_include_identifiers || false;
+      identifiersCheckbox.checked = loggingSettings.log_include_identifiers ?? false;
     }
   };
 
@@ -275,7 +275,7 @@ const SettingsUI = (() => {
     // Discovery Enabled
     const enabledCheckbox = document.getElementById("setting-discovery-enabled");
     if (enabledCheckbox) {
-      enabledCheckbox.checked = discoverySettings.discovery_enabled || false;
+      enabledCheckbox.checked = discoverySettings.discovery_enabled ?? false;
     }
 
     // Management URL
@@ -293,7 +293,7 @@ const SettingsUI = (() => {
     // Discovery Interval
     const intervalInput = document.getElementById("setting-discovery-interval");
     if (intervalInput) {
-      intervalInput.value = discoverySettings.discovery_interval_seconds || 30;
+      intervalInput.value = discoverySettings.discovery_interval_seconds ?? 30;
     }
   };
 
