@@ -3,10 +3,11 @@ import logging
 import time
 from collections import deque
 from threading import Condition, Lock
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import sentry_sdk
 from flask import Flask, Response, jsonify, request
+from flask_limiter import Limiter
 from werkzeug.exceptions import BadRequest
 
 
@@ -728,52 +729,115 @@ class WebcamActionHandler:
         )
 
 
-def _register_stream_routes(app: Flask, builder: StreamResponseBuilder) -> None:
+def _register_stream_routes(
+    app: Flask, builder: StreamResponseBuilder, limiter: Optional[Limiter]
+) -> None:
     """Register MJPEG stream and snapshot endpoints.
 
     Args:
         app: Flask application instance.
         builder: StreamResponseBuilder instance for stream generation.
+        limiter: Optional Flask-Limiter instance.
     """
 
     @app.route("/stream.mjpg")
+    @_limit_route(limiter, "10/second;120/minute")
     def video_feed() -> Response:
         return builder.build()
 
     @app.route("/snapshot.jpg")
+    @_limit_route(limiter, "10/second;120/minute")
     def snapshot() -> Response:
         builder_snapshot = SnapshotResponseBuilder(builder.state)
         return builder_snapshot.build()
 
 
-def _register_action_routes(app: Flask, handler: WebcamActionHandler) -> None:
+def _limit_route(
+    limiter: Optional[Limiter],
+    limit_value: str,
+    exempt_when: Optional[Callable[[], bool]] = None,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Apply route rate limit when a limiter is configured.
+
+    Args:
+        limiter: Optional Flask-Limiter instance.
+        limit_value: Flask-Limiter limit string.
+        exempt_when: Optional request predicate to skip this limit.
+
+    Returns:
+        Decorator that wraps the target function with limiter rules.
+    """
+
+    def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
+        if limiter is None:
+            return fn
+        return limiter.limit(limit_value, exempt_when=exempt_when)(fn)
+
+    return decorator
+
+
+def _normalized_webcam_action_param() -> str:
+    """Normalize legacy /webcam?action query parameter."""
+    action = request.args.get("action", "").strip().lower()
+    return action.split("?")[0].split("&")[0]
+
+
+def _is_snapshot_webcam_request() -> bool:
+    """Return True for OctoPrint compatibility snapshot requests."""
+    return _normalized_webcam_action_param() == "snapshot"
+
+
+def _is_snapshot_like_action() -> bool:
+    """Return True for snapshot-like control-plane actions."""
+    action = (request.view_args or {}).get("action", "")
+    normalized_action = action.strip().lower()
+    return normalized_action in {"snapshot", "take-snapshot", "capture-snapshot"}
+
+
+def _register_action_routes(
+    app: Flask, handler: WebcamActionHandler, limiter: Optional[Limiter]
+) -> None:
     """Register control plane action endpoint.
 
     Args:
         app: Flask application instance.
         handler: WebcamActionHandler instance for action processing.
+        limiter: Optional Flask-Limiter instance.
     """
 
     @app.route("/api/actions/<action>", methods=["POST"])
+    @_limit_route(limiter, "20/second;200/minute", exempt_when=_is_snapshot_like_action)
+    @_limit_route(
+        limiter,
+        "10/second;120/minute",
+        exempt_when=lambda: not _is_snapshot_like_action(),
+    )
     def webcam_action(action: str) -> Response | Tuple[Response, int]:
         """Handle webcam mode control plane actions."""
         return handler.handle_action(action)
 
 
-def _register_compat_routes(app: Flask, builder: StreamResponseBuilder) -> None:
+def _register_compat_routes(
+    app: Flask, builder: StreamResponseBuilder, limiter: Optional[Limiter]
+) -> None:
     """Register OctoPrint compatibility routes.
 
     Args:
         app: Flask application instance.
         builder: StreamResponseBuilder instance for stream generation.
+        limiter: Optional Flask-Limiter instance.
     """
 
     @app.route("/webcam")
     @app.route("/webcam/")
+    @_limit_route(limiter, "30/second;600/minute", exempt_when=_is_snapshot_webcam_request)
+    @_limit_route(
+        limiter,
+        "10/second;120/minute",
+        exempt_when=lambda: not _is_snapshot_webcam_request(),
+    )
     def octoprint_compat_webcam() -> Response:
-        action = request.args.get("action", "").strip().lower()
-        # Normalize malformed action values: strip anything after ? or & to handle legacy cache busters
-        action = action.split("?")[0].split("&")[0]
+        action = _normalized_webcam_action_param()
         if action == "stream":
             return builder.build()
         if action == "snapshot":
@@ -782,7 +846,7 @@ def _register_compat_routes(app: Flask, builder: StreamResponseBuilder) -> None:
         return Response("Unsupported action", status=400)
 
 
-def register_webcam_routes(app: Flask, state: dict) -> None:
+def register_webcam_routes(app: Flask, state: dict, limiter: Optional[Limiter] = None) -> None:
     """Register webcam mode Flask routes for MJPEG streaming.
 
     Registers /stream.mjpg, /snapshot.jpg, /api/actions/<action>, and
@@ -796,6 +860,7 @@ def register_webcam_routes(app: Flask, state: dict) -> None:
     Args:
         app: Flask application instance.
         state: Application state dict with frame buffer, tracker, stream stats, etc.
+        limiter: Optional Flask-Limiter instance for per-route request throttling.
     """
     tracker = state["connection_tracker"]
     max_stream_connections = state["max_stream_connections"]
@@ -805,9 +870,9 @@ def register_webcam_routes(app: Flask, state: dict) -> None:
     action_handler = WebcamActionHandler(state)
 
     # Register all endpoint groups
-    _register_stream_routes(app, stream_builder)
-    _register_action_routes(app, action_handler)
-    _register_compat_routes(app, stream_builder)
+    _register_stream_routes(app, stream_builder, limiter)
+    _register_action_routes(app, action_handler, limiter)
+    _register_compat_routes(app, stream_builder, limiter)
 
 
 def register_management_camera_error_routes(app: Flask) -> None:
