@@ -5,6 +5,8 @@ from typing import Any, Callable, Optional
 
 from flask import Flask, Response, jsonify, request
 
+from pi_camera_in_docker.version_info import get_app_version_info
+
 
 def extract_bearer_token(auth_header: str) -> Optional[str]:
     """Extract bearer token from Authorization header.
@@ -30,7 +32,7 @@ def register_webcam_control_plane_auth(
     """Register Flask before_request guard for webcam control plane authentication.
 
     Protects webcam mode endpoints with bearer token validation. Routes protected:
-    - /health, /ready, /metrics, /api/status (exact match)
+    - /health, /ready, /metrics, /api/status, /version, /api/version (exact match)
     - /api/actions/* (prefix match)
 
     Management mode requests bypass protection (app_mode == 'management').
@@ -44,7 +46,7 @@ def register_webcam_control_plane_auth(
     Raises:
         Generates HTTP 401 Unauthorized response if token is missing/invalid.
     """
-    protected_exact_paths = {"/health", "/ready", "/metrics", "/api/status"}
+    protected_exact_paths = {"/health", "/ready", "/metrics", "/api/status", "/version", "/api/version"}
 
     @app.before_request
     def _webcam_control_plane_auth_guard():
@@ -328,6 +330,7 @@ def register_shared_routes(
     - GET /ready: App is ready to serve (503 if webcam not initialized)
     - GET /metrics: Prometheus-style metrics snapshot
     - GET /api/status: Detailed status including stream/camera/connection state
+    - GET /version and /api/version: Application version metadata
 
     Behavior varies by app_mode:
     - 'webcam': /ready waits for first frame; /api/status includes stream stats
@@ -455,6 +458,20 @@ def register_shared_routes(
         sse_response.headers["X-Accel-Buffering"] = "no"
         sse_response.headers["Connection"] = "keep-alive"
         return sse_response
+
+    @app.route("/version")
+    @app.route("/api/version")
+    def version():
+        version_info = get_app_version_info()
+        return jsonify(
+            {
+                "status": "ok",
+                "version": version_info["version"],
+                "source": version_info["source"],
+                "app_mode": state["app_mode"],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        ), 200
 
     @app.route("/api/status")
     def api_status():

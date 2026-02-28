@@ -7,12 +7,13 @@ while preserving useful debugging context.
 
 import logging
 import re
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
+
+from pi_camera_in_docker.version_info import read_app_version
 
 
 def _redact_auth_data(event: Dict[str, Any], _hint: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -94,20 +95,12 @@ def _breadcrumb_filter(crumb: Dict[str, Any], _hint: Dict[str, Any]) -> Optional
 
 
 def _get_app_version() -> str:
-    """Read the application version from /app/VERSION.
-
-    Falls back to "unknown" when the file is absent (dev environments, tests).
+    """Read application version string for Sentry release tagging.
 
     Returns:
         Version string (e.g. "1.2.3") or "unknown".
     """
-    version_file = Path("/app/VERSION")
-    if version_file.exists():
-        try:
-            return version_file.read_text(encoding="utf-8").strip()
-        except OSError:
-            pass
-    return "unknown"
+    return read_app_version()
 
 
 def _traces_sampler(sampling_context: Dict[str, Any]) -> float:

@@ -16,6 +16,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from pi_camera_in_docker.version_info import read_app_version
+
 
 # ---------------------------------------------------------------------------
 # Mio ASCII art
@@ -89,22 +91,13 @@ _VERSION_FILE_CANDIDATES = [
 
 
 def _read_app_version() -> str:
-    """Read the application version from the VERSION file.
-
-    Tries ``/app/VERSION`` (Docker image path) first, then falls back to the
-    repository root ``VERSION`` file relative to this module.
+    """Read the application version from configured VERSION file candidates.
 
     Returns:
         Version string (e.g. ``"1.19.5"``), or ``"unknown"`` if no readable
         file is found.
     """
-    for candidate in _VERSION_FILE_CANDIDATES:
-        if candidate.exists():
-            try:
-                return candidate.read_text(encoding="utf-8").strip()
-            except OSError:
-                continue
-    return "unknown"
+    return read_app_version(_VERSION_FILE_CANDIDATES)
 
 
 def print_startup_banner(
