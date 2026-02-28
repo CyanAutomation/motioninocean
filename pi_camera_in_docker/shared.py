@@ -309,7 +309,7 @@ def _build_metrics_payload(
         "camera_mode_enabled": state["app_mode"] == "webcam",
         "camera_active": state.get("recording_started", threading.Event()).is_set(),
         "max_frame_age_seconds": state["max_frame_age_seconds"],
-        "uptime_seconds": round(time.monotonic() - app.start_time_monotonic, 2),
+        "uptime_seconds": round(time.monotonic() - getattr(app, "start_time_monotonic", time.monotonic()), 2),
         **filtered_stream_status,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
