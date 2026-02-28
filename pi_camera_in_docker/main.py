@@ -1307,7 +1307,7 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     cfg = _load_config() if config is None else config
     cfg = _merge_config_with_settings(cfg)  # Apply persisted settings
     cfg["app_mode"] = "webcam"
-    app, _limiter, state = _create_base_app(cfg)
+    app, limiter, state = _create_base_app(cfg)
 
     stream_stats = StreamStats()
     output = FrameBuffer(stream_stats, target_fps=cfg["target_fps"])
@@ -1441,7 +1441,7 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
     # @app.route("/stream.mjpg")  # registered in register_webcam_routes (modes/webcam.py)
     # @app.route("/webcam")  # registered in register_webcam_routes (modes/webcam.py)
     # @app.route("/webcam/")  # registered in register_webcam_routes (modes/webcam.py)
-    register_webcam_routes(app, state)
+    register_webcam_routes(app, state, limiter)
     _run_webcam_mode(state, cfg)
 
     if cfg["discovery_enabled"]:
