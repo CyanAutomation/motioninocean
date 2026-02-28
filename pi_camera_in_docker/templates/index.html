@@ -693,6 +693,35 @@
                 Reset to Defaults
               </button>
             </div>
+            <div id="settings-save-status" class="settings-save-status hidden" aria-live="polite">
+              <div class="settings-save-status__header">
+                <h3>Save Status</h3>
+                <button
+                  class="alert-dismiss"
+                  type="button"
+                  onclick="this.closest('#settings-save-status').classList.add('hidden')"
+                >
+                  ×
+                </button>
+              </div>
+              <dl class="settings-save-status__meta">
+                <div class="settings-save-status__row">
+                  <dt>Last save time</dt>
+                  <dd id="settings-save-status-time">Never</dd>
+                </div>
+                <div class="settings-save-status__row">
+                  <dt>Last outcome</dt>
+                  <dd id="settings-save-status-outcome">Not saved yet</dd>
+                </div>
+                <div
+                  id="settings-save-status-details-row"
+                  class="settings-save-status__row settings-save-status__row--details hidden"
+                >
+                  <dt>Details</dt>
+                  <dd id="settings-save-status-details"></dd>
+                </div>
+              </dl>
+            </div>
           </div>
 
           <!-- Camera Settings Section -->

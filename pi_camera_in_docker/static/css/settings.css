@@ -77,6 +77,72 @@
   cursor: not-allowed;
 }
 
+
+.settings-save-status {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-surface);
+}
+
+.settings-save-status__header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.settings-save-status__header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text-primary);
+}
+
+.settings-save-status__meta {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.settings-save-status__row {
+  display: grid;
+  grid-template-columns: minmax(120px, 170px) 1fr;
+  gap: 0.75rem;
+}
+
+.settings-save-status__row dt {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.settings-save-status__row dt,
+.settings-save-status__row dd {
+  margin: 0;
+}
+
+.settings-save-status__row dd {
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.settings-save-status--saved {
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.settings-save-status--failed {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.settings-save-status--restart-required {
+  border-color: var(--color-warning);
+  background: var(--warning-15);
+}
+
 /* Settings Section */
 .settings-section {
   padding: 0;
@@ -619,6 +685,15 @@
   .setting-label-group {
     flex-direction: column;
     gap: 0.25rem;
+  }
+
+  .settings-save-status__row {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+
+  .settings-save-status {
+    padding: 0.875rem;
   }
 }
 
