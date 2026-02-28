@@ -1022,6 +1022,43 @@
               ×
             </button>
           </div>
+
+          <!-- Undo Alert -->
+          <div id="settings-undo-alert" class="settings-alert settings-alert--undo success hidden">
+            <span class="alert-icon">↩️</span>
+            <span id="settings-undo-message" class="alert-message">Saved settings changes.</span>
+            <button id="settings-undo-btn" class="ui-btn ui-btn--secondary" type="button">Undo</button>
+            <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">
+              ×
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Save Confirmation Modal -->
+      <div
+        id="settings-confirm-modal"
+        class="settings-confirm-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-confirm-title"
+      >
+        <div class="settings-confirm-modal__panel" role="document">
+          <div class="settings-confirm-modal__header">
+            <h3 id="settings-confirm-title">Confirm settings changes</h3>
+          </div>
+          <div class="settings-confirm-modal__content">
+            <p>Review the changes below before saving:</p>
+            <ul id="settings-confirm-change-list" class="settings-confirm-change-list"></ul>
+          </div>
+          <div class="settings-confirm-modal__actions">
+            <button id="settings-confirm-cancel-btn" class="ui-btn ui-btn--secondary" type="button">
+              Cancel
+            </button>
+            <button id="settings-confirm-save-btn" class="ui-btn ui-btn--primary" type="button">
+              Confirm &amp; Save
+            </button>
+          </div>
         </div>
       </div>
 
