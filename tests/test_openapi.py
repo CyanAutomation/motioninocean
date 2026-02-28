@@ -93,6 +93,25 @@ class TestOpenAPISpec:
         response = client.get("/openapi.json")  # no Authorization header
         assert response.status_code == 200
 
+    def test_openapi_metrics_snapshot_excludes_resolution(self, monkeypatch, tmp_path):
+        """MetricsSnapshot schema omits resolution to match /metrics payload contract."""
+        client = _new_management_client(monkeypatch, tmp_path)
+        schema = client.get("/openapi.json").get_json()["components"]["schemas"]["MetricsSnapshot"]
+        properties = schema.get("properties", {})
+
+        assert "resolution" not in properties
+        assert {
+            "app_mode",
+            "camera_mode_enabled",
+            "camera_active",
+            "uptime_seconds",
+            "max_frame_age_seconds",
+            "frames_captured",
+            "current_fps",
+            "last_frame_age_seconds",
+            "timestamp",
+        }.issuperset(properties.keys())
+
 
 class TestSwaggerUI:
     """Tests for GET /api/docs (Swagger UI)."""

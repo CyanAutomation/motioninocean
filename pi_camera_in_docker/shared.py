@@ -283,6 +283,38 @@ def _build_not_ready_reason(state: dict) -> dict[str, Any]:
     }
 
 
+def _build_metrics_payload(
+    app: Flask, state: dict, stream_status: dict[str, Any]
+) -> dict[str, Any]:
+    """Build metrics payload that matches the MetricsSnapshot contract.
+
+    Args:
+        app: Flask application instance.
+        state: Shared app state dict.
+        stream_status: Stream metrics callback payload.
+
+    Returns:
+        Metrics payload aligned with docs/openapi.yaml MetricsSnapshot schema.
+    """
+    metrics_stream_fields = {
+        "frames_captured",
+        "current_fps",
+        "last_frame_age_seconds",
+    }
+    filtered_stream_status = {
+        key: value for key, value in stream_status.items() if key in metrics_stream_fields
+    }
+    return {
+        "app_mode": state["app_mode"],
+        "camera_mode_enabled": state["app_mode"] == "webcam",
+        "camera_active": state["recording_started"].is_set(),
+        "max_frame_age_seconds": state["max_frame_age_seconds"],
+        "uptime_seconds": round(time.monotonic() - app.start_time_monotonic, 2),
+        **filtered_stream_status,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 def register_shared_routes(
     app: Flask,
     state: dict,
@@ -385,17 +417,7 @@ def register_shared_routes(
                 "last_frame_age_seconds": None,
             }
         )
-        return jsonify(
-            {
-                "app_mode": state["app_mode"],
-                "camera_mode_enabled": state["app_mode"] == "webcam",
-                "camera_active": state["recording_started"].is_set(),
-                "max_frame_age_seconds": state["max_frame_age_seconds"],
-                "uptime_seconds": round(time.monotonic() - app.start_time_monotonic, 2),
-                **status,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
-        ), 200
+        return jsonify(_build_metrics_payload(app, state, status)), 200
 
     @app.route("/api/metrics/stream")
     def metrics_stream() -> Response:
@@ -422,15 +444,7 @@ def register_shared_routes(
                             "last_frame_age_seconds": None,
                         }
                     )
-                    payload = {
-                        "app_mode": state["app_mode"],
-                        "camera_mode_enabled": state["app_mode"] == "webcam",
-                        "camera_active": state["recording_started"].is_set(),
-                        "max_frame_age_seconds": state["max_frame_age_seconds"],
-                        "uptime_seconds": round(time.monotonic() - app.start_time_monotonic, 2),
-                        **stream_status,
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    }
+                    payload = _build_metrics_payload(app, state, stream_status)
                     yield f"data: {_json.dumps(payload)}\n\n"
                     time.sleep(3)
             except GeneratorExit:
