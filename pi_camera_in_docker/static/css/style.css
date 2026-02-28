@@ -694,6 +694,11 @@
   color: var(--color-text-secondary);
 }
 
+.header-chip--static {
+  cursor: default;
+  pointer-events: none;
+}
+
 .header-chip--connected {
   background: var(--success-08);
   border-color: var(--success-15);
