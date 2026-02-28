@@ -307,7 +307,7 @@ def _build_metrics_payload(
     return {
         "app_mode": state["app_mode"],
         "camera_mode_enabled": state["app_mode"] == "webcam",
-        "camera_active": state["recording_started"].is_set(),
+        "camera_active": state.get("recording_started", threading.Event()).is_set(),
         "max_frame_age_seconds": state["max_frame_age_seconds"],
         "uptime_seconds": round(time.monotonic() - app.start_time_monotonic, 2),
         **filtered_stream_status,
