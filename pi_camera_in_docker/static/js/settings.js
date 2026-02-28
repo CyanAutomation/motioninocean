@@ -102,10 +102,19 @@ const SettingsUI = (() => {
         }
       });
     }
-    document.addEventListener("keydown", (event) => {
+    const handleEscapeKey = (event) => {
       if (event.key === "Escape" && confirmModal() && !confirmModal().classList.contains("hidden")) {
         closeConfirmModal(false);
       }
+    };
+    document.addEventListener("keydown", handleEscapeKey);
+    
+    // Store reference for potential cleanup
+    if (!window._settingsEventCleanup) {
+      window._settingsEventCleanup = [];
+    }
+    window._settingsEventCleanup.push(() => {
+      document.removeEventListener("keydown", handleEscapeKey);
     });
 
     // Register section toggle handlers
