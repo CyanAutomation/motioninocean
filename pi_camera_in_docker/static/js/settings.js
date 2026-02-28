@@ -51,9 +51,19 @@ const SettingsUI = (() => {
   const resetBtn = () => document.getElementById("settings-reset-btn");
   const errorAlert = () => document.getElementById("settings-error-alert");
   const successAlert = () => document.getElementById("settings-success-alert");
+  const undoAlert = () => document.getElementById("settings-undo-alert");
+  const undoMessage = () => document.getElementById("settings-undo-message");
+  const undoBtn = () => document.getElementById("settings-undo-btn");
+  const confirmModal = () => document.getElementById("settings-confirm-modal");
+  const confirmList = () => document.getElementById("settings-confirm-change-list");
+  const confirmCancelBtn = () => document.getElementById("settings-confirm-cancel-btn");
+  const confirmSaveBtn = () => document.getElementById("settings-confirm-save-btn");
   const changesSummary = () => document.getElementById("settings-changes-summary");
   const changesList = () => document.getElementById("settings-changes-list");
   const restartWarning = () => document.getElementById("settings-restart-warning");
+
+  let undoPatch = null;
+  let undoTimeoutId = null;
 
   /**
    * Initialize Settings UI.
@@ -76,6 +86,36 @@ const SettingsUI = (() => {
     if (resetBtn()) {
       resetBtn().addEventListener("click", onReset);
     }
+    if (undoBtn()) {
+      undoBtn().addEventListener("click", onUndo);
+    }
+    if (confirmCancelBtn()) {
+      confirmCancelBtn().addEventListener("click", () => closeConfirmModal(false));
+    }
+    if (confirmSaveBtn()) {
+      confirmSaveBtn().addEventListener("click", () => closeConfirmModal(true));
+    }
+    if (confirmModal()) {
+      confirmModal().addEventListener("click", (event) => {
+        if (event.target === confirmModal()) {
+          closeConfirmModal(false);
+        }
+      });
+    }
+    const handleEscapeKey = (event) => {
+      if (event.key === "Escape" && confirmModal() && !confirmModal().classList.contains("hidden")) {
+        closeConfirmModal(false);
+      }
+    };
+    document.addEventListener("keydown", handleEscapeKey);
+    
+    // Store reference for potential cleanup
+    if (!window._settingsEventCleanup) {
+      window._settingsEventCleanup = [];
+    }
+    window._settingsEventCleanup.push(() => {
+      document.removeEventListener("keydown", handleEscapeKey);
+    });
 
     // Register section toggle handlers
     document.querySelectorAll(".settings-section-toggle").forEach((toggle) => {
@@ -437,32 +477,22 @@ const SettingsUI = (() => {
       return;
     }
 
+    const pendingChanges = buildPendingChanges();
+    if (pendingChanges.length === 0) {
+      showWarning("No valid settings changes found");
+      return;
+    }
+
+    const confirmed = await showSaveConfirmation(pendingChanges);
+    if (!confirmed) {
+      return;
+    }
+
+    const patch = buildPatchFromChanges(pendingChanges, "newValue");
+    const snapshotPatch = buildPatchFromChanges(pendingChanges, "oldValue");
+
     try {
       saveBtn().disabled = true;
-
-      // Build patch payload
-      const patch = {};
-      for (const fieldKey of dirtyFields) {
-        const [category, property] = fieldKey.split(".");
-        if (!patch[category]) patch[category] = {};
-
-        // Get value from form
-        const input = document.querySelector(
-          `.setting-input[data-category="${category}"][data-property="${property}"]`,
-        );
-        if (!input) continue;
-
-        let value;
-        if (input.type === "checkbox") {
-          value = input.checked;
-        } else if (input.type === "number" || input.type === "range") {
-          value = parseFloat(input.value);
-        } else {
-          value = input.value;
-        }
-
-        patch[category][property] = value;
-      }
 
       // Send PATCH request
       const response = await fetch("/api/v1/settings", {
@@ -476,6 +506,7 @@ const SettingsUI = (() => {
         currentSettings = result.settings;
         formDirty = false;
         dirtyFields.clear();
+        setUndoState(snapshotPatch, pendingChanges);
         updateSaveButton();
         await refreshChangesSummary();
         showSuccess("Settings saved successfully!");
@@ -485,6 +516,7 @@ const SettingsUI = (() => {
         currentSettings = result.settings;
         formDirty = false;
         dirtyFields.clear();
+        setUndoState(snapshotPatch, pendingChanges);
         updateSaveButton();
         await refreshChangesSummary();
         showWarning(
@@ -588,6 +620,226 @@ const SettingsUI = (() => {
    */
   const showWarning = (message) => {
     showSuccess("ℹ️ " + message);
+  };
+
+  /**
+   * Format a setting value for human-readable display.
+   *
+   * @param {unknown} value - Raw setting value.
+   * @returns {string} Formatted value string.
+   */
+  const formatSettingValue = (value) => {
+    if (value === null || value === undefined || value === "") {
+      return "(empty)";
+    }
+    if (typeof value === "boolean") {
+      return value ? "true" : "false";
+    }
+    return String(value);
+  };
+
+  /**
+   * Read normalized value from a settings input field.
+   *
+   * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} input - Input element.
+   * @returns {unknown} Parsed value suitable for PATCH payload.
+   */
+  const getInputValue = (input) => {
+    if (input.type === "checkbox") {
+      return input.checked;
+    }
+    if (input.type === "number" || input.type === "range") {
+      return parseFloat(input.value);
+    }
+    return input.value;
+  };
+
+  /**
+   * Build pending settings changes from dirty field tracking.
+   *
+   * @returns {Array<{category: string, property: string, oldValue: unknown, newValue: unknown}>} Changes.
+   */
+  const buildPendingChanges = () => {
+    const changes = [];
+    for (const fieldKey of dirtyFields) {
+      const [category, property] = fieldKey.split(".");
+      const input = document.querySelector(
+        `.setting-input[data-category="${category}"][data-property="${property}"]`,
+      );
+      if (!input) {
+        continue;
+      }
+      const oldValue = currentSettings?.[category]?.[property];
+      const newValue = getInputValue(input);
+      changes.push({ category, property, oldValue, newValue });
+    }
+    return changes;
+  };
+
+  /**
+   * Build a PATCH payload from change entries.
+   *
+   * @param {Array<{category: string, property: string, oldValue: unknown, newValue: unknown}>} changes - Change entries.
+   * @param {"oldValue"|"newValue"} valueKey - Which value to map into payload.
+   * @returns {Object} Patch payload object.
+   */
+  const buildPatchFromChanges = (changes, valueKey) => {
+    return changes.reduce((patch, change) => {
+      if (!patch[change.category]) {
+        patch[change.category] = {};
+      }
+      patch[change.category][change.property] = change[valueKey];
+      return patch;
+    }, {});
+  };
+
+  let confirmModalResolver = null;
+
+  /**
+   * Render and open save confirmation modal.
+   *
+   * @param {Array<{category: string, property: string, oldValue: unknown, newValue: unknown}>} changes - Pending changes.
+   * @returns {Promise<boolean>} True when user confirms save.
+   */
+  const showSaveConfirmation = (changes) => {
+    if (!confirmModal() || !confirmList()) {
+      return Promise.resolve(window.confirm("Save settings changes?"));
+    }
+
+    confirmList().innerHTML = "";
+    changes.forEach((change) => {
+      const li = document.createElement("li");
+      li.className = "settings-confirm-change-item";
+    confirmList().innerHTML = "";
+    changes.forEach((change) => {
+      const li = document.createElement("li");
+      li.className = "settings-confirm-change-item";
+      
+      const pathSpan = document.createElement("span");
+      pathSpan.className = "settings-confirm-change-path";
+      pathSpan.textContent = `${change.category}.${change.property}`;
+      
+      const valuesSpan = document.createElement("span");
+      valuesSpan.className = "settings-confirm-change-values";
+      valuesSpan.textContent = `${formatSettingValue(change.oldValue)} → ${formatSettingValue(change.newValue)}`;
+      
+      li.appendChild(pathSpan);
+      li.appendChild(valuesSpan);
+      confirmList().appendChild(li);
+    });
+      confirmList().appendChild(li);
+    });
+
+    confirmModal().classList.remove("hidden");
+
+    return new Promise((resolve) => {
+      confirmModalResolver = resolve;
+      confirmSaveBtn()?.focus();
+    });
+  };
+
+  /**
+   * Close confirmation modal and resolve pending decision.
+   *
+   * @param {boolean} confirmed - Whether save was confirmed.
+   * @returns {void}
+   */
+  const closeConfirmModal = (confirmed) => {
+    if (confirmModal()) {
+      confirmModal().classList.add("hidden");
+    }
+    if (confirmModalResolver) {
+      confirmModalResolver(confirmed);
+      confirmModalResolver = null;
+    }
+  };
+
+  /**
+   * Set undo state for the most recent successful save.
+   *
+   * @param {Object} snapshotPatch - Previous values patch to restore on undo.
+   * @param {Array<{category: string, property: string}>} changes - Saved changes.
+   * @returns {void}
+   */
+  const setUndoState = (snapshotPatch, changes) => {
+    clearUndoState();
+    undoPatch = snapshotPatch;
+
+    if (undoMessage() && undoAlert()) {
+      undoMessage().textContent = `Saved ${changes.length} change${changes.length === 1 ? "" : "s"}.`;
+      undoAlert().classList.remove("hidden");
+    }
+    if (undoBtn()) {
+      undoBtn().disabled = false;
+    }
+
+    undoTimeoutId = setTimeout(() => {
+      clearUndoState();
+    }, 45000);
+  };
+
+  /**
+   * Clear undo state and hide undo status banner.
+   *
+   * @returns {void}
+   */
+  const clearUndoState = () => {
+    undoPatch = null;
+    if (undoTimeoutId) {
+      clearTimeout(undoTimeoutId);
+      undoTimeoutId = null;
+    }
+    if (undoAlert()) {
+      undoAlert().classList.add("hidden");
+    }
+    if (undoBtn()) {
+      undoBtn().disabled = false;
+    }
+  };
+
+  /**
+   * Undo the most recent saved settings patch.
+   *
+   * @async
+   * @returns {Promise<void>}
+   */
+  const onUndo = async () => {
+    if (!undoPatch) {
+      showWarning("Nothing to undo");
+      return;
+    }
+
+    try {
+      if (undoBtn()) {
+        undoBtn().disabled = true;
+      }
+
+      const response = await fetch("/api/v1/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(undoPatch),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      currentSettings = result.settings;
+      formDirty = false;
+      dirtyFields.clear();
+      renderForm();
+      updateSaveButton();
+      await refreshChangesSummary();
+      clearUndoState();
+      showSuccess("Last save undone successfully");
+    } catch (error) {
+      console.error("Error undoing save:", error);
+      showError("Failed to undo save: " + error.message);
+      if (undoBtn()) {
+        undoBtn().disabled = false;
+      }
+    }
   };
 
   /**
