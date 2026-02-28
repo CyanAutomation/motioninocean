@@ -482,7 +482,7 @@ def _generate_env_content(config: Dict[str, Any]) -> str:
     if selected_app_mode == "webcam":
         env_lines.extend(
             [
-                "# Webcam mode token (required for /api/status, /health, /ready, /metrics, /api/actions/*)",
+                "# Webcam mode token (required for /api/status, /health, /ready, /metrics, /version, /api/version, /api/actions/*)",
                 f"MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN={selected_auth_token}",
                 "# Management mode token unused in webcam mode",
                 "MIO_MANAGEMENT_AUTH_TOKEN=",

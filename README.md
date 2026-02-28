@@ -120,6 +120,8 @@ Both webcam and management modes expose interactive API docs at runtime — no e
 | ------------------- | ------------------------------------------------ |
 | `GET /api/docs`     | Swagger UI (browser, no auth required)           |
 | `GET /openapi.json` | OpenAPI 3.0 spec as JSON (for client generation) |
+| `GET /version`      | Stable app version metadata (JSON)               |
+| `GET /api/version`  | Alias of `/version`                              |
 
 Open `http://localhost:8000/api/docs` (webcam) or `http://localhost:8001/api/docs` (management) after starting the container.
 

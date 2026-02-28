@@ -21,8 +21,8 @@ info:
     Two optional bearer token mechanisms are supported:
 
     - **Webcam control-plane token** (`WEBCAM_CONTROL_PLANE_AUTH_TOKEN` env var):
-      when set, protects `/health`, `/ready`, `/metrics`, `/api/status`, and
-      `/api/actions/*` in webcam mode.
+      when set, protects `/health`, `/ready`, `/metrics`, `/api/status`,
+      `/version`, `/api/version`, and `/api/actions/*` in webcam mode.
     - **Management token** (`MIO_MANAGEMENT_AUTH_TOKEN` env var): when set, protects
       all `/api/v1/*` routes in management mode (except the discovery announcement
       endpoint, which uses its own secret).
@@ -187,6 +187,53 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AppStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /version:
+    get:
+      operationId: getVersion
+      summary: Application version metadata
+      description: |
+        Returns a stable payload containing application version information and
+        deployment mode metadata.
+
+        In webcam mode this endpoint is optionally protected by
+        `WEBCAM_CONTROL_PLANE_AUTH_TOKEN`. In management mode it is always public.
+      tags: [Operations]
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Version metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionInfo"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/version:
+    get:
+      operationId: getApiVersion
+      summary: Application version metadata (API alias)
+      description: |
+        Alias of `GET /version` returning the same version payload.
+
+        In webcam mode this endpoint is optionally protected by
+        `WEBCAM_CONTROL_PLANE_AUTH_TOKEN`. In management mode it is always public.
+      tags: [Operations]
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Version metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionInfo"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -1219,6 +1266,29 @@ components:
         last_frame_age_seconds:
           type: number
           nullable: true
+        timestamp:
+          type: string
+          format: date-time
+
+    VersionInfo:
+      type: object
+      required: [status, version, source, app_mode, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          example: ok
+        version:
+          type: string
+          description: Application version from VERSION file or `unknown` fallback.
+          example: 1.2.3
+        source:
+          type: string
+          description: Source of version resolution path, or `unknown` if unresolved.
+          example: /app/VERSION
+        app_mode:
+          type: string
+          enum: [webcam, management]
         timestamp:
           type: string
           format: date-time
