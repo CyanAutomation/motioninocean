@@ -270,8 +270,12 @@ paths:
         persistent HTTP connection using the Server-Sent Events protocol.
         The browser `EventSource` API reconnects automatically on disconnect.
         Use this instead of polling `/metrics` to reduce overhead.
+
+        In webcam mode optionally protected by `WEBCAM_CONTROL_PLANE_AUTH_TOKEN`.
       tags: [Operations]
-      security: []
+      security:
+        - {}
+        - bearerAuth: []
       responses:
         "200":
           description: SSE stream of metrics frames
