@@ -30,7 +30,7 @@ def register_webcam_control_plane_auth(
     """Register Flask before_request guard for webcam control plane authentication.
 
     Protects webcam mode endpoints with bearer token validation. Routes protected:
-    - /health, /ready, /metrics, /api/status (exact match)
+    - /health, /ready, /metrics, /api/metrics/stream, /api/status (exact match)
     - /api/actions/* (prefix match)
 
     Management mode requests bypass protection (app_mode == 'management').
@@ -44,7 +44,13 @@ def register_webcam_control_plane_auth(
     Raises:
         Generates HTTP 401 Unauthorized response if token is missing/invalid.
     """
-    protected_exact_paths = {"/health", "/ready", "/metrics", "/api/status"}
+    protected_exact_paths = {
+        "/health",
+        "/ready",
+        "/metrics",
+        "/api/metrics/stream",
+        "/api/status",
+    }
 
     @app.before_request
     def _webcam_control_plane_auth_guard():

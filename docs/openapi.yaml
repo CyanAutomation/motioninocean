@@ -21,8 +21,8 @@ info:
     Two optional bearer token mechanisms are supported:
 
     - **Webcam control-plane token** (`WEBCAM_CONTROL_PLANE_AUTH_TOKEN` env var):
-      when set, protects `/health`, `/ready`, `/metrics`, `/api/status`, and
-      `/api/actions/*` in webcam mode.
+      when set, protects `/health`, `/ready`, `/metrics`, `/api/metrics/stream`,
+      `/api/status`, and `/api/actions/*` in webcam mode.
     - **Management token** (`MIO_MANAGEMENT_AUTH_TOKEN` env var): when set, protects
       all `/api/v1/*` routes in management mode (except the discovery announcement
       endpoint, which uses its own secret).
@@ -223,8 +223,11 @@ paths:
         persistent HTTP connection using the Server-Sent Events protocol.
         The browser `EventSource` API reconnects automatically on disconnect.
         Use this instead of polling `/metrics` to reduce overhead.
+        In webcam mode optionally protected by `WEBCAM_CONTROL_PLANE_AUTH_TOKEN`.
       tags: [Operations]
-      security: []
+      security:
+        - {}
+        - bearerAuth: []
       responses:
         "200":
           description: SSE stream of metrics frames
@@ -235,6 +238,8 @@ paths:
                 description: |
                   Newline-delimited SSE frames. Each frame is `data: <JSON>\n\n`
                   where the JSON payload matches the `MetricsSnapshot` schema.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /openapi.json:
     get:
