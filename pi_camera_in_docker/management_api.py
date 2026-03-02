@@ -797,7 +797,7 @@ def _check_dns_resolution(hostname: str, port: Optional[int]) -> Tuple[bool, lis
         return False, [], str(exc)
 
 
-def _check_ssrf_blocking(base_url: str, resolved_ips: list) -> Tuple[bool, str]:
+def _check_ssrf_blocking(base_url: str, resolved_ips: list[str]) -> Tuple[bool, Dict[str, Any]]:
     """Check if URL hostname or resolved IPs are blocked by SSRF protection.
 
     Args:
@@ -805,22 +805,40 @@ def _check_ssrf_blocking(base_url: str, resolved_ips: list) -> Tuple[bool, str]:
         resolved_ips: List of IP addresses resolved from hostname.
 
     Returns:
-        Tuple of (is_blocked: bool, reason: str).
+        Tuple of (is_blocked: bool, diagnostics: dict).
     """
     parsed = urlparse(base_url)
     hostname = parsed.hostname
 
+    diagnostics: Dict[str, Any] = {"allowed_ips": [], "blocked_ips": []}
+
     try:
         if hostname and _is_blocked_address(hostname):
-            return True, "private IP or reserved address"
+            diagnostics["blocked_reason"] = "private IP or reserved address"
+            return True, diagnostics
     except ValueError:
         pass  # hostname is not an IP address, which is fine
 
-    for ip in resolved_ips:
-        if _is_blocked_address(ip):
-            return True, f"resolved to private IP {ip}"
+    try:
+        allowed_ips = list(_vet_resolved_addresses(tuple(resolved_ips)))
+    except NodeRequestError:
+        allowed_ips = []
 
-    return False, ""
+    blocked_ips: list[str] = []
+    for ip in resolved_ips:
+        if ip in allowed_ips:
+            continue
+        if ip not in blocked_ips:
+            blocked_ips.append(ip)
+
+    diagnostics["allowed_ips"] = allowed_ips
+    diagnostics["blocked_ips"] = blocked_ips
+
+    if not allowed_ips:
+        diagnostics["blocked_reason"] = "all resolved addresses are blocked"
+        return True, diagnostics
+
+    return False, diagnostics
 
 
 def _check_api_endpoint(
@@ -1051,13 +1069,16 @@ def _diagnose_http_transport(
     )
 
     # Check SSRF blocking on resolved IPs
-    ssrf_blocked, ssrf_reason = _check_ssrf_blocking(base_url, resolved_ips)
+    ssrf_blocked, ssrf_diagnostics = _check_ssrf_blocking(base_url, resolved_ips)
     if ssrf_blocked:
+        ssrf_reason = ssrf_diagnostics.get("blocked_reason", "target is blocked")
         results["diagnostics"]["url_validation"].update(
             {
                 "blocked": True,
                 "status": "fail",
                 "blocked_reason": ssrf_reason,
+                "allowed_ips": ssrf_diagnostics.get("allowed_ips", []),
+                "blocked_ips": ssrf_diagnostics.get("blocked_ips", []),
                 "code": "SSRF_BLOCKED",
             }
         )
@@ -1076,6 +1097,15 @@ def _diagnose_http_transport(
                 "SSRF_BLOCKED",
             )
         return results
+
+    results["diagnostics"]["url_validation"].update(
+        {
+            "blocked": False,
+            "status": "pass",
+            "allowed_ips": ssrf_diagnostics.get("allowed_ips", []),
+            "blocked_ips": ssrf_diagnostics.get("blocked_ips", []),
+        }
+    )
 
     # Call API endpoint
     status_code, _status_payload, api_exception = _check_api_endpoint(node)
