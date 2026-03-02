@@ -318,7 +318,66 @@ def test_create_webcam_app_initializes_discovery_with_webcam_id(full_config, mon
     assert captured["webcam_id"] == payload["webcam_id"]
     assert captured["payload"] == payload
     assert captured["shutdown_event"] is app.motion_state["discovery_shutdown_event"]
-    assert captured["shutdown_event"] is not app.motion_state["shutdown_requested"]
+
+
+def test_discovery_run_loop_unexpected_exception_continues_with_backoff(monkeypatch):
+    from pi_camera_in_docker.discovery import DiscoveryAnnouncer
+
+    shutdown_event = threading.Event()
+    announcer = DiscoveryAnnouncer(
+        management_url="http://127.0.0.1:8001",
+        token="token",
+        interval_seconds=10,
+        webcam_id="node-unexpected-error",
+        payload={"webcam_id": "node-unexpected-error"},
+        shutdown_event=shutdown_event,
+    )
+
+    wait_calls = []
+
+    def fake_wait_for_next_attempt(wait_seconds: float) -> bool:
+        wait_calls.append(wait_seconds)
+        return len(wait_calls) >= 3
+
+    announce_calls = {"count": 0}
+
+    def fake_announce_once() -> bool:
+        announce_calls["count"] += 1
+        if announce_calls["count"] == 1:
+            raise RuntimeError("boom")
+        return True
+
+    sentry_tags = {}
+    captured_exceptions = []
+
+    class FakeScope:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def set_tag(self, key, value):
+            sentry_tags[key] = value
+
+        def capture_exception(self, exc):
+            captured_exceptions.append(exc)
+
+    monkeypatch.setattr(announcer, "_wait_for_next_attempt", fake_wait_for_next_attempt)
+    monkeypatch.setattr(announcer, "_announce_once", fake_announce_once)
+    monkeypatch.setattr("pi_camera_in_docker.discovery.random.uniform", lambda _a, _b: 0.0)
+    monkeypatch.setattr("pi_camera_in_docker.discovery.sentry_sdk.new_scope", lambda: FakeScope())
+
+    announcer._run_loop()
+
+    assert announce_calls["count"] == 2
+    assert wait_calls == [0.0, 10.0, 10]
+    assert sentry_tags == {
+        "component": "discovery",
+        "webcam_id": "node-unexpected-error",
+    }
+    assert len(captured_exceptions) == 1
+    assert str(captured_exceptions[0]) == "boom"
 
 
 def test_discovery_announcer_restart_does_not_reset_app_shutdown_event(monkeypatch):

@@ -277,7 +277,20 @@ class DiscoveryAnnouncer:
         while True:
             if self._wait_for_next_attempt(wait_seconds):
                 return
-            success = self._announce_once()
+            try:
+                success = self._announce_once()
+            except Exception as exc:
+                logger.error(
+                    "discovery_announce_unexpected_error: webcam_id=%s reason=%s",
+                    self.webcam_id,
+                    str(exc),
+                )
+                with sentry_sdk.new_scope() as scope:
+                    scope.set_tag("component", "discovery")
+                    scope.set_tag("webcam_id", self.webcam_id)
+                    scope.capture_exception(exc)
+                success = False
+
             if success:
                 failures = 0
                 wait_seconds = self.interval_seconds
