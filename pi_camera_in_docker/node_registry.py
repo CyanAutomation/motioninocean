@@ -516,10 +516,18 @@ class FileWebcamRegistry(WebcamRegistry):
             message = f"webcam registry file is corrupted and cannot be parsed: {self.path}"
             raise NodeValidationError(message) from exc
         if not isinstance(raw, dict):
-            return {"nodes": []}
+            message = (
+                "webcam registry file is corrupted and cannot be parsed: "
+                f"{self.path}. expected top-level object shaped like {{'nodes': []}}"
+            )
+            raise NodeValidationError(message)
         nodes = raw.get("nodes", [])
         if not isinstance(nodes, list):
-            nodes = []
+            message = (
+                "webcam registry file is corrupted and cannot be parsed: "
+                f"{self.path}. expected top-level object shaped like {{'nodes': []}}"
+            )
+            raise NodeValidationError(message)
 
         migrated_nodes: List[Dict[str, Any]] = []
         for index, webcam in enumerate(nodes):
