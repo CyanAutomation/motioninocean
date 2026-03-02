@@ -2802,6 +2802,60 @@ def test_diagnose_includes_structured_status_and_codes(monkeypatch):
     assert recommendation["message"] == payload["guidance"][0]
 
 
+
+def test_diagnose_mixed_dns_results_reports_allowed_and_blocked_ips(monkeypatch):
+    management_api = importlib.import_module("pi_camera_in_docker.management_api")
+
+    webcam = {"id": "node-mixed-dns", "base_url": "http://example.invalid:8000", "transport": "http"}
+
+    def _fake_getaddrinfo(*_args, **_kwargs):
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.10", 8000)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("8.8.8.8", 8000)),
+        ]
+
+    def _fake_request_json(*_args, **_kwargs):
+        return 200, {"status": "ok"}
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", _fake_getaddrinfo)
+    monkeypatch.setattr(management_api, "_request_json", _fake_request_json)
+
+    payload = management_api._diagnose_webcam(webcam)
+
+    diagnostics = payload["diagnostics"]
+    url_validation = diagnostics["url_validation"]
+
+    assert url_validation["status"] == "pass"
+    assert url_validation["blocked"] is False
+    assert sorted(url_validation["allowed_ips"]) == ["8.8.8.8"]
+    assert sorted(url_validation["blocked_ips"]) == ["192.168.1.10"]
+
+
+def test_diagnose_all_dns_results_blocked_includes_ssrf_ip_breakdown(monkeypatch):
+    management_api = importlib.import_module("pi_camera_in_docker.management_api")
+
+    webcam = {"id": "node-blocked-dns", "base_url": "http://example.invalid:8000", "transport": "http"}
+
+    def _fake_getaddrinfo(*_args, **_kwargs):
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.1", 8000)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("192.168.1.10", 8000)),
+        ]
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", _fake_getaddrinfo)
+
+    payload = management_api._diagnose_webcam(webcam)
+
+    diagnostics = payload["diagnostics"]
+    url_validation = diagnostics["url_validation"]
+
+    assert url_validation["status"] == "fail"
+    assert url_validation["blocked"] is True
+    assert url_validation["blocked_reason"] == "all resolved addresses are blocked"
+    assert url_validation["allowed_ips"] == []
+    assert sorted(url_validation["blocked_ips"]) == ["10.0.0.1", "192.168.1.10"]
+
+
 def test_diagnose_recommendations_reference_canonical_private_ip_variable(monkeypatch):
     monkeypatch.delenv("MIO_ALLOW_PRIVATE_IPS", raising=False)
 
