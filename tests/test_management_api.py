@@ -2802,11 +2802,14 @@ def test_diagnose_includes_structured_status_and_codes(monkeypatch):
     assert recommendation["message"] == payload["guidance"][0]
 
 
-
 def test_diagnose_mixed_dns_results_reports_allowed_and_blocked_ips(monkeypatch):
     management_api = importlib.import_module("pi_camera_in_docker.management_api")
 
-    webcam = {"id": "node-mixed-dns", "base_url": "http://example.invalid:8000", "transport": "http"}
+    webcam = {
+        "id": "node-mixed-dns",
+        "base_url": "http://example.invalid:8000",
+        "transport": "http",
+    }
 
     def _fake_getaddrinfo(*_args, **_kwargs):
         return [
@@ -2834,7 +2837,11 @@ def test_diagnose_mixed_dns_results_reports_allowed_and_blocked_ips(monkeypatch)
 def test_diagnose_all_dns_results_blocked_includes_ssrf_ip_breakdown(monkeypatch):
     management_api = importlib.import_module("pi_camera_in_docker.management_api")
 
-    webcam = {"id": "node-blocked-dns", "base_url": "http://example.invalid:8000", "transport": "http"}
+    webcam = {
+        "id": "node-blocked-dns",
+        "base_url": "http://example.invalid:8000",
+        "transport": "http",
+    }
 
     def _fake_getaddrinfo(*_args, **_kwargs):
         return [
