@@ -11,6 +11,53 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.20.3] - 2026-03-08
+
+- style: update CSS variables and improve button hover effects
+- feat: add frontend design guidance document
+- chore: automated code quality fixes [nightly] (#516)
+- chore(deps-dev): bump eslint from 10.0.1 to 10.0.2 (#510)
+- chore(deps-dev): bump ruff from 0.15.2 to 0.15.4 (#509)
+- chore(deps): bump actions/upload-artifact from 6 to 7 (#508)
+- chore(deps-dev): bump globals from 17.3.0 to 17.4.0 (#511)
+- chore: automated code quality fixes [nightly] (#515)
+- [discovery] Keep announcer loop alive on unexpected errors (#514)
+- [management] Align SSRF diagnostics with vetted address eligibility (#513)
+- [management] Raise corruption errors for malformed registry shape (#512)
+- chore: automated code quality fixes [nightly] (#507)
+- fix: correct package name casing in package-lock.json
+- chore: automated code quality fixes [nightly] (#506)
+- Add files via upload
+- [settings-ui] Add persistent save status metadata panel (#505)
+- [tests] Fix newline regex in hydration function extraction (#504)
+- [webcam] Protect metrics SSE endpoint with control-plane auth (#503)
+- [settings] Add pre-save confirmation modal and undo-after-save support (#502)
+- [settings] Preserve zero-valued hydration defaults (#501)
+- [webcam] Add explicit limits for snapshot and action routes (#500)
+- [shared] Add shared version endpoints and unified version resolver (#497)
+- [webcam] Fix stream control affordances and fullscreen toggle (#496)
+- [management] Add settings PATCH invalid payload tests (#495)
+- [webcam] Align metrics payload with MetricsSnapshot contract (#499)
+- [tests] Harden help modal sanitization test double (#494)
+- [ui] Add scoped markdown styles for utility modal (#493)
+- [webcam] Sanitize help modal markdown rendering (#492)
+- [webcam] Render README help markdown in utility modal (#491)
+- [ui] Unify config badge geometry styles (#489)
+- chore: automated code quality fixes [nightly] (#490)
+- [webcam] Constrain stream preview width in stream surface (#488)
+- Update repository and service names in cloudbuild.yaml
+- [tests] Cover cairosvg import OSError in mock renderer (#487)
+- Update repository name in cloudbuild.yaml
+- [docker] Add libcairo2 to runtime dependencies and validation (#486)
+- Rename image name in cloudbuild.yaml
+- chore(deps-dev): bump minimatch (#483)
+- [build] Update cloudbuild env vars to canonical MIO names (#485)
+- Update repository name in cloudbuild.yaml
+- [webcam] Catch cairosvg OSError during mock frame import (#484)
+- Change regions to europe-west1 in cloudbuild.yaml
+- [ui] Assert utility modal geometry and stacking in Playwright tests (#482)
+- Refactor code for improved readability and consistency in application settings and config validation
+
 ## [1.20.2] - 2026-02-26
 
 - Refactor code structure for improved readability and maintainability
