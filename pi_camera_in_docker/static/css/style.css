@@ -41,7 +41,7 @@
 .logo-icon {
   width: 2rem;
   height: 2rem;
-  background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+  background: var(--color-accent-primary);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -77,12 +77,10 @@
 
 .status-indicator.connected {
   background: var(--color-success);
-  box-shadow: var(--shadow-glow-success);
 }
 
 .status-indicator.stale {
   background: var(--color-warning);
-  box-shadow: var(--shadow-glow-warning);
 }
 
 .status-indicator.inactive {
@@ -202,7 +200,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(to top, var(--color-bg-overlay), transparent);
+  background: var(--color-bg-overlay);
   padding: var(--space-5);
   display: flex;
   justify-content: flex-end;
@@ -221,11 +219,11 @@
 }
 
 .control-btn:hover {
-  transform: translateY(-2px);
+  opacity: 0.85;
 }
 
 .control-btn:active {
-  transform: translateY(0);
+  opacity: 1;
 }
 
 .control-btn-icon {
@@ -559,9 +557,8 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.85;
-  background-image: radial-gradient(circle at 1px 1px, var(--management-dot) 1px, transparent 0);
-  background-size: 100px 80px;
+  opacity: 0;
+  background: transparent;
 }
 
 .webcam-topbar {
@@ -569,7 +566,7 @@
     calc(var(--webcam-rail-width) + var(--webcam-layout-gap));
   width: calc(100% - var(--webcam-rail-width) - (var(--webcam-layout-gap) * 2));
   border: 1px solid var(--color-border-default);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--color-bg-surface);
   box-shadow: var(--shadow-sm);
   padding: var(--space-4);
@@ -646,7 +643,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--accent-primary-30);
   background: var(--accent-primary-05);
   box-shadow: var(--shadow-sm);
@@ -750,7 +747,7 @@
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-5);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-default);
   background: var(--color-bg-surface);
   box-shadow: var(--shadow-sm);
@@ -785,7 +782,7 @@
 
 .connection-chip {
   padding: var(--space-3);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--color-bg-subtle);
   border: 1px solid var(--color-border-subtle);
   display: flex;
@@ -812,7 +809,7 @@
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-5);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-default);
   box-shadow: var(--shadow-sm);
@@ -855,7 +852,7 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   padding: 0.25rem 0.75rem;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border-default);
   background: var(--color-bg-subtle);
 }
@@ -875,7 +872,7 @@
 
 .stream-lane {
   padding: var(--space-4);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--color-bg-subtle);
   border: 1px solid var(--color-border-subtle);
   width: 100%;
@@ -890,19 +887,20 @@
 .lane-marker {
   flex: 1;
   height: 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .lane-marker--green {
-  background: linear-gradient(90deg, #22c55e, #4ade80);
+  background: #22c55e;
 }
 
 .lane-marker--blue {
-  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  background: #2563eb;
 }
 
 .lane-marker--amber {
-  background: linear-gradient(90deg, #f59e0b, #f97316);
+  background: #f59e0b;
 }
 
 .lane-marker__label {
@@ -925,7 +923,7 @@
   grid-area: risk-stack;
   padding: var(--space-5);
   border: 1px solid var(--color-border-default);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   background: var(--color-bg-surface);
   box-shadow: var(--shadow-sm);
 }
@@ -1161,20 +1159,20 @@
 
 .webcam-page .video-container {
   border-width: 1px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   background: var(--color-bg-surface);
 }
 
 .webcam-page .stats-panel {
   width: 100%;
   border-width: 1px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
 }
 
 .webcam-page #config-panel,
 .webcam-page #settings-panel,
 .webcam-page #setup-panel {
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
 }
 
 /* Rail navigation styles are defined in tabs-config.css */

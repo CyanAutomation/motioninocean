@@ -63,7 +63,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, var(--color-bg-surface), var(--color-bg-canvas));
+  background: var(--color-bg-surface);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -177,7 +177,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: var(--radius-2xl);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-default);
   background: var(--color-bg-surface);
   box-shadow: var(--shadow-lg);
@@ -493,7 +493,6 @@
 
 .config-group:hover {
   border-color: var(--accent-primary-30);
-  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
 
@@ -643,7 +642,7 @@
 }
 
 .editable-section .config-group-header {
-  background: linear-gradient(90deg, var(--accent-primary-10), transparent);
+  background: var(--accent-primary-05);
 }
 
 /* Read-only section styling */
@@ -810,7 +809,7 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--space-4) var(--space-5);
-  background: linear-gradient(135deg, var(--color-bg-surface), var(--color-bg-subtle));
+  background: var(--color-bg-surface);
   border-bottom: 1px solid var(--color-border-default);
   border-left: 3px solid var(--color-accent-primary);
   margin-bottom: var(--space-5);
@@ -827,12 +826,10 @@
 
 .setup-status-dot.fetching {
   background: var(--color-warning);
-  box-shadow: var(--shadow-glow-warning-sm);
 }
 
 .setup-status-dot.ready {
   background: var(--color-success);
-  box-shadow: var(--shadow-glow-success-sm);
   animation: none;
 }
 
@@ -848,7 +845,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, var(--color-bg-surface), var(--color-bg-canvas));
+  background: var(--color-bg-surface);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1442,7 +1439,7 @@
   gap: 0.25rem;
   width: 100%;
   min-height: 64px;
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-md);
   padding: var(--space-2);
   background: transparent;
   color: var(--webcam-rail-text);
@@ -1466,7 +1463,6 @@
   background: var(--webcam-rail-active-bg);
   color: var(--color-text-inverse);
   border-color: var(--webcam-rail-active-bg);
-  box-shadow: 0 0 0 3px var(--accent-primary-10);
 }
 
 .webcam-side-rail .tab-label {
@@ -1531,7 +1527,7 @@
     justify-content: center;
     gap: var(--space-2);
     min-height: 44px;
-    border-radius: 999px;
+    border-radius: var(--radius-md);
     padding: var(--space-2) var(--space-3);
     border: 1px solid transparent;
     background: var(--management-rail-muted);
