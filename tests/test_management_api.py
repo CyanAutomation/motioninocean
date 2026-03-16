@@ -1277,6 +1277,26 @@ def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
     assert invalid.json["error"]["code"] == "VALIDATION_ERROR"
 
 
+def test_discovery_announce_rejects_malformed_base_url_port_with_400(monkeypatch, tmp_path):
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    client, _ = _new_management_client(monkeypatch, tmp_path)
+
+    invalid = client.post(
+        "/api/v1/discovery/announce",
+        json={
+            "webcam_id": "node-malformed-port",
+            "name": "Malformed Port Node",
+            "base_url": "http://example.com:abc",
+            "transport": "http",
+            "capabilities": ["stream"],
+        },
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+
+    assert invalid.status_code == 400
+    assert invalid.json["error"]["code"] == "VALIDATION_ERROR"
+
+
 def test_discovery_approval_endpoint(monkeypatch, tmp_path):
     monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
