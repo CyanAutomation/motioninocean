@@ -1,6 +1,7 @@
 import importlib
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -527,6 +528,103 @@ def test_webcam_status_contract_reports_degraded_until_stream_is_fresh(monkeypat
     assert payload["fps"] == 0.0
     assert payload["connections"]["current"] >= 0
     assert payload["connections"]["max"] > 0
+
+
+def test_webcam_api_test_status_remains_structurally_consistent_during_concurrent_actions(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmpdir:
+    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
+    monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
+    monkeypatch.setenv("MIO_APP_MODE", "management")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", "node-shared-token")
+
+    sys.modules.pop("pi_camera_in_docker.main", None)
+    main = importlib.import_module("pi_camera_in_docker.main")
+    cfg = main._load_config()
+    cfg["app_mode"] = "webcam"
+    cfg["mock_camera"] = True
+    app = main.create_webcam_app(cfg)
+
+    headers = {"Authorization": "Bearer node-shared-token"}
+    errors: list[str] = []
+
+    with app.test_client() as client:
+        start = client.post(
+            "/api/actions/api-test-start",
+            json={"interval_seconds": 1, "scenario_order": [0, 1, 2]},
+            headers=headers,
+        )
+    assert start.status_code == 200
+
+    def hammer_actions() -> None:
+        action_requests = [
+            ("api-test-start", {"interval_seconds": 1, "scenario_order": [2, 1, 0]}),
+            ("api-test-step", {}),
+            ("api-test-reset", {}),
+            ("api-test-stop", {}),
+            ("api-test-start", {"interval_seconds": 2, "scenario_order": [1, 0, 2]}),
+        ]
+        for index in range(50):
+            action_name, body = action_requests[index % len(action_requests)]
+            with app.test_client() as client:
+                response = client.post(f"/api/actions/{action_name}", json=body, headers=headers)
+            if response.status_code != 200:
+                errors.append(f"{action_name}:{response.status_code}")
+            time.sleep(0.06)
+
+    def poll_status() -> None:
+        for _ in range(80):
+            with app.test_client() as client:
+                response = client.get("/api/status", headers=headers)
+            if response.status_code != 200:
+                errors.append(f"status:{response.status_code}")
+                continue
+
+            payload = response.get_json()
+            api_test = payload.get("api_test")
+            if api_test is None:
+                errors.append("api_test_missing")
+                continue
+
+            if set(api_test) != {
+                "enabled",
+                "active",
+                "state_index",
+                "state_name",
+                "next_transition_seconds",
+            }:
+                errors.append(f"api_test_keys:{sorted(api_test.keys())}")
+                continue
+
+            if not isinstance(api_test["enabled"], bool):
+                errors.append("enabled_not_bool")
+            if not isinstance(api_test["active"], bool):
+                errors.append("active_not_bool")
+            if not isinstance(api_test["state_index"], int) or api_test["state_index"] < 0:
+                errors.append(f"state_index_invalid:{api_test['state_index']}")
+            if not isinstance(api_test["state_name"], str) or not api_test["state_name"]:
+                errors.append("state_name_invalid")
+
+            next_transition = api_test["next_transition_seconds"]
+            if api_test["active"]:
+                if not isinstance(next_transition, (int, float)) or next_transition < 0:
+                    errors.append(f"next_transition_invalid:{next_transition}")
+            elif next_transition is not None:
+                errors.append(f"inactive_next_transition_not_none:{next_transition}")
+
+            time.sleep(0.05)
+
+    threads = [
+        threading.Thread(target=hammer_actions),
+        threading.Thread(target=poll_status),
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert errors == []
+
 
 
 def test_webcam_stream_and_snapshot_routes_are_not_protected_by_control_plane_auth(monkeypatch):
