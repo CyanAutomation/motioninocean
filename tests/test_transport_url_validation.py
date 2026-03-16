@@ -75,6 +75,8 @@ def test_validate_base_url_for_transport_rejects_unknown_transport(transport):
         ("http://", "base_url must include a valid hostname"),
         ("https:///path", "base_url must include a valid hostname"),
         ("http://exa mple.com", "base_url hostname is invalid"),
+        ("http://example.com:99999", "base_url contains an invalid port"),
+        ("http://example.com:abc", "base_url contains an invalid port"),
         ("http://example.com?mode=debug", "base_url must not include query or fragment"),
         ("https://example.com#stream", "base_url must not include query or fragment"),
     ],
@@ -87,6 +89,12 @@ def test_validate_base_url_for_transport_rejects_malformed_http_urls(base_url, e
 @pytest.mark.parametrize("base_url", ["http://example.com", "https://example.com/root/path"])
 def test_validate_base_url_for_transport_accepts_valid_http_urls(base_url):
     validate_base_url_for_transport(base_url, "http")
+
+
+@pytest.mark.parametrize("base_url", ["http://example.com:0"])
+def test_validate_base_url_for_transport_rejects_http_ports_outside_valid_range(base_url):
+    with pytest.raises(ValueError, match="base_url port must be between 1 and 65535"):
+        validate_base_url_for_transport(base_url, "http")
 
 
 def test_validate_webcam_propagates_unknown_transport_base_url_validation_failure(monkeypatch):

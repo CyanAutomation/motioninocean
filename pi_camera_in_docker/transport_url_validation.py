@@ -111,6 +111,12 @@ def validate_base_url_for_transport(base_url: str, transport: str) -> None:
     if transport == "http":
         parsed = urlparse(base_url)
 
+        try:
+            port = parsed.port
+        except ValueError as exc:
+            error_message = "base_url contains an invalid port"
+            raise ValueError(error_message) from exc
+
         if parsed.scheme not in {"http", "https"}:
             error_message = "base_url scheme must be http or https"
             raise ValueError(error_message)
@@ -121,6 +127,10 @@ def validate_base_url_for_transport(base_url: str, transport: str) -> None:
 
         if not _is_valid_http_hostname(parsed.hostname):
             error_message = "base_url hostname is invalid"
+            raise ValueError(error_message)
+
+        if port is not None and not 1 <= port <= 65535:
+            error_message = "base_url port must be between 1 and 65535"
             raise ValueError(error_message)
 
         if parsed.query or parsed.fragment:
