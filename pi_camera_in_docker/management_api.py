@@ -1713,7 +1713,16 @@ def create_management_blueprint(
     @bp.route("/webcams/<webcam_id>", methods=["PUT"])
     @_maybe_limit("100/minute")
     def update_webcam(webcam_id: str):
-        payload = request.get_json(silent=True) or {}
+        payload = request.get_json(silent=True)
+        if request.data and payload is None:
+            return _error_response(
+                "VALIDATION_ERROR",
+                "Request body must contain valid JSON.",
+                400,
+                webcam_id=webcam_id,
+            )
+
+        payload = payload or {}
 
         def _build_update_patch(existing: Dict[str, Any]) -> Dict[str, Any]:
             patch = dict(payload)
