@@ -172,6 +172,7 @@ DISCOVERY_INTERVAL_SECONDS=30
 - Enabling `MIO_ALLOW_PRIVATE_IPS=true` relaxes SSRF safeguards for private ranges; use it only on trusted internal networks.
 - Always set a strong `NODE_DISCOVERY_SHARED_SECRET`/`MIO_DISCOVERY_TOKEN`; unauthenticated discovery announcements are rejected.
 - This private-IP allowance applies to discovery registration policy only; do not use it as a substitute for perimeter firewall controls.
+- Discovery announcements with unresolvable `base_url` hosts are rejected with `DISCOVERY_HOST_RESOLUTION_FAILED`, even when `MIO_ALLOW_PRIVATE_IPS=true`.
 
 ### Authentication Boundaries and Headers
 
@@ -204,6 +205,8 @@ sequenceDiagram
             Mgmt-->>Discovery: 401 NODE_UNAUTHORIZED
         else Private IP announced while private IPs disabled
             Mgmt-->>Discovery: 403 DISCOVERY_PRIVATE_IP_BLOCKED
+        else base_url host cannot be resolved
+            Mgmt-->>Discovery: 400 DISCOVERY_HOST_RESOLUTION_FAILED
         end
     end
 

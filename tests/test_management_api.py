@@ -1264,6 +1264,75 @@ def test_discovery_private_ip_policy_updates_between_requests(monkeypatch, tmp_p
     assert allowed.json["node"]["id"] == "node-discovery-toggle-policy"
 
 
+
+def test_discovery_announce_rejects_unresolved_hostname(monkeypatch, tmp_path):
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.delenv("MIO_ALLOW_PRIVATE_IPS", raising=False)
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "webcam_id": "node-discovery-unresolved-host",
+        "name": "Discovery Node Unresolved",
+        "base_url": "http://unresolved-host.example:8000",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    def fake_getaddrinfo(host, port, proto):
+        assert host == "unresolved-host.example"
+        assert port == 8000
+        assert proto == socket.IPPROTO_TCP
+        raise socket.gaierror("name or service not known")
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+
+    blocked = client.post(
+        "/api/v1/discovery/announce",
+        json=payload,
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+
+    assert blocked.status_code == 400
+    assert blocked.json["error"]["code"] == "DISCOVERY_HOST_RESOLUTION_FAILED"
+    assert blocked.json["error"]["message"] == (
+        "discovery announcement blocked: base_url host could not be resolved"
+    )
+    assert blocked.json["error"]["details"]["unresolved_host"] == "unresolved-host.example"
+
+
+def test_discovery_announce_rejects_unresolved_hostname_when_private_ips_allowed(monkeypatch, tmp_path):
+    monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
+    monkeypatch.setenv("MIO_ALLOW_PRIVATE_IPS", "true")
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "webcam_id": "node-discovery-unresolved-host-private-enabled",
+        "name": "Discovery Node Unresolved Private Enabled",
+        "base_url": "http://unresolved-private-enabled.example:8000",
+        "transport": "http",
+        "capabilities": ["stream"],
+    }
+
+    def fake_getaddrinfo(host, port, proto):
+        assert host == "unresolved-private-enabled.example"
+        assert port == 8000
+        assert proto == socket.IPPROTO_TCP
+        raise socket.gaierror("name or service not known")
+
+    monkeypatch.setattr(management_api.socket, "getaddrinfo", fake_getaddrinfo)
+
+    blocked = client.post(
+        "/api/v1/discovery/announce",
+        json=payload,
+        headers={"Authorization": "Bearer discovery-secret"},
+    )
+
+    assert blocked.status_code == 400
+    assert blocked.json["error"]["code"] == "DISCOVERY_HOST_RESOLUTION_FAILED"
+    assert blocked.json["error"]["details"]["unresolved_host"] == (
+        "unresolved-private-enabled.example"
+    )
+
 def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
     monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     client, _ = _new_management_client(monkeypatch, tmp_path)
