@@ -224,21 +224,41 @@ def _discovery_private_ip_block_response(base_url: str, blocked_target: str):
     )
 
 
+def _discovery_host_resolution_failed_response(base_url: str, unresolved_host: str):
+    return _error_response(
+        "DISCOVERY_HOST_RESOLUTION_FAILED",
+        "discovery announcement blocked: base_url host could not be resolved",
+        400,
+        details={
+            "base_url": base_url,
+            "unresolved_host": unresolved_host,
+            "reason": "host resolution failed during discovery admission",
+            "remediation": (
+                "Use a resolvable hostname or IP address in base_url and ensure DNS is available "
+                "to the management node."
+            ),
+        },
+    )
+
+
+_UNRESOLVED_DISCOVERY_HOST_PREFIX = "unresolved-host:"
+
+
 def _private_announcement_blocked(base_url: str) -> Optional[str]:
     parsed = urlparse(base_url)
     hostname = parsed.hostname
-    if not hostname or is_private_ip_allowed():
+    if not hostname:
         return None
 
     try:
         if _is_blocked_address(hostname):
             return hostname
+        return None
     except ValueError:
         try:
             records = socket.getaddrinfo(hostname, parsed.port or None, proto=socket.IPPROTO_TCP)
         except socket.gaierror:
-            # Keep existing registration behavior for unresolved hosts.
-            return None
+            return f"{_UNRESOLVED_DISCOVERY_HOST_PREFIX}{hostname}"
         blocked_resolved_ips: list[str] = []
         for record in records:
             resolved_ip = record[4][0]
@@ -1652,6 +1672,11 @@ def create_management_blueprint(
 
         blocked_target = _private_announcement_blocked(validated["base_url"])
         if blocked_target:
+            if blocked_target.startswith(_UNRESOLVED_DISCOVERY_HOST_PREFIX):
+                unresolved_host = blocked_target.removeprefix(_UNRESOLVED_DISCOVERY_HOST_PREFIX)
+                return _discovery_host_resolution_failed_response(
+                    validated["base_url"], unresolved_host
+                )
             return _discovery_private_ip_block_response(validated["base_url"], blocked_target)
 
         def _build_discovery_upsert_patch(existing: Dict[str, Any]) -> Dict[str, Any]:
