@@ -710,6 +710,70 @@ def test_validation_and_transport_errors(monkeypatch, tmp_path):
     assert action.json["error"]["code"] == "TRANSPORT_UNSUPPORTED"
 
 
+def test_update_webcam_rejects_malformed_json(monkeypatch, tmp_path):
+    client, _ = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-malformed-update",
+        "name": "Malformed Update",
+        "base_url": "http://example.com",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+    created = client.post("/api/v1/webcams", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+    assert created.json["discovery"] == {
+        "source": "manual",
+        "approved": True,
+        "first_seen": created.json["discovery"]["first_seen"],
+        "last_announce_at": None,
+    }
+
+    response = client.put(
+        "/api/v1/webcams/node-malformed-update",
+        data='{"name": "broken"',
+        content_type="application/json",
+        headers=_auth_headers(),
+    )
+
+    assert response.status_code == 400
+    assert response.json["error"]["code"] == "VALIDATION_ERROR"
+    assert "valid JSON" in response.json["error"]["message"]
+    assert response.json["error"]["webcam_id"] == "node-malformed-update"
+
+    fetched = client.get("/api/v1/webcams/node-malformed-update", headers=_auth_headers())
+    assert fetched.status_code == 200
+    assert fetched.json["name"] == "Malformed Update"
+    assert fetched.json["discovery"] == created.json["discovery"]
+
+
+def test_update_webcam_empty_object_keeps_discovery_fields(monkeypatch, tmp_path):
+    client, _ = _new_management_client(monkeypatch, tmp_path)
+
+    payload = {
+        "id": "node-empty-update",
+        "name": "Empty Update",
+        "base_url": "http://example.com",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+    created = client.post("/api/v1/webcams", json=payload, headers=_auth_headers())
+    assert created.status_code == 201
+
+    before = created.json["discovery"]
+    response = client.put("/api/v1/webcams/node-empty-update", json={}, headers=_auth_headers())
+
+    assert response.status_code == 200
+    assert response.json["id"] == "node-empty-update"
+    assert response.json["discovery"] == before
+
+
 def test_create_node_rejects_unmigratable_legacy_basic_auth(monkeypatch, tmp_path):
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
