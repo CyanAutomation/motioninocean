@@ -137,9 +137,11 @@ def _get_api_test_payload(
             if scenario is None:
                 return None
         state_name = scenario.get("status", f"state-{current_state_index}")
+        enabled = bool(api_test_state.get("enabled", False))
+        active = bool(api_test_state.get("active", False))
 
         next_transition_seconds = None
-        if api_test_state.get("active") and interval > 0:
+        if active and interval > 0:
             elapsed = max(0.0, now - api_test_state.get("last_transition_monotonic", now))
             next_transition_seconds = round(max(0.0, interval - elapsed), 3)
 
@@ -161,8 +163,8 @@ def _get_api_test_payload(
         "connections": connections,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "api_test": {
-            "enabled": api_test_state.get("enabled", False),
-            "active": api_test_state.get("active", False),
+            "enabled": enabled,
+            "active": active,
             "state_index": current_state_index,
             "state_name": state_name,
             "next_transition_seconds": next_transition_seconds,
