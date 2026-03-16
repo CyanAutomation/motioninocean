@@ -531,7 +531,7 @@ def test_webcam_status_contract_reports_degraded_until_stream_is_fresh(monkeypat
 
 
 def test_webcam_api_test_status_remains_structurally_consistent_during_concurrent_actions(monkeypatch):
-    tmpdir = tempfile.mkdtemp()
+    with tempfile.TemporaryDirectory() as tmpdir:
     monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
     monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
     monkeypatch.setenv("MIO_APP_MODE", "management")
