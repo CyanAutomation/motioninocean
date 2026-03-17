@@ -530,7 +530,9 @@ def test_webcam_status_contract_reports_degraded_until_stream_is_fresh(monkeypat
     assert payload["connections"]["max"] > 0
 
 
-def test_webcam_api_test_status_remains_structurally_consistent_during_concurrent_actions(monkeypatch):
+def test_webcam_api_test_status_remains_structurally_consistent_during_concurrent_actions(
+    monkeypatch,
+):
     with tempfile.TemporaryDirectory() as tmpdir:
         monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
         monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
@@ -567,7 +569,9 @@ def test_webcam_api_test_status_remains_structurally_consistent_during_concurren
             for index in range(50):
                 action_name, body = action_requests[index % len(action_requests)]
                 with app.test_client() as client:
-                    response = client.post(f"/api/actions/{action_name}", json=body, headers=headers)
+                    response = client.post(
+                        f"/api/actions/{action_name}", json=body, headers=headers
+                    )
                 if response.status_code != 200:
                     errors.append(f"{action_name}:{response.status_code}")
                 time.sleep(0.06)
@@ -624,7 +628,6 @@ def test_webcam_api_test_status_remains_structurally_consistent_during_concurren
             thread.join()
 
         assert errors == []
-
 
 
 def test_webcam_stream_and_snapshot_routes_are_not_protected_by_control_plane_auth(monkeypatch):

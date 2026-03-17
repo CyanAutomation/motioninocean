@@ -1264,7 +1264,6 @@ def test_discovery_private_ip_policy_updates_between_requests(monkeypatch, tmp_p
     assert allowed.json["node"]["id"] == "node-discovery-toggle-policy"
 
 
-
 def test_discovery_announce_rejects_unresolved_hostname(monkeypatch, tmp_path):
     monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     monkeypatch.delenv("MIO_ALLOW_PRIVATE_IPS", raising=False)
@@ -1300,7 +1299,9 @@ def test_discovery_announce_rejects_unresolved_hostname(monkeypatch, tmp_path):
     assert blocked.json["error"]["details"]["unresolved_host"] == "unresolved-host.example"
 
 
-def test_discovery_announce_rejects_unresolved_hostname_when_private_ips_allowed(monkeypatch, tmp_path):
+def test_discovery_announce_rejects_unresolved_hostname_when_private_ips_allowed(
+    monkeypatch, tmp_path
+):
     monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
     monkeypatch.setenv("MIO_ALLOW_PRIVATE_IPS", "true")
     client, management_api = _new_management_client(monkeypatch, tmp_path)
@@ -1332,6 +1333,7 @@ def test_discovery_announce_rejects_unresolved_hostname_when_private_ips_allowed
     assert blocked.json["error"]["details"]["unresolved_host"] == (
         "unresolved-private-enabled.example"
     )
+
 
 def test_discovery_announce_validates_payload(monkeypatch, tmp_path):
     monkeypatch.setenv("MIO_NODE_DISCOVERY_SHARED_SECRET", "discovery-secret")
