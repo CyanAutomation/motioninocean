@@ -10,7 +10,7 @@
     "eslint": "^10.1.0",
     "@eslint/js": "^10.0.0",
     "globals": "^17.4.0",
-    "playwright": "^1.48.0",
+    "playwright": "^1.59.1",
     "prettier": "^3.2.5"
   }
 }
