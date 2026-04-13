@@ -10,7 +10,7 @@ pytest-cov==7.1.0
 pytest-mock==3.15.1
 
 # Code quality tools
-ruff==0.15.9
+ruff==0.15.10
 
 # Code coverage
 coverage==7.10.7
