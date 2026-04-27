@@ -21,7 +21,7 @@ sentry-sdk[flask]==2.58.0
 Pillow>=12.1.1
 
 # SVG rasterization for mock stream rendering
-CairoSVG>=2.7.1
+CairoSVG>=2.8.2
 
 # NumPy for array processing
 numpy==2.2.3
