@@ -121,7 +121,7 @@ export interface Page {
    * [page.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-page#page-evaluate):
    *
    * ```js
-   * const bodyHandle = await page.evaluate('document.body');
+   * const bodyHandle = await page.evaluateHandle('document.body');
    * const html = await page.evaluate<string, HTMLElement>(([body, suffix]) =>
    *   body.innerHTML + suffix, [bodyHandle, 'hello']
    * );
@@ -172,7 +172,7 @@ export interface Page {
    * [page.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-page#page-evaluate):
    *
    * ```js
-   * const bodyHandle = await page.evaluate('document.body');
+   * const bodyHandle = await page.evaluateHandle('document.body');
    * const html = await page.evaluate<string, HTMLElement>(([body, suffix]) =>
    *   body.innerHTML + suffix, [bodyHandle, 'hello']
    * );
@@ -4530,8 +4530,8 @@ export interface Page {
    * [`timeout`](https://playwright.dev/docs/api/class-page#page-tap-option-timeout), this method throws a
    * [TimeoutError](https://playwright.dev/docs/api/class-timeouterror). Passing zero timeout disables this.
    *
-   * **NOTE** [page.tap(selector[, options])](https://playwright.dev/docs/api/class-page#page-tap) the method will throw
-   * if [`hasTouch`](https://playwright.dev/docs/api/class-browser#browser-new-context-option-has-touch) option of the
+   * **NOTE** [page.tap(selector[, options])](https://playwright.dev/docs/api/class-page#page-tap) will throw if the
+   * [`hasTouch`](https://playwright.dev/docs/api/class-browser#browser-new-context-option-has-touch) option of the
    * browser context is false.
    *
    * @param selector A selector to search for an element. If there are multiple elements satisfying the selector, the first will be
@@ -5244,6 +5244,18 @@ export interface Page {
 
   keyboard: Keyboard;
 
+  /**
+   * Provides access to the page's `localStorage` for the current origin. See
+   * [WebStorage](https://playwright.dev/docs/api/class-webstorage).
+   *
+   * ```js
+   * await page.localStorage.setItem('token', 'abc');
+   * const token = await page.localStorage.getItem('token');
+   * ```
+   *
+   */
+  localStorage: WebStorage;
+
   mouse: Mouse;
 
   /**
@@ -5271,6 +5283,18 @@ export interface Page {
    *
    */
   screencast: Screencast;
+
+  /**
+   * Provides access to the page's `sessionStorage` for the current origin. See
+   * [WebStorage](https://playwright.dev/docs/api/class-webstorage).
+   *
+   * ```js
+   * await page.sessionStorage.setItem('flag', '1');
+   * const flag = await page.sessionStorage.getItem('flag');
+   * ```
+   *
+   */
+  sessionStorage: WebStorage;
 
   touchscreen: Touchscreen;
 
@@ -5348,7 +5372,7 @@ export interface Frame {
    * [frame.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-frame#frame-evaluate):
    *
    * ```js
-   * const bodyHandle = await frame.evaluate('document.body');
+   * const bodyHandle = await frame.evaluateHandle('document.body');
    * const html = await frame.evaluate(([body, suffix]) =>
    *   body.innerHTML + suffix, [bodyHandle, 'hello'],
    * );
@@ -5395,7 +5419,7 @@ export interface Frame {
    * [frame.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-frame#frame-evaluate):
    *
    * ```js
-   * const bodyHandle = await frame.evaluate('document.body');
+   * const bodyHandle = await frame.evaluateHandle('document.body');
    * const html = await frame.evaluate(([body, suffix]) =>
    *   body.innerHTML + suffix, [bodyHandle, 'hello'],
    * );
@@ -9882,6 +9906,12 @@ export interface BrowserContext {
    * Playwright has ability to mock clock and passage of time.
    */
   clock: Clock;
+
+  /**
+   * Virtual WebAuthn authenticator for this context. Lets tests seed credentials and intercept
+   * `navigator.credentials.create()` / `navigator.credentials.get()` ceremonies.
+   */
+  credentials: Credentials;
 
   /**
    * Debugger allows to pause and resume the execution.
@@ -15335,6 +15365,32 @@ export interface BrowserType<Unused = {}> {
    */
   connectOverCDP(endpointURL: string, options?: ConnectOverCDPOptions): Promise<Browser>;
   /**
+   * This method attaches Playwright to an existing browser instance using the Chrome DevTools Protocol.
+   *
+   * The default browser context is accessible via
+   * [browser.contexts()](https://playwright.dev/docs/api/class-browser#browser-contexts).
+   *
+   * **NOTE** Connecting over the Chrome DevTools Protocol is only supported for Chromium-based browsers.
+   *
+   * **NOTE** This connection is significantly lower fidelity than the Playwright protocol connection via
+   * [browserType.connect(endpoint[, options])](https://playwright.dev/docs/api/class-browsertype#browser-type-connect).
+   * If you are experiencing issues or attempting to use advanced functionality, you probably want to use
+   * [browserType.connect(endpoint[, options])](https://playwright.dev/docs/api/class-browsertype#browser-type-connect).
+   *
+   * **Usage**
+   *
+   * ```js
+   * const browser = await playwright.chromium.connectOverCDP('http://localhost:9222');
+   * const defaultContext = browser.contexts()[0];
+   * const page = defaultContext.pages()[0];
+   * ```
+   *
+   * @param endpointURL A CDP websocket endpoint or http url to connect to. For example `http://localhost:9222/` or
+   * `ws://127.0.0.1:9222/devtools/browser/387adf4c-243f-4051-a181-46798f4a46f4`.
+   * @param options
+   */
+  connectOverCDP(transport: ConnectOverCDPTransport, options?: ConnectOverCDPOptions): Promise<Browser>;
+  /**
    * Option `wsEndpoint` is deprecated. Instead use `endpointURL`.
    * @deprecated
    */
@@ -15364,6 +15420,7 @@ export interface BrowserType<Unused = {}> {
    * @param options
    */
   connectOverCDP(options: ConnectOverCDPOptions & { wsEndpoint?: string }): Promise<Browser>;
+
   /**
    * This method attaches Playwright to an existing browser instance created via `BrowserType.launchServer` in Node.js.
    *
@@ -16144,6 +16201,14 @@ export interface BrowserType<Unused = {}> {
   name(): string;
 }
 
+export interface ConnectOverCDPTransport {
+  open?(): void;
+  send(message: object): void;
+  close(): void;
+  onmessage?: (message: object) => void;
+  onclose?: (reason?: string) => void;
+}
+
 /**
  * The `CDPSession` instances are used to talk raw Chrome Devtools Protocol:
  * - protocol methods can be called with `session.send` method.
@@ -16557,8 +16622,8 @@ export interface Screencast {
    * ```js
    * // Capture frames
    * await page.screencast.start({
-   *   onFrame: ({ data, viewportWidth, viewportHeight }) => {
-   *     console.log(`frame size: ${data.length} (${viewportWidth}x${viewportHeight})`);
+   *   onFrame: ({ data, timestamp, viewportWidth, viewportHeight }) => {
+   *     console.log(`frame size: ${data.length} (${viewportWidth}x${viewportHeight}) at ${timestamp}`);
    *   },
    *   size: { width: 800, height: 600 },
    * });
@@ -16569,7 +16634,7 @@ export interface Screencast {
    * @param options
    */
   start(options?: {
-    onFrame?: (frame: { data: Buffer, viewportWidth: number, viewportHeight: number }) => Promise<any>|any;
+    onFrame?: (frame: { data: Buffer, timestamp: number, viewportWidth: number, viewportHeight: number }) => Promise<any>|any;
     path?: string;
     size?: {
       width: number;
@@ -16597,6 +16662,12 @@ export interface Screencast {
    * @param options
    */
   showActions(options?: {
+    /**
+     * Cursor decoration shown for pointer actions. `"pointer"` (the default) renders a mouse pointer that animates from
+     * the previous action point to the next one. `"none"` disables the cursor decoration.
+     */
+    cursor?: "none"|"pointer";
+
     /**
      * How long each annotation is displayed in milliseconds. Defaults to `500`.
      */
@@ -16762,47 +16833,7 @@ export interface ElectronApplication {
    * @param arg Optional argument to pass to
    * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
    */
-  /**
-   * Returns the return value of
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
-   *
-   * If the function passed to the
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns a [Promise], then
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * would wait for the promise to resolve and return its value.
-   *
-   * If the function passed to the
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns a non-[Serializable] value, then
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns `undefined`. Playwright also supports transferring some additional values that are not serializable by
-   * `JSON`: `-0`, `NaN`, `Infinity`, `-Infinity`.
-   * @param pageFunction Function to be evaluated in the main Electron process.
-   * @param arg Optional argument to pass to
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
-   */
   evaluate<R, Arg>(pageFunction: PageFunctionOn<ElectronType, Arg, R>, arg: Arg): Promise<R>;
-  /**
-   * Returns the return value of
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
-   *
-   * If the function passed to the
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns a [Promise], then
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * would wait for the promise to resolve and return its value.
-   *
-   * If the function passed to the
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns a non-[Serializable] value, then
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns `undefined`. Playwright also supports transferring some additional values that are not serializable by
-   * `JSON`: `-0`, `NaN`, `Infinity`, `-Infinity`.
-   * @param pageFunction Function to be evaluated in the main Electron process.
-   * @param arg Optional argument to pass to
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
-   */
   /**
    * Returns the return value of
    * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
@@ -16847,51 +16878,7 @@ export interface ElectronApplication {
    * @param arg Optional argument to pass to
    * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression).
    */
-  /**
-   * Returns the return value of
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression)
-   * as a [JSHandle](https://playwright.dev/docs/api/class-jshandle).
-   *
-   * The only difference between
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * and
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * is that
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * returns [JSHandle](https://playwright.dev/docs/api/class-jshandle).
-   *
-   * If the function passed to the
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * returns a [Promise], then
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * would wait for the promise to resolve and return its value.
-   * @param pageFunction Function to be evaluated in the main Electron process.
-   * @param arg Optional argument to pass to
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression).
-   */
   evaluateHandle<R, Arg>(pageFunction: PageFunctionOn<ElectronType, Arg, R>, arg: Arg): Promise<SmartHandle<R>>;
-  /**
-   * Returns the return value of
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression)
-   * as a [JSHandle](https://playwright.dev/docs/api/class-jshandle).
-   *
-   * The only difference between
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * and
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * is that
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * returns [JSHandle](https://playwright.dev/docs/api/class-jshandle).
-   *
-   * If the function passed to the
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * returns a [Promise], then
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * would wait for the promise to resolve and return its value.
-   * @param pageFunction Function to be evaluated in the main Electron process.
-   * @param arg Optional argument to pass to
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression).
-   */
   /**
    * Returns the return value of
    * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression)
@@ -17253,450 +17240,6 @@ export type AndroidKey =
 
 export const _electron: Electron;
 export const _android: Android;
-
-//@ts-ignore this will be any if electron is not installed
-type ElectronType = typeof import('electron');
-
-/**
- * Electron application representation. You can use
- * [electron.launch([options])](https://playwright.dev/docs/api/class-electron#electron-launch) to obtain the
- * application instance. This instance you can control main electron process as well as work with Electron windows:
- *
- * ```js
- * const { _electron: electron } = require('playwright');
- *
- * (async () => {
- *   // Launch Electron app.
- *   const electronApp = await electron.launch({ args: ['main.js'] });
- *
- *   // Evaluation expression in the Electron context.
- *   const appPath = await electronApp.evaluate(async ({ app }) => {
- *     // This runs in the main Electron process, parameter here is always
- *     // the result of the require('electron') in the main app script.
- *     return app.getAppPath();
- *   });
- *   console.log(appPath);
- *
- *   // Get the first window that the app opens, wait if necessary.
- *   const window = await electronApp.firstWindow();
- *   // Print the title.
- *   console.log(await window.title());
- *   // Capture a screenshot.
- *   await window.screenshot({ path: 'intro.png' });
- *   // Direct Electron console to Node terminal.
- *   window.on('console', console.log);
- *   // Click button.
- *   await window.click('text=Click me');
- *   // Exit app.
- *   await electronApp.close();
- * })();
- * ```
- *
- */
-export interface ElectronApplication {
-  /**
-   * Returns the return value of
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
-   *
-   * If the function passed to the
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns a [Promise], then
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * would wait for the promise to resolve and return its value.
-   *
-   * If the function passed to the
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns a non-[Serializable] value, then
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns `undefined`. Playwright also supports transferring some additional values that are not serializable by
-   * `JSON`: `-0`, `NaN`, `Infinity`, `-Infinity`.
-   * @param pageFunction Function to be evaluated in the main Electron process.
-   * @param arg Optional argument to pass to
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
-   */
-  /**
-   * Returns the return value of
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
-   *
-   * If the function passed to the
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns a [Promise], then
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * would wait for the promise to resolve and return its value.
-   *
-   * If the function passed to the
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns a non-[Serializable] value, then
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns `undefined`. Playwright also supports transferring some additional values that are not serializable by
-   * `JSON`: `-0`, `NaN`, `Infinity`, `-Infinity`.
-   * @param pageFunction Function to be evaluated in the main Electron process.
-   * @param arg Optional argument to pass to
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
-   */
-  evaluate<R, Arg>(pageFunction: PageFunctionOn<ElectronType, Arg, R>, arg: Arg): Promise<R>;
-  /**
-   * Returns the return value of
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
-   *
-   * If the function passed to the
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns a [Promise], then
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * would wait for the promise to resolve and return its value.
-   *
-   * If the function passed to the
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns a non-[Serializable] value, then
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns `undefined`. Playwright also supports transferring some additional values that are not serializable by
-   * `JSON`: `-0`, `NaN`, `Infinity`, `-Infinity`.
-   * @param pageFunction Function to be evaluated in the main Electron process.
-   * @param arg Optional argument to pass to
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
-   */
-  /**
-   * Returns the return value of
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
-   *
-   * If the function passed to the
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns a [Promise], then
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * would wait for the promise to resolve and return its value.
-   *
-   * If the function passed to the
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns a non-[Serializable] value, then
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * returns `undefined`. Playwright also supports transferring some additional values that are not serializable by
-   * `JSON`: `-0`, `NaN`, `Infinity`, `-Infinity`.
-   * @param pageFunction Function to be evaluated in the main Electron process.
-   * @param arg Optional argument to pass to
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-option-expression).
-   */
-  evaluate<R>(pageFunction: PageFunctionOn<ElectronType, void, R>, arg?: any): Promise<R>;
-
-  /**
-   * Returns the return value of
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression)
-   * as a [JSHandle](https://playwright.dev/docs/api/class-jshandle).
-   *
-   * The only difference between
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * and
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * is that
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * returns [JSHandle](https://playwright.dev/docs/api/class-jshandle).
-   *
-   * If the function passed to the
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * returns a [Promise], then
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * would wait for the promise to resolve and return its value.
-   * @param pageFunction Function to be evaluated in the main Electron process.
-   * @param arg Optional argument to pass to
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression).
-   */
-  /**
-   * Returns the return value of
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression)
-   * as a [JSHandle](https://playwright.dev/docs/api/class-jshandle).
-   *
-   * The only difference between
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * and
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * is that
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * returns [JSHandle](https://playwright.dev/docs/api/class-jshandle).
-   *
-   * If the function passed to the
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * returns a [Promise], then
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * would wait for the promise to resolve and return its value.
-   * @param pageFunction Function to be evaluated in the main Electron process.
-   * @param arg Optional argument to pass to
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression).
-   */
-  evaluateHandle<R, Arg>(pageFunction: PageFunctionOn<ElectronType, Arg, R>, arg: Arg): Promise<SmartHandle<R>>;
-  /**
-   * Returns the return value of
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression)
-   * as a [JSHandle](https://playwright.dev/docs/api/class-jshandle).
-   *
-   * The only difference between
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * and
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * is that
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * returns [JSHandle](https://playwright.dev/docs/api/class-jshandle).
-   *
-   * If the function passed to the
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * returns a [Promise], then
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * would wait for the promise to resolve and return its value.
-   * @param pageFunction Function to be evaluated in the main Electron process.
-   * @param arg Optional argument to pass to
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression).
-   */
-  /**
-   * Returns the return value of
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression)
-   * as a [JSHandle](https://playwright.dev/docs/api/class-jshandle).
-   *
-   * The only difference between
-   * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
-   * and
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * is that
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * returns [JSHandle](https://playwright.dev/docs/api/class-jshandle).
-   *
-   * If the function passed to the
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * returns a [Promise], then
-   * [electronApplication.evaluateHandle(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle)
-   * would wait for the promise to resolve and return its value.
-   * @param pageFunction Function to be evaluated in the main Electron process.
-   * @param arg Optional argument to pass to
-   * [`pageFunction`](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate-handle-option-expression).
-   */
-  evaluateHandle<R>(pageFunction: PageFunctionOn<ElectronType, void, R>, arg?: any): Promise<SmartHandle<R>>;
-  /**
-   * This event is issued when the application process has been terminated.
-   */
-  on(event: 'close', listener: () => any): this;
-
-  /**
-   * Emitted when JavaScript within the Electron main process calls one of console API methods, e.g. `console.log` or
-   * `console.dir`.
-   *
-   * The arguments passed into `console.log` are available on the
-   * [ConsoleMessage](https://playwright.dev/docs/api/class-consolemessage) event handler argument.
-   *
-   * **Usage**
-   *
-   * ```js
-   * electronApp.on('console', async msg => {
-   *   const values = [];
-   *   for (const arg of msg.args())
-   *     values.push(await arg.jsonValue());
-   *   console.log(...values);
-   * });
-   * await electronApp.evaluate(() => console.log('hello', 5, { foo: 'bar' }));
-   * ```
-   *
-   */
-  on(event: 'console', listener: (consoleMessage: ConsoleMessage) => any): this;
-
-  /**
-   * This event is issued for every window that is created **and loaded** in Electron. It contains a
-   * [Page](https://playwright.dev/docs/api/class-page) that can be used for Playwright automation.
-   */
-  on(event: 'window', listener: (page: Page) => any): this;
-
-  /**
-   * Adds an event listener that will be automatically removed after it is triggered once. See `addListener` for more information about this event.
-   */
-  once(event: 'close', listener: () => any): this;
-
-  /**
-   * Adds an event listener that will be automatically removed after it is triggered once. See `addListener` for more information about this event.
-   */
-  once(event: 'console', listener: (consoleMessage: ConsoleMessage) => any): this;
-
-  /**
-   * Adds an event listener that will be automatically removed after it is triggered once. See `addListener` for more information about this event.
-   */
-  once(event: 'window', listener: (page: Page) => any): this;
-
-  /**
-   * This event is issued when the application process has been terminated.
-   */
-  addListener(event: 'close', listener: () => any): this;
-
-  /**
-   * Emitted when JavaScript within the Electron main process calls one of console API methods, e.g. `console.log` or
-   * `console.dir`.
-   *
-   * The arguments passed into `console.log` are available on the
-   * [ConsoleMessage](https://playwright.dev/docs/api/class-consolemessage) event handler argument.
-   *
-   * **Usage**
-   *
-   * ```js
-   * electronApp.on('console', async msg => {
-   *   const values = [];
-   *   for (const arg of msg.args())
-   *     values.push(await arg.jsonValue());
-   *   console.log(...values);
-   * });
-   * await electronApp.evaluate(() => console.log('hello', 5, { foo: 'bar' }));
-   * ```
-   *
-   */
-  addListener(event: 'console', listener: (consoleMessage: ConsoleMessage) => any): this;
-
-  /**
-   * This event is issued for every window that is created **and loaded** in Electron. It contains a
-   * [Page](https://playwright.dev/docs/api/class-page) that can be used for Playwright automation.
-   */
-  addListener(event: 'window', listener: (page: Page) => any): this;
-
-  /**
-   * Removes an event listener added by `on` or `addListener`.
-   */
-  removeListener(event: 'close', listener: () => any): this;
-
-  /**
-   * Removes an event listener added by `on` or `addListener`.
-   */
-  removeListener(event: 'console', listener: (consoleMessage: ConsoleMessage) => any): this;
-
-  /**
-   * Removes an event listener added by `on` or `addListener`.
-   */
-  removeListener(event: 'window', listener: (page: Page) => any): this;
-
-  /**
-   * Removes an event listener added by `on` or `addListener`.
-   */
-  off(event: 'close', listener: () => any): this;
-
-  /**
-   * Removes an event listener added by `on` or `addListener`.
-   */
-  off(event: 'console', listener: (consoleMessage: ConsoleMessage) => any): this;
-
-  /**
-   * Removes an event listener added by `on` or `addListener`.
-   */
-  off(event: 'window', listener: (page: Page) => any): this;
-
-  /**
-   * This event is issued when the application process has been terminated.
-   */
-  prependListener(event: 'close', listener: () => any): this;
-
-  /**
-   * Emitted when JavaScript within the Electron main process calls one of console API methods, e.g. `console.log` or
-   * `console.dir`.
-   *
-   * The arguments passed into `console.log` are available on the
-   * [ConsoleMessage](https://playwright.dev/docs/api/class-consolemessage) event handler argument.
-   *
-   * **Usage**
-   *
-   * ```js
-   * electronApp.on('console', async msg => {
-   *   const values = [];
-   *   for (const arg of msg.args())
-   *     values.push(await arg.jsonValue());
-   *   console.log(...values);
-   * });
-   * await electronApp.evaluate(() => console.log('hello', 5, { foo: 'bar' }));
-   * ```
-   *
-   */
-  prependListener(event: 'console', listener: (consoleMessage: ConsoleMessage) => any): this;
-
-  /**
-   * This event is issued for every window that is created **and loaded** in Electron. It contains a
-   * [Page](https://playwright.dev/docs/api/class-page) that can be used for Playwright automation.
-   */
-  prependListener(event: 'window', listener: (page: Page) => any): this;
-
-  /**
-   * Returns the BrowserWindow object that corresponds to the given Playwright page.
-   * @param page Page to retrieve the window for.
-   */
-  browserWindow(page: Page): Promise<JSHandle>;
-
-  /**
-   * Closes Electron application.
-   */
-  close(): Promise<void>;
-
-  /**
-   * This method returns browser context that can be used for setting up context-wide routing, etc.
-   */
-  context(): BrowserContext;
-
-  /**
-   * Convenience method that waits for the first application window to be opened.
-   *
-   * **Usage**
-   *
-   * ```js
-   * const electronApp = await electron.launch({
-   *   args: ['main.js']
-   * });
-   * const window = await electronApp.firstWindow();
-   * // ...
-   * ```
-   *
-   * @param options
-   */
-  firstWindow(options?: {
-    /**
-     * Maximum time to wait for in milliseconds. Defaults to `30000` (30 seconds). Pass `0` to disable timeout. The
-     * default value can be changed by using the
-     * [browserContext.setDefaultTimeout(timeout)](https://playwright.dev/docs/api/class-browsercontext#browser-context-set-default-timeout).
-     */
-    timeout?: number;
-  }): Promise<Page>;
-
-  /**
-   * Returns the main process for this Electron Application.
-   */
-  process(): ChildProcess;
-
-  /**
-   * This event is issued when the application process has been terminated.
-   */
-  waitForEvent(event: 'close', optionsOrPredicate?: { predicate?: () => boolean | Promise<boolean>, timeout?: number } | (() => boolean | Promise<boolean>)): Promise<void>;
-
-  /**
-   * Emitted when JavaScript within the Electron main process calls one of console API methods, e.g. `console.log` or
-   * `console.dir`.
-   *
-   * The arguments passed into `console.log` are available on the
-   * [ConsoleMessage](https://playwright.dev/docs/api/class-consolemessage) event handler argument.
-   *
-   * **Usage**
-   *
-   * ```js
-   * electronApp.on('console', async msg => {
-   *   const values = [];
-   *   for (const arg of msg.args())
-   *     values.push(await arg.jsonValue());
-   *   console.log(...values);
-   * });
-   * await electronApp.evaluate(() => console.log('hello', 5, { foo: 'bar' }));
-   * ```
-   *
-   */
-  waitForEvent(event: 'console', optionsOrPredicate?: { predicate?: (consoleMessage: ConsoleMessage) => boolean | Promise<boolean>, timeout?: number } | ((consoleMessage: ConsoleMessage) => boolean | Promise<boolean>)): Promise<ConsoleMessage>;
-
-  /**
-   * This event is issued for every window that is created **and loaded** in Electron. It contains a
-   * [Page](https://playwright.dev/docs/api/class-page) that can be used for Playwright automation.
-   */
-  waitForEvent(event: 'window', optionsOrPredicate?: { predicate?: (page: Page) => boolean | Promise<boolean>, timeout?: number } | ((page: Page) => boolean | Promise<boolean>)): Promise<Page>;
-
-
-  /**
-   * Convenience method that returns all the opened windows.
-   */
-  windows(): Array<Page>;
-
-  [Symbol.asyncDispose](): Promise<void>;
-}
 
 // This is required to not export everything by default. See https://github.com/Microsoft/TypeScript/issues/19545#issuecomment-340490459
 export {};
@@ -18773,6 +18316,52 @@ export interface APIResponse {
   ok(): boolean;
 
   /**
+   * Returns SSL and other security information. Resolves to `null` for non-HTTPS responses. For redirected requests,
+   * returns the information for the last request in the redirect chain.
+   */
+  securityDetails(): Promise<null|{
+    /**
+     * Common Name component of the Issuer field. from the certificate. This should only be used for informational
+     * purposes. Optional.
+     */
+    issuer?: string;
+
+    /**
+     * The specific TLS protocol used. (e.g. `TLS 1.3`). Optional.
+     */
+    protocol?: string;
+
+    /**
+     * Common Name component of the Subject field from the certificate. This should only be used for informational
+     * purposes. Optional.
+     */
+    subjectName?: string;
+
+    /**
+     * Unix timestamp (in seconds) specifying when this cert becomes valid. Optional.
+     */
+    validFrom?: number;
+
+    /**
+     * Unix timestamp (in seconds) specifying when this cert becomes invalid. Optional.
+     */
+    validTo?: number;
+  }>;
+
+  /**
+   * Returns the IP address and port of the server. Resolves to `null` if the server address is not available. For
+   * redirected requests, returns the information for the last request in the redirect chain.
+   */
+  serverAddr(): Promise<null|{
+    /**
+     * IPv4 or IPV6 address of the server.
+     */
+    ipAddress: string;
+
+    port: number;
+  }>;
+
+  /**
    * Contains the status code of the response (e.g., 200 for a success).
    */
   status(): number;
@@ -19215,6 +18804,188 @@ export interface Coverage {
       }>;
     }>;
   }>>;
+}
+
+/**
+ * `Credentials` is a virtual WebAuthn authenticator scoped to a
+ * [BrowserContext](https://playwright.dev/docs/api/class-browsercontext). It lets tests register passkeys and answer
+ * `navigator.credentials.create()` / `navigator.credentials.get()` ceremonies in the page, without a real
+ * authenticator or hardware security key.
+ *
+ * There are two common ways to use it:
+ *
+ * **Usage: seed a known credential**
+ *
+ * ```js
+ * const context = await browser.newContext();
+ *
+ * // A passkey your backend already provisioned for a test user.
+ * await context.credentials.create('example.com', {
+ *   id: knownCredentialId, // base64url
+ *   userHandle: knownUserHandle, // base64url
+ *   privateKey: knownPrivateKey, // base64url PKCS#8 (DER)
+ *   publicKey: knownPublicKey, // base64url SPKI (DER)
+ * });
+ * await context.credentials.install();
+ *
+ * const page = await context.newPage();
+ * await page.goto('https://example.com/login');
+ * // The page's navigator.credentials.get() is answered with the seeded passkey.
+ * ```
+ *
+ * **Usage: capture a passkey, then reuse it**
+ *
+ * ```js
+ * // setup test: let the app register a passkey, then save it.
+ * const context = await browser.newContext();
+ * await context.credentials.install();
+ *
+ * const page = await context.newPage();
+ * await page.goto('https://example.com/register');
+ * await page.getByRole('button', { name: 'Create a passkey' }).click();
+ *
+ * // Read back the passkey the page registered — it includes the private key.
+ * const [credential] = await context.credentials.get({ rpId: 'example.com' });
+ * fs.writeFileSync('playwright/.auth/passkey.json', JSON.stringify(credential));
+ * ```
+ *
+ * ```js
+ * // later test: seed the captured passkey so the app starts already enrolled.
+ * const credential = JSON.parse(fs.readFileSync('playwright/.auth/passkey.json', 'utf8'));
+ * const context = await browser.newContext();
+ * await context.credentials.create(credential.rpId, credential);
+ * await context.credentials.install();
+ *
+ * const page = await context.newPage();
+ * await page.goto('https://example.com/login');
+ * // navigator.credentials.get() resolves the captured passkey — already signed in.
+ * ```
+ *
+ * **Defaults**
+ */
+export interface Credentials {
+  /**
+   * Seeds a virtual WebAuthn credential and returns it.
+   *
+   * With only [`rpId`](https://playwright.dev/docs/api/class-credentials#credentials-create-option-rp-id), generates a
+   * fresh **ECDSA P-256** keypair, credential id and user handle. The seeded credential is discoverable (resident), so
+   * the page can resolve it from both username-then-passkey and usernameless passkey flows. The returned object carries
+   * the private and public keys, so it can be persisted to disk and re-seeded in a later test.
+   *
+   * To **import a known credential**, supply all four of
+   * [`id`](https://playwright.dev/docs/api/class-credentials#credentials-create-option-id),
+   * [`userHandle`](https://playwright.dev/docs/api/class-credentials#credentials-create-option-user-handle),
+   * [`privateKey`](https://playwright.dev/docs/api/class-credentials#credentials-create-option-private-key) and
+   * [`publicKey`](https://playwright.dev/docs/api/class-credentials#credentials-create-option-public-key) together.
+   *
+   * Call [credentials.install()](https://playwright.dev/docs/api/class-credentials#credentials-install) before
+   * navigating to a page that uses WebAuthn.
+   * @param rpId Relying party id (typically the site's effective domain).
+   * @param options
+   */
+  create(rpId: string, options?: {
+    /**
+     * Base64url-encoded credential id. Auto-generated if omitted.
+     */
+    id?: string;
+
+    /**
+     * Base64url-encoded PKCS#8 (DER) private key. Auto-generated if omitted.
+     */
+    privateKey?: string;
+
+    /**
+     * Base64url-encoded SPKI (DER) public key. Auto-generated if omitted.
+     */
+    publicKey?: string;
+
+    /**
+     * Base64url-encoded user handle. Auto-generated if omitted.
+     */
+    userHandle?: string;
+  }): Promise<{
+    /**
+     * Base64url-encoded credential id.
+     */
+    id: string;
+
+    /**
+     * Relying party id.
+     */
+    rpId: string;
+
+    /**
+     * Base64url-encoded user handle.
+     */
+    userHandle: string;
+
+    /**
+     * Base64url-encoded PKCS#8 (DER) private key.
+     */
+    privateKey: string;
+
+    /**
+     * Base64url-encoded SPKI (DER) public key.
+     */
+    publicKey: string;
+  }>;
+
+  /**
+   * Removes a credential from the authenticator by its id. Works for any credential currently held — both those seeded
+   * with [credentials.create(rpId[, options])](https://playwright.dev/docs/api/class-credentials#credentials-create)
+   * and those the page registered itself by calling `navigator.credentials.create()`.
+   * @param id Base64url-encoded credential id.
+   */
+  delete(id: string): Promise<void>;
+
+  /**
+   * Returns every credential currently held by the authenticator, optionally filtered by
+   * [`rpId`](https://playwright.dev/docs/api/class-credentials#credentials-get-option-rp-id) or
+   * [`id`](https://playwright.dev/docs/api/class-credentials#credentials-get-option-id). This includes both credentials
+   * seeded with
+   * [credentials.create(rpId[, options])](https://playwright.dev/docs/api/class-credentials#credentials-create) and
+   * credentials the page registered itself by calling `navigator.credentials.create()`.
+   *
+   * Each returned credential includes its private and public keys, so a passkey the app just registered can be saved
+   * and re-seeded into a later test with
+   * [credentials.create(rpId[, options])](https://playwright.dev/docs/api/class-credentials#credentials-create) — see
+   * the second example in the class overview.
+   * @param options
+   */
+  get(options?: {
+    /**
+     * Only return the credential with this base64url-encoded id.
+     */
+    id?: string;
+
+    /**
+     * Only return credentials for this relying party id.
+     */
+    rpId?: string;
+  }): Promise<Array<{
+    id: string;
+
+    rpId: string;
+
+    userHandle: string;
+
+    privateKey: string;
+
+    publicKey: string;
+  }>>;
+
+  /**
+   * Installs the virtual WebAuthn authenticator into the context, overriding `navigator.credentials.create()` and
+   * `navigator.credentials.get()` in all current and future pages. Call this before the page first touches
+   * `navigator.credentials`.
+   *
+   * Required: until [credentials.install()](https://playwright.dev/docs/api/class-credentials#credentials-install) is
+   * called, no interception is in place and the page sees the platform's native (or absent) WebAuthn behaviour. Seeding
+   * credentials with
+   * [credentials.create(rpId[, options])](https://playwright.dev/docs/api/class-credentials#credentials-create) without
+   * installing populates the authenticator, but the page will never see those credentials.
+   */
+  install(): Promise<void>;
 }
 
 /**
@@ -21280,7 +21051,8 @@ export interface Selectors {
    * Defines custom attribute name to be used in
    * [page.getByTestId(testId)](https://playwright.dev/docs/api/class-page#page-get-by-test-id). `data-testid` is used
    * by default.
-   * @param attributeName Test id attribute name.
+   * @param attributeName Test id attribute name. To match elements with any of several attributes, pass them as a comma-separated list, e.g.
+   * `"data-pw,data-ti"`.
    */
   setTestIdAttribute(attributeName: string): void;
 }
@@ -21297,8 +21069,8 @@ export interface Touchscreen {
    * Dispatches a `touchstart` and `touchend` event with a single touch at the position
    * ([`x`](https://playwright.dev/docs/api/class-touchscreen#touchscreen-tap-option-x),[`y`](https://playwright.dev/docs/api/class-touchscreen#touchscreen-tap-option-y)).
    *
-   * **NOTE** [page.tap(selector[, options])](https://playwright.dev/docs/api/class-page#page-tap) the method will throw
-   * if [`hasTouch`](https://playwright.dev/docs/api/class-browser#browser-new-context-option-has-touch) option of the
+   * **NOTE** [touchscreen.tap(x, y)](https://playwright.dev/docs/api/class-touchscreen#touchscreen-tap) will throw if
+   * the [`hasTouch`](https://playwright.dev/docs/api/class-browser#browser-new-context-option-has-touch) option of the
    * browser context is false.
    *
    * @param x X coordinate relative to the main frame's viewport in CSS pixels.
@@ -21889,6 +21661,63 @@ export interface WebSocket {
 }
 
 /**
+ * WebStorage exposes the page's `localStorage` or `sessionStorage` for the current origin via an async,
+ * [browser-consistent](https://developer.mozilla.org/en-US/docs/Web/API/Storage) API.
+ *
+ * Instances are accessed through [page.localStorage](https://playwright.dev/docs/api/class-page#page-local-storage)
+ * and [page.sessionStorage](https://playwright.dev/docs/api/class-page#page-session-storage).
+ *
+ * ```js
+ * await page.goto('https://example.com');
+ * await page.localStorage.setItem('token', 'abc');
+ * const token = await page.localStorage.getItem('token');
+ * const all = await page.localStorage.items();
+ * await page.localStorage.removeItem('token');
+ * await page.localStorage.clear();
+ * ```
+ *
+ */
+export interface WebStorage {
+  /**
+   * Removes all items from the storage.
+   */
+  clear(): Promise<void>;
+
+  /**
+   * Returns the value for the given
+   * [`name`](https://playwright.dev/docs/api/class-webstorage#web-storage-get-item-option-name) if present.
+   * @param name Name of the item to retrieve.
+   */
+  getItem(name: string): Promise<null|string>;
+
+  /**
+   * Returns all items in the storage as name/value pairs.
+   */
+  items(): Promise<Array<{
+    name: string;
+
+    value: string;
+  }>>;
+
+  /**
+   * Removes the item with the given
+   * [`name`](https://playwright.dev/docs/api/class-webstorage#web-storage-remove-item-option-name). No-op if the item
+   * is absent.
+   * @param name Name of the item to remove.
+   */
+  removeItem(name: string): Promise<void>;
+
+  /**
+   * Sets the value for the given
+   * [`name`](https://playwright.dev/docs/api/class-webstorage#web-storage-set-item-option-name). Overwrites any
+   * existing value for that name.
+   * @param name Name of the item to set.
+   * @param value New value for the item.
+   */
+  setItem(name: string, value: string): Promise<void>;
+}
+
+/**
  * Playwright has **experimental** support for Electron automation. You can access electron namespace via:
  *
  * ```js
@@ -21938,6 +21767,35 @@ export interface WebSocket {
  * - Ensure that `nodeCliInspect`
  *   ([FuseV1Options.EnableNodeCliInspectArguments](https://www.electronjs.org/docs/latest/tutorial/fuses#nodecliinspect))
  *   fuse is **not** set to `false`.
+ *
+ * **Mocking native dialogs:**
+ *
+ * Playwright does not intercept the native Electron [dialog](https://www.electronjs.org/docs/latest/api/dialog) API
+ * (`dialog.showOpenDialog`, `dialog.showSaveDialog`, `dialog.showMessageBox`, etc.) because those calls happen in the
+ * Electron main process and go straight to OS APIs. Use
+ * [electronApplication.evaluate(pageFunction[, arg])](https://playwright.dev/docs/api/class-electronapplication#electron-application-evaluate)
+ * to replace the relevant methods in the main process so tests run deterministically without any OS-level UI:
+ *
+ * ```js
+ * // Stub the open dialog to always return a fixed path.
+ * await electronApp.evaluate(({ dialog }, filePaths) => {
+ *   dialog.showOpenDialog = () => Promise.resolve({ canceled: false, filePaths });
+ * }, ['/path/to/file.txt']);
+ *
+ * // Stub the save dialog.
+ * await electronApp.evaluate(({ dialog }, filePath) => {
+ *   dialog.showSaveDialog = () => Promise.resolve({ canceled: false, filePath });
+ * }, '/path/to/saved.txt');
+ *
+ * // Stub showMessageBox to click the first button.
+ * await electronApp.evaluate(({ dialog }) => {
+ *   dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false });
+ * });
+ * ```
+ *
+ * The replacement persists until the application is closed. Synchronous variants (`showOpenDialogSync`,
+ * `showSaveDialogSync`, `showMessageBoxSync`) can be stubbed the same way — just return the value directly instead of
+ * a `Promise`.
  */
 export interface Electron {
   /**
@@ -23532,6 +23390,11 @@ export interface LaunchOptions {
 
 export interface ConnectOverCDPOptions {
   /**
+   * If specified, browser artifacts (such as traces and downloads) are saved into this directory.
+   */
+  artifactsDir?: string;
+
+  /**
    * @deprecated Use the first argument instead.
    */
   endpointURL?: string;
@@ -24389,6 +24252,22 @@ type Devices = {
   "Galaxy Tab S4 landscape": DeviceDescriptor;
   "Galaxy Tab S9": DeviceDescriptor;
   "Galaxy Tab S9 landscape": DeviceDescriptor;
+  "Galaxy Z Fold 6": DeviceDescriptor;
+  "Galaxy Z Fold 6 landscape": DeviceDescriptor;
+  "Galaxy Z Fold 6 Cover": DeviceDescriptor;
+  "Galaxy Z Fold 6 Cover landscape": DeviceDescriptor;
+  "Galaxy Z Fold 7": DeviceDescriptor;
+  "Galaxy Z Fold 7 landscape": DeviceDescriptor;
+  "Galaxy Z Fold 7 Cover": DeviceDescriptor;
+  "Galaxy Z Fold 7 Cover landscape": DeviceDescriptor;
+  "Galaxy Z Flip 6": DeviceDescriptor;
+  "Galaxy Z Flip 6 landscape": DeviceDescriptor;
+  "Galaxy Z Flip 6 Cover": DeviceDescriptor;
+  "Galaxy Z Flip 6 Cover landscape": DeviceDescriptor;
+  "Galaxy Z Flip 7": DeviceDescriptor;
+  "Galaxy Z Flip 7 landscape": DeviceDescriptor;
+  "Galaxy Z Flip 7 Cover": DeviceDescriptor;
+  "Galaxy Z Flip 7 Cover landscape": DeviceDescriptor;
   "iPad (gen 5)": DeviceDescriptor;
   "iPad (gen 5) landscape": DeviceDescriptor;
   "iPad (gen 6)": DeviceDescriptor;
@@ -24459,6 +24338,26 @@ type Devices = {
   "iPhone 15 Pro landscape": DeviceDescriptor;
   "iPhone 15 Pro Max": DeviceDescriptor;
   "iPhone 15 Pro Max landscape": DeviceDescriptor;
+  "iPhone 16": DeviceDescriptor;
+  "iPhone 16 landscape": DeviceDescriptor;
+  "iPhone 16 Plus": DeviceDescriptor;
+  "iPhone 16 Plus landscape": DeviceDescriptor;
+  "iPhone 16 Pro": DeviceDescriptor;
+  "iPhone 16 Pro landscape": DeviceDescriptor;
+  "iPhone 16 Pro Max": DeviceDescriptor;
+  "iPhone 16 Pro Max landscape": DeviceDescriptor;
+  "iPhone 16e": DeviceDescriptor;
+  "iPhone 16e landscape": DeviceDescriptor;
+  "iPhone 17": DeviceDescriptor;
+  "iPhone 17 landscape": DeviceDescriptor;
+  "iPhone Air": DeviceDescriptor;
+  "iPhone Air landscape": DeviceDescriptor;
+  "iPhone 17 Pro": DeviceDescriptor;
+  "iPhone 17 Pro landscape": DeviceDescriptor;
+  "iPhone 17 Pro Max": DeviceDescriptor;
+  "iPhone 17 Pro Max landscape": DeviceDescriptor;
+  "iPhone 17e": DeviceDescriptor;
+  "iPhone 17e landscape": DeviceDescriptor;
   "Kindle Fire HDX": DeviceDescriptor;
   "Kindle Fire HDX landscape": DeviceDescriptor;
   "LG Optimus L70": DeviceDescriptor;
@@ -24497,8 +24396,36 @@ type Devices = {
   "Pixel 4a (5G) landscape": DeviceDescriptor;
   "Pixel 5": DeviceDescriptor;
   "Pixel 5 landscape": DeviceDescriptor;
+  "Pixel 6": DeviceDescriptor;
+  "Pixel 6 landscape": DeviceDescriptor;
+  "Pixel 6 Pro": DeviceDescriptor;
+  "Pixel 6 Pro landscape": DeviceDescriptor;
+  "Pixel 6a": DeviceDescriptor;
+  "Pixel 6a landscape": DeviceDescriptor;
   "Pixel 7": DeviceDescriptor;
   "Pixel 7 landscape": DeviceDescriptor;
+  "Pixel 7 Pro": DeviceDescriptor;
+  "Pixel 7 Pro landscape": DeviceDescriptor;
+  "Pixel 7a": DeviceDescriptor;
+  "Pixel 7a landscape": DeviceDescriptor;
+  "Pixel 8": DeviceDescriptor;
+  "Pixel 8 landscape": DeviceDescriptor;
+  "Pixel 8 Pro": DeviceDescriptor;
+  "Pixel 8 Pro landscape": DeviceDescriptor;
+  "Pixel 8a": DeviceDescriptor;
+  "Pixel 8a landscape": DeviceDescriptor;
+  "Pixel 9": DeviceDescriptor;
+  "Pixel 9 landscape": DeviceDescriptor;
+  "Pixel 9 Pro": DeviceDescriptor;
+  "Pixel 9 Pro landscape": DeviceDescriptor;
+  "Pixel 9 Pro XL": DeviceDescriptor;
+  "Pixel 9 Pro XL landscape": DeviceDescriptor;
+  "Pixel 10": DeviceDescriptor;
+  "Pixel 10 landscape": DeviceDescriptor;
+  "Pixel 10 Pro": DeviceDescriptor;
+  "Pixel 10 Pro landscape": DeviceDescriptor;
+  "Pixel 10 Pro XL": DeviceDescriptor;
+  "Pixel 10 Pro XL landscape": DeviceDescriptor;
   "Moto G4": DeviceDescriptor;
   "Moto G4 landscape": DeviceDescriptor;
   "Desktop Chrome HiDPI": DeviceDescriptor;
