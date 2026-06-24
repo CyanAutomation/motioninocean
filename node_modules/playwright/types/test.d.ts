@@ -19,7 +19,7 @@ import type { APIRequestContext, Browser, BrowserContext, BrowserContextOptions,
 export * from 'playwright-core';
 
 export type BlobReporterOptions = { outputDir?: string, fileName?: string };
-export type ListReporterOptions = { printSteps?: boolean };
+export type ListReporterOptions = { printSteps?: boolean, printFailuresInline?: boolean };
 export type JUnitReporterOptions = { outputFile?: string, stripANSIControlSequences?: boolean, includeProjectInTestName?: boolean, includeRetries?: boolean };
 export type JsonReporterOptions = { outputFile?: string };
 export type HtmlReporterOptions = {
@@ -237,6 +237,13 @@ interface TestProject<TestArgs = {}, WorkerArgs = {}> {
        * for details.
        */
       pathTemplate?: string;
+
+      /**
+       * Default timeout for
+       * [expect(page).toHaveScreenshot(name[, options])](https://playwright.dev/docs/api/class-pageassertions#page-assertions-to-have-screenshot-1)
+       * in milliseconds, defaults to the global expect timeout. Setting to `0` disables the timeout.
+       */
+      timeout?: number;
     };
 
     /**
@@ -2012,9 +2019,23 @@ export interface FullConfig<TestArgs = {}, WorkerArgs = {}> {
    */
   webServer: TestConfigWebServer | null;
   /**
+   * Snapshot of [`process.argv`](https://nodejs.org/api/process.html#processargv) captured in the runner process.
+   * Useful for reading custom command-line arguments — for example, args supplied after the `--` separator (`npx
+   * playwright test -- --build-path=./out`). Playwright does not parse these; consumers are responsible for slicing and
+   * interpreting them with any argument-parsing library.
+   */
+  argv: Array<string>;
+
+  /**
    * Path to the configuration file used to run the tests. The value is an empty string if no config file was used.
    */
   configFile?: string;
+
+  /**
+   * See
+   * [testConfig.failOnFlakyTests](https://playwright.dev/docs/api/class-testconfig#test-config-fail-on-flaky-tests).
+   */
+  failOnFlakyTests: boolean;
 
   /**
    * See [testConfig.forbidOnly](https://playwright.dev/docs/api/class-testconfig#test-config-forbid-only).
@@ -2674,7 +2695,7 @@ export type TestDetails = {
   annotation?: TestDetailsAnnotation | TestDetailsAnnotation[];
 }
 
-type TestBody<TestArgs> = (args: TestArgs, testInfo: TestInfo) => Promise<void> | void;
+type TestBody<TestArgs> = (args: TestArgs, testInfo: TestInfo) => Promise<unknown> | unknown;
 type ConditionBody<TestArgs> = (args: TestArgs) => boolean;
 
 /**
@@ -6921,15 +6942,21 @@ export interface PlaywrightWorkerOptions {
    */
   screenshot: ScreenshotMode | { mode: ScreenshotMode } & Pick<PageScreenshotOptions, 'fullPage' | 'omitBackground'>;
   /**
-   * Whether to record trace for each test. Defaults to `'off'`.
+   * Whether to record trace for each test. Defaults to `'off'`. The initial run of a test is the "first run";
+   * subsequent runs caused by [retries](https://playwright.dev/docs/test-retries) are "retries".
    * - `'off'`: Do not record trace.
-   * - `'on'`: Record trace for each test.
-   * - `'on-first-retry'`: Record trace only when retrying a test for the first time.
-   * - `'on-all-retries'`: Record trace only when retrying a test.
-   * - `'retain-on-failure'`: Record trace for each test. When test run passes, remove the recorded trace.
-   * - `'retain-on-first-failure'`: Record trace for the first run of each test, but not for retries. When test run
-   *   passes, remove the recorded trace.
-   * - `'retain-on-failure-and-retries'`: Record trace for each test run. Retains all traces when an attempt fails.
+   * - `'on'`: Record and keep a trace for every run.
+   * - `'on-first-retry'`: Record and keep a trace only for the first retry of a test.
+   * - `'on-all-retries'`: Record and keep a trace for every retry.
+   * - `'retain-on-failure'`: Record a trace for every run, but keep it only for runs that failed. A failed run's
+   *   trace is kept even when a later retry passes.
+   * - `'retain-on-first-failure'`: Record a trace only for the first run of a test (not for retries), and keep it
+   *   only if that run failed.
+   * - `'retain-on-failure-and-retries'`: Record a trace for every run, and keep it for any run that failed or that is
+   *   a retry.
+   *
+   * See [trace modes](https://playwright.dev/docs/test-use-options#trace-modes) for a side-by-side comparison of what each mode records and
+   * keeps.
    *
    * For more control, pass an object that specifies `mode` and trace features to enable.
    *
@@ -6950,11 +6977,21 @@ export interface PlaywrightWorkerOptions {
    */
   trace: TraceMode | /** deprecated */ 'retry-with-trace' | { mode: TraceMode, snapshots?: boolean, screenshots?: boolean, sources?: boolean, attachments?: boolean };
   /**
-   * Whether to record video for each test. Defaults to `'off'`.
+   * Whether to record video for each test. Defaults to `'off'`. The initial run of a test is the "first run";
+   * subsequent runs caused by [retries](https://playwright.dev/docs/test-retries) are "retries".
    * - `'off'`: Do not record video.
-   * - `'on'`: Record video for each test.
-   * - `'retain-on-failure'`: Record video for each test, but remove all videos from successful test runs.
-   * - `'on-first-retry'`: Record video only when retrying a test for the first time.
+   * - `'on'`: Record and keep a video for every run.
+   * - `'on-first-retry'`: Record and keep a video only for the first retry of a test.
+   * - `'on-all-retries'`: Record and keep a video for every retry.
+   * - `'retain-on-failure'`: Record a video for every run, but keep it only for runs that failed. A failed run's
+   *   video is kept even when a later retry passes.
+   * - `'retain-on-first-failure'`: Record a video only for the first run of a test (not for retries), and keep it
+   *   only if that run failed.
+   * - `'retain-on-failure-and-retries'`: Record a video for every run, and keep it for any run that failed or that is
+   *   a retry.
+   *
+   * See [video modes](https://playwright.dev/docs/test-use-options#video-modes) for a side-by-side comparison of what each mode records and
+   * keeps.
    *
    * To control video size, pass an object with `mode` and `size` properties. If video size is not specified, it will be
    * equal to [testOptions.viewport](https://playwright.dev/docs/api/class-testoptions#test-options-viewport) scaled
@@ -6985,7 +7022,7 @@ export interface PlaywrightWorkerOptions {
 
 export type ScreenshotMode = 'off' | 'on' | 'only-on-failure' | 'on-first-failure';
 export type TraceMode = 'off' | 'on' | 'retain-on-failure' | 'on-first-retry' | 'on-all-retries' | 'retain-on-first-failure' | 'retain-on-failure-and-retries';
-export type VideoMode = 'off' | 'on' | 'retain-on-failure' | 'on-first-retry';
+export type VideoMode = 'off' | 'on' | 'retain-on-failure' | 'on-first-retry' | 'on-all-retries' | 'retain-on-first-failure' | 'retain-on-failure-and-retries';
 /**
  * Playwright Test provides many options to configure test environment,
  * [Browser](https://playwright.dev/docs/api/class-browser),
@@ -7574,7 +7611,7 @@ export interface PlaywrightTestOptions {
   /**
    * Custom attribute to be used in
    * [page.getByTestId(testId)](https://playwright.dev/docs/api/class-page#page-get-by-test-id). `data-testid` is used
-   * by default.
+   * by default. To match elements with any of several attributes, pass them as a comma-separated list.
    *
    * **Usage**
    *
@@ -7585,6 +7622,19 @@ export interface PlaywrightTestOptions {
    * export default defineConfig({
    *   use: {
    *     testIdAttribute: 'pw-test-id',
+   *   },
+   * });
+   * ```
+   *
+   * Multiple attributes:
+   *
+   * ```js
+   * // playwright.config.ts
+   * import { defineConfig } from '@playwright/test';
+   *
+   * export default defineConfig({
+   *   use: {
+   *     testIdAttribute: 'data-pw,data-ti',
    *   },
    * });
    * ```
@@ -8535,7 +8585,7 @@ type PollMatchers<R, T, ExtendedMatchers> = {
 
 export type Expect<ExtendedMatchers = {}> = {
   <T = unknown>(actual: T, messageOrOptions?: string | { message?: string }): MakeMatchers<void, T, ExtendedMatchers>;
-  soft: <T = unknown>(actual: T, messageOrOptions?: string | { message?: string }) => MakeMatchers<void, T, ExtendedMatchers>;
+  soft: Expect<ExtendedMatchers>;
   poll: <T = unknown>(actual: () => T | Promise<T>, messageOrOptions?: string | { message?: string, timeout?: number, intervals?: number[] }) => PollMatchers<Promise<void>, T, ExtendedMatchers>;
   extend<MoreMatchers extends Record<string, (this: ExpectMatcherState, receiver: any, ...args: any[]) => MatcherReturnType | Promise<MatcherReturnType>>>(matchers: MoreMatchers): Expect<ExtendedMatchers & MoreMatchers>;
   configure: (configuration: {
