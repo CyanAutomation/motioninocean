@@ -18,7 +18,7 @@ sentry-sdk[flask]==2.63.0
 
 # Lightweight image generation for mock camera fallback
 # Included in all builds so runtime can switch to mock mode via MOCK_CAMERA=true when needed.
-Pillow>=12.1.1
+Pillow>=12.2.0
 
 # SVG rasterization for mock stream rendering
 CairoSVG>=2.8.2
