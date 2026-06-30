@@ -24,7 +24,7 @@ Pillow>=12.1.1
 CairoSVG>=2.8.2
 
 # NumPy for array processing
-numpy==2.2.3
+numpy==2.2.6
 
 # YAML parsing (used to serve the OpenAPI specification at runtime)
 PyYAML>=6.0.3
