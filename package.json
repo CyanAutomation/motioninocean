@@ -11,6 +11,6 @@
     "@eslint/js": "^10.0.0",
     "globals": "^17.6.0",
     "playwright": "^1.61.1",
-    "prettier": "^3.8.4"
+    "prettier": "^3.9.4"
   }
 }
