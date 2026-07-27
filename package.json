@@ -9,7 +9,7 @@
     "@playwright/test": "^1.61.1",
     "eslint": "^10.7.0",
     "@eslint/js": "^10.0.0",
-    "globals": "^17.7.0",
+    "globals": "^17.8.0",
     "playwright": "^1.61.1",
     "prettier": "^3.9.5"
   }
