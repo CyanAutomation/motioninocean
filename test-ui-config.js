@@ -7,8 +7,11 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const SCREENSHOTS_DIR = "/workspaces/MotionInOcean/screenshots";
-const REPORT_FILE = "/workspaces/MotionInOcean/CONFIG_TAB_USABILITY_REPORT.md";
+const SCREENSHOTS_DIR = path.resolve(__dirname, "audit-results/config-tab/screenshots");
+const REPORT_FILE = path.resolve(
+  __dirname,
+  "audit-results/config-tab/CONFIG_TAB_USABILITY_REPORT.md",
+);
 
 // Ensure screenshots directory exists
 if (!fs.existsSync(SCREENSHOTS_DIR)) {
@@ -22,6 +25,40 @@ const viewports = {
 };
 
 let report = [];
+
+/** Create the categorized result model used by the audit and report writer. */
+function createFindings() {
+  return {
+    general: [],
+    desktop: [],
+    tablet: [],
+    mobile: [],
+    interactivity: [],
+    accessibility: [],
+    issues: [],
+  };
+}
+
+/** Measure horizontal overflow for the current config viewport. */
+async function getConfigViewportMetrics(page) {
+  return page.evaluate(() => {
+    const element = document.querySelector(".config-content");
+    return {
+      width: document.documentElement.clientWidth,
+      overflow: element ? element.scrollWidth > element.clientWidth : false,
+    };
+  });
+}
+
+/** Return the smallest rendered config text size in pixels. */
+async function getMinimumConfigFontSize(page) {
+  const sizes = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll(".config-label, .config-value")).map((element) =>
+      parseFloat(window.getComputedStyle(element).fontSize),
+    );
+  });
+  return sizes.length ? Math.min(...sizes) : 0;
+}
 
 async function takeAndLogScreenshot(page, name, description) {
   const filename = `${name}.png`;
@@ -43,15 +80,7 @@ async function runTest() {
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  const findings = {
-    general: [],
-    desktop: [],
-    tablet: [],
-    mobile: [],
-    interactivity: [],
-    accessibility: [],
-    issues: [],
-  };
+  const findings = createFindings();
 
   try {
     console.log("🚀 Starting Config Tab UI Test\n");
@@ -216,11 +245,9 @@ async function runTest() {
     await page.waitForTimeout(500);
     await takeAndLogScreenshot(page, "tablet-01-config-tab", "Config tab on Tablet");
 
-    const tabletWidth = await page.evaluate(() => document.documentElement.clientWidth);
-    const tabletOverflow = await page.evaluate(() => {
-      const elem = document.querySelector(".config-content");
-      return elem ? elem.scrollWidth > elem.clientWidth : false;
-    });
+    const tabletMetrics = await getConfigViewportMetrics(page);
+    const tabletWidth = tabletMetrics.width;
+    const tabletOverflow = tabletMetrics.overflow;
 
     findings.tablet.push({
       status: tabletOverflow ? "⚠" : "✓",
@@ -234,11 +261,9 @@ async function runTest() {
     await page.waitForTimeout(500);
     await takeAndLogScreenshot(page, "mobile-01-config-tab", "Config tab on Mobile");
 
-    const mobileWidth = await page.evaluate(() => document.documentElement.clientWidth);
-    const mobileOverflow = await page.evaluate(() => {
-      const elem = document.querySelector(".config-content");
-      return elem ? elem.scrollWidth > elem.clientWidth : false;
-    });
+    const mobileMetrics = await getConfigViewportMetrics(page);
+    const mobileWidth = mobileMetrics.width;
+    const mobileOverflow = mobileMetrics.overflow;
 
     findings.mobile.push({
       status: mobileOverflow ? "⚠" : "✓",
@@ -247,17 +272,7 @@ async function runTest() {
     });
 
     // Test readability on mobile
-    const fontSizes = await page.evaluate(() => {
-      const elements = document.querySelectorAll(".config-label, .config-value");
-      const sizes = [];
-      elements.forEach((el) => {
-        const size = window.getComputedStyle(el).fontSize;
-        sizes.push(size);
-      });
-      return sizes;
-    });
-
-    const minFont = Math.min(...fontSizes.map((s) => parseFloat(s)));
+    const minFont = await getMinimumConfigFontSize(page);
     findings.mobile.push({
       status: minFont >= 12 ? "✓" : "⚠",
       test: "Font size readability",

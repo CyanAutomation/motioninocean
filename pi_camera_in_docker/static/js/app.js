@@ -998,69 +998,45 @@ async function updateStats() {
         return;
       }
 
-      console.error("Failed to fetch stats:", error);
-      setConnectionStatus("disconnected", "Disconnected");
-      increaseBackoff();
-
-      if (state.elements.fpsValue) {
-        state.elements.fpsValue.textContent = "--";
-      }
-
-      if (state.elements.uptimeValue) {
-        state.elements.uptimeValue.textContent = "--";
-      }
-
-      if (state.elements.framesRiskDetail) {
-        state.elements.framesRiskDetail.textContent = "--";
-      }
-
-      if (state.elements.lastFrameAgeValue) {
-        state.elements.lastFrameAgeValue.textContent = "--";
-      }
-
-      if (state.elements.maxFrameAgeValue) {
-        state.elements.maxFrameAgeValue.textContent = "--";
-      }
-
-      if (state.elements.resolutionValue) {
-        state.elements.resolutionValue.textContent = "--";
-      }
-
-      if (state.elements.lastUpdated) {
-        state.elements.lastUpdated.textContent = "--";
-      }
-
-      if (state.elements.performanceRiskValue) {
-        state.elements.performanceRiskValue.textContent = "--";
-      }
-
-      if (state.elements.streamRiskValue) {
-        state.elements.streamRiskValue.textContent = "Offline";
-      }
-
-      if (state.elements.lastFrameRiskValue) {
-        state.elements.lastFrameRiskValue.textContent = "--";
-      }
-
-      if (state.elements.maxFrameRiskValue) {
-        state.elements.maxFrameRiskValue.textContent = "--";
-      }
-
-      if (state.elements.availabilityRiskValue) {
-        state.elements.availabilityRiskValue.textContent = "Offline";
-      }
-
-      if (state.elements.availabilityDetail) {
-        state.elements.availabilityDetail.textContent = "-- connections";
-      }
-
-      updateConnectionDisplays();
-
+      handleStatsUpdateError(error);
       return;
     }
   } finally {
     state.statsInFlight = false;
   }
+}
+
+/** Render the disconnected state after a failed metrics request. */
+function handleStatsUpdateError(error) {
+  console.error("Failed to fetch stats:", error);
+  setConnectionStatus("disconnected", "Disconnected");
+  increaseBackoff();
+
+  const placeholderIds = [
+    "fpsValue",
+    "uptimeValue",
+    "framesRiskDetail",
+    "lastFrameAgeValue",
+    "maxFrameAgeValue",
+    "resolutionValue",
+    "lastUpdated",
+    "performanceRiskValue",
+    "lastFrameRiskValue",
+    "maxFrameRiskValue",
+  ];
+  placeholderIds.forEach((elementKey) => {
+    if (state.elements[elementKey]) {
+      state.elements[elementKey].textContent = "--";
+    }
+  });
+  if (state.elements.streamRiskValue) state.elements.streamRiskValue.textContent = "Offline";
+  if (state.elements.availabilityRiskValue) {
+    state.elements.availabilityRiskValue.textContent = "Offline";
+  }
+  if (state.elements.availabilityDetail) {
+    state.elements.availabilityDetail.textContent = "-- connections";
+  }
+  updateConnectionDisplays();
 }
 
 /**
@@ -1628,13 +1604,7 @@ function switchTab(tabName) {
   const wasSetupTab = state.currentTab === "setup";
   state.currentTab = tabName;
 
-  // Update tab buttons using the cached list from cacheElements()
-  (state.elements.tabButtons || document.querySelectorAll(".tab-btn")).forEach((btn) => {
-    btn.classList.remove("active");
-    if (btn.getAttribute("data-tab") === tabName) {
-      btn.classList.add("active");
-    }
-  });
+  updateTabButtons(tabName);
 
   updateViewMeta(tabName);
   updateMascotForTab(tabName);
@@ -1646,63 +1616,58 @@ function switchTab(tabName) {
   const settingsPanel = state.elements.settingsPanel;
   const setupPanel = state.elements.setupPanel;
 
-  if (tabName === "main") {
-    if (mainSection) mainSection.classList.remove("hidden");
-    if (statsPanel) statsPanel.classList.remove("hidden");
-    if (configPanel) configPanel.classList.add("hidden");
-    if (settingsPanel) settingsPanel.classList.add("hidden");
-    if (setupPanel) setupPanel.classList.add("hidden");
-
-    // Resume stats updates and stop config refresh updates
-    stopConfigPolling();
-
-    if (!state.statsCollapsed) {
-      startStatsUpdate();
-    }
-  } else if (tabName === "config") {
-    if (mainSection) mainSection.classList.add("hidden");
-    if (statsPanel) statsPanel.classList.add("hidden");
-    if (configPanel) configPanel.classList.remove("hidden");
-    if (settingsPanel) settingsPanel.classList.add("hidden");
-    if (setupPanel) setupPanel.classList.add("hidden");
-
-    // Stop stats updates and start config refresh/timestamp updates
-    stopStatsUpdate();
-
-    if (!wasConfigTab) {
-      state.configInitialLoadPending = true;
-      updateConfig().catch((error) => console.error("Config update failed:", error));
-      startConfigPolling();
-    }
-  } else if (tabName === "settings") {
-    if (mainSection) mainSection.classList.add("hidden");
-    if (statsPanel) statsPanel.classList.add("hidden");
-    if (configPanel) configPanel.classList.add("hidden");
-    if (settingsPanel) settingsPanel.classList.remove("hidden");
-    if (setupPanel) setupPanel.classList.add("hidden");
-
-    // Stop all polling
-    stopStatsUpdate();
-    stopConfigPolling();
-  } else if (tabName === "setup") {
-    if (mainSection) mainSection.classList.add("hidden");
-    if (statsPanel) statsPanel.classList.add("hidden");
-    if (configPanel) configPanel.classList.add("hidden");
-    if (settingsPanel) settingsPanel.classList.add("hidden");
-    if (setupPanel) setupPanel.classList.remove("hidden");
-
-    // Stop all polling
-    stopStatsUpdate();
-    stopConfigPolling();
-
-    // Load setup tab if not already loaded
-    if (!wasSetupTab) {
-      state.setupInitialLoadPending = true;
-      loadSetupTab().catch((error) => console.error("Setup tab load failed:", error));
-    }
-  }
+  setTabPanelVisibility(tabName, {
+    mainSection,
+    statsPanel,
+    configPanel,
+    settingsPanel,
+    setupPanel,
+  });
+  activateTabServices(tabName, { wasConfigTab, wasSetupTab });
 
   assertSinglePollingMode();
+}
+
+/** Update active state on all tab buttons. */
+function updateTabButtons(tabName) {
+  (state.elements.tabButtons || document.querySelectorAll(".tab-btn")).forEach((btn) => {
+    btn.classList.toggle("active", btn.getAttribute("data-tab") === tabName);
+  });
+}
+
+/** Show the panel associated with a tab and hide the others. */
+function setTabPanelVisibility(tabName, panels) {
+  const { mainSection, statsPanel, configPanel, settingsPanel, setupPanel } = panels;
+  const visiblePanel =
+    {
+      main: [mainSection, statsPanel],
+      config: [configPanel],
+      settings: [settingsPanel],
+      setup: [setupPanel],
+    }[tabName] || [];
+  [mainSection, statsPanel, configPanel, settingsPanel, setupPanel].forEach((panel) => {
+    if (panel) panel.classList.toggle("hidden", !visiblePanel.includes(panel));
+  });
+}
+
+/** Start and stop services required by the selected tab. */
+function activateTabServices(tabName, { wasConfigTab, wasSetupTab }) {
+  if (tabName === "main") {
+    stopConfigPolling();
+    if (!state.statsCollapsed) startStatsUpdate();
+    return;
+  }
+  stopStatsUpdate();
+  if (tabName === "config" && !wasConfigTab) {
+    state.configInitialLoadPending = true;
+    updateConfig().catch((error) => console.error("Config update failed:", error));
+    startConfigPolling();
+  } else if (tabName === "setup" && !wasSetupTab) {
+    state.setupInitialLoadPending = true;
+    loadSetupTab().catch((error) => console.error("Setup tab load failed:", error));
+  }
+  if (tabName === "settings") stopConfigPolling();
+  if (tabName === "setup") stopConfigPolling();
 }
 
 /**

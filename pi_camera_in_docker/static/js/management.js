@@ -1166,6 +1166,13 @@ async function fetchWebcams() {
   }
 }
 
+/** Refresh the node list, statuses, and overview using one consistent sequence. */
+async function refreshManagementData() {
+  await fetchWebcams();
+  await refreshStatuses();
+  await fetchOverview();
+}
+
 function startStatusRefreshInterval() {
   if (!statusRefreshIntervalId) {
     statusRefreshIntervalId = window.setInterval(() => {
@@ -1212,45 +1219,19 @@ async function refreshStatuses({ fromInterval = false } = {}) {
       const activeNodeIdsAtPollStart = new Set(webcams.map((node) => node.id));
       const nextStatusMap = new Map();
 
-      await Promise.all(
-        Array.from(activeNodeIdsAtPollStart).map(async (nodeId) => {
-          try {
-            const response = await managementFetch(
-              `/api/v1/webcams/${encodeURIComponent(nodeId)}/status`,
-            );
-            if (!response.ok) {
-              let errorPayload = {};
-              try {
-                const parsed = await response.json();
-                errorPayload = parsed?.error || parsed || {};
-              } catch {
-                errorPayload = {};
-              }
-              nextStatusMap.set(
-                nodeId,
-                enrichStatusWithAggregation(nodeId, normalizeWebcamStatusError(errorPayload)),
-              );
-              return;
-            }
-            const payload = await response.json();
-            nextStatusMap.set(nodeId, enrichStatusWithAggregation(nodeId, payload));
-          } catch (error) {
-            if (allowManualFeedback && error?.isUnauthorized && !showedUnauthorizedFeedback) {
-              showFeedback(API_AUTH_HINT, true);
-              showedUnauthorizedFeedback = true;
-            }
-            nextStatusMap.set(
-              nodeId,
-              enrichStatusWithAggregation(
-                nodeId,
-                normalizeWebcamStatusError({
-                  message: error?.message || "Failed to refresh webcam status.",
-                }),
-              ),
-            );
+      const statusResult = await fetchStatusesForNodes(
+        activeNodeIdsAtPollStart,
+        allowManualFeedback,
+        () => {
+          if (!showedUnauthorizedFeedback) {
+            showFeedback(API_AUTH_HINT, true);
+            showedUnauthorizedFeedback = true;
           }
-        }),
+        },
       );
+      for (const [nodeId, status] of statusResult.entries()) {
+        nextStatusMap.set(nodeId, status);
+      }
 
       if (currentToken === statusRefreshToken) {
         if (pollDatasetVersion !== webcamDatasetVersion) {
@@ -1262,34 +1243,7 @@ async function refreshStatuses({ fromInterval = false } = {}) {
           Array.from(nextStatusMap.entries()).filter(([nodeId]) => latestNodeIds.has(nodeId)),
         );
 
-        for (const [nodeId, nextStatus] of filteredNextStatusMap.entries()) {
-          const previous = statusHistoryMap.get(nodeId);
-          const nextCode = String(nextStatus.error_code || "").toUpperCase();
-          const nextState = String(nextStatus.status || "unknown").toLowerCase();
-          const prevCode = String(previous?.error_code || "").toUpperCase();
-          const prevState = String(previous?.status || "unknown").toLowerCase();
-
-          if (!previous) {
-            if (typeof appendActivityFeed === "function") {
-              appendActivityFeed(`${nodeId} status initialized: ${nextState}.`);
-            }
-          } else if (
-            (prevCode !== nextCode && nextCode) ||
-            (prevState !== nextState && nextState !== "unknown")
-          ) {
-            const detail = nextCode || nextState;
-            if (typeof appendActivityFeed === "function") {
-              appendActivityFeed(`${nodeId} status changed to ${detail}.`);
-            }
-          }
-
-          if (previous && String(previous.error_code || "").toUpperCase() && !nextCode) {
-            if (typeof appendActivityFeed === "function") {
-              appendActivityFeed(`${nodeId} recovered.`, "success");
-            }
-          }
-          statusHistoryMap.set(nodeId, nextStatus);
-        }
+        recordStatusHistory(filteredNextStatusMap, statusHistoryMap);
 
         webcamStatusMap = filteredNextStatusMap;
         if (typeof renderRows === "function") {
@@ -1305,6 +1259,70 @@ async function refreshStatuses({ fromInterval = false } = {}) {
     } while (statusRefreshPending);
   } finally {
     statusRefreshInFlight = false;
+  }
+}
+
+/** Fetch and normalize status for every node in a polling cycle. */
+async function fetchStatusesForNodes(nodeIds, allowManualFeedback, onUnauthorized) {
+  const statuses = new Map();
+  await Promise.all(
+    Array.from(nodeIds).map(async (nodeId) => {
+      try {
+        const response = await managementFetch(
+          `/api/v1/webcams/${encodeURIComponent(nodeId)}/status`,
+        );
+        if (!response.ok) {
+          const parsed = await response.json().catch(() => ({}));
+          const errorPayload = parsed?.error || parsed || {};
+          statuses.set(
+            nodeId,
+            enrichStatusWithAggregation(nodeId, normalizeWebcamStatusError(errorPayload)),
+          );
+          return;
+        }
+        statuses.set(nodeId, enrichStatusWithAggregation(nodeId, await response.json()));
+      } catch (error) {
+        if (allowManualFeedback && error?.isUnauthorized) {
+          onUnauthorized();
+        }
+        statuses.set(
+          nodeId,
+          enrichStatusWithAggregation(
+            nodeId,
+            normalizeWebcamStatusError({
+              message: error?.message || "Failed to refresh webcam status.",
+            }),
+          ),
+        );
+      }
+    }),
+  );
+  return statuses;
+}
+
+/** Record status transitions in the activity feed and history map. */
+function recordStatusHistory(nextStatuses, history) {
+  for (const [nodeId, nextStatus] of nextStatuses.entries()) {
+    const previous = history.get(nodeId);
+    const nextCode = String(nextStatus.error_code || "").toUpperCase();
+    const nextState = String(nextStatus.status || "unknown").toLowerCase();
+    const prevCode = String(previous?.error_code || "").toUpperCase();
+    const prevState = String(previous?.status || "unknown").toLowerCase();
+
+    if (!previous && typeof appendActivityFeed === "function") {
+      appendActivityFeed(`${nodeId} status initialized: ${nextState}.`);
+    } else if (
+      ((prevCode !== nextCode && nextCode) ||
+        (prevState !== nextState && nextState !== "unknown")) &&
+      typeof appendActivityFeed === "function"
+    ) {
+      appendActivityFeed(`${nodeId} status changed to ${nextCode || nextState}.`);
+    }
+
+    if (previous && prevCode && !nextCode && typeof appendActivityFeed === "function") {
+      appendActivityFeed(`${nodeId} recovered.`, "success");
+    }
+    history.set(nodeId, nextStatus);
   }
 }
 
@@ -1416,9 +1434,7 @@ async function submitNodeForm(event) {
 
     showFeedback(isEdit ? "Node updated." : "Node added.");
     resetForm();
-    await fetchWebcams();
-    await refreshStatuses();
-    await fetchOverview();
+    await refreshManagementData();
   } catch (error) {
     if (error?.isUnauthorized) {
       showFeedback(API_AUTH_HINT, true);
@@ -1806,9 +1822,7 @@ async function setDiscoveryApproval(nodeId, decision) {
     discoveredSnoozedIds.delete(nodeId);
     persistSnoozedDiscoveredIds();
     showFeedback(`Node ${nodeId} ${decision}d.`);
-    await fetchWebcams();
-    await refreshStatuses();
-    await fetchOverview();
+    await refreshManagementData();
     return true;
   } catch (error) {
     if (error?.isUnauthorized) {
@@ -1839,9 +1853,7 @@ async function removeNode(nodeId) {
     if (editingWebcamIdInput.value === nodeId) {
       resetForm();
     }
-    await fetchWebcams();
-    await refreshStatuses();
-    await fetchOverview();
+    await refreshManagementData();
   } catch (error) {
     if (error?.isUnauthorized) {
       showFeedback(API_AUTH_HINT, true);
@@ -1991,9 +2003,7 @@ async function init() {
   refreshBtn.addEventListener("click", async () => {
     stopStatusRefreshInterval();
     try {
-      await fetchWebcams();
-      await refreshStatuses();
-      await fetchOverview();
+      await refreshManagementData();
       showFeedback("Node list refreshed.");
     } finally {
       startStatusRefreshInterval();
@@ -2004,17 +2014,13 @@ async function init() {
     refreshDashboardBtn instanceof HTMLButtonElement
   ) {
     refreshDashboardBtn.addEventListener("click", async () => {
-      await fetchWebcams();
-      await refreshStatuses();
-      await fetchOverview();
+      await refreshManagementData();
       renderOverviewPanel();
     });
   }
   if (typeof scanDiscoveredBtn !== "undefined" && scanDiscoveredBtn instanceof HTMLButtonElement) {
     scanDiscoveredBtn.addEventListener("click", async () => {
-      await fetchWebcams();
-      await refreshStatuses();
-      await fetchOverview();
+      await refreshManagementData();
       renderDiscoveredPanel();
       setDiscoveredFeedback("Discovery queue refreshed.");
     });
