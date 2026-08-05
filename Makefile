@@ -21,7 +21,7 @@ help:
 	@echo "  make pre-commit       Install and setup pre-commit hooks"
 	@echo ""
 	@echo "Code Quality:"
-	@echo "  make lint             Run linter (ruff)"
+	@echo "  make lint             Run Python and frontend linters (ruff + eslint)"
 	@echo "  make format           Format code (ruff format)"
 	@echo "  make type-check       Run type checker (mypy)"
 	@echo "  make security         Run security checks (bandit)"
@@ -87,7 +87,7 @@ install-dev:
 
 install-node:
 	@echo "Installing Node.js dependencies..."
-	npm install
+	npm ci
 
 pre-commit:
 	pip install pre-commit
@@ -96,8 +96,10 @@ pre-commit:
 
 # Code quality targets
 lint:
-	@echo "Running ruff linter..."
+	@echo "Running Ruff linter..."
 	ruff check pi_camera_in_docker/ tests/
+	@echo "Running ESLint..."
+	npm run lint
 
 lint-fix:
 	@echo "Running ruff linter with auto-fix..."
@@ -237,7 +239,7 @@ audit-ui-interactive:
 test:
 	@echo "Running all tests with coverage..."
 	$(MAKE) test-frontend
-	pytest tests/ --cov=pi_camera_in_docker --cov-report=term-missing --cov-report=html --cov-report=xml -v
+	pytest tests/ -v
 
 test-frontend:
 	@echo "Running frontend JavaScript tests..."
@@ -261,7 +263,7 @@ test-config:
 
 coverage:
 	@echo "Generating coverage report..."
-	pytest tests/ --cov=pi_camera_in_docker --cov-report=html
+	pytest tests/
 	@echo "Coverage report generated in htmlcov/index.html"
 
 # Development targets

@@ -92,11 +92,6 @@ test.describe("Management Dashboard Error Status Display", () => {
 
     await page.goto("http://localhost:8001/management");
 
-    // Find any node with error status
-    const errorNode = page.locator(
-      '[class*=error] button, [class*=unavailable] a, [title*=Error] span'
-    ).first();
-
     const nodeRowWithError = page.locator(
       "tbody tr:has([class*=error]), tr:has([class*=unavailable])"
     ).first();
