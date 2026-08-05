@@ -94,3 +94,55 @@ test("renderConfig renders partial configuration and derives overall health", ()
   assert.equal(state.streamConnections.max, 5);
   assert.equal(indicators.get("config-health-overall").state, "warn");
 });
+
+test("renderConfig renders runtime fallback state and optional stream values", () => {
+  const values = new Map();
+  const mockModes = [];
+  const state = { streamConnections: { current: "--", max: "--" } };
+
+  renderConfig(
+    {
+      camera_settings: { resolution: [640, 480], jpeg_quality: 80 },
+      stream_control: { cors_origins: "" },
+      runtime: { camera_active: false, mock_camera: false, active_mock_fallback: true },
+    },
+    {
+      state,
+      setConfigValue: (id, value) => values.set(id, value),
+      formatBoolean: (value) => (value ? "yes" : "no"),
+      formatUptime: () => "unknown",
+      applyMockStreamMode: (...args) => mockModes.push(args),
+      setHealthIndicator: () => {},
+      normalizeHealthState: (value) => value,
+      healthText: { ok: "OK", warn: "Warning", fail: "Failed", unknown: "Unknown" },
+      updateConnectionDisplays: () => {},
+    },
+  );
+
+  assert.equal(values.get("config-resolution"), "640 × 480");
+  assert.equal(values.get("config-target-fps"), "--");
+  assert.equal(values.get("config-cors"), "disabled");
+  assert.deepEqual(mockModes, [[true, true]]);
+});
+
+test("renderConfig derives unknown health when no health states are supplied", () => {
+  const indicators = new Map();
+
+  renderConfig(
+    { health_check: {} },
+    {
+      state: { streamConnections: { current: "--", max: "--" } },
+      setConfigValue: () => {},
+      formatBoolean: String,
+      formatUptime: String,
+      applyMockStreamMode: () => {},
+      setHealthIndicator: (id, value) => indicators.set(id, value),
+      normalizeHealthState: (value) => value,
+      healthText: { ok: "OK", warn: "Warning", fail: "Failed", unknown: "Unknown" },
+      updateConnectionDisplays: () => {},
+    },
+  );
+
+  assert.equal(indicators.get("config-health-overall").state, "unknown");
+  assert.equal(indicators.get("config-health-overall").label, "Unknown");
+});

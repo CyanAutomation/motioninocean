@@ -1622,14 +1622,14 @@ def create_management_blueprint(
         token = _extract_bearer_token()
         if token is None or token != auth_token:
             result = _error_response("UNAUTHORIZED", "authentication required", 401)
-            return cast(Optional[Tuple[Any, int]], result)
+            return cast("Optional[Tuple[Any, int]]", result)
         return None
 
     def _enforce_discovery_auth() -> Optional[Tuple[Any, int]]:
         token = _extract_bearer_token()
         if token is None or not discovery_secret or token != discovery_secret:
             result = _error_response("UNAUTHORIZED", "authentication required", 401)
-            return cast(Optional[Tuple[Any, int]], result)
+            return cast("Optional[Tuple[Any, int]]", result)
         return None
 
     @bp.before_request

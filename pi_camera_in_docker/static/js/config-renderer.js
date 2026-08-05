@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Render webcam configuration sections without owning application state.
  */

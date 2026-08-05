@@ -722,7 +722,7 @@ class WebcamActionHandler:
                         "api_test": _get_api_test_runtime_info(api_test_state, scenario_list),  # type: ignore[arg-type]
                     }
                 )
-                return cast(Response | tuple[Response, int], response)
+                return cast("Response | tuple[Response, int]", response)
 
         return _build_json_error(
             "ACTION_UNSUPPORTED",
