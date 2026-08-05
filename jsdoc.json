@@ -4,7 +4,7 @@
     "dictionaries": ["jsdoc", "closure"]
   },
   "source": {
-    "include": ["pi_camera_in_docker/static/js"],
+    "include": ["frontend/src"],
     "exclude": ["pi_camera_in_docker/static/js/**/*.test.js", "node_modules"]
   },
   "opts": {

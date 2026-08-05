@@ -2,7 +2,7 @@
 
 from typing import Any, Optional
 
-class Camera:
+class Picamera2:
     """Picamera2 Camera control class."""
     
     def __init__(self, *args: Any, **kwargs: Any) -> None: ...

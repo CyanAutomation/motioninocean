@@ -16,7 +16,7 @@ function extractArrowFunction(source, functionName) {
 }
 
 test("renderCameraSettings hydrates numeric 0 values without falling back", () => {
-  const settingsJs = fs.readFileSync("pi_camera_in_docker/static/js/settings.js", "utf8");
+  const settingsJs = fs.readFileSync("frontend/src/settings.ts", "utf8");
   const renderCameraSettingsFn = extractArrowFunction(settingsJs, "renderCameraSettings");
 
   const elements = {
@@ -54,7 +54,7 @@ test("renderCameraSettings hydrates numeric 0 values without falling back", () =
 });
 
 test("renderDiscoverySettings hydrates interval 0 without default fallback", () => {
-  const settingsJs = fs.readFileSync("pi_camera_in_docker/static/js/settings.js", "utf8");
+  const settingsJs = fs.readFileSync("frontend/src/settings.ts", "utf8");
   const renderDiscoverySettingsFn = extractArrowFunction(settingsJs, "renderDiscoverySettings");
 
   const intervalInput = { value: "" };

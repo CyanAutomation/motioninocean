@@ -30,7 +30,7 @@ function createClassList() {
 }
 
 test("webcam form panel toggle defaults expanded and flips collapsed state with storage persistence", async () => {
-  const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
+  const managementJs = fs.readFileSync("frontend/src/management.ts", "utf8");
 
   const setNodeFormPanelCollapsedFn = extractFunction(
     managementJs,

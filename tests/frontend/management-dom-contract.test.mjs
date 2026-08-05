@@ -32,7 +32,7 @@ test("management template includes required webcam DOM ids used by management.js
 });
 
 test("management init exits safely when required DOM ids are missing", async () => {
-  const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
+  const managementJs = fs.readFileSync("frontend/src/management.ts", "utf8");
   const initFn = slice(managementJs, "async function init()", "\n\ninit().catch");
 
   const feedbackCalls = [];

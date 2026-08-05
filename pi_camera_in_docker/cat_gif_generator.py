@@ -12,7 +12,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from typing import Iterator, Optional, Tuple
+from typing import Iterator, Optional, Tuple, cast
 
 from PIL import Image
 

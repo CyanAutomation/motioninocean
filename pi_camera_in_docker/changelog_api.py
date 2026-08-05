@@ -6,7 +6,7 @@ import logging
 import re
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 

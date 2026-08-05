@@ -248,7 +248,9 @@ test: ensure-dev-tools
 	$(PYTHON) -m pytest tests/ -v
 
 test-frontend:
-	@echo "Running frontend JavaScript tests..."
+	@echo "Building frontend TypeScript..."
+	npm run build:frontend
+	@echo "Running frontend tests..."
 	node --test tests/frontend/*.test.mjs
 
 test-ui-webcam-rail:

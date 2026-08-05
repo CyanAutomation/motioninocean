@@ -1,5 +1,6 @@
 import globals from "globals";
 import pluginJs from "@eslint/js";
+import tseslint from "typescript-eslint";
 
 export default [
   {
@@ -20,7 +21,21 @@ export default [
       "test_env/",
       "coverage/",
       "pi_camera_in_docker/static/js/app.js",
+      "pi_camera_in_docker/static/js/**/*.js",
     ],
+  },
+  {
+    files: ["frontend/src/**/*.ts"],
+    languageOptions: {
+      parser: tseslint.parser,
+    },
+    plugins: {
+      "@typescript-eslint": tseslint.plugin,
+    },
+    rules: {
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+    },
   },
   {
     rules: {

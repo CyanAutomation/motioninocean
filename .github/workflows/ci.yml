@@ -23,8 +23,12 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Install frontend dependencies
+        run: npm ci
+
       - name: Run frontend unit tests
         run: |
+          npm run build:frontend
           node --test tests/frontend/*.test.mjs
 
   test:
@@ -102,6 +106,14 @@ jobs:
 
       - name: Run unified lint check
         run: make lint
+
+      - name: Verify frontend TypeScript build
+        run: npm run type-check
+
+      - name: Verify generated frontend assets
+        run: |
+          npm run build:frontend
+          git diff --exit-code -- pi_camera_in_docker/static/js
 
       - name: Run Ruff formatter check
         run: python -m ruff format --check .
