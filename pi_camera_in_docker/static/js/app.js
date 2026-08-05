@@ -3,6 +3,9 @@
  * Real-time stats, fullscreen, refresh, and connection monitoring
  */
 
+import { renderConfig as renderConfigPanel } from "./config-renderer.js";
+import { renderMetrics as renderMetricsPanel } from "./metrics-renderer.js";
+
 const REQUEST_TIMEOUT_MS = 5000;
 const CONFIG_POLL_INTERVAL_MS = 5000;
 const THEME_STORAGE_KEY = "webcam.theme";
@@ -1401,77 +1404,16 @@ async function fetchMetrics() {
  * @returns {void}
  */
 function renderMetrics(data) {
-  const cameraActive = data.camera_active === true;
-  const lastFrameAge = Number(data.last_frame_age_seconds);
-  const maxFrameAge = Number(data.max_frame_age_seconds);
-  const hasFrameAge = Number.isFinite(lastFrameAge);
-  const hasMaxFrameAge = Number.isFinite(maxFrameAge);
-  const isStale = cameraActive && hasFrameAge && hasMaxFrameAge && lastFrameAge > maxFrameAge;
-  const statusText = cameraActive ? (isStale ? "Stale stream" : "Connected") : "Camera inactive";
-  const statusState = cameraActive ? (isStale ? "stale" : "connected") : "inactive";
-
-  setConnectionStatus(statusState, statusText);
-  if (statusState === "connected") {
-    resetBackoff();
-  } else if (statusState === "inactive" || statusState === "stale") {
-    increaseBackoff();
-  }
-
-  if (state.elements.fpsValue) {
-    state.elements.fpsValue.textContent = data.current_fps ? data.current_fps.toFixed(1) : "0.0";
-  }
-
-  // Update FPS header chip
-  if (state.elements.chipFps) {
-    const fpsDisplay = data.current_fps ? data.current_fps.toFixed(1) : "0.0";
-    state.elements.chipFps.textContent = `Current FPS: ${fpsDisplay}`;
-  }
-
-  if (state.elements.performanceRiskValue) {
-    const fpsText = data.current_fps ? data.current_fps.toFixed(1) : "0.0";
-    state.elements.performanceRiskValue.textContent = `${fpsText} FPS`;
-  }
-
-  if (state.elements.uptimeValue) {
-    state.elements.uptimeValue.textContent = formatUptime(data.uptime_seconds);
-  }
-
-  if (state.elements.framesRiskDetail) {
-    state.elements.framesRiskDetail.textContent = formatNumber(data.frames_captured);
-  }
-
-  if (state.elements.lastFrameAgeValue) {
-    state.elements.lastFrameAgeValue.textContent = formatSeconds(data.last_frame_age_seconds);
-  }
-
-  if (state.elements.lastFrameRiskValue) {
-    state.elements.lastFrameRiskValue.textContent = formatSeconds(data.last_frame_age_seconds);
-  }
-
-  if (state.elements.maxFrameAgeValue) {
-    state.elements.maxFrameAgeValue.textContent = formatSeconds(data.max_frame_age_seconds);
-  }
-
-  if (state.elements.maxFrameRiskValue) {
-    state.elements.maxFrameRiskValue.textContent = formatSeconds(data.max_frame_age_seconds);
-  }
-
-  if (state.elements.streamRiskValue) {
-    state.elements.streamRiskValue.textContent = statusText;
-  }
-
-  if (state.elements.resolutionValue) {
-    if (data.resolution && Array.isArray(data.resolution)) {
-      state.elements.resolutionValue.textContent = `${data.resolution[0]} × ${data.resolution[1]}`;
-    }
-  }
-
-  if (state.elements.lastUpdated) {
-    const now = new Date();
-    state.elements.lastUpdated.textContent = `Updated: ${now.toLocaleTimeString()}`;
-  }
-
-  updateConnectionDisplays();
+  renderMetricsPanel(data, {
+    state,
+    setConnectionStatus,
+    resetBackoff,
+    increaseBackoff,
+    formatUptime,
+    formatNumber,
+    formatSeconds,
+    updateConnectionDisplays,
+  });
 }
 
 /**
@@ -1890,107 +1832,17 @@ function showConfigError(message) {
  * @returns {void}
  */
 function renderConfig(data) {
-  // Camera Settings
-  if (data.camera_settings) {
-    const cs = data.camera_settings;
-
-    setConfigValue(
-      "config-resolution",
-      cs.resolution ? `${cs.resolution[0]} × ${cs.resolution[1]}` : "--",
-    );
-    setConfigValue("config-fps", cs.fps !== undefined ? `${cs.fps} FPS` : "--");
-    setConfigValue(
-      "config-target-fps",
-      cs.target_fps !== undefined ? `${cs.target_fps} FPS` : "--",
-    );
-    setConfigValue(
-      "config-jpeg-quality",
-      cs.jpeg_quality !== undefined ? `${cs.jpeg_quality}%` : "--",
-    );
-  }
-
-  // Stream Control
-  if (data.stream_control) {
-    const sc = data.stream_control;
-
-    setConfigValue("config-max-connections", sc.max_stream_connections ?? "--");
-    setConfigValue("config-current-connections", sc.current_stream_connections ?? "--");
-    setConfigValue(
-      "config-max-frame-age",
-      sc.max_frame_age_seconds !== undefined ? `${sc.max_frame_age_seconds}s` : "--",
-    );
-    setConfigValue(
-      "config-cors",
-      typeof sc.cors_origins === "string" && sc.cors_origins.length > 0
-        ? sc.cors_origins
-        : "disabled",
-    );
-
-    const currentConnections =
-      typeof sc.current_stream_connections === "number"
-        ? sc.current_stream_connections
-        : (sc.current_stream_connections ?? "--");
-    const maxConnections =
-      typeof sc.max_stream_connections === "number"
-        ? sc.max_stream_connections
-        : (sc.max_stream_connections ?? "--");
-    state.streamConnections.current = currentConnections;
-    state.streamConnections.max = maxConnections;
-    updateConnectionDisplays();
-  }
-
-  // Runtime
-  if (data.runtime) {
-    const rt = data.runtime;
-    const mockEnabled = rt.mock_camera === true;
-    const fallbackActive = rt.active_mock_fallback === true;
-
-    setConfigValue("config-camera-active", formatBoolean(rt.camera_active));
-    setConfigValue("config-mock-camera", formatBoolean(rt.mock_camera));
-    setConfigValue("config-uptime", formatUptime(rt.uptime_seconds));
-    applyMockStreamMode(mockEnabled || fallbackActive, fallbackActive);
-  }
-
-  // Health Check
-  if (data.health_check) {
-    const hc = data.health_check;
-    const healthStates = [];
-
-    const applyIndicator = (elementId, indicator) => {
-      setHealthIndicator(elementId, indicator);
-      if (indicator && typeof indicator.state === "string") {
-        healthStates.push(indicator.state);
-      }
-    };
-
-    applyIndicator("config-health-camera-pipeline", hc.camera_pipeline);
-    applyIndicator("config-health-stream-freshness", hc.stream_freshness);
-    applyIndicator("config-health-connection-capacity", hc.connection_capacity);
-    applyIndicator("config-health-mock-mode", hc.mock_mode);
-
-    const normalizedStates = healthStates.map(normalizeHealthState);
-    let overallState = "unknown";
-    if (normalizedStates.includes("fail")) {
-      overallState = "fail";
-    } else if (normalizedStates.includes("warn")) {
-      overallState = "warn";
-    } else if (normalizedStates.includes("ok")) {
-      overallState = "ok";
-    }
-
-    setHealthIndicator("config-health-overall", {
-      state: overallState,
-      label: HEALTH_TEXT[overallState],
-      details:
-        "Overall health derived from camera, stream freshness, connection capacity, and mock mode.",
-    });
-  }
-
-  // Timestamp
-  if (data.timestamp) {
-    const date = new Date(data.timestamp);
-    setConfigValue("config-timestamp", date.toLocaleTimeString());
-  }
+  renderConfigPanel(data, {
+    state,
+    setConfigValue,
+    formatBoolean,
+    formatUptime,
+    applyMockStreamMode,
+    setHealthIndicator,
+    normalizeHealthState,
+    healthText: HEALTH_TEXT,
+    updateConnectionDisplays,
+  });
 }
 
 /**
@@ -3049,4 +2901,6 @@ function showSetupSuccess(message) {
   }
 }
 
+// settings.js remains a separate classic script and uses this tab boundary.
+globalThis.switchTab = switchTab;
 document.addEventListener("DOMContentLoaded", init);

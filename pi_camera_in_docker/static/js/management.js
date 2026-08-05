@@ -1888,6 +1888,104 @@ function onTableClick(event) {
   }
 }
 
+function bindOptionalButton(button, eventName, handler) {
+  if (button instanceof HTMLButtonElement) {
+    button.addEventListener(eventName, handler);
+  }
+}
+
+function getOptionalManagementElement(name) {
+  const elements = {
+    viewOverviewBtn: typeof viewOverviewBtn !== "undefined" ? viewOverviewBtn : null,
+    viewDevicesBtn: typeof viewDevicesBtn !== "undefined" ? viewDevicesBtn : null,
+    viewDiscoveredBtn: typeof viewDiscoveredBtn !== "undefined" ? viewDiscoveredBtn : null,
+    viewSettingsBtn: typeof viewSettingsBtn !== "undefined" ? viewSettingsBtn : null,
+    railOverviewBtn: typeof railOverviewBtn !== "undefined" ? railOverviewBtn : null,
+    railDevicesBtn: typeof railDevicesBtn !== "undefined" ? railDevicesBtn : null,
+    railDiscoveredBtn: typeof railDiscoveredBtn !== "undefined" ? railDiscoveredBtn : null,
+    railSettingsBtn: typeof railSettingsBtn !== "undefined" ? railSettingsBtn : null,
+    mobileOverviewBtn: typeof mobileOverviewBtn !== "undefined" ? mobileOverviewBtn : null,
+    mobileDevicesBtn: typeof mobileDevicesBtn !== "undefined" ? mobileDevicesBtn : null,
+    mobileDiscoveredBtn: typeof mobileDiscoveredBtn !== "undefined" ? mobileDiscoveredBtn : null,
+    mobileSettingsBtn: typeof mobileSettingsBtn !== "undefined" ? mobileSettingsBtn : null,
+    railHelpBtn: typeof railHelpBtn !== "undefined" ? railHelpBtn : null,
+    mobileHelpBtn: typeof mobileHelpBtn !== "undefined" ? mobileHelpBtn : null,
+    railExportBtn: typeof railExportBtn !== "undefined" ? railExportBtn : null,
+    mobileExportBtn: typeof mobileExportBtn !== "undefined" ? mobileExportBtn : null,
+    utilityPanelCloseBtn: typeof utilityPanelCloseBtn !== "undefined" ? utilityPanelCloseBtn : null,
+    themeToggleBtn: typeof themeToggleBtn !== "undefined" ? themeToggleBtn : null,
+  };
+  return elements[name];
+}
+
+function initializeManagementState() {
+  if (typeof initializeTheme === "function") initializeTheme();
+  if (typeof initializeManagementBearerToken === "function") initializeManagementBearerToken();
+  if (typeof loadSnoozedDiscoveredIds === "function") loadSnoozedDiscoveredIds();
+  const tokenInputs = [];
+  if (typeof managementApiTokenInput !== "undefined") tokenInputs.push(managementApiTokenInput);
+  if (typeof settingsManagementApiToken !== "undefined")
+    tokenInputs.push(settingsManagementApiToken);
+  tokenInputs.forEach((input) => {
+    if (input instanceof HTMLInputElement) {
+      input.addEventListener("input", () => setManagementBearerToken(input.value));
+    }
+  });
+}
+
+function bindManagementNavigation() {
+  const viewButtons = [];
+  const addViewButton = (name, view) => {
+    const button = getOptionalManagementElement(name);
+    if (button) viewButtons.push([button, view]);
+  };
+  addViewButton("viewOverviewBtn", "overview");
+  addViewButton("viewDevicesBtn", "devices");
+  addViewButton("viewDiscoveredBtn", "discovered");
+  addViewButton("viewSettingsBtn", "settings");
+  addViewButton("railOverviewBtn", "overview");
+  addViewButton("railDevicesBtn", "devices");
+  addViewButton("railDiscoveredBtn", "discovered");
+  addViewButton("railSettingsBtn", "settings");
+  addViewButton("mobileOverviewBtn", "overview");
+  addViewButton("mobileDevicesBtn", "devices");
+  addViewButton("mobileDiscoveredBtn", "discovered");
+  addViewButton("mobileSettingsBtn", "settings");
+  viewButtons.forEach(([button, view]) =>
+    bindOptionalButton(button, "click", () => setActiveView(view)),
+  );
+  [
+    "railHelpBtn",
+    "mobileHelpBtn",
+    "railExportBtn",
+    "mobileExportBtn",
+    "utilityPanelCloseBtn",
+    "themeToggleBtn",
+  ].forEach((name) => {
+    const button = getOptionalManagementElement(name);
+    if (!button) return;
+    const handlers = {
+      railHelpBtn: typeof openHelpPanel === "function" ? openHelpPanel : () => {},
+      mobileHelpBtn: typeof openHelpPanel === "function" ? openHelpPanel : () => {},
+      railExportBtn: typeof openExportPanel === "function" ? openExportPanel : () => {},
+      mobileExportBtn: typeof openExportPanel === "function" ? openExportPanel : () => {},
+      utilityPanelCloseBtn: typeof closeUtilityPanel === "function" ? closeUtilityPanel : () => {},
+      themeToggleBtn: () => {
+        const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+        applyTheme(currentTheme === "dark" ? "light" : "dark");
+      },
+    };
+    bindOptionalButton(button, "click", handlers[name]);
+  });
+  if (typeof globalThis.addEventListener === "function") {
+    globalThis.addEventListener("hashchange", () => {
+      if (typeof setActiveView === "function" && typeof getViewFromLocationHash === "function") {
+        setActiveView(getViewFromLocationHash());
+      }
+    });
+  }
+}
+
 async function init() {
   const missingElementIds = getMissingRequiredElementIds();
   if (missingElementIds.length > 0) {
@@ -1902,103 +2000,8 @@ async function init() {
     resetForm();
     showFeedback("");
   });
-  if (typeof initializeTheme === "function") {
-    initializeTheme();
-  }
-  if (typeof initializeManagementBearerToken === "function") {
-    initializeManagementBearerToken();
-  }
-  if (typeof loadSnoozedDiscoveredIds === "function") {
-    loadSnoozedDiscoveredIds();
-  }
-
-  if (
-    typeof managementApiTokenInput !== "undefined" &&
-    managementApiTokenInput instanceof HTMLInputElement
-  ) {
-    managementApiTokenInput.addEventListener("input", () => {
-      setManagementBearerToken(managementApiTokenInput.value);
-    });
-  }
-  if (
-    typeof settingsManagementApiToken !== "undefined" &&
-    settingsManagementApiToken instanceof HTMLInputElement
-  ) {
-    settingsManagementApiToken.addEventListener("input", () => {
-      setManagementBearerToken(settingsManagementApiToken.value);
-    });
-  }
-
-  if (typeof viewOverviewBtn !== "undefined" && viewOverviewBtn instanceof HTMLButtonElement) {
-    viewOverviewBtn.addEventListener("click", () => setActiveView("overview"));
-  }
-  if (typeof viewDevicesBtn !== "undefined" && viewDevicesBtn instanceof HTMLButtonElement) {
-    viewDevicesBtn.addEventListener("click", () => setActiveView("devices"));
-  }
-  if (typeof viewDiscoveredBtn !== "undefined" && viewDiscoveredBtn instanceof HTMLButtonElement) {
-    viewDiscoveredBtn.addEventListener("click", () => setActiveView("discovered"));
-  }
-  if (typeof viewSettingsBtn !== "undefined" && viewSettingsBtn instanceof HTMLButtonElement) {
-    viewSettingsBtn.addEventListener("click", () => setActiveView("settings"));
-  }
-  if (typeof railOverviewBtn !== "undefined" && railOverviewBtn instanceof HTMLButtonElement) {
-    railOverviewBtn.addEventListener("click", () => setActiveView("overview"));
-  }
-  if (typeof railDevicesBtn !== "undefined" && railDevicesBtn instanceof HTMLButtonElement) {
-    railDevicesBtn.addEventListener("click", () => setActiveView("devices"));
-  }
-  if (typeof railDiscoveredBtn !== "undefined" && railDiscoveredBtn instanceof HTMLButtonElement) {
-    railDiscoveredBtn.addEventListener("click", () => setActiveView("discovered"));
-  }
-  if (typeof railSettingsBtn !== "undefined" && railSettingsBtn instanceof HTMLButtonElement) {
-    railSettingsBtn.addEventListener("click", () => setActiveView("settings"));
-  }
-  if (typeof mobileOverviewBtn !== "undefined" && mobileOverviewBtn instanceof HTMLButtonElement) {
-    mobileOverviewBtn.addEventListener("click", () => setActiveView("overview"));
-  }
-  if (typeof mobileDevicesBtn !== "undefined" && mobileDevicesBtn instanceof HTMLButtonElement) {
-    mobileDevicesBtn.addEventListener("click", () => setActiveView("devices"));
-  }
-  if (
-    typeof mobileDiscoveredBtn !== "undefined" &&
-    mobileDiscoveredBtn instanceof HTMLButtonElement
-  ) {
-    mobileDiscoveredBtn.addEventListener("click", () => setActiveView("discovered"));
-  }
-  if (typeof mobileSettingsBtn !== "undefined" && mobileSettingsBtn instanceof HTMLButtonElement) {
-    mobileSettingsBtn.addEventListener("click", () => setActiveView("settings"));
-  }
-  if (typeof railHelpBtn !== "undefined" && railHelpBtn instanceof HTMLButtonElement) {
-    railHelpBtn.addEventListener("click", openHelpPanel);
-  }
-  if (typeof mobileHelpBtn !== "undefined" && mobileHelpBtn instanceof HTMLButtonElement) {
-    mobileHelpBtn.addEventListener("click", openHelpPanel);
-  }
-  if (typeof railExportBtn !== "undefined" && railExportBtn instanceof HTMLButtonElement) {
-    railExportBtn.addEventListener("click", openExportPanel);
-  }
-  if (typeof mobileExportBtn !== "undefined" && mobileExportBtn instanceof HTMLButtonElement) {
-    mobileExportBtn.addEventListener("click", openExportPanel);
-  }
-  if (
-    typeof utilityPanelCloseBtn !== "undefined" &&
-    utilityPanelCloseBtn instanceof HTMLButtonElement
-  ) {
-    utilityPanelCloseBtn.addEventListener("click", closeUtilityPanel);
-  }
-  if (typeof themeToggleBtn !== "undefined" && themeToggleBtn instanceof HTMLButtonElement) {
-    themeToggleBtn.addEventListener("click", () => {
-      const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
-      applyTheme(currentTheme === "dark" ? "light" : "dark");
-    });
-  }
-  if (typeof globalThis.addEventListener === "function") {
-    globalThis.addEventListener("hashchange", () => {
-      if (typeof setActiveView === "function" && typeof getViewFromLocationHash === "function") {
-        setActiveView(getViewFromLocationHash());
-      }
-    });
-  }
+  if (typeof initializeManagementState === "function") initializeManagementState();
+  if (typeof bindManagementNavigation === "function") bindManagementNavigation();
 
   refreshBtn.addEventListener("click", async () => {
     stopStatusRefreshInterval();

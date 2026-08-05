@@ -315,11 +315,7 @@
                     width="{{ width }}"
                     height="{{ height }}"
                   />
-                  <div
-                    id="mock-stream-placeholder"
-                    class="mock-stream-placeholder"
-                    hidden
-                  >
+                  <div id="mock-stream-placeholder" class="mock-stream-placeholder" hidden>
                     <object
                       id="mock-stream-animation"
                       type="image/svg+xml"
@@ -327,7 +323,9 @@
                       aria-hidden="true"
                       tabindex="-1"
                     ></object>
-                    <p id="mock-stream-caption">Mock camera mode enabled — no real camera stream.</p>
+                    <p id="mock-stream-caption">
+                      Mock camera mode enabled — no real camera stream.
+                    </p>
                   </div>
                 </div>
 
@@ -1056,7 +1054,9 @@
           <div id="settings-undo-alert" class="settings-alert settings-alert--undo success hidden">
             <span class="alert-icon">↩️</span>
             <span id="settings-undo-message" class="alert-message">Saved settings changes.</span>
-            <button id="settings-undo-btn" class="ui-btn ui-btn--secondary" type="button">Undo</button>
+            <button id="settings-undo-btn" class="ui-btn ui-btn--secondary" type="button">
+              Undo
+            </button>
             <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">
               ×
             </button>
@@ -1477,7 +1477,7 @@
     </div>
 
     <!-- JavaScript -->
-    <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script defer src="{{ url_for('static', filename='js/settings.js') }}"></script>
   </body>
 </html>
