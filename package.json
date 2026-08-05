@@ -6,9 +6,9 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.0",
     "@playwright/test": "^1.62.0",
     "eslint": "^10.7.0",
-    "@eslint/js": "^10.0.0",
     "globals": "^17.8.0",
     "playwright": "^1.61.1",
     "prettier": "^3.9.5"
