@@ -1,3 +1,5 @@
+import { bindNavigation, initializeManagementDashboard } from "./management-bootstrap.js";
+
 /**
  * Motion In Ocean Management Dashboard
  *
@@ -1888,36 +1890,6 @@ function onTableClick(event) {
   }
 }
 
-function bindOptionalButton(button, eventName, handler) {
-  if (button instanceof HTMLButtonElement) {
-    button.addEventListener(eventName, handler);
-  }
-}
-
-function getOptionalManagementElement(name) {
-  const elements = {
-    viewOverviewBtn: typeof viewOverviewBtn !== "undefined" ? viewOverviewBtn : null,
-    viewDevicesBtn: typeof viewDevicesBtn !== "undefined" ? viewDevicesBtn : null,
-    viewDiscoveredBtn: typeof viewDiscoveredBtn !== "undefined" ? viewDiscoveredBtn : null,
-    viewSettingsBtn: typeof viewSettingsBtn !== "undefined" ? viewSettingsBtn : null,
-    railOverviewBtn: typeof railOverviewBtn !== "undefined" ? railOverviewBtn : null,
-    railDevicesBtn: typeof railDevicesBtn !== "undefined" ? railDevicesBtn : null,
-    railDiscoveredBtn: typeof railDiscoveredBtn !== "undefined" ? railDiscoveredBtn : null,
-    railSettingsBtn: typeof railSettingsBtn !== "undefined" ? railSettingsBtn : null,
-    mobileOverviewBtn: typeof mobileOverviewBtn !== "undefined" ? mobileOverviewBtn : null,
-    mobileDevicesBtn: typeof mobileDevicesBtn !== "undefined" ? mobileDevicesBtn : null,
-    mobileDiscoveredBtn: typeof mobileDiscoveredBtn !== "undefined" ? mobileDiscoveredBtn : null,
-    mobileSettingsBtn: typeof mobileSettingsBtn !== "undefined" ? mobileSettingsBtn : null,
-    railHelpBtn: typeof railHelpBtn !== "undefined" ? railHelpBtn : null,
-    mobileHelpBtn: typeof mobileHelpBtn !== "undefined" ? mobileHelpBtn : null,
-    railExportBtn: typeof railExportBtn !== "undefined" ? railExportBtn : null,
-    mobileExportBtn: typeof mobileExportBtn !== "undefined" ? mobileExportBtn : null,
-    utilityPanelCloseBtn: typeof utilityPanelCloseBtn !== "undefined" ? utilityPanelCloseBtn : null,
-    themeToggleBtn: typeof themeToggleBtn !== "undefined" ? themeToggleBtn : null,
-  };
-  return elements[name];
-}
-
 function initializeManagementState() {
   if (typeof initializeTheme === "function") initializeTheme();
   if (typeof initializeManagementBearerToken === "function") initializeManagementBearerToken();
@@ -1933,59 +1905,6 @@ function initializeManagementState() {
   });
 }
 
-function bindManagementNavigation() {
-  const viewButtons = [];
-  const addViewButton = (name, view) => {
-    const button = getOptionalManagementElement(name);
-    if (button) viewButtons.push([button, view]);
-  };
-  addViewButton("viewOverviewBtn", "overview");
-  addViewButton("viewDevicesBtn", "devices");
-  addViewButton("viewDiscoveredBtn", "discovered");
-  addViewButton("viewSettingsBtn", "settings");
-  addViewButton("railOverviewBtn", "overview");
-  addViewButton("railDevicesBtn", "devices");
-  addViewButton("railDiscoveredBtn", "discovered");
-  addViewButton("railSettingsBtn", "settings");
-  addViewButton("mobileOverviewBtn", "overview");
-  addViewButton("mobileDevicesBtn", "devices");
-  addViewButton("mobileDiscoveredBtn", "discovered");
-  addViewButton("mobileSettingsBtn", "settings");
-  viewButtons.forEach(([button, view]) =>
-    bindOptionalButton(button, "click", () => setActiveView(view)),
-  );
-  [
-    "railHelpBtn",
-    "mobileHelpBtn",
-    "railExportBtn",
-    "mobileExportBtn",
-    "utilityPanelCloseBtn",
-    "themeToggleBtn",
-  ].forEach((name) => {
-    const button = getOptionalManagementElement(name);
-    if (!button) return;
-    const handlers = {
-      railHelpBtn: typeof openHelpPanel === "function" ? openHelpPanel : () => {},
-      mobileHelpBtn: typeof openHelpPanel === "function" ? openHelpPanel : () => {},
-      railExportBtn: typeof openExportPanel === "function" ? openExportPanel : () => {},
-      mobileExportBtn: typeof openExportPanel === "function" ? openExportPanel : () => {},
-      utilityPanelCloseBtn: typeof closeUtilityPanel === "function" ? closeUtilityPanel : () => {},
-      themeToggleBtn: () => {
-        const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
-        applyTheme(currentTheme === "dark" ? "light" : "dark");
-      },
-    };
-    bindOptionalButton(button, "click", handlers[name]);
-  });
-  if (typeof globalThis.addEventListener === "function") {
-    globalThis.addEventListener("hashchange", () => {
-      if (typeof setActiveView === "function" && typeof getViewFromLocationHash === "function") {
-        setActiveView(getViewFromLocationHash());
-      }
-    });
-  }
-}
-
 async function init() {
   const missingElementIds = getMissingRequiredElementIds();
   if (missingElementIds.length > 0) {
@@ -1995,192 +1914,114 @@ async function init() {
     return;
   }
 
-  webcamForm.addEventListener("submit", submitNodeForm);
-  cancelEditBtn.addEventListener("click", () => {
-    resetForm();
-    showFeedback("");
+  await initializeManagementDashboard({
+    elements: {
+      webcamForm,
+      cancelEditBtn,
+      refreshBtn,
+      refreshDashboardBtn,
+      scanDiscoveredBtn,
+      discoveredList,
+      discoveredApproveBtn,
+      discoveredRejectBtn,
+      discoveredLaterBtn,
+      settingsTabButtons,
+      settingsSaveBtn,
+      settingsResetBtn,
+      refreshSettingsBtn,
+      toggleWebcamFormPanelBtn,
+      webcamFormContent,
+      tableBody,
+      webcamTransport: document.getElementById("webcam-transport"),
+      diagnosticsAdvancedCheckbox,
+      diagnosticsCollapsibleContainer,
+      copyDiagnosticReportBtn,
+      viewOverviewBtn,
+      viewDevicesBtn,
+      viewDiscoveredBtn,
+      viewSettingsBtn,
+      railOverviewBtn,
+      railDevicesBtn,
+      railDiscoveredBtn,
+      railSettingsBtn,
+      mobileOverviewBtn,
+      mobileDevicesBtn,
+      mobileDiscoveredBtn,
+      mobileSettingsBtn,
+      railHelpBtn,
+      mobileHelpBtn,
+      railExportBtn,
+      mobileExportBtn,
+      utilityPanelCloseBtn,
+      themeToggleBtn,
+    },
+    actions: {
+      initializeManagementState,
+      bindManagementNavigation: () =>
+        bindNavigation({
+          elements: {
+            viewOverviewBtn,
+            viewDevicesBtn,
+            viewDiscoveredBtn,
+            viewSettingsBtn,
+            railOverviewBtn,
+            railDevicesBtn,
+            railDiscoveredBtn,
+            railSettingsBtn,
+            mobileOverviewBtn,
+            mobileDevicesBtn,
+            mobileDiscoveredBtn,
+            mobileSettingsBtn,
+            railHelpBtn,
+            mobileHelpBtn,
+            railExportBtn,
+            mobileExportBtn,
+            utilityPanelCloseBtn,
+            themeToggleBtn,
+          },
+          actions: {
+            setActiveView,
+            getViewFromLocationHash,
+            openHelpPanel,
+            openExportPanel,
+            closeUtilityPanel,
+            toggleTheme: () => {
+              const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+              applyTheme(currentTheme === "dark" ? "light" : "dark");
+            },
+          },
+        }),
+      submitNodeForm,
+      resetForm,
+      showFeedback,
+      stopStatusRefreshInterval,
+      refreshManagementData,
+      startStatusRefreshInterval,
+      renderOverviewPanel,
+      renderDiscoveredPanel,
+      setDiscoveredFeedback,
+      selectDiscoveredNode: (nodeId) => {
+        selectedDiscoveredNodeId = nodeId;
+      },
+      applyDiscoveredDecision,
+      fetchOverview,
+      setSettingsTab,
+      saveSettings,
+      resetSettings,
+      fetchSettingsData,
+      setNodeFormPanelCollapsed,
+      getStoredNodeFormCollapsedPreference,
+      toggleNodeFormPanel,
+      onTableClick,
+      updateBaseUrlValidation,
+      setDiagnosticPanelExpanded,
+      toggleDiagnosticPanelContent,
+      getLatestDiagnosticResult: () => latestDiagnosticResult,
+      buildDiagnosticTextReport,
+      fetchWebcams,
+      refreshStatuses,
+    },
   });
-  if (typeof initializeManagementState === "function") initializeManagementState();
-  if (typeof bindManagementNavigation === "function") bindManagementNavigation();
-
-  refreshBtn.addEventListener("click", async () => {
-    stopStatusRefreshInterval();
-    try {
-      await refreshManagementData();
-      showFeedback("Node list refreshed.");
-    } finally {
-      startStatusRefreshInterval();
-    }
-  });
-  if (
-    typeof refreshDashboardBtn !== "undefined" &&
-    refreshDashboardBtn instanceof HTMLButtonElement
-  ) {
-    refreshDashboardBtn.addEventListener("click", async () => {
-      await refreshManagementData();
-      renderOverviewPanel();
-    });
-  }
-  if (typeof scanDiscoveredBtn !== "undefined" && scanDiscoveredBtn instanceof HTMLButtonElement) {
-    scanDiscoveredBtn.addEventListener("click", async () => {
-      await refreshManagementData();
-      renderDiscoveredPanel();
-      setDiscoveredFeedback("Discovery queue refreshed.");
-    });
-  }
-  if (typeof discoveredList !== "undefined" && discoveredList instanceof HTMLElement) {
-    discoveredList.addEventListener("click", (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) {
-        return;
-      }
-      const button = target.closest("[data-discovered-id]");
-      if (!(button instanceof HTMLElement)) {
-        return;
-      }
-      const nodeId = button.dataset.discoveredId;
-      if (!nodeId) {
-        return;
-      }
-      selectedDiscoveredNodeId = nodeId;
-      renderDiscoveredPanel();
-    });
-  }
-  if (
-    typeof discoveredApproveBtn !== "undefined" &&
-    discoveredApproveBtn instanceof HTMLButtonElement
-  ) {
-    discoveredApproveBtn.addEventListener("click", async () => {
-      await applyDiscoveredDecision("approve");
-      await fetchOverview();
-    });
-  }
-  if (
-    typeof discoveredRejectBtn !== "undefined" &&
-    discoveredRejectBtn instanceof HTMLButtonElement
-  ) {
-    discoveredRejectBtn.addEventListener("click", async () => {
-      await applyDiscoveredDecision("reject");
-      await fetchOverview();
-    });
-  }
-  if (
-    typeof discoveredLaterBtn !== "undefined" &&
-    discoveredLaterBtn instanceof HTMLButtonElement
-  ) {
-    discoveredLaterBtn.addEventListener("click", async () => {
-      await applyDiscoveredDecision("snooze");
-      await fetchOverview();
-    });
-  }
-
-  if (
-    typeof settingsTabButtons !== "undefined" &&
-    typeof settingsTabButtons.forEach === "function"
-  ) {
-    settingsTabButtons.forEach((button) => {
-      if (!(button instanceof HTMLButtonElement)) {
-        return;
-      }
-      button.addEventListener("click", () => {
-        const nextTab = button.dataset.settingsTab || "auth";
-        setSettingsTab(nextTab);
-      });
-    });
-  }
-  if (typeof settingsSaveBtn !== "undefined" && settingsSaveBtn instanceof HTMLButtonElement) {
-    settingsSaveBtn.addEventListener("click", saveSettings);
-  }
-  if (typeof settingsResetBtn !== "undefined" && settingsResetBtn instanceof HTMLButtonElement) {
-    settingsResetBtn.addEventListener("click", resetSettings);
-  }
-  if (
-    typeof refreshSettingsBtn !== "undefined" &&
-    refreshSettingsBtn instanceof HTMLButtonElement
-  ) {
-    refreshSettingsBtn.addEventListener("click", fetchSettingsData);
-  }
-
-  if (
-    typeof toggleWebcamFormPanelBtn !== "undefined" &&
-    typeof webcamFormContent !== "undefined" &&
-    toggleWebcamFormPanelBtn instanceof HTMLButtonElement &&
-    webcamFormContent instanceof HTMLElement
-  ) {
-    setNodeFormPanelCollapsed(getStoredNodeFormCollapsedPreference());
-    toggleWebcamFormPanelBtn.addEventListener("click", toggleNodeFormPanel);
-  }
-  tableBody.addEventListener("click", onTableClick);
-  document.getElementById("webcam-transport").addEventListener("change", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLSelectElement)) {
-      return;
-    }
-
-    updateBaseUrlValidation(target.value);
-  });
-  updateBaseUrlValidation(document.getElementById("webcam-transport").value);
-  if (
-    diagnosticsAdvancedCheckbox instanceof HTMLInputElement &&
-    diagnosticsCollapsibleContainer instanceof HTMLElement
-  ) {
-    setDiagnosticPanelExpanded(false);
-    diagnosticsAdvancedCheckbox.addEventListener("change", toggleDiagnosticPanelContent);
-  }
-  if (
-    typeof copyDiagnosticReportBtn !== "undefined" &&
-    copyDiagnosticReportBtn &&
-    typeof copyDiagnosticReportBtn.addEventListener === "function"
-  ) {
-    copyDiagnosticReportBtn.addEventListener("click", async () => {
-      if (!latestDiagnosticResult) {
-        showFeedback("Run Diagnose first to generate a report.", true);
-        return;
-      }
-
-      const report = buildDiagnosticTextReport(latestDiagnosticResult);
-
-      if (typeof globalThis.navigator?.clipboard?.writeText !== "function") {
-        showFeedback("Clipboard not available in this browser.", true);
-        return;
-      }
-
-      try {
-        await globalThis.navigator.clipboard.writeText(report);
-        showFeedback("Diagnostic report copied to clipboard.");
-      } catch {
-        showFeedback("Could not copy report to clipboard.", true);
-      }
-    });
-  }
-
-  if (typeof setSettingsTab === "function") {
-    setSettingsTab("auth");
-  }
-  if (typeof setActiveView === "function" && typeof getViewFromLocationHash === "function") {
-    setActiveView(getViewFromLocationHash());
-  }
-  if (typeof fetchWebcams === "function") {
-    await fetchWebcams();
-  }
-  if (typeof refreshStatuses === "function") {
-    await refreshStatuses();
-  }
-  if (typeof fetchOverview === "function") {
-    await fetchOverview();
-  }
-  if (typeof fetchSettingsData === "function") {
-    await fetchSettingsData();
-  }
-  if (typeof renderDiscoveredPanel === "function") {
-    renderDiscoveredPanel();
-  }
-  if (typeof renderOverviewPanel === "function") {
-    renderOverviewPanel();
-  }
-  if (typeof startStatusRefreshInterval === "function") {
-    startStatusRefreshInterval();
-  }
 }
 
 init().catch((error) => {

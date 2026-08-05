@@ -2,21 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { bindDashboardControls } from "../../pi_camera_in_docker/static/js/management-bootstrap.js";
 
 function extractFunction(source, signature, nextSignature) {
   const start = source.indexOf(signature);
   const end = source.indexOf(nextSignature, start);
   if (start === -1 || end === -1) {
     throw new Error(`${signature} definition not found`);
-  }
-  return source.slice(start, end).trim();
-}
-
-function extractInit(source) {
-  const start = source.indexOf("async function init()");
-  const end = source.indexOf("\n\ninit().catch", start);
-  if (start === -1 || end === -1) {
-    throw new Error("init() definition not found");
   }
   return source.slice(start, end).trim();
 }
@@ -55,7 +47,6 @@ test("webcam form panel toggle defaults expanded and flips collapsed state with 
     "function getStoredNodeFormCollapsedPreference",
     "\n\n/**\n * Submit webcam form (create or update).",
   );
-  const initFn = extractInit(managementJs);
 
   class MockHTMLElement {
     constructor() {
@@ -154,11 +145,52 @@ test("webcam form panel toggle defaults expanded and flips collapsed state with 
   };
 
   vm.runInNewContext(
-    `${setNodeFormPanelCollapsedFn};\n${toggleNodeFormPanelFn};\n${getStoredNodeFormCollapsedPreferenceFn};\n${initFn};`,
+    `${setNodeFormPanelCollapsedFn};\n${toggleNodeFormPanelFn};\n${getStoredNodeFormCollapsedPreferenceFn};`,
     context,
   );
 
-  await context.init();
+  bindDashboardControls({
+    elements: {
+      webcamForm: context.webcamForm,
+      cancelEditBtn: context.cancelEditBtn,
+      refreshBtn: context.refreshBtn,
+      tableBody: context.tableBody,
+      webcamTransport: context.document.getElementById(),
+      toggleWebcamFormPanelBtn,
+      webcamFormContent,
+      copyDiagnosticReportBtn: context.copyDiagnosticReportBtn,
+      diagnosticsAdvancedCheckbox: null,
+      diagnosticsCollapsibleContainer: null,
+      settingsTabButtons: [],
+    },
+    actions: {
+      submitNodeForm: context.submitNodeForm,
+      resetForm: context.resetForm,
+      showFeedback: context.showFeedback,
+      stopStatusRefreshInterval: context.stopStatusRefreshInterval,
+      refreshManagementData: async () => {},
+      startStatusRefreshInterval: context.startStatusRefreshInterval,
+      renderOverviewPanel: () => {},
+      renderDiscoveredPanel: () => {},
+      setDiscoveredFeedback: () => {},
+      selectDiscoveredNode: () => {},
+      applyDiscoveredDecision: async () => {},
+      fetchOverview: async () => {},
+      setSettingsTab: () => {},
+      saveSettings: async () => {},
+      resetSettings: async () => {},
+      fetchSettingsData: async () => {},
+      setNodeFormPanelCollapsed: context.setNodeFormPanelCollapsed,
+      getStoredNodeFormCollapsedPreference: context.getStoredNodeFormCollapsedPreference,
+      toggleNodeFormPanel: context.toggleNodeFormPanel,
+      onTableClick: context.onTableClick,
+      updateBaseUrlValidation: context.updateBaseUrlValidation,
+      setDiagnosticPanelExpanded: () => {},
+      toggleDiagnosticPanelContent: () => {},
+      getLatestDiagnosticResult: () => null,
+      buildDiagnosticTextReport: () => "",
+    },
+  });
 
   assert.deepEqual(localStorageReads, ["management.webcamFormCollapsed"]);
   assert.equal(toggleWebcamFormPanelBtn.getAttribute("aria-expanded"), "true");

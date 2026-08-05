@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { copyDiagnosticReport } from "../../pi_camera_in_docker/static/js/management-bootstrap.js";
 
 function extractDiagnosticHelpers(source) {
   const start = source.indexOf("function getDiagnosticCheckRows");
@@ -19,29 +20,6 @@ function extractDiagnosticToggleHelpers(source) {
     throw new Error("diagnostic toggle helpers definition not found");
   }
   return source.slice(start, end).trim();
-}
-
-function extractCopyHandlerBody(source) {
-  const marker = 'copyDiagnosticReportBtn.addEventListener("click", async () => {';
-  const start = source.indexOf(marker);
-  if (start === -1) {
-    throw new Error("copy handler definition not found");
-  }
-
-  let i = start + marker.length;
-  let depth = 1;
-  while (i < source.length && depth > 0) {
-    const char = source[i];
-    if (char === "{") depth += 1;
-    if (char === "}") depth -= 1;
-    i += 1;
-  }
-
-  if (depth !== 0) {
-    throw new Error("copy handler braces did not balance");
-  }
-
-  return source.slice(start + marker.length, i - 1).trim();
 }
 
 function buildUiContext() {
@@ -144,11 +122,6 @@ function evaluateToggleHelpers() {
   return context;
 }
 
-function runCopyHandler(context, body) {
-  const copyFn = vm.runInNewContext(`(async () => {${body}})`, context);
-  return copyFn();
-}
-
 test("showDiagnosticResults populates panel, rows, recommendations, and focuses panel", () => {
   const context = evaluateHelpers();
 
@@ -232,10 +205,13 @@ test("diagnostic Advanced toggle controls diagnostics container visibility", () 
 });
 
 test("init defaults diagnostics to collapsed state", () => {
-  const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
+  const bootstrapJs = fs.readFileSync(
+    "pi_camera_in_docker/static/js/management-bootstrap.js",
+    "utf8",
+  );
   assert.match(
-    managementJs,
-    /if \(\s*diagnosticsAdvancedCheckbox instanceof HTMLInputElement &&\s*diagnosticsCollapsibleContainer instanceof HTMLElement\s*\) \{\s*setDiagnosticPanelExpanded\(false\);/,
+    bootstrapJs,
+    /if \(elements\.diagnosticsAdvancedCheckbox && elements\.diagnosticsCollapsibleContainer\) \{\s*actions\.setDiagnosticPanelExpanded\(false\);/,
   );
 });
 
@@ -345,61 +321,65 @@ test("diagnostics template exposes Advanced toggle with expected label and contr
 });
 
 test("clipboard resilience: explicit Copy action reports unavailable clipboard", async () => {
-  const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
-  const copyHandlerBody = extractCopyHandlerBody(managementJs);
-  const context = {
-    latestDiagnosticResult: {
+  const actions = {
+    getLatestDiagnosticResult: () => ({
       node_id: "node-1",
       diagnostics: {},
       guidance: [],
       recommendations: [],
-    },
+    }),
     buildDiagnosticTextReport: () => "report",
     showFeedback: (message, isError = false) => {
-      context.lastFeedback = { message, isError };
+      actions.lastFeedback = { message, isError };
     },
-    globalThis: {},
   };
 
-  await runCopyHandler(context, copyHandlerBody);
+  await copyDiagnosticReport(actions);
 
-  assert.deepEqual(context.lastFeedback, {
+  assert.deepEqual(actions.lastFeedback, {
     message: "Clipboard not available in this browser.",
     isError: true,
   });
 });
 
 test("clipboard resilience: explicit Copy action handles clipboard rejection", async () => {
-  const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
-  const copyHandlerBody = extractCopyHandlerBody(managementJs);
   let writeCalls = 0;
-  const context = {
-    latestDiagnosticResult: {
+  const actions = {
+    getLatestDiagnosticResult: () => ({
       node_id: "node-1",
       diagnostics: {},
       guidance: [],
       recommendations: [],
-    },
+    }),
     buildDiagnosticTextReport: () => "report",
     showFeedback: (message, isError = false) => {
-      context.lastFeedback = { message, isError };
-    },
-    globalThis: {
-      navigator: {
-        clipboard: {
-          writeText: async () => {
-            writeCalls += 1;
-            throw new Error("denied");
-          },
-        },
-      },
+      actions.lastFeedback = { message, isError };
     },
   };
 
-  await runCopyHandler(context, copyHandlerBody);
+  const originalNavigator = globalThis.navigator;
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: {
+      clipboard: {
+        writeText: async () => {
+          writeCalls += 1;
+          throw new Error("denied");
+        },
+      },
+    },
+  });
+  try {
+    await copyDiagnosticReport(actions);
+  } finally {
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: originalNavigator,
+    });
+  }
 
   assert.equal(writeCalls, 1);
-  assert.deepEqual(context.lastFeedback, {
+  assert.deepEqual(actions.lastFeedback, {
     message: "Could not copy report to clipboard.",
     isError: true,
   });
