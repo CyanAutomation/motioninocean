@@ -6,8 +6,10 @@
 # The container camera stack runs on Bookworm userspace even when the host runs Trixie (containers ship their own userspace).
 DEBIAN_SUITE ?= bookworm
 RPI_SUITE ?= bookworm
+PYTHON ?= python3
+PIP := $(PYTHON) -m pip
 
-.PHONY: help install install-dev install-node test test-frontend test-ui-webcam-rail lint format type-check security check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
+.PHONY: help install install-dev install-node ensure-dev-tools test test-frontend test-ui-webcam-rail lint format type-check security check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
 help:
@@ -80,52 +82,56 @@ help:
 
 # Installation targets
 install:
-	pip install -r requirements.txt
+	$(PIP) install -r requirements.txt
 
 install-dev:
-	pip install -r requirements-dev.txt
+	$(PIP) install -r requirements-dev.txt
+
+ensure-dev-tools:
+	@$(PYTHON) -c "import importlib.util, sys; missing = [name for name in ('pytest', 'ruff', 'mypy', 'bandit') if importlib.util.find_spec(name) is None]; sys.exit(1 if missing else 0)" \
+		|| { echo "Python development tools are missing; installing requirements-dev.txt..."; $(MAKE) install-dev; }
 
 install-node:
 	@echo "Installing Node.js dependencies..."
 	npm ci
 
 pre-commit:
-	pip install pre-commit
+	$(PIP) install pre-commit
 	pre-commit install
 	pre-commit install --hook-type commit-msg
 
 # Code quality targets
-lint:
+lint: ensure-dev-tools
 	@echo "Running Ruff linter..."
-	ruff check pi_camera_in_docker/ tests/
+	$(PYTHON) -m ruff check pi_camera_in_docker/ tests/
 	@echo "Running ESLint..."
 	npm run lint
 
-lint-fix:
+lint-fix: ensure-dev-tools
 	@echo "Running ruff linter with auto-fix..."
-	ruff check pi_camera_in_docker/ tests/ --fix
+	$(PYTHON) -m ruff check pi_camera_in_docker/ tests/ --fix
 
-format:
+format: ensure-dev-tools
 	@echo "Formatting code with ruff..."
-	ruff format pi_camera_in_docker/ tests/
+	$(PYTHON) -m ruff format pi_camera_in_docker/ tests/
 
-format-check:
+format-check: ensure-dev-tools
 	@echo "Checking code formatting..."
-	ruff format --check pi_camera_in_docker/ tests/
+	$(PYTHON) -m ruff format --check pi_camera_in_docker/ tests/
 
-type-check:
+type-check: ensure-dev-tools
 	@echo "Running mypy type checker..."
-	-mypy pi_camera_in_docker/ --ignore-missing-imports --show-error-codes --no-strict-optional --allow-untyped-calls --allow-subclassing-any
+	-$(PYTHON) -m mypy pi_camera_in_docker/ --ignore-missing-imports --show-error-codes --no-strict-optional --allow-untyped-calls --allow-subclassing-any
 
-security:
+security: ensure-dev-tools
 	@echo "Running bandit security checks..."
-	bandit -r pi_camera_in_docker/ -c pyproject.toml
+	$(PYTHON) -m bandit -r pi_camera_in_docker/ -c pyproject.toml
 
-security-all:
+security-all: ensure-dev-tools
 	@echo "Running comprehensive security checks..."
-	bandit -r pi_camera_in_docker/ -c pyproject.toml
+	$(PYTHON) -m bandit -r pi_camera_in_docker/ -c pyproject.toml
 	@echo "Checking for known vulnerabilities in dependencies..."
-	safety check --json || true
+	$(PYTHON) -m safety check --json || true
 
 check-feature-flag-usage:
 	@echo "Checking feature flag runtime usage..."
@@ -136,7 +142,7 @@ docs-build:
 	@echo "Building Sphinx documentation..."
 	@if ! command -v sphinx-build &> /dev/null; then \
 		echo "Installing Sphinx..."; \
-		pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints; \
+		$(PIP) install sphinx sphinx-rtd-theme sphinx-autodoc-typehints; \
 	fi
 	@cd docs && sphinx-build -b html -W . _build/html
 	@echo "✓ Documentation built to docs/_build/html/index.html"
@@ -145,7 +151,7 @@ docs-check:
 	@echo "Checking documentation build (warnings as errors)..."
 	@if ! command -v sphinx-build &> /dev/null; then \
 		echo "Installing Sphinx..."; \
-		pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints; \
+		$(PIP) install sphinx sphinx-rtd-theme sphinx-autodoc-typehints; \
 	fi
 	@cd docs && sphinx-build -b html -W --keep-going . _build/html 2>&1 | tee /tmp/docs-check.log
 	@if grep -q "WARNING\|ERROR" /tmp/docs-check.log; then \
@@ -236,10 +242,10 @@ audit-ui-interactive:
 	@echo "Inspector closed. Save the generated script if needed."
 
 # Testing targets
-test:
+test: ensure-dev-tools
 	@echo "Running all tests with coverage..."
 	$(MAKE) test-frontend
-	pytest tests/ -v
+	$(PYTHON) -m pytest tests/ -v
 
 test-frontend:
 	@echo "Running frontend JavaScript tests..."
@@ -249,21 +255,21 @@ test-ui-webcam-rail:
 	@echo "Running WebKit webcam rail layout/theme UI test..."
 	npx playwright test --config=playwright.ui.config.mjs --project=webkit-desktop tests/ui/webcam-rail-layout-theme.spec.mjs
 
-test-unit:
+test-unit: ensure-dev-tools
 	@echo "Running unit tests..."
-	pytest tests/test_units.py tests/unit -v
+	$(PYTHON) -m pytest tests/test_units.py tests/unit -v
 
-test-integration:
+test-integration: ensure-dev-tools
 	@echo "Running integration tests..."
-	pytest tests/test_integration.py -v
+	$(PYTHON) -m pytest tests/test_integration.py -v
 
-test-config:
+test-config: ensure-dev-tools
 	@echo "Running configuration tests..."
-	pytest tests/test_config.py -v
+	$(PYTHON) -m pytest tests/test_config.py -v
 
-coverage:
+coverage: ensure-dev-tools
 	@echo "Generating coverage report..."
-	pytest tests/
+	$(PYTHON) -m pytest tests/
 	@echo "Coverage report generated in htmlcov/index.html"
 
 # Development targets

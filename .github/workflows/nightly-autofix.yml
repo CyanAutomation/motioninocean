@@ -37,7 +37,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install -r requirements-dev.txt
+          python -m pip install -r requirements-dev.txt
 
       - name: Install npm dependencies
         run: |
@@ -51,12 +51,12 @@ jobs:
       - name: Run ruff linter with autofix
         run: |
           echo "Running ruff check with autofix..."
-          ruff check pi_camera_in_docker/ tests/ --fix || true
+          python -m ruff check pi_camera_in_docker/ tests/ --fix || true
 
       - name: Run ruff formatter
         run: |
           echo "Running ruff format..."
-          ruff format pi_camera_in_docker/ tests/
+          python -m ruff format pi_camera_in_docker/ tests/
 
       - name: Run ESLint with autofix
         run: |

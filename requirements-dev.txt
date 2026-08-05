@@ -1,5 +1,5 @@
 # Development dependencies for pi-camera-in-docker
-# Install with: pip install -r requirements-dev.txt
+# Install with: python -m pip install -r requirements-dev.txt
 
 # Include production requirements
 -r requirements.txt
