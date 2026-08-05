@@ -50,6 +50,13 @@ compatible-repo-areas:
 - [ ] Security-relevant changes receive at least baseline scanning.
 - [ ] Final status clearly indicates merge readiness.
 
+## Related Skills
+
+- **Before this step:** [`contributor-workflow`](../contributor-workflow/SKILL.md) — Plan and implement your change first
+- **If CI still fails:** [`ci-triage`](../ci-triage/SKILL.md) — Diagnose specific job failures in detail
+- **Frontend specific:** [`frontend-testing-linting`](../frontend-testing-linting/SKILL.md) — Run JS/TS quality checks
+- **Before release:** [`release-operator`](../release-operator/SKILL.md) — Run full quality gates before release
+
 ## Common failure modes and recovery actions
 
 - **Failure:** Local commands differ from workflow tooling versions.

@@ -146,6 +146,30 @@ For automated tests and API test mode, an internal pykms fallback is enabled aut
 
 ---
 
+## Skills Reference: Playbooks for Common Workflows
+
+Motion-in-ocean provides **execution playbooks** (skills) for common development, testing, release, and troubleshooting tasks. These are comprehensive guides with step-by-step workflows, validation checklists, and recovery strategies.
+
+**Quick navigation by scenario:**
+
+| Scenario | Skill | Command |
+| ---------- | ------- | --------- |
+| Starting a code change | [`contributor-workflow`](.github/skills/contributor-workflow/SKILL.md) | `make ci` to validate |
+| CI job failed | [`ci-triage`](.github/skills/ci-triage/SKILL.md) | Read playbooks for your job type |
+| Before opening PR | [`ci-quality-gates`](.github/skills/ci-quality-gates/SKILL.md) | Run local checks matching CI |
+| JavaScript/TypeScript changes | [`frontend-testing-linting`](.github/skills/frontend-testing-linting/SKILL.md) | `npm run lint:fix && npm run format` |
+| Testing UI changes | [`ui-playwright`](.github/skills/ui-playwright/SKILL.md) | `make audit-ui` |
+| Creating diagrams | [`mermaid-creator`](.github/skills/mermaid-creator/SKILL.md) | Reference for Mermaid syntax |
+| Building docs | [`documentation-build-validation`](.github/skills/documentation-build-validation/SKILL.md) | `make docs-check && make docs-build` |
+| Dependency update PR | [`dependabot-dependency-management`](.github/skills/dependabot-dependency-management/SKILL.md) | Review & test Dependabot PR |
+| Feature behind a flag | [`feature-flag-management`](.github/skills/feature-flag-management/SKILL.md) | Enable flag via env var |
+| Container won't start | [`docker-debugging`](.github/skills/docker-debugging/SKILL.md) (coming soon) | Debug with `docker compose logs` |
+| Camera not streaming | [`pi-camera-troubleshooting`](.github/skills/pi-camera-troubleshooting/SKILL.md) | Run diagnostics, check device mapping |
+
+**Full index:** [`.github/skills/README.md`](.github/skills/README.md) — Searchable by role and use case.
+
+---
+
 ## Coding standards
 
 Please keep changes:
@@ -349,15 +373,15 @@ Please use clear commit messages:
 
 ## Pull Request process
 
-1. Fork the repository
-2. Create a branch:
+1. **Start with:** [`contributor-workflow`](.github/skills/contributor-workflow/SKILL.md) skill for end-to-end guidance
+
+2. Fork the repository and create a branch:
 
    ```bash
    git checkout -b feat/my-change
    ```
 
-3. Make your changes
-4. Run code quality checks:
+3. Make your changes and run code quality checks:
 
    ```bash
    # Format code
@@ -379,14 +403,42 @@ Please use clear commit messages:
    make ci
    ```
 
-5. Validate container builds:
+   **Hint:** Use [`ci-quality-gates`](.github/skills/ci-quality-gates/SKILL.md) skill to validate local parity with GitHub Actions CI.
+
+4. For JavaScript/TypeScript changes, also run:
+
+   ```bash
+   npm run lint:fix
+   npm run format
+   ```
+
+   **Reference:** [`frontend-testing-linting`](.github/skills/frontend-testing-linting/SKILL.md) skill
+
+5. If changes touch the web UI, run a UI audit:
+
+   ```bash
+   make audit-ui
+   ```
+
+   **Reference:** [`ui-playwright`](.github/skills/ui-playwright/SKILL.md) skill
+
+6. Validate container builds:
    - container builds successfully
    - endpoints still work (`/health`, `/ready`)
 
-6. Submit a Pull Request with:
+7. Submit a Pull Request with:
    - what changed
    - why it changed
    - how it was tested
+
+**Pre-merge checklist:**
+
+- [ ] All tests pass locally (`make ci`)
+- [ ] Code style consistent (`make format && make lint`)
+- [ ] Documentation updated (docstrings, README, docs/)
+- [ ] Documentation builds (`make docs-check`)
+- [ ] UI changes audited (if applicable)
+- [ ] Commits are focused and messages are clear
 
 If your PR changes behaviour, config, or adds new public functions, please ensure:
 
@@ -395,6 +447,8 @@ If your PR changes behaviour, config, or adds new public functions, please ensur
 - Documentation builds without warnings (`make docs-check`)
 
 **Note:** Pre-commit hooks will automatically run basic checks when you commit. The CI pipeline will run comprehensive checks on all PRs.
+
+**CI failures?** See [`ci-triage`](.github/skills/ci-triage/SKILL.md) skill for job-by-job diagnosis and recovery.
 
 ---
 

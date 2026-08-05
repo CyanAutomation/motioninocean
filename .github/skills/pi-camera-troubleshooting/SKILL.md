@@ -20,6 +20,13 @@ Use this skill when:
 - Device mapping or host camera detection is uncertain.
 - You are developing on non-Pi hardware and need expected mock-mode behavior.
 
+## Related Skills
+
+- **Container won't start:** [`docker-debugging`](../docker-debugging/SKILL.md) (coming soon) — Debug container startup before troubleshooting camera
+- **Post-deployment checks:** [`deployment-validation-health-checks`](../deployment-validation-health-checks/SKILL.md) — Verify deployment health (includes camera checks)
+- **Health/readiness probe fails:** [`deployment-validation-health-checks`](../deployment-validation-health-checks/SKILL.md) — Check `/health` and `/ready` endpoints
+- **Feature flag setup:** [`feature-flag-management`](../feature-flag-management/SKILL.md) — Enable mock camera mode for troubleshooting
+
 ## Fast triage inputs
 
 Collect these before branching deeper:

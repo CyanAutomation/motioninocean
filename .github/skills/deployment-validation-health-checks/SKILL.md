@@ -46,6 +46,14 @@ Do NOT use this skill for:
 
 ## Step-by-step workflow
 
+## Related Skills
+
+- **Container startup issues:** [`docker-debugging`](../docker-debugging/SKILL.md) (coming soon) — Debug before running health checks
+- **Camera not streaming:** [`pi-camera-troubleshooting`](../pi-camera-troubleshooting/SKILL.md) — Diagnose Picamera2-specific issues
+- **Feature flags:** [`feature-flag-management`](../feature-flag-management/SKILL.md) — Enable mock camera for non-Pi testing
+
+---
+
 ### Quick health assessment
 
 1. **Check container status:**

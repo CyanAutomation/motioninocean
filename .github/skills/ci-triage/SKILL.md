@@ -71,6 +71,15 @@ Use this skill when a GitHub Actions failure needs fast diagnosis in:
 
 ---
 
+## Related Skills
+
+- **Before this (prevent failures):** [`contributor-workflow`](../contributor-workflow/SKILL.md) — Follow contributor workflow to avoid CI failures
+- **Reproduce locally:** [`ci-quality-gates`](../ci-quality-gates/SKILL.md) — Run local CI gate checks to reproduce failure
+- **If frontend-specific:** [`frontend-testing-linting`](../frontend-testing-linting/SKILL.md) — Diagnose JS/TS test or lint failures
+- **After diagnosis:** Use relevant skill per job type (see playbooks below)
+
+---
+
 ## Job playbook: `ci.yml` → `lint`
 
 ### Typical failure signatures

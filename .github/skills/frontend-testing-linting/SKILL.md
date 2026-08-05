@@ -99,6 +99,14 @@ Do NOT use this skill for:
 
 3. Note: Prettier may change whitespace and line breaks; this is expected
 
+## Related Skills
+
+- **Before committing:** [`contributor-workflow`](../contributor-workflow/SKILL.md) — Part of quality gate validation
+- **UI testing:** [`ui-playwright`](../ui-playwright/SKILL.md) — Test JavaScript functionality with browser automation
+- **Design review:** [`front-end-design`](../front-end-design/SKILL.md) — Ensure UI follows design principles
+- **Feature flags in UI:** [`feature-flag-management`](../feature-flag-management/SKILL.md) — Gate new JS features
+- **If tests fail:** [`testing-strategy`](../testing-strategy/SKILL.md) (coming soon) — Write or fix failing tests
+
 ### Run Unit Tests (Playwright)
 
 1. Run all frontend tests:

@@ -48,6 +48,14 @@ compatible-repo-areas:
 - [ ] Commands and examples remain compatible with current project tooling.
 - [ ] Final summary includes explicit testing evidence.
 
+## Related Skills
+
+- **Next step (after implementation):** [`ci-quality-gates`](../ci-quality-gates/SKILL.md) — Validate your changes against local CI gates
+- **If tests needed:** [`testing-strategy`](../testing-strategy/SKILL.md) (coming soon) — Decide test type and write tests
+- **If CI fails:** [`ci-triage`](../ci-triage/SKILL.md) — Diagnose and fix CI job failures
+- **Frontend changes:** [`frontend-testing-linting`](../frontend-testing-linting/SKILL.md) — Run JS/TS tests and linting
+- **Design changes:** [`ui-playwright`](../ui-playwright/SKILL.md) — Audit UI changes with Playwright
+
 ## Common failure modes and recovery actions
 
 - **Failure:** Code change passes locally but lacks docs updates.

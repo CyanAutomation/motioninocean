@@ -52,6 +52,13 @@ compatible-repo-areas:
 - [ ] GitHub Release exists and references correct notes/images.
 - [ ] Rollback path is confirmed when release automation fails.
 
+## Related Skills
+
+- **Pre-release validation:** [`ci-quality-gates`](../ci-quality-gates/SKILL.md) — Run full quality gates before release
+- **Post-release verification:** [`release-publish`](../release-publish/SKILL.md) — Verify Docker/GitHub Release publication
+- **If workflow fails:** [`ci-triage`](../ci-triage/SKILL.md) — Diagnose workflow step failures
+- **Dependency updates before release:** [`dependabot-dependency-management`](../dependabot-dependency-management/SKILL.md) — Merge pending dependency PRs
+
 ## Common failure modes and recovery actions
 
 - **Failure:** Workflow does not start on tag push.
