@@ -169,7 +169,7 @@ def validate_settings_patch(patch: Dict[str, Any]) -> Dict[str, str]:
 
         for prop_name, value in properties.items():
             is_valid, error_msg = SettingsSchema.validate_value(category, prop_name, value)
-            if not is_valid:
+            if not is_valid and error_msg is not None:
                 errors[f"{category}.{prop_name}"] = error_msg
 
     return errors

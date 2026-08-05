@@ -696,6 +696,7 @@ class WebcamActionHandler:
                 interval_seconds = validated_interval
 
             api_test_state = self.state.get("api_test")
+            assert api_test_state is not None, "api_test_state should exist after enabled check"
             with api_test_state["lock"]:  # type: ignore[index]
                 existing_scenarios = (
                     api_test_state.get("scenario_list") or _DEFAULT_API_TEST_SCENARIOS

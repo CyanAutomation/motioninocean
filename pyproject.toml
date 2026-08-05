@@ -166,3 +166,26 @@ exclude_dirs = [
 skips = [
     "B101",  # assert_used - used in tests
 ]
+
+[tool.setuptools.package-data]
+# Include py.typed marker for type checking
+pi_camera_in_docker = [
+    "py.typed",
+]
+
+[tool.mypy]
+# Mypy type checking configuration
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+mypy_path = "stubs"
+
+# Per-module configuration for external packages without stubs
+[[tool.mypy.overrides]]
+module = "picamera2.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "cairosvg.*"
+ignore_missing_imports = true

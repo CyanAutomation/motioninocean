@@ -610,25 +610,7 @@ function normalizeWebcamStatusForUi(status = {}) {
   const statusText = String(status.status || "unknown").toLowerCase();
   const errorCode = String(status.error_code || "").toUpperCase();
   const isReady = status.ready === true;
-
-  let subtype = "no_response";
-
-  if (errorCode === "TRANSPORT_UNSUPPORTED") {
-    subtype = "unsupported_transport";
-  } else if (errorCode === "WEBCAM_API_MISMATCH") {
-    subtype = "no_response";
-  } else if (errorCode === "WEBCAM_UNAUTHORIZED" || statusText === "unauthorized") {
-    subtype = "unauthorized";
-  } else if (statusText === "ok" || statusText === "healthy" || statusText === "ready") {
-    subtype = isReady ? "healthy" : "partial_probe";
-  } else if (statusText === "degraded" || statusText === "warning") {
-    subtype = "degraded";
-  } else if (statusText === "partial" || statusText === "probing") {
-    subtype = "partial_probe";
-  } else if (statusText === "error" || statusText === "failed" || statusText === "down") {
-    subtype = "no_response";
-  }
-
+  const subtype = getWebcamStatusSubtype(statusText, errorCode, isReady);
   const config = STATUS_SUBTYPE_CONFIG[subtype] || {
     label: "Unknown",
     helpText: "Node state is unknown.",
@@ -651,6 +633,19 @@ function normalizeWebcamStatusForUi(status = {}) {
     statusClass: config.statusClass,
     reasonText,
   };
+}
+
+function getWebcamStatusSubtype(statusText, errorCode, isReady) {
+  if (errorCode === "TRANSPORT_UNSUPPORTED") return "unsupported_transport";
+  if (errorCode === "WEBCAM_UNAUTHORIZED" || statusText === "unauthorized") {
+    return "unauthorized";
+  }
+  if (["ok", "healthy", "ready"].includes(statusText)) {
+    return isReady ? "healthy" : "partial_probe";
+  }
+  if (["degraded", "warning"].includes(statusText)) return "degraded";
+  if (["partial", "probing"].includes(statusText)) return "partial_probe";
+  return "no_response";
 }
 
 function escapeHtml(value) {
@@ -1503,90 +1498,79 @@ async function diagnoseNode(nodeId) {
 }
 
 function getDiagnosticCheckRows(diagnostics = {}) {
-  const resolveState = (structuredStatus, fallbackState) => {
-    const normalized = String(structuredStatus || "").toLowerCase();
-    return ["pass", "warn", "fail"].includes(normalized) ? normalized : fallbackState;
+  const stateFor = (check, fallback) => {
+    const state = String(check?.status || "").toLowerCase();
+    return ["pass", "warn", "fail"].includes(state) ? state : fallback;
+  };
+  const codeMeta = (check) => (check?.code ? `Code: ${check.code}` : "");
+  const check = (key, name, fallback, detail, meta = codeMeta) => {
+    const value = diagnostics[name];
+    return {
+      key,
+      state: stateFor(value, fallback(value)),
+      detail: detail(value),
+      meta: meta(value),
+    };
   };
 
   return [
-    {
-      key: "Registration",
-      state: resolveState(
-        diagnostics.registration?.status,
-        diagnostics.registration?.valid ? "pass" : "fail",
-      ),
-      detail: diagnostics.registration?.valid
-        ? "Node registration is valid."
-        : diagnostics.registration?.error || "Registration data is invalid.",
-      meta: diagnostics.registration?.code ? `Code: ${diagnostics.registration.code}` : "",
-    },
-    {
-      key: "URL validation",
-      state: resolveState(
-        diagnostics.url_validation?.status,
-        diagnostics.url_validation?.blocked ? "fail" : "pass",
-      ),
-      detail: diagnostics.url_validation?.blocked
-        ? diagnostics.url_validation?.blocked_reason || "URL blocked by policy."
-        : "Base URL passed validation.",
-      meta: diagnostics.url_validation?.code ? `Code: ${diagnostics.url_validation.code}` : "",
-    },
-    {
-      key: "DNS resolution",
-      state: resolveState(
-        diagnostics.dns_resolution?.status,
-        diagnostics.dns_resolution?.resolves ? "pass" : "fail",
-      ),
-      detail: diagnostics.dns_resolution?.resolves
-        ? "DNS lookup succeeded."
-        : diagnostics.dns_resolution?.error || "DNS lookup failed.",
-      meta:
-        diagnostics.dns_resolution?.resolved_ips?.length > 0
-          ? `IPs: ${diagnostics.dns_resolution.resolved_ips.join(", ")}`
-          : "",
-    },
-    {
-      key: "Network connectivity",
-      state: resolveState(
-        diagnostics.network_connectivity?.status,
-        diagnostics.network_connectivity?.reachable ? "pass" : "fail",
-      ),
-      detail: diagnostics.network_connectivity?.reachable
-        ? "Node is reachable over the network."
-        : diagnostics.network_connectivity?.error || "Could not reach node.",
-      meta: [
-        diagnostics.network_connectivity?.category
-          ? `Category: ${diagnostics.network_connectivity.category}`
-          : "",
-        diagnostics.network_connectivity?.code
-          ? `Code: ${diagnostics.network_connectivity.code}`
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" · "),
-    },
-    {
-      key: "API endpoint",
-      state: resolveState(
-        diagnostics.api_endpoint?.status,
-        diagnostics.api_endpoint?.accessible === false
-          ? "fail"
-          : diagnostics.api_endpoint?.healthy === false
-            ? "warn"
-            : "pass",
-      ),
-      detail: diagnostics.api_endpoint?.status_code
-        ? `HTTP ${diagnostics.api_endpoint.status_code}`
-        : diagnostics.api_endpoint?.error || "Endpoint check incomplete.",
-      meta: [
-        diagnostics.api_endpoint?.healthy === false && diagnostics.api_endpoint?.status_code === 503
-          ? "Node reachable but may still be initializing."
-          : "",
-        diagnostics.api_endpoint?.code ? `Code: ${diagnostics.api_endpoint.code}` : "",
-      ]
-        .filter(Boolean)
-        .join(" · "),
-    },
+    check(
+      "Registration",
+      "registration",
+      (value) => (value?.valid ? "pass" : "fail"),
+      (value) =>
+        value?.valid
+          ? "Node registration is valid."
+          : value?.error || "Registration data is invalid.",
+    ),
+    check(
+      "URL validation",
+      "url_validation",
+      (value) => (value?.blocked ? "fail" : "pass"),
+      (value) =>
+        value?.blocked
+          ? value?.blocked_reason || "URL blocked by policy."
+          : "Base URL passed validation.",
+    ),
+    check(
+      "DNS resolution",
+      "dns_resolution",
+      (value) => (value?.resolves ? "pass" : "fail"),
+      (value) => (value?.resolves ? "DNS lookup succeeded." : value?.error || "DNS lookup failed."),
+      (value) => (value?.resolved_ips?.length ? `IPs: ${value.resolved_ips.join(", ")}` : ""),
+    ),
+    check(
+      "Network connectivity",
+      "network_connectivity",
+      (value) => (value?.reachable ? "pass" : "fail"),
+      (value) =>
+        value?.reachable
+          ? "Node is reachable over the network."
+          : value?.error || "Could not reach node.",
+      (value) =>
+        [value?.category && `Category: ${value.category}`, codeMeta(value)]
+          .filter(Boolean)
+          .join(" · "),
+    ),
+    check(
+      "API endpoint",
+      "api_endpoint",
+      (value) =>
+        value?.accessible === false ? "fail" : value?.healthy === false ? "warn" : "pass",
+      (value) =>
+        value?.status_code
+          ? `HTTP ${value.status_code}`
+          : value?.error || "Endpoint check incomplete.",
+      (value) =>
+        [
+          value?.healthy === false && value?.status_code === 503
+            ? "Node reachable but may still be initializing."
+            : "",
+          codeMeta(value),
+        ]
+          .filter(Boolean)
+          .join(" · "),
+    ),
   ];
 }
 

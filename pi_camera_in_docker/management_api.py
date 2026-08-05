@@ -292,7 +292,7 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
         port: Optional[int],
         connect_host: str,
         timeout: float,
-        context: ssl.SSLContext,
+        context: Optional[ssl.SSLContext],
     ):
         super().__init__(host=host, port=port, timeout=timeout, context=context)
         self._connect_host = connect_host
@@ -1067,8 +1067,25 @@ def _diagnose_http_transport(
     except ValueError:
         pass
 
+    # Ensure hostname was extracted successfully
+    if hostname is None:
+        results["diagnostics"]["dns_resolution"].update(
+            {
+                "resolves": False,
+                "status": "fail",
+                "error": "No hostname in URL",
+                "code": "NO_HOSTNAME",
+            }
+        )
+        add_recommendation(
+            "Fix: Ensure base_url contains a valid hostname.",
+            "fail",
+            "NO_HOSTNAME",
+        )
+        return results
+
     # DNS resolution
-    dns_success, resolved_ips, dns_error = _check_dns_resolution(hostname, parsed.port or None)
+    dns_success, resolved_ips, dns_error = _check_dns_resolution(hostname, parsed.port or 443)
     if not dns_success:
         results["diagnostics"]["dns_resolution"].update(
             {

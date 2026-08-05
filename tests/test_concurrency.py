@@ -67,7 +67,7 @@ class FrameBuffer(io.BufferedIOBase):
         self._max_frame_size = max_frame_size
         self._dropped_frames = 0
 
-    def write(self, buf: bytes) -> int:
+    def write(self, buf: bytes) -> int:  # type: ignore[override]
         """Write a new frame to the output buffer."""
         frame_size = len(buf)
 

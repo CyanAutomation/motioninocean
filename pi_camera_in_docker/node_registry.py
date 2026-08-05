@@ -14,12 +14,12 @@ from .transport_url_validation import validate_base_url_for_transport
 try:
     import fcntl
 except ImportError:  # pragma: no cover - unavailable on non-POSIX
-    fcntl = None
+    fcntl = None  # type: ignore[assignment]
 
 try:
     import msvcrt
 except ImportError:  # pragma: no cover - unavailable on non-Windows
-    msvcrt = None
+    msvcrt = None  # type: ignore[assignment]
 
 
 logger = logging.getLogger(__name__)

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": [
+    "pi_camera_in_docker/static/js/*.js",
+    "pi_camera_in_docker/static/css/*.css",
+    "scripts/*.js",
+    "playwright.ui.config.mjs",
+    "test-ui-config.js",
+    "tests/frontend/*.mjs",
+    "tests/ui/*.mjs"
+  ],
+  "health": {
+    "maxCyclomatic": 20,
+    "maxCognitive": 15,
+    "maxCrap": 500,
+    "maxUnitSize": 120,
+    "ignore": ["**/node_modules/**"],
+    "thresholdOverrides": [
+      {
+        "files": ["pi_camera_in_docker/static/js/app.js"],
+        "functions": [
+          "collectSetupConfig",
+          "fetchReadmeContent",
+          "applyMockStreamMode",
+          "renderMarkdownContent"
+        ],
+        "maxCyclomatic": 25,
+        "maxCognitive": 25,
+        "reason": "Browser controller preserves compatibility with optional legacy DOM states."
+      },
+      {
+        "files": ["pi_camera_in_docker/static/js/management.js"],
+        "functions": [
+          "recordStatusHistory",
+          "renderDiscoveredPanel",
+          "setActiveView",
+          "renderOverviewPanel",
+          "refreshStatuses"
+        ],
+        "maxCyclomatic": 25,
+        "maxCognitive": 25,
+        "reason": "Management dashboard aggregates multiple node states and responsive views."
+      }
+    ]
+  },
+  "duplicates": {
+    "mode": "mild",
+    "minTokens": 50,
+    "minLines": 5,
+    "threshold": 0
+  },
+  "rules": {
+    "unused-files": "error"
+  }
+}

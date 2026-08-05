@@ -304,9 +304,10 @@ class SettingsSchema:
             "string": cls._validate_string,
         }
 
-        validator = validators.get(prop_type)
-        if validator:
-            return validator(value, prop_schema)
+        if prop_type is not None:
+            validator = validators.get(prop_type)
+            if validator:
+                return validator(value, prop_schema)
 
         return True, None
 

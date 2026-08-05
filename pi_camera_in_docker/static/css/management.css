@@ -344,16 +344,6 @@
     pointer-events: auto;
   }
 
-  .management-layout.is-form-collapsed #toggle-webcam-form-panel-btn,
-  .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"])
-    #toggle-webcam-form-panel-btn {
-    width: 2rem;
-    min-width: 2rem;
-    height: 2rem;
-    padding: 0;
-    font-size: 0;
-  }
-
   .management-layout.is-form-collapsed .webcam-form-panel .panel-header,
   .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"])
     .webcam-form-panel
