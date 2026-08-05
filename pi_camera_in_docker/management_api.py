@@ -507,6 +507,7 @@ def _attempt_pinned_connection(
     hostname: str,
     port: Optional[int],
     address: str,
+    *,
     request_target: str,
     headers: Dict[str, str],
     data: Optional[bytes],

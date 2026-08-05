@@ -113,6 +113,7 @@ class CatGifGenerator:
         self,
         api_url: str,
         resolution: Tuple[int, int],
+        *,
         jpeg_quality: int = 90,
         target_fps: int = 10,
         cache_ttl_seconds: float = 60.0,
