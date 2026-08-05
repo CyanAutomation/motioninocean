@@ -49,7 +49,7 @@ If you're unsure whether a change will be accepted, open an issue first to discu
 
 ### Prerequisites
 
-- Python 3.9+ (3.11+ recommended)
+- Python 3.10+ (3.11+ recommended)
 - Docker + Docker Compose
 - Raspberry Pi OS (Bookworm) + ARM64 recommended for real camera testing
 - Non-Pi systems are supported for API/dev work using mock mode
@@ -71,7 +71,7 @@ If you're unsure whether a change will be accepted, open an issue first to discu
    source .venv/bin/activate
 
    # Install dependencies
-   pip install -r requirements-dev.txt
+   make install-dev
    ```
 
 3. **Install pre-commit hooks:**

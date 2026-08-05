@@ -24,7 +24,7 @@ Navigate to: **Settings → Branches → Add branch protection rule**
 
 - Require branches to be up to date before merging
 - Status checks that are required:
-  - `test (3.9)` - Python 3.9 tests
+  - `test (3.10)` - Python 3.10 tests
   - `test (3.11)` - Python 3.11 tests
   - `test (3.12)` - Python 3.12 tests
   - `lint` - Ruff linting
@@ -133,7 +133,7 @@ Navigate to: **Settings → Rules → Rulesets → New ruleset**
 2. **Require status checks**
    - Require all checks to pass
    - Status checks:
-     - `test (3.9)`
+     - `test (3.10)`
      - `test (3.11)`
      - `test (3.12)`
      - `lint`

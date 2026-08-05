@@ -41,7 +41,7 @@ Do NOT use this skill for:
 ## Required inputs
 
 - GitHub repository access with permission to view/merge PRs
-- Python 3.9+ and Node.js 18+ for local testing
+- Python 3.10+ and Node.js 18+ for local testing
 - `pip` and `npm` CLI tools
 - Basic understanding of semantic versioning (MAJOR.MINOR.PATCH)
 - CI workflow visibility to check test status

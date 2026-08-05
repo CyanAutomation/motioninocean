@@ -19,7 +19,7 @@ Motion In Ocean enables reliable, stateless camera streaming for Raspberry Pi in
 
 **Tech Stack**:
 
-- Python 3.9+ (3.11+ recommended)
+- Python 3.10+ (3.11+ recommended)
 - Flask (lightweight HTTP API)
 - Picamera2 / libcamera (modern RPi camera support)
 - Docker / Docker Compose (all deployments containerized)
@@ -89,7 +89,7 @@ Files: [pi_camera_in_docker/](pi_camera_in_ocean/)
 
 ### Prerequisites
 
-- Python 3.9+ (3.11+ recommended)
+- Python 3.10+ (3.11+ recommended)
 - Docker + Docker Compose
 - Node.js 18+ (for UI testing only)
 - Git
@@ -871,7 +871,7 @@ docker buildx build --platform linux/arm64,linux/amd64 \
 
 **Possible causes:**
 
-1. Python version mismatch (e.g., local 3.9 vs CI 3.11, 3.12)
+1. Python version mismatch (e.g., local 3.10 vs CI 3.11, 3.12)
 2. Missing dev dependencies: `pip install -r requirements-dev.txt`
 3. Stale cache: `make clean && make test`
 4. Different Docker mount behavior on macOS/Windows
@@ -879,7 +879,7 @@ docker buildx build --platform linux/arm64,linux/amd64 \
 **Fixes:**
 
 ```bash
-# Verify Python version (should be 3.9+)
+# Verify Python version (should be 3.10+)
 python --version
 
 # Reinstall ALL dependencies

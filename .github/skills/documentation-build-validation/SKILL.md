@@ -36,7 +36,7 @@ Do NOT use this skill for:
 
 ## Required inputs
 
-- Python 3.9+ with development dependencies installed (`pip install -r requirements-dev.txt`)
+- Python 3.10+ with development dependencies installed (`make install-dev`)
 - Node.js 18+ (for JSDoc generation)
 - Clean checkout of documentation files
 - Text editor for reviewing generated HTML output (optional, but helpful)

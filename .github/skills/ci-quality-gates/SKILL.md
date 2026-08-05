@@ -66,7 +66,7 @@ Enable developers to validate their changes against motion-in-ocean's CI quality
 - **Failure:** Local commands differ from workflow tooling versions.
   - **Recovery:** Align versions with workflow setup (Python 3.11 baseline for lint/type/security).
 - **Failure:** Tests pass locally but fail in matrix versions.
-  - **Recovery:** Re-run tests on additional Python versions (3.9/3.11/3.12) or use matrix-compatible environment.
+  - **Recovery:** Re-run tests on additional Python versions (3.10/3.11/3.12) or use matrix-compatible environment.
 - **Failure:** Security checks produce noisy/non-blocking findings.
   - **Recovery:** Triage critical/high issues first, annotate accepted risks, and open follow-up issues.
 - **Failure:** Docker-based scans cannot run due environment constraints.

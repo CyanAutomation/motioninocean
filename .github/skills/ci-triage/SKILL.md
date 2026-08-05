@@ -13,12 +13,34 @@ compatible-repo-areas:
 
 ## Purpose
 
-Use this skill when a GitHub Actions failure needs fast diagnosis in:
+Enable developers and operators to rapidly diagnose and fix GitHub Actions CI failures. This skill provides job-specific playbooks with typical failure signatures, reproduction steps, pass criteria, and escalation guidance. Following these playbooks reduces debugging time and ensures issues are fixed at the right layer (code, config, or infrastructure).
 
-- `.github/workflows/ci.yml` jobs: `test`, `lint`, `type-check`, `security`
-- `.github/workflows/security-scan.yml` job: `scan` (Trivy)
+## Scope and trigger conditions
 
-## Global triage sequence (all jobs)
+Apply this skill when:
+
+- A GitHub Actions job fails in `.github/workflows/ci.yml` (test, lint, type-check, security) or `.github/workflows/security-scan.yml` (scan)
+- CI failure blocks PR merge or indicates a regression
+- Local reproduction is needed to diagnose root cause
+- Unclear whether failure is code-level, dependency-level, or infrastructure-level
+
+Do NOT use this skill for:
+
+- Fixing code before running CI (use [`contributor-workflow`](../contributor-workflow/SKILL.md) first)
+- Preventing CI failures in the first place (use [`ci-quality-gates`](../ci-quality-gates/SKILL.md) to validate locally before pushing)
+- Modifying CI workflow configuration (that requires code review in a PR to `.github/workflows/`)
+
+## Required inputs
+
+- GitHub Actions job name and failing step (from GitHub UI or notification)
+- Ability to run local Makefile targets and Python/Node.js commands
+- Access to failing commit or branch for local reproduction
+- Familiarity with project structure, test patterns, and linting rules
+- Optional: `gh` CLI for querying workflow logs directly
+
+## Step-by-step workflow
+
+### Global triage sequence (all jobs)
 
 1. Confirm failing workflow/job name and read the first failing step log.
 2. Reproduce with the **Makefile target first** for speed, then run the matching direct CI command for parity.
@@ -26,9 +48,58 @@ Use this skill when a GitHub Actions failure needs fast diagnosis in:
 4. Run broader validation (`make ci` or targeted workflow-equivalent command set) before closing triage.
 5. Escalate when findings indicate infra/secrets/policy/tooling-version issues outside normal code fixes.
 
+Job-specific playbooks follow below, organized by job name.
+
+## Validation checklist
+
+- [ ] Failed job name and step clearly identified from GitHub Actions UI
+- [ ] First failing step log read and searched for error keywords
+- [ ] Local reproduction attempted with Makefile target or direct command
+- [ ] Root cause identified and classified (code, dependency, config, or infra)
+- [ ] If code fix: change made, job re-run locally, result documented
+- [ ] If dependency: version checked, lockfile updated if needed
+- [ ] If config: workflow or tool config reviewed, validation attempted
+- [ ] If infra/policy: escalation decision made with reasoning documented
+- [ ] Final validation run (`make ci` or equivalent) shows job passing
+- [ ] PR comment or commit message documents diagnosis and fix
+
+## Source of truth
+
+- `.github/workflows/ci.yml` — Exact job definitions, steps, and commands that fail
+- `.github/workflows/security-scan.yml` — Security scanning job configuration
+- `Makefile` — Local equivalents for each CI job (make test, make lint, make type-check, make security)
+- `requirements-dev.txt` — Python testing/linting tool versions (pytest, ruff, mypy, bandit)
+- `package.json` — Node.js testing/linting tool versions (eslint, prettier)
+- `pyproject.toml` — pytest and tool configuration (coverage, mypy flags)
+- `CONTRIBUTING.md` — Contributor workflow and quality expectations
+
+## Common failure modes and recovery actions
+
+See job-specific playbooks below for detailed diagnosis. At a high level:
+
+- **Failure:** Local reproduction succeeds but CI fails
+  - **Recovery:** Check Python/Node version in CI workflow vs local; may be matrix-specific (e.g., Python 3.10 vs 3.11)
+- **Failure:** Flaky tests pass/fail unpredictably
+  - **Recovery:** Run 3 times locally to confirm reproducibility; if still flaky, open issue with details
+- **Failure:** Dependency resolution fails only in CI
+  - **Recovery:** Check lockfile versions; may need `pip install --upgrade` or `npm ci` regeneration
+- **Failure:** Tool version drift causes different results locally vs CI
+  - **Recovery:** Verify tool versions match workflow (e.g., `ruff --version`, `mypy --version`)
+- **Failure:** Infra/secrets issue (e.g., missing GHCR auth, branch protection rule)
+  - **Recovery:** Escalate to repo admin; document in GitHub issue; do not attempt local workarounds
+
+## Maintenance notes
+
+- Review this skill quarterly and immediately when `.github/workflows/ci.yml`, `.github/workflows/security-scan.yml`, or `Makefile` changes
+- Update `last-reviewed` field whenever workflow or job definitions change significantly
+- Ensure job playbooks below stay synchronized with actual workflow jobs (add new jobs when added to CI)
+- Test local reproduction commands remain consistent with workflow commands
+
 ---
 
-## Job playbook: `ci.yml` → `test`
+## Job playbooks by job type
+
+### Job playbook: `ci.yml` → `test`
 
 ### Typical failure signatures
 
@@ -36,7 +107,7 @@ Use this skill when a GitHub Actions failure needs fast diagnosis in:
 - `ModuleNotFoundError` / import failures.
 - `fixture '...' not found` or pytest config errors.
 - Coverage invocation issues from `--cov=pi_camera_in_docker`.
-- Version-sensitive failures in matrix (`3.9`, `3.11`, `3.12`) that do not reproduce on one interpreter.
+- Version-sensitive failures in matrix (`3.10`, `3.11`, `3.12`) that do not reproduce on one interpreter.
 
 ### First files to inspect
 
@@ -50,9 +121,9 @@ Use this skill when a GitHub Actions failure needs fast diagnosis in:
 - Make target:
   - `make test`
 - CI-parity direct command:
-  - `pytest tests/ --cov=pi_camera_in_docker --cov-report=term-missing --cov-report=xml --cov-report=html -v`
+  - `python -m pytest tests/ -v`
 - Matrix-focused repro (if available):
-  - `python3.9 -m pytest tests/ -v`
+  - `python3.10 -m pytest tests/ -v`
   - `python3.11 -m pytest tests/ -v`
   - `python3.12 -m pytest tests/ -v`
 
@@ -68,15 +139,6 @@ Use this skill when a GitHub Actions failure needs fast diagnosis in:
 - Failures occur only in CI-hosted Python versions not available locally.
 - Flake appears nondeterministic/retry-sensitive across reruns.
 - Dependency resolution breaks across the full test matrix.
-
----
-
-## Related Skills
-
-- **Before this (prevent failures):** [`contributor-workflow`](../contributor-workflow/SKILL.md) — Follow contributor workflow to avoid CI failures
-- **Reproduce locally:** [`ci-quality-gates`](../ci-quality-gates/SKILL.md) — Run local CI gate checks to reproduce failure
-- **If frontend-specific:** [`frontend-testing-linting`](../frontend-testing-linting/SKILL.md) — Diagnose JS/TS test or lint failures
-- **After diagnosis:** Use relevant skill per job type (see playbooks below)
 
 ---
 
@@ -235,6 +297,15 @@ Use this skill when a GitHub Actions failure needs fast diagnosis in:
 - CVEs are critical/high and fixed versions are unavailable.
 - Vulnerabilities are in base image layers requiring platform-wide image strategy changes.
 - CI runner permission/tooling issues block SARIF upload or actionable reporting.
+
+---
+
+## Related Skills
+
+- **Before this (prevent failures):** [`contributor-workflow`](../contributor-workflow/SKILL.md) — Follow contributor workflow to avoid CI failures
+- **Reproduce locally:** [`ci-quality-gates`](../ci-quality-gates/SKILL.md) — Run local CI gate checks to reproduce failure
+- **If frontend-specific:** [`frontend-testing-linting`](../frontend-testing-linting/SKILL.md) — Diagnose JS/TS test or lint failures
+- **After diagnosis:** Use relevant skill per job type (see playbooks above)
 
 ---
 
