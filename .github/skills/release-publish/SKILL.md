@@ -62,6 +62,12 @@ After a successful run for tag `vX.Y.Z`:
     - Docker pull examples for `:vX.Y.Z`, `:X.Y.Z`, and `:latest`
     - link to GitHub Packages container page
 
+## Related Skills
+
+- **Before this step:** [`release-operator`](../release-operator/SKILL.md) — Creates the release tag
+- **If workflow fails:** [`ci-triage`](../ci-triage/SKILL.md) — Diagnose workflow failures
+- **Pre-release validation:** [`ci-quality-gates`](../ci-quality-gates/SKILL.md) — Ensure code quality before publishing
+
 ## Troubleshooting by workflow step
 
 ### Extract changelog for release

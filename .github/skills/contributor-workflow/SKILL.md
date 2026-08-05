@@ -12,6 +12,10 @@ compatible-repo-areas:
   - tests/
 ---
 
+## Purpose
+
+Enable contributors to understand the complete workflow for implementing and validating changes in motion-in-ocean. This skill covers planning, implementation, documentation, testing, and validation steps aligned with project standards. Following this workflow ensures PRs meet quality gates, are properly documented, and provide clear testing evidence.
+
 ## Scope and trigger conditions
 
 - Apply when implementing any change intended for a pull request.
@@ -55,6 +59,21 @@ compatible-repo-areas:
 - **If CI fails:** [`ci-triage`](../ci-triage/SKILL.md) — Diagnose and fix CI job failures
 - **Frontend changes:** [`frontend-testing-linting`](../frontend-testing-linting/SKILL.md) — Run JS/TS tests and linting
 - **Design changes:** [`ui-playwright`](../ui-playwright/SKILL.md) — Audit UI changes with Playwright
+
+## Source of truth
+
+- `README.md` — Quick start, local development setup, and CI/CD expectations
+- `CONTRIBUTING.md` — Full contributor workflow, coding standards, PR process
+- `Makefile` — All local validation commands (`make format`, `make lint`, `make test`, `make ci`)
+- `.github/workflows/ci.yml` — GitHub Actions CI job definitions that validate PRs
+- `pi_camera_in_docker/` — Application source code structure and conventions
+- `tests/` — Test patterns (unit, integration, UI)
+
+## Maintenance notes
+
+- Review this skill quarterly and immediately when CONTRIBUTING.md, README.md, or Makefile changes
+- Update `last-reviewed` whenever workflow or validation commands change
+- Ensure skill reflects current project tooling, commands, and quality expectations
 
 ## Common failure modes and recovery actions
 

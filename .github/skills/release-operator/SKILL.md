@@ -12,6 +12,10 @@ compatible-repo-areas:
   - .github/workflows/docker-publish.yml
 ---
 
+## Purpose
+
+Enable release operators to safely execute motion-in-ocean's semantic versioning release process. This skill covers preflight validation, tag creation, changelog management, workflow monitoring, and rollback procedures. Proper release execution ensures version tags trigger Docker image builds, GitHub releases are created with correct notes, and operators have recovery paths if workflows fail.
+
 ## Scope and trigger conditions
 
 - Apply when preparing a new semantic version release.
@@ -58,6 +62,20 @@ compatible-repo-areas:
 - **Post-release verification:** [`release-publish`](../release-publish/SKILL.md) — Verify Docker/GitHub Release publication
 - **If workflow fails:** [`ci-triage`](../ci-triage/SKILL.md) — Diagnose workflow step failures
 - **Dependency updates before release:** [`dependabot-dependency-management`](../dependabot-dependency-management/SKILL.md) — Merge pending dependency PRs
+
+## Source of truth
+
+- `create-release.sh` — Script that performs version bumping and tag creation
+- `RELEASE.md` — Detailed release process documentation and rollback procedures
+- `VERSION` — Current semantic version (MAJOR.MINOR.PATCH)
+- `CHANGELOG.md` — Release notes and version history (must include section for new version)
+- `.github/workflows/docker-publish.yml` — Tag-triggered Docker build and GitHub release workflow
+
+## Maintenance notes
+
+- Review this skill quarterly and immediately when `create-release.sh`, `RELEASE.md`, or `.github/workflows/docker-publish.yml` changes
+- Update `last-reviewed` field whenever release process changes
+- Ensure pre-release checklist reflects current deployment and tagging requirements
 
 ## Common failure modes and recovery actions
 

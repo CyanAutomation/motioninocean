@@ -12,6 +12,10 @@ compatible-repo-areas:
   - pyproject.toml
 ---
 
+## Purpose
+
+Enable developers to validate their changes against motion-in-ocean's CI quality gates locally before pushing to GitHub. This skill ensures code meets the project's standards for testing, linting, type safety, and security scanning. Local validation reduces CI failures and accelerates feedback cycles.
+
 ## Scope and trigger conditions
 
 - Apply before opening/merging PRs.
@@ -67,3 +71,18 @@ compatible-repo-areas:
   - **Recovery:** Triage critical/high issues first, annotate accepted risks, and open follow-up issues.
 - **Failure:** Docker-based scans cannot run due environment constraints.
   - **Recovery:** Run available static checks, report limitation, and defer full scan to CI with clear note.
+
+## Source of truth
+
+- `.github/workflows/ci.yml` — Exact CI job definitions, tooling versions, and validation order (test, lint, type-check, security)
+- `.github/workflows/security-scan.yml` — Docker image security scanning with Trivy
+- `Makefile` — Local CI equivalent commands (`make ci`, `make test`, `make lint`, `make type-check`, `make security`)
+- `requirements-dev.txt` — Python dev dependencies and versions for CI tooling (pytest, ruff, mypy, bandit)
+- `pyproject.toml` — Project metadata, pytest configuration, coverage settings
+- `CONTRIBUTING.md` — Contributor expectations and CI validation process
+
+## Maintenance notes
+
+- Review this skill quarterly and immediately when `.github/workflows/ci.yml` or `Makefile` changes
+- Update `last-reviewed` field on every review
+- Test that local Makefile targets produce equivalent results to GitHub Actions jobs (especially after CI workflow updates)

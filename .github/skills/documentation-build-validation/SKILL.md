@@ -137,6 +137,12 @@ Do NOT use this skill for:
 
 3. Address any errors before commit
 
+## Related Skills
+
+- **Mermaid diagrams:** Use [`mermaid-creator`](../mermaid-creator/SKILL.md) to create/validate diagrams before build
+- **Docstring writing:** Reference [AGENTS.md#documentation-requirements](../../AGENTS.md#documentation-requirements) for style
+- **Before PR:** Run this skill to validate docs won't fail CI
+
 ## Validation checklist
 
 - [ ] `make docs-build` completes without errors or warnings

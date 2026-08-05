@@ -262,6 +262,13 @@ Do NOT use this skill for:
    - Check if flag was recently added/modified
    - Review git history: `git log -p pi_camera_in_docker/feature_flags.py | head -100`
 
+## Related Skills
+
+- **UI feature gating:** Use [`ui-playwright`](../ui-playwright/SKILL.md) to test UI with flag enabled/disabled
+- **Frontend implementation:** Use [`frontend-testing-linting`](../frontend-testing-linting/SKILL.md) for JS/TS code with feature gates
+- **Development workflow:** Use [`contributor-workflow`](../contributor-workflow/SKILL.md) which references this skill
+- **Mock camera development:** Use this skill to enable `MOCK_CAMERA` flag for non-Pi testing
+
 ## Validation checklist
 
 - [ ] Feature flag is defined in `pi_camera_in_docker/feature_flags.py`

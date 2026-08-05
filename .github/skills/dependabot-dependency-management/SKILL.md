@@ -285,6 +285,12 @@ Do NOT use this skill for:
    - GitHub Actions allows manual Dependabot workflow trigger
    - Or close/reopen Dependabot PR to reset its state
 
+## Related Skills
+
+- **Before release:** Use this skill to review/merge pending Dependabot PRs before running [`release-operator`](../release-operator/SKILL.md)
+- **If tests fail:** Use [`ci-triage`](../ci-triage/SKILL.md) to diagnose test failures from dependency updates
+- **Dependency conflict:** Use [`ci-quality-gates`](../ci-quality-gates/SKILL.md) to validate locally before merging
+
 ## Validation checklist
 
 - [ ] Dependabot PR clearly shows old and new versions

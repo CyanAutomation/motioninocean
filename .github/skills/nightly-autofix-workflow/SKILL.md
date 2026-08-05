@@ -185,6 +185,12 @@ Do NOT use this skill for:
 
 6. **Monitor the run** in the workflow history
 
+## Related Skills
+
+- **Code quality locally:** Use [`ci-quality-gates`](../ci-quality-gates/SKILL.md) to run manual equivalents (eslint, ruff, prettier)
+- **If autofix PR fails:** Use [`ci-triage`](../ci-triage/SKILL.md) to diagnose workflow job failures
+- **Before committing:** [`contributor-workflow`](../contributor-workflow/SKILL.md) recommends running manual quality checks
+
 ## Validation checklist
 
 - [ ] Workflow file `.github/workflows/nightly-autofix.yml` exists and is valid YAML
