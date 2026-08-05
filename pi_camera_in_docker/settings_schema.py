@@ -172,7 +172,8 @@ class SettingsSchema:
         Returns:
             Category schema or None if not found
         """
-        return cls.SCHEMA_DEFINITION.get(category)
+        result = cls.SCHEMA_DEFINITION.get(category)
+        return cast(Optional[Dict[str, Any]], result)
 
     @classmethod
     def get_property_schema(cls, category: str, property_name: str) -> Optional[Dict[str, Any]]:
@@ -188,7 +189,9 @@ class SettingsSchema:
         """
         category_schema = cls.SCHEMA_DEFINITION.get(category, {})
         properties = category_schema.get("properties", {})
-        return properties.get(property_name)
+        result = properties.get(property_name)
+        return cast(Optional[Dict[str, Any]], result)
+        return cast(Optional[Dict[str, Any]], result)
 
     @staticmethod
     def _validate_boolean(value: Any, _schema: Dict[str, Any]) -> Tuple[bool, Optional[str]]:

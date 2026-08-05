@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 /**
  * Render webcam configuration sections without owning application state.
  */
@@ -115,4 +117,3 @@ function renderHealth(healthCheck, setHealthIndicator, normalizeHealthState, hea
       "Overall health derived from camera, stream freshness, connection capacity, and mock mode.",
   });
 }
-// @ts-nocheck

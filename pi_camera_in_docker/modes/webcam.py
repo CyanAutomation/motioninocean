@@ -3,7 +3,7 @@ import logging
 import time
 from collections import deque
 from threading import Condition, Lock
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, cast
 
 import sentry_sdk
 from flask import Flask, Response, jsonify, request
@@ -715,13 +715,14 @@ class WebcamActionHandler:
                     normalized_action, api_test_state, scenario_list, interval_seconds
                 )  # type: ignore[arg-type]
 
-                return jsonify(
+                response = jsonify(
                     {
                         "ok": True,
                         "action": normalized_action,
                         "api_test": _get_api_test_runtime_info(api_test_state, scenario_list),  # type: ignore[arg-type]
                     }
                 )
+                return cast(Response | tuple[Response, int], response)
 
         return _build_json_error(
             "ACTION_UNSUPPORTED",

@@ -445,7 +445,8 @@ class ApplicationSettings:
     @staticmethod
     def _clone_schema() -> Dict[str, Any]:
         """Create a copy of default schema."""
-        return json.loads(json.dumps(ApplicationSettings.DEFAULT_SCHEMA))
+        result = json.loads(json.dumps(ApplicationSettings.DEFAULT_SCHEMA))
+        return cast("Dict[str, Any]", result)
 
     @staticmethod
     def _validate_settings_structure(data: Dict[str, Any]) -> None:

@@ -36,7 +36,8 @@ def fetch_cat_gif(api_url: str, timeout: float = REQUEST_TIMEOUT_SECONDS) -> Opt
     """
     try:
         with urllib.request.urlopen(api_url, timeout=timeout) as response:
-            return response.read()
+            result = response.read()
+            return cast("bytes", result)
     except (urllib.error.URLError, urllib.error.HTTPError) as e:
         logger.warning("Failed to fetch cat GIF from %s: %s", api_url, e)
         return None

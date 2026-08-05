@@ -261,7 +261,7 @@ def _validate_auth(auth: Any, webcam_id: str = "unknown") -> Dict[str, Any]:
             message = "auth.token is required for auth.type='bearer'"
             raise NodeValidationError(message)
 
-    return auth
+    return cast(Dict[str, Any], auth)
 
 
 def _validate_required_fields_present(node: Dict[str, Any], partial: bool) -> None:
@@ -604,7 +604,8 @@ class FileWebcamRegistry(WebcamRegistry):
             List of webcam dictionaries.
         """
         with self._exclusive_lock():
-            return self._load()["nodes"]
+            result = self._load()["nodes"]
+            return cast(list[dict[str, Any]], result)
 
     def get_webcam(self, webcam_id: str) -> Optional[Dict[str, Any]]:
         """Get webcam by ID.

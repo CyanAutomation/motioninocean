@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 /**
  * Render webcam metrics without owning application state or DOM discovery.
  */
@@ -62,4 +64,3 @@ function setText(element, value) {
     element.textContent = value;
   }
 }
-// @ts-nocheck

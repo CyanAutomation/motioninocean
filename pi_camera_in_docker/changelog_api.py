@@ -88,7 +88,8 @@ def _fetch_remote_changelog_markdown(remote_url: str, timeout_seconds: float) ->
     """
     try:
         with urlopen(remote_url, timeout=timeout_seconds) as response:  # nosec B310
-            return response.read().decode("utf-8")
+            result = response.read().decode("utf-8")
+            return cast("str", result)
     except (HTTPError, URLError, TimeoutError, OSError, UnicodeDecodeError) as exc:
         message = f"Remote changelog fetch failed for {remote_url}"
         raise OSError(message) from exc
