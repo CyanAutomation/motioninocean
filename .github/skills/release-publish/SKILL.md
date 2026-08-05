@@ -1,6 +1,14 @@
 ---
 name: release-publish
 description: Run and verify the tag-triggered Docker/GitHub Release publication flow implemented by .github/workflows/docker-publish.yml.
+owner: motion-in-ocean team
+last-reviewed: 2026-08-05
+category: CI/CD
+compatible-repo-areas:
+  - .github/workflows/docker-publish.yml
+  - CHANGELOG.md
+  - VERSION
+  - RELEASE.md
 ---
 
 ## Purpose

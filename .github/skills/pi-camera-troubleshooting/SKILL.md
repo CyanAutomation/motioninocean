@@ -1,6 +1,14 @@
 ---
 name: pi-camera-troubleshooting
 description: Diagnose motion-in-ocean camera startup and stream failures on Raspberry Pi and non-Pi environments, using runtime config, device mapping checks, health/readiness probes, and mock camera fallback.
+owner: motion-in-ocean team
+last-reviewed: 2026-08-05
+category: Deployment
+compatible-repo-areas:
+  - pi_camera_in_docker/
+  - containers/
+  - scripts/healthcheck.py
+  - Dockerfile
 ---
 
 ## Scope and trigger conditions

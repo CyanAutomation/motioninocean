@@ -2,11 +2,47 @@
 
 This directory contains reusable execution playbooks for common motion-in-ocean tasks.
 
-| Skill                                                     | Purpose                                                                                             | Use when...                                                                                                  |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| [`contributor-workflow`](./contributor-workflow/SKILL.md) | Plan, implement, and validate day-to-day code or docs changes using project contribution standards. | You are adding/fixing functionality, updating docs, or preparing a PR that must satisfy local quality gates. |
-| [`ci-quality-gates`](./ci-quality-gates/SKILL.md)         | Run and interpret CI-equivalent checks (tests, lint, type checks, security) before pushing changes. | You need confidence that changes will pass `.github/workflows/ci.yml` and `security-scan.yml`.               |
-| [`release-operator`](./release-operator/SKILL.md)         | Execute and verify the automated, tag-driven release process with rollback awareness.               | You are cutting a release, validating release prerequisites, or troubleshooting release automation.          |
+## Skills by Category
+
+### CI/CD
+
+| Skill | Purpose | Last Reviewed |
+| ------- | --------- | --------------- |
+| [`ci-quality-gates`](./ci-quality-gates/SKILL.md) | Reproduce and evaluate CI/security gates locally before pushing changes. | 2026-08-05 |
+| [`ci-triage`](./ci-triage/SKILL.md) | Diagnose CI job failures with playbooks for test, lint, type-check, security, and scan jobs. | 2026-08-05 |
+| [`release-operator`](./release-operator/SKILL.md) | Execute tag-driven releases with preflight checks, verification, and rollback awareness. | 2026-08-05 |
+| [`release-publish`](./release-publish/SKILL.md) | Run and verify Docker/GitHub Release publication via `.github/workflows/docker-publish.yml`. | 2026-08-05 |
+| [`nightly-autofix-workflow`](./nightly-autofix-workflow/SKILL.md) | Monitor and troubleshoot scheduled nightly code quality automation (ESLint, Ruff, Prettier). | 2026-08-05 |
+| [`dependabot-dependency-management`](./dependabot-dependency-management/SKILL.md) | Review, test, and merge Dependabot PRs for Python and JavaScript/TypeScript dependencies. | 2026-08-05 |
+
+### Development
+
+| Skill | Purpose | Last Reviewed |
+| ------- | --------- | --------------- |
+| [`contributor-workflow`](./contributor-workflow/SKILL.md) | Plan, implement, and validate code/docs changes with quality gate validation. | 2026-08-05 |
+| [`frontend-testing-linting`](./frontend-testing-linting/SKILL.md) | Run Node.js tests, ESLint, and Prettier for JavaScript/TypeScript; includes fallow integration for code health assessment. | 2026-08-05 |
+| [`feature-flag-management`](./feature-flag-management/SKILL.md) | Enable, disable, and test feature flags; understand flag lifecycle for development and production. | 2026-08-05 |
+
+### Deployment
+
+| Skill | Purpose | Last Reviewed |
+|-------|---------|---------------|
+| [`pi-camera-troubleshooting`](./pi-camera-troubleshooting/SKILL.md) | Diagnose camera startup, streaming, device mapping, and health check failures. | 2026-08-05 |
+| [`deployment-validation-health-checks`](./deployment-validation-health-checks/SKILL.md) | Validate post-deployment container health, device mapping, and API endpoint availability. | 2026-08-05 |
+
+### Design
+
+| Skill | Purpose | Last Reviewed |
+|-------|---------|---------------|
+| [`ui-playwright`](./ui-playwright/SKILL.md) | Audit motion-in-ocean web UI (streaming viewer, node management) with Playwright. | 2026-08-05 |
+| [`front-end-design`](./front-end-design/SKILL.md) | Create visually strong UIs with restrained composition, image-led hierarchy, and tasteful motion. | 2026-08-05 |
+
+### Documentation
+
+| Skill | Purpose | Last Reviewed |
+|-------|---------|---------------|
+| [`mermaid-creator`](./mermaid-creator/SKILL.md) | Create clear, semantically meaningful Mermaid diagrams for architecture, workflows, and PRDs. | 2026-08-05 |
+| [`documentation-build-validation`](./documentation-build-validation/SKILL.md) | Build, validate, and troubleshoot Sphinx documentation, JSDoc generation, and Mermaid diagrams. | 2026-08-05 |
 
 ## Skill authoring template
 
@@ -18,11 +54,12 @@ Use [`_template/SKILL.md`](./_template/SKILL.md) when creating or updating a ski
 
 Every skill must include these metadata fields:
 
-- `name`
-- `description`
-- `owner`
-- `last-reviewed` (ISO date, `YYYY-MM-DD`)
-- `compatible-repo-areas` (list of paths/components the skill applies to)
+- `name` (required)
+- `description` (required)
+- `owner` (required)
+- `last-reviewed` (required, ISO date format `YYYY-MM-DD`)
+- `category` (recommended; one of: CI/CD, Development, Deployment, Documentation, Design, Tools)
+- `compatible-repo-areas` (required, list of paths/components the skill applies to)
 
 ### Required content sections
 

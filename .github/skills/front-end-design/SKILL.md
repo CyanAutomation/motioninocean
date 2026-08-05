@@ -1,6 +1,13 @@
 ---
-name: frontend-skill
+name: front-end-design
 description: Use when the task asks for a visually strong landing page, website, app, prototype, demo, or game UI. This skill enforces restrained composition, image-led hierarchy, cohesive content structure, and tasteful motion while avoiding generic cards, weak branding, and UI clutter.
+owner: motion-in-ocean team
+last-reviewed: 2026-08-05
+category: Design
+compatible-repo-areas:
+  - pi_camera_in_docker/static/
+  - pi_camera_in_docker/templates/
+  - design/
 ---
 
 # Frontend skill

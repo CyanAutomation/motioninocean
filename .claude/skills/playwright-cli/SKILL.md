@@ -1,6 +1,14 @@
 ---
 name: playwright-cli
 description: Automates browser interactions for web testing, form filling, screenshots, and data extraction. Use when the user needs to navigate websites, interact with web pages, fill forms, take screenshots, test web applications, or extract information from web pages.
+owner: motion-in-ocean team
+last-reviewed: 2026-08-05
+category: Tools
+compatible-repo-areas:
+  - tests/ui/
+  - playwright.ui.config.mjs
+  - pi_camera_in_docker/templates/
+  - pi_camera_in_docker/static/
 allowed-tools: Bash(playwright-cli:*)
 ---
 

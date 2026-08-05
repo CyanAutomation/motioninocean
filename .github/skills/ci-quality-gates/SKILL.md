@@ -1,6 +1,15 @@
 ---
 name: ci-quality-gates
 description: Reproduce and evaluate motion-in-ocean CI and security quality gates locally. Use when validating pull requests, diagnosing CI failures, or ensuring parity with workflows in .github/workflows/ci.yml and security-scan.yml.
+owner: motion-in-ocean team
+last-reviewed: 2026-08-05
+category: CI/CD
+compatible-repo-areas:
+  - .github/workflows/ci.yml
+  - .github/workflows/security-scan.yml
+  - Makefile
+  - requirements-dev.txt
+  - pyproject.toml
 ---
 
 ## Scope and trigger conditions

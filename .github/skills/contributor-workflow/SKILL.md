@@ -1,6 +1,15 @@
 ---
 name: contributor-workflow
 description: Execute standard motion-in-ocean contribution work from issue understanding to PR-ready validation. Use for code changes, documentation updates, bug fixes, and feature additions that must follow CONTRIBUTING.md and README.md guidance.
+owner: motion-in-ocean team
+last-reviewed: 2026-08-05
+category: Development
+compatible-repo-areas:
+  - CONTRIBUTING.md
+  - README.md
+  - Makefile
+  - pi_camera_in_docker/
+  - tests/
 ---
 
 ## Scope and trigger conditions

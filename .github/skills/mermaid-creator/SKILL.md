@@ -1,6 +1,14 @@
 ---
 name: mermaid-creator
 description: Creates clear, semantically meaningful Mermaid diagrams for motion-in-ocean PRDs, workflows, and architecture; optimized for AI comprehension first and human readability second.
+owner: motion-in-ocean team
+last-reviewed: 2026-08-05
+category: Documentation
+compatible-repo-areas:
+  - docs/
+  - jsdoc.json
+  - Makefile
+  - README.md
 ---
 
 # Skill: Mermaid Diagram Creator for motion-in-ocean

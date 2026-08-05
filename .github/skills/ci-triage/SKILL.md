@@ -1,6 +1,14 @@
 ---
 name: ci-triage
 description: Job-by-job triage playbooks for CI and security workflows, including local reproduction, pass criteria, and escalation guidance.
+owner: motion-in-ocean team
+last-reviewed: 2026-08-05
+category: CI/CD
+compatible-repo-areas:
+  - .github/workflows/ci.yml
+  - .github/workflows/security-scan.yml
+  - tests/
+  - Makefile
 ---
 
 ## Purpose

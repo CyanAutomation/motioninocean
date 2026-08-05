@@ -3,6 +3,7 @@ name: <skill-name>
 description: <one-to-two sentence summary of what this skill does and when to apply it>
 owner: <team-or-individual>
 last-reviewed: YYYY-MM-DD
+category: <CI/CD | Development | Deployment | Documentation | Design | Tools>
 compatible-repo-areas:
   - <path-or-area-1>
   - <path-or-area-2>

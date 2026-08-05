@@ -1,6 +1,15 @@
 ---
 name: release-operator
 description: Operate motion-in-ocean's tag-driven release automation, including preflight checks, release execution, workflow verification, and rollback handling. Use when creating, validating, or troubleshooting releases.
+owner: motion-in-ocean team
+last-reviewed: 2026-08-05
+category: CI/CD
+compatible-repo-areas:
+  - create-release.sh
+  - RELEASE.md
+  - VERSION
+  - CHANGELOG.md
+  - .github/workflows/docker-publish.yml
 ---
 
 ## Scope and trigger conditions

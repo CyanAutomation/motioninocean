@@ -1,6 +1,15 @@
 ---
 name: ui-playwright
 description: Audit motion-in-ocean web UI (streaming viewer & node management) using Playwright; inspect layout, UX flows, accessibility, responsive design, and error handling.
+owner: motion-in-ocean team
+last-reviewed: 2026-08-05
+category: Design
+compatible-repo-areas:
+  - pi_camera_in_docker/templates/
+  - pi_camera_in_docker/static/
+  - tests/ui/
+  - playwright.ui.config.mjs
+  - Makefile
 ---
 
 # Skill: UI Auditing with Playwright for motion-in-ocean
