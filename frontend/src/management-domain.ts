@@ -63,9 +63,7 @@ export function statusClass(statusText: string | undefined): string {
   return "ui-status-pill--neutral";
 }
 
-export function normalizeWebcamStatusError(
-  error: WebcamStatusError = {},
-): NormalizedWebcamStatus {
+export function normalizeWebcamStatusError(error: WebcamStatusError = {}): NormalizedWebcamStatus {
   return {
     status: "error",
     stream_available: false,

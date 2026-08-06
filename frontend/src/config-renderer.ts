@@ -146,10 +146,7 @@ function renderHealth(
 ): void {
   if (!healthCheck) return;
   const healthStates: string[] = [];
-  const applyIndicator = (
-    elementId: string,
-    indicator: { state?: string } | undefined,
-  ): void => {
+  const applyIndicator = (elementId: string, indicator: { state?: string } | undefined): void => {
     setHealthIndicator(elementId, indicator);
     if (indicator && typeof indicator.state === "string") {
       healthStates.push(indicator.state);

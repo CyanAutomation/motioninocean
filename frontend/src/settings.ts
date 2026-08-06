@@ -110,12 +110,16 @@ const SettingsUI = (() => {
       });
     }
     const handleEscapeKey = (event) => {
-      if (event.key === "Escape" && confirmModal() && !confirmModal().classList.contains("hidden")) {
+      if (
+        event.key === "Escape" &&
+        confirmModal() &&
+        !confirmModal().classList.contains("hidden")
+      ) {
         closeConfirmModal(false);
       }
     };
     document.addEventListener("keydown", handleEscapeKey);
-    
+
     // Store reference for potential cleanup
     if (!window._settingsEventCleanup) {
       window._settingsEventCleanup = [];
@@ -529,10 +533,10 @@ const SettingsUI = (() => {
         const restartDetails = Array.isArray(result.modified_on_restart)
           ? result.modified_on_restart.join("\n")
           : "Server restart required to apply some settings.";
-        showWarning(
-          "Settings saved! Some changes require server restart:\n" + restartDetails,
-          { outcome: "restart-required", details: restartDetails },
-        );
+        showWarning("Settings saved! Some changes require server restart:\n" + restartDetails, {
+          outcome: "restart-required",
+          details: restartDetails,
+        });
       } else if (response.status === 400) {
         const result = await response.json();
         const errors = result.validation_errors || {};
@@ -545,7 +549,10 @@ const SettingsUI = (() => {
       }
     } catch (error) {
       console.error("Error saving settings:", error);
-      showError("Failed to save settings: " + error.message, { outcome: "failed", details: error.message });
+      showError("Failed to save settings: " + error.message, {
+        outcome: "failed",
+        details: error.message,
+      });
       saveBtn().disabled = false;
     }
   };
@@ -574,7 +581,9 @@ const SettingsUI = (() => {
         updateSaveButton();
         await loadSettings();
         await refreshChangesSummary();
-        showSuccess("Settings reset to defaults!", { details: "Defaults restored from runtime configuration." });
+        showSuccess("Settings reset to defaults!", {
+          details: "Defaults restored from runtime configuration.",
+        });
       } else {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -624,8 +633,7 @@ const SettingsUI = (() => {
       "settings-save-status--restart-required",
     );
 
-    const normalizedOutcome =
-      typeof metadata?.outcome === "string" ? metadata.outcome : "saved";
+    const normalizedOutcome = typeof metadata?.outcome === "string" ? metadata.outcome : "saved";
     const outcomeClass = outcomeClassNames[normalizedOutcome] || outcomeClassNames.saved;
     saveStatus().classList.add(outcomeClass);
     saveStatusTime().textContent = formatStatusTimestamp(timestamp);
@@ -902,7 +910,9 @@ const SettingsUI = (() => {
       updateSaveButton();
       await refreshChangesSummary();
       clearUndoState();
-      showSuccess("Last save undone successfully", { details: "Reverted the most recent saved settings patch." });
+      showSuccess("Last save undone successfully", {
+        details: "Reverted the most recent saved settings patch.",
+      });
     } catch (error) {
       console.error("Error undoing save:", error);
       showError("Failed to undo save: " + error.message);
