@@ -21,7 +21,7 @@ types-Flask==1.1.6
 types-PyYAML>=6.0.12.20260724
 
 # Pre-commit hooks
-pre-commit==4.6.1
+pre-commit==4.6.2
 
 # Security scanning
 bandit==1.9.4
