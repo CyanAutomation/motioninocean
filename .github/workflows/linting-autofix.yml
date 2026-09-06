@@ -1,9 +1,6 @@
-name: Nightly Code Quality Autofix
+name: Code Quality Autofix
 
 on:
-  schedule:
-    # Run at 2 AM UTC every night
-    - cron: "0 2 * * *"
   workflow_dispatch:
     description: "Manually trigger nightly autofix workflow"
 
