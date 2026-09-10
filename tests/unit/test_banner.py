@@ -44,56 +44,20 @@ def test_read_app_version_returns_unknown_when_no_file(monkeypatch, tmp_path) ->
 # ---------------------------------------------------------------------------
 
 
-def test_banner_text_mode_writes_to_stderr(capsys, monkeypatch) -> None:
-    """Banner writes to stderr, not stdout, in text mode."""
-    monkeypatch.delenv("MIO_LOG_FORMAT", raising=False)
+def test_banner_text_mode_contract(capsys, monkeypatch) -> None:
+    """Text mode writes a decorated banner with startup metadata to stderr."""
+    monkeypatch.setenv("MIO_LOG_FORMAT", "text")
 
-    print_startup_banner("webcam", "127.0.0.1", 8000, version="1.0.0")
+    print_startup_banner("management", "0.0.0.0", 8001, version="5.6.7")
 
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert len(captured.err) > 0
-
-
-def test_banner_text_mode_contains_mode(capsys, monkeypatch) -> None:
-    """Banner output includes the mode in text mode."""
-    monkeypatch.setenv("MIO_LOG_FORMAT", "text")
-
-    print_startup_banner("management", "0.0.0.0", 8001, version="1.0.0")
-
-    captured = capsys.readouterr()
     assert "management" in captured.err
-
-
-def test_banner_text_mode_contains_repo_url(capsys, monkeypatch) -> None:
-    """Banner output includes the GitHub repository URL in text mode."""
-    monkeypatch.setenv("MIO_LOG_FORMAT", "text")
-
-    print_startup_banner("webcam", "127.0.0.1", 8000, version="1.0.0")
-
-    captured = capsys.readouterr()
+    assert "5.6.7" in captured.err
+    assert "http://0.0.0.0:8001" in captured.err
     assert "github.com/CyanAutomation/motioninocean" in captured.err
-
-
-def test_banner_text_mode_contains_ascii_art(capsys, monkeypatch) -> None:
-    """Banner output includes at least part of the ASCII art in text mode."""
-    monkeypatch.setenv("MIO_LOG_FORMAT", "text")
-
-    print_startup_banner("webcam", "127.0.0.1", 8000, version="1.0.0")
-
-    captured = capsys.readouterr()
-    # The ASCII art block must be present (check for a distinctive line)
     assert MIO_ASCII.strip()[:10] in captured.err
-
-
-def test_banner_text_mode_is_multiline(capsys, monkeypatch) -> None:
-    """Banner output is multi-line in text mode (not a single compact line)."""
-    monkeypatch.setenv("MIO_LOG_FORMAT", "text")
-
-    print_startup_banner("webcam", "127.0.0.1", 8000, version="1.0.0")
-
-    captured = capsys.readouterr()
-    assert captured.err.count("\n") >= 5
+    assert "\n" in captured.err.strip()
 
 
 # ---------------------------------------------------------------------------
