@@ -28,19 +28,6 @@ class TestFeatureFlagRegistry:
         assert "category" in mock_camera_info
         assert "backward_compat_vars" in mock_camera_info
 
-    def test_all_flags_registered(self):
-        """Test that all expected flags are registered."""
-        from pi_camera_in_docker.feature_flags import FeatureFlags
-
-        flags = FeatureFlags()
-        all_flags = flags.get_all_flags()
-
-        expected_flags = {"MOCK_CAMERA"}
-
-        assert expected_flags.issubset(set(all_flags.keys())), (
-            f"Missing flags: {expected_flags - set(all_flags.keys())}"
-        )
-
     def test_canonical_mock_camera_env_controls_flag_state(self):
         """Canonical MIO_MOCK_CAMERA env var should control MOCK_CAMERA feature flag state."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
