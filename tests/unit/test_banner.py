@@ -77,6 +77,7 @@ def test_banner_json_mode_contains_version(capsys, monkeypatch) -> None:
     print_startup_banner("webcam", "127.0.0.1", 8000, version="5.6.7")
 
     captured = capsys.readouterr()
+    assert captured.out == ""
     assert "5.6.7" in captured.err
 
 
