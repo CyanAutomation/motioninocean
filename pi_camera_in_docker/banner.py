@@ -80,7 +80,7 @@ MOTION_IN_OCEAN_ASCII: str = r"""╔══════════════�
 ║                                                                                      ║
 ╚══════════════════════════════════════════════════════════════════════════════════════╝"""
 
-_REPO_URL = "https://github.com/CyanAutomation/motioninocean"
+REPOSITORY_URL: str = "https://github.com/CyanAutomation/motioninocean"
 _SEPARATOR = "-" * 54
 
 # Candidate paths for the VERSION file: Docker image path first, then repo root.
@@ -142,7 +142,7 @@ def print_startup_banner(
         # Single-line fallback — parseable but not decorative.
         line = (
             f"# Motion In Ocean v{resolved_version} | mode={mode} | "
-            f"http://{host}:{port} | {_REPO_URL}"
+            f"http://{host}:{port} | {REPOSITORY_URL}"
         )
         print(line, file=sys.stderr, flush=True)  # noqa: T201
         return
@@ -155,7 +155,7 @@ def print_startup_banner(
         f"  Motion In Ocean  v{resolved_version}",
         f"  Mode     : {mode}",
         f"  Address  : http://{host}:{port}",
-        f"  Repo     : {_REPO_URL}",
+        f"  Repo     : {REPOSITORY_URL}",
         _SEPARATOR,
         "",
     ]
