@@ -187,15 +187,22 @@ class TestFeatureFlagBehavior:
         info = flags.get_flag_info("NONEXISTENT")
         assert info is None
 
-    def test_is_flag_enabled_convenience_function(self):
+    @pytest.mark.parametrize(
+        ("environment", "expected"),
+        [
+            ({"MIO_MOCK_CAMERA": "true"}, True),
+            ({}, False),
+        ],
+    )
+    def test_is_flag_enabled_convenience_function(self, environment, expected):
         """Test the module-level is_flag_enabled convenience function."""
-        from pi_camera_in_docker.feature_flags import FeatureFlags
+        from pi_camera_in_docker import feature_flags
 
-        with mock.patch.dict(os.environ, {"MIO_MOCK_CAMERA": "true"}, clear=True):
-            # Create a new instance and load it
-            flags = FeatureFlags()
-            flags.load()
-            assert flags.is_enabled("MOCK_CAMERA") is True
+        with mock.patch.dict(os.environ, environment, clear=True):
+            isolated_registry = feature_flags.FeatureFlags()
+            isolated_registry.load()
+            with mock.patch.object(feature_flags, "_feature_flags", isolated_registry):
+                assert feature_flags.is_flag_enabled("MOCK_CAMERA") is expected
 
     def test_cors_support_removed_from_feature_flag_registry(self):
         """CORS support should no longer be represented as a feature flag."""
