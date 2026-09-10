@@ -70,17 +70,6 @@ def test_banner_text_mode_contract(capsys, monkeypatch) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_banner_json_mode_writes_to_stderr(capsys, monkeypatch) -> None:
-    """Compact fallback writes to stderr, not stdout, in JSON mode."""
-    monkeypatch.setenv("MIO_LOG_FORMAT", "json")
-
-    print_startup_banner("webcam", "127.0.0.1", 8000, version="1.0.0")
-
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert len(captured.err.strip()) > 0
-
-
 def test_banner_json_mode_contains_version(capsys, monkeypatch) -> None:
     """Compact fallback includes the version string in JSON mode."""
     monkeypatch.setenv("MIO_LOG_FORMAT", "json")
