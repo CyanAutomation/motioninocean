@@ -1,7 +1,7 @@
 """Unit tests for pi_camera_in_docker.banner."""
 
 from pi_camera_in_docker.banner import (
-    MIO_ASCII,
+    MOTION_IN_OCEAN_ASCII,
     REPOSITORY_URL,
     _read_app_version,
     print_startup_banner,
@@ -61,7 +61,7 @@ def test_banner_text_mode_contract(capsys, monkeypatch) -> None:
     assert "5.6.7" in captured.err
     assert "http://0.0.0.0:8001" in captured.err
     assert REPOSITORY_URL in captured.err
-    assert MIO_ASCII.strip()[:10] in captured.err
+    assert MOTION_IN_OCEAN_ASCII in captured.err
     assert "\n" in captured.err.strip()
 
 
@@ -119,7 +119,7 @@ def test_banner_json_mode_no_ascii_art(capsys, monkeypatch) -> None:
 
     captured = capsys.readouterr()
     # The ASCII art body should not be present in JSON mode output
-    assert MIO_ASCII.strip()[:10] not in captured.err
+    assert MOTION_IN_OCEAN_ASCII not in captured.err
 
 
 def test_banner_json_mode_case_insensitive(capsys, monkeypatch) -> None:
