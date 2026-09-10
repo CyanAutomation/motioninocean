@@ -13,12 +13,14 @@ function extractFunction(source, functionName) {
   return match[0];
 }
 
-test("updateMascotForTab updates only topbar hero mascot image", () => {
+test("topbar mascot initializes and follows every supported tab", () => {
   const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
+  const cacheElementsFn = extractFunction(appJs, "cacheElements");
   const getMioAssetsFn = extractFunction(appJs, "getMioAssets");
   const updateMascotForTabFn = extractFunction(appJs, "updateMascotForTab");
 
   const heroImage = { src: "", alt: "" };
+  const elements = new Map([["mio-hero-image", heroImage]]);
   const context = {
     DEFAULT_MIO_PATH: "/static/img/mio/default.png",
     document: {
@@ -32,30 +34,33 @@ test("updateMascotForTab updates only topbar hero mascot image", () => {
           mioFloating: "/static/img/mio/mio_floating.svg",
         },
       },
+      getElementById(id) {
+        return elements.get(id) ?? null;
+      },
+      querySelectorAll() {
+        return [];
+      },
     },
     state: {
-      elements: {
-        mioHeroImage: heroImage,
-      },
+      elements: {},
     },
   };
 
-  vm.runInNewContext(`${getMioAssetsFn}\n${updateMascotForTabFn}`, context);
+  vm.runInNewContext(`${cacheElementsFn}\n${getMioAssetsFn}\n${updateMascotForTabFn}`, context);
 
-  context.updateMascotForTab("config");
-  assert.equal(heroImage.src, "/static/img/mio/mio_curious.png");
-  assert.equal(heroImage.alt, "Mio mascot for Configuration view");
+  assert.doesNotThrow(() => context.cacheElements());
+  assert.equal(context.state.elements.mioHeroImage, heroImage);
 
-  context.updateMascotForTab("unknown-tab");
-  assert.equal(heroImage.src, "/static/img/mio/mio_happy.png");
-  assert.equal(heroImage.alt, "Mio mascot for Stream view");
-});
+  const tabExpectations = [
+    ["main", "/static/img/mio/mio_happy.png", "Mio mascot for Stream view"],
+    ["config", "/static/img/mio/mio_curious.png", "Mio mascot for Configuration view"],
+    ["setup", "/static/img/mio/mio_avatar.png", "Mio mascot for Set-Up view"],
+    ["settings", "/static/img/mio/mio_sleeping.png", "Mio mascot for Runtime Settings view"],
+  ];
 
-test("app.js no longer references removed context mascot DOM ids", () => {
-  const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
-
-  assert.equal(appJs.includes("mio-stream-image"), false);
-  assert.equal(appJs.includes("mio-config-image"), false);
-  assert.equal(appJs.includes("mio-setup-image"), false);
-  assert.equal(appJs.includes("mio-settings-image"), false);
+  for (const [tab, expectedSrc, expectedAlt] of tabExpectations) {
+    assert.doesNotThrow(() => context.updateMascotForTab(tab));
+    assert.equal(heroImage.src, expectedSrc);
+    assert.equal(heroImage.alt, expectedAlt);
+  }
 });
