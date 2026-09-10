@@ -7,6 +7,7 @@
 
 import { renderConfig as renderConfigPanel } from "./config-renderer.js";
 import { renderMetrics as renderMetricsPanel } from "./metrics-renderer.js";
+import { assertSinglePollingMode as assertPollingState } from "./polling-mode.js";
 
 const REQUEST_TIMEOUT_MS = 5000;
 const CONFIG_POLL_INTERVAL_MS = 5000;
@@ -969,13 +970,11 @@ async function openHelpModal() {
  * Ensure only one polling mode is active at a time.
  */
 function assertSinglePollingMode() {
-  const statsPollingActive = metricsEventSource !== null;
-  const configPollingActive = state.configPollingInterval !== null;
-
-  console.assert(
-    !(statsPollingActive && configPollingActive),
-    "Invalid polling state: stats (SSE) and config polling are both active.",
-  );
+  return assertPollingState({
+    sse: metricsEventSource !== null,
+    config: state.configPollingInterval !== null,
+    timestamp: false,
+  });
 }
 
 /**
