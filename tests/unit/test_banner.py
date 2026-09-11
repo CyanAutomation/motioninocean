@@ -70,46 +70,19 @@ def test_banner_text_mode_contract(capsys, monkeypatch) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_banner_json_mode_contains_version(capsys, monkeypatch) -> None:
-    """Compact fallback includes the version string in JSON mode."""
+def test_banner_json_mode_contract(capsys, monkeypatch) -> None:
+    """JSON mode writes compact startup metadata to stderr."""
     monkeypatch.setenv("MIO_LOG_FORMAT", "json")
 
-    print_startup_banner("webcam", "127.0.0.1", 8000, version="5.6.7")
+    print_startup_banner("management", "0.0.0.0", 8001, version="5.6.7")
 
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert "5.6.7" in captured.err
-
-
-def test_banner_json_mode_contains_mode(capsys, monkeypatch) -> None:
-    """Compact fallback includes the mode in JSON mode."""
-    monkeypatch.setenv("MIO_LOG_FORMAT", "json")
-
-    print_startup_banner("management", "0.0.0.0", 8001, version="1.0.0")
-
-    captured = capsys.readouterr()
     assert "management" in captured.err
-
-
-def test_banner_json_mode_contains_address(capsys, monkeypatch) -> None:
-    """Compact fallback includes the bind address and port in JSON mode."""
-    monkeypatch.setenv("MIO_LOG_FORMAT", "json")
-
-    print_startup_banner("webcam", "0.0.0.0", 9000, version="1.0.0")
-
-    captured = capsys.readouterr()
-    assert "0.0.0.0:9000" in captured.err
-
-
-def test_banner_json_mode_no_ascii_art(capsys, monkeypatch) -> None:
-    """Compact fallback must NOT contain multi-line ASCII art in JSON mode."""
-    monkeypatch.setenv("MIO_LOG_FORMAT", "json")
-
-    print_startup_banner("webcam", "127.0.0.1", 8000, version="1.0.0")
-
-    captured = capsys.readouterr()
-    # The ASCII art body should not be present in JSON mode output
+    assert "5.6.7" in captured.err
+    assert "0.0.0.0:8001" in captured.err
     assert MOTION_IN_OCEAN_ASCII not in captured.err
+    assert "\n" not in captured.err.strip()
 
 
 def test_banner_json_mode_case_insensitive(capsys, monkeypatch) -> None:
