@@ -1,9 +1,9 @@
 """Configuration validation and startup checks."""
 
 from typing import Any, Dict, Optional
-from urllib.parse import urlparse
 
 from .settings_schema import SettingsSchema
+from .transport_url_validation import validate_http_url_shape
 
 
 class ConfigValidationError(ValueError):
@@ -44,63 +44,15 @@ def validate_discovery_config(config: Dict[str, Any]) -> None:
         )
 
     try:
-        parsed_management_url = urlparse(management_url)
+        validate_http_url_shape(management_url, field_name="MIO_DISCOVERY_MANAGEMENT_URL")
     except ValueError as exc:
-        msg = "MIO_DISCOVERY_MANAGEMENT_URL is malformed"
+        msg = str(exc)
         raise ConfigValidationError(
             msg,
             hint=(
                 "Use a valid URL such as MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
             ),
         ) from exc
-
-    if parsed_management_url.scheme not in {"http", "https"}:
-        msg = "MIO_DISCOVERY_MANAGEMENT_URL must start with http:// or https://"
-        raise ConfigValidationError(
-            msg,
-            hint=(
-                "Use a valid URL such as MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
-            ),
-        )
-
-    if not parsed_management_url.hostname:
-        msg = "MIO_DISCOVERY_MANAGEMENT_URL must include a hostname"
-        raise ConfigValidationError(
-            msg,
-            hint=(
-                "Use a valid URL such as MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
-            ),
-        )
-
-    if parsed_management_url.username or parsed_management_url.password:
-        msg = "MIO_DISCOVERY_MANAGEMENT_URL must not include embedded credentials"
-        raise ConfigValidationError(
-            msg,
-            hint=(
-                "Move credentials to environment variables and use a URL like "
-                "MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
-            ),
-        )
-
-    try:
-        parsed_port = parsed_management_url.port
-    except ValueError as exc:
-        msg = "MIO_DISCOVERY_MANAGEMENT_URL has an invalid port"
-        raise ConfigValidationError(
-            msg,
-            hint=(
-                "Use a valid URL such as MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
-            ),
-        ) from exc
-
-    if parsed_port is not None and not (0 < parsed_port <= 65535):
-        msg = "MIO_DISCOVERY_MANAGEMENT_URL has an invalid port"
-        raise ConfigValidationError(
-            msg,
-            hint=(
-                "Use a valid URL such as MIO_DISCOVERY_MANAGEMENT_URL=http://management-host:8001"
-            ),
-        )
 
     if not token:
         message = "MIO_DISCOVERY_ENABLED=true requires env var MIO_DISCOVERY_TOKEN to be set"

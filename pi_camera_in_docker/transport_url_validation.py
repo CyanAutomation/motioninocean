@@ -1,7 +1,7 @@
 import re
 from ipaddress import ip_address
 from typing import Tuple
-from urllib.parse import urlparse
+from urllib.parse import ParseResult, urlparse
 
 
 _DOCKER_CONTAINER_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
@@ -36,6 +36,48 @@ def _is_valid_http_hostname(hostname: str) -> bool:
             return False
 
     return True
+
+
+def validate_http_url_shape(url: str, *, field_name: str = "URL") -> ParseResult:
+    """Validate the network shape shared by outbound HTTP URLs.
+
+    This validation deliberately does not reject localhost or private addresses. Callers
+    that cross an SSRF trust boundary must apply their separate address-policy checks.
+
+    Args:
+        url: HTTP or HTTPS URL to validate.
+        field_name: Name used in validation error messages.
+
+    Returns:
+        Parsed URL after its scheme, hostname, credentials, and port are validated.
+
+    Raises:
+        ValueError: If the URL is malformed or is not a credential-free HTTP(S) URL.
+    """
+    try:
+        parsed = urlparse(url)
+        port = parsed.port
+    except ValueError as exc:
+        error_message = f"{field_name} contains an invalid port or malformed host"
+        raise ValueError(error_message) from exc
+
+    if parsed.scheme not in {"http", "https"}:
+        error_message = f"{field_name} scheme must be http or https"
+        raise ValueError(error_message)
+    if not parsed.hostname:
+        error_message = f"{field_name} must include a valid hostname"
+        raise ValueError(error_message)
+    if not _is_valid_http_hostname(parsed.hostname):
+        error_message = f"{field_name} hostname is invalid"
+        raise ValueError(error_message)
+    if parsed.username is not None or parsed.password is not None:
+        error_message = f"{field_name} must not include embedded credentials"
+        raise ValueError(error_message)
+    if port is not None and not 1 <= port <= 65535:
+        error_message = f"{field_name} port must be between 1 and 65535"
+        raise ValueError(error_message)
+
+    return parsed
 
 
 def parse_docker_url(base_url: str) -> Tuple[str, int, str]:
@@ -109,29 +151,7 @@ def validate_base_url_for_transport(base_url: str, transport: str) -> None:
             or docker:// URL is malformed.
     """
     if transport == "http":
-        parsed = urlparse(base_url)
-
-        try:
-            port = parsed.port
-        except ValueError as exc:
-            error_message = "base_url contains an invalid port"
-            raise ValueError(error_message) from exc
-
-        if parsed.scheme not in {"http", "https"}:
-            error_message = "base_url scheme must be http or https"
-            raise ValueError(error_message)
-
-        if not parsed.hostname:
-            error_message = "base_url must include a valid hostname"
-            raise ValueError(error_message)
-
-        if not _is_valid_http_hostname(parsed.hostname):
-            error_message = "base_url hostname is invalid"
-            raise ValueError(error_message)
-
-        if port is not None and not 1 <= port <= 65535:
-            error_message = "base_url port must be between 1 and 65535"
-            raise ValueError(error_message)
+        parsed = validate_http_url_shape(base_url, field_name="base_url")
 
         if parsed.query or parsed.fragment:
             error_message = "base_url must not include query or fragment"

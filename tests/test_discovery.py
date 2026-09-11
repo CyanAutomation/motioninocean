@@ -83,20 +83,51 @@ def test_build_discovery_payload_validates_required_fields():
     # Could add more validation checks here
 
 
-def test_discovery_announcer_log_url_redacts_query_and_credentials():
+@pytest.mark.parametrize(
+    ("management_url", "expected_url"),
+    [
+        ("http://127.0.0.1:8001", "http://127.0.0.1:8001/api/discovery/announce"),
+        ("https://management.local/hub", "https://management.local/hub/api/discovery/announce"),
+    ],
+)
+def test_discovery_announcer_direct_construction_accepts_http_urls(management_url, expected_url):
     from discovery import DiscoveryAnnouncer
 
-    shutdown_event = threading.Event()
     announcer = DiscoveryAnnouncer(
-        management_url="http://user:pass@example.local:8001?token=secret",
+        management_url=management_url,
         token="token",
         interval_seconds=30,
         webcam_id="node-1",
         payload={"webcam_id": "node-1"},
-        shutdown_event=shutdown_event,
+        shutdown_event=threading.Event(),
     )
 
-    assert announcer.management_url_log == "http://example.local:8001/api/discovery/announce"
+    assert announcer.management_url == expected_url
+
+
+@pytest.mark.parametrize(
+    "management_url",
+    [
+        "file:///tmp/management.sock",
+        "ftp://management.local:8001",
+        "http://user:pass@management.local:8001",
+        "http:///management",
+        "http://management.local:not-a-port",
+        "http://management.local:99999",
+    ],
+)
+def test_discovery_announcer_direct_construction_rejects_invalid_http_urls(management_url):
+    from discovery import DiscoveryAnnouncer
+
+    with pytest.raises(ValueError, match="management_url"):
+        DiscoveryAnnouncer(
+            management_url=management_url,
+            token="token",
+            interval_seconds=30,
+            webcam_id="node-1",
+            payload={"webcam_id": "node-1"},
+            shutdown_event=threading.Event(),
+        )
 
 
 @pytest.mark.parametrize(
