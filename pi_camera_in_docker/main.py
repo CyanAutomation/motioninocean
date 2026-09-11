@@ -1449,7 +1449,10 @@ def create_webcam_app(config: Optional[Dict[str, Any]] = None) -> Flask:
             logger.warning(
                 "Discovery is enabled but no token is configured — announcer disabled. "
                 "Set MIO_DISCOVERY_TOKEN to enable self-registration with the management hub.",
-                extra={"event": "discovery_misconfigured", "discovery_token_present": False},
+                extra={
+                    "event": "discovery_misconfigured",
+                    "discovery_token_present": False,  # nosec B105 - boolean presence flag, not a credential
+                },
             )
         else:
             try:

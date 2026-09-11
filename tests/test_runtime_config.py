@@ -238,6 +238,16 @@ def test_load_env_config_supports_webcam_control_plane_auth_token(monkeypatch):
     assert cfg["webcam_control_plane_auth_token"] == "webcam-token"
 
 
+def test_load_env_config_supports_discovery_auth_token(monkeypatch):
+    """MIO_DISCOVERY_TOKEN should be loaded for discovery authentication."""
+    discovery_token = "environment-discovery-secret"
+    monkeypatch.setenv("MIO_DISCOVERY_TOKEN", discovery_token)
+
+    cfg = runtime_config.load_env_config()
+
+    assert cfg["discovery_token"] == discovery_token
+
+
 def test_merge_config_with_settings_uses_application_settings_path(monkeypatch, tmp_path):
     """merge_config_with_settings should construct ApplicationSettings from env-configured path."""
     settings_path = tmp_path / "custom-settings.json"

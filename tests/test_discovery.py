@@ -298,7 +298,9 @@ def test_discovery_announcer_stop_from_same_thread_skips_join_and_exits_graceful
     assert announcer._thread is None
 
 
-def test_create_webcam_app_initializes_discovery_with_webcam_id(full_config, monkeypatch):
+def test_create_webcam_app_initializes_discovery_with_webcam_id(
+    full_config, monkeypatch, caplog
+):
     from pi_camera_in_docker import main
 
     captured = {}
@@ -338,18 +340,47 @@ def test_create_webcam_app_initializes_discovery_with_webcam_id(full_config, mon
     cfg = dict(full_config)
     cfg["discovery_enabled"] = True
     cfg["discovery_management_url"] = "http://management.local:8001"
-    cfg["discovery_token"] = "secret-token"
+    discovery_token = "startup-discovery-secret"
+    cfg["discovery_token"] = discovery_token
     cfg["discovery_interval_seconds"] = 15.0
     cfg["base_url"] = "http://localhost:8000"
     cfg["mock_camera"] = True
 
-    app = main.create_webcam_app(cfg)
+    with caplog.at_level("INFO"):
+        app = main.create_webcam_app(cfg)
 
     assert app.motion_state["discovery_announcer"] is not None
     assert captured["started"] is True
+    assert captured["token"] == discovery_token
     assert captured["webcam_id"] == payload["webcam_id"]
     assert captured["payload"] == payload
     assert captured["shutdown_event"] is app.motion_state["discovery_shutdown_event"]
+    assert discovery_token not in caplog.text
+    assert not [
+        record for record in caplog.records if record.__dict__.get("event") == "discovery_misconfigured"
+    ]
+
+
+def test_create_webcam_app_logs_only_token_presence_when_discovery_is_misconfigured(
+    full_config, caplog
+):
+    """Misconfiguration logs should expose only a false token-presence flag."""
+    from pi_camera_in_docker import main
+
+    cfg = dict(full_config)
+    cfg["discovery_enabled"] = True
+    cfg["discovery_token"] = ""
+    cfg["mock_camera"] = True
+
+    with caplog.at_level("WARNING"):
+        main.create_webcam_app(cfg)
+
+    records = [
+        record for record in caplog.records if record.__dict__.get("event") == "discovery_misconfigured"
+    ]
+    assert len(records) == 1
+    assert records[0].__dict__["discovery_token_present"] is False
+    assert "discovery_token" not in records[0].__dict__
 
 
 def test_discovery_run_loop_unexpected_exception_continues_with_backoff(monkeypatch):

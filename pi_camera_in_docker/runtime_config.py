@@ -19,7 +19,7 @@ EDITABLE_ENV_TO_CONFIG_KEY = {
     "MIO_MAX_FRAME_AGE_SECONDS": "max_frame_age_seconds",
     "MIO_DISCOVERY_ENABLED": "discovery_enabled",
     "MIO_DISCOVERY_MANAGEMENT_URL": "discovery_management_url",
-    "MIO_DISCOVERY_TOKEN": "discovery_token",
+    "MIO_DISCOVERY_TOKEN": "discovery_token",  # nosec B105 - configuration-key identifier, not a credential
     "MIO_DISCOVERY_INTERVAL_SECONDS": "discovery_interval_seconds",
     "MIO_LOG_LEVEL": "log_level",
     "MIO_LOG_FORMAT": "log_format",
