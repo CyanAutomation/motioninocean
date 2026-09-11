@@ -214,6 +214,21 @@ def test_merge_config_with_persisted_settings_invalid_discovery_url_type_falls_b
     assert "Invalid persisted discovery_management_url type" in caplog.text
 
 
+@pytest.mark.parametrize(
+    ("persisted_token", "expected_token"),
+    [(None, "environment-token"), ("persisted-token", "persisted-token")],
+)
+def test_merge_discovery_settings_distinguishes_unset_and_persisted_tokens(
+    persisted_token, expected_token
+):
+    """Unset tokens retain the environment value while persisted strings override it."""
+    merged = {"discovery_token": "environment-token"}
+
+    runtime_config._merge_discovery_settings(merged, {"discovery_token": persisted_token})
+
+    assert merged["discovery_token"] == expected_token
+
+
 def test_load_env_config_supports_webcam_control_plane_auth_token(monkeypatch):
     """WEBCAM_CONTROL_PLANE_AUTH_TOKEN should be exposed in runtime configuration."""
     monkeypatch.setenv("MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", "webcam-token")

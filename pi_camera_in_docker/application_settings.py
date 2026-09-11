@@ -104,7 +104,9 @@ class ApplicationSettings:
             "discovery": {
                 "discovery_enabled": None,
                 "discovery_management_url": None,
-                "discovery_token": None,
+                # None is an unset sentinel that falls back to MIO_DISCOVERY_TOKEN,
+                # rather than a hardcoded credential.
+                "discovery_token": None,  # nosec B105
                 "discovery_interval_seconds": None,
             },
         },
