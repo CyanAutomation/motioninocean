@@ -113,11 +113,11 @@ lint-fix: ensure-dev-tools
 
 format: ensure-dev-tools
 	@echo "Formatting code with ruff..."
-	$(PYTHON) -m ruff format pi_camera_in_docker/ tests/
+	$(PYTHON) -m ruff format .
 
 format-check: ensure-dev-tools
 	@echo "Checking code formatting..."
-	$(PYTHON) -m ruff format --check pi_camera_in_docker/ tests/
+	$(PYTHON) -m ruff format --check .
 
 type-check: ensure-dev-tools
 	@echo "Running mypy type checker..."

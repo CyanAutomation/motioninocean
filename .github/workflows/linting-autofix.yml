@@ -53,7 +53,7 @@ jobs:
       - name: Run ruff formatter
         run: |
           echo "Running ruff format..."
-          python -m ruff format pi_camera_in_docker/ tests/
+          python -m ruff format .
 
       - name: Run ESLint with autofix
         run: |

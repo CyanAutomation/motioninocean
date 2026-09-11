@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 class Picamera2:
     """Picamera2 Camera control class."""
-    
+
     def __init__(self, *args: Any, **kwargs: Any) -> None: ...
     def create_preview_configuration(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
     def create_still_configuration(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
@@ -18,8 +18,10 @@ class Picamera2:
 
 class Encoder:
     """Base encoder class."""
+
     pass
 
 class Output:
     """Base output class."""
+
     pass

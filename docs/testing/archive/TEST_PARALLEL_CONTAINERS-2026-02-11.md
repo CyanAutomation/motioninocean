@@ -217,12 +217,12 @@ def _is_blocked_address(raw: str) -> bool:
     # ... IPv6 mapping check ...
     return any(
         (
-            ip.is_private,              # ← Blocks RFC1918 private IPs (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
-            ip.is_loopback,             # ← Blocks 127.0.0.0/8
-            ip.is_link_local,           # ← Blocks 169.254.0.0/16
-            ip.is_multicast,            # ← Blocks 224.0.0.0/4
-            ip.is_reserved,             # ← Blocks reserved ranges
-            ip.is_unspecified,          # ← Blocks 0.0.0.0
+            ip.is_private,  # ← Blocks RFC1918 private IPs (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+            ip.is_loopback,  # ← Blocks 127.0.0.0/8
+            ip.is_link_local,  # ← Blocks 169.254.0.0/16
+            ip.is_multicast,  # ← Blocks 224.0.0.0/4
+            ip.is_reserved,  # ← Blocks reserved ranges
+            ip.is_unspecified,  # ← Blocks 0.0.0.0
         )
     )
 ```

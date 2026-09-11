@@ -298,9 +298,7 @@ def test_discovery_announcer_stop_from_same_thread_skips_join_and_exits_graceful
     assert announcer._thread is None
 
 
-def test_create_webcam_app_initializes_discovery_with_webcam_id(
-    full_config, monkeypatch, caplog
-):
+def test_create_webcam_app_initializes_discovery_with_webcam_id(full_config, monkeypatch, caplog):
     from pi_camera_in_docker import main
 
     captured = {}
@@ -357,7 +355,9 @@ def test_create_webcam_app_initializes_discovery_with_webcam_id(
     assert captured["shutdown_event"] is app.motion_state["discovery_shutdown_event"]
     assert discovery_token not in caplog.text
     assert not [
-        record for record in caplog.records if record.__dict__.get("event") == "discovery_misconfigured"
+        record
+        for record in caplog.records
+        if record.__dict__.get("event") == "discovery_misconfigured"
     ]
 
 
@@ -376,7 +376,9 @@ def test_create_webcam_app_logs_only_token_presence_when_discovery_is_misconfigu
         main.create_webcam_app(cfg)
 
     records = [
-        record for record in caplog.records if record.__dict__.get("event") == "discovery_misconfigured"
+        record
+        for record in caplog.records
+        if record.__dict__.get("event") == "discovery_misconfigured"
     ]
     assert len(records) == 1
     assert records[0].__dict__["discovery_token_present"] is False
