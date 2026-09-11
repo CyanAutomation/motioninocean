@@ -83,9 +83,16 @@ class TestReadmeHelpEndpointIntegration:
             def __exit__(self, exc_type, exc, tb):
                 return False
 
-        monkeypatch.setattr(
-            main.urllib.request, "urlopen", lambda *_args, **_kwargs: _MockResponse()
-        )
+        def _open_remote_readme(request, **_kwargs):
+            assert isinstance(request, main.urllib.request.Request)
+            request_url = request.get_full_url()
+            assert request.type == "https"
+            assert request_url == (
+                "https://raw.githubusercontent.com/CyanAutomation/motioninocean/main/README.md"
+            )
+            return _MockResponse()
+
+        monkeypatch.setattr(main.urllib.request, "urlopen", _open_remote_readme)
 
         response = client.get("/api/help/readme")
 
