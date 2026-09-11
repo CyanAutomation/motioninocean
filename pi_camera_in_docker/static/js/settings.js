@@ -101,7 +101,9 @@ const SettingsUI = (() => {
             });
         }
         const handleEscapeKey = (event) => {
-            if (event.key === "Escape" && confirmModal() && !confirmModal().classList.contains("hidden")) {
+            if (event.key === "Escape" &&
+                confirmModal() &&
+                !confirmModal().classList.contains("hidden")) {
                 closeConfirmModal(false);
             }
         };
@@ -470,7 +472,10 @@ const SettingsUI = (() => {
                 const restartDetails = Array.isArray(result.modified_on_restart)
                     ? result.modified_on_restart.join("\n")
                     : "Server restart required to apply some settings.";
-                showWarning("Settings saved! Some changes require server restart:\n" + restartDetails, { outcome: "restart-required", details: restartDetails });
+                showWarning("Settings saved! Some changes require server restart:\n" + restartDetails, {
+                    outcome: "restart-required",
+                    details: restartDetails,
+                });
             }
             else if (response.status === 400) {
                 const result = await response.json();
@@ -486,7 +491,10 @@ const SettingsUI = (() => {
         }
         catch (error) {
             console.error("Error saving settings:", error);
-            showError("Failed to save settings: " + error.message, { outcome: "failed", details: error.message });
+            showError("Failed to save settings: " + error.message, {
+                outcome: "failed",
+                details: error.message,
+            });
             saveBtn().disabled = false;
         }
     };
@@ -512,7 +520,9 @@ const SettingsUI = (() => {
                 updateSaveButton();
                 await loadSettings();
                 await refreshChangesSummary();
-                showSuccess("Settings reset to defaults!", { details: "Defaults restored from runtime configuration." });
+                showSuccess("Settings reset to defaults!", {
+                    details: "Defaults restored from runtime configuration.",
+                });
             }
             else {
                 throw new Error(`HTTP ${response.status}`);
@@ -804,7 +814,9 @@ const SettingsUI = (() => {
             updateSaveButton();
             await refreshChangesSummary();
             clearUndoState();
-            showSuccess("Last save undone successfully", { details: "Reverted the most recent saved settings patch." });
+            showSuccess("Last save undone successfully", {
+                details: "Reverted the most recent saved settings patch.",
+            });
         }
         catch (error) {
             console.error("Error undoing save:", error);

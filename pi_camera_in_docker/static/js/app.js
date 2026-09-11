@@ -668,7 +668,7 @@ function sanitizeUtilityHtml(html) {
         if (node.nodeType !== Node.ELEMENT_NODE) {
             return null;
         }
-        const sourceElement = /** @type {Element} */ (node);
+        const sourceElement = /** @type {Element} */ node;
         const tagName = sourceElement.tagName.toLowerCase();
         const childNodes = Array.from(sourceElement.childNodes)
             .map((child) => sanitizeNode(child))
