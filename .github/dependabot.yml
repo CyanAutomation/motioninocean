@@ -9,4 +9,4 @@ updates:
       # Remove this guard when the installed typescript-eslint release supports v7.
       - dependency-name: "typescript"
         versions:
-          - ">=7.0.0"
+          - ">=6.1.0"
