@@ -30,13 +30,17 @@ from .settings_schema import SettingsSchema
 def _get_schema_etag() -> str:
     """Compute and cache a stable ETag for the settings schema.
 
-    Hashes the schema JSON once per process lifetime using lru_cache.
+    Hashes the schema JSON once per process lifetime using lru_cache. MD5 is
+    retained solely as a deterministic HTTP cache validator and must not be
+    treated as a security or integrity primitive.
 
     Returns:
         MD5 hex digest suitable for use as an HTTP ETag value.
     """
     schema = SettingsSchema.get_schema()
-    return hashlib.md5(_json.dumps(schema, sort_keys=True).encode()).hexdigest()
+    return hashlib.md5(
+        _json.dumps(schema, sort_keys=True).encode(), usedforsecurity=False
+    ).hexdigest()
 
 
 def _safe_int_env(name: str, default: int) -> int:
