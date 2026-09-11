@@ -48,9 +48,18 @@ def test_api_changelog_returns_newest_first_from_file_order(tmp_path: Path) -> N
     assert payload["entries"][0]["changes"] == ["Newest item"]
 
 
-def test_api_changelog_missing_file_returns_degraded_with_source_metadata() -> None:
+def test_api_changelog_missing_file_returns_degraded_with_source_metadata(
+    monkeypatch, tmp_path: Path
+) -> None:
     """Endpoint degrades gracefully and includes source metadata for UI diagnostics."""
-    app = _build_test_app("/tmp/definitely-missing-changelog-file.md")
+    changelog_path = tmp_path / "missing.md"
+
+    def _raise_remote_error(remote_url: str, timeout_seconds: float) -> str:
+        raise OSError("remote changelog unavailable")
+
+    monkeypatch.setattr(changelog_api, "_fetch_remote_changelog_markdown", _raise_remote_error)
+
+    app = _build_test_app(str(changelog_path))
     client = app.test_client()
     response = client.get("/api/changelog")
 
@@ -59,7 +68,7 @@ def test_api_changelog_missing_file_returns_degraded_with_source_metadata() -> N
     assert payload["status"] == "degraded"
     assert payload["entries"] == []
     assert payload["source_type"] == "remote"
-    assert payload["source"] == "/tmp/definitely-missing-changelog-file.md"
+    assert payload["source"] == str(changelog_path)
     assert payload["full_changelog_url"] == changelog_api.DEFAULT_FULL_CHANGELOG_URL
 
 
