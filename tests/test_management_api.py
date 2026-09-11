@@ -64,6 +64,32 @@ def _new_webcam_contract_client(auth_token=""):
     return app.test_client()
 
 
+def test_versioned_settings_schema_supports_conditional_requests(monkeypatch, tmp_path):
+    """Versioned schema responses expose stable cache metadata and honor their ETag."""
+    client, _ = _new_management_client(monkeypatch, tmp_path)
+
+    first_response = client.get("/api/v1/settings/schema")
+    second_response = client.get("/api/v1/settings/schema")
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 200
+    assert first_response.headers["ETag"] == second_response.headers["ETag"]
+    assert first_response.headers["Cache-Control"] == "public, max-age=3600"
+    assert first_response.get_json().keys() == {
+        "schema",
+        "defaults",
+        "restartable_properties",
+    }
+
+    conditional_response = client.get(
+        "/api/v1/settings/schema",
+        headers={"If-None-Match": first_response.headers["ETag"]},
+    )
+
+    assert conditional_response.status_code == 304
+    assert conditional_response.get_data() == b""
+
+
 def test_api_status_returns_current_api_test_scenario_when_inactive():
     from pi_camera_in_docker import shared
 
