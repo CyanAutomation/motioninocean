@@ -3,11 +3,6 @@ name: Security - Docker Image Scan
 on:
   push:
     branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
-  schedule:
-    # Run every Monday at 9:00 UTC
-    - cron: "0 9 * * 1"
   workflow_dispatch: {}
 
 jobs:
