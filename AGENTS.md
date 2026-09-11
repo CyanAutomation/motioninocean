@@ -401,6 +401,7 @@ The `mock_camera` feature flag provides a fallback implementation when hardware 
 ```python
 if feature_flags.is_enabled("mock_camera"):
     from pi_camera_in_docker.cat_gif_generator import generate_cat_gif_frame
+
     frame = generate_cat_gif_frame()  # Animated cat GIF placeholder
 else:
     frame = camera.capture_jpeg()  # Real Picamera2 hardware

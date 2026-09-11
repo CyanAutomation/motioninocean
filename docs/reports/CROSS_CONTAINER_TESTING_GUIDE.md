@@ -221,33 +221,32 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-@app.route('/health')
+
+@app.route("/health")
 def health():
-    return jsonify({
-        "status": "healthy",
-        "app_mode": "webcam"
-    }), 200
+    return jsonify({"status": "healthy", "app_mode": "webcam"}), 200
 
-@app.route('/ready')
+
+@app.route("/ready")
 def ready():
-    return jsonify({
-        "status": "ready",
-        "frames_captured": 1000,
-        "current_fps": 30.0
-    }), 200
+    return jsonify({"status": "ready", "frames_captured": 1000, "current_fps": 30.0}), 200
 
-@app.route('/metrics')
+
+@app.route("/metrics")
 def metrics():
-    return jsonify({
-        "app_mode": "webcam",
-        "camera_active": True,
-        "current_fps": 30.0,
-        "frames_captured": 1000,
-        "uptime_seconds": 3600
-    }), 200
+    return jsonify(
+        {
+            "app_mode": "webcam",
+            "camera_active": True,
+            "current_fps": 30.0,
+            "frames_captured": 1000,
+            "uptime_seconds": 3600,
+        }
+    ), 200
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=9999)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=9999)
 ```
 
 ### Implementation
@@ -309,7 +308,7 @@ Only do this in a completely isolated test environment:
 ```python
 # In management_api.py (NOT FOR PRODUCTION)
 def _is_blocked_address(raw: str) -> bool:
-    if os.environ.get('MIO_TEST_MODE') == 'allow-private':
+    if os.environ.get("MIO_TEST_MODE") == "allow-private":
         return False  # ⚠️ INSECURE - TESTING ONLY
     # ... standard checks ...
 ```
