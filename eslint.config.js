@@ -25,6 +25,18 @@ export default [
     ],
   },
   {
+    files: ["**/*.js"],
+    rules: {
+      "no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrors: "none" },
+      ],
+      // JSDoc validation (soft rules - warn level for incomplete docs)
+      // Ensures all public functions have JSDoc headers with @param/@returns/@async/@throws
+      // Private/internal functions can have minimal or no documentation
+    },
+  },
+  {
     files: ["frontend/src/**/*.ts"],
     languageOptions: {
       parser: tseslint.parser,
@@ -34,18 +46,10 @@ export default [
     },
     rules: {
       "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": "off",
-    },
-  },
-  {
-    rules: {
-      "no-unused-vars": [
+      "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrors: "none" },
       ],
-      // JSDoc validation (soft rules - warn level for incomplete docs)
-      // Ensures all public functions have JSDoc headers with @param/@returns/@async/@throws
-      // Private/internal functions can have minimal or no documentation
     },
   },
 ];
