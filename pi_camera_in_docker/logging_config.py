@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404 - only fixed, shell-free provenance commands are executed.
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -41,7 +41,7 @@ def _capture_camera_cli_version(logger: logging.Logger) -> tuple[str, str]:
         return "unknown", "none"
 
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603 - camera_cli comes from CAMERA_CLI_CANDIDATES.
             [camera_cli, "--version"],
             capture_output=True,
             text=True,
@@ -244,7 +244,7 @@ def log_provenance_info() -> None:
     # Get dpkg info for camera packages
     dpkg_info: Dict[str, Dict[str, str]] = {}
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603 - literal dpkg-query command and packages.
             [
                 "dpkg-query",
                 "-W",
