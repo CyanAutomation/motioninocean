@@ -1184,7 +1184,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
 
         request = urllib.request.Request(url=_readme_remote_url, method="GET")
         try:
-            with urllib.request.urlopen(
+            with urllib.request.urlopen(  # nosec B310: _readme_remote_url is a source-controlled HTTPS constant, not user-configurable
                 request, timeout=_readme_remote_timeout_seconds
             ) as response:
                 charset = response.headers.get_content_charset("utf-8")
