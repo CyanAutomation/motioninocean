@@ -11,6 +11,7 @@ import logging
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Iterator, Optional, Tuple, cast
 
@@ -21,6 +22,28 @@ logger = logging.getLogger(__name__)
 
 # Default timeout for HTTP requests
 REQUEST_TIMEOUT_SECONDS = 5.0
+
+
+def _is_valid_cat_gif_url(api_url: str) -> bool:
+    """Return whether a cat GIF URL is safe to pass to the HTTP opener.
+
+    Args:
+        api_url: URL to validate.
+
+    Returns:
+        True for HTTP(S) URLs with a hostname and no embedded credentials.
+    """
+    try:
+        parsed_url = urllib.parse.urlsplit(api_url)
+    except ValueError:
+        return False
+    else:
+        return (
+            parsed_url.scheme in {"http", "https"}
+            and parsed_url.hostname is not None
+            and parsed_url.username is None
+            and parsed_url.password is None
+        )
 
 
 def fetch_cat_gif(api_url: str, timeout: float = REQUEST_TIMEOUT_SECONDS) -> Optional[bytes]:
@@ -34,8 +57,14 @@ def fetch_cat_gif(api_url: str, timeout: float = REQUEST_TIMEOUT_SECONDS) -> Opt
     Returns:
         GIF file bytes if successful, None on error
     """
+    if not _is_valid_cat_gif_url(api_url):
+        # Do not include the supplied URL because it may contain credentials.
+        logger.warning("Rejected invalid cat GIF URL")
+        return None
+
     try:
-        with urllib.request.urlopen(api_url, timeout=timeout) as response:
+        # Bandit cannot infer that the URL was restricted to HTTP(S) immediately above.
+        with urllib.request.urlopen(api_url, timeout=timeout) as response:  # nosec B310
             result = response.read()
             return cast("bytes", result)
     except (urllib.error.URLError, urllib.error.HTTPError) as e:
