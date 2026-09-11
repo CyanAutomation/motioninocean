@@ -305,7 +305,9 @@ class DiscoveryAnnouncer:
 
             failures += 1
             backoff_seconds = min(self.interval_seconds * (2 ** min(failures - 1, 5)), 300.0)
-            jitter = random.uniform(0.0, min(2.0, backoff_seconds * 0.25))
+            jitter = random.uniform(  # nosec B311 - Scheduling jitter only; not security-sensitive.
+                0.0, min(2.0, backoff_seconds * 0.25)
+            )
             wait_seconds = backoff_seconds + jitter
             logger.warning(
                 "discovery_announce_retry_scheduled: webcam_id=%s failures=%s wait_seconds=%.2f",
