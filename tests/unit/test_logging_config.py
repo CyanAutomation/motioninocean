@@ -68,7 +68,7 @@ def test_log_provenance_uses_fixed_dpkg_query_command(
 
     run.assert_called_once_with(
         [
-            "dpkg-query",
+            logging_config.DPKG_QUERY_PATH,
             "-W",
             "-f=${Package}\t${Version}\t${Origin}\n",
             "libcamera-apps",

@@ -23,6 +23,7 @@ DEFAULT_LOG_FORMAT = "text"
 
 CAMERA_CLI_CANDIDATES = ("rpicam-hello", "libcamera-hello")
 CAMERA_CLI_MISSING_ERROR = "Neither rpicam-hello nor libcamera-hello is available in PATH."
+DPKG_QUERY_PATH = "/usr/bin/dpkg-query"
 
 
 def _detect_camera_cli() -> Optional[str]:
@@ -244,9 +245,9 @@ def log_provenance_info() -> None:
     # Get dpkg info for camera packages
     dpkg_info: Dict[str, Dict[str, str]] = {}
     try:
-        result = subprocess.run(  # nosec B603 - literal dpkg-query command and packages.
+        result = subprocess.run(  # nosec B603 - executable path and package arguments are fixed.
             [
-                "dpkg-query",
+                DPKG_QUERY_PATH,
                 "-W",
                 "-f=${Package}\t${Version}\t${Origin}\n",
                 "libcamera-apps",
