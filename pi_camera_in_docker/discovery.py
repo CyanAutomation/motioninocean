@@ -21,6 +21,8 @@ from urllib.parse import urlsplit, urlunsplit
 
 import sentry_sdk
 
+from pi_camera_in_docker.transport_url_validation import validate_http_url_shape
+
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +49,11 @@ def _safe_management_url(management_url: str) -> str:
 
     Returns:
         Full URL to /api/discovery/announce endpoint.
+
+    Raises:
+        ValueError: If management_url is not a credential-free HTTP(S) URL with a valid host.
     """
+    validate_http_url_shape(management_url, field_name="management_url")
     parts = urlsplit(management_url)
     host = parts.hostname or ""
     if ":" in host and not host.startswith("["):
@@ -223,7 +229,8 @@ class DiscoveryAnnouncer:
         )
 
         try:
-            with urllib.request.urlopen(request, timeout=5.0) as response:
+            # URL is restricted to credential-free HTTP(S) during construction.
+            with urllib.request.urlopen(request, timeout=5.0) as response:  # nosec B310
                 status_code = getattr(response, "status", 0)
                 if status_code in {200, 201}:
                     logger.info(
