@@ -412,6 +412,35 @@ def test_discovery_run_loop_unexpected_exception_continues_with_backoff(monkeypa
     assert str(captured_exceptions[0]) == "boom"
 
 
+def test_discovery_run_loop_adds_scheduling_jitter_to_backoff(monkeypatch):
+    """Retry wait combines backoff with fixed, non-security scheduling jitter."""
+    from pi_camera_in_docker.discovery import DiscoveryAnnouncer
+
+    announcer = DiscoveryAnnouncer(
+        management_url="http://127.0.0.1:8001",
+        token="token",
+        interval_seconds=10,
+        webcam_id="node-scheduling-jitter",
+        payload={"webcam_id": "node-scheduling-jitter"},
+        shutdown_event=threading.Event(),
+    )
+    wait_calls = []
+
+    def fake_wait_for_next_attempt(wait_seconds: float) -> bool:
+        wait_calls.append(wait_seconds)
+        return len(wait_calls) >= 2
+
+    jitter = 1.25
+    monkeypatch.setattr(announcer, "_wait_for_next_attempt", fake_wait_for_next_attempt)
+    monkeypatch.setattr(announcer, "_announce_once", lambda: False)
+    monkeypatch.setattr("pi_camera_in_docker.discovery.random.uniform", lambda _a, _b: jitter)
+
+    announcer._run_loop()
+
+    backoff_seconds = 10.0
+    assert wait_calls == [0.0, backoff_seconds + jitter]
+
+
 def test_discovery_announcer_restart_does_not_reset_app_shutdown_event(monkeypatch):
     from discovery import DiscoveryAnnouncer
 
