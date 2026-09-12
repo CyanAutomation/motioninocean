@@ -66,32 +66,22 @@ def test_banner_text_mode_contract(capsys, monkeypatch) -> None:
 
 
 # ---------------------------------------------------------------------------
-# print_startup_banner — JSON mode
+# print_startup_banner — compact banner
 # ---------------------------------------------------------------------------
 
 
-def test_banner_json_mode_contract(capsys, monkeypatch) -> None:
-    """JSON mode writes compact startup metadata to stderr."""
-    monkeypatch.setenv("MIO_LOG_FORMAT", "json")
+def test_banner_compact_mode_contract(capsys, monkeypatch) -> None:
+    """JSON log format selects a case-insensitive compact banner contract."""
+    monkeypatch.setenv("MIO_LOG_FORMAT", "JsOn")
 
     print_startup_banner("management", "0.0.0.0", 8001, version="5.6.7")
 
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert "management" in captured.err
-    assert "5.6.7" in captured.err
-    assert "0.0.0.0:8001" in captured.err
+    assert "mode=management" in captured.err
+    assert "v5.6.7" in captured.err
+    assert "http://0.0.0.0:8001" in captured.err
     assert MOTION_IN_OCEAN_ASCII not in captured.err
-    assert "\n" not in captured.err.strip()
-
-
-def test_banner_json_mode_case_insensitive(capsys, monkeypatch) -> None:
-    """MIO_LOG_FORMAT=JSON (uppercase) should also trigger compact mode."""
-    monkeypatch.setenv("MIO_LOG_FORMAT", "JSON")
-
-    print_startup_banner("webcam", "127.0.0.1", 8000, version="1.0.0")
-
-    captured = capsys.readouterr()
     assert "\n" not in captured.err.strip()
 
 
