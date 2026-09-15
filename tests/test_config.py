@@ -368,6 +368,8 @@ def test_production_dependency_security_constraints(workspace_root):
 
     ci_workflow_content = (workspace_root / ".github" / "workflows" / "ci.yml").read_text()
     assert "awk '!/^(numpy)/' > /tmp/requirements-base.txt" in ci_workflow_content
+    assert "[ ! -s /tmp/requirements-base.txt ]" in ci_workflow_content
+    assert 'echo "Error: Generated requirements-base.txt is empty"' in ci_workflow_content
     assert "--requirement /tmp/requirements-base.txt" in ci_workflow_content
     standalone_msgpack_argument = (
         '--python-version "${{ matrix.python-version }}"\n            msgpack'
