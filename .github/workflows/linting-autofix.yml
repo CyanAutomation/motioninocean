@@ -9,21 +9,23 @@ concurrency:
   group: code-quality-autofix
   cancel-in-progress: false
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   autofix:
     runs-on: ubuntu-latest
     name: Run linters and formatters with autofix
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Do not leave a write credential in .git/config while project code runs.
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
@@ -110,7 +112,9 @@ jobs:
             - Prettier formatter (prettier --write)
 
             Please review the changes and merge if they look good.
-          branch: autofix/nightly-${{ github.run_id }}
+          # A stable branch lets the workflow update one reviewable PR instead of
+          # opening a new one on every scheduled run.
+          branch: autofix/nightly
           delete-branch: true
           labels: |
             automated
@@ -123,7 +127,7 @@ jobs:
           echo "## Nightly Autofix Workflow Summary" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.verify-changes.outputs.has-changes }}" == "true" ]; then
             echo "✅ Changes detected and PR created" >> $GITHUB_STEP_SUMMARY
-            echo "- **PR Branch:** autofix/nightly-${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **PR Branch:** autofix/nightly" >> $GITHUB_STEP_SUMMARY
             echo "- **Auto-merge:** Disabled; review and merge after required checks pass" >> $GITHUB_STEP_SUMMARY
           else
             echo "ℹ️ No changes detected - no PR created" >> $GITHUB_STEP_SUMMARY

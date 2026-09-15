@@ -30,12 +30,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     env:
-      KASEKI_BASE_URL: ${{ vars.KASEKI_BASE_URL || 'https://kaseki-tunnel.scheimann.xyz' }}
+      KASEKI_BASE_URL: ${{ vars.KASEKI_BASE_URL }}
     steps:
       - name: Verify controller health
         shell: bash
         run: |
           set -euo pipefail
+          : "${KASEKI_BASE_URL:?Configure the KASEKI_BASE_URL Actions variable.}"
+          case "$KASEKI_BASE_URL" in https://*) ;; *) echo "KASEKI_BASE_URL must use HTTPS" >&2; exit 1 ;; esac
           response_file="$(mktemp)"
           trap 'rm -f "$response_file"' EXIT
 
@@ -52,12 +54,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     env:
-      KASEKI_BASE_URL: ${{ vars.KASEKI_BASE_URL || 'https://kaseki-tunnel.scheimann.xyz' }}
+      KASEKI_BASE_URL: ${{ vars.KASEKI_BASE_URL }}
     steps:
       - name: Verify controller readiness
         shell: bash
         run: |
           set -euo pipefail
+          : "${KASEKI_BASE_URL:?Configure the KASEKI_BASE_URL Actions variable.}"
+          case "$KASEKI_BASE_URL" in https://*) ;; *) echo "KASEKI_BASE_URL must use HTTPS" >&2; exit 1 ;; esac
           response_file="$(mktemp)"
           trap 'rm -f "$response_file"' EXIT
 
@@ -68,42 +72,17 @@ jobs:
           jq -e '.status == "ready"' "$response_file" >/dev/null
           jq . "$response_file"
 
-  api_connection:
-    name: Kaseki API Status
-    needs: readiness
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    env:
-      KASEKI_BASE_URL: ${{ vars.KASEKI_BASE_URL || 'https://kaseki-tunnel.scheimann.xyz' }}
-      KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
-    steps:
-      - name: Verify gateway connectivity and authentication
-        shell: bash
-        run: |
-          set -euo pipefail
-          : "${KASEKI_API_TOKEN:?KASEKI_API_TOKEN is not configured}"
-
-          response_file="$(mktemp)"
-          trap 'rm -f "$response_file"' EXIT
-
-          curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors \
-            --connect-timeout 10 --max-time 60 \
-            --output "$response_file" \
-            --header "Authorization: Bearer $KASEKI_API_TOKEN" \
-            "$KASEKI_BASE_URL/api/gateway-test?stage=1"
-          jq -e '.status == "ok"' "$response_file" >/dev/null
-          jq . "$response_file"
-
   dispatch:
     name: Submit Kaseki documentation sweep
-    needs: api_connection
+    needs: readiness
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Configure required reviewers for this environment in repository settings.
     environment: kaseki-docs-sweep
     env:
       # Create this as a repository or organization Actions variable.
-      KASEKI_BASE_URL: ${{ vars.KASEKI_BASE_URL || 'https://kaseki-tunnel.scheimann.xyz' }}
+      KASEKI_BASE_URL: ${{ vars.KASEKI_BASE_URL }}
+      KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
 
       # Automatically targets the repository containing this workflow.
       REPO_URL: ${{ github.server_url }}/${{ github.repository }}
@@ -116,6 +95,8 @@ jobs:
     steps:
       - name: Check Kaseki availability
         run: |
+          set -euo pipefail
+          : "${KASEKI_BASE_URL:?Configure the KASEKI_BASE_URL Actions variable.}"
           case "$KASEKI_BASE_URL" in
             https://*) ;;
             *) echo "KASEKI_BASE_URL must use HTTPS" >&2; exit 1 ;;
@@ -123,10 +104,20 @@ jobs:
           curl --fail --silent --show-error --max-time 20 \
             "$KASEKI_BASE_URL/ready"
 
+      - name: Verify gateway connectivity and authentication
+        run: |
+          set -euo pipefail
+          : "${KASEKI_API_TOKEN:?KASEKI_API_TOKEN is not configured}"
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+          curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors \
+            --connect-timeout 10 --max-time 60 --output "$response_file" \
+            --header "Authorization: Bearer $KASEKI_API_TOKEN" \
+            "$KASEKI_BASE_URL/api/gateway-test?stage=1"
+          jq -e '.status == "ok"' "$response_file" >/dev/null
+
       - name: Submit documentation sweep
         id: submit
-        env:
-          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
         run: |
           set -euo pipefail
           : "${KASEKI_API_TOKEN:?KASEKI_API_TOKEN is not configured}"
@@ -173,18 +164,19 @@ jobs:
                 )
               }'
           )"
-          
+
           response_file="$(mktemp)"
           trap 'rm -f "$response_file"' EXIT
 
           http_status="$(
             curl --silent --show-error \
-              --retry 3 --retry-all-errors --max-time 60 \
+              --connect-timeout 10 --max-time 60 \
               --output "$response_file" \
               --write-out '%{http_code}' \
               --request POST "$KASEKI_BASE_URL/api/runs" \
               --header "Authorization: Bearer $KASEKI_API_TOKEN" \
               --header "Content-Type: application/json" \
+              --header "Idempotency-Key: ${{ github.run_id }}-${{ github.run_attempt }}" \
               --data "$payload"
           )"
 

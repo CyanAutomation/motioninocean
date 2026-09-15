@@ -15,6 +15,7 @@ jobs:
   frontend-tests:
     name: Frontend JS Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
 
@@ -26,6 +27,7 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "20"
+          cache: "npm"
 
       - name: Install frontend dependencies
         run: npm ci
@@ -38,6 +40,7 @@ jobs:
   test:
     name: Test Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     strategy:
@@ -54,6 +57,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
+          cache-dependency-path: |
+            requirements*.txt
+            production-constraints.txt
 
       - name: Install dependencies
         run: |
@@ -83,6 +89,7 @@ jobs:
   production-dependency-resolution:
     name: Resolve Python ${{ matrix.python-version }} / ${{ matrix.platform }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     strategy:
@@ -100,6 +107,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
+          cache-dependency-path: |
+            requirements*.txt
+            production-constraints.txt
 
       - name: Resolve constrained production dependencies
         run: |
@@ -120,6 +130,7 @@ jobs:
   lint:
     name: Lint and Format Check
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
 
@@ -132,6 +143,9 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+          cache-dependency-path: |
+            requirements*.txt
+            production-constraints.txt
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -166,6 +180,7 @@ jobs:
   type-check:
     name: Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
 
@@ -178,6 +193,9 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+          cache-dependency-path: |
+            requirements*.txt
+            production-constraints.txt
 
       - name: Install dependencies
         run: |
@@ -191,6 +209,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
 
@@ -203,6 +222,9 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+          cache-dependency-path: |
+            requirements*.txt
+            production-constraints.txt
 
       - name: Install dependencies
         run: |
