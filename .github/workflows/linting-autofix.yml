@@ -2,7 +2,12 @@ name: Code Quality Autofix
 
 on:
   workflow_dispatch:
-    description: "Manually trigger nightly autofix workflow"
+  schedule:
+    - cron: "0 3 * * *"
+
+concurrency:
+  group: code-quality-autofix
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -15,19 +20,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
           cache: "pip"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "20"
           cache: "npm"
@@ -38,7 +43,7 @@ jobs:
 
       - name: Install npm dependencies
         run: |
-          npm install
+          npm ci
 
       - name: Configure git
         run: |
@@ -48,7 +53,7 @@ jobs:
       - name: Run ruff linter with autofix
         run: |
           echo "Running ruff check with autofix..."
-          python -m ruff check pi_camera_in_docker/ tests/ --fix || true
+          python -m ruff check pi_camera_in_docker/ tests/ --fix
 
       - name: Run ruff formatter
         run: |
@@ -58,12 +63,16 @@ jobs:
       - name: Run ESLint with autofix
         run: |
           echo "Running ESLint with autofix..."
-          npm run lint -- --fix || true
+          npm run lint -- --fix
 
       - name: Run Prettier formatter
         run: |
           echo "Running Prettier..."
-          npx prettier --write "frontend/src/**/*.ts" "eslint.config.js" || true
+          npx prettier --write "frontend/src/**/*.ts" "eslint.config.js"
+
+      - name: Verify autofixed changes
+        run: |
+          make ci
 
       - name: Check for changes
         id: verify-changes
@@ -82,9 +91,11 @@ jobs:
 
       - name: Create Pull Request
         if: steps.verify-changes.outputs.has-changes == 'true'
-        uses: peter-evans/create-pull-request@v8
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Configure AUTOFIX_GITHUB_TOKEN as a GitHub App token so CI runs on
+          # the generated pull request. GITHUB_TOKEN remains a safe fallback.
+          token: ${{ secrets.AUTOFIX_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           commit-message: "chore: automated code quality fixes [nightly]"
           title: "chore: automated code quality fixes (nightly run)"
           body: |
@@ -107,20 +118,13 @@ jobs:
           assignees: |
             ${{ github.repository_owner }}
 
-      - name: Enable auto-merge for PR
-        if: steps.verify-changes.outputs.has-changes == 'true'
-        run: |
-          gh pr merge --auto --squash "autofix/nightly-${{ github.run_id }}" || true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Output summary
         run: |
           echo "## Nightly Autofix Workflow Summary" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.verify-changes.outputs.has-changes }}" == "true" ]; then
             echo "✅ Changes detected and PR created" >> $GITHUB_STEP_SUMMARY
             echo "- **PR Branch:** autofix/nightly-${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
-            echo "- **Auto-merge:** Enabled" >> $GITHUB_STEP_SUMMARY
+            echo "- **Auto-merge:** Disabled; review and merge after required checks pass" >> $GITHUB_STEP_SUMMARY
           else
             echo "ℹ️ No changes detected - no PR created" >> $GITHUB_STEP_SUMMARY
           fi
