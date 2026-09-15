@@ -15,6 +15,14 @@ updates:
     groups:
       npm-development-dependencies:
         dependency-type: development
+        exclude-patterns:
+          - typescript
+    ignore:
+      # TypeScript 5 is the supported compiler line. Remove this rule only as part of an
+      # explicit TypeScript major migration after the compiler and npm ci checks pass.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: pip
     directory: /
