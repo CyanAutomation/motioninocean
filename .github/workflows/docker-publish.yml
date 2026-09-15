@@ -107,6 +107,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             INCLUDE_MOCK_CAMERA=true
+            FINAL_APT_CACHE_BUST=${{ github.event_name == 'schedule' && github.run_id || 'stable' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           pull: true

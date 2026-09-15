@@ -96,6 +96,9 @@ ARG DEBIAN_SUITE
 ARG RPI_SUITE
 ARG VCS_REF
 ARG TARGETARCH
+# Scheduled release builds override this value so the final-stage APT layer is
+# refreshed even when the Bookworm base-image digest is unchanged.
+ARG FINAL_APT_CACHE_BUST=stable
 
 # Prevent Python bytecode generation and enable unbuffered output
 # Savings: ~5-10% image size; improves container startup performance
@@ -123,6 +126,7 @@ LABEL org.opencontainers.image.revision="${VCS_REF}"
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -e && \
+    echo "Final-stage APT cache key: ${FINAL_APT_CACHE_BUST}" && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -132,6 +136,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         gpgv \
         gosu \
         libcairo2 \
+        libpcre2-8-0 \
         python3 \
         python3-venv \
         python3-numpy && \
