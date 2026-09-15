@@ -178,8 +178,16 @@ jobs:
           python -m bandit -r pi_camera_in_docker/ -c pyproject.toml
 
       - name: Check for known vulnerabilities
-        run: |
-          safety check --json
+        env:
+          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
+        run: make safety-scan | tee safety-report.json
+
+      - name: Upload Safety report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: safety-dependency-report
+          path: safety-report.json
 
       - name: Upload Bandit report
         if: always()

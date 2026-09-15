@@ -229,13 +229,14 @@ See job-specific playbooks below for detailed diagnosis. At a high level:
 
 - Bandit findings with severity/confidence annotations in console output.
 - `bandit-report.json` generation failures.
-- Safety dependency vulnerability output from `safety check --json`.
+- Safety dependency vulnerability output from `make safety-scan` (`safety scan` JSON).
 
 ### First files to inspect
 
 - Reported source files in `pi_camera_in_docker/`.
 - `pyproject.toml` `[tool.bandit]` config.
 - Dependency manifests (`requirements*.txt`) for vulnerable package versions.
+- The repository `SAFETY_API_KEY` Actions secret when Safety reports an authentication error.
 
 ### Fast local reproduction
 
@@ -245,12 +246,13 @@ See job-specific playbooks below for detailed diagnosis. At a high level:
 - CI-parity direct commands:
   - `bandit -r pi_camera_in_docker/ -c pyproject.toml -f json -o bandit-report.json || true`
   - `bandit -r pi_camera_in_docker/ -c pyproject.toml`
-  - `safety check --json || true`
+  - `SAFETY_API_KEY=<redacted> make safety-scan`
 
 ### Pass criteria
 
 - No unaccepted high-risk Bandit findings in modified code.
-- Safety output reviewed; critical/high vulnerabilities have remediation or approved exception path.
+- Safety exits successfully with no policy violations; vulnerability findings remain blocking.
+- The `safety-dependency-report` artifact contains the machine-readable JSON scan result.
 - Security artifacts generate successfully when required.
 
 ### Escalate when
