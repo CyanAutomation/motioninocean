@@ -333,6 +333,18 @@ def test_dockerfile_runtime_contract_instructions(workspace_root):
     assert (has_pip_install and has_flask) or has_requirements, "Flask dependency contract missing"
 
 
+def test_production_dependency_security_constraints(workspace_root):
+    """Production builds should enforce secure packaging dependency versions."""
+    dockerfile_content = (workspace_root / "Dockerfile").read_text()
+    constraints_content = (workspace_root / "production-constraints.txt").read_text()
+
+    assert "msgpack>=1.2.1" in constraints_content
+    assert "--constraint production-constraints.txt" in dockerfile_content
+    assert '"setuptools>=78.1.1"' in dockerfile_content
+    assert "pip uninstall --yes pip setuptools wheel" in dockerfile_content
+    assert "setuptools must not remain in the runtime environment" in dockerfile_content
+
+
 def _load_main_config_with_env(workspace_root, env_updates, unset_keys=None):
     """Load main.py in a clean subprocess and return selected config values."""
     script = """

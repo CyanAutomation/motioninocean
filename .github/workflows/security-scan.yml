@@ -38,6 +38,24 @@ jobs:
           test -n "${installed_version}"
           dpkg --compare-versions "${installed_version}" ge "10.42-1+deb12u1"
 
+      - name: Verify Python runtime dependency inventory
+        run: |
+          docker run --rm --entrypoint python3 motion-in-ocean:scan -c '
+          from importlib.metadata import PackageNotFoundError, version
+          from re import findall
+
+          msgpack_version = version("msgpack")
+          assert tuple(map(int, findall(r"\d+", msgpack_version)[:3])) >= (1, 2, 1)
+          print(f"msgpack={msgpack_version}")
+          try:
+              setuptools_version = version("setuptools")
+          except PackageNotFoundError:
+              print("setuptools=not-installed")
+          else:
+              assert tuple(map(int, findall(r"\d+", setuptools_version)[:3])) >= (78, 1, 1)
+              print(f"setuptools={setuptools_version}")
+          '
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
