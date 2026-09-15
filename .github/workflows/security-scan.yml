@@ -5,6 +5,9 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  schedule:
+    # Refresh the mutable Debian base even when the repository has no new commits.
+    - cron: "17 3 * * *"
   workflow_dispatch: {}
 
 concurrency:
@@ -25,7 +28,18 @@ jobs:
 
       - name: Build Docker image for scanning
         run: |
-          docker build -t motion-in-ocean:scan .
+          docker build --pull -t motion-in-ocean:scan .
+
+      - name: Verify patched libpcre2 package
+        run: |
+          set -euo pipefail
+          docker run --rm --entrypoint dpkg-query motion-in-ocean:scan \
+            -W -f='${Package}\t${Version}\n' | sort > docker-package-inventory.txt
+          installed_version=$(awk '$1 == "libpcre2-8-0" { print $2 }' \
+            docker-package-inventory.txt)
+          echo "libpcre2-8-0=${installed_version}"
+          test -n "${installed_version}"
+          dpkg --compare-versions "${installed_version}" ge "10.42-1+deb12u1"
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -69,3 +83,4 @@ jobs:
           path: |
             trivy-results.sarif
             trivy-report.json
+            docker-package-inventory.txt
