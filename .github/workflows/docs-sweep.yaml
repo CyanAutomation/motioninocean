@@ -2,7 +2,7 @@ name: Kaseki Docs Sweep
 
 on:
   schedule:
-    - cron: "0 4 * * 2"
+    - cron: "0 4 * * 3"
   workflow_dispatch:
     inputs:
       ref:
