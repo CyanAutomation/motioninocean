@@ -10,6 +10,21 @@ import sys
 import yaml
 
 
+def test_security_scan_upload_requires_trivy_sarif(workspace_root):
+    """SARIF upload should run after failures only when Trivy produced its report."""
+    workflow_file = workspace_root / ".github" / "workflows" / "security-scan.yml"
+    workflow = yaml.safe_load(workflow_file.read_text())
+    steps = workflow["jobs"]["scan"]["steps"]
+
+    upload_step = next(
+        step for step in steps if step["name"] == "Upload Trivy results to GitHub Security"
+    )
+    assert upload_step["if"] == "always() && hashFiles('trivy-results.sarif') != ''"
+
+    producer_step = next(step for step in steps if step["name"] == "Generate Trivy SARIF report")
+    assert "continue-on-error" not in producer_step
+
+
 def test_webcam_compose_contract_basics(workspace_root):
     """Webcam compose file should parse and expose core service runtime contracts."""
     compose_file = workspace_root / "containers" / "motion-in-ocean-webcam" / "docker-compose.yaml"
