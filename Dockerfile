@@ -45,13 +45,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # picamera2 and its full dependency tree come from apt on arm64 — NOT from pip.
 # This avoids fighting PyPI's python-prctl/videodev2/simplejpeg build dependency chain.
 RUN python3 -m venv --system-site-packages /opt/venv && \
-    /opt/venv/bin/pip install --upgrade pip setuptools==83.0.0 wheel
+    /opt/venv/bin/pip install --upgrade pip "setuptools>=78.1.1" wheel
 
 # ---- Layer 3: Python Dependencies (Volatile) ----
 # Prepare for pip install: copy requirements and install pip packages into venv
 # Separate layer enables fast cache hits when only requirements.txt changes
 WORKDIR /app
-COPY requirements.txt /app/
+COPY requirements.txt production-constraints.txt /app/
 
 # Install Python packages into venv with BuildKit cache mount for faster rebuilds
 # Exclude numpy (use system python3-numpy for simplejpeg compatibility)
@@ -59,7 +59,20 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     set -e && \
     sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' requirements.txt | \
       awk '!/^(numpy)/' > /tmp/requirements-base.txt && \
-    /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements-base.txt && \
+    /opt/venv/bin/pip install --no-cache-dir \
+      --constraint production-constraints.txt \
+      --requirement /tmp/requirements-base.txt && \
+    /opt/venv/bin/pip check && \
+    /opt/venv/bin/python -c "from importlib.metadata import version; \
+from re import findall; \
+installed = version('msgpack'); \
+assert tuple(map(int, findall(r'\d+', installed)[:3])) >= (1, 2, 1), installed; \
+print(f'msgpack={installed}')" && \
+    /opt/venv/bin/pip uninstall --yes pip setuptools wheel && \
+    /opt/venv/bin/python -c "from importlib.metadata import PackageNotFoundError, version; \
+installed = version('msgpack'); \
+print(f'runtime dependency inventory: msgpack={installed}'); \
+exec(\"try:\\n version('setuptools')\\nexcept PackageNotFoundError:\\n print('runtime dependency inventory: setuptools=not-installed')\\nelse:\\n raise AssertionError('setuptools must not remain in the runtime environment')\")" && \
     rm -rf /tmp/requirements-base.txt /tmp/*
 
 # ---- Final Stage ----
