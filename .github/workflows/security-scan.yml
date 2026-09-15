@@ -3,6 +3,7 @@ name: Security - Docker Image Scan
 on:
   push:
     branches: [main, develop]
+    tags: ["v*.*.*"]
   pull_request:
     branches: [main, develop]
   workflow_dispatch: {}
@@ -15,6 +16,7 @@ jobs:
   scan:
     name: Trivy Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     permissions:
       contents: read
       security-events: write
@@ -142,3 +144,16 @@ jobs:
           vuln-type: "os,library"
           ignore-unfixed: true
           exit-code: "1"
+
+  arm64-smoke:
+    name: ARM64 Image Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+      - run: docker buildx build --platform linux/arm64 --build-arg INCLUDE_MOCK_CAMERA=true --load --tag motion-in-ocean:arm64-smoke .
+      - run: docker run --rm --platform linux/arm64 --entrypoint python3 motion-in-ocean:arm64-smoke -c 'import platform; import pi_camera_in_docker; print(platform.machine())'
