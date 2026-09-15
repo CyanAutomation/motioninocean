@@ -45,7 +45,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # picamera2 and its full dependency tree come from apt on arm64 — NOT from pip.
 # This avoids fighting PyPI's python-prctl/videodev2/simplejpeg build dependency chain.
 RUN python3 -m venv --system-site-packages /opt/venv && \
-    /opt/venv/bin/pip install --upgrade pip setuptools wheel
+    /opt/venv/bin/pip install --upgrade pip setuptools==83.0.0 wheel
 
 # ---- Layer 3: Python Dependencies (Volatile) ----
 # Prepare for pip install: copy requirements and install pip packages into venv
