@@ -181,8 +181,8 @@ jobs:
         env:
           SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
         run: |
-          make safety-scan > safety-report.json
-          EXIT_CODE=$?
+          EXIT_CODE=0
+          make safety-scan > safety-report.json || EXIT_CODE=$?
           cat safety-report.json
           exit $EXIT_CODE
 
