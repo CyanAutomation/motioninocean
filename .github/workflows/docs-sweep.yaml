@@ -9,25 +9,13 @@ on:
         description: Git ref to inspect
         required: true
         default: main
-        type: string
-      task_description:
-        description: What Kaseki should do
-        required: true
-        default: Keep README.md and docs/ accurate against the current implementation.
-        type: string
-      allowlist:
-        description: Permitted changed-file patterns, comma-separated
-        required: true
-        default: README.md,docs/**/*.md
-        type: string
-      validation_command:
-        description: Validation command to run (leave blank for none)
-        required: false
-        default: npm run check
-        type: string
+        type: choice
+        options:
+          - main
+          - develop
 
 run-name: >-
-  Docs sweep · ${{ github.repository }}@${{ inputs.ref }}
+  Docs sweep · ${{ github.repository }}@${{ inputs.ref || github.event.repository.default_branch }}
 
 permissions:
   contents: read
@@ -111,20 +99,27 @@ jobs:
     needs: api_connection
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Configure required reviewers for this environment in repository settings.
+    environment: kaseki-docs-sweep
     env:
       # Create this as a repository or organization Actions variable.
       KASEKI_BASE_URL: ${{ vars.KASEKI_BASE_URL || 'https://kaseki-tunnel.scheimann.xyz' }}
 
       # Automatically targets the repository containing this workflow.
       REPO_URL: ${{ github.server_url }}/${{ github.repository }}
-      REF: ${{ inputs.ref }}
-      TASK_DESCRIPTION: ${{ inputs.task_description }}
-      ALLOWLIST: ${{ inputs.allowlist }}
-      VALIDATION_COMMAND: ${{ inputs.validation_command }}
+      # Scheduled runs do not populate workflow_dispatch inputs.
+      REF: ${{ inputs.ref || github.event.repository.default_branch }}
+      TASK_DESCRIPTION: Keep README.md and docs/ accurate against the current implementation.
+      ALLOWLIST: README.md,docs/**/*.md
+      VALIDATION_COMMAND: npm run type-check
 
     steps:
       - name: Check Kaseki availability
         run: |
+          case "$KASEKI_BASE_URL" in
+            https://*) ;;
+            *) echo "KASEKI_BASE_URL must use HTTPS" >&2; exit 1 ;;
+          esac
           curl --fail --silent --show-error --max-time 20 \
             "$KASEKI_BASE_URL/ready"
 
@@ -180,6 +175,7 @@ jobs:
           )"
           
           response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
 
           http_status="$(
             curl --silent --show-error \

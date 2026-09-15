@@ -121,7 +121,7 @@ format-check: ensure-dev-tools
 
 type-check: ensure-dev-tools
 	@echo "Running mypy type checker..."
-	-$(PYTHON) -m mypy pi_camera_in_docker/ --ignore-missing-imports --show-error-codes --no-strict-optional --allow-untyped-calls --allow-subclassing-any
+	$(PYTHON) -m mypy pi_camera_in_docker/ --ignore-missing-imports --show-error-codes
 
 security: ensure-dev-tools
 	@echo "Running bandit security checks..."

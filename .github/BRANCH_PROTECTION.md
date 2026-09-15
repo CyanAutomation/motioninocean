@@ -24,12 +24,14 @@ Navigate to: **Settings → Branches → Add branch protection rule**
 
 - Require branches to be up to date before merging
 - Status checks that are required:
-  - `test (3.10)` - Python 3.10 tests
-  - `test (3.11)` - Python 3.11 tests
-  - `test (3.12)` - Python 3.12 tests
-  - `lint` - Ruff linting
-  - `type-check` - Mypy type checking
-  - `security` - Bandit security scan
+  - `Frontend JS Tests`
+  - `Test Python 3.10`
+  - `Test Python 3.11`
+  - `Test Python 3.12`
+  - `Lint and Format Check`
+  - `Type Check`
+  - `Security Scan`
+  - `Trivy Security Scan`
 
 ✅ **Require conversation resolution before merging**
 
@@ -91,7 +93,7 @@ Navigate to: **Settings → Security**
 
 ✅ **Dependabot security updates** - Enable for automatic security patches
 
-✅ **Dependabot version updates** - Already configured via `.github/dependabot.yaml`
+✅ **Dependabot version updates** - Configured via `.github/dependabot.yml`
 
 ✅ **Code scanning** - Enable GitHub Advanced Security if available
 
@@ -105,11 +107,23 @@ Navigate to: **Settings → Security**
 
 Navigate to: **Settings → Actions → General → Workflow permissions**
 
-Recommended: **Read and write permissions**
+Recommended: **Read repository contents permission**
 
-- Allow GitHub Actions to create pull requests: ✅
+- Grant write permissions only in the workflows that require them.
+- Allow GitHub Actions to create pull requests only if the scheduled autofix
+  workflow is enabled.
+- Configure `AUTOFIX_GITHUB_TOKEN` as a minimally scoped GitHub App token if
+  the autofix pull requests must trigger CI; events made with `GITHUB_TOKEN`
+  do not start new workflow runs.
 
-This allows Dependabot and other automations to work properly.
+The release and autofix workflows declare their narrowly scoped write
+permissions themselves; ordinary CI must remain read-only.
+
+### Tag Protection
+
+Protect the `v*.*.*` tag pattern with a ruleset that limits tag creation to
+release maintainers. The Docker publish workflow verifies and publishes every
+matching tag, so tags must receive the same review discipline as `main`.
 
 ---
 
@@ -133,12 +147,14 @@ Navigate to: **Settings → Rules → Rulesets → New ruleset**
 2. **Require status checks**
    - Require all checks to pass
    - Status checks:
-     - `test (3.10)`
-     - `test (3.11)`
-     - `test (3.12)`
-     - `lint`
-     - `type-check`
-     - `security`
+     - `Frontend JS Tests`
+     - `Test Python 3.10`
+     - `Test Python 3.11`
+     - `Test Python 3.12`
+     - `Lint and Format Check`
+     - `Type Check`
+     - `Security Scan`
+     - `Trivy Security Scan`
 
 3. **Block force pushes**
 
