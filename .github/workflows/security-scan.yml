@@ -56,15 +56,40 @@ jobs:
               print(f"setuptools={setuptools_version}")
           '
 
-      - name: Run Trivy vulnerability scanner
+      # Reporting scans are informational and deliberately include every severity.
+      # The final enforcement scan is the only merge-blocking vulnerability step.
+      - name: Generate Trivy SARIF report
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: "motion-in-ocean:scan"
           format: "sarif"
           output: "trivy-results.sarif"
-          severity: "CRITICAL,HIGH,MEDIUM"
+          severity: "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"
           vuln-type: "os,library"
           ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Generate Trivy JSON report
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: "motion-in-ocean:scan"
+          format: "json"
+          output: "trivy-report.json"
+          severity: "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"
+          vuln-type: "os,library"
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Generate Trivy human-readable report
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: "motion-in-ocean:scan"
+          format: "table"
+          output: "trivy-report.txt"
+          severity: "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"
+          vuln-type: "os,library"
+          ignore-unfixed: true
+          exit-code: "0"
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
@@ -72,25 +97,7 @@ jobs:
         with:
           sarif_file: "trivy-results.sarif"
 
-      - name: Run Trivy in table format
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: "motion-in-ocean:scan"
-          format: "table"
-          severity: "CRITICAL,HIGH"
-          exit-code: "1"
-          ignore-unfixed: true
-
-      - name: Generate Trivy report artifact
-        if: always()
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: "motion-in-ocean:scan"
-          format: "json"
-          output: "trivy-report.json"
-          ignore-unfixed: true
-
-      - name: Upload Trivy report
+      - name: Upload Trivy reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
@@ -98,4 +105,18 @@ jobs:
           path: |
             trivy-results.sarif
             trivy-report.json
+            trivy-report.txt
             docker-package-inventory.txt
+          if-no-files-found: error
+
+      # Only fixed HIGH or CRITICAL OS/library vulnerabilities block the merge.
+      # Lower severities remain visible in the reports uploaded above for triage.
+      - name: Enforce HIGH and CRITICAL vulnerability policy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: "motion-in-ocean:scan"
+          format: "table"
+          severity: "HIGH,CRITICAL"
+          vuln-type: "os,library"
+          ignore-unfixed: true
+          exit-code: "1"
