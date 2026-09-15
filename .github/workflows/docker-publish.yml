@@ -5,7 +5,7 @@ on:
   workflow_dispatch: {}
   # Rebuild the mutable production tag with current Debian security updates.
   schedule:
-    - cron: "43 4 * * 1"
+    - cron: "30 1 2 * *"
   # Trigger on pushed tags
   push:
     tags:
