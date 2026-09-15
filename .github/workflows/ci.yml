@@ -212,18 +212,36 @@ jobs:
         env:
           SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
         run: |
+          REPORT_PATH=safety-report.json
+          rm -f "$REPORT_PATH"
+
           if [ -z "${SAFETY_API_KEY:-}" ]; then
             echo "::error::Configure the SAFETY_API_KEY Actions secret for this repository."
             exit 1
           fi
 
           EXIT_CODE=0
-          make safety-scan > safety-report.json || EXIT_CODE=$?
-          cat safety-report.json
+          make safety-scan > "$REPORT_PATH" || EXIT_CODE=$?
+
+          if [ -s "$REPORT_PATH" ]; then
+            if python -m json.tool "$REPORT_PATH" > /dev/null; then
+              cat "$REPORT_PATH"
+            else
+              echo "::error::Safety produced output that is not valid JSON; skipping report upload." >&2
+              cat "$REPORT_PATH" >&2
+              rm -f "$REPORT_PATH"
+              if [ "$EXIT_CODE" -eq 0 ]; then
+                EXIT_CODE=1
+              fi
+            fi
+          else
+            rm -f "$REPORT_PATH"
+          fi
+
           exit $EXIT_CODE
 
       - name: Upload Safety report
-        if: always()
+        if: always() && hashFiles('safety-report.json') != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: safety-dependency-report

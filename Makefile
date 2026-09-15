@@ -130,8 +130,8 @@ security: ensure-dev-tools
 	$(PYTHON) -m bandit -r pi_camera_in_docker/ -c pyproject.toml
 
 safety-scan: ensure-dev-tools
-	@echo "Checking for known vulnerabilities in dependencies..."
-	$(SAFETY_SCAN)
+	@echo "Checking for known vulnerabilities in dependencies..." >&2
+	@$(SAFETY_SCAN)
 
 security-all: ensure-dev-tools
 	@echo "Running comprehensive security checks..."
