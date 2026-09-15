@@ -93,6 +93,8 @@ jobs:
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        # Attempt the upload even when an earlier reporting step failed; the upload action
+        # provides the authoritative error when the SARIF report is unavailable or invalid.
         if: always()
         with:
           sarif_file: "trivy-results.sarif"
@@ -107,6 +109,7 @@ jobs:
             trivy-report.json
             trivy-report.txt
             docker-package-inventory.txt
+          # Report collection is best-effort so a missing report cannot skip enforcement.
           if-no-files-found: warn
 
       # Only fixed HIGH or CRITICAL OS/library vulnerabilities block the merge.
