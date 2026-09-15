@@ -101,15 +101,17 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
 
-      - name: Resolve constrained msgpack wheel
+      - name: Resolve constrained production dependencies
         run: |
+          sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' requirements.txt | \
+            awk '!/^(numpy)/' > /tmp/requirements-base.txt
           python -m pip download \
             --constraint production-constraints.txt \
-            --dest /tmp/msgpack-wheel \
+            --requirement /tmp/requirements-base.txt \
+            --dest /tmp/production-wheels \
             --only-binary=:all: \
             --platform "${{ matrix.platform }}" \
-            --python-version "${{ matrix.python-version }}" \
-            msgpack
+            --python-version "${{ matrix.python-version }}"
 
   lint:
     name: Lint and Format Check

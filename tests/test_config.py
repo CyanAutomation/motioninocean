@@ -352,7 +352,9 @@ def test_production_dependency_security_constraints(workspace_root):
     """Production builds should enforce secure packaging dependency versions."""
     dockerfile_content = (workspace_root / "Dockerfile").read_text()
     constraints_content = (workspace_root / "production-constraints.txt").read_text()
+    requirements_content = (workspace_root / "requirements.txt").read_text()
 
+    assert "msgpack>=1.2.2" in requirements_content
     assert "msgpack>=1.2.2" in constraints_content
     assert "--constraint production-constraints.txt" in dockerfile_content
     assert '"setuptools>=78.1.1"' in dockerfile_content
@@ -363,6 +365,14 @@ def test_production_dependency_security_constraints(workspace_root):
     assert "venv-local build tools remain" in dockerfile_content
     assert "version('setuptools')" not in dockerfile_content
     assert ">= (1, 2, 2)" in dockerfile_content
+
+    ci_workflow_content = (workspace_root / ".github" / "workflows" / "ci.yml").read_text()
+    assert "awk '!/^(numpy)/' > /tmp/requirements-base.txt" in ci_workflow_content
+    assert "--requirement /tmp/requirements-base.txt" in ci_workflow_content
+    standalone_msgpack_argument = (
+        '--python-version "${{ matrix.python-version }}"\n            msgpack'
+    )
+    assert standalone_msgpack_argument not in ci_workflow_content
 
     workflow_content = (
         workspace_root / ".github" / "workflows" / "security-scan.yml"
