@@ -105,6 +105,10 @@ jobs:
         run: |
           sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' requirements.txt | \
             awk '!/^(numpy)/' > /tmp/requirements-base.txt
+          if [ ! -s /tmp/requirements-base.txt ]; then
+            echo "Error: Generated requirements-base.txt is empty"
+            exit 1
+          fi
           python -m pip download \
             --constraint production-constraints.txt \
             --requirement /tmp/requirements-base.txt \
