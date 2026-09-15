@@ -93,9 +93,9 @@ jobs:
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
-        # Attempt the upload even when an earlier reporting step failed; the upload action
-        # provides the authoritative error when the SARIF report is unavailable or invalid.
-        if: always()
+        # Keep the upload available after unrelated failures, but skip it when its producer did
+        # not create the SARIF file so the original Trivy failure remains the actionable error.
+        if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: "trivy-results.sarif"
 
