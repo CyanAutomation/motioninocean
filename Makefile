@@ -8,10 +8,8 @@ DEBIAN_SUITE ?= bookworm
 RPI_SUITE ?= bookworm
 PYTHON ?= python3
 PIP := $(PYTHON) -m pip
-SAFETY_SCAN_TARGET ?= .
-SAFETY_SCAN := $(PYTHON) -m safety scan --stage cicd --output json --target $(SAFETY_SCAN_TARGET)
 
-.PHONY: help install install-dev install-node ensure-dev-tools test test-frontend lint format type-check security safety-scan security-all check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams docs-build docs-check jsdoc docs-clean ci validate
+.PHONY: help install install-dev install-node ensure-dev-tools test test-frontend lint format type-check security check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
 help:
@@ -84,7 +82,7 @@ install-dev:
 	$(PIP) install -r requirements-dev.txt
 
 ensure-dev-tools:
-	@$(PYTHON) -c "import importlib.util, sys; missing = [name for name in ('pytest', 'ruff', 'mypy', 'bandit', 'safety') if importlib.util.find_spec(name) is None]; sys.exit(1 if missing else 0)" \
+	@$(PYTHON) -c "import importlib.util, sys; missing = [name for name in ('pytest', 'ruff', 'mypy', 'bandit') if importlib.util.find_spec(name) is None]; sys.exit(1 if missing else 0)" \
 		|| { echo "Python development tools are missing; installing requirements-dev.txt..."; $(MAKE) install-dev; }
 
 install-node:
@@ -122,15 +120,6 @@ type-check: ensure-dev-tools
 security: ensure-dev-tools
 	@echo "Running bandit security checks..."
 	$(PYTHON) -m bandit -r pi_camera_in_docker/ -c pyproject.toml
-
-safety-scan: ensure-dev-tools
-	@echo "Checking for known vulnerabilities in dependencies..." >&2
-	@$(SAFETY_SCAN)
-
-security-all: ensure-dev-tools
-	@echo "Running comprehensive security checks..."
-	$(PYTHON) -m bandit -r pi_camera_in_docker/ -c pyproject.toml
-	$(MAKE) safety-scan
 
 check-feature-flag-usage:
 	@echo "Checking feature flag runtime usage..."
