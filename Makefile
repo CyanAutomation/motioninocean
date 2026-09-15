@@ -88,7 +88,7 @@ install-dev:
 	$(PIP) install -r requirements-dev.txt
 
 ensure-dev-tools:
-	@$(PYTHON) -c "import importlib.util, sys; missing = [name for name in ('pytest', 'ruff', 'mypy', 'bandit') if importlib.util.find_spec(name) is None]; sys.exit(1 if missing else 0)" \
+	@$(PYTHON) -c "import importlib.util, sys; missing = [name for name in ('pytest', 'ruff', 'mypy', 'bandit', 'safety') if importlib.util.find_spec(name) is None]; sys.exit(1 if missing else 0)" \
 		|| { echo "Python development tools are missing; installing requirements-dev.txt..."; $(MAKE) install-dev; }
 
 install-node:
@@ -131,7 +131,7 @@ security-all: ensure-dev-tools
 	@echo "Running comprehensive security checks..."
 	$(PYTHON) -m bandit -r pi_camera_in_docker/ -c pyproject.toml
 	@echo "Checking for known vulnerabilities in dependencies..."
-	$(PYTHON) -m safety check --json || true
+	$(PYTHON) -m safety check --json
 
 check-feature-flag-usage:
 	@echo "Checking feature flag runtime usage..."

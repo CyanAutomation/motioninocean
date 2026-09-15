@@ -65,6 +65,8 @@ def render_mio_mock_frame(width: int, height: int, jpeg_quality: int) -> bytes:
             output_width=width,
             output_height=height,
         )
+        if rasterized_png is None:
+            raise MockStreamRenderError(MSG_RASTERIZE_FAILED)
         image = Image.open(BytesIO(rasterized_png)).convert("RGB")
         output = BytesIO()
         image.save(output, format="JPEG", quality=jpeg_quality)
