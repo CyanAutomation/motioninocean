@@ -3,4 +3,4 @@
 # flask-compress pulls msgpack into the runtime environment transitively. Keep the
 # transitive package above the patched floor without making it a direct application
 # dependency; the application itself does not import msgpack.
-msgpack>=1.2.1
+msgpack>=1.2.2
