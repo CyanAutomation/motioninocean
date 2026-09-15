@@ -8,8 +8,10 @@ DEBIAN_SUITE ?= bookworm
 RPI_SUITE ?= bookworm
 PYTHON ?= python3
 PIP := $(PYTHON) -m pip
+SAFETY_SCAN_TARGET ?= .
+SAFETY_SCAN := $(PYTHON) -m safety scan --stage cicd --output json --target $(SAFETY_SCAN_TARGET)
 
-.PHONY: help install install-dev install-node ensure-dev-tools test test-frontend test-ui-webcam-rail lint format type-check security check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
+.PHONY: help install install-dev install-node ensure-dev-tools test test-frontend test-ui-webcam-rail lint format type-check security safety-scan security-all check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
 help:
@@ -127,11 +129,14 @@ security: ensure-dev-tools
 	@echo "Running bandit security checks..."
 	$(PYTHON) -m bandit -r pi_camera_in_docker/ -c pyproject.toml
 
+safety-scan: ensure-dev-tools
+	@echo "Checking for known vulnerabilities in dependencies..."
+	$(SAFETY_SCAN)
+
 security-all: ensure-dev-tools
 	@echo "Running comprehensive security checks..."
 	$(PYTHON) -m bandit -r pi_camera_in_docker/ -c pyproject.toml
-	@echo "Checking for known vulnerabilities in dependencies..."
-	$(PYTHON) -m safety check --json
+	$(MAKE) safety-scan
 
 check-feature-flag-usage:
 	@echo "Checking feature flag runtime usage..."
