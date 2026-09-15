@@ -66,13 +66,20 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     /opt/venv/bin/python -c "from importlib.metadata import version; \
 from re import findall; \
 installed = version('msgpack'); \
-assert tuple(map(int, findall(r'\d+', installed)[:3])) >= (1, 2, 1), installed; \
+assert tuple(map(int, findall(r'\d+', installed)[:3])) >= (1, 2, 2), installed; \
 print(f'msgpack={installed}')" && \
     /opt/venv/bin/pip uninstall --yes pip setuptools wheel && \
-    /opt/venv/bin/python -c "from importlib.metadata import PackageNotFoundError, version; \
-installed = version('msgpack'); \
-print(f'runtime dependency inventory: msgpack={installed}'); \
-exec(\"try:\\n version('setuptools')\\nexcept PackageNotFoundError:\\n print('runtime dependency inventory: setuptools=not-installed')\\nelse:\\n raise AssertionError('setuptools must not remain in the runtime environment')\")" && \
+    /opt/venv/bin/python -c "from importlib.metadata import distributions, version; \
+from pathlib import Path; \
+from sysconfig import get_path; \
+venv_site = get_path('purelib'); \
+assert Path(venv_site).is_relative_to('/opt/venv'), venv_site; \
+venv_inventory = {dist.metadata['Name'].lower().replace('_', '-') for dist in distributions(path=[venv_site])}; \
+forbidden = {'pip', 'setuptools', 'wheel'}; \
+remaining = forbidden & venv_inventory; \
+assert not remaining, f'venv-local build tools remain: {sorted(remaining)}'; \
+print(f'runtime dependency inventory: msgpack={version(\"msgpack\")}'); \
+print(f'venv-local build tools absent from {venv_site}: {sorted(forbidden)}')" && \
     rm -rf /tmp/requirements-base.txt /tmp/*
 
 # ---- Final Stage ----

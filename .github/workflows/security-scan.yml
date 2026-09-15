@@ -41,19 +41,38 @@ jobs:
       - name: Verify Python runtime dependency inventory
         run: |
           docker run --rm --entrypoint python3 motion-in-ocean:scan -c '
-          from importlib.metadata import PackageNotFoundError, version
+          import sys
+          from importlib.metadata import distributions, version
+          from pathlib import Path
           from re import findall
+          from sysconfig import get_path
 
           msgpack_version = version("msgpack")
-          assert tuple(map(int, findall(r"\d+", msgpack_version)[:3])) >= (1, 2, 1)
+          assert tuple(map(int, findall(r"\d+", msgpack_version)[:3])) >= (1, 2, 2)
           print(f"msgpack={msgpack_version}")
-          try:
-              setuptools_version = version("setuptools")
-          except PackageNotFoundError:
-              print("setuptools=not-installed")
-          else:
-              assert tuple(map(int, findall(r"\d+", setuptools_version)[:3])) >= (78, 1, 1)
-              print(f"setuptools={setuptools_version}")
+
+          venv_site = get_path("purelib")
+          assert Path(venv_site).is_relative_to("/opt/venv"), venv_site
+          normalize = lambda name: name.lower().replace("_", "-")
+          venv_inventory = {
+              normalize(dist.metadata["Name"])
+              for dist in distributions(path=[venv_site])
+          }
+          forbidden = {"pip", "setuptools", "wheel"}
+          remaining = forbidden & venv_inventory
+          assert not remaining, f"venv-local build tools remain: {sorted(remaining)}"
+          print(f"venv-local build tools absent from {venv_site}: {sorted(forbidden)}")
+
+          system_paths = [
+              path for path in sys.path
+              if path and not Path(path).is_relative_to("/opt/venv")
+          ]
+          system_inventory = {
+              normalize(dist.metadata["Name"]): str(dist.locate_file(""))
+              for dist in distributions(path=system_paths)
+              if normalize(dist.metadata["Name"]) in forbidden
+          }
+          print(f"Debian system package distributions (inherited, not venv-local): {system_inventory}")
           '
 
       # Reporting scans are informational and deliberately include every severity.
