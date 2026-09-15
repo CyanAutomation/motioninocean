@@ -158,7 +158,7 @@ Motion-in-ocean provides **execution playbooks** (skills) for common development
 | CI job failed | [`ci-triage`](.github/skills/ci-triage/SKILL.md) | Read playbooks for your job type |
 | Before opening PR | [`ci-quality-gates`](.github/skills/ci-quality-gates/SKILL.md) | Run local checks matching CI |
 | JavaScript/TypeScript changes | [`frontend-testing-linting`](.github/skills/frontend-testing-linting/SKILL.md) | `npm run lint:fix && npm run format` |
-| Testing UI changes | [`ui-playwright`](.github/skills/ui-playwright/SKILL.md) | `make audit-ui` |
+| Testing UI changes | Manual browser testing | Validate layout, accessibility, and workflows |
 | Creating diagrams | [`mermaid-creator`](.github/skills/mermaid-creator/SKILL.md) | Reference for Mermaid syntax |
 | Building docs | [`documentation-build-validation`](.github/skills/documentation-build-validation/SKILL.md) | `make docs-check && make docs-build` |
 | Dependency update PR | [`dependabot-dependency-management`](.github/skills/dependabot-dependency-management/SKILL.md) | Review & test Dependabot PR |
@@ -332,7 +332,6 @@ When changes touch the web UI (HTML, CSS, JavaScript, form interactions, respons
 
 **Guidelines:**
 
-- Refer to [`.github/skills/ui-playwright/SKILL.md`](.github/skills/ui-playwright/SKILL.md) for comprehensive UI auditing methodology using Playwright.
 - Test both **webcam mode** (streaming viewer) and **management mode** (node registry) if applicable.
 - Validate responsive design at three breakpoints: desktop (>1024px), tablet (768-1024px), mobile (<480px).
 - Check accessibility: keyboard navigation, ARIA labels, color contrast, focus states.
@@ -350,13 +349,9 @@ Common audit scenarios:
 **Execution:**
 
 ```bash
-# Local audit (interactive)
-npx playwright codegen http://localhost:8000  # generates recording of interactions
-
 # Docker-based audit
 docker compose --profile webcam -e MOCK_CAMERA=true up
-# In another terminal:
-node audit-script.js  # runs audit workflow, captures screenshots
+# Open http://localhost:8000 in a browser and inspect manually
 ```
 
 ---
@@ -414,13 +409,12 @@ Please use clear commit messages:
 
    **Reference:** [`frontend-testing-linting`](.github/skills/frontend-testing-linting/SKILL.md) skill
 
-5. If changes touch the web UI, run a UI audit:
+5. If changes touch the web UI, manually test in a browser:
 
    ```bash
-   make audit-ui
+   docker compose --profile webcam -e MOCK_CAMERA=true up
+   # Open http://localhost:8000 and verify layout, interactions, and responsiveness
    ```
-
-   **Reference:** [`ui-playwright`](.github/skills/ui-playwright/SKILL.md) skill
 
 6. Validate container builds:
    - container builds successfully

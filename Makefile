@@ -11,7 +11,7 @@ PIP := $(PYTHON) -m pip
 SAFETY_SCAN_TARGET ?= .
 SAFETY_SCAN := $(PYTHON) -m safety scan --stage cicd --output json --target $(SAFETY_SCAN_TARGET)
 
-.PHONY: help install install-dev install-node ensure-dev-tools test test-frontend test-ui-webcam-rail lint format type-check security safety-scan security-all check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams check-playwright audit-ui audit-ui-webcam audit-ui-management audit-ui-interactive docs-build docs-check jsdoc docs-clean ci validate
+.PHONY: help install install-dev install-node ensure-dev-tools test test-frontend lint format type-check security safety-scan security-all check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
 help:
@@ -38,16 +38,10 @@ help:
 	@echo ""
 	@echo "Validation:"
 	@echo "  make validate-diagrams    Validate Mermaid diagram syntax"
-	@echo "  make check-playwright     Check Playwright installation"
-	@echo "  make audit-ui             Run full UI audit (both modes, all viewports)"
-	@echo "  make audit-ui-webcam      Run UI audit for webcam mode only"
-	@echo "  make audit-ui-management  Run UI audit for management mode only"
-	@echo "  make audit-ui-interactive Open Playwright inspector for manual auditing"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test             Run all tests with coverage"
 	@echo "  make test-frontend    Run frontend JavaScript unit tests"
-	@echo "  make test-ui-webcam-rail Run WebKit UI test for webcam rail layout/theme"
 	@echo "  make test-unit        Run unit tests only"
 	@echo "  make test-integration Run integration tests only"
 	@echo "  make coverage         Generate coverage report"
@@ -196,56 +190,6 @@ validate-diagrams:
 	mmdc -i README.md -o /tmp/readme.svg -t dark --quiet 2>&1 | grep -i "error" || echo "✓ README.md diagrams valid"
 	@echo "✓ All diagram validations passed!"
 
-# Playwright validation targets
-check-playwright:
-	@echo "Checking Playwright installation..."
-	@if ! command -v npx &> /dev/null; then \
-		echo "Error: Node.js/npm not found. Install Node.js or run 'make install-node'."; \
-		exit 1; \
-	fi
-	@echo "Verifying Playwright is installed..."
-	npx playwright --version
-	@echo "✓ Playwright is ready for testing"
-
-# UI Audit targets
-audit-ui-webcam:
-	@echo "Running UI audit for webcam mode..."
-	@if [ ! -f "audit-template.js" ]; then \
-		echo "Error: audit-template.js not found"; \
-		exit 1; \
-	fi
-	MIO_MODE=webcam node audit-template.js
-	$(MAKE) test-ui-webcam-rail
-	@echo "✓ Webcam UI audit complete. See audit-results/ for details."
-
-audit-ui-management:
-	@echo "Running UI audit for management mode..."
-	@if [ ! -f "audit-template.js" ]; then \
-		echo "Error: audit-template.js not found"; \
-		exit 1; \
-	fi
-	MIO_MODE=management node audit-template.js
-	@echo "✓ Management UI audit complete. See audit-results/ for details."
-
-audit-ui:
-	@echo "Running UI audit for both modes..."
-	@if [ ! -f "audit-template.js" ]; then \
-		echo "Error: audit-template.js not found"; \
-		exit 1; \
-	fi
-	MIO_MODE=both node audit-template.js
-	$(MAKE) test-ui-webcam-rail
-	@echo "✓ Full UI audit complete. See audit-results/ for details."
-
-audit-ui-interactive:
-	@echo "Opening Playwright inspector for interactive auditing..."
-	@if ! command -v npx &> /dev/null; then \
-		echo "Error: Node.js/npm not found. Run 'make install-node' first."; \
-		exit 1; \
-	fi
-	npx playwright codegen http://localhost:8000
-	@echo "Inspector closed. Save the generated script if needed."
-
 # Testing targets
 test: ensure-dev-tools
 	@echo "Running all tests with coverage..."
@@ -257,10 +201,6 @@ test-frontend:
 	npm run build:frontend
 	@echo "Running frontend tests..."
 	node --test tests/frontend/*.test.mjs
-
-test-ui-webcam-rail:
-	@echo "Running WebKit webcam rail layout/theme UI test..."
-	npx playwright test --config=playwright.ui.config.mjs --project=webkit-desktop tests/ui/webcam-rail-layout-theme.spec.mjs
 
 test-unit: ensure-dev-tools
 	@echo "Running unit tests..."
