@@ -19,7 +19,7 @@ ruff==0.16.7
 coverage==7.16.0
 
 # Type checking
-mypy==2.3.0
+mypy==2.3.1
 types-Flask==1.1.6
 types-PyYAML>=6.0.12.20260724
 
