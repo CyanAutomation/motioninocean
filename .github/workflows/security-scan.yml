@@ -2,10 +2,9 @@ name: Security - Docker Image Scan
 
 on:
   push:
-    branches: [main, develop]
-    tags: ["v*.*.*"]
+    branches: main
   pull_request:
-    branches: [main, develop]
+    branches: main
   workflow_dispatch: {}
 
 concurrency:
