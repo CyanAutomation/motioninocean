@@ -710,16 +710,19 @@ class WebcamActionHandler:
                 )
                 if scenario_error is not None:
                     return scenario_error
+                assert scenario_list is not None, (
+                    "valid scenario input must produce a scenario list"
+                )
 
                 _execute_api_test_action(
                     normalized_action, api_test_state, scenario_list, interval_seconds
-                )  # type: ignore[arg-type]
+                )
 
                 response = jsonify(
                     {
                         "ok": True,
                         "action": normalized_action,
-                        "api_test": _get_api_test_runtime_info(api_test_state, scenario_list),  # type: ignore[arg-type]
+                        "api_test": _get_api_test_runtime_info(api_test_state, scenario_list),
                     }
                 )
                 return cast("Response | tuple[Response, int]", response)
@@ -773,14 +776,14 @@ def _limit_route(
     def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
         if limiter is None:
             return fn
-        return limiter.limit(limit_value, exempt_when=exempt_when)(fn)
+        return cast("Callable[..., Any]", limiter.limit(limit_value, exempt_when=exempt_when)(fn))
 
     return decorator
 
 
 def _normalized_webcam_action_param() -> str:
     """Normalize legacy /webcam?action query parameter."""
-    action = request.args.get("action", "").strip().lower()
+    action = str(request.args.get("action", "")).strip().lower()
     return action.split("?")[0].split("&")[0]
 
 

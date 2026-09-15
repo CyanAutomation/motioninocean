@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional, Tuple, cast
 from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 from flask import Flask, g, jsonify, render_template, request
 from flask_compress import Compress
 from flask_cors import CORS
@@ -993,9 +993,12 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
             HTML page: 'management.html' for management mode, 'index.html' for webcam mode.
         """
         if config["app_mode"] == "management":
-            return render_template("management.html")
-        return render_template(
-            "index.html", width=config["resolution"][0], height=config["resolution"][1]
+            return cast("str", render_template("management.html"))
+        return cast(
+            "str",
+            render_template(
+                "index.html", width=config["resolution"][0], height=config["resolution"][1]
+            ),
         )
 
     @app.route("/api/config")
