@@ -1,6 +1,5 @@
 # Security constraints for the fully resolved production dependency graph.
 #
-# flask-compress pulls msgpack into the runtime environment transitively. Keep the
-# transitive package above the patched floor without making it a direct application
-# dependency; the application itself does not import msgpack.
+# Centralized security floor for the explicitly selected runtime dependency.
+# The application itself does not import msgpack, but the image inventory requires it.
 msgpack>=1.2.2
