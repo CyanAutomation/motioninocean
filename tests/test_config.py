@@ -364,9 +364,7 @@ def test_production_dependency_security_constraints(workspace_root):
     assert "version('setuptools')" not in dockerfile_content
     assert ">= (1, 2, 2)" in dockerfile_content
 
-    workflow_content = (
-        workspace_root / ".github" / "workflows" / "security-scan.yml"
-    ).read_text()
+    workflow_content = (workspace_root / ".github" / "workflows" / "security-scan.yml").read_text()
     assert 'Path(venv_site).is_relative_to("/opt/venv")' in workflow_content
     assert "distributions(path=[venv_site])" in workflow_content
     assert 'forbidden = {"pip", "setuptools", "wheel"}' in workflow_content
