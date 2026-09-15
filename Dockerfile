@@ -66,7 +66,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     /opt/venv/bin/python -c "from importlib.metadata import version; \
 from re import findall; \
 installed = version('msgpack'); \
-assert tuple(map(int, findall(r'\d+', installed)[:3])) >= (1, 2, 1), installed; \
+assert tuple(map(int, findall(r'\d+', installed)[:3])) >= (1, 2, 2), installed; \
 print(f'msgpack={installed}')" && \
     /opt/venv/bin/pip uninstall --yes pip setuptools wheel && \
     /opt/venv/bin/python -c "from importlib.metadata import PackageNotFoundError, version; \

@@ -353,7 +353,7 @@ def test_production_dependency_security_constraints(workspace_root):
     dockerfile_content = (workspace_root / "Dockerfile").read_text()
     constraints_content = (workspace_root / "production-constraints.txt").read_text()
 
-    assert "msgpack>=1.2.1" in constraints_content
+    assert "msgpack>=1.2.2" in constraints_content
     assert "--constraint production-constraints.txt" in dockerfile_content
     assert '"setuptools>=78.1.1"' in dockerfile_content
     assert "pip uninstall --yes pip setuptools wheel" in dockerfile_content

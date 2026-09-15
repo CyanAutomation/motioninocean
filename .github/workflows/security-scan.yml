@@ -45,7 +45,7 @@ jobs:
           from re import findall
 
           msgpack_version = version("msgpack")
-          assert tuple(map(int, findall(r"\d+", msgpack_version)[:3])) >= (1, 2, 1)
+          assert tuple(map(int, findall(r"\d+", msgpack_version)[:3])) >= (1, 2, 2)
           print(f"msgpack={msgpack_version}")
           try:
               setuptools_version = version("setuptools")
