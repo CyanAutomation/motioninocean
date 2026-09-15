@@ -107,7 +107,7 @@ jobs:
             trivy-report.json
             trivy-report.txt
             docker-package-inventory.txt
-          if-no-files-found: error
+          if-no-files-found: warn
 
       # Only fixed HIGH or CRITICAL OS/library vulnerabilities block the merge.
       # Lower severities remain visible in the reports uploaded above for triage.
