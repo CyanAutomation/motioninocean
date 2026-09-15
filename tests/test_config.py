@@ -357,7 +357,22 @@ def test_production_dependency_security_constraints(workspace_root):
     assert "--constraint production-constraints.txt" in dockerfile_content
     assert '"setuptools>=78.1.1"' in dockerfile_content
     assert "pip uninstall --yes pip setuptools wheel" in dockerfile_content
-    assert "setuptools must not remain in the runtime environment" in dockerfile_content
+    assert "Path(venv_site).is_relative_to('/opt/venv')" in dockerfile_content
+    assert "distributions(path=[venv_site])" in dockerfile_content
+    assert "{'pip', 'setuptools', 'wheel'}" in dockerfile_content
+    assert "venv-local build tools remain" in dockerfile_content
+    assert "version('setuptools')" not in dockerfile_content
+    assert ">= (1, 2, 2)" in dockerfile_content
+
+    workflow_content = (
+        workspace_root / ".github" / "workflows" / "security-scan.yml"
+    ).read_text()
+    assert 'Path(venv_site).is_relative_to("/opt/venv")' in workflow_content
+    assert "distributions(path=[venv_site])" in workflow_content
+    assert 'forbidden = {"pip", "setuptools", "wheel"}' in workflow_content
+    assert "Debian system package distributions (inherited, not venv-local)" in workflow_content
+    assert 'version("setuptools")' not in workflow_content
+    assert ">= (1, 2, 2)" in workflow_content
 
 
 def _load_main_config_with_env(workspace_root, env_updates, unset_keys=None):
