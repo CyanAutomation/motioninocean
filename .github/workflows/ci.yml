@@ -212,6 +212,11 @@ jobs:
         env:
           SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
         run: |
+          if [ -z "${SAFETY_API_KEY:-}" ]; then
+            echo "::error::Configure the SAFETY_API_KEY Actions secret for this repository."
+            exit 1
+          fi
+
           EXIT_CODE=0
           make safety-scan > safety-report.json || EXIT_CODE=$?
           cat safety-report.json
