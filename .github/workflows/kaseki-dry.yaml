@@ -1,0 +1,305 @@
+name: Kaseki DRY Sweep
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+run-name: >-
+  DRY sweep · ${{ github.repository }}@${{ github.event.repository.default_branch }}
+
+permissions:
+  contents: read
+
+# Protect the complete external Kaseki run from overlapping sweeps.
+concurrency:
+  group: kaseki-dry-sweep-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  dry_sweep:
+    name: Run Kaseki DRY sweep
+    runs-on: ubuntu-latest
+
+    # Kaseki allows a run to last three hours; leave time for
+    # preflight and final status polling.
+    timeout-minutes: 200
+
+    # Configure KASEKI_API_TOKEN as a secret and KASEKI_BASE_URL as an
+    # environment variable.
+    environment: kaseki-agent
+
+    env:
+      KASEKI_BASE_URL: ${{ vars.KASEKI_BASE_URL }}
+      KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
+
+      REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+      REF: ${{ github.event.repository.default_branch }}
+
+      TASK_DESCRIPTION: >-
+        Perform a conservative DRY-principle review of this repository.
+
+      # Adjust these paths for each repository.
+      ALLOWLIST: src/**/*,scripts/**/*,test/**/*,tests/**/*
+
+      VALIDATION_COMMAND: npm run check
+
+    steps:
+      - name: Validate Kaseki configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          : "${KASEKI_BASE_URL:?Configure KASEKI_BASE_URL as an environment variable}"
+          : "${KASEKI_API_TOKEN:?Configure KASEKI_API_TOKEN as an environment secret}"
+
+          if [[ ! "$KASEKI_BASE_URL" =~ ^https:// ]]; then
+            echo "::error title=Invalid Kaseki URL::KASEKI_BASE_URL must use HTTPS"
+            exit 1
+          fi
+
+          if [[ "$KASEKI_BASE_URL" =~ [@[:space:]] ]]; then
+            echo "::error title=Invalid Kaseki URL::KASEKI_BASE_URL must not contain credentials or whitespace"
+            exit 1
+          fi
+
+      - name: Verify controller health
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+
+          curl --fail-with-body --silent --show-error \
+            --retry 3 --retry-all-errors \
+            --connect-timeout 10 --max-time 20 \
+            --output "$response_file" \
+            "$KASEKI_BASE_URL/health"
+
+          jq -e '.status == "healthy"' "$response_file" >/dev/null
+
+          echo "Kaseki health check succeeded."
+
+      - name: Verify controller readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+
+          curl --fail-with-body --silent --show-error \
+            --retry 3 --retry-all-errors \
+            --connect-timeout 10 --max-time 20 \
+            --output "$response_file" \
+            "$KASEKI_BASE_URL/ready"
+
+          jq -e '.status == "ready"' "$response_file" >/dev/null
+
+          echo "Kaseki readiness check succeeded."
+
+      - name: Verify gateway connectivity and authentication
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+
+          curl --fail-with-body --silent --show-error \
+            --retry 3 --retry-all-errors \
+            --connect-timeout 10 --max-time 60 \
+            --output "$response_file" \
+            --header "Authorization: Bearer $KASEKI_API_TOKEN" \
+            "$KASEKI_BASE_URL/api/gateway-test?stage=1"
+
+          jq -e '.status == "ok"' "$response_file" >/dev/null
+
+          echo "Kaseki gateway authentication succeeded."
+
+      - name: Submit DRY sweep
+        id: submit
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          idempotency_key="$(
+            tr '[:upper:]' '[:lower:]' < /proc/sys/kernel/random/uuid
+          )"
+
+          payload="$(
+            jq -n \
+              --arg repoUrl "$REPO_URL" \
+              --arg ref "$REF" \
+              --arg taskDescription "$TASK_DESCRIPTION" \
+              --arg validationCommand "$VALIDATION_COMMAND" \
+              --arg allowlist "$ALLOWLIST" \
+              --arg idempotencyKey "$idempotency_key" \
+              '{
+                repoUrl: $repoUrl,
+                ref: $ref,
+                taskMode: "patch",
+                timeoutSeconds: 10800,
+                idempotencyKey: $idempotencyKey,
+
+                changedFilesAllowlist: (
+                  $allowlist
+                  | split(",")
+                  | map(gsub("^\\s+|\\s+$"; ""))
+                  | map(select(length > 0))
+                ),
+
+                validationCommands: [$validationCommand],
+
+                goalCheck: {
+                  enabled: true,
+                  maxRetries: 1
+                },
+
+                taskPrompt: (
+                  $taskDescription
+
+                  + "\n\nLook for duplicated knowledge rather than merely duplicated text. "
+                  + "Strong candidates include repeated business rules, validation rules, "
+                  + "constants, configuration knowledge, parsing or normalisation logic, "
+                  + "transformations, and substantially identical implementations that "
+                  + "must remain synchronised. "
+
+                  + "\n\nDo not assume that all repetition violates DRY. Similar-looking "
+                  + "code may represent separate concepts or may need to evolve independently. "
+                  + "Prefer clear duplication over an abstraction that increases coupling, "
+                  + "indirection, or cognitive load. "
+
+                  + "\n\nIdentify the single strongest DRY improvement available. Only act "
+                  + "when the duplication represents the same underlying knowledge and "
+                  + "consolidation has a clear maintenance benefit. "
+
+                  + "\n\nPrefer reusing an existing abstraction. If a new abstraction is "
+                  + "justified, keep it at the narrowest sensible scope. "
+
+                  + "\n\nMake at most one focused refactoring. "
+
+                  + "\n\nA no-change result is successful. If there is no sufficiently "
+                  + "valuable, high-confidence DRY improvement, make no changes."
+                )
+              }'
+          )"
+
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+
+          http_status="$(
+            curl --silent --show-error \
+              --retry 3 --retry-all-errors \
+              --max-time 60 \
+              --output "$response_file" \
+              --write-out '%{http_code}' \
+              --request POST "$KASEKI_BASE_URL/api/runs" \
+              --header "Authorization: Bearer $KASEKI_API_TOKEN" \
+              --header "Content-Type: application/json" \
+              --data "$payload"
+          )"
+
+          if [[ ! "$http_status" =~ ^2 ]]; then
+            echo "::error title=Kaseki submission failed::Kaseki returned HTTP $http_status"
+            exit 1
+          fi
+
+          run_id="$(jq -er '.id' "$response_file")"
+
+          if [[ ${#run_id} -gt 128 || ${#run_id} -lt 1 ]]; then
+            echo "::error title=Invalid Kaseki run ID::Controller returned an invalid run ID (invalid length)"
+            exit 1
+          fi
+
+          case "$run_id" in
+            *[!A-Za-z0-9_-]*)
+              echo "::error title=Invalid Kaseki run ID::Controller returned an invalid run ID (invalid characters)"
+              exit 1
+              ;;
+          esac
+
+          output_delimiter="$(uuidgen)"
+
+          {
+            echo "run_id<<$output_delimiter"
+            echo "$run_id"
+            echo "$output_delimiter"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "idempotency_key=$idempotency_key" >> "$GITHUB_OUTPUT"
+
+          echo "Kaseki DRY sweep submitted."
+
+      - name: Wait for Kaseki completion
+        id: wait
+        shell: bash
+        env:
+          RUN_ID: ${{ steps.submit.outputs.run_id }}
+        run: |
+          set -euo pipefail
+
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+
+          # Kaseki can run for up to three hours. Poll a little longer so a
+          # terminal result created near that limit is still observed.
+          for attempt in $(seq 1 185); do
+            curl --fail-with-body --silent --show-error \
+              --retry 3 --retry-all-errors \
+              --connect-timeout 10 --max-time 60 \
+              --output "$response_file" \
+              --header "Authorization: Bearer $KASEKI_API_TOKEN" \
+              "$KASEKI_BASE_URL/api/runs/$RUN_ID/status"
+
+            status="$(jq -er '.status' "$response_file")"
+
+            case "$status" in
+              completed)
+                echo "status=$status" >> "$GITHUB_OUTPUT"
+                echo "Kaseki status: completed"
+                exit 0
+                ;;
+
+              failed)
+                echo "status=$status" >> "$GITHUB_OUTPUT"
+                echo "Kaseki status: failed"
+                exit 1
+                ;;
+
+              queued|running)
+                echo "Kaseki status: $status"
+                sleep 60
+                ;;
+
+              *)
+                echo "::error title=Unexpected Kaseki status::Controller returned an unsupported status"
+                exit 1
+                ;;
+            esac
+          done
+
+          echo "::error title=Kaseki run timed out::No terminal status after 185 minutes"
+          exit 1
+
+      - name: Publish run details
+        if: always()
+        shell: bash
+        env:
+          RUN_ID: ${{ steps.submit.outputs.run_id || 'not submitted' }}
+          FINAL_STATUS: ${{ steps.wait.outputs.status || 'not completed' }}
+        run: |
+          {
+            echo "## Kaseki DRY sweep"
+            echo
+            echo "| Setting | Value |"
+            echo "|---|---|"
+            echo "| Repository | \`$REPO_URL\` |"
+            echo "| Ref | \`$REF\` |"
+            echo "| Allowed paths | \`$ALLOWLIST\` |"
+            echo "| Validation | \`$VALIDATION_COMMAND\` |"
+            echo "| Maximum refactorings | \`1\` |"
+            echo "| Kaseki run | \`$RUN_ID\` |"
+            echo "| Final status | \`$FINAL_STATUS\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
