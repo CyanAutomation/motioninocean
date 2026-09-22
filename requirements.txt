@@ -11,7 +11,7 @@ flask-cors==6.0.5
 Flask-Limiter==4.1.1
 
 # HTTP response compression (gzip for JSON, HTML, CSS, JS)
-flask-compress>=1.24
+flask-compress>=1.25
 
 # Explicitly installed because the image security inventory requires it;
 # constraints alone set version floors but do not install packages.
