@@ -112,7 +112,7 @@ jobs:
           exit-code: "0"
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4
         # Keep the upload available after unrelated failures, but skip it when its producer did
         # not create the SARIF file so the original Trivy failure remains the actionable error.
         if: always() && hashFiles('trivy-results.sarif') != ''
@@ -152,7 +152,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4
-      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
       - run: docker buildx build --platform linux/arm64 --build-arg INCLUDE_MOCK_CAMERA=true --load --tag motion-in-ocean:arm64-smoke .
       - run: docker run --rm --platform linux/arm64 --entrypoint python3 motion-in-ocean:arm64-smoke -c 'import platform; import pi_camera_in_docker; print(platform.machine())'
