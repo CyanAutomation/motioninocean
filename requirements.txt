@@ -18,7 +18,7 @@ flask-compress>=1.24
 msgpack>=1.2.2
 
 # Error tracking and APM
-sentry-sdk[flask]==2.69.1
+sentry-sdk[flask]==2.69.2
 
 # Lightweight image generation for mock camera fallback
 # Included in all builds so runtime can switch to mock mode via MOCK_CAMERA=true when needed.
