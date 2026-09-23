@@ -19,6 +19,7 @@ concurrency:
 jobs:
   dry_sweep:
     name: Run Kaseki DRY sweep
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
 
     # Kaseki allows a run to last three hours; leave time for
@@ -40,9 +41,9 @@ jobs:
         Perform a conservative DRY-principle review of this repository.
 
       # Adjust these paths for each repository.
-      ALLOWLIST: src/**/*,scripts/**/*,test/**/*,tests/**/*
+      ALLOWLIST: pi_camera_in_docker/**/*,frontend/src/**/*,scripts/**/*,tests/**/*
 
-      VALIDATION_COMMAND: npm run check
+      VALIDATION_COMMAND: make ci
 
     steps:
       - name: Validate Kaseki configuration
