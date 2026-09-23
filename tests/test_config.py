@@ -11,15 +11,21 @@ import yaml
 
 
 def test_security_scan_upload_requires_trivy_sarif(workspace_root):
-    """SARIF upload should run after failures only when Trivy produced its report."""
+    """SARIF upload should require a report artifact from the scan job."""
     workflow_file = workspace_root / ".github" / "workflows" / "security-scan.yml"
     workflow = yaml.safe_load(workflow_file.read_text())
     steps = workflow["jobs"]["scan"]["steps"]
 
+    upload_job = workflow["jobs"]["upload-sarif"]
+    assert upload_job["needs"] == "scan"
+    assert "sarif-produced == 'true'" in upload_job["if"]
+    assert "report-artifact-uploaded == 'true'" in upload_job["if"]
     upload_step = next(
-        step for step in steps if step["name"] == "Upload Trivy results to GitHub Security"
+        step
+        for step in upload_job["steps"]
+        if step.get("name") == "Upload Trivy results to GitHub Security"
     )
-    assert upload_step["if"] == "always() && hashFiles('trivy-results.sarif') != ''"
+    assert upload_step["with"]["sarif_file"] == "trivy-security-report/trivy-results.sarif"
 
     producer_step = next(step for step in steps if step["name"] == "Generate Trivy SARIF report")
     assert "continue-on-error" not in producer_step

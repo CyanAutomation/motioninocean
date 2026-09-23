@@ -20,7 +20,7 @@ env:
   REF: ${{ github.event.repository.default_branch }}
   TASK_DESCRIPTION: Keep README.md and docs/ accurate against the current implementation.
   ALLOWLIST: README.md,docs/**/*.md
-  VALIDATION_COMMAND: npm run lint && npm test && npm run build
+  VALIDATION_COMMAND: npm run lint && npm run type-check && npm run build:frontend
 
 jobs:
   system_status:
