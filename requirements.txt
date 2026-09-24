@@ -1,49 +1,10 @@
-# Core dependencies for pi-camera-in-docker
-# These should be installed via pip in the Docker container
+# Runtime dependencies for the Docker application.
 
-# Web framework
+# HTTP application framework
 Flask==3.1.3
 
-# CORS support for Flask
-flask-cors==6.0.5
-
-# Rate limiting for Flask APIs
-Flask-Limiter==4.1.1
-
-# HTTP response compression (gzip for JSON, HTML, CSS, JS)
+# Gzip/Brotli response compression for text responses
 flask-compress>=1.25
 
-# Explicitly installed because the image security inventory requires it;
-# constraints alone set version floors but do not install packages.
-msgpack>=1.2.2
-
-# Error tracking and APM
-sentry-sdk[flask]==2.69.2
-
-# Lightweight image generation for mock camera fallback
-# Included in all builds so runtime can switch to mock mode via MOCK_CAMERA=true when needed.
+# Mock-camera image resize and JPEG encoding
 Pillow>=12.2.0
-
-# SVG rasterization for mock stream rendering
-CairoSVG>=2.9.1
-
-# NumPy for array processing
-numpy==2.2.6
-
-# YAML parsing (used to serve the OpenAPI specification at runtime)
-PyYAML>=6.0.3
-
-# Camera support for Raspberry Pi
-# picamera2 and python3-libcamera are installed from the Raspberry Pi Bookworm apt repo on arm64
-# via the Dockerfile (Layer 2, final stage). They are NOT installed from pip.
-# amd64 builds skip camera packages entirely and use MOCK_CAMERA=true at runtime.
-
-# Development and testing dependencies
-# These are listed here for reference but installed separately in CI/dev environments
-# pytest==8.3.4
-# pytest-cov==6.0.0
-# coverage==7.6.9
-# ruff==0.8.4
-# pre-commit==4.0.1
-# mypy==1.13.0
-# types-Flask==1.1.6

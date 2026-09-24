@@ -308,7 +308,7 @@ def _build_metrics_payload(
         stream_status: Stream metrics callback payload.
 
     Returns:
-        Metrics payload aligned with docs/openapi.yaml MetricsSnapshot schema.
+        Metrics payload aligned with docs/openapi.json MetricsSnapshot schema.
     """
     metrics_stream_fields = {
         "frames_captured",

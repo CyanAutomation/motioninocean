@@ -9,11 +9,11 @@ import logging
 import re
 from typing import Any, Dict, Optional
 
-import sentry_sdk
-from sentry_sdk.integrations.flask import FlaskIntegration
-from sentry_sdk.integrations.logging import LoggingIntegration
-
+from pi_camera_in_docker.telemetry import _get_sentry_sdk
 from pi_camera_in_docker.version_info import read_app_version
+
+
+logger = logging.getLogger(__name__)
 
 
 def _redact_auth_data(event: Dict[str, Any], _hint: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -168,6 +168,25 @@ def init_sentry(sentry_dsn: Optional[str], app_mode: str) -> None:
     """
     if not sentry_dsn:
         # Sentry disabled when DSN not provided
+        return
+
+    sentry_sdk = _get_sentry_sdk()
+    if sentry_sdk is None:
+        logger.warning(
+            "MIO_SENTRY_DSN is configured but sentry-sdk is not installed; "
+            "error reporting is disabled"
+        )
+        return
+
+    try:
+        from sentry_sdk.integrations.flask import FlaskIntegration  # noqa: PLC0415
+        from sentry_sdk.integrations.logging import LoggingIntegration  # noqa: PLC0415
+    except ImportError:
+        logger.warning(
+            "MIO_SENTRY_DSN is configured but Sentry Flask integrations are unavailable; "
+            "error reporting is disabled",
+            exc_info=True,
+        )
         return
 
     sentry_sdk.init(  # type: ignore[call-arg]

@@ -431,7 +431,7 @@ def test_discovery_run_loop_unexpected_exception_continues_with_backoff(monkeypa
     monkeypatch.setattr(announcer, "_wait_for_next_attempt", fake_wait_for_next_attempt)
     monkeypatch.setattr(announcer, "_announce_once", fake_announce_once)
     monkeypatch.setattr("pi_camera_in_docker.discovery.random.uniform", lambda _a, _b: 0.0)
-    monkeypatch.setattr("pi_camera_in_docker.discovery.sentry_sdk.new_scope", FakeScope)
+    monkeypatch.setattr("pi_camera_in_docker.discovery.new_scope", FakeScope)
 
     announcer._run_loop()
 

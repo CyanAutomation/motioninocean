@@ -185,7 +185,3 @@ mypy_path = "stubs"
 [[tool.mypy.overrides]]
 module = "picamera2.*"
 ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "cairosvg.*"
-ignore_missing_imports = true

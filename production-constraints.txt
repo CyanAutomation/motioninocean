@@ -1,5 +1,0 @@
-# Security constraints for the fully resolved production dependency graph.
-#
-# Centralized security floor for the explicitly selected runtime dependency.
-# The application itself does not import msgpack, but the image inventory requires it.
-msgpack>=1.2.2

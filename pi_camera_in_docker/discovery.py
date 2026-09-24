@@ -19,8 +19,7 @@ from threading import Event, Lock, Thread, current_thread
 from typing import Any, Dict, Optional
 from urllib.parse import urlsplit, urlunsplit
 
-import sentry_sdk
-
+from pi_camera_in_docker.telemetry import new_scope
 from pi_camera_in_docker.transport_url_validation import validate_http_url_shape
 
 
@@ -254,7 +253,7 @@ class DiscoveryAnnouncer:
                 exc.code,
                 self.management_url_log,
             )
-            with sentry_sdk.new_scope() as scope:
+            with new_scope() as scope:
                 scope.set_tag("component", "discovery")
                 scope.set_tag("webcam_id", self.webcam_id)
                 scope.capture_exception(exc)
@@ -266,7 +265,7 @@ class DiscoveryAnnouncer:
                 str(exc),
                 self.management_url_log,
             )
-            with sentry_sdk.new_scope() as scope:
+            with new_scope() as scope:
                 scope.set_tag("component", "discovery")
                 scope.set_tag("webcam_id", self.webcam_id)
                 scope.capture_exception(exc)
@@ -292,7 +291,7 @@ class DiscoveryAnnouncer:
                     self.webcam_id,
                     str(exc),
                 )
-                with sentry_sdk.new_scope() as scope:
+                with new_scope() as scope:
                     scope.set_tag("component", "discovery")
                     scope.set_tag("webcam_id", self.webcam_id)
                     scope.capture_exception(exc)

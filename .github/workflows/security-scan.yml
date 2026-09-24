@@ -50,14 +50,9 @@ jobs:
         run: |
           docker run --rm --entrypoint python3 motion-in-ocean:scan -c '
           import sys
-          from importlib.metadata import distributions, version
+          from importlib.metadata import distributions
           from pathlib import Path
-          from re import findall
           from sysconfig import get_path
-
-          msgpack_version = version("msgpack")
-          assert tuple(map(int, findall(r"\d+", msgpack_version)[:3])) >= (1, 2, 2)
-          print(f"msgpack={msgpack_version}")
 
           venv_site = get_path("purelib")
           assert Path(venv_site).is_relative_to("/opt/venv"), venv_site
@@ -70,6 +65,15 @@ jobs:
           remaining = forbidden & venv_inventory
           assert not remaining, f"venv-local build tools remain: {sorted(remaining)}"
           print(f"venv-local build tools absent from {venv_site}: {sorted(forbidden)}")
+
+          optional_runtime = {
+              "cairosvg", "flask-cors", "flask-limiter", "pyyaml", "sentry-sdk", "msgpack"
+          }
+          installed_optional = optional_runtime & venv_inventory
+          assert not installed_optional, (
+              f"optional runtime packages installed by default: {sorted(installed_optional)}"
+          )
+          print(f"optional runtime packages absent: {sorted(optional_runtime)}")
 
           system_paths = [
               path for path in sys.path

@@ -1,0 +1,131 @@
+:root {
+  color-scheme: light dark;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  background: #071e2c;
+  color: #e9f4fa;
+  font-synthesis: none;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(ellipse at top, #123c55 0, #071e2c 58rem);
+}
+
+main {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 2rem 1rem 5rem;
+}
+
+.page-header {
+  margin-bottom: 3rem;
+  padding: 2rem;
+  border: 1px solid #28607b;
+  border-radius: 1rem;
+  background: #0d2c3d;
+}
+
+.eyebrow {
+  color: #66c7f1;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0.2rem 0 0.8rem;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+}
+
+h2 {
+  margin-top: 2.5rem;
+}
+
+a {
+  color: #79d4fa;
+}
+
+.operation-list,
+.schema-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.operation,
+.schema {
+  overflow: hidden;
+  border: 1px solid #28536a;
+  border-radius: 0.7rem;
+  background: #0b2939;
+}
+
+.operation summary,
+.schema summary {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem;
+  cursor: pointer;
+}
+
+.method {
+  min-width: 5.5rem;
+  color: #89e0a4;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.operation-path,
+.schema-name {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.operation-summary {
+  margin-left: auto;
+  color: #bdd3df;
+  text-align: right;
+}
+
+.operation details > div,
+.schema pre {
+  margin: 0;
+  padding: 0 1rem 1rem;
+}
+
+.operation pre,
+.schema pre {
+  overflow: auto;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: #061923;
+  color: #d9eaf3;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
+
+.load-error {
+  padding: 1rem;
+  border: 1px solid #d56b6b;
+  border-radius: 0.5rem;
+  color: #ffc0c0;
+}
+
+@media (max-width: 680px) {
+  .operation summary {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .operation-summary {
+    width: 100%;
+    margin-left: 6.3rem;
+    text-align: left;
+  }
+}

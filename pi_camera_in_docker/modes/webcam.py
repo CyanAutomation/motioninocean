@@ -5,10 +5,11 @@ from collections import deque
 from threading import Condition, Lock
 from typing import Any, Callable, Dict, Optional, Tuple, cast
 
-import sentry_sdk
 from flask import Flask, Response, jsonify, request
-from flask_limiter import Limiter
 from werkzeug.exceptions import BadRequest
+
+from pi_camera_in_docker.rate_limiter import RateLimiterProtocol
+from pi_camera_in_docker.telemetry import new_scope
 
 
 """Webcam mode implementation: camera frame capture, buffering, and MJPEG streaming.
@@ -197,7 +198,7 @@ def import_camera_components(pykms_mock_fallback_enabled: bool):
     try:
         from picamera2 import Picamera2
     except (ModuleNotFoundError, AttributeError) as e:
-        with sentry_sdk.new_scope() as scope:
+        with new_scope() as scope:
             scope.set_tag("component", "camera")
             scope.capture_exception(e)
         if pykms_mock_fallback_enabled and (
@@ -735,14 +736,14 @@ class WebcamActionHandler:
 
 
 def _register_stream_routes(
-    app: Flask, builder: StreamResponseBuilder, limiter: Optional[Limiter]
+    app: Flask, builder: StreamResponseBuilder, limiter: Optional[RateLimiterProtocol]
 ) -> None:
     """Register MJPEG stream and snapshot endpoints.
 
     Args:
         app: Flask application instance.
         builder: StreamResponseBuilder instance for stream generation.
-        limiter: Optional Flask-Limiter instance.
+        limiter: Optional rate limiter.
     """
 
     @app.route("/stream.mjpg")
@@ -758,15 +759,15 @@ def _register_stream_routes(
 
 
 def _limit_route(
-    limiter: Optional[Limiter],
+    limiter: Optional[RateLimiterProtocol],
     limit_value: str,
     exempt_when: Optional[Callable[[], bool]] = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Apply route rate limit when a limiter is configured.
 
     Args:
-        limiter: Optional Flask-Limiter instance.
-        limit_value: Flask-Limiter limit string.
+        limiter: Optional rate limiter.
+        limit_value: Semicolon-separated request limits.
         exempt_when: Optional request predicate to skip this limit.
 
     Returns:
@@ -800,14 +801,14 @@ def _is_snapshot_like_action() -> bool:
 
 
 def _register_action_routes(
-    app: Flask, handler: WebcamActionHandler, limiter: Optional[Limiter]
+    app: Flask, handler: WebcamActionHandler, limiter: Optional[RateLimiterProtocol]
 ) -> None:
     """Register control plane action endpoint.
 
     Args:
         app: Flask application instance.
         handler: WebcamActionHandler instance for action processing.
-        limiter: Optional Flask-Limiter instance.
+        limiter: Optional rate limiter.
     """
 
     @app.route("/api/actions/<action>", methods=["POST"])
@@ -823,14 +824,14 @@ def _register_action_routes(
 
 
 def _register_compat_routes(
-    app: Flask, builder: StreamResponseBuilder, limiter: Optional[Limiter]
+    app: Flask, builder: StreamResponseBuilder, limiter: Optional[RateLimiterProtocol]
 ) -> None:
     """Register OctoPrint compatibility routes.
 
     Args:
         app: Flask application instance.
         builder: StreamResponseBuilder instance for stream generation.
-        limiter: Optional Flask-Limiter instance.
+        limiter: Optional rate limiter.
     """
 
     @app.route("/webcam")
@@ -851,7 +852,9 @@ def _register_compat_routes(
         return Response("Unsupported action", status=400)
 
 
-def register_webcam_routes(app: Flask, state: dict, limiter: Optional[Limiter] = None) -> None:
+def register_webcam_routes(
+    app: Flask, state: dict, limiter: Optional[RateLimiterProtocol] = None
+) -> None:
     """Register webcam mode Flask routes for MJPEG streaming.
 
     Registers /stream.mjpg, /snapshot.jpg, /api/actions/<action>, and
@@ -865,7 +868,7 @@ def register_webcam_routes(app: Flask, state: dict, limiter: Optional[Limiter] =
     Args:
         app: Flask application instance.
         state: Application state dict with frame buffer, tracker, stream stats, etc.
-        limiter: Optional Flask-Limiter instance for per-route request throttling.
+        limiter: Optional rate limiter for per-route request throttling.
     """
     tracker = state["connection_tracker"]
     max_stream_connections = state["max_stream_connections"]

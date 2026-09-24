@@ -114,18 +114,18 @@ docker buildx build --platform linux/arm64 \
 
 ## API Documentation
 
-Both webcam and management modes expose interactive API docs at runtime — no extra dependencies required:
+Both webcam and management modes expose a built-in API reference at runtime:
 
 | Endpoint            | Description                                      |
 | ------------------- | ------------------------------------------------ |
-| `GET /api/docs`     | Swagger UI (browser, no auth required)           |
+| `GET /api/docs`     | Built-in API reference (browser, no auth required) |
 | `GET /openapi.json` | OpenAPI 3.0 spec as JSON (for client generation) |
 | `GET /version`      | Stable app version metadata (JSON)               |
 | `GET /api/version`  | Alias of `/version`                              |
 
 Open `http://localhost:8000/api/docs` (webcam) or `http://localhost:8001/api/docs` (management) after starting the container.
 
-The raw spec lives at [docs/openapi.yaml](docs/openapi.yaml) and is served directly from disk at runtime.
+The spec lives at [docs/openapi.json](docs/openapi.json) and is served directly from disk at runtime.
 
 ## Full Documentation
 
@@ -134,7 +134,7 @@ The raw spec lives at [docs/openapi.yaml](docs/openapi.yaml) and is served direc
 - Migration deltas only: [docs/guides/MIGRATION.md](docs/guides/MIGRATION.md)
 - Feature flags reference: [docs/guides/FEATURE_FLAGS.md](docs/guides/FEATURE_FLAGS.md)
 - Container directory pattern specifics: [containers/README.md](containers/README.md)
-- OpenAPI specification: [docs/openapi.yaml](docs/openapi.yaml)
+- OpenAPI specification: [docs/openapi.json](docs/openapi.json)
 
 ## Environment Variables
 

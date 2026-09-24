@@ -83,7 +83,7 @@ fi
 
 # Test Python imports
 echo "[INFO] Testing Python module imports..."
-docker exec "$CONTAINER_ID" python3 -c "import numpy, flask, flask_cors, picamera2; print('[INFO] All modules imported successfully')" 2>&1 || {
+docker exec "$CONTAINER_ID" python3 -c "import flask, picamera2; print('[INFO] All modules imported successfully')" 2>&1 || {
     echo "[ERROR] Module import failed"
     docker stop "$CONTAINER_ID" 2>/dev/null || true
     exit 1

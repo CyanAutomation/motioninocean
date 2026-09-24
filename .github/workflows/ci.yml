@@ -59,12 +59,11 @@ jobs:
           cache: "pip"
           cache-dependency-path: |
             requirements*.txt
-            production-constraints.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -c production-constraints.txt -r requirements-dev.txt
+          python -m pip install -r requirements-dev.txt
 
       - name: Run tests with coverage
         run: |
@@ -86,8 +85,8 @@ jobs:
           name: coverage-report
           path: htmlcov/
 
-  production-dependency-resolution:
-    name: Resolve Python ${{ matrix.python-version }} / ${{ matrix.platform }}
+  runtime-dependency-resolution:
+    name: Resolve default and optional runtime packages ${{ matrix.python-version }} / ${{ matrix.platform }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -109,19 +108,13 @@ jobs:
           cache: "pip"
           cache-dependency-path: |
             requirements*.txt
-            production-constraints.txt
 
-      - name: Resolve constrained production dependencies
+      - name: Resolve runtime and optional dependencies
         run: |
-          sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' requirements.txt | \
-            awk '!/^(numpy)/' > /tmp/requirements-base.txt
-          if [ ! -s /tmp/requirements-base.txt ]; then
-            echo "Error: Generated requirements-base.txt is empty"
-            exit 1
-          fi
           python -m pip download \
-            --constraint production-constraints.txt \
-            --requirement /tmp/requirements-base.txt \
+            --requirement requirements.txt \
+            --requirement requirements-sentry.txt \
+            --requirement requirements-rate-limiter.txt \
             --dest /tmp/production-wheels \
             --only-binary=:all: \
             --platform "${{ matrix.platform }}" \
@@ -145,7 +138,6 @@ jobs:
           cache: "pip"
           cache-dependency-path: |
             requirements*.txt
-            production-constraints.txt
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -195,7 +187,6 @@ jobs:
           cache: "pip"
           cache-dependency-path: |
             requirements*.txt
-            production-constraints.txt
 
       - name: Install dependencies
         run: |
@@ -224,7 +215,6 @@ jobs:
           cache: "pip"
           cache-dependency-path: |
             requirements*.txt
-            production-constraints.txt
 
       - name: Install dependencies
         run: |

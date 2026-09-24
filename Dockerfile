@@ -8,6 +8,8 @@
 ARG DEBIAN_SUITE=bookworm
 ARG RPI_SUITE=bookworm
 ARG VCS_REF=unknown
+ARG INSTALL_SENTRY_SDK=false
+ARG INSTALL_EXTERNAL_LIMITER=false
 
 # ---- Builder Stage ----
 # Minimal Python packaging stage: installs build tools and creates isolated venv.
@@ -17,6 +19,8 @@ FROM debian:${DEBIAN_SUITE}-slim AS builder
 # Re-declare build args for this stage
 ARG DEBIAN_SUITE
 ARG RPI_SUITE
+ARG INSTALL_SENTRY_SDK
+ARG INSTALL_EXTERNAL_LIMITER
 
 # ---- Layer 1: System Build Tools (Stable) ----
 # Install base system dependencies and build toolchain
@@ -51,25 +55,23 @@ RUN python3 -m venv --system-site-packages /opt/venv && \
 # Prepare for pip install: copy requirements and install pip packages into venv
 # Separate layer enables fast cache hits when only requirements.txt changes
 WORKDIR /app
-COPY requirements.txt production-constraints.txt /app/
+COPY requirements.txt requirements-sentry.txt requirements-rate-limiter.txt /app/
 
-# Install Python packages into venv with BuildKit cache mount for faster rebuilds
-# Exclude numpy (use system python3-numpy for simplejpeg compatibility)
+# Install the small default runtime set. Telemetry and shared limiter storage are
+# optional integrations enabled only by explicit build arguments.
 RUN --mount=type=cache,target=/root/.cache/pip \
     set -e && \
-    sed '/^[[:space:]]*#/d;/^[[:space:]]*$/d' requirements.txt | \
-      awk '!/^(numpy)/' > /tmp/requirements-base.txt && \
-    /opt/venv/bin/pip install --no-cache-dir \
-      --constraint production-constraints.txt \
-      --requirement /tmp/requirements-base.txt && \
+    /opt/venv/bin/pip install --no-cache-dir --requirement requirements.txt && \
+    if [ "${INSTALL_SENTRY_SDK}" = "true" ]; then \
+      /opt/venv/bin/pip install --no-cache-dir --requirement requirements-sentry.txt; \
+    fi && \
+    if [ "${INSTALL_EXTERNAL_LIMITER}" = "true" ]; then \
+      /opt/venv/bin/pip install --no-cache-dir --requirement requirements-rate-limiter.txt; \
+    fi && \
     /opt/venv/bin/pip check && \
-    /opt/venv/bin/python -c "from importlib.metadata import version; \
-from re import findall; \
-installed = version('msgpack'); \
-assert tuple(map(int, findall(r'\d+', installed)[:3])) >= (1, 2, 2), installed; \
-print(f'msgpack={installed}')" && \
     /opt/venv/bin/pip uninstall --yes pip setuptools wheel && \
-    /opt/venv/bin/python -c "from importlib.metadata import distributions, version; \
+    /opt/venv/bin/python -c "from importlib.metadata import distributions; \
+from os import environ; \
 from pathlib import Path; \
 from sysconfig import get_path; \
 venv_site = get_path('purelib'); \
@@ -78,9 +80,14 @@ venv_inventory = {dist.metadata['Name'].lower().replace('_', '-') for dist in di
 forbidden = {'pip', 'setuptools', 'wheel'}; \
 remaining = forbidden & venv_inventory; \
 assert not remaining, f'venv-local build tools remain: {sorted(remaining)}'; \
-print(f'runtime dependency inventory: msgpack={version(\"msgpack\")}'); \
+optional = {'cairosvg', 'flask-cors', 'pyyaml', 'msgpack'} | \
+    ({'flask-limiter'} if environ.get('INSTALL_EXTERNAL_LIMITER') != 'true' else set()) | \
+    ({'sentry-sdk'} if environ.get('INSTALL_SENTRY_SDK') != 'true' else set()); \
+unexpected = optional & venv_inventory; \
+assert not unexpected, f'unrequested optional runtime packages installed: {sorted(unexpected)}'; \
+print(f'optional runtime packages absent: {sorted(optional)}'); \
 print(f'venv-local build tools absent from {venv_site}: {sorted(forbidden)}')" && \
-    rm -rf /tmp/requirements-base.txt /tmp/*
+    rm -rf /tmp/*
 
 # ---- Final Stage ----
 # The final image uses debian:bookworm-slim with system Python for apt-installed
@@ -135,7 +142,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         gnupg \
         gpgv \
         gosu \
-        libcairo2 \
         libpcre2-8-0 \
         python3 \
         python3-venv \
@@ -232,7 +238,7 @@ RUN PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.versio
 COPY pi_camera_in_docker/ /app/pi_camera_in_docker/
 COPY design/mio/*.png /app/pi_camera_in_docker/static/img/mio/
 COPY design/mio/*.svg /app/pi_camera_in_docker/static/img/mio/
-COPY docs/openapi.yaml /app/docs/openapi.yaml
+COPY docs/openapi.json /app/docs/openapi.json
 COPY docs/CHANGELOG.md /app/docs/CHANGELOG.md
 COPY VERSION /app/
 COPY scripts/healthcheck.py /app/healthcheck.py
@@ -257,17 +263,14 @@ RUN mkdir -p /app && \
 
 # ---- Layer 6: Validate Python Modules & Camera Contract (Architecture-Aware) ----
 # Conditional validation based on architecture:
-# - arm64: Validates full camera stack (numpy, flask, flask_cors, picamera2, libcamera)
-# - amd64: Validates Python stack only (numpy, flask, flask_cors; no picamera2 or libcamera)
+# - arm64: Validates full camera stack (numpy, flask, picamera2, libcamera)
+# - amd64: Validates the Flask mock-camera runtime (no picamera2 or libcamera)
 # This ensures explicit behavior: arm64 fails if camera unavailable, amd64 fails if core Python unavailable
-# Use venv Python: flask and flask_cors are pip-installed into /opt/venv only (not the system Python).
+# Use venv Python for Flask while still seeing apt-installed camera modules on arm64.
 # The venv was created with --system-site-packages so /opt/venv/bin/python3 also sees apt-installed
 # packages (numpy, libcamera C extensions) via /usr/lib/python3/dist-packages/ — both stages share the
 # same debian:bookworm-slim base so pyvenv.cfg home pointers match correctly across build stages.
 RUN /opt/venv/bin/python3 /usr/local/bin/validate-stack.py
-
-# Layer 6 (continued): Validate Cairo runtime library presence for CairoSVG compatibility.
-RUN ldconfig -p | grep -q "libcairo.so.2" || { echo "ERROR: libcairo.so.2 not found in ldconfig — Cairo library not installed." >&2; exit 1; }
 
 # Layer 6 (continued): Validate libcamera install and Raspberry Pi pipeline/IPA locations (arm64 only)
 RUN echo "Detected architecture: $(dpkg --print-architecture)" && \

@@ -1,10 +1,11 @@
-"""Tests for OpenAPI spec and Swagger UI endpoints.
+"""Tests for the OpenAPI spec and built-in API reference endpoints.
 
 Validates that GET /openapi.json serves a valid OpenAPI spec and
-GET /api/docs serves the Swagger UI HTML page.
+GET /api/docs serves the local API reference page.
 """
 
 import importlib
+import json
 import sys
 from pathlib import Path
 
@@ -72,6 +73,13 @@ class TestOpenAPISpec:
         # Validate OpenAPI version is 3.x
         assert data["openapi"].startswith("3.")
 
+    def test_openapi_json_matches_the_checked_in_json_document(self, monkeypatch, tmp_path):
+        """The runtime endpoint serves the version-controlled JSON source of truth."""
+        client = _new_management_client(monkeypatch, tmp_path)
+        expected = json.loads((workspace_root / "docs" / "openapi.json").read_text())
+
+        assert client.get("/openapi.json").get_json() == expected
+
     def test_openapi_json_info_has_title_and_version(self, monkeypatch, tmp_path):
         """GET /openapi.json info block includes title and version."""
         client = _new_management_client(monkeypatch, tmp_path)
@@ -113,8 +121,8 @@ class TestOpenAPISpec:
         }.issuperset(properties.keys())
 
 
-class TestSwaggerUI:
-    """Tests for GET /api/docs (Swagger UI)."""
+class TestApiDocs:
+    """Tests for the built-in API reference page."""
 
     def test_api_docs_returns_200(self, monkeypatch, tmp_path):
         """GET /api/docs returns HTTP 200."""
@@ -128,11 +136,16 @@ class TestSwaggerUI:
         response = client.get("/api/docs")
         assert "text/html" in response.content_type
 
-    def test_api_docs_contains_swagger_ui(self, monkeypatch, tmp_path):
-        """GET /api/docs HTML references swagger-ui."""
+    def test_api_docs_is_self_contained_and_lists_the_spec(self, monkeypatch, tmp_path):
+        """GET /api/docs does not depend on a third-party CDN."""
         client = _new_management_client(monkeypatch, tmp_path)
         response = client.get("/api/docs")
-        assert b"swagger-ui" in response.data.lower()
+        assert b"swagger-ui" not in response.data.lower()
+        assert b"unpkg.com" not in response.data.lower()
+        assert b"openapi.json" in response.data.lower()
+        assert b"/static/js/api-docs.js" in response.data
+        assert b"/static/css/api-docs.css" in response.data
+        assert b"Motion In Ocean API" in response.data
 
     def test_api_docs_points_to_openapi_json(self, monkeypatch, tmp_path):
         """GET /api/docs HTML references /openapi.json as the spec URL."""

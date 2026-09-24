@@ -6,6 +6,7 @@ device detection, and camera initialization (both mock and real hardware).
 """
 
 import io
+import json
 import logging
 import os
 import signal
@@ -19,12 +20,8 @@ from typing import Any, Dict, Optional, Tuple, cast
 from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
-import yaml  # type: ignore[import-untyped]
 from flask import Flask, g, jsonify, render_template, request
 from flask_compress import Compress
-from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from PIL import Image
 from werkzeug.serving import make_server
 
@@ -32,6 +29,7 @@ from .application_settings import ApplicationSettings
 from .banner import print_startup_banner
 from .changelog_api import register_changelog_routes
 from .config_validator import ConfigValidationError, validate_all_config
+from .cors import register_cors
 from .discovery import DiscoveryAnnouncer, build_discovery_payload
 from .feature_flags import FeatureFlags, get_feature_flags, is_flag_enabled
 from .logging_config import configure_logging, log_provenance_info
@@ -46,6 +44,7 @@ from .modes.webcam import (
     register_management_camera_error_routes,
     register_webcam_routes,
 )
+from .rate_limiter import RateLimiterProtocol, create_rate_limiter, get_remote_address
 from .runtime_config import (
     load_env_config,
     merge_config_with_settings,
@@ -70,7 +69,7 @@ feature_flags: FeatureFlags = get_feature_flags()
 feature_flags.load()
 
 # Resolve paths relative to the project root (two levels above this file)
-_openapi_spec_path = Path(__file__).parent.parent / "docs" / "openapi.yaml"
+_openapi_spec_path = Path(__file__).parent.parent / "docs" / "openapi.json"
 _readme_path = Path(__file__).parent.parent / "README.md"
 _readme_remote_url = "https://raw.githubusercontent.com/CyanAutomation/motioninocean/main/README.md"
 _readme_documentation_url = "https://github.com/CyanAutomation/motioninocean#readme"
@@ -512,7 +511,7 @@ def _generate_env_content(config: Dict[str, Any]) -> str:
     return "\n".join(env_lines)
 
 
-def _init_flask_app(_config: Dict[str, Any]) -> Tuple[Flask, Limiter]:
+def _init_flask_app(_config: Dict[str, Any]) -> Tuple[Flask, RateLimiterProtocol]:
     """Initialize Flask app and rate limiter."""
     app = Flask(__name__, static_folder="static", static_url_path="/static")
     app.start_time_monotonic = time.monotonic()
@@ -533,8 +532,8 @@ def _init_flask_app(_config: Dict[str, Any]) -> Tuple[Flask, Limiter]:
     # Eliminates 7 redundant HTTP round-trips (CSS + JS) on every page revisit.
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 3600
 
-    limiter = Limiter(
-        app=app,
+    limiter = create_rate_limiter(
+        app,
         key_func=get_remote_address,
         default_limits=["100/minute"],
         storage_uri=os.environ.get("MIO_LIMITER_STORAGE_URI", "memory://"),
@@ -583,14 +582,7 @@ def _register_middleware(app: Flask, config: Dict[str, Any]) -> None:
             cors_origins = []
 
         if cors_origins:
-            cors_options: Dict[str, Any] = {
-                "resources": {r"/*": {"origins": cors_origins}},
-                "send_wildcard": False,
-            }
-            if cors_origins == "*":
-                cors_options["send_wildcard"] = True
-
-            CORS(app, **cors_options)
+            register_cors(app, [cors_origins] if isinstance(cors_origins, str) else cors_origins)
 
 
 def _init_app_state(config: Dict[str, Any]) -> dict:
@@ -961,7 +953,7 @@ class ConfigResponseBuilder:
         return response_dict, 200
 
 
-def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
+def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, RateLimiterProtocol, dict]:
     """Create base Flask application with middleware, state, and shared routes.
 
     Initializes Flask app, rate limiter, and application state dict. Registers
@@ -1104,24 +1096,23 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
     # @app.route("/metrics")
     # Metrics tracking: frames_captured, current_fps
 
-    # Resolve openapi.yaml relative to the project root (two levels above this file)
+    # Resolve the checked-in JSON spec relative to the project root.
 
     @app.route("/openapi.json", methods=["GET"])
     def openapi_spec():
         """Serve the OpenAPI 3.0 specification as JSON.
 
-        Unauthenticated endpoint that returns the full API spec. Intended for
-        native client code generation (e.g. swift-openapi-generator) and browser
-        tools such as Swagger UI.
+        Unauthenticated endpoint that returns the full API spec for native client
+        generation and the built-in browser API reference.
 
         Returns:
-            JSON representation of docs/openapi.yaml, or 404 if the file is absent.
+            JSON representation of docs/openapi.json, or 404 if the file is absent.
         """
         if not _openapi_spec_path.exists():
             return jsonify({"error": "OpenAPI spec not found"}), 404
         try:
             with _openapi_spec_path.open("r", encoding="utf-8") as fh:
-                spec = yaml.safe_load(fh)
+                spec = json.load(fh)
             return jsonify(spec), 200
         except Exception as exc:
             logger.exception("Failed to load OpenAPI spec")
@@ -1129,42 +1120,15 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, Limiter, dict]:
 
     @app.route("/api/docs", methods=["GET"])
     def api_docs():
-        """Serve Swagger UI for interactive API exploration.
+        """Serve the local API reference page.
 
-        Loads Swagger UI from the unpkg CDN and points it at /openapi.json.
-        No authentication required.
+        The page reads the bundled OpenAPI document and renders a lightweight
+        endpoint reference without loading scripts or styles from a CDN.
 
         Returns:
-            HTML page embedding Swagger UI.
+            HTML API reference page.
         """
-        return (
-            """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Motion In Ocean API Docs</title>
-  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
-</head>
-<body>
-  <div id="swagger-ui"></div>
-  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-  <script>
-    SwaggerUIBundle({
-      url: '/openapi.json',
-      dom_id: '#swagger-ui',
-      presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
-      layout: 'BaseLayout',
-      deepLinking: true,
-    });
-  </script>
-</body>
-</html>
-""",
-            200,
-            {"Content-Type": "text/html; charset=utf-8"},
-        )
+        return render_template("api_docs.html")
 
     @app.route("/api/help/readme", methods=["GET"])
     def api_help_readme():
