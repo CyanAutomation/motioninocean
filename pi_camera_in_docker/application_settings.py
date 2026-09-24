@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, ClassVar, Dict, cast
 
-import sentry_sdk
+from pi_camera_in_docker.telemetry import new_scope
 
 
 try:
@@ -227,7 +227,7 @@ class ApplicationSettings:
         """
         # Enrich an isolated scope so these tags don't bleed into other events
         # when save() is called from background threads or tests.
-        with sentry_sdk.new_scope() as scope:
+        with new_scope() as scope:
             scope.set_tag("component", "settings")
             scope.set_context(
                 "settings_operation",

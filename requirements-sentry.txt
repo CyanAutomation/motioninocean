@@ -1,0 +1,2 @@
+# Optional error reporting; install with Docker build arg INSTALL_SENTRY_SDK=true.
+sentry-sdk[flask]==2.69.2

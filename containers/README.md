@@ -110,8 +110,11 @@ These settings control deployment and system behavior, and are set at container 
 - OctoPrint compatibility is always enabled in webcam mode; `MIO_OCTOPRINT_COMPATIBILITY` and `OCTOPRINT_COMPATIBILITY` are deprecated/ignored.
 - `MIO_MANAGEMENT_AUTH_TOKEN` — Security token for management hub access
 - `APPLICATION_SETTINGS_PATH`, `NODE_REGISTRY_PATH` — Persistence locations
-- `MIO_SENTRY_DSN` — Error tracking
-- `LIMITER_STORAGE_URI` — Advanced system settings
+- `MIO_SENTRY_DSN` — Optional error tracking. The image must be built with
+  `--build-arg INSTALL_SENTRY_SDK=true` for Sentry reporting to be enabled.
+- `MIO_LIMITER_STORAGE_URI` — Rate-limit storage URI. The built-in `memory://`
+  backend is the default; other backends require an image built with
+  `--build-arg INSTALL_EXTERNAL_LIMITER=true`.
 
 **Management mode:**
 

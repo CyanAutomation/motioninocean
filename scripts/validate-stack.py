@@ -3,8 +3,8 @@
 Architecture-aware stack validation for motion-in-ocean.
 
 This script validates the required Python stack based on the build architecture:
-- arm64: Validates full camera stack (numpy, flask, flask_cors, picamera2)
-- amd64: Validates Python stack only (numpy, flask, flask_cors)
+- arm64: Validates full camera stack (numpy, flask, picamera2)
+- amd64: Validates the Flask mock-camera runtime
 """
 
 import os
@@ -17,7 +17,6 @@ def validate_arm64():
     """Validate full camera stack for ARM64 Raspberry Pi builds."""
     try:
         import flask
-        import flask_cors
         import numpy
         import picamera2
 
@@ -57,11 +56,9 @@ def validate_amd64():
     """Validate Python stack for AMD64 mock camera builds."""
     try:
         import flask
-        import flask_cors
-        import numpy
 
         print(
-            "AMD64 mock build: core Python stack validation passed; "
+            "AMD64 mock build: Flask application runtime validation passed; "
             "picamera2/libcamera not required"
         )
         return 0

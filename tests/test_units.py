@@ -656,6 +656,51 @@ def test_register_middleware_applies_explicit_cors_origins_from_config():
     assert "Access-Control-Allow-Origin" not in blocked.headers
 
 
+def test_register_middleware_handles_cors_preflight_without_extension():
+    """Allowed preflight requests receive requested headers and origin variation."""
+    from pi_camera_in_docker import main
+
+    app, _limiter, _state = main._create_base_app(
+        _build_base_app_config(
+            cors_enabled=True,
+            cors_origins="https://one.example, https://two.example",
+        )
+    )
+
+    response = app.test_client().options(
+        "/api/config",
+        headers={
+            "Origin": "https://one.example",
+            "Access-Control-Request-Method": "PATCH",
+            "Access-Control-Request-Headers": "authorization, content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers.get("Access-Control-Allow-Origin") == "https://one.example"
+    assert "PATCH" in response.headers.get("Access-Control-Allow-Methods", "")
+    assert response.headers.get("Access-Control-Allow-Headers") == "authorization, content-type"
+    assert "Origin" in response.headers.get("Vary", "")
+
+
+def test_register_middleware_rejects_unconfigured_cors_preflight_origin():
+    """Preflight requests from unconfigured origins receive no CORS permission."""
+    from pi_camera_in_docker import main
+
+    app, _limiter, _state = main._create_base_app(
+        _build_base_app_config(cors_enabled=True, cors_origins="https://one.example")
+    )
+    response = app.test_client().options(
+        "/api/config",
+        headers={
+            "Origin": "https://blocked.example",
+            "Access-Control-Request-Method": "PATCH",
+        },
+    )
+
+    assert "Access-Control-Allow-Origin" not in response.headers
+
+
 def test_register_middleware_preserves_inbound_correlation_id():
     """Middleware should preserve inbound X-Correlation-ID values."""
     from pi_camera_in_docker import main

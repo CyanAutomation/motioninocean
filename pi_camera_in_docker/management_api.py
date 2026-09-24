@@ -18,8 +18,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple, cast
 from urllib.parse import quote, urlparse, urlunparse
 
-import sentry_sdk
 from flask import Blueprint, Flask, jsonify, redirect, request
+
+from pi_camera_in_docker.telemetry import get_current_scope
 
 from .node_registry import FileWebcamRegistry, NodeValidationError, validate_webcam
 from .transport_url_validation import parse_docker_url
@@ -601,7 +602,7 @@ def _request_json(node: Dict[str, Any], method: str, path: str, body: Optional[d
 
     # Enrich the current request scope with this webcam's context.
     webcam_id = node.get("id", "unknown")
-    current_scope = sentry_sdk.get_current_scope()
+    current_scope = get_current_scope()
     current_scope.set_tag("component", "management")
     current_scope.set_tag("webcam_id", webcam_id)
     current_scope.set_context(

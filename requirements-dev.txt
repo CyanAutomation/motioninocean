@@ -4,6 +4,12 @@
 # Include production requirements
 -r requirements.txt
 
+# Optional telemetry integration is included so tests cover the configured Sentry path.
+-r requirements-sentry.txt
+
+# YAML is used only by repository workflow-policy tests, not by the runtime app.
+PyYAML>=6.0.3
+
 # Packaging and build tools
 setuptools==84.0.0
 
@@ -21,7 +27,6 @@ coverage==7.16.1
 # Type checking
 mypy==2.3.1
 types-Flask==1.1.6
-types-PyYAML>=6.0.12.20260906
 
 # Pre-commit hooks
 pre-commit==4.6.2

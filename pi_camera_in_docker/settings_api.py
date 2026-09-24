@@ -10,8 +10,9 @@ import json as _json
 import os
 from typing import Any, Dict, Tuple
 
-import sentry_sdk
 from flask import Blueprint, Flask, Response, current_app, jsonify, redirect, request
+
+from pi_camera_in_docker.telemetry import capture_exception
 
 from .config_validator import validate_settings_patch
 from .runtime_config import (
@@ -183,7 +184,7 @@ def create_settings_blueprint() -> Blueprint:
             merged = get_effective_settings_payload(current_app.application_settings)
             return jsonify(merged), 200
         except Exception as exc:
-            sentry_sdk.capture_exception(exc)
+            capture_exception(exc)
             return (
                 jsonify({"error": "Failed to load settings", "details": str(exc)}),
                 500,
@@ -218,7 +219,7 @@ def create_settings_blueprint() -> Blueprint:
             resp.headers["ETag"] = etag
             resp.headers["Cache-Control"] = "public, max-age=3600"
         except Exception as exc:
-            sentry_sdk.capture_exception(exc)
+            capture_exception(exc)
             return (
                 jsonify({"error": "Failed to generate settings schema", "details": str(exc)}),
                 500,
@@ -330,7 +331,7 @@ def create_settings_blueprint() -> Blueprint:
             return jsonify(result), 200
 
         except Exception as exc:
-            sentry_sdk.capture_exception(exc)
+            capture_exception(exc)
             return (
                 jsonify({"error": "Failed to update settings", "details": str(exc)}),
                 500,
@@ -355,7 +356,7 @@ def create_settings_blueprint() -> Blueprint:
                 }
             ), 200
         except Exception as exc:
-            sentry_sdk.capture_exception(exc)
+            capture_exception(exc)
             return (
                 jsonify({"error": "Failed to reset settings", "details": str(exc)}),
                 500,
@@ -375,7 +376,7 @@ def create_settings_blueprint() -> Blueprint:
             changes = current_app.application_settings.get_changes_from_env(env_defaults)
             return jsonify(changes), 200
         except Exception as exc:
-            sentry_sdk.capture_exception(exc)
+            capture_exception(exc)
             return (
                 jsonify({"error": "Failed to get settings changes", "details": str(exc)}),
                 500,

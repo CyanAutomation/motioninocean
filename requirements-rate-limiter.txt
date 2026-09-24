@@ -1,0 +1,2 @@
+# Optional shared-storage rate limits; install with Docker build arg INSTALL_EXTERNAL_LIMITER=true.
+Flask-Limiter==4.1.1

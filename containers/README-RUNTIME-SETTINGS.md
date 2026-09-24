@@ -113,7 +113,8 @@ These environment variables are **system configuration** and require container r
 
 - `NODE_REGISTRY_PATH` - Store path for node registry
 - `APPLICATION_SETTINGS_PATH` - Store path for runtime settings JSON/lock files
-- `LIMITER_STORAGE_URI` - Rate limiter backend
+- `MIO_LIMITER_STORAGE_URI` - Rate limiter backend. `memory://` is built in;
+  external storage requires `INSTALL_EXTERNAL_LIMITER=true` at image build time.
 - `DOCKER_PROXY_PORT` - Docker connectivity settings
 
 ## Accessing Runtime Settings

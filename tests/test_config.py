@@ -355,14 +355,19 @@ def test_dockerfile_runtime_contract_instructions(workspace_root):
 
 
 def test_production_dependency_security_constraints(workspace_root):
-    """Production builds should enforce secure packaging dependency versions."""
+    """Production builds should keep only required dependencies in the image."""
     dockerfile_content = (workspace_root / "Dockerfile").read_text()
-    constraints_content = (workspace_root / "production-constraints.txt").read_text()
     requirements_content = (workspace_root / "requirements.txt").read_text()
 
-    assert "msgpack>=1.2.2" in requirements_content
-    assert "msgpack>=1.2.2" in constraints_content
-    assert "--constraint production-constraints.txt" in dockerfile_content
+    assert "msgpack" not in requirements_content.lower()
+    assert "numpy==" not in requirements_content.lower()
+    assert "pyyaml" not in requirements_content.lower()
+    assert "cairosvg" not in requirements_content.lower()
+    assert "flask-cors" not in requirements_content.lower()
+    assert "flask-limiter" not in requirements_content.lower()
+    assert "sentry-sdk" not in requirements_content.lower()
+    assert "python3-numpy" in dockerfile_content
+    assert "production-constraints.txt" not in dockerfile_content
     assert '"setuptools>=78.1.1"' in dockerfile_content
     assert "pip uninstall --yes pip setuptools wheel" in dockerfile_content
     assert "Path(venv_site).is_relative_to('/opt/venv')" in dockerfile_content
@@ -370,17 +375,13 @@ def test_production_dependency_security_constraints(workspace_root):
     assert "{'pip', 'setuptools', 'wheel'}" in dockerfile_content
     assert "venv-local build tools remain" in dockerfile_content
     assert "version('setuptools')" not in dockerfile_content
-    assert ">= (1, 2, 2)" in dockerfile_content
+    assert "optional runtime packages absent" in dockerfile_content
+    assert "environ.get('INSTALL_SENTRY_SDK') != 'true'" in dockerfile_content
+    assert "environ.get('INSTALL_EXTERNAL_LIMITER') != 'true'" in dockerfile_content
 
     ci_workflow_content = (workspace_root / ".github" / "workflows" / "ci.yml").read_text()
-    assert "awk '!/^(numpy)/' > /tmp/requirements-base.txt" in ci_workflow_content
-    assert "[ ! -s /tmp/requirements-base.txt ]" in ci_workflow_content
-    assert 'echo "Error: Generated requirements-base.txt is empty"' in ci_workflow_content
-    assert "--requirement /tmp/requirements-base.txt" in ci_workflow_content
-    standalone_msgpack_argument = (
-        '--python-version "${{ matrix.python-version }}"\n            msgpack'
-    )
-    assert standalone_msgpack_argument not in ci_workflow_content
+    assert "production-constraints.txt" not in ci_workflow_content
+    assert "numpy" not in ci_workflow_content.lower()
 
     workflow_content = (workspace_root / ".github" / "workflows" / "security-scan.yml").read_text()
     assert 'Path(venv_site).is_relative_to("/opt/venv")' in workflow_content
@@ -388,7 +389,7 @@ def test_production_dependency_security_constraints(workspace_root):
     assert 'forbidden = {"pip", "setuptools", "wheel"}' in workflow_content
     assert "Debian system package distributions (inherited, not venv-local)" in workflow_content
     assert 'version("setuptools")' not in workflow_content
-    assert ">= (1, 2, 2)" in workflow_content
+    assert "optional_runtime =" in workflow_content
 
 
 def _load_main_config_with_env(workspace_root, env_updates, unset_keys=None):

@@ -4,8 +4,8 @@ Use this index to navigate project documentation.
 
 ## API Reference
 
-- [OpenAPI specification](openapi.yaml) — machine-readable OpenAPI 3.0 spec
-- Runtime Swagger UI — `GET /api/docs` on any running instance (no auth required)
+- [OpenAPI specification](openapi.json) — machine-readable OpenAPI 3.0 spec
+- Built-in API reference — `GET /api/docs` on any running instance (no auth required)
 - Runtime JSON spec — `GET /openapi.json` on any running instance
 
 ## Guides (evergreen)

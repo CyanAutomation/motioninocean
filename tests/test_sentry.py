@@ -18,6 +18,30 @@ class TestSentryIntegration:
             init_sentry(None, "webcam")
             mock_init.assert_not_called()
 
+    def test_sentry_dsn_without_optional_sdk_logs_and_continues(self, monkeypatch, caplog):
+        """A configured DSN does not prevent startup when the optional SDK is absent."""
+        from pi_camera_in_docker import sentry_config
+
+        monkeypatch.setattr(sentry_config, "_get_sentry_sdk", lambda: None)
+        with caplog.at_level("WARNING"):
+            sentry_config.init_sentry("https://example.invalid/1", "webcam")
+
+        assert "sentry-sdk is not installed" in caplog.text
+
+    def test_telemetry_helpers_are_noops_without_optional_sdk(self, monkeypatch):
+        """Ordinary application paths tolerate installations without sentry-sdk."""
+        from pi_camera_in_docker import telemetry
+
+        monkeypatch.setattr(telemetry, "_get_sentry_sdk", lambda: None)
+        error = RuntimeError("expected test error")
+
+        with telemetry.new_scope() as scope:
+            scope.set_tag("component", "test")
+            scope.set_context("test", {"value": 1})
+
+        telemetry.get_current_scope().set_tag("component", "test")
+        telemetry.capture_exception(error)
+
     def test_sentry_initializes_with_valid_dsn(self):
         """Sentry should initialize SDK and tag app mode after init."""
         from pi_camera_in_docker.sentry_config import init_sentry
