@@ -1,87 +1,72 @@
 ---
 name: contributor-workflow
-description: Execute standard motion-in-ocean contribution work from issue understanding to PR-ready validation. Use for code changes, documentation updates, bug fixes, and feature additions that must follow CONTRIBUTING.md and README.md guidance.
+description: Plan, implement, and validate a focused motion-in-ocean change. Use when starting a feature, bug fix, refactor, or documentation update.
 owner: motion-in-ocean team
-last-reviewed: 2026-08-05
+last-reviewed: 2026-09-25
 category: Development
 compatible-repo-areas:
-  - CONTRIBUTING.md
-  - README.md
-  - Makefile
   - pi_camera_in_docker/
+  - frontend/src/
   - tests/
+  - docs/
 ---
 
 ## Purpose
 
-Enable contributors to understand the complete workflow for implementing and validating changes in motion-in-ocean. This skill covers planning, implementation, documentation, testing, and validation steps aligned with project standards. Following this workflow ensures PRs meet quality gates, are properly documented, and provide clear testing evidence.
+Guide a change from a clear problem statement through a reviewable implementation and evidence-based validation.
 
 ## Scope and trigger conditions
 
-- Apply when implementing any change intended for a pull request.
-- Apply when modifying runtime behavior, configuration, documentation, or scripts.
-- Apply when changes should align with contributor expectations and local validation commands.
+- Use before changing application code, tests, deployment files, or documentation.
+- Use [`ci-triage`](../ci-triage/SKILL.md) when diagnosing a specific failed workflow.
+- Use [`release-operator`](../release-operator/SKILL.md) for versioned releases.
 
 ## Required inputs
 
-- Change objective (bug fix, feature, docs update, or refactor).
-- Files or components expected to change.
-- Execution environment constraints (Pi vs non-Pi, mock camera usage).
-- Target validation depth (quick checks vs full CI parity).
+- Desired behavior, affected mode or user, and known constraints.
+- Relevant source files and existing tests.
+- Required runtime or hardware context, if the change depends on it.
 
 ## Step-by-step workflow
 
-1. Confirm task boundaries and identify impacted areas.
-2. Review `README.md` sections related to runtime assumptions, configuration, and local development.
-3. Review `CONTRIBUTING.md` for coding workflow, expected commands, and PR expectations.
-4. Implement the smallest coherent change set.
-5. If behavior/config changed, update documentation in `README.md` (or adjacent docs) to keep user guidance accurate.
-6. Run baseline quality checks:
-   - `make format`
-   - `make lint`
-   - `make type-check`
-   - `make test` (or `make ci` when time permits)
-7. Validate app behavior on non-Pi environments with `MOCK_CAMERA=true` if camera hardware is unavailable.
-8. Prepare final change summary with what changed, why, and how it was tested.
+1. Inspect the working tree and the relevant implementation, tests, and source documentation.
+2. State the intended behavior and identify observable acceptance checks.
+3. For a behavior change, write or update a focused regression test first and run it to confirm it fails for the expected reason.
+4. Make the smallest implementation that satisfies the failing test. Keep configuration, API contracts, and documentation aligned.
+5. Rerun the focused test, then the relevant project checks. For a full local gate set, run `make validate`.
+6. Review the final diff for unrelated changes, secrets, generated artifacts, and incomplete docs.
+7. Summarize what changed, why, the checks run, and any unverified hardware or deployment behavior.
 
 ## Validation checklist
 
-- [ ] Changes are focused and consistent with existing style.
-- [ ] Relevant docs were updated when behavior/configuration changed.
-- [ ] Lint/format/type-check/tests were run successfully (or failures explained).
-- [ ] Commands and examples remain compatible with current project tooling.
-- [ ] Final summary includes explicit testing evidence.
-
-## Related Skills
-
-- **Next step (after implementation):** [`ci-quality-gates`](../ci-quality-gates/SKILL.md) — Validate your changes against local CI gates
-- **If tests needed:** [`testing-strategy`](../testing-strategy/SKILL.md) (coming soon) — Decide test type and write tests
-- **If CI fails:** [`ci-triage`](../ci-triage/SKILL.md) — Diagnose and fix CI job failures
-- **Frontend changes:** [`frontend-testing-linting`](../frontend-testing-linting/SKILL.md) — Run JS/TS tests and linting
-- **Design changes:** [`ui-playwright`](../ui-playwright/SKILL.md) — Audit UI changes with Playwright
+- [ ] Change matches the stated behavior and project architecture.
+- [ ] Behavior changes have a focused regression test where practical.
+- [ ] Relevant Python, frontend, or documentation checks pass.
+- [ ] API/configuration/documentation changes agree with their source of truth.
+- [ ] Final diff contains only intended files and no secrets.
 
 ## Source of truth
 
-- `README.md` — Quick start, local development setup, and CI/CD expectations
-- `CONTRIBUTING.md` — Full contributor workflow, coding standards, PR process
-- `Makefile` — All local validation commands (`make format`, `make lint`, `make test`, `make ci`)
-- `.github/workflows/ci.yml` — GitHub Actions CI job definitions that validate PRs
-- `pi_camera_in_docker/` — Application source code structure and conventions
-- `tests/` — Test patterns (unit, integration, UI)
-
-## Maintenance notes
-
-- Review this skill quarterly and immediately when CONTRIBUTING.md, README.md, or Makefile changes
-- Update `last-reviewed` whenever workflow or validation commands change
-- Ensure skill reflects current project tooling, commands, and quality expectations
+- `AGENTS.md` — Architecture and repository conventions.
+- `CONTRIBUTING.md` — Contribution and review expectations.
+- `Makefile` and `.github/workflows/ci.yml` — Validation commands and CI checks.
+- `pi_camera_in_docker/` and `frontend/src/` — Runtime implementation.
+- `tests/` — Existing behavior contracts and regression coverage.
 
 ## Common failure modes and recovery actions
 
-- **Failure:** Code change passes locally but lacks docs updates.
-  - **Recovery:** Re-open `README.md`/`CONTRIBUTING.md` sections and patch guidance immediately.
-- **Failure:** Non-Pi development blocks camera-dependent validation.
-  - **Recovery:** Enable `MOCK_CAMERA=true`, validate `/health` and `/ready`, and document limitation.
-- **Failure:** PR scope grows too large.
-  - **Recovery:** Split into smaller commits/PRs and keep each change independently testable.
-- **Failure:** Checks are skipped due to time pressure.
-  - **Recovery:** Run `make ci` before handoff and record any unavoidable exceptions.
+- **Failure:** Test setup depends on Raspberry Pi hardware. **Recovery:** Use the mock camera for host-side checks and report hardware-specific checks as unverified.
+- **Failure:** A test passes before the fix. **Recovery:** Recheck the test’s setup and assertion; ensure it reproduces the reported behavior.
+- **Failure:** A docs build fails on an unrelated missing optional tool. **Recovery:** Report the exact missing tool and run link/structure checks available locally.
+- **Failure:** A generated file changes unexpectedly. **Recovery:** Check its generator and CI parity step before committing it.
+
+## Related Skills
+
+- [`ci-quality-gates`](../ci-quality-gates/SKILL.md) — Run repository validation.
+- [`frontend-testing-linting`](../frontend-testing-linting/SKILL.md) — Validate TypeScript and JavaScript changes.
+- [`ui-review`](../ui-review/SKILL.md) — Review visible interface changes.
+- [`documentation-build-validation`](../documentation-build-validation/SKILL.md) — Validate Sphinx docs and Mermaid diagrams.
+
+## Maintenance notes
+
+Review this skill when the contribution process, project architecture, or validation commands change.

@@ -38,7 +38,7 @@ body:
       label: Where does this occur?
       options:
         - Raspberry Pi with CSI camera
-        - Non-Pi / mock camera mode (MOCK_CAMERA=true)
+        - Non-Pi / mock camera mode (MIO_MOCK_CAMERA=true)
         - Other / unknown
     validations:
       required: true

@@ -133,7 +133,7 @@ This ensures Raspberry Pi-specific camera packages are correctly resolved. See [
 For development on amd64 systems (no camera), set:
 
 ```env
-MOCK_CAMERA=true
+MIO_MOCK_CAMERA=true
 ```
 
 This allows testing of:
@@ -157,13 +157,12 @@ Motion-in-ocean provides **execution playbooks** (skills) for common development
 | Starting a code change | [`contributor-workflow`](.github/skills/contributor-workflow/SKILL.md) | `make ci` to validate |
 | CI job failed | [`ci-triage`](.github/skills/ci-triage/SKILL.md) | Read playbooks for your job type |
 | Before opening PR | [`ci-quality-gates`](.github/skills/ci-quality-gates/SKILL.md) | Run local checks matching CI |
-| JavaScript/TypeScript changes | [`frontend-testing-linting`](.github/skills/frontend-testing-linting/SKILL.md) | `npm run lint:fix && npm run format` |
-| Testing UI changes | Manual browser testing | Validate layout, accessibility, and workflows |
+| JavaScript/TypeScript changes | [`frontend-testing-linting`](.github/skills/frontend-testing-linting/SKILL.md) | `make test-frontend && npm run lint && npm run type-check` |
+| Reviewing interface changes | [`ui-review`](.github/skills/ui-review/SKILL.md) | Review layout, accessibility, and workflows in the running app |
 | Creating diagrams | [`mermaid-creator`](.github/skills/mermaid-creator/SKILL.md) | Reference for Mermaid syntax |
 | Building docs | [`documentation-build-validation`](.github/skills/documentation-build-validation/SKILL.md) | `make docs-check && make docs-build` |
 | Dependency update PR | [`dependabot-dependency-management`](.github/skills/dependabot-dependency-management/SKILL.md) | Review & test Dependabot PR |
 | Feature behind a flag | [`feature-flag-management`](.github/skills/feature-flag-management/SKILL.md) | Enable flag via env var |
-| Container won't start | [`docker-debugging`](.github/skills/docker-debugging/SKILL.md) (coming soon) | Debug with `docker compose logs` |
 | Camera not streaming | [`pi-camera-troubleshooting`](.github/skills/pi-camera-troubleshooting/SKILL.md) | Run diagnostics, check device mapping |
 
 **Full index:** [`.github/skills/README.md`](.github/skills/README.md) — Searchable by role and use case.
@@ -349,8 +348,9 @@ Common audit scenarios:
 **Execution:**
 
 ```bash
-# Docker-based audit
-docker compose --profile webcam -e MOCK_CAMERA=true up
+# Start a local mock webcam deployment
+cd containers/motion-in-ocean-webcam
+MIO_MOCK_CAMERA=true docker compose -f docker-compose.yaml -f docker-compose.mock.yaml up -d
 # Open http://localhost:8000 in a browser and inspect manually
 ```
 
@@ -403,8 +403,9 @@ Please use clear commit messages:
 4. For JavaScript/TypeScript changes, also run:
 
    ```bash
-   npm run lint:fix
-   npm run format
+   npm run lint
+   npm run type-check
+   npm run format:check
    ```
 
    **Reference:** [`frontend-testing-linting`](.github/skills/frontend-testing-linting/SKILL.md) skill
@@ -412,7 +413,7 @@ Please use clear commit messages:
 5. If changes touch the web UI, manually test in a browser:
 
    ```bash
-   docker compose --profile webcam -e MOCK_CAMERA=true up
+   MIO_MOCK_CAMERA=true make run-mock
    # Open http://localhost:8000 and verify layout, interactions, and responsiveness
    ```
 

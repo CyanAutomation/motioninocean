@@ -16,7 +16,7 @@ def _new_webcam_client(monkeypatch, tmp_path, webcam_token=""):
     )
     monkeypatch.setenv("MIO_APP_MODE", "webcam")
     monkeypatch.setenv("MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", webcam_token)
-    monkeypatch.setenv("MOCK_CAMERA", "true")
+    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
 
     original_sys_path = sys.path.copy()
     sys.path.insert(0, str(workspace_root))

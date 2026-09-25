@@ -35,7 +35,7 @@ class FeatureFlag:
     """Represents a single feature flag with metadata."""
 
     name: str
-    """The flag name (without MIO_ prefix)."""
+    """The flag name (without the ``MIO_`` prefix)."""
 
     default: bool
     """Default value if not set in environment."""

@@ -331,7 +331,7 @@ docker compose -f docker-compose.webcam.yaml up -d
 docker logs -f --timestamps motion-in-ocean
 ```
 
-> **Note:** By default, webcam mode binds to `127.0.0.1` (localhost only). For multi-host access, edit the compose file to expose the port to your network. See [Networking](#networking-and-port-binding) section below.
+> **Note:** By default, webcam mode binds to `127.0.0.1` (localhost only). For multi-host access, edit the compose file to expose the port to your network. See [Recommendations for Local Network Deployment](#recommendations-for-local-network-deployment) below.
 
 ### Step 2: Verify Webcam Host Connectivity
 
@@ -775,7 +775,7 @@ curl: (7) Failed to connect to 192.168.1.101 port 8000: Connection refused
 
 ```
 curl http://192.168.1.101:8000/ready
-{"status": "waiting"}  # or error
+{"status": "not_ready"}  # or an error response
 ```
 
 **Diagnosis**:
@@ -790,7 +790,7 @@ curl http://192.168.1.101:8000/ready
 - Check `docker logs motion-in-ocean` for device errors
 - Default behavior is graceful startup (service remains up in degraded mode) when camera init fails.
 - Set `MIO_FAIL_ON_CAMERA_INIT_ERROR=true` (or legacy alias `MIO_CAMERA_INIT_REQUIRED=true`) if you want startup to fail fast on camera init errors.
-- See [pi-camera-troubleshooting skill](/.github/skills/pi-camera-troubleshooting/SKILL.md) for detailed camera diagnostics
+- See the [Pi camera troubleshooting skill](https://github.com/CyanAutomation/motioninocean/blob/main/.github/skills/pi-camera-troubleshooting/SKILL.md) for detailed camera diagnostics
 
 ### Camera Enumerates as Zero Devices
 
@@ -973,8 +973,8 @@ Motion in Ocean uses **security-first defaults**:
 
 ## See Also
 
-- [README.md](README.md) - Quick start guide
-- [README.md#multi-host-deployment](README.md#multi-host-deployment) - Quick reference
-- [SECURITY.md](SECURITY.md) - Security policy and reporting
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Development and testing
-- [pi-camera-troubleshooting skill](/.github/skills/pi-camera-troubleshooting/SKILL.md) - Camera diagnostics
+- [README.md](https://github.com/CyanAutomation/motioninocean/blob/main/README.md) - Quick start guide
+- [README.md#multi-host-deployment](https://github.com/CyanAutomation/motioninocean/blob/main/README.md#multi-host-deployment) - Quick reference
+- [SECURITY.md](https://github.com/CyanAutomation/motioninocean/blob/main/SECURITY.md) - Security policy and reporting
+- [CONTRIBUTING.md](https://github.com/CyanAutomation/motioninocean/blob/main/CONTRIBUTING.md) - Development and testing
+- [Pi camera troubleshooting skill](https://github.com/CyanAutomation/motioninocean/blob/main/.github/skills/pi-camera-troubleshooting/SKILL.md) - Camera diagnostics

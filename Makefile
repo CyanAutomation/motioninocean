@@ -97,13 +97,13 @@ pre-commit:
 # Code quality targets
 lint: ensure-dev-tools
 	@echo "Running Ruff linter..."
-	$(PYTHON) -m ruff check pi_camera_in_docker/ tests/
+	$(PYTHON) -m ruff check pi_camera_in_docker/ tests/ scripts/
 	@echo "Running ESLint..."
 	npm run lint
 
 lint-fix: ensure-dev-tools
 	@echo "Running ruff linter with auto-fix..."
-	$(PYTHON) -m ruff check pi_camera_in_docker/ tests/ --fix
+	$(PYTHON) -m ruff check pi_camera_in_docker/ tests/ scripts/ --fix
 
 format: ensure-dev-tools
 	@echo "Formatting code with ruff..."
@@ -123,29 +123,25 @@ security: ensure-dev-tools
 
 check-feature-flag-usage:
 	@echo "Checking feature flag runtime usage..."
-	python -m pi_camera_in_docker.feature_flag_usage_check
+	$(PYTHON) -m pi_camera_in_docker.feature_flag_usage_check
 
 # Documentation targets
 docs-build:
 	@echo "Building Sphinx documentation..."
-	@if ! command -v sphinx-build &> /dev/null; then \
-		echo "Installing Sphinx..."; \
-		$(PIP) install sphinx sphinx-rtd-theme sphinx-autodoc-typehints; \
+	@if ! $(PYTHON) -c "import importlib.util, sys; sys.exit(0 if all(importlib.util.find_spec(name) for name in ('sphinx', 'myst_parser', 'sphinxcontrib.mermaid')) else 1)"; then \
+		echo "Installing Sphinx and Markdown/Mermaid extensions..."; \
+		$(PIP) install sphinx myst-parser sphinxcontrib-mermaid; \
 	fi
-	@cd docs && sphinx-build -b html -W . _build/html
+	@cd docs && $(PYTHON) -m sphinx -b html -W . _build/html
 	@echo "✓ Documentation built to docs/_build/html/index.html"
 
 docs-check:
 	@echo "Checking documentation build (warnings as errors)..."
-	@if ! command -v sphinx-build &> /dev/null; then \
-		echo "Installing Sphinx..."; \
-		$(PIP) install sphinx sphinx-rtd-theme sphinx-autodoc-typehints; \
+	@if ! $(PYTHON) -c "import importlib.util, sys; sys.exit(0 if all(importlib.util.find_spec(name) for name in ('sphinx', 'myst_parser', 'sphinxcontrib.mermaid')) else 1)"; then \
+		echo "Installing Sphinx and Markdown/Mermaid extensions..."; \
+		$(PIP) install sphinx myst-parser sphinxcontrib-mermaid; \
 	fi
-	@cd docs && sphinx-build -b html -W --keep-going . _build/html 2>&1 | tee /tmp/docs-check.log
-	@if grep -q "WARNING\|ERROR" /tmp/docs-check.log; then \
-		echo "✗ Documentation check failed (see above for warnings)"; \
-		exit 1; \
-	fi
+	@cd docs && $(PYTHON) -m sphinx -b html -W --keep-going . _build/html
 	@echo "✓ Documentation check passed!"
 
 jsdoc:
@@ -159,25 +155,13 @@ jsdoc:
 
 docs-clean:
 	@echo "Cleaning documentation build artifacts..."
-	rm -rf docs/_build
+	rm -rf docs/_build docs/_autosummary
 	@echo "✓ Documentation cleaned!"
 
 # Diagram validation targets
 validate-diagrams:
 	@echo "Validating Mermaid diagrams..."
-	@if ! command -v mmdc &> /dev/null; then \
-		echo "Error: mermaid-cli not found. Run 'make install-node' to install Node dependencies."; \
-		exit 1; \
-	fi
-	@echo "Checking diagrams in PRD-backend.md..."
-	mmdc -i PRD-backend.md -o /tmp/prd-backend.svg -t dark --quiet 2>&1 | grep -i "error" || echo "✓ PRD-backend.md diagrams valid"
-	@echo "Checking diagrams in PRD-frontend.md..."
-	mmdc -i PRD-frontend.md -o /tmp/prd-frontend.svg -t dark --quiet 2>&1 | grep -i "error" || echo "✓ PRD-frontend.md diagrams valid"
-	@echo "Checking diagrams in DEPLOYMENT.md..."
-	mmdc -i DEPLOYMENT.md -o /tmp/deployment.svg -t dark --quiet 2>&1 | grep -i "error" || echo "✓ DEPLOYMENT.md diagrams valid"
-	@echo "Checking diagrams in README.md..."
-	mmdc -i README.md -o /tmp/readme.svg -t dark --quiet 2>&1 | grep -i "error" || echo "✓ README.md diagrams valid"
-	@echo "✓ All diagram validations passed!"
+	$(PYTHON) scripts/validate_mermaid_diagrams.py docs/product/PRD-backend.md docs/product/PRD-frontend.md docs/guides/DEPLOYMENT.md
 
 # Testing targets
 test: ensure-dev-tools
@@ -211,7 +195,7 @@ coverage: ensure-dev-tools
 # Development targets
 run-mock:
 	@echo "Starting Flask server with mock camera..."
-	MOCK_CAMERA=true FLASK_ENV=development python3 pi_camera_in_docker/main.py
+	MIO_MOCK_CAMERA=true FLASK_ENV=development python3 pi_camera_in_docker/main.py
 
 clean:
 	@echo "Cleaning build artifacts and cache files..."

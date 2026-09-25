@@ -163,7 +163,7 @@ def _register_settings_deprecated_v0_aliases(app: Flask) -> None:
 
 
 def create_settings_blueprint() -> Blueprint:
-    """Create a Flask Blueprint containing all settings API routes at /settings/*.
+    """Create a Flask Blueprint containing all settings API routes at ``/settings/*``.
 
     Callers should register it on a Flask app with ``url_prefix="/api/v1"``.
 
