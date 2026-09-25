@@ -154,7 +154,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Install Raspberry Pi camera runtime packages (arm64 only, skipped for amd64).
 # On arm64: Downloads RPi GPG key, adds Bookworm RPi repository, installs camera packages.
 #   python3-picamera2 and python3-libcamera are sourced from RPi Bookworm apt repo (not pip).
-# On amd64: Skipped entirely; amd64 uses mock camera via MOCK_CAMERA=true at runtime.
+# On amd64: Skipped entirely; amd64 uses mock camera via MIO_MOCK_CAMERA=true at runtime.
 # NOTE: Do NOT pin a specific libcamera0.x soname. libcamera0.x and libcamera-ipa share a strict
 # version-locked dependency (libcamera0.6 requires libcamera-ipa=0.6.x, libcamera0.7 requires
 # libcamera-ipa=0.7.x). Pinning a specific runtime makes co-installation of python3-libcamera
@@ -199,7 +199,7 @@ Pin-Priority: 100\n" > /etc/apt/preferences.d/rpi-camera.preferences && \
           libcamera-dev rpicam-apps python3-libcamera python3-picamera2 2>/dev/null || true && \
         rm -rf /var/lib/apt/lists/*; \
     else \
-        echo "Camera packages: skipping (amd64 build — use MOCK_CAMERA=true at runtime)"; \
+        echo "Camera packages: skipping (amd64 build — use MIO_MOCK_CAMERA=true at runtime)"; \
     fi
 
 # ---- Layer 3: Non-Root User Setup (Runtime Security) ----

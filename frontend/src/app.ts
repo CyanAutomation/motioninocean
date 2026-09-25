@@ -2504,7 +2504,7 @@ function getDeviceDetectionSummary(devices = {}, currentConfig = {}) {
         : "No camera interfaces were found. Check host device mounts and camera interface settings.",
       recommendations: [
         "Verify /dev/vchiq exists on the host and is mounted into the container.",
-        "For local development without hardware, set MOCK_CAMERA=true.",
+        "For local development without hardware, set MIO_MOCK_CAMERA=true.",
         "If using Raspberry Pi, enable Camera in raspi-config and reboot.",
       ],
       isManagementMode,
@@ -2522,7 +2522,7 @@ function getDeviceDetectionSummary(devices = {}, currentConfig = {}) {
     recommendations: [
       "Confirm /dev/vchiq and /dev/video* are both available to the container.",
       "Check camera ribbon seating and reboot if interfaces are intermittent.",
-      "Use MOCK_CAMERA=true during development to continue testing setup flows.",
+      "Use MIO_MOCK_CAMERA=true during development to continue testing setup flows.",
     ],
     isManagementMode,
     videoCount,

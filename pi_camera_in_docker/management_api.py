@@ -1527,7 +1527,7 @@ def _status_for_webcam(node: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[T
 
 
 def _register_management_deprecated_v0_aliases(app: Flask) -> None:
-    """Register legacy /api/* routes that redirect (HTTP 308) to /api/v1/* equivalents.
+    """Register legacy ``/api/*`` routes that redirect (HTTP 308) to ``/api/v1/*`` equivalents.
 
     These aliases exist for backward compatibility with clients that have not yet
     migrated to the versioned API. All routes return HTTP 308 Permanent Redirect with
@@ -1585,7 +1585,7 @@ def create_management_blueprint(
     node_discovery_shared_secret: Optional[str] = None,
     limiter=None,
 ) -> Blueprint:
-    """Create a Flask Blueprint containing all management API routes at /api/v1/*.
+    """Create a Flask Blueprint containing all management API routes at ``/api/v1/*``.
 
     All webcam CRUD, discovery, and overview endpoints are registered on the returned
     Blueprint. Callers should register it on a Flask app with ``url_prefix="/api/v1"``.

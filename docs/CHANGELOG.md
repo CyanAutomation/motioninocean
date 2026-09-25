@@ -4,8 +4,8 @@
 
 This file contains **user-visible product changes grouped by released version**.
 
-- Release procedure and publishing automation live in [`docs/guides/RELEASE.md`](docs/guides/RELEASE.md).
-- Test execution evidence and validation outputs live in [`docs/testing/README.md`](docs/testing/README.md).
+- Release procedure and publishing automation live in [`docs/guides/RELEASE.md`](guides/RELEASE.md).
+- Test execution evidence and validation outputs live in the [testing documentation](https://github.com/CyanAutomation/motioninocean/blob/main/docs/testing/README.md).
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
@@ -55,7 +55,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update repository name in cloudbuild.yaml
 - [webcam] Catch cairosvg OSError during mock frame import (#484)
 - Change regions to europe-west1 in cloudbuild.yaml
-- [ui] Assert utility modal geometry and stacking in Playwright tests (#482)
 - Refactor code for improved readability and consistency in application settings and config validation
 
 ## [1.20.2] - 2026-02-26
@@ -290,7 +289,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [1.18.3] - 2026-02-22
 
-- Add Playwright CLI documentation and features for browser automation
 - Remove rebranding scripts for node to webcam terminology
 - [management] Reject non-object JSON from webcam proxies (#385)
 - [runtime] Validate persisted camera fps range before merge (#384)

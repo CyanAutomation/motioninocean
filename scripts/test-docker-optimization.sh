@@ -57,7 +57,7 @@ echo "[INFO] === Running Container Health Checks ==="
 
 # Create temporary container to test
 CONTAINER_ID=$(docker run -d --rm \
-    -e MOCK_CAMERA=true \
+    -e MIO_MOCK_CAMERA=true \
     -e HEALTHCHECK_READY=true \
     -e MOTION_IN_OCEAN_RESOLUTION=640x480 \
     -e MOTION_IN_OCEAN_FPS=15 \

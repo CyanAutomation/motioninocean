@@ -1,6 +1,6 @@
 # Documentation Guide
 
-Quick reference for documenting motion-in-ocean code. For complete examples and guidelines, see [AGENTS.md](../AGENTS.md#documentation-requirements) and [CONTRIBUTING.md](../CONTRIBUTING.md#documentation-standards).
+Quick reference for documenting motion-in-ocean code. For complete examples and guidelines, see [AGENTS.md](https://github.com/CyanAutomation/motioninocean/blob/main/AGENTS.md#documentation-requirements) and [CONTRIBUTING.md](https://github.com/CyanAutomation/motioninocean/blob/main/CONTRIBUTING.md#documentation-standards).
 
 ---
 
@@ -422,5 +422,5 @@ When documenting new functions/classes:
 - [PEP 257 — Docstring Conventions](https://peps.python.org/pep-0257/)
 - [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
 - [JSDoc Documentation](https://jsdoc.app/)
-- [AGENTS.md#documentation-requirements](../AGENTS.md#documentation-requirements) — Full guidelines
-- [CONTRIBUTING.md#documentation-standards](../CONTRIBUTING.md#documentation-standards) — Contribution requirements
+- [AGENTS.md#documentation-requirements](https://github.com/CyanAutomation/motioninocean/blob/main/AGENTS.md#documentation-requirements) — Full guidelines
+- [CONTRIBUTING.md#documentation-standards](https://github.com/CyanAutomation/motioninocean/blob/main/CONTRIBUTING.md#documentation-standards) — Contribution requirements

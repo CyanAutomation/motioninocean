@@ -31,7 +31,7 @@ Before opening the PR, please ensure:
 <!-- Provide steps, logs, environment details (Pi model + OS) -->
 
 - [ ] Tested on Raspberry Pi hardware with CSI camera
-- [ ] Tested in `MOCK_CAMERA=true` mode
+- [ ] Tested in `MIO_MOCK_CAMERA=true` mode
 - [ ] Smoke-tested endpoints:
   - [ ] `GET /health`
   - [ ] `GET /ready`

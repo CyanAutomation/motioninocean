@@ -5,7 +5,7 @@
 This file records **validation evidence and run outputs only**.
 
 - Test/release procedures belong in [`docs/guides/RELEASE.md`](../guides/RELEASE.md) and developer workflow docs.
-- User-facing release notes belong in [`CHANGELOG.md`](../../CHANGELOG.md).
+- User-facing release notes belong in [`docs/CHANGELOG.md`](../CHANGELOG.md).
 
 ## Latest validation summary
 

@@ -14,6 +14,10 @@ Raspberry Pi CSI camera streaming solution with multi-node management.
    README
    guides/DEPLOYMENT
    guides/FEATURE_FLAGS
+   guides/MIGRATION
+   guides/RELEASE
+   ENVIRONMENT_VARIABLES_DOCUMENTATION_COMPLETE
+   DOCUMENTATION_GUIDE
 
 .. toctree::
    :maxdepth: 2
@@ -26,26 +30,19 @@ Raspberry Pi CSI camera streaming solution with multi-node management.
    modules/configuration
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Configuration & Settings
-
-   guides/SETTINGS_SCHEMA
-   guides/ENVIRONMENT_VARIABLES_DOCUMENTATION_COMPLETE
-   guides/FEATURE_FLAGS
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contributing
-
-   ../CONTRIBUTING
-   ../AGENTS
-
-.. toctree::
    :maxdepth: 1
    :caption: Additional Resources
 
    CHANGELOG
-   ../SECURITY
+   product/PRD-backend
+   product/PRD-core
+   product/PRD-frontend
+
+Project policies:
+
+* `Contributing guide <https://github.com/CyanAutomation/motioninocean/blob/main/CONTRIBUTING.md>`_
+* `Agent guidance <https://github.com/CyanAutomation/motioninocean/blob/main/AGENTS.md>`_
+* `Security policy <https://github.com/CyanAutomation/motioninocean/blob/main/SECURITY.md>`_
 
 Quick Links
 ===========
@@ -88,22 +85,6 @@ Documentation Structure
 - **Standards:** Documentation, code quality, testing
 
 For more information, see the individual module documentation below.
-
-Python Modules
-==============
-
-.. autosummary::
-   :toctree: _autosummary
-
-   pi_camera_in_docker.main
-   pi_camera_in_docker.modes.webcam
-   pi_camera_in_docker.management_api
-   pi_camera_in_docker.discovery
-   pi_camera_in_docker.runtime_config
-   pi_camera_in_docker.settings_api
-   pi_camera_in_docker.feature_flags
-   pi_camera_in_docker.node_registry
-   pi_camera_in_docker.application_settings
 
 Indices and tables
 ==================

@@ -27,6 +27,8 @@ extensions = [
     "sphinx.ext.intersphinx",  # Link to other project docs
     "sphinx.ext.viewcode",  # Link to source code
     "sphinx.ext.todo",  # Support .. todo:: directives
+    "myst_parser",  # Parse Markdown documentation sources
+    "sphinxcontrib.mermaid",  # Render Mermaid diagrams in Markdown and reStructuredText
 ]
 
 # Napoleon configuration (Google-style docstring support)
@@ -62,14 +64,16 @@ templates_path = ["_templates"]
 # Source suffix
 source_suffix = {
     ".rst": None,
-    ".md": "myst_parser",
+    ".md": "markdown",
 }
+myst_heading_anchors = 3
+myst_fence_as_directive = {"mermaid"}
 
 # Master doc
 master_doc = "index"
 
 # Exclude patterns
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "reports/**", "testing/**"]
 
 # Pygments style for code highlighting
 pygments_style = "sphinx"

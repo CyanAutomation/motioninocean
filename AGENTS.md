@@ -34,7 +34,7 @@ Motion In Ocean enables reliable, stateless camera streaming for Raspberry Pi in
 **Webcam Mode** processes camera frames and streams video:
 
 ```
-[Picamera2 Hardware] → [FrameBuffer] → [MJPEG Encoder] → [HTTP /stream endpoint]
+[Picamera2 Hardware] → [FrameBuffer] → [MJPEG Encoder] → [HTTP /stream.mjpg endpoint]
                             ↓
                       [StreamStats]
                             ↓
@@ -74,14 +74,14 @@ See [pi_camera_in_docker/runtime_config.py](pi_camera_in_docker/runtime_config.p
 | **shared.py**                   | Common routes: `/health`, `/ready`, `/metrics`          |
 | **application_settings.py**     | Atomic file-based settings persistence                  |
 | **runtime_config.py**           | Environment-based config loading, merging               |
-| **feature_flags.py**            | Registry of feature gates (mock camera, adapters, etc.) |
+| **feature_flags.py**            | Runtime feature flag registry (currently mock camera)   |
 | **config_validator.py**         | Runtime config validation with helpful error hints      |
 | **settings_schema.py**          | JSON schema for all editable settings                   |
 | **transport_url_validation.py** | SSRF protection, URL safeguarding                       |
-| **cat_gif_generator.py**        | Fallback animated test GIF                              |
+| **cat_gif_generator.py**        | Optional animated mock stream source                   |
 | **logging_config.py**           | Structured JSON logging setup                           |
 
-Files: [pi_camera_in_docker/](pi_camera_in_ocean/)
+Files: [pi_camera_in_docker/](pi_camera_in_docker/)
 
 ---
 
@@ -91,7 +91,7 @@ Files: [pi_camera_in_docker/](pi_camera_in_ocean/)
 
 - Python 3.10+ (3.11+ recommended)
 - Docker + Docker Compose
-- Node.js 18+ (for UI testing only)
+- Node.js 20 (matches CI frontend tooling)
 - Git
 
 ### Initial Setup
@@ -108,8 +108,8 @@ source .venv/bin/activate
 # Install dev dependencies
 pip install -r requirements-dev.txt
 
-# Install Node.js dependencies (for UI/Playwright testing)
-npm install
+# Install locked Node.js dependencies
+npm ci
 
 # Setup pre-commit hooks
 make pre-commit
@@ -147,7 +147,7 @@ make security
 ### Docker Build
 
 ```bash
-# Build image (mock support always included; runtime toggles via MOCK_CAMERA)
+# Build image (mock support included; runtime toggles via MIO_MOCK_CAMERA)
 make docker-build
 
 # Build production-tagged image (same build profile)
@@ -168,7 +168,7 @@ See [containers/README.md](containers/README.md) for directory-based deployments
 
 ```bash
 cd containers/motion-in-ocean-webcam
-docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
+docker compose -f docker-compose.yaml -f docker-compose.mock.yaml up -d
 ```
 
 **Quick start (webcam mode, real camera):**
@@ -316,7 +316,7 @@ async function fetchNodeStatus(nodeId, baseUrl, authToken) {
 
 - **Unit tests**: Fast, isolated, mock dependencies
 - **Integration tests**: Real Flask app, mock camera, e2e flows
-- **UI tests**: Playwright-based browser automation (streaming viewer, management dashboard)
+- **Frontend tests and UI review**: Node-based frontend unit tests plus manual review of the streaming viewer and management dashboard
 
 ### Run Tests
 
@@ -349,10 +349,6 @@ tests/
 │   ├── test_webcam_api.py
 │   ├── test_management_api.py
 │   ├── test_discovery.py
-│   └── ...
-├── ui/                            # UI tests (Playwright browser automation)
-│   ├── test_streaming_viewer.py
-│   ├── test_management_dashboard.py
 │   └── ...
 └── conftest.py                    # Shared fixtures
 ```
@@ -411,11 +407,11 @@ Enable in tests or dev:
 
 ```bash
 # Run with mock camera
-export MOCK_CAMERA=true
+export MIO_MOCK_CAMERA=true
 make run-mock
 
 # Or in docker-compose
-docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
+docker compose -f docker-compose.yaml -f docker-compose.mock.yaml up -d
 ```
 
 ### Pre-Commit Checks
@@ -463,7 +459,7 @@ curl -H "Authorization: Bearer <token>" http://localhost:8000/api/status
 
 ```
 GET  /health              → {"status": "ok"}
-GET  /ready               → {"status": "ready"} / {"status": "waiting"}
+GET  /ready               → {"status": "ready"} / {"status": "not_ready"}
 GET  /metrics             → Prometheus-style metrics
 GET  /api/docs            → Swagger UI (HTML, no auth required)
 GET  /openapi.json        → OpenAPI 3.0 spec as JSON (no auth required)
@@ -472,7 +468,7 @@ GET  /openapi.json        → OpenAPI 3.0 spec as JSON (no auth required)
 **Webcam mode:**
 
 ```
-GET  /stream              → MJPEG video stream
+GET  /stream.mjpg         → MJPEG video stream
 GET  /api/status          → {"status": "ok"|"degraded", "stream_available": bool, ...}
 GET  /api/settings/schema → JSON schema describing all settings
 PATCH /api/settings       → Update settings (persisted to JSON)
@@ -544,31 +540,32 @@ Key environment variables:
 
 **Camera:**
 
-- `RESOLUTION` (default: 640x480)
-- `FPS` (default: 24)
-- `JPEG_QUALITY` (1-100, default: 90)
-- `MAX_STREAM_CONNECTIONS` (default: 5)
+- `MIO_RESOLUTION` (default: 640x480)
+- `MIO_FPS` (default: 24)
+- `MIO_JPEG_QUALITY` (1-100, default: 90)
+- `MIO_MAX_STREAM_CONNECTIONS` (default: 10)
 
 **Discovery:**
 
-- `DISCOVERY_ENABLED` (default: false)
-- `DISCOVERY_MANAGEMENT_URL` (example: <http://management-hub:8001>)
-- `DISCOVERY_TOKEN` (must match `NODE_DISCOVERY_SHARED_SECRET` on management)
-- `DISCOVERY_INTERVAL_SECONDS` (default: 60)
+- `MIO_DISCOVERY_ENABLED` (default: false)
+- `MIO_DISCOVERY_MANAGEMENT_URL` (example: <http://management-hub:8001>)
+- `MIO_DISCOVERY_TOKEN` (discovery authentication token)
+- `MIO_DISCOVERY_INTERVAL_SECONDS` (default: 30)
 
 **Security:**
 
-- `WEBCAM_CONTROL_PLANE_AUTH_TOKEN` (bearer token for webcam APIs)
-- `MANAGEMENT_AUTH_TOKEN` (bearer token for management hub)
-- `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` (enable SSRF bypass for private ranges, default: false)
+- `MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN` (bearer token for protected webcam APIs)
+- `MIO_MANAGEMENT_AUTH_TOKEN` (bearer token for management hub)
+- `MIO_ALLOW_PRIVATE_IPS` (allow private node addresses in management mode, default: false)
 
 **Advanced:**
 
-- `APP_MODE` (webcam|management, default: webcam)
-- `MOTION_IN_OCEAN_BIND_HOST` (default: 127.0.0.1, set to 0.0.0.0 for network access)
-- `PI3_PROFILE` (true for RPi 3 resource optimization)
-- `MOCK_CAMERA` (true to use animated GIF placeholder instead of hardware)
-- `API_TEST_MODE_ENABLED` (true for deterministic testing)
+- `MIO_APP_MODE` (webcam|management, default: webcam)
+- `MIO_BIND_HOST` (default: 127.0.0.1, set to 0.0.0.0 for network access)
+- `MIO_PORT` (default: 8000; Compose maps management mode to host port 8001)
+- `MIO_PERFORMANCE_PROFILE` (select a supported resource profile)
+- `MIO_MOCK_CAMERA` (true to use mock frames instead of camera hardware)
+- `MIO_API_TEST_MODE_ENABLED` (true for deterministic testing)
 
 ---
 
@@ -642,27 +639,18 @@ ui/
 │       └── tabs-config.css
 ```
 
-### Playwright UI Tests
+### Frontend validation and interface review
 
-Run full UI audit:
+Frontend unit tests use Node's built-in test runner:
 
 ```bash
-make audit-ui                  # All modes, all viewports
-make audit-ui-webcam           # Webcam mode only
-make audit-ui-management       # Management mode only
-make audit-ui-interactive      # Inspector (manual testing)
+make test-frontend
+npm run lint
+npm run type-check
+npm run format:check
 ```
 
-Test patterns in [tests/ui/](tests/ui/):
-
-```python
-async def test_streaming_viewer_loads(page):
-    """Streaming viewer loads and displays stream."""
-    await page.goto("http://localhost:8000")
-    assert await page.is_visible("video")
-    # Verify stream connection attempt
-    requests = await page.context.request.get("http://localhost:8000/stream")
-```
+For visible changes, review the running app at desktop and narrow viewport sizes, check keyboard interaction and loading/error states, and follow [`.github/skills/ui-review/SKILL.md`](.github/skills/ui-review/SKILL.md).
 
 ---
 
@@ -709,9 +697,9 @@ async def test_streaming_viewer_loads(page):
 **Webcam mode (with mock camera, no hardware):**
 
 ```bash
-export MOCK_CAMERA=true
-export APP_MODE=webcam
-export MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
+export MIO_MOCK_CAMERA=true
+export MIO_APP_MODE=webcam
+export MIO_BIND_HOST=0.0.0.0
 make run-mock
 # Access at http://localhost:8000
 ```
@@ -719,8 +707,9 @@ make run-mock
 **Management mode (with mock webcam discovery):**
 
 ```bash
-export APP_MODE=management
-export MOTION_IN_OCEAN_BIND_HOST=0.0.0.0
+export MIO_APP_MODE=management
+export MIO_BIND_HOST=0.0.0.0
+export MIO_PORT=8001
 make run-mock
 # Access at http://localhost:8001
 ```
@@ -742,7 +731,8 @@ Logs are JSON-formatted for easy parsing by tools.
 Reproduce all CI checks before push:
 
 ```bash
-make ci  # Runs: lint, type-check, security, test
+make ci  # Runs lint, format check, type check, feature-flag check, and tests
+make validate  # Runs make ci and the Bandit security check
 ```
 
 This is equivalent to the GitHub Actions pipeline.
@@ -756,14 +746,13 @@ This is equivalent to the GitHub Actions pipeline.
 Motion In Ocean uses semantic versioning with tag-triggered Docker publishing:
 
 ```bash
-# Create a release tag (format: vX.Y.Z)
-git tag v1.2.3
-git push origin v1.2.3
+# Create a release commit and tag from main
+./create-release.sh
 
 # Tag-triggered workflow .github/workflows/docker-publish.yml:
 # - Builds Docker image
 # - Pushes to GHCR (ghcr.io/cyanautomation/motioninocean:v1.2.3)
-# - GitHub Release created with changelog
+# - GitHub Release created from docs/CHANGELOG.md
 ```
 
 See [.github/workflows/docker-publish.yml](.github/workflows/docker-publish.yml) for automation details.
@@ -789,8 +778,7 @@ docker buildx build --platform linux/arm64,linux/amd64 \
 1. **Run all checks locally:**
 
    ```bash
-   make ci
-   make audit-ui
+   make validate
    ```
 
 2. **Commit message format:**
@@ -823,7 +811,8 @@ docker buildx build --platform linux/arm64,linux/amd64 \
    - [ ] All tests pass (`make test`)
    - [ ] Code style passes (`make lint`, `make format`, `make type-check`)
    - [ ] Security passes (`make security`)
-   - [ ] UI tests pass (if UI changes, `make audit-ui`)
+   - [ ] Frontend unit checks pass when frontend code changed (`make test-frontend`)
+   - [ ] Visible UI changes reviewed at relevant viewport sizes and with keyboard input
    - [ ] Commits follow format above
    - [ ] No temporary files committed
    - [ ] Documentation updated if behavior changed
@@ -913,7 +902,7 @@ docker compose logs --tail=50 motion-in-ocean
 Common causes:
 
 - Missing `RESOLUTION` setting: Set to `640x480` in `.env`
-- Camera device not found: Use mock mode instead (`docker compose -f docker-compose.yml -f docker-compose.mock.yml up`)
+- Camera device not found: Use mock mode instead (`MIO_MOCK_CAMERA=true make run-mock`)
 - Invalid environment variable: Check against [docs/ENVIRONMENT_VARIABLES_DOCUMENTATION_COMPLETE.md](docs/ENVIRONMENT_VARIABLES_DOCUMENTATION_COMPLETE.md)
 
 ### Camera Not Detected on Raspberry Pi

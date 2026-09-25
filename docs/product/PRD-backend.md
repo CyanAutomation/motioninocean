@@ -12,11 +12,11 @@ cross-cutting goals, and shared constraints/non-goals, see [PRD-core.md](PRD-cor
 ```mermaid
 graph LR
     subgraph "Cameras"
-        WC1["Webcam Host 1<br/>(APP_MODE=webcam)"]
-        WC2["Webcam Host 2<br/>(APP_MODE=webcam)"]
+        WC1["Webcam Host 1<br/>(MIO_APP_MODE=webcam)"]
+        WC2["Webcam Host 2<br/>(MIO_APP_MODE=webcam)"]
     end
     subgraph "Management"
-        MGMT["Management Host<br/>(APP_MODE=management)"]
+        MGMT["Management Host<br/>(MIO_APP_MODE=management)"]
     end
     subgraph "Persistence"
         REG["Node Registry<br/>(JSON file)"]
@@ -105,12 +105,12 @@ sequenceDiagram
 
 ### 4. Environment-Driven Configuration (P1)
 
-- `RESOLUTION` (default `640x480`, max `4096x4096`)
-- `FPS` (default `0`, max `120`)
-- `JPEG_QUALITY` (default `100`)
-- `CORS_ORIGINS` (default `*` unless configured)
-- `MOCK_CAMERA` (default `false`)
-- `MAX_FRAME_AGE_SECONDS` (default `10`)
+- `MIO_RESOLUTION` (default `640x480`, max `4096x4096`)
+- `MIO_FPS` (default `24`, max `120`)
+- `MIO_JPEG_QUALITY` (default `90`)
+- `MIO_CORS_ORIGINS` (empty by default)
+- `MIO_MOCK_CAMERA` (default `false`)
+- `MIO_MAX_FRAME_AGE_SECONDS` (default `10`)
 
 Invalid values must fall back to safe defaults.
 
@@ -122,11 +122,11 @@ Returns JSON for lightweight observability (uptime, FPS, frame counters, frame a
 
 ### 6. Mock Camera Mode (P3)
 
-When `MOCK_CAMERA=true`, backend skips CSI initialization and emits synthetic JPEG frames for local/test validation.
+When `MIO_MOCK_CAMERA=true`, backend skips CSI initialization and emits synthetic JPEG frames for local/test validation.
 
 ## Backend API Requirements (Management Mode)
 
-When `APP_MODE=management`, backend exposes control-plane APIs.
+When `MIO_APP_MODE=management`, backend exposes control-plane APIs.
 
 ### Security: SSRF Protection
 
@@ -368,5 +368,5 @@ Webcam mode supports deterministic status simulation for management validation.
 - [ ] `/stream.mjpg` serves valid MJPEG multipart stream or `503` when not ready.
 - [ ] `/metrics` returns JSON with runtime counters and configuration-facing values.
 - [ ] Environment variable validation applies safe defaults for invalid inputs.
-- [ ] `MOCK_CAMERA=true` supports hardware-free startup and endpoint behavior.
+- [ ] `MIO_MOCK_CAMERA=true` supports hardware-free startup and endpoint behavior.
 - [ ] Management endpoints enforce node schema and return standardized errors.

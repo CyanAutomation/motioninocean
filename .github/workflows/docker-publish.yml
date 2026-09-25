@@ -164,10 +164,10 @@ jobs:
 
           echo "Extracting changelog for version: ${VERSION}"
 
-          # Extract the section for this version from CHANGELOG.md
-          if [ -f "CHANGELOG.md" ]; then
+          # Extract the section for this version from the repository changelog.
+          if [ -f "docs/CHANGELOG.md" ]; then
             # Use awk to extract content between version headers
-            CHANGELOG_CONTENT=$(awk "/## \[${VERSION}\]/,/## \[.*\]/{if (/## \[${VERSION}\]/) {found=1; next} if (/## \[.*\]/ && found) exit; if (found) print}" CHANGELOG.md | sed '/^$/d')
+            CHANGELOG_CONTENT=$(awk "/## \[${VERSION}\]/,/## \[.*\]/{if (/## \[${VERSION}\]/) {found=1; next} if (/## \[.*\]/ && found) exit; if (found) print}" docs/CHANGELOG.md | sed '/^$/d')
 
             if [ -z "$CHANGELOG_CONTENT" ]; then
               echo "Warning: No changelog section found for version ${VERSION}"
@@ -176,7 +176,7 @@ jobs:
               echo "Found changelog section for version ${VERSION}"
             fi
           else
-            echo "Warning: CHANGELOG.md not found"
+            echo "Warning: docs/CHANGELOG.md not found"
             CHANGELOG_CONTENT="Release ${VERSION} - See commit history for details."
           fi
 

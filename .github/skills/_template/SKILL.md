@@ -49,7 +49,7 @@ List the repository files that govern this skill's behavior. Include specific pa
 ## Related Skills
 
 - List prerequisite, complementary, or related skills here.
-- Example: `[`ci-quality-gates`](../ci-quality-gates/SKILL.md)` or `[`deployment-validation-health-checks`](../deployment-validation-health-checks/SKILL.md)`
+- Example: [`ci-quality-gates`](../ci-quality-gates/SKILL.md) or [`deployment-validation-health-checks`](../deployment-validation-health-checks/SKILL.md)
 - Include a brief description of the relationship (prerequisite, complement, alternative, etc.)
 
 ## Maintenance notes
