@@ -406,6 +406,18 @@ def test_camera_fps_default_matches_settings_schema(monkeypatch):
     assert camera_config["target_fps"] == schema_default
 
 
+def test_max_frame_age_schema_describes_freshness_threshold():
+    """Frame age setting metadata should describe health semantics, not caching."""
+    from pi_camera_in_docker.settings_schema import SettingsSchema
+
+    setting = SettingsSchema.get_schema()["camera"]["properties"]["max_frame_age_seconds"]
+
+    assert setting["title"] == "Maximum Frame Staleness (seconds)"
+    assert setting["description"] == (
+        "Maximum acceptable age of the latest captured frame for stream readiness and health checks"
+    )
+
+
 def test_settings_api_env_defaults_use_runtime_fps_default(monkeypatch):
     """API env-default payload should expose the same FPS default as runtime config."""
     from pi_camera_in_docker.settings_api import _load_env_settings_defaults

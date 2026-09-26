@@ -821,13 +821,15 @@
                 <span class="setting-hint">Limit concurrent streams to prevent overload</span>
               </div>
 
-              <!-- Frame Cache Age -->
+              <!-- Maximum Frame Staleness -->
               <div class="settings-control ui-form-control">
                 <div class="setting-label-group">
                   <label for="setting-max-frame-age" class="setting-label"
-                    >Frame Cache Age (seconds)</label
+                    >Maximum Frame Staleness (seconds)</label
                   >
-                  <span class="setting-description-inline">How long to cache frames</span>
+                  <span class="setting-description-inline"
+                    >Freshness threshold for the latest captured frame</span
+                  >
                 </div>
                 <input
                   type="number"
@@ -841,7 +843,7 @@
                   value="10"
                 />
                 <span class="setting-hint"
-                  >Higher values = more frame reuse, potentially stale frames</span
+                  >Readiness and health checks report frames older than this as stale</span
                 >
               </div>
             </div>

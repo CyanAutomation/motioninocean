@@ -80,10 +80,10 @@
                             - generic [ref=e314]: Limit concurrent streams to prevent overload
                         - generic [ref=e315]:
                             - generic [ref=e316]:
-                                - generic [ref=e317] [cursor=pointer]: Frame Cache Age (seconds)
-                                - generic [ref=e318]: How long to cache frames
-                            - spinbutton "Frame Cache Age (seconds)" [ref=e319]: "10"
-                            - generic [ref=e320]: Higher values = more frame reuse, potentially stale frames
+                                - generic [ref=e317] [cursor=pointer]: Maximum Frame Staleness (seconds)
+                                - generic [ref=e318]: Freshness threshold for the latest captured frame
+                            - spinbutton "Maximum Frame Staleness (seconds)" [ref=e319]: "10"
+                            - generic [ref=e320]: Readiness and health checks report frames older than this as stale
                 - generic [ref=e321]:
                     - generic [ref=e322] [cursor=pointer]:
                         - heading "Logging Configuration" [level=3] [ref=e323]

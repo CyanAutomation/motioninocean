@@ -27,7 +27,9 @@ These variables configure runtime behavior but are **not** feature flags.
 - `MIO_FPS` (default: `24`).
 - `MIO_TARGET_FPS` (default: same as `MIO_FPS`).
 - `MIO_JPEG_QUALITY` (default: `90`).
-- `MIO_MAX_FRAME_AGE_SECONDS` (default: `10`).
+- `MIO_MAX_FRAME_AGE_SECONDS` (default: `10`) — maximum acceptable age, in seconds, of the
+  latest captured frame for readiness and health checks. Runtime settings continue to persist
+  this value under the backward-compatible JSON property `max_frame_age_seconds`.
 - `MIO_MAX_STREAM_CONNECTIONS` (default: `10`).
 
 ### Discovery and management integration

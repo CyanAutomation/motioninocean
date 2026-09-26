@@ -46,7 +46,7 @@
   - Frame Rate slider (0-60 FPS)
   - JPEG Quality slider (1-100)
   - Max Stream Connections input
-  - Frame Cache Age input
+  - Maximum Frame Staleness input
 - ✅ Logging Configuration section
   - Log Level dropdown (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   - Log Format dropdown (Human-Readable Text, Structured JSON)
