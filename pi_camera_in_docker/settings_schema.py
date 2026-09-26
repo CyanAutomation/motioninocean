@@ -63,8 +63,8 @@ class SettingsSchema:
                 },
                 "max_frame_age_seconds": {
                     "type": "number",
-                    "title": "Frame Cache Age (seconds)",
-                    "description": "Maximum age of cached frames before re-encoding (higher = more reuse, stale frames possible)",
+                    "title": "Maximum Frame Staleness (seconds)",
+                    "description": "Maximum acceptable age of the latest captured frame for stream readiness and health checks",
                     "default": 10.0,
                     "minimum": 0.5,
                     "maximum": 60.0,

@@ -47,7 +47,8 @@ Settings that affect video capture and streaming:
 - `MIO_FPS` - Frames per second
 - `MIO_JPEG_QUALITY` - Compression quality (1-100)
 - `MIO_MAX_STREAM_CONNECTIONS` - Concurrent connections limit
-- `MAX_FRAME_AGE_SECONDS` - Frame cache duration
+- `MIO_MAX_FRAME_AGE_SECONDS` - Maximum acceptable age of the latest captured frame for
+  readiness and health checks. The persisted JSON property remains `max_frame_age_seconds`.
 
 **UI Location**: Settings tab → Camera Configuration
 
