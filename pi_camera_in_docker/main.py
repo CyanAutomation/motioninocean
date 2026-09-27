@@ -26,6 +26,7 @@ from PIL import Image
 from werkzeug.serving import make_server
 
 from .application_settings import ApplicationSettings
+from .asset_versioning import register_asset_versioning
 from .banner import print_startup_banner
 from .changelog_api import register_changelog_routes
 from .config_validator import ConfigValidationError, validate_all_config
@@ -528,9 +529,9 @@ def _init_flask_app(_config: Dict[str, Any]) -> Tuple[Flask, RateLimiterProtocol
     app.config["COMPRESS_MIN_SIZE"] = 500
     Compress(app)
 
-    # Cache static assets in browsers for 1 hour.
-    # Eliminates 7 redundant HTTP round-trips (CSS + JS) on every page revisit.
-    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 3600
+    # Generated static URLs carry a content-derived version. Only URLs matching
+    # this deployment can be cached immutably; unversioned URLs must revalidate.
+    register_asset_versioning(app)
 
     limiter = create_rate_limiter(
         app,

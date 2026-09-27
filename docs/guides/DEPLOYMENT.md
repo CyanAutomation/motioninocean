@@ -6,6 +6,23 @@ This guide covers deploying Motion in Ocean using the **recommended directory-ba
 
 ---
 
+## Frontend asset versioning and caching
+
+Static asset URLs rendered by the application include a `v` query parameter. The value is the
+first 16 hexadecimal characters of a SHA-256 digest computed over the relative paths and contents
+of every file under `pi_camera_in_docker/static/`. This makes the value reproducible for identical
+assets and changes it when an asset is added, removed, renamed, or edited.
+
+The version is derived automatically when the application starts; release authors do not update a
+separate version file. Docker image builds copy the application and design assets into the static
+tree before the container starts, so every built image derives its version from the exact assets it
+serves. URLs carrying the current version are served with
+`Cache-Control: public, max-age=31536000, immutable`. Unversioned URLs and URLs carrying an older
+version use `Cache-Control: no-cache` so legacy clients revalidate them instead of serving stale
+files without contacting the application.
+
+---
+
 ## Canonical Variables and Migration
 
 - **Canonical app variables:** use `MIO_*` names (for example `MIO_APP_MODE`, `MIO_PORT`, `MIO_BIND_HOST`, `MIO_PERFORMANCE_PROFILE`).
