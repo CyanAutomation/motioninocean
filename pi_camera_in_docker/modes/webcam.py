@@ -20,6 +20,21 @@ FPS statistics, connection tracking, and MJPEG stream endpoints.
 
 logger = logging.getLogger(__name__)
 
+_LIVE_CAMERA_CACHE_CONTROL = "no-store, no-cache, must-revalidate, max-age=0"
+
+
+def _disable_live_camera_caching(response: Response) -> Response:
+    """Prevent browsers and intermediaries from caching live camera responses.
+
+    Args:
+        response: Flask response containing live camera data or a transient error.
+
+    Returns:
+        The response with an explicit modern cache policy applied.
+    """
+    response.headers["Cache-Control"] = _LIVE_CAMERA_CACHE_CONTROL
+    return response
+
 
 class StreamStats:
     """Thread-safe frame capture statistics.
@@ -563,10 +578,10 @@ class StreamResponseBuilder:
             Flask Response object with MJPEG stream or error.
         """
         if not self.state["recording_started"].is_set():
-            return Response("Camera stream not ready.", status=503)
+            return _disable_live_camera_caching(Response("Camera stream not ready.", status=503))
 
         if not self.tracker.try_increment(self.max_stream_connections):
-            return Response("Too many connections", status=429)
+            return _disable_live_camera_caching(Response("Too many connections", status=429))
 
         slot_release_lock = Lock()
         slot_released = False
@@ -598,7 +613,7 @@ class StreamResponseBuilder:
         # Prevent nginx from buffering the MJPEG stream, which would delay frames.
         response.headers["X-Accel-Buffering"] = "no"
         response.call_on_close(release_stream_slot)
-        return response
+        return _disable_live_camera_caching(response)
 
 
 class SnapshotResponseBuilder:
@@ -625,16 +640,18 @@ class SnapshotResponseBuilder:
             Flask Response object with JPEG image or error.
         """
         if not self.state["recording_started"].is_set():
-            return Response("Camera is not ready yet.", status=503)
+            return _disable_live_camera_caching(Response("Camera is not ready yet.", status=503))
 
         output = self.state["output"]
         with output.condition:
             frame = output.frame
 
         if frame is None:
-            return Response("No camera frame available yet.", status=503)
+            return _disable_live_camera_caching(
+                Response("No camera frame available yet.", status=503)
+            )
 
-        return Response(frame, mimetype="image/jpeg")
+        return _disable_live_camera_caching(Response(frame, mimetype="image/jpeg"))
 
 
 class WebcamActionHandler:
