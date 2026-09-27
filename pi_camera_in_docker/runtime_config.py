@@ -401,13 +401,16 @@ def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
     - MIO_FAIL_ON_CAMERA_INIT_ERROR (default: false)
     - MIO_CHANGELOG_REMOTE_URL (default: repository CHANGELOG.md raw URL)
     - MIO_CHANGELOG_REMOTE_TIMEOUT_SECONDS (default: 3.0, minimum: >0)
+    - MIO_CHANGELOG_REMOTE_CACHE_TTL_SECONDS (default: 300.0, minimum: >=0)
+    - MIO_CHANGELOG_REMOTE_FAILURE_BACKOFF_SECONDS (default: 10.0, minimum: >=0)
 
     Returns:
         Dict with keys: performance_profile, pi3_profile_enabled,
         mock_camera, pykms_mock_fallback_enabled,
         webcam_registry_path, application_settings_path, management_auth_token,
         webcam_control_plane_auth_token, fail_on_camera_init_error,
-        changelog_remote_url, changelog_remote_timeout_seconds.
+        changelog_remote_url, changelog_remote_timeout_seconds,
+        changelog_remote_cache_ttl_seconds, changelog_remote_failure_backoff_seconds.
     """
     performance_profile = _resolve_performance_profile()
     default_changelog_url = (
@@ -431,6 +434,24 @@ def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
     if changelog_remote_timeout_seconds <= 0:
         changelog_remote_timeout_seconds = 3.0
 
+    try:
+        changelog_remote_cache_ttl_seconds = float(
+            os.environ.get("MIO_CHANGELOG_REMOTE_CACHE_TTL_SECONDS", "300")
+        )
+    except ValueError:
+        changelog_remote_cache_ttl_seconds = 300.0
+    if changelog_remote_cache_ttl_seconds < 0:
+        changelog_remote_cache_ttl_seconds = 300.0
+
+    try:
+        changelog_remote_failure_backoff_seconds = float(
+            os.environ.get("MIO_CHANGELOG_REMOTE_FAILURE_BACKOFF_SECONDS", "10")
+        )
+    except ValueError:
+        changelog_remote_failure_backoff_seconds = 10.0
+    if changelog_remote_failure_backoff_seconds < 0:
+        changelog_remote_failure_backoff_seconds = 10.0
+
     return {
         "performance_profile": performance_profile,
         "pi3_profile_enabled": performance_profile == "pi3",
@@ -449,6 +470,8 @@ def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
         "fail_on_camera_init_error": fail_on_camera_init_error_raw.lower() in ("1", "true", "yes"),
         "changelog_remote_url": changelog_remote_url,
         "changelog_remote_timeout_seconds": changelog_remote_timeout_seconds,
+        "changelog_remote_cache_ttl_seconds": changelog_remote_cache_ttl_seconds,
+        "changelog_remote_failure_backoff_seconds": changelog_remote_failure_backoff_seconds,
     }
 
 

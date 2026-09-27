@@ -2,8 +2,16 @@
 
 from pathlib import Path
 
+import pytest
+
 from pi_camera_in_docker import changelog_api
 from pi_camera_in_docker.changelog_api import load_changelog_entries, parse_changelog_markdown
+
+
+@pytest.fixture(autouse=True)
+def clear_changelog_cache() -> None:
+    """Keep process cache entries isolated between unit tests."""
+    changelog_api._clear_changelog_cache()
 
 
 def test_parse_changelog_markdown_returns_released_versions_only_by_default() -> None:
@@ -122,3 +130,99 @@ def test_load_changelog_entries_includes_ui_expected_source_metadata(tmp_path: P
     assert payload["source_type"] == "local"
     assert "source" not in payload
     assert payload["full_changelog_url"] == changelog_api.DEFAULT_FULL_CHANGELOG_URL
+
+
+def test_local_changelog_cache_hits_and_invalidates_on_file_change(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Local results are reused until path metadata changes."""
+    changelog_path = tmp_path / "CHANGELOG.md"
+    changelog_path.write_text("## [1.0.0]\n- One\n", encoding="utf-8")
+    parse_calls = 0
+    real_parser = changelog_api.parse_changelog_markdown
+
+    def counting_parser(markdown_text: str, include_unreleased: bool = False):
+        nonlocal parse_calls
+        parse_calls += 1
+        return real_parser(markdown_text, include_unreleased)
+
+    monkeypatch.setattr(changelog_api, "parse_changelog_markdown", counting_parser)
+
+    assert load_changelog_entries(changelog_path)["entries"][0]["version"] == "1.0.0"
+    assert load_changelog_entries(changelog_path)["entries"][0]["version"] == "1.0.0"
+    assert parse_calls == 1
+
+    changelog_path.write_text("## [2.0.0]\n- Two, changed\n", encoding="utf-8")
+    assert load_changelog_entries(changelog_path)["entries"][0]["version"] == "2.0.0"
+    assert parse_calls == 2
+
+
+def test_remote_cache_expires_using_monotonic_time(monkeypatch, tmp_path: Path) -> None:
+    """A successful remote result is fetched again after its configured TTL."""
+    clock = [100.0]
+    fetches = 0
+
+    def fetch_remote(remote_url: str, timeout_seconds: float) -> str:
+        nonlocal fetches
+        fetches += 1
+        return f"## [{fetches}.0.0]\n- Remote\n"
+
+    monkeypatch.setattr(changelog_api.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(changelog_api, "_fetch_remote_changelog_markdown", fetch_remote)
+    path = tmp_path / "missing.md"
+
+    first = load_changelog_entries(path, remote_cache_ttl_seconds=5)
+    clock[0] += 4
+    cached = load_changelog_entries(path, remote_cache_ttl_seconds=5)
+    clock[0] += 2
+    expired = load_changelog_entries(path, remote_cache_ttl_seconds=5)
+
+    assert first["entries"] == cached["entries"]
+    assert expired["entries"][0]["version"] == "2.0.0"
+    assert fetches == 2
+
+
+def test_remote_failure_uses_retry_backoff(monkeypatch, tmp_path: Path) -> None:
+    """Remote failures are negatively cached for the configured backoff."""
+    clock = [10.0]
+    fetches = 0
+
+    def fail_remote(remote_url: str, timeout_seconds: float) -> str:
+        nonlocal fetches
+        fetches += 1
+        raise OSError("offline")
+
+    monkeypatch.setattr(changelog_api.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(changelog_api, "_fetch_remote_changelog_markdown", fail_remote)
+    path = tmp_path / "missing.md"
+
+    load_changelog_entries(path, remote_failure_backoff_seconds=3)
+    load_changelog_entries(path, remote_failure_backoff_seconds=3)
+    assert fetches == 1
+    clock[0] += 3
+    load_changelog_entries(path, remote_failure_backoff_seconds=3)
+    assert fetches == 2
+
+
+def test_remote_cache_isolated_by_path_and_url(monkeypatch, tmp_path: Path) -> None:
+    """Different application paths and remote URLs do not share results."""
+    fetches: list[str] = []
+
+    def fetch_remote(remote_url: str, timeout_seconds: float) -> str:
+        fetches.append(remote_url)
+        return f"## [{len(fetches)}.0.0]\n- Remote\n"
+
+    monkeypatch.setattr(changelog_api, "_fetch_remote_changelog_markdown", fetch_remote)
+    first_path = tmp_path / "first.md"
+    second_path = tmp_path / "second.md"
+
+    load_changelog_entries(first_path, remote_url="https://example.test/one")
+    load_changelog_entries(first_path, remote_url="https://example.test/two")
+    load_changelog_entries(second_path, remote_url="https://example.test/one")
+    load_changelog_entries(first_path, remote_url="https://example.test/one")
+
+    assert fetches == [
+        "https://example.test/one",
+        "https://example.test/two",
+        "https://example.test/one",
+    ]

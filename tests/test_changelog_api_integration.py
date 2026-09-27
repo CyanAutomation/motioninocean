@@ -2,10 +2,17 @@
 
 from pathlib import Path
 
+import pytest
 from flask import Flask
 
 from pi_camera_in_docker import changelog_api
 from pi_camera_in_docker.changelog_api import register_changelog_routes
+
+
+@pytest.fixture(autouse=True)
+def clear_changelog_cache() -> None:
+    """Keep process cache entries isolated between integration tests."""
+    changelog_api._clear_changelog_cache()
 
 
 def _build_test_app(changelog_path: str) -> Flask:
@@ -111,3 +118,20 @@ def test_api_changelog_remote_fallback_includes_source_metadata(monkeypatch) -> 
     assert payload["source_type"] == "remote"
     assert payload["source"] == "/tmp/another-missing-changelog-file.md"
     assert payload["full_changelog_url"] == changelog_api.DEFAULT_FULL_CHANGELOG_URL
+
+
+def test_api_changelog_honors_if_none_match(tmp_path: Path) -> None:
+    """Endpoint emits an ETag and returns 304 for a matching validator."""
+    changelog_path = tmp_path / "CHANGELOG.md"
+    changelog_path.write_text("## [1.0.0]\n- Initial release\n", encoding="utf-8")
+    client = _build_test_app(str(changelog_path)).test_client()
+
+    response = client.get("/api/changelog")
+    conditional_response = client.get(
+        "/api/changelog", headers={"If-None-Match": response.headers["ETag"]}
+    )
+
+    assert response.status_code == 200
+    assert response.headers["ETag"]
+    assert conditional_response.status_code == 304
+    assert conditional_response.data == b""
