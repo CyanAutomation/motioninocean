@@ -114,6 +114,73 @@ jobs:
 
           echo "Kaseki gateway authentication succeeded."
 
+      - name: Verify Kaseki API capabilities
+        shell: bash
+        env:
+          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          : "${KASEKI_API_TOKEN:?Configure KASEKI_API_TOKEN as an environment secret}"
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+
+          http_status="$(
+            curl --silent --show-error \
+              --retry 3 --retry-all-errors \
+              --connect-timeout 10 --max-time 20 \
+              --output "$response_file" \
+              --write-out '%{http_code}' \
+              --header "Authorization: Bearer $KASEKI_API_TOKEN" \
+              "$KASEKI_BASE_URL/api/capabilities"
+          )"
+
+          if [[ "$http_status" != "200" ]]; then
+            echo "::error title=Kaseki capabilities check failed::Kaseki returned HTTP $http_status"
+            exit 1
+          fi
+
+          if ! jq -e '(.taskModes | index("patch")) != null and (.publishModes | index("pr")) != null' \
+            "$response_file" >/dev/null; then
+            echo "::error title=Unsupported Kaseki API capabilities::The controller must support patch tasks and pr publishing."
+            exit 1
+          fi
+
+          echo "Kaseki supports patch tasks and regular PR publishing."
+
+      - name: Verify Kaseki runner preflight
+        shell: bash
+        env:
+          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          : "${KASEKI_API_TOKEN:?Configure KASEKI_API_TOKEN as an environment secret}"
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+
+          http_status="$(
+            curl --silent --show-error \
+              --retry 3 --retry-all-errors \
+              --connect-timeout 10 --max-time 60 \
+              --output "$response_file" \
+              --write-out '%{http_code}' \
+              --header "Authorization: Bearer $KASEKI_API_TOKEN" \
+              "$KASEKI_BASE_URL/api/preflight"
+          )"
+
+          preflight_status="$(jq -r '.status // "unknown"' "$response_file" 2>/dev/null || true)"
+          failed_checks="$(jq -r '[.failedChecks[]?.name // empty] | join(", ")' "$response_file" 2>/dev/null || true)"
+
+          if [[ "$http_status" != "200" ]] || \
+            ! jq -e '(.status == "ok" or .status == "degraded") and ((.failedChecks // []) | length == 0) and ((.errors // []) | length == 0)' \
+              "$response_file" >/dev/null 2>&1; then
+            echo "::error title=Kaseki runner preflight failed::HTTP $http_status; status=$preflight_status${failed_checks:+; failed checks=$failed_checks}"
+            exit 1
+          fi
+
+          echo "Kaseki runner preflight passed (status: $preflight_status)."
+
       - name: Submit DRY sweep
         id: submit
         shell: bash
@@ -139,6 +206,7 @@ jobs:
                 repoUrl: $repoUrl,
                 ref: $ref,
                 taskMode: "patch",
+                publishMode: "pr",
                 timeoutSeconds: 10800,
                 idempotencyKey: $idempotencyKey,
 
@@ -202,6 +270,19 @@ jobs:
 
           if [[ ! "$http_status" =~ ^2 ]]; then
             echo "::error title=Kaseki submission failed::Kaseki returned HTTP $http_status"
+            controller_error="$(jq -r '
+              [
+                (.error // empty | tostring),
+                (if (.requestId // "") == "" then empty else "requestId=" + (.requestId | tostring) end)
+              ]
+              | map(gsub("%"; "%25") | gsub("[\\r\\n]"; " ") | .[0:300])
+              | map(select(length > 0))
+              | join(" ")
+            ' "$response_file" 2>/dev/null || true)"
+            if [[ -n "$controller_error" ]]; then
+              echo "Controller response: $controller_error"
+              echo "Controller response: $controller_error" >> "$GITHUB_STEP_SUMMARY"
+            fi
             exit 1
           fi
 
@@ -264,8 +345,15 @@ jobs:
                 ;;
 
               failed)
+                failure_class="$(jq -r '.failureClass // ""' "$response_file")"
+                if [[ "$failure_class" == "empty-diff" ]]; then
+                  echo "status=no_changes" >> "$GITHUB_OUTPUT"
+                  echo "Kaseki completed without changes; treating the expected empty diff as a successful no-op."
+                  exit 0
+                fi
+
                 echo "status=$status" >> "$GITHUB_OUTPUT"
-                echo "Kaseki status: failed"
+                echo "Kaseki run failed (failure class: ${failure_class:-unknown})."
                 exit 1
                 ;;
 
@@ -298,6 +386,7 @@ jobs:
             echo "|---|---|"
             echo "| Repository | \`$REPO_URL\` |"
             echo "| Ref | \`$REF\` |"
+            echo "| Mode | \`patch\` → \`pr\` (regular PR) |"
             echo "| Allowed paths | \`$ALLOWLIST\` |"
             echo "| Validation | \`$VALIDATION_COMMAND\` |"
             echo "| Maximum refactorings | \`1\` |"

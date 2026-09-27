@@ -1,6 +1,5 @@
 """Regression checks for repository GitHub Actions security and policy."""
 
-import json
 import re
 
 import yaml
@@ -77,20 +76,92 @@ def test_kaseki_runs_only_on_main(workspace_root):
 
 
 def test_kaseki_workflows_use_existing_validation_commands(workspace_root):
-    """Every command sent to Kaseki should exist in the repository."""
-    package = json.loads((workspace_root / "package.json").read_text())
-    scripts = package["scripts"]
-
+    """Use CI validation for code changes and Sphinx validation for docs changes."""
     docs = load_workflow(workspace_root, "kaseki-docs.yaml")
     docs_command = docs["env"]["VALIDATION_COMMAND"]
-    for command in docs_command.split(" && "):
-        assert command.startswith("npm run ")
-        assert command.removeprefix("npm run ") in scripts
+    makefile = (workspace_root / "Makefile").read_text()
+    assert docs_command == "make docs-check"
+    assert re.search(r"(?m)^docs-check\s*:", makefile)
 
     dry = load_workflow(workspace_root, "kaseki-dry.yaml")
     dry_command = dry["jobs"]["dry_sweep"]["env"]["VALIDATION_COMMAND"]
     assert dry_command == "make ci"
-    assert re.search(r"(?m)^ci\s*:", (workspace_root / "Makefile").read_text())
+    assert re.search(r"(?m)^ci\s*:", makefile)
+
+
+def test_kaseki_workflows_check_api_capabilities_and_preflight(workspace_root):
+    """Reject unsupported modes and unavailable runner prerequisites before dispatch."""
+    workflows = {
+        "kaseki-docs.yaml": "dispatch",
+        "kaseki-dry.yaml": "dry_sweep",
+    }
+
+    for filename, job_name in workflows.items():
+        workflow = load_workflow(workspace_root, filename)
+        steps = workflow["jobs"][job_name]["steps"]
+        capabilities = next(
+            step for step in steps if step.get("name") == "Verify Kaseki API capabilities"
+        )
+        preflight = next(
+            step for step in steps if step.get("name") == "Verify Kaseki runner preflight"
+        )
+
+        assert "$KASEKI_BASE_URL/api/capabilities" in capabilities["run"]
+        assert 'index("patch")' in capabilities["run"]
+        assert 'index("pr")' in capabilities["run"]
+        assert capabilities["env"]["KASEKI_API_TOKEN"] == "${{ secrets.KASEKI_API_TOKEN }}"
+
+        assert "$KASEKI_BASE_URL/api/preflight" in preflight["run"]
+        assert ".failedChecks" in preflight["run"]
+        assert ".errors" in preflight["run"]
+        assert preflight["env"]["KASEKI_API_TOKEN"] == "${{ secrets.KASEKI_API_TOKEN }}"
+        assert steps.index(capabilities) < steps.index(preflight)
+        submit = next(step for step in steps if step.get("id") == "submit")
+        assert steps.index(preflight) < steps.index(submit)
+
+
+def test_kaseki_workflows_use_supported_publish_mode_and_expose_noop_success(workspace_root):
+    """Use the API's PR mode and make expected empty diffs successful outcomes."""
+    workflows = {
+        "kaseki-docs.yaml": ("dispatch", "Wait for Kaseki completion"),
+        "kaseki-dry.yaml": ("dry_sweep", "Wait for Kaseki completion"),
+    }
+
+    for filename, (job_name, wait_name) in workflows.items():
+        workflow = load_workflow(workspace_root, filename)
+        job = workflow["jobs"][job_name]
+        steps = job["steps"]
+        submit = next(step for step in steps if step.get("id") == "submit")
+        wait = next(step for step in steps if step.get("name") == wait_name)
+        summary = next(step for step in steps if step.get("if") == "always()")
+
+        assert 'publishMode: "pr"' in submit["run"]
+        assert "failureClass" in wait["run"]
+        assert '"empty-diff"' in wait["run"]
+        assert "no_changes" in wait["run"]
+        assert "FINAL_STATUS" in summary["run"]
+        assert summary["run"].count('echo "| Mode |') == 1
+        assert job["timeout-minutes"] == 200
+
+    docs_steps = load_workflow(workspace_root, "kaseki-docs.yaml")["jobs"]["dispatch"]["steps"]
+    docs_submit = next(step for step in docs_steps if step.get("id") == "submit")
+    assert "goalSetting" not in docs_submit["run"]
+
+
+def test_kaseki_submission_errors_report_structured_controller_details(workspace_root):
+    """Expose the API's safe error and request ID fields, not the raw body."""
+    workflows = {
+        "kaseki-docs.yaml": "dispatch",
+        "kaseki-dry.yaml": "dry_sweep",
+    }
+
+    for filename, job_name in workflows.items():
+        workflow = load_workflow(workspace_root, filename)
+        submit = next(
+            step for step in workflow["jobs"][job_name]["steps"] if step.get("id") == "submit"
+        )
+        assert ".error" in submit["run"]
+        assert ".requestId" in submit["run"]
 
 
 def test_kaseki_dry_allowlist_covers_application_and_tests(workspace_root):
@@ -196,6 +267,8 @@ def test_kaseki_dry_scopes_token_and_pins_controller_host(workspace_root):
 
     token_steps = {
         "Verify gateway connectivity and authentication",
+        "Verify Kaseki API capabilities",
+        "Verify Kaseki runner preflight",
         "Submit DRY sweep",
         "Wait for Kaseki completion",
     }
