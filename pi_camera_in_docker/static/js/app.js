@@ -948,7 +948,7 @@ function toggleStats() {
     }
 }
 /**
- * Refresh video stream with cache-busting query parameter.
+ * Refresh the video stream.
  *
  * Resets stream src to force reload.
  * Animates refresh button on click.
@@ -959,7 +959,7 @@ function refreshStream() {
     if (!state.elements.videoStream)
         return;
     const streamUrl = state.elements.videoStream.src.split("?")[0];
-    state.elements.videoStream.src = `${streamUrl}?t=${Date.now()}`;
+    state.elements.videoStream.src = streamUrl;
     if (state.elements.refreshBtn) {
         state.elements.refreshBtn.style.transform = "rotate(360deg)";
         setTimeout(() => {
