@@ -40,25 +40,27 @@ _CHANGELOG_CACHE_LOCK = RLock()
 
 def _cache_get(key: tuple[Any, ...], now: float) -> dict[str, Any] | None:
     """Return an unexpired copy of a cached changelog payload."""
-    cached = _CHANGELOG_CACHE.get(key)
-    if cached is None:
-        return None
-    expires_at, payload = cached
-    if expires_at is not None and now >= expires_at:
-        del _CHANGELOG_CACHE[key]
-        return None
-    _CHANGELOG_CACHE.move_to_end(key)
-    return deepcopy(payload)
+    with _CHANGELOG_CACHE_LOCK:
+        cached = _CHANGELOG_CACHE.get(key)
+        if cached is None:
+            return None
+        expires_at, payload = cached
+        if expires_at is not None and now >= expires_at:
+            del _CHANGELOG_CACHE[key]
+            return None
+        _CHANGELOG_CACHE.move_to_end(key)
+        return deepcopy(payload)
 
 
 def _cache_put(
     key: tuple[Any, ...], payload: dict[str, Any], expires_at: float | None = None
 ) -> None:
     """Store a changelog payload and evict the least recently used entries."""
-    _CHANGELOG_CACHE[key] = (expires_at, deepcopy(payload))
-    _CHANGELOG_CACHE.move_to_end(key)
-    while len(_CHANGELOG_CACHE) > _CHANGELOG_CACHE_MAX_ENTRIES:
-        _CHANGELOG_CACHE.popitem(last=False)
+    with _CHANGELOG_CACHE_LOCK:
+        _CHANGELOG_CACHE[key] = (expires_at, deepcopy(payload))
+        _CHANGELOG_CACHE.move_to_end(key)
+        while len(_CHANGELOG_CACHE) > _CHANGELOG_CACHE_MAX_ENTRIES:
+            _CHANGELOG_CACHE.popitem(last=False)
 
 
 def _clear_changelog_cache() -> None:
