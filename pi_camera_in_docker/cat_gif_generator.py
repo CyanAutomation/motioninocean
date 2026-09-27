@@ -80,9 +80,14 @@ def fetch_cat_gif(
         # Bandit cannot infer that the URL was restricted to HTTP(S) immediately above.
         with urllib.request.urlopen(api_url, timeout=timeout) as response:  # nosec B310
             content_length = response.headers.get("Content-Length")
-            if content_length is not None and int(content_length) > max_download_bytes:
-                logger.warning("Rejected cat GIF larger than %s bytes", max_download_bytes)
-                return None
+            if content_length is not None:
+                try:
+                    if int(content_length) > max_download_bytes:
+                        logger.warning("Rejected cat GIF larger than %s bytes", max_download_bytes)
+                        return None
+                except ValueError:
+                    logger.warning("Rejected cat GIF with invalid Content-Length header")
+                    return None
 
             chunks: list[bytes] = []
             downloaded_bytes = 0
