@@ -158,10 +158,17 @@ def test_security_enforcement_precedes_best_effort_reporting(workspace_root):
     assert report_indices
     assert enforcement_index < min(report_indices)
     for step in steps:
-        if step.get("name", "").startswith("Generate Trivy "):
+        if step.get("name") in {
+            "Generate Trivy JSON report",
+            "Generate Trivy human-readable report",
+        }:
             assert step["if"] == "always() && steps.build_image.outcome == 'success'"
-        if step.get("name") in report_names:
             assert step["continue-on-error"] is True
+        if step.get("name") in report_names - {"Generate Trivy SARIF report"}:
+            assert step["continue-on-error"] is True
+
+    sarif_report = next(step for step in steps if step.get("name") == "Generate Trivy SARIF report")
+    assert "continue-on-error" not in sarif_report
 
 
 def test_autofix_requires_app_token_for_generated_prs(workspace_root):

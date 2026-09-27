@@ -100,11 +100,10 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
 
-      # Reporting scans are informational and deliberately include every severity.
-      # Run these after enforcement so a report failure cannot suppress the gate.
+      # Generate the SARIF required by the upload job after enforcement, so a failure cannot
+      # suppress the blocking vulnerability gate.
       - name: Generate Trivy SARIF report
         if: always() && steps.build_image.outcome == 'success'
-        continue-on-error: true
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: "motion-in-ocean:scan"
@@ -115,6 +114,7 @@ jobs:
           ignore-unfixed: false
           exit-code: "0"
 
+      # Informational reports are best-effort and deliberately include every severity.
       - name: Generate Trivy JSON report
         if: always() && steps.build_image.outcome == 'success'
         continue-on-error: true
