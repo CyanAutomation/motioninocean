@@ -65,7 +65,7 @@ def _new_webcam_contract_client(auth_token=""):
 
 
 def test_versioned_settings_schema_supports_conditional_requests(monkeypatch, tmp_path):
-    """Versioned schema responses expose stable cache metadata and honor their ETag."""
+    """Schema responses honor standard validators and retain cache metadata on 304s."""
     client, _ = _new_management_client(monkeypatch, tmp_path)
 
     first_response = client.get("/api/v1/settings/schema")
@@ -74,6 +74,8 @@ def test_versioned_settings_schema_supports_conditional_requests(monkeypatch, tm
     assert first_response.status_code == 200
     assert second_response.status_code == 200
     assert first_response.headers["ETag"] == second_response.headers["ETag"]
+    assert first_response.headers["ETag"].startswith('"')
+    assert first_response.headers["ETag"].endswith('"')
     assert first_response.headers["Cache-Control"] == "public, max-age=3600"
     assert first_response.get_json().keys() == {
         "schema",
@@ -88,6 +90,63 @@ def test_versioned_settings_schema_supports_conditional_requests(monkeypatch, tm
 
     assert conditional_response.status_code == 304
     assert conditional_response.get_data() == b""
+    assert conditional_response.headers["ETag"] == first_response.headers["ETag"]
+    assert conditional_response.headers["Cache-Control"] == "public, max-age=3600"
+
+    multiple_validator_response = client.get(
+        "/api/v1/settings/schema",
+        headers={"If-None-Match": f'"different", {first_response.headers["ETag"]}'},
+    )
+
+    assert multiple_validator_response.status_code == 304
+    assert multiple_validator_response.headers["ETag"] == first_response.headers["ETag"]
+    assert multiple_validator_response.headers["Cache-Control"] == "public, max-age=3600"
+
+    nonmatching_response = client.get(
+        "/api/v1/settings/schema",
+        headers={"If-None-Match": '"different"'},
+    )
+
+    assert nonmatching_response.status_code == 200
+    assert nonmatching_response.headers["ETag"] == first_response.headers["ETag"]
+
+
+@pytest.mark.parametrize(
+    ("method_name", "changed_component"),
+    [
+        ("get_schema", {"changed": {"type": "object"}}),
+        ("get_defaults", {"changed": True}),
+        ("get_restartable_properties", ["changed.property"]),
+    ],
+)
+def test_settings_schema_etag_covers_every_top_level_payload_component(
+    monkeypatch, method_name, changed_component
+):
+    """Changing any top-level schema payload component changes its validator."""
+    from pi_camera_in_docker import settings_api
+
+    helper = settings_api._get_schema_payload_and_etag
+    helper.cache_clear()
+    try:
+        _, original_etag = helper()
+        monkeypatch.setattr(
+            settings_api.SettingsSchema,
+            method_name,
+            classmethod(lambda _cls: changed_component),
+        )
+        helper.cache_clear()
+
+        changed_payload, changed_etag = helper()
+
+        component_name = {
+            "get_schema": "schema",
+            "get_defaults": "defaults",
+            "get_restartable_properties": "restartable_properties",
+        }[method_name]
+        assert changed_payload[component_name] == changed_component
+        assert changed_etag != original_etag
+    finally:
+        helper.cache_clear()
 
 
 def test_api_status_returns_current_api_test_scenario_when_inactive():
