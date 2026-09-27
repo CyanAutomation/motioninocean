@@ -137,7 +137,7 @@ def _fetch_remote_changelog_markdown(remote_url: str, timeout_seconds: float) ->
         raise OSError(message) from exc
 
 
-def load_changelog_entries(  # noqa: PLR0913
+def load_changelog_entries(  # noqa: PLR0913, PLR0917
     changelog_path: Path,
     include_unreleased: bool = False,
     remote_url: str = DEFAULT_REMOTE_CHANGELOG_URL,
