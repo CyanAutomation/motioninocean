@@ -54,7 +54,6 @@ def test_privileged_manual_workflows_are_default_branch_only(workspace_root):
     """Do not allow dispatching privileged jobs from a branch's workflow file."""
     checks = {
         "linting-autofix.yml": "autofix",
-        "kaseki-dry.yaml": "dry_sweep",
         "security-scan.yml": "scan",
     }
 
@@ -65,6 +64,16 @@ def test_privileged_manual_workflows_are_default_branch_only(workspace_root):
             "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)"
             in condition
         )
+
+
+def test_kaseki_runs_only_on_main(workspace_root):
+    """Scheduled and dispatched Kaseki runs must always target main."""
+    workflow = load_workflow(workspace_root, "kaseki-dry.yaml")
+    job = workflow["jobs"]["dry_sweep"]
+
+    assert job["if"] == "github.ref == 'refs/heads/main'"
+    assert job["env"]["REF"] == "main"
+    assert "@main" in workflow["run-name"]
 
 
 def test_kaseki_workflows_use_existing_validation_commands(workspace_root):
@@ -118,3 +127,105 @@ def test_trivy_reports_include_unfixed_findings_but_gate_does_not(workspace_root
         if step.get("name") == "Enforce HIGH and CRITICAL vulnerability policy"
     )
     assert enforcement["with"]["ignore-unfixed"] is True
+
+
+def test_docker_publish_serializes_mutable_tag_updates(workspace_root):
+    """Schedule and release builds must not race while publishing stable tags."""
+    workflow = load_workflow(workspace_root, "docker-publish.yml")
+    concurrency = workflow["concurrency"]
+
+    assert concurrency["group"] == "docker-release-publish"
+    assert concurrency["queue"] == "max"
+
+
+def test_security_enforcement_precedes_best_effort_reporting(workspace_root):
+    """Reporting failures must not prevent the blocking Trivy scan from running."""
+    workflow = load_workflow(workspace_root, "security-scan.yml")
+    steps = workflow["jobs"]["scan"]["steps"]
+    enforcement_index = next(
+        index
+        for index, step in enumerate(steps)
+        if step.get("name") == "Enforce HIGH and CRITICAL vulnerability policy"
+    )
+    report_names = {
+        "Generate Trivy SARIF report",
+        "Generate Trivy JSON report",
+        "Generate Trivy human-readable report",
+        "Upload Trivy reports",
+    }
+    report_indices = [index for index, step in enumerate(steps) if step.get("name") in report_names]
+
+    assert report_indices
+    assert enforcement_index < min(report_indices)
+    for step in steps:
+        if step.get("name", "").startswith("Generate Trivy "):
+            assert step["if"] == "always() && steps.build_image.outcome == 'success'"
+        if step.get("name") in report_names:
+            assert step["continue-on-error"] is True
+
+
+def test_autofix_requires_app_token_for_generated_prs(workspace_root):
+    """Use an app token so checks for the generated PR trigger without approval."""
+    workflow = load_workflow(workspace_root, "linting-autofix.yml")
+    steps = workflow["jobs"]["autofix"]["steps"]
+    token_check = next(step for step in steps if step.get("name") == "Require autofix app token")
+    create_pr = next(step for step in steps if step.get("name") == "Create Pull Request")
+
+    assert token_check["if"] == "steps.verify-changes.outputs.has-changes == 'true'"
+    assert token_check["env"]["AUTOFIX_GITHUB_TOKEN"] == "${{ secrets.AUTOFIX_GITHUB_TOKEN }}"
+    assert create_pr["with"]["token"] == "${{ secrets.AUTOFIX_GITHUB_TOKEN }}"
+
+
+def test_kaseki_dry_scopes_token_and_pins_controller_host(workspace_root):
+    """Only API steps receive the token, and only the approved controller is used."""
+    workflow = load_workflow(workspace_root, "kaseki-dry.yaml")
+    job = workflow["jobs"]["dry_sweep"]
+    assert "KASEKI_API_TOKEN" not in job["env"]
+
+    validation = next(
+        step for step in job["steps"] if step.get("name") == "Validate Kaseki configuration"
+    )
+    assert '"https://kaseki-tunnel.scheimann.xyz"' in validation["run"]
+
+    token_steps = {
+        "Verify gateway connectivity and authentication",
+        "Submit DRY sweep",
+        "Wait for Kaseki completion",
+    }
+    found_token_steps = set()
+    for step in job["steps"]:
+        if step.get("name") in token_steps:
+            found_token_steps.add(step["name"])
+            assert step["env"]["KASEKI_API_TOKEN"] == "${{ secrets.KASEKI_API_TOKEN }}"
+    assert found_token_steps == token_steps
+
+
+def test_docker_publish_attests_both_registry_images(workspace_root):
+    """Publish signed provenance for the shared image digest in both registries."""
+    workflow = load_workflow(workspace_root, "docker-publish.yml")
+    build = workflow["jobs"]["build"]
+    assert build["permissions"]["attestations"] == "write"
+    assert build["permissions"]["id-token"] == "write"
+    assert build["permissions"]["artifact-metadata"] == "write"
+
+    attest_steps = [
+        step for step in build["steps"] if step.get("uses", "").startswith("actions/attest@")
+    ]
+    assert len(attest_steps) == 2
+    verify_index = next(
+        index
+        for index, step in enumerate(build["steps"])
+        if step.get("name") == "Verify published multi-architecture manifest"
+    )
+    attest_indices = [build["steps"].index(step) for step in attest_steps]
+    assert verify_index < min(attest_indices)
+    assert all(re.fullmatch(r"actions/attest@[0-9a-f]{40}", step["uses"]) for step in attest_steps)
+    assert {step["with"]["subject-name"] for step in attest_steps} == {
+        "ghcr.io/cyanautomation/motioninocean",
+        "index.docker.io/cyanautomation/motioninocean",
+    }
+    assert all(
+        step["with"]["subject-digest"] == "${{ steps.build_bookworm.outputs.digest }}"
+        and step["with"]["push-to-registry"] is True
+        for step in attest_steps
+    )
