@@ -20,7 +20,7 @@ env:
   REF: ${{ github.event.repository.default_branch }}
   TASK_DESCRIPTION: Keep README.md and docs/ accurate against the current implementation.
   ALLOWLIST: README.md,docs/**/*.md
-  VALIDATION_COMMAND: npm run lint && npm run type-check && npm run build:frontend
+  VALIDATION_COMMAND: make docs-check
 
 jobs:
   system_status:
@@ -146,7 +146,7 @@ jobs:
     needs: api_connection
     if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 200
     environment: kaseki-agent
     env:
       KASEKI_BASE_URL: ${{ vars.KASEKI_BASE_URL }}
@@ -181,6 +181,73 @@ jobs:
             --output /dev/null \
             "$KASEKI_BASE_URL/ready"
 
+      - name: Verify Kaseki API capabilities
+        shell: bash
+        env:
+          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          : "${KASEKI_API_TOKEN:?KASEKI_API_TOKEN is not configured}"
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+
+          http_status="$(
+            curl --silent --show-error \
+              --retry 3 --retry-all-errors \
+              --connect-timeout 10 --max-time 20 \
+              --output "$response_file" \
+              --write-out '%{http_code}' \
+              --header "Authorization: Bearer $KASEKI_API_TOKEN" \
+              "$KASEKI_BASE_URL/api/capabilities"
+          )"
+
+          if [[ "$http_status" != "200" ]]; then
+            echo "::error title=Kaseki capabilities check failed::Kaseki returned HTTP $http_status"
+            exit 1
+          fi
+
+          if ! jq -e '(.taskModes | index("patch")) != null and (.publishModes | index("pr")) != null' \
+            "$response_file" >/dev/null; then
+            echo "::error title=Unsupported Kaseki API capabilities::The controller must support patch tasks and pr publishing."
+            exit 1
+          fi
+
+          echo "Kaseki supports patch tasks and regular PR publishing."
+
+      - name: Verify Kaseki runner preflight
+        shell: bash
+        env:
+          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          : "${KASEKI_API_TOKEN:?KASEKI_API_TOKEN is not configured}"
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+
+          http_status="$(
+            curl --silent --show-error \
+              --retry 3 --retry-all-errors \
+              --connect-timeout 10 --max-time 60 \
+              --output "$response_file" \
+              --write-out '%{http_code}' \
+              --header "Authorization: Bearer $KASEKI_API_TOKEN" \
+              "$KASEKI_BASE_URL/api/preflight"
+          )"
+
+          preflight_status="$(jq -r '.status // "unknown"' "$response_file" 2>/dev/null || true)"
+          failed_checks="$(jq -r '[.failedChecks[]?.name // empty] | join(", ")' "$response_file" 2>/dev/null || true)"
+
+          if [[ "$http_status" != "200" ]] || \
+            ! jq -e '(.status == "ok" or .status == "degraded") and ((.failedChecks // []) | length == 0) and ((.errors // []) | length == 0)' \
+              "$response_file" >/dev/null 2>&1; then
+            echo "::error title=Kaseki runner preflight failed::HTTP $http_status; status=$preflight_status${failed_checks:+; failed checks=$failed_checks}"
+            exit 1
+          fi
+
+          echo "Kaseki runner preflight passed (status: $preflight_status)."
+
       - name: Submit documentation sweep
         id: submit
         shell: bash
@@ -213,15 +280,11 @@ jobs:
                 ref: $ref,
                 idempotencyKey: $idempotencyKey,
                 taskMode: "patch",
-                publishMode: "draft_pr",
+                publishMode: "pr",
                 timeoutSeconds: 10800,
                 maxDiffBytes: 102400,
 
                 scouting: {
-                  enabled: false
-                },
-
-                goalSetting: {
                   enabled: false
                 },
 
@@ -281,14 +344,29 @@ jobs:
 
           if [[ ! "$http_status" =~ ^2 ]]; then
             echo "::error title=Kaseki submission failed::Kaseki returned HTTP $http_status"
+            controller_error="$(jq -r '
+              [
+                (.error // empty | tostring),
+                (if (.requestId // "") == "" then empty else "requestId=" + (.requestId | tostring) end)
+              ]
+              | map(gsub("%"; "%25") | gsub("[\\r\\n]"; " ") | .[0:300])
+              | map(select(length > 0))
+              | join(" ")
+            ' "$response_file" 2>/dev/null || true)"
 
             {
               echo "## Kaseki submission failed"
               echo
               echo "Kaseki returned HTTP \`$http_status\`."
-              echo
-              echo "The controller response body is intentionally omitted from logs and summaries."
+              if [[ -n "$controller_error" ]]; then
+                echo
+                echo "Controller response: $controller_error"
+              fi
             } >> "$GITHUB_STEP_SUMMARY"
+
+            if [[ -n "$controller_error" ]]; then
+              echo "Controller response: $controller_error"
+            fi
 
             exit 1
           fi
@@ -301,8 +379,72 @@ jobs:
 
           printf 'run_id=%s\n' "$run_id" >> "$GITHUB_OUTPUT"
 
-      - name: Publish submission details
+      - name: Wait for Kaseki completion
+        id: wait
         shell: bash
+        env:
+          RUN_ID: ${{ steps.submit.outputs.run_id }}
+          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          : "${KASEKI_API_TOKEN:?KASEKI_API_TOKEN is not configured}"
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+
+          # Kaseki allows three hours per run; poll slightly longer for a final status.
+          for attempt in $(seq 1 185); do
+            curl --fail-with-body --silent --show-error \
+              --retry 3 --retry-all-errors \
+              --connect-timeout 10 --max-time 60 \
+              --output "$response_file" \
+              --header "Authorization: Bearer $KASEKI_API_TOKEN" \
+              "$KASEKI_BASE_URL/api/runs/$RUN_ID/status"
+
+            status="$(jq -er '.status' "$response_file")"
+
+            case "$status" in
+              completed)
+                echo "status=$status" >> "$GITHUB_OUTPUT"
+                echo "Kaseki status: completed"
+                exit 0
+                ;;
+
+              failed)
+                failure_class="$(jq -r '.failureClass // ""' "$response_file")"
+                if [[ "$failure_class" == "empty-diff" ]]; then
+                  echo "status=no_changes" >> "$GITHUB_OUTPUT"
+                  echo "Kaseki completed without changes; treating the expected empty diff as a successful no-op."
+                  exit 0
+                fi
+
+                echo "status=$status" >> "$GITHUB_OUTPUT"
+                echo "Kaseki run failed (failure class: ${failure_class:-unknown})."
+                exit 1
+                ;;
+
+              queued|running)
+                echo "Kaseki status: $status"
+                sleep 60
+                ;;
+
+              *)
+                echo "::error title=Unexpected Kaseki status::Controller returned an unsupported status"
+                exit 1
+                ;;
+            esac
+          done
+
+          echo "status=timed_out" >> "$GITHUB_OUTPUT"
+          echo "::error title=Kaseki run timed out::No terminal status after 185 minutes"
+          exit 1
+
+      - name: Publish run details
+        if: always()
+        shell: bash
+        env:
+          RUN_ID: ${{ steps.submit.outputs.run_id || 'not submitted' }}
+          FINAL_STATUS: ${{ steps.wait.outputs.status || 'not completed' }}
         run: |
           {
             echo "## Kaseki submission"
@@ -311,10 +453,11 @@ jobs:
             echo "|---|---|"
             echo "| Repository | \`$REPO_URL\` |"
             echo "| Ref | \`$REF\` |"
-            echo "| Mode | \`patch\` → \`draft_pr\` |"
+            echo "| Mode | \`patch\` → \`pr\` (regular PR) |"
             echo "| Timeout | 3 hours |"
             echo "| Maximum diff | 100 KiB |"
-            echo "| Kaseki run | \`${{ steps.submit.outputs.run_id }}\` |"
+            echo "| Kaseki run | \`$RUN_ID\` |"
+            echo "| Final status | \`$FINAL_STATUS\` |"
             echo
             echo "### Allowed paths"
             echo '```text'
