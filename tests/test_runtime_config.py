@@ -666,17 +666,25 @@ def test_load_env_config_supports_changelog_remote_config(monkeypatch):
     """Changelog remote URL and timeout should be exposed in runtime configuration."""
     monkeypatch.setenv("MIO_CHANGELOG_REMOTE_URL", "https://example.com/CHANGELOG.md")
     monkeypatch.setenv("MIO_CHANGELOG_REMOTE_TIMEOUT_SECONDS", "7.5")
+    monkeypatch.setenv("MIO_CHANGELOG_REMOTE_CACHE_TTL_SECONDS", "45")
+    monkeypatch.setenv("MIO_CHANGELOG_REMOTE_FAILURE_BACKOFF_SECONDS", "2.5")
 
     cfg = runtime_config.load_env_config()
 
     assert cfg["changelog_remote_url"] == "https://example.com/CHANGELOG.md"
     assert cfg["changelog_remote_timeout_seconds"] == 7.5
+    assert cfg["changelog_remote_cache_ttl_seconds"] == 45.0
+    assert cfg["changelog_remote_failure_backoff_seconds"] == 2.5
 
 
 def test_load_env_config_changelog_timeout_invalid_falls_back(monkeypatch):
     """Invalid changelog timeout should fallback to default value."""
     monkeypatch.setenv("MIO_CHANGELOG_REMOTE_TIMEOUT_SECONDS", "bad")
+    monkeypatch.setenv("MIO_CHANGELOG_REMOTE_CACHE_TTL_SECONDS", "-1")
+    monkeypatch.setenv("MIO_CHANGELOG_REMOTE_FAILURE_BACKOFF_SECONDS", "bad")
 
     cfg = runtime_config.load_env_config()
 
     assert cfg["changelog_remote_timeout_seconds"] == 3.0
+    assert cfg["changelog_remote_cache_ttl_seconds"] == 300.0
+    assert cfg["changelog_remote_failure_backoff_seconds"] == 10.0
