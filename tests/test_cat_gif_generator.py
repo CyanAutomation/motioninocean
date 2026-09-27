@@ -53,6 +53,36 @@ def test_fetch_cat_gif_aborts_oversized_download(monkeypatch):
     assert entered_response.read.call_count == 2
 
 
+def test_fetch_cat_gif_accepts_download_at_byte_limit(monkeypatch):
+    """A response exactly at the byte budget remains valid."""
+    response = MagicMock()
+    entered_response = response.__enter__.return_value
+    entered_response.headers = {}
+    entered_response.read.side_effect = io.BytesIO(b"12345").read
+    monkeypatch.setattr(
+        cat_gif_generator.urllib.request, "urlopen", MagicMock(return_value=response)
+    )
+
+    assert (
+        cat_gif_generator.fetch_cat_gif("https://cats.example/cat.gif", max_download_bytes=5)
+        == b"12345"
+    )
+    assert [call.args for call in entered_response.read.call_args_list] == [(5,), (1,)]
+
+
+def test_fetch_cat_gif_rejects_invalid_content_length(monkeypatch):
+    """A malformed Content-Length is rejected without reading the response body."""
+    response = MagicMock()
+    entered_response = response.__enter__.return_value
+    entered_response.headers = {"Content-Length": "not-a-number"}
+    monkeypatch.setattr(
+        cat_gif_generator.urllib.request, "urlopen", MagicMock(return_value=response)
+    )
+
+    assert cat_gif_generator.fetch_cat_gif("https://cats.example/cat.gif") is None
+    entered_response.read.assert_not_called()
+
+
 def test_extract_gif_frames_rejects_excessive_frame_count():
     """A GIF with too many frames is rejected rather than partially cached."""
     assert cat_gif_generator.extract_gif_frames(_gif_bytes(3), (2, 2), max_frames=2) == []

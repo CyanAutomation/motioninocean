@@ -91,16 +91,24 @@ def fetch_cat_gif(
 
             chunks: list[bytes] = []
             downloaded_bytes = 0
-            while chunk := response.read(
-                min(DOWNLOAD_CHUNK_BYTES, max_download_bytes - downloaded_bytes + 1)
+            while downloaded_bytes < max_download_bytes and (
+                chunk := response.read(
+                    min(DOWNLOAD_CHUNK_BYTES, max_download_bytes - downloaded_bytes)
+                )
             ):
-                downloaded_bytes += len(chunk)
-                if downloaded_bytes > max_download_bytes:
+                if len(chunk) > max_download_bytes - downloaded_bytes:
                     logger.warning(
                         "Aborted cat GIF download larger than %s bytes", max_download_bytes
                     )
                     return None
+                downloaded_bytes += len(chunk)
                 chunks.append(chunk)
+
+            # A bounded read cannot distinguish an exact-size response from a
+            # larger response, so probe for one additional byte without storing it.
+            if downloaded_bytes == max_download_bytes and response.read(1):
+                logger.warning("Aborted cat GIF download larger than %s bytes", max_download_bytes)
+                return None
             return b"".join(chunks)
     except (urllib.error.URLError, urllib.error.HTTPError) as e:
         logger.warning("Failed to fetch cat GIF from %s: %s", api_url, e)
