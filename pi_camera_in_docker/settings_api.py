@@ -10,7 +10,7 @@ import json as _json
 import os
 from typing import Any, Dict, Tuple
 
-from flask import Blueprint, Flask, Response, current_app, jsonify, redirect, request
+from flask import Blueprint, Flask, current_app, jsonify, redirect, request
 
 from pi_camera_in_docker.telemetry import capture_exception
 
@@ -23,25 +23,36 @@ from .runtime_config import (
 from .settings_schema import SettingsSchema
 
 
-# Module-level ETag cache for the settings schema.
-# The schema is immutable at runtime so it is hashed once and reused.
+# Module-level response data cache for the settings schema.
+# The schema is immutable at runtime so the payload and its validator are built once and reused.
 
 
 @functools.lru_cache(maxsize=1)
-def _get_schema_etag() -> str:
-    """Compute and cache a stable ETag for the settings schema.
+def _get_schema_payload_and_etag() -> Tuple[Dict[str, Any], str]:
+    """Build and cache the complete settings schema payload and its stable ETag.
 
-    Hashes the schema JSON once per process lifetime using lru_cache. MD5 is
-    retained solely as a deterministic HTTP cache validator and must not be
-    treated as a security or integrity primitive.
+    The validator covers every top-level response component and is derived from
+    a canonical JSON serialization. MD5 is retained solely as a deterministic
+    HTTP cache validator and must not be treated as a security or integrity
+    primitive.
 
     Returns:
-        MD5 hex digest suitable for use as an HTTP ETag value.
+        Tuple containing the complete response payload and an MD5 hex digest
+        suitable for use as an HTTP ETag value.
     """
-    schema = SettingsSchema.get_schema()
-    return hashlib.md5(
-        _json.dumps(schema, sort_keys=True).encode(), usedforsecurity=False
-    ).hexdigest()
+    payload = {
+        "schema": SettingsSchema.get_schema(),
+        "defaults": SettingsSchema.get_defaults(),
+        "restartable_properties": SettingsSchema.get_restartable_properties(),
+    }
+    serialized_payload = _json.dumps(
+        payload,
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode()
+    etag = hashlib.md5(serialized_payload, usedforsecurity=False).hexdigest()
+    return payload, etag
 
 
 def _safe_int_env(name: str, default: int) -> int:
@@ -200,24 +211,12 @@ def create_settings_blueprint() -> Blueprint:
             JSON schema with metadata for UI rendering; cached via ETag.
         """
         try:
-            etag = _get_schema_etag()
-            client_etag = request.headers.get("If-None-Match", "")
-            if client_etag == etag:
-                return Response(status=304)
-
-            schema = SettingsSchema.get_schema()
-            defaults = SettingsSchema.get_defaults()
-            restartable = SettingsSchema.get_restartable_properties()
-
-            resp = jsonify(
-                {
-                    "schema": schema,
-                    "defaults": defaults,
-                    "restartable_properties": restartable,
-                }
-            )
-            resp.headers["ETag"] = etag
-            resp.headers["Cache-Control"] = "public, max-age=3600"
+            payload, etag = _get_schema_payload_and_etag()
+            resp = jsonify(payload)
+            resp.set_etag(etag)
+            resp.cache_control.public = True
+            resp.cache_control.max_age = 3600
+            resp.make_conditional(request)
         except Exception as exc:
             capture_exception(exc)
             return (
@@ -225,7 +224,7 @@ def create_settings_blueprint() -> Blueprint:
                 500,
             )
         else:
-            return resp, 200
+            return resp
 
     @bp.route("/settings", methods=["PATCH"])
     def patch_settings() -> Tuple[Dict[str, Any], int]:
