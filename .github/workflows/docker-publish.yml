@@ -12,8 +12,9 @@ on:
       - "v*.*.*"
 
 concurrency:
-  group: docker-release-${{ github.ref }}
-  cancel-in-progress: false
+  # Keep scheduled refreshes and version releases that update mutable tags in one queue.
+  group: docker-release-publish
+  queue: max
 
 jobs:
   verify:
@@ -76,6 +77,7 @@ jobs:
       packages: write
       attestations: write
       id-token: write
+      artifact-metadata: write
     outputs:
       image_digest: ${{ steps.build_bookworm.outputs.digest }}
 
@@ -134,12 +136,27 @@ jobs:
           provenance: mode=max
           sbom: true
         id: build_bookworm
+
       - name: Verify published multi-architecture manifest
         env:
           IMAGE_DIGEST: ${{ steps.build_bookworm.outputs.digest }}
         run: |
           docker buildx imagetools inspect --raw "ghcr.io/${{ github.repository }}@$IMAGE_DIGEST" > manifest.json
           jq -e '[.manifests[].platform | "\(.os)/\(.architecture)"] | index("linux/amd64") and index("linux/arm64")' manifest.json
+
+      - name: Attest GHCR image provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ghcr.io/cyanautomation/motioninocean
+          subject-digest: ${{ steps.build_bookworm.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest Docker Hub image provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: index.docker.io/cyanautomation/motioninocean
+          subject-digest: ${{ steps.build_bookworm.outputs.digest }}
+          push-to-registry: true
 
   release:
     needs: build

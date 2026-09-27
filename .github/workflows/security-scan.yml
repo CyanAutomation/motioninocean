@@ -32,6 +32,7 @@ jobs:
           persist-credentials: false
 
       - name: Build Docker image for scanning
+        id: build_image
         run: |
           docker build --pull -t motion-in-ocean:scan .
 
@@ -87,9 +88,22 @@ jobs:
           print(f"Debian system package distributions (inherited, not venv-local): {system_inventory}")
           '
 
-      # Reporting scans are informational and deliberately include every severity.
-      # The final enforcement scan is the only merge-blocking vulnerability step.
+      # Only fixed HIGH or CRITICAL OS/library vulnerabilities block the merge.
+      # Enforce before collecting best-effort reports so reporting failures cannot suppress the gate.
+      - name: Enforce HIGH and CRITICAL vulnerability policy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: "motion-in-ocean:scan"
+          format: "table"
+          severity: "HIGH,CRITICAL"
+          vuln-type: "os,library"
+          ignore-unfixed: true
+          exit-code: "1"
+
+      # Generate the SARIF required by the upload job after enforcement, so a failure cannot
+      # suppress the blocking vulnerability gate.
       - name: Generate Trivy SARIF report
+        if: always() && steps.build_image.outcome == 'success'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: "motion-in-ocean:scan"
@@ -100,7 +114,10 @@ jobs:
           ignore-unfixed: false
           exit-code: "0"
 
+      # Informational reports are best-effort and deliberately include every severity.
       - name: Generate Trivy JSON report
+        if: always() && steps.build_image.outcome == 'success'
+        continue-on-error: true
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: "motion-in-ocean:scan"
@@ -112,6 +129,8 @@ jobs:
           exit-code: "0"
 
       - name: Generate Trivy human-readable report
+        if: always() && steps.build_image.outcome == 'success'
+        continue-on-error: true
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: "motion-in-ocean:scan"
@@ -137,6 +156,7 @@ jobs:
         id: report-upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
+        continue-on-error: true
         with:
           name: trivy-security-report
           path: |
@@ -146,18 +166,6 @@ jobs:
             docker-package-inventory.txt
           # Report collection is best-effort so a missing report cannot skip enforcement.
           if-no-files-found: warn
-
-      # Only fixed HIGH or CRITICAL OS/library vulnerabilities block the merge.
-      # Lower severities remain visible in the reports uploaded above for triage.
-      - name: Enforce HIGH and CRITICAL vulnerability policy
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: "motion-in-ocean:scan"
-          format: "table"
-          severity: "HIGH,CRITICAL"
-          vuln-type: "os,library"
-          ignore-unfixed: true
-          exit-code: "1"
 
   upload-sarif:
     name: Publish Trivy findings to GitHub Security

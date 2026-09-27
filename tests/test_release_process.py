@@ -31,3 +31,13 @@ def test_release_failure_path_does_not_rewrite_or_delete_git_history() -> None:
 def test_release_script_targets_documented_changelog() -> None:
     script = (REPO_ROOT / "create-release.sh").read_text(encoding="utf-8")
     assert 'CHANGELOG_FILE="docs/CHANGELOG.md"' in script
+
+
+def test_release_guide_documents_image_attestation_verification() -> None:
+    guide = (REPO_ROOT / "docs/guides/RELEASE.md").read_text(encoding="utf-8")
+    assert "oci://ghcr.io/cyanautomation/motioninocean:" in guide
+    assert "oci://index.docker.io/cyanautomation/motioninocean:" in guide
+    assert (
+        "--signer-workflow CyanAutomation/motioninocean/.github/workflows/docker-publish.yml"
+        in guide
+    )

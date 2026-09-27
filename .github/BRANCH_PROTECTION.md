@@ -112,9 +112,9 @@ Recommended: **Read repository contents permission**
 - Grant write permissions only in the workflows that require them.
 - Allow GitHub Actions to create pull requests only if the scheduled autofix
   workflow is enabled.
-- Configure `AUTOFIX_GITHUB_TOKEN` as a minimally scoped GitHub App token if
-  the autofix pull requests must trigger CI; events made with `GITHUB_TOKEN`
-  do not start new workflow runs.
+- Configure `AUTOFIX_GITHUB_TOKEN` as a minimally scoped GitHub App installation
+  token. The autofix workflow requires it before opening a PR so the PR checks
+  run automatically; it does not fall back to `GITHUB_TOKEN`.
 
 The release and autofix workflows declare their narrowly scoped write
 permissions themselves; ordinary CI must remain read-only.

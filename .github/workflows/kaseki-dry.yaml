@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 run-name: >-
-  DRY sweep · ${{ github.repository }}@${{ github.event.repository.default_branch }}
+  DRY sweep · ${{ github.repository }}@main
 
 permissions:
   contents: read
@@ -19,7 +19,7 @@ concurrency:
 jobs:
   dry_sweep:
     name: Run Kaseki DRY sweep
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     # Kaseki allows a run to last three hours; leave time for
@@ -32,10 +32,9 @@ jobs:
 
     env:
       KASEKI_BASE_URL: ${{ vars.KASEKI_BASE_URL }}
-      KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
 
       REPO_URL: ${{ github.server_url }}/${{ github.repository }}
-      REF: ${{ github.event.repository.default_branch }}
+      REF: main
 
       TASK_DESCRIPTION: >-
         Perform a conservative DRY-principle review of this repository.
@@ -52,15 +51,8 @@ jobs:
           set -euo pipefail
 
           : "${KASEKI_BASE_URL:?Configure KASEKI_BASE_URL as an environment variable}"
-          : "${KASEKI_API_TOKEN:?Configure KASEKI_API_TOKEN as an environment secret}"
-
-          if [[ ! "$KASEKI_BASE_URL" =~ ^https:// ]]; then
-            echo "::error title=Invalid Kaseki URL::KASEKI_BASE_URL must use HTTPS"
-            exit 1
-          fi
-
-          if [[ "$KASEKI_BASE_URL" =~ [@[:space:]] ]]; then
-            echo "::error title=Invalid Kaseki URL::KASEKI_BASE_URL must not contain credentials or whitespace"
+          if [[ "$KASEKI_BASE_URL" != "https://kaseki-tunnel.scheimann.xyz" ]]; then
+            echo "::error title=Invalid Kaseki URL::Use the approved HTTPS controller URL."
             exit 1
           fi
 
@@ -102,9 +94,12 @@ jobs:
 
       - name: Verify gateway connectivity and authentication
         shell: bash
+        env:
+          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
         run: |
           set -euo pipefail
 
+          : "${KASEKI_API_TOKEN:?Configure KASEKI_API_TOKEN as an environment secret}"
           response_file="$(mktemp)"
           trap 'rm -f "$response_file"' EXIT
 
@@ -122,9 +117,12 @@ jobs:
       - name: Submit DRY sweep
         id: submit
         shell: bash
+        env:
+          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
         run: |
           set -euo pipefail
 
+          : "${KASEKI_API_TOKEN:?Configure KASEKI_API_TOKEN as an environment secret}"
           idempotency_key="$(
             tr '[:upper:]' '[:lower:]' < /proc/sys/kernel/random/uuid
           )"
@@ -238,9 +236,11 @@ jobs:
         shell: bash
         env:
           RUN_ID: ${{ steps.submit.outputs.run_id }}
+          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
         run: |
           set -euo pipefail
 
+          : "${KASEKI_API_TOKEN:?Configure KASEKI_API_TOKEN as an environment secret}"
           response_file="$(mktemp)"
           trap 'rm -f "$response_file"' EXIT
 
