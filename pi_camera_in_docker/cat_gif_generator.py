@@ -13,7 +13,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Iterator, Optional, Tuple, cast
+from typing import Iterator, Optional, Tuple
 
 from PIL import Image
 
@@ -22,6 +22,15 @@ logger = logging.getLogger(__name__)
 
 # Default timeout for HTTP requests
 REQUEST_TIMEOUT_SECONDS = 5.0
+
+# Resource limits for untrusted images downloaded by mock-camera mode.  These are
+# deliberately independent: compressed input can expand into a very large image,
+# while many reasonably sized JPEG frames can still exhaust the process memory.
+DOWNLOAD_CHUNK_BYTES = 64 * 1024
+MAX_DOWNLOAD_BYTES = 10 * 1024 * 1024
+MAX_SOURCE_PIXELS = 16_000_000
+MAX_GIF_FRAMES = 200
+MAX_CACHED_JPEG_BYTES = 64 * 1024 * 1024
 
 
 def _is_valid_cat_gif_url(api_url: str) -> bool:
@@ -46,13 +55,18 @@ def _is_valid_cat_gif_url(api_url: str) -> bool:
         )
 
 
-def fetch_cat_gif(api_url: str, timeout: float = REQUEST_TIMEOUT_SECONDS) -> Optional[bytes]:
+def fetch_cat_gif(
+    api_url: str,
+    timeout: float = REQUEST_TIMEOUT_SECONDS,
+    max_download_bytes: int = MAX_DOWNLOAD_BYTES,
+) -> Optional[bytes]:
     """
     Fetch a cat GIF from the cataas.com API.
 
     Args:
         api_url: The API endpoint URL (e.g., "https://cataas.com/cat.gif")
         timeout: Request timeout in seconds
+        max_download_bytes: Maximum response body size accepted in bytes.
 
     Returns:
         GIF file bytes if successful, None on error
@@ -65,8 +79,24 @@ def fetch_cat_gif(api_url: str, timeout: float = REQUEST_TIMEOUT_SECONDS) -> Opt
     try:
         # Bandit cannot infer that the URL was restricted to HTTP(S) immediately above.
         with urllib.request.urlopen(api_url, timeout=timeout) as response:  # nosec B310
-            result = response.read()
-            return cast("bytes", result)
+            content_length = response.headers.get("Content-Length")
+            if content_length is not None and int(content_length) > max_download_bytes:
+                logger.warning("Rejected cat GIF larger than %s bytes", max_download_bytes)
+                return None
+
+            chunks: list[bytes] = []
+            downloaded_bytes = 0
+            while chunk := response.read(
+                min(DOWNLOAD_CHUNK_BYTES, max_download_bytes - downloaded_bytes + 1)
+            ):
+                downloaded_bytes += len(chunk)
+                if downloaded_bytes > max_download_bytes:
+                    logger.warning(
+                        "Aborted cat GIF download larger than %s bytes", max_download_bytes
+                    )
+                    return None
+                chunks.append(chunk)
+            return b"".join(chunks)
     except (urllib.error.URLError, urllib.error.HTTPError) as e:
         logger.warning("Failed to fetch cat GIF from %s: %s", api_url, e)
         return None
@@ -76,7 +106,13 @@ def fetch_cat_gif(api_url: str, timeout: float = REQUEST_TIMEOUT_SECONDS) -> Opt
 
 
 def extract_gif_frames(
-    gif_bytes: bytes, resolution: Tuple[int, int], jpeg_quality: int = 90
+    gif_bytes: bytes,
+    resolution: Tuple[int, int],
+    jpeg_quality: int = 90,
+    *,
+    max_source_pixels: int = MAX_SOURCE_PIXELS,
+    max_frames: int = MAX_GIF_FRAMES,
+    max_cached_jpeg_bytes: int = MAX_CACHED_JPEG_BYTES,
 ) -> list[Tuple[bytes, float]]:
     """
     Extract all frames from an animated GIF and convert to JPEG buffers.
@@ -85,6 +121,9 @@ def extract_gif_frames(
         gif_bytes: Raw GIF file bytes
         resolution: Target resolution (width, height) for resizing frames
         jpeg_quality: JPEG quality (1-100)
+        max_source_pixels: Maximum source canvas width multiplied by height.
+        max_frames: Maximum number of source frames accepted.
+        max_cached_jpeg_bytes: Maximum combined size of encoded JPEG frames.
 
     Returns:
         List of (jpeg_bytes, duration_seconds) tuples for each frame.
@@ -94,10 +133,21 @@ def extract_gif_frames(
 
     try:
         gif_image = Image.open(io.BytesIO(gif_bytes))
-        gif_image.load()
+
+        # Image.open reads the header without decoding every frame, so validate
+        # attacker-controlled expansion dimensions before calling convert/load.
+        width, height = gif_image.size
+        if width <= 0 or height <= 0 or width * height > max_source_pixels:
+            logger.warning("Rejected cat GIF with oversized source dimensions")
+            return []
 
         # Check if this is actually an animated GIF
         frame_count = 1 if not hasattr(gif_image, "n_frames") else gif_image.n_frames
+        if frame_count > max_frames:
+            logger.warning("Rejected cat GIF with %s frames (limit %s)", frame_count, max_frames)
+            return []
+
+        cached_jpeg_bytes = 0
 
         for frame_idx in range(frame_count):
             try:
@@ -120,6 +170,14 @@ def extract_gif_frames(
             buf = io.BytesIO()
             frame_resized.save(buf, format="JPEG", quality=jpeg_quality)
             jpeg_bytes = buf.getvalue()
+
+            cached_jpeg_bytes += len(jpeg_bytes)
+            if cached_jpeg_bytes > max_cached_jpeg_bytes:
+                logger.warning(
+                    "Rejected cat GIF whose JPEG frames exceed %s bytes",
+                    max_cached_jpeg_bytes,
+                )
+                return []
 
             frames.append((jpeg_bytes, duration_seconds))
 
@@ -149,6 +207,10 @@ class CatGifGenerator:
         cache_ttl_seconds: float = 60.0,
         retry_base_seconds: float = 1.0,
         retry_max_seconds: float = 60.0,
+        max_download_bytes: int = MAX_DOWNLOAD_BYTES,
+        max_source_pixels: int = MAX_SOURCE_PIXELS,
+        max_frames: int = MAX_GIF_FRAMES,
+        max_cached_jpeg_bytes: int = MAX_CACHED_JPEG_BYTES,
     ):
         """
         Initialize the Cat GIF generator.
@@ -161,6 +223,10 @@ class CatGifGenerator:
             cache_ttl_seconds: How long to cache a GIF before fetching a new one
             retry_base_seconds: Base delay used for exponential retry backoff
             retry_max_seconds: Maximum delay cap for exponential retry backoff
+            max_download_bytes: Maximum compressed response size in bytes.
+            max_source_pixels: Maximum decoded source canvas pixel count.
+            max_frames: Maximum number of frames accepted from a GIF.
+            max_cached_jpeg_bytes: Maximum total encoded frame cache size.
         """
         self.api_url = api_url
         self.resolution = resolution
@@ -169,6 +235,10 @@ class CatGifGenerator:
         self.cache_ttl_seconds = cache_ttl_seconds
         self.retry_base_seconds = max(0.1, retry_base_seconds)
         self.retry_max_seconds = max(self.retry_base_seconds, retry_max_seconds)
+        self.max_download_bytes = max_download_bytes
+        self.max_source_pixels = max_source_pixels
+        self.max_frames = max_frames
+        self.max_cached_jpeg_bytes = max_cached_jpeg_bytes
 
         self._frames: list[Tuple[bytes, float]] = []
         self._fallback_frame: bytes = self._create_fallback_frame()
@@ -190,7 +260,7 @@ class CatGifGenerator:
         """Check if the current GIF cache has expired."""
         if self._fetch_time is None:
             return True
-        return time.time() - self._fetch_time > self.cache_ttl_seconds
+        return time.monotonic() - self._fetch_time > self.cache_ttl_seconds
 
     def request_refresh(self) -> None:
         """Request a new cat GIF on the next frame iteration."""
@@ -205,13 +275,20 @@ class CatGifGenerator:
             True if successful, False on error (frames fall back to black)
         """
         logger.info("Fetching new cat GIF from %s", self.api_url)
-        gif_bytes = fetch_cat_gif(self.api_url)
+        gif_bytes = fetch_cat_gif(self.api_url, max_download_bytes=self.max_download_bytes)
         if gif_bytes is None:
             logger.warning("Failed to fetch cat GIF; using fallback frame")
             self._record_fetch_failure()
             return False
 
-        frames = extract_gif_frames(gif_bytes, self.resolution, self.jpeg_quality)
+        frames = extract_gif_frames(
+            gif_bytes,
+            self.resolution,
+            self.jpeg_quality,
+            max_source_pixels=self.max_source_pixels,
+            max_frames=self.max_frames,
+            max_cached_jpeg_bytes=self.max_cached_jpeg_bytes,
+        )
         if not frames:
             logger.warning("Failed to extract frames from cat GIF; using fallback frame")
             self._record_fetch_failure()
@@ -219,7 +296,7 @@ class CatGifGenerator:
 
         with self._lock:
             self._frames = frames
-            self._fetch_time = time.time()
+            self._fetch_time = time.monotonic()
             self._refresh_requested = False
             self._record_fetch_success_locked()
 
@@ -242,7 +319,7 @@ class CatGifGenerator:
                 self.retry_base_seconds * (2 ** (self._consecutive_failures - 1)),
                 self.retry_max_seconds,
             )
-            self._next_retry_time = time.time() + retry_delay
+            self._next_retry_time = time.monotonic() + retry_delay
 
     def generate_frames(self) -> Iterator[bytes]:
         """
@@ -261,7 +338,7 @@ class CatGifGenerator:
 
         while True:
             should_fetch = False
-            current_time = time.time()
+            current_time = time.monotonic()
             with self._lock:
                 cache_expired = self._is_cache_expired()
                 frame_count = len(self._frames)
