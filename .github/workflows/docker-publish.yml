@@ -141,7 +141,8 @@ jobs:
         env:
           IMAGE_DIGEST: ${{ steps.build_bookworm.outputs.digest }}
         run: |
-          docker buildx imagetools inspect --raw "ghcr.io/${{ github.repository }}@$IMAGE_DIGEST" > manifest.json
+          REPO_LOWER="${GITHUB_REPOSITORY,,}"
+          docker buildx imagetools inspect --raw "ghcr.io/${REPO_LOWER}@$IMAGE_DIGEST" > manifest.json
           jq -e '[.manifests[].platform | "\(.os)/\(.architecture)"] | index("linux/amd64") and index("linux/arm64")' manifest.json
 
       - name: Attest GHCR image provenance
