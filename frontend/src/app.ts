@@ -7,7 +7,13 @@
 
 import { renderConfig as renderConfigPanel } from "./config-renderer.js";
 import { renderMetrics as renderMetricsPanel } from "./metrics-renderer.js";
+import { applyMockStreamMode as applyMockStreamModeUi } from "./mock-stream-ui.js";
 import { assertSinglePollingMode as assertPollingState } from "./polling-mode.js";
+import { collectSetupConfig as collectWizardConfig } from "./setup-config.js";
+import {
+  fetchReadmeContent as fetchReadmeHelp,
+  renderMarkdownContent as renderReadmeMarkdown,
+} from "./webcam-help.js";
 
 const REQUEST_TIMEOUT_MS = 5000;
 const CONFIG_POLL_INTERVAL_MS = 5000;
@@ -392,44 +398,8 @@ function openUtilityModal({ title, htmlContent }) {
  * @throws {Error} If the API request fails.
  * @async
  */
-async function fetchReadmeContent() {
-  const response = await fetch("/api/help/readme", {
-    headers: {
-      Accept: "application/json, text/plain",
-    },
-  });
-
-  let payload;
-  try {
-    payload = await response.json();
-  } catch {
-    // Keep the normalized fallback below for non-JSON responses.
-  }
-
-  const normalizedPayload = {
-    status:
-      payload && typeof payload.status === "string" && payload.status.trim()
-        ? payload.status
-        : response.ok
-          ? "ok"
-          : "error",
-    content: payload && typeof payload.content === "string" ? payload.content : "",
-    message:
-      payload && typeof payload.message === "string" && payload.message.trim()
-        ? payload.message
-        : response.ok
-          ? ""
-          : "Failed to load help documentation",
-    documentation_url:
-      payload && typeof payload.documentation_url === "string" ? payload.documentation_url : "",
-    source: payload && typeof payload.source === "string" ? payload.source : "",
-  };
-
-  if (!response.ok && normalizedPayload.status !== "degraded") {
-    throw new Error(normalizedPayload.message || "Failed to load help documentation");
-  }
-
-  return normalizedPayload;
+function fetchReadmeContent() {
+  return fetchReadmeHelp();
 }
 
 /**
@@ -612,105 +582,7 @@ function renderDegradedChangelogNote(payload, debugModeEnabled) {
  * @returns {string} Sanitized HTML output for modal rendering.
  */
 function renderMarkdownContent(markdown) {
-  const lines = String(markdown || "")
-    .replace(/\r\n/g, "\n")
-    .split("\n");
-  const htmlChunks = [];
-
-  let inCodeBlock = false;
-  let listType = null;
-  let paragraphBuffer = [];
-
-  const flushParagraph = () => {
-    if (paragraphBuffer.length === 0) {
-      return;
-    }
-    const paragraphText = paragraphBuffer.join(" ").trim();
-    paragraphBuffer = [];
-    if (!paragraphText) {
-      return;
-    }
-    htmlChunks.push(`<p>${renderMarkdownInline(paragraphText)}</p>`);
-  };
-
-  const closeList = () => {
-    if (!listType) {
-      return;
-    }
-    htmlChunks.push(listType === "ul" ? "</ul>" : "</ol>");
-    listType = null;
-  };
-
-  for (const line of lines) {
-    const fenceMatch = line.match(/^```/);
-    if (fenceMatch) {
-      flushParagraph();
-      closeList();
-      if (inCodeBlock) {
-        htmlChunks.push("</code></pre>");
-      } else {
-        htmlChunks.push("<pre><code>");
-      }
-      inCodeBlock = !inCodeBlock;
-      continue;
-    }
-
-    if (inCodeBlock) {
-      htmlChunks.push(`${escapeHtml(line)}\n`);
-      continue;
-    }
-
-    if (!line.trim()) {
-      flushParagraph();
-      closeList();
-      continue;
-    }
-
-    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-    if (headingMatch) {
-      flushParagraph();
-      closeList();
-      const level = Math.min(headingMatch[1].length, 6);
-      htmlChunks.push(`<h${level}>${renderMarkdownInline(headingMatch[2].trim())}</h${level}>`);
-      continue;
-    }
-
-    const unorderedListMatch = line.match(/^\s*[-*]\s+(.+)$/);
-    if (unorderedListMatch) {
-      flushParagraph();
-      if (listType !== "ul") {
-        closeList();
-        htmlChunks.push("<ul>");
-        listType = "ul";
-      }
-      htmlChunks.push(`<li>${renderMarkdownInline(unorderedListMatch[1].trim())}</li>`);
-      continue;
-    }
-
-    const orderedListMatch = line.match(/^\s*\d+[.)]\s+(.+)$/);
-    if (orderedListMatch) {
-      flushParagraph();
-      if (listType !== "ol") {
-        closeList();
-        htmlChunks.push("<ol>");
-        listType = "ol";
-      }
-      htmlChunks.push(`<li>${renderMarkdownInline(orderedListMatch[1].trim())}</li>`);
-      continue;
-    }
-
-    closeList();
-    paragraphBuffer.push(line.trim());
-  }
-
-  flushParagraph();
-  closeList();
-
-  if (inCodeBlock) {
-    htmlChunks.push("</code></pre>");
-  }
-
-  return `<article class="utility-modal__markdown">${htmlChunks.join("")}</article>`;
+  return renderReadmeMarkdown(markdown);
 }
 
 /**
@@ -864,19 +736,6 @@ function isExternalNavigationLink(href) {
  * @param {string} text - Single-line markdown text.
  * @returns {string} Escaped and transformed inline HTML.
  */
-function renderMarkdownInline(text) {
-  let rendered = escapeHtml(text);
-
-  rendered = rendered.replace(/`([^`]+)`/g, "<code>$1</code>");
-  rendered = rendered.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  rendered = rendered.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-  rendered = rendered.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_match, label, url) => {
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
-  });
-
-  return rendered;
-}
-
 /**
  * Open the changelog utility modal.
  *
@@ -1855,60 +1714,11 @@ function renderConfig(data) {
  * @returns {void}
  */
 function applyMockStreamMode(isMockModeActive, isFallbackActive) {
-  const video = state.elements.videoStream;
-  const placeholder = state.elements.mockStreamPlaceholder;
-  const placeholderAnimation = state.elements.mockStreamAnimation;
-  const refreshTitle = isMockModeActive ? "Refresh stream (mock mode active)" : "Refresh stream";
-  const fullscreenTitle = isMockModeActive
-    ? "Toggle fullscreen (mock preview)"
-    : "Toggle fullscreen";
-
-  if (placeholder) {
-    placeholder.hidden = !isMockModeActive;
-  }
-
-  if (placeholderAnimation) {
-    placeholderAnimation.classList.toggle("mock-stream-animation--failed", false);
-
-    if (isMockModeActive) {
-      const source = placeholderAnimation.getAttribute("data");
-      if (source) {
-        placeholderAnimation.removeAttribute("data");
-        placeholderAnimation.setAttribute("data", source);
-      }
-    }
-  }
-
-  if (video) {
-    video.style.opacity = isMockModeActive ? "0.2" : "1";
-    video.style.filter = isMockModeActive ? "grayscale(1)" : "none";
-    video.setAttribute("aria-hidden", isMockModeActive ? "true" : "false");
-  }
-
-  if (state.elements.refreshBtn) {
-    state.elements.refreshBtn.title = refreshTitle;
-  }
-
-  if (state.elements.fullscreenBtn) {
-    state.elements.fullscreenBtn.title = fullscreenTitle;
-  }
-
-  const vcRefreshBtn = document.getElementById("vc-refresh-btn");
-  if (vcRefreshBtn) {
-    vcRefreshBtn.title = refreshTitle;
-  }
-
-  const vcFullscreenBtn = document.getElementById("vc-fullscreen-btn");
-  if (vcFullscreenBtn) {
-    vcFullscreenBtn.title = fullscreenTitle;
-  }
-
-  if (isMockModeActive) {
-    setConnectionStatus(
-      "inactive",
-      isFallbackActive ? "Mock fallback active (camera unavailable)" : "Mock camera mode active",
-    );
-  }
+  applyMockStreamModeUi(isMockModeActive, isFallbackActive, {
+    elements: state.elements,
+    document,
+    setConnectionStatus,
+  });
 }
 
 const HEALTH_TEXT = {
@@ -2111,20 +1921,7 @@ function applyStoredWizardState() {
  * @returns {Object} Configuration object with resolution, fps, quality settings.
  */
 function collectSetupConfig() {
-  return {
-    resolution: document.getElementById("setup-resolution")?.value || "",
-    fps: parseInt(document.getElementById("setup-fps")?.value || "0", 10) || 0,
-    jpeg_quality: parseInt(document.getElementById("setup-jpeg-quality")?.value || "90", 10) || 90,
-    max_connections:
-      parseInt(document.getElementById("setup-max-connections")?.value || "10", 10) || 10,
-    target_fps: document.getElementById("setup-target-fps")?.value
-      ? parseInt(document.getElementById("setup-target-fps")?.value, 10)
-      : null,
-    pi3_profile: document.getElementById("setup-pi3-profile")?.value === "true",
-    cors_origins: document.getElementById("setup-cors-origins")?.value || "",
-    mock_camera: document.getElementById("setup-mock-camera")?.value === "true",
-    auth_token: document.getElementById("setup-auth-token")?.value || "",
-  };
+  return collectWizardConfig(document);
 }
 
 /**
