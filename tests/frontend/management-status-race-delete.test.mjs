@@ -15,10 +15,10 @@ test("refreshStatuses discards stale in-flight poll result when webcam dataset c
     getStatusHistory: () => history,
     fetchStatusesForNodes: (nodeIds) =>
       new Promise((resolve) => {
+        const results = new Map();
         nodeIds.forEach((nodeId) => {
-          pendingByNodeId.set(nodeId, () =>
-            resolve(new Map([[nodeId, { status: "ok", stream_available: true }]])),
-          );
+          results.set(nodeId, { status: "ok", stream_available: true });
+          pendingByNodeId.set(nodeId, () => resolve(results));
         });
       }),
     setStatuses: (next) => {
