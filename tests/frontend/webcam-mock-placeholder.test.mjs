@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { applyMockStreamMode } from "../../pi_camera_in_docker/static/js/mock-stream-ui.js";
 
 function extractFunction(source, functionName) {
   const match = source.match(
@@ -14,9 +15,6 @@ function extractFunction(source, functionName) {
 }
 
 test("applyMockStreamMode toggles placeholder visibility for mock runtime states", () => {
-  const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
-  const applyMockStreamModeFn = extractFunction(appJs, "applyMockStreamMode");
-
   const placeholder = { hidden: true };
   const video = {
     style: {},
@@ -54,14 +52,20 @@ test("applyMockStreamMode toggles placeholder visibility for mock runtime states
     setConnectionStatus: () => {},
   };
 
-  vm.runInNewContext(`${applyMockStreamModeFn};`, context);
-
-  context.applyMockStreamMode(true, false);
+  applyMockStreamMode(true, false, {
+    elements: context.state.elements,
+    document: context.document,
+    setConnectionStatus: context.setConnectionStatus,
+  });
   assert.equal(placeholder.hidden, false);
   assert.equal(video.style.opacity, "0.2");
   assert.equal(video.attributes["aria-hidden"], "true");
 
-  context.applyMockStreamMode(false, false);
+  applyMockStreamMode(false, false, {
+    elements: context.state.elements,
+    document: context.document,
+    setConnectionStatus: context.setConnectionStatus,
+  });
   assert.equal(placeholder.hidden, true);
   assert.equal(video.style.opacity, "1");
   assert.equal(video.attributes["aria-hidden"], "false");
@@ -70,9 +74,7 @@ test("applyMockStreamMode toggles placeholder visibility for mock runtime states
 test("mock placeholder template preserves animation host contract", () => {
   const template = fs.readFileSync("pi_camera_in_docker/templates/index.html", "utf8");
 
-  const placeholderMatch = template.match(
-    /<div\s+id="mock-stream-placeholder"[\s\S]*?<\/div>/,
-  );
+  const placeholderMatch = template.match(/<div\s+id="mock-stream-placeholder"[\s\S]*?<\/div>/);
 
   assert.ok(placeholderMatch, "mock placeholder container should exist");
   const placeholderMarkup = placeholderMatch[0];
@@ -98,7 +100,6 @@ test("mock stream visibility updates do not alter hero mascot behavior", () => {
   const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
   const getMioAssetsFn = extractFunction(appJs, "getMioAssets");
   const updateMascotForTabFn = extractFunction(appJs, "updateMascotForTab");
-  const applyMockStreamModeFn = extractFunction(appJs, "applyMockStreamMode");
 
   const heroImage = { src: "", alt: "" };
   const context = {
@@ -129,16 +130,21 @@ test("mock stream visibility updates do not alter hero mascot behavior", () => {
     setConnectionStatus: () => {},
   };
 
-  vm.runInNewContext(
-    `${getMioAssetsFn}\n${updateMascotForTabFn}\n${applyMockStreamModeFn};`,
-    context,
-  );
+  vm.runInNewContext(`${getMioAssetsFn}\n${updateMascotForTabFn};`, context);
 
   context.updateMascotForTab("settings");
   const before = { ...heroImage };
 
-  context.applyMockStreamMode(true, true);
-  context.applyMockStreamMode(false, false);
+  applyMockStreamMode(true, true, {
+    elements: context.state.elements,
+    document: context.document,
+    setConnectionStatus: context.setConnectionStatus,
+  });
+  applyMockStreamMode(false, false, {
+    elements: context.state.elements,
+    document: context.document,
+    setConnectionStatus: context.setConnectionStatus,
+  });
 
   assert.deepEqual(heroImage, before);
 });

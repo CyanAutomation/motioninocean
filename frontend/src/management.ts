@@ -1,6 +1,12 @@
 // @ts-nocheck
 
 import { bindNavigation, initializeManagementDashboard } from "./management-bootstrap.js";
+import { setActiveView as setManagementActiveView } from "./management-navigation.js";
+import {
+  renderDiscoveredPanel as renderDiscoveredPanelContent,
+  renderOverviewPanel as renderOverviewPanelContent,
+} from "./management-renderers.js";
+import { createStatusRefresher } from "./management-status.js";
 import {
   isFailureStatus,
   normalizeWebcamStatusError,
@@ -105,10 +111,6 @@ const managementApiTokenInput = document.getElementById("management-api-token");
 let webcams = [];
 let webcamStatusMap = new Map();
 let webcamStatusAggregationMap = new Map();
-let statusRefreshInFlight = false;
-let statusRefreshPending = false;
-let statusRefreshPendingManual = false;
-let statusRefreshToken = 0;
 let webcamDatasetVersion = 0;
 let statusRefreshIntervalId;
 let latestDiagnosticResult = null;
@@ -611,52 +613,28 @@ function getViewFromLocationHash() {
 }
 
 function setActiveView(view) {
-  if (!VIEWS.includes(view)) {
-    return;
-  }
-  const viewMap = {
-    overview: overviewView,
-    devices: devicesView,
-    discovered: discoveredView,
-    settings: settingsView,
-  };
-  for (const [name, element] of Object.entries(viewMap)) {
-    if (element instanceof HTMLElement) {
-      element.classList.toggle("hidden", name !== view);
-    }
-  }
-  const btnMap = {
-    overview: viewOverviewBtn,
-    devices: viewDevicesBtn,
-    discovered: viewDiscoveredBtn,
-    settings: viewSettingsBtn,
-  };
-  for (const [name, button] of Object.entries(btnMap)) {
-    if (button instanceof HTMLButtonElement) {
-      const active = name === view;
-      button.classList.toggle("management-view-btn--active", active);
-      button.setAttribute("aria-current", active ? "page" : "false");
-    }
-  }
-  const railBtnMap = {
-    overview: [railOverviewBtn, mobileOverviewBtn],
-    devices: [railDevicesBtn, mobileDevicesBtn],
-    discovered: [railDiscoveredBtn, mobileDiscoveredBtn],
-    settings: [railSettingsBtn, mobileSettingsBtn],
-  };
-  for (const [name, buttons] of Object.entries(railBtnMap)) {
-    const active = name === view;
-    for (const button of buttons) {
-      if (button instanceof HTMLButtonElement) {
-        button.classList.toggle("rail-btn--active", active);
-        button.classList.toggle("mobile-rail-btn--active", active);
-        button.setAttribute("aria-current", active ? "page" : "false");
-      }
-    }
-  }
-  if (globalThis.location?.hash !== `#${view}`) {
-    globalThis.history.replaceState(null, "", `#${view}`);
-  }
+  setManagementActiveView(view, VIEWS, {
+    views: {
+      overview: overviewView,
+      devices: devicesView,
+      discovered: discoveredView,
+      settings: settingsView,
+    },
+    buttons: {
+      overview: viewOverviewBtn,
+      devices: viewDevicesBtn,
+      discovered: viewDiscoveredBtn,
+      settings: viewSettingsBtn,
+    },
+    railButtons: {
+      overview: [railOverviewBtn, mobileOverviewBtn],
+      devices: [railDevicesBtn, mobileDevicesBtn],
+      discovered: [railDiscoveredBtn, mobileDiscoveredBtn],
+      settings: [railSettingsBtn, mobileSettingsBtn],
+    },
+    location: globalThis.location,
+    history: globalThis.history,
+  });
 }
 
 function applyTheme(theme) {
@@ -719,109 +697,32 @@ function appendActivityFeed(message, level = "info") {
 }
 
 function renderOverviewPanel() {
-  if (overviewSnapshot) {
-    setTextContent(overviewTotalWebcams, String(overviewSnapshot.total_webcams ?? 0));
-    setTextContent(overviewHealthyWebcams, String(overviewSnapshot.healthy_webcams ?? 0));
-    setTextContent(overviewUnavailableWebcams, String(overviewSnapshot.unavailable_webcams ?? 0));
-    setTextContent(
-      overviewStreamingWebcams,
-      String(overviewSnapshot.stream_available_webcams ?? 0),
-    );
-  }
-
-  if (overviewActivityList instanceof HTMLElement) {
-    if (!activityFeed.length) {
-      overviewActivityList.innerHTML = "<li>No activity yet.</li>";
-    } else {
-      overviewActivityList.innerHTML = activityFeed
-        .map(
-          (entry) =>
-            `<li><strong>${escapeHtml(new Date(entry.timestamp).toLocaleTimeString())}</strong> ${escapeHtml(entry.message)}</li>`,
-        )
-        .join("");
-    }
-  }
-
-  if (overviewActionList instanceof HTMLElement) {
-    const statusEntries = Array.from(webcamStatusMap.values());
-    const authIssues = statusEntries.filter(
-      (status) => String(status.error_code || "").toUpperCase() === "WEBCAM_UNAUTHORIZED",
-    ).length;
-    const privateIpBlocked = statusEntries.filter(
-      (status) => String(status.error_code || "").toUpperCase() === "SSRF_BLOCKED",
-    ).length;
-    const pendingDiscovered = getDiscoveredNodes().length;
-    const items = [];
-    if (authIssues > 0) {
-      items.push(`Auth remediation needed on ${authIssues} node(s).`);
-    }
-    if (pendingDiscovered > 0) {
-      items.push(`${pendingDiscovered} discovered device(s) waiting for review.`);
-    }
-    if (privateIpBlocked > 0) {
-      items.push(`${privateIpBlocked} node(s) blocked by safety rules.`);
-    }
-    overviewActionList.innerHTML = items.length
-      ? items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
-      : "<li>No action items.</li>";
-  }
+  renderOverviewPanelContent({
+    snapshot: overviewSnapshot,
+    activityFeed,
+    statuses: webcamStatusMap,
+    pendingDiscoveryCount: getDiscoveredNodes().length,
+    totalElement: overviewTotalWebcams,
+    healthyElement: overviewHealthyWebcams,
+    unavailableElement: overviewUnavailableWebcams,
+    streamingElement: overviewStreamingWebcams,
+    activityElement: overviewActivityList,
+    actionElement: overviewActionList,
+    escapeHtml,
+  });
 }
 
 function renderDiscoveredPanel() {
-  const pendingNodes = getDiscoveredNodes().filter((node) => !discoveredSnoozedIds.has(node.id));
-  if (!selectedDiscoveredNodeId && pendingNodes.length > 0) {
-    selectedDiscoveredNodeId = pendingNodes[0].id;
-  }
-  if (!pendingNodes.some((node) => node.id === selectedDiscoveredNodeId)) {
-    selectedDiscoveredNodeId = pendingNodes[0]?.id || "";
-  }
-
-  if (discoveredList instanceof HTMLElement) {
-    if (!pendingNodes.length) {
-      discoveredList.innerHTML = "<li>No discovered devices pending approval.</li>";
-    } else {
-      discoveredList.innerHTML = pendingNodes
-        .map((node) => {
-          const selectedClass =
-            node.id === selectedDiscoveredNodeId ? " discovered-item--selected" : "";
-          return `<li>
-            <button class="discovered-item${selectedClass}" data-discovered-id="${escapeHtml(node.id)}" type="button">
-              <strong>${escapeHtml(node.name || node.id)}</strong><br/>
-              <small>${escapeHtml(node.base_url || "Unknown URL")}</small>
-            </button>
-          </li>`;
-        })
-        .join("");
-    }
-  }
-
-  if (discoveredNotes instanceof HTMLElement) {
-    const activeStatus = selectedDiscoveredNodeId
-      ? webcamStatusMap.get(selectedDiscoveredNodeId)
-      : undefined;
-    const notes = [];
-    if (activeStatus?.error_message) {
-      notes.push(activeStatus.error_message);
-    }
-    if (activeStatus?.error_details) {
-      notes.push(String(activeStatus.error_details));
-    }
-    if (!notes.length) {
-      notes.push("Blocked by local safety rule.");
-    }
-    discoveredNotes.innerHTML = notes.map((note) => `<li>${escapeHtml(note)}</li>`).join("");
-  }
-
-  const actionDisabled = !selectedDiscoveredNodeId;
-  if (discoveredApproveBtn instanceof HTMLButtonElement) {
-    discoveredApproveBtn.disabled = actionDisabled;
-  }
-  if (discoveredRejectBtn instanceof HTMLButtonElement) {
-    discoveredRejectBtn.disabled = actionDisabled;
-  }
-  if (discoveredLaterBtn instanceof HTMLButtonElement) {
-    discoveredLaterBtn.disabled = actionDisabled;
-  }
+  selectedDiscoveredNodeId = renderDiscoveredPanelContent({
+    nodes: getDiscoveredNodes(),
+    snoozedIds: discoveredSnoozedIds,
+    selectedNodeId: selectedDiscoveredNodeId,
+    statuses: webcamStatusMap,
+    listElement: discoveredList,
+    notesElement: discoveredNotes,
+    actionButtons: [discoveredApproveBtn, discoveredRejectBtn, discoveredLaterBtn],
+    escapeHtml,
+  });
 }
 
 async function fetchOverview() {
@@ -1130,78 +1031,23 @@ function stopStatusRefreshInterval() {
   }
 }
 
-async function refreshStatuses({ fromInterval = false } = {}) {
-  const statusHistoryMap =
-    typeof previousStatusByNode !== "undefined" && previousStatusByNode instanceof Map
-      ? previousStatusByNode
-      : new Map();
+const refreshStatusCoordinator = createStatusRefresher({
+  getNodes: () => webcams,
+  getDatasetVersion: () => webcamDatasetVersion,
+  getStatusHistory: () => previousStatusByNode,
+  fetchStatusesForNodes,
+  setStatuses: (statuses) => {
+    webcamStatusMap = statuses;
+  },
+  showUnauthorizedFeedback: () => showFeedback(API_AUTH_HINT, true),
+  renderRows,
+  renderDiscoveredPanel,
+  renderOverviewPanel,
+  appendActivityFeed,
+});
 
-  if (statusRefreshInFlight) {
-    statusRefreshPending = true;
-    if (!fromInterval) {
-      statusRefreshPendingManual = true;
-    }
-    return;
-  }
-
-  statusRefreshInFlight = true;
-  const isManualCycle = !fromInterval;
-  let allowManualFeedback = isManualCycle;
-  let showedUnauthorizedFeedback = false;
-  try {
-    do {
-      statusRefreshPending = false;
-      const pendingManualRerun = statusRefreshPendingManual;
-      statusRefreshPendingManual = false;
-      allowManualFeedback = allowManualFeedback || pendingManualRerun;
-      showedUnauthorizedFeedback = false;
-
-      const currentToken = ++statusRefreshToken;
-      const pollDatasetVersion = webcamDatasetVersion;
-      const activeNodeIdsAtPollStart = new Set(webcams.map((node) => node.id));
-      const nextStatusMap = new Map();
-
-      const statusResult = await fetchStatusesForNodes(
-        activeNodeIdsAtPollStart,
-        allowManualFeedback,
-        () => {
-          if (!showedUnauthorizedFeedback) {
-            showFeedback(API_AUTH_HINT, true);
-            showedUnauthorizedFeedback = true;
-          }
-        },
-      );
-      for (const [nodeId, status] of statusResult.entries()) {
-        nextStatusMap.set(nodeId, status);
-      }
-
-      if (currentToken === statusRefreshToken) {
-        if (pollDatasetVersion !== webcamDatasetVersion) {
-          continue;
-        }
-
-        const latestNodeIds = new Set(webcams.map((node) => node.id));
-        const filteredNextStatusMap = new Map(
-          Array.from(nextStatusMap.entries()).filter(([nodeId]) => latestNodeIds.has(nodeId)),
-        );
-
-        recordStatusHistory(filteredNextStatusMap, statusHistoryMap);
-
-        webcamStatusMap = filteredNextStatusMap;
-        if (typeof renderRows === "function") {
-          renderRows();
-        }
-        if (typeof renderDiscoveredPanel === "function") {
-          renderDiscoveredPanel();
-        }
-        if (typeof renderOverviewPanel === "function") {
-          renderOverviewPanel();
-        }
-      }
-    } while (statusRefreshPending);
-  } finally {
-    statusRefreshInFlight = false;
-  }
+function refreshStatuses(options = {}) {
+  return refreshStatusCoordinator(options);
 }
 
 /** Fetch and normalize status for every node in a polling cycle. */
@@ -1240,32 +1086,6 @@ async function fetchStatusesForNodes(nodeIds, allowManualFeedback, onUnauthorize
     }),
   );
   return statuses;
-}
-
-/** Record status transitions in the activity feed and history map. */
-function recordStatusHistory(nextStatuses, history) {
-  for (const [nodeId, nextStatus] of nextStatuses.entries()) {
-    const previous = history.get(nodeId);
-    const nextCode = String(nextStatus.error_code || "").toUpperCase();
-    const nextState = String(nextStatus.status || "unknown").toLowerCase();
-    const prevCode = String(previous?.error_code || "").toUpperCase();
-    const prevState = String(previous?.status || "unknown").toLowerCase();
-
-    if (!previous && typeof appendActivityFeed === "function") {
-      appendActivityFeed(`${nodeId} status initialized: ${nextState}.`);
-    } else if (
-      ((prevCode !== nextCode && nextCode) ||
-        (prevState !== nextState && nextState !== "unknown")) &&
-      typeof appendActivityFeed === "function"
-    ) {
-      appendActivityFeed(`${nodeId} status changed to ${nextCode || nextState}.`);
-    }
-
-    if (previous && prevCode && !nextCode && typeof appendActivityFeed === "function") {
-      appendActivityFeed(`${nodeId} recovered.`, "success");
-    }
-    history.set(nodeId, nextStatus);
-  }
 }
 
 function resetForm() {
