@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import { bindDashboardControls } from "../../pi_camera_in_docker/static/js/management-bootstrap.js";
+import { bindDashboardControls } from "../../frontend/src/management-bootstrap.ts";
 
 function extractFunction(source, signature, nextSignature) {
   const start = source.indexOf(signature);

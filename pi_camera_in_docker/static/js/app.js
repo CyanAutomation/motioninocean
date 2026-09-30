@@ -8,7 +8,14 @@ import { renderMetrics as renderMetricsPanel } from "./metrics-renderer.js";
 import { applyMockStreamMode as applyMockStreamModeUi } from "./mock-stream-ui.js";
 import { assertSinglePollingMode as assertPollingState } from "./polling-mode.js";
 import { collectSetupConfig as collectWizardConfig } from "./setup-config.js";
+import { createDeviceDetectionSummary, inferSetupPreset, restoreSetupWizardState, setupWizardSteps, validateSetupStep, } from "./setup-wizard.js";
 import { fetchReadmeContent as fetchReadmeHelp, renderMarkdownContent as renderReadmeMarkdown, } from "./webcam-help.js";
+import { toggleFullscreen as toggleFullscreenUi } from "./fullscreen.js";
+import { generateSetupConfiguration } from "./setup-generation.js";
+import { runConfigUpdate } from "./config-update.js";
+import { loadSetupTemplates } from "./setup-load.js";
+import { bindOptionalEventListeners } from "./app-event-bindings.js";
+import { showWebcamHelpModal } from "./webcam-help-modal.js";
 const REQUEST_TIMEOUT_MS = 5000;
 const CONFIG_POLL_INTERVAL_MS = 5000;
 const THEME_STORAGE_KEY = "webcam.theme";
@@ -221,56 +228,41 @@ function cacheElements() {
  * Attach event listeners
  */
 function attachHandlers() {
-    if (state.elements.toggleStatsBtn) {
-        state.elements.toggleStatsBtn.addEventListener("click", toggleStats);
-    }
-    if (state.elements.refreshBtn) {
-        state.elements.refreshBtn.addEventListener("click", refreshStream);
-    }
-    if (state.elements.refreshStreamHeaderBtn) {
-        state.elements.refreshStreamHeaderBtn.addEventListener("click", refreshStream);
-    }
-    if (state.elements.fullscreenBtn) {
-        state.elements.fullscreenBtn.addEventListener("click", toggleFullscreen);
-    }
-    if (state.elements.themeToggleBtn) {
-        state.elements.themeToggleBtn.addEventListener("click", () => {
-            const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
-            applyTheme(currentTheme === "dark" ? "light" : "dark");
-        });
-    }
-    if (state.elements.configRefreshBtn) {
-        state.elements.configRefreshBtn.addEventListener("click", refreshConfigPanel);
-    }
-    // Proxy buttons inside the video controls that mirror the main action buttons
+    const themeToggle = () => {
+        const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+        applyTheme(currentTheme === "dark" ? "light" : "dark");
+    };
+    const clickBindings = [
+        [state.elements.toggleStatsBtn, toggleStats],
+        [state.elements.refreshBtn, refreshStream],
+        [state.elements.refreshStreamHeaderBtn, refreshStream],
+        [state.elements.fullscreenBtn, toggleFullscreen],
+        [state.elements.themeToggleBtn, themeToggle],
+        [state.elements.configRefreshBtn, refreshConfigPanel],
+        [state.elements.railChangelogBtn, openChangelogModal],
+        [state.elements.railHelpBtn, openHelpModal],
+        [state.elements.utilityModalCloseBtn, closeUtilityModal],
+    ];
+    // Proxy buttons inside the video controls mirror the main action buttons.
     const vcRefreshBtn = document.getElementById("vc-refresh-btn");
-    if (vcRefreshBtn) {
-        vcRefreshBtn.addEventListener("click", refreshStream);
-    }
     const vcFullscreenBtn = document.getElementById("vc-fullscreen-btn");
-    if (vcFullscreenBtn) {
-        vcFullscreenBtn.addEventListener("click", toggleFullscreen);
-    }
-    if (state.elements.railChangelogBtn) {
-        state.elements.railChangelogBtn.addEventListener("click", openChangelogModal);
-    }
-    if (state.elements.railHelpBtn) {
-        state.elements.railHelpBtn.addEventListener("click", openHelpModal);
-    }
-    if (state.elements.utilityModalCloseBtn) {
-        state.elements.utilityModalCloseBtn.addEventListener("click", closeUtilityModal);
-    }
-    if (state.elements.utilityModal) {
-        state.elements.utilityModal.addEventListener("click", (event) => {
+    clickBindings.push([vcRefreshBtn, refreshStream], [vcFullscreenBtn, toggleFullscreen]);
+    const eventBindings = clickBindings.map(([target, listener]) => ({
+        target,
+        type: "click",
+        listener,
+    }));
+    eventBindings.push({
+        target: state.elements.utilityModal,
+        type: "click",
+        listener: (event) => {
             if (event.target === state.elements.utilityModal) {
                 closeUtilityModal();
             }
-        });
-    }
-    if (state.elements.videoStream) {
-        state.elements.videoStream.addEventListener("load", onStreamLoad);
-        state.elements.videoStream.addEventListener("error", onStreamError);
-    }
+        },
+    });
+    eventBindings.push({ target: state.elements.videoStream, type: "load", listener: onStreamLoad }, { target: state.elements.videoStream, type: "error", listener: onStreamError });
+    bindOptionalEventListeners(eventBindings);
     // Tab navigation handlers
     document.querySelectorAll(".tab-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -278,10 +270,7 @@ function attachHandlers() {
             switchTab(tab);
         });
     });
-    document.addEventListener("fullscreenchange", onFullscreenChange);
-    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
-    document.addEventListener("mozfullscreenchange", onFullscreenChange);
-    document.addEventListener("MSFullscreenChange", onFullscreenChange);
+    bindOptionalEventListeners(["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange", "MSFullscreenChange"].map((type) => ({ target: document, type, listener: onFullscreenChange })));
     document.addEventListener("keydown", (event) => {
         if (event.key === "Escape" && state.utilityModalOpen) {
             closeUtilityModal();
@@ -673,55 +662,14 @@ async function openChangelogModal() {
  * @async
  */
 async function openHelpModal() {
-    openUtilityModal({
-        title: "Help",
-        htmlContent: "<p>Loading help documentation…</p>",
+    await showWebcamHelpModal({
+        fetchReadme: fetchReadmeContent,
+        openModal: openUtilityModal,
+        renderMarkdown: renderMarkdownContent,
+        sanitizeHtml: sanitizeUtilityHtml,
+        escapeHtml,
+        warn: (message, error) => console.warn(message, error),
     });
-    try {
-        const helpPayload = await fetchReadmeContent();
-        const readmeContent = typeof helpPayload.content === "string" ? helpPayload.content.trim() : "";
-        const documentationUrl = typeof helpPayload.documentation_url === "string" ? helpPayload.documentation_url.trim() : "";
-        const helpMessage = typeof helpPayload.message === "string" && helpPayload.message.trim()
-            ? helpPayload.message
-            : "Help documentation is temporarily unavailable.";
-        if (readmeContent) {
-            let safeHelpHtml = "";
-            try {
-                const renderedMarkdownHtml = renderMarkdownContent(helpPayload.content);
-                safeHelpHtml = sanitizeUtilityHtml(renderedMarkdownHtml);
-            }
-            catch (error) {
-                console.warn("Help markdown rendering failed; using plain-text fallback.", error);
-                safeHelpHtml = `<pre>${escapeHtml(readmeContent)}</pre>`;
-            }
-            openUtilityModal({
-                title: "Help",
-                htmlContent: safeHelpHtml,
-            });
-            return;
-        }
-        if (documentationUrl) {
-            openUtilityModal({
-                title: "Help",
-                htmlContent: [
-                    `<p>${escapeHtml(helpMessage)}</p>`,
-                    `<p><a href="${escapeHtml(documentationUrl)}" target="_blank" rel="noopener noreferrer">Open documentation</a></p>`,
-                ].join(""),
-            });
-            return;
-        }
-        openUtilityModal({
-            title: "Help",
-            htmlContent: `<p>${escapeHtml(helpMessage)}</p>`,
-        });
-    }
-    catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        openUtilityModal({
-            title: "Help",
-            htmlContent: `<p>${escapeHtml(errorMessage || "Unable to load help documentation.")}</p>`,
-        });
-    }
 }
 /**
  * Ensure only one polling mode is active at a time.
@@ -854,47 +802,7 @@ function refreshStream() {
  */
 async function toggleFullscreen() {
     const container = state.elements.videoStream?.closest(".video-container");
-    if (!container)
-        return;
-    const isFullscreen = !!(document.fullscreenElement ||
-        document.webkitFullscreenElement ||
-        document.mozFullScreenElement ||
-        document.msFullscreenElement);
-    try {
-        if (!isFullscreen) {
-            if (container.requestFullscreen) {
-                await container.requestFullscreen();
-            }
-            else if (container.webkitRequestFullscreen) {
-                container.webkitRequestFullscreen();
-            }
-            else if (container.mozRequestFullScreen) {
-                container.mozRequestFullScreen();
-            }
-            else if (container.msRequestFullscreen) {
-                container.msRequestFullscreen();
-            }
-            else {
-                console.warn("Fullscreen API is not supported in this browser");
-            }
-            return;
-        }
-        if (document.exitFullscreen) {
-            await document.exitFullscreen();
-        }
-        else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-        }
-        else if (document.mozCancelFullScreen) {
-            document.mozCancelFullScreen();
-        }
-        else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
-        }
-    }
-    catch (error) {
-        console.error("Failed to toggle fullscreen:", error);
-    }
+    await toggleFullscreenUi(container, document);
 }
 /**
  * Handle fullscreen change events
@@ -1462,54 +1370,20 @@ async function fetchConfig() {
  * Update configuration display
  */
 async function updateConfig() {
-    if (state.configInFlight)
-        return;
-    if (state.currentTab !== "config" || document.hidden)
-        return;
-    const showHeavyLoading = state.configInitialLoadPending;
-    try {
-        state.configInFlight = true;
-        if (showHeavyLoading && state.elements.configLoading) {
-            state.configLoadingDelayTimer = setTimeout(() => {
-                state.configLoadingVisible = true;
-                state.elements.configLoading.classList.remove("hidden");
-            }, 400);
-        }
-        try {
-            const data = await fetchConfig();
-            renderConfig(data);
-            // Update success state
-            state.lastConfigUpdate = new Date();
-            // Hide error alert on success
+    await runConfigUpdate(state, {
+        isActive: state.currentTab === "config" && !document.hidden,
+        loadingElement: state.elements.configLoading,
+        fetchConfig,
+        renderConfig,
+        clearConfigDisplay,
+        showConfigError,
+        logger: console,
+        onSuccess: () => {
             if (state.elements.configErrorAlert) {
                 state.elements.configErrorAlert.classList.add("hidden");
             }
-        }
-        catch (error) {
-            if (error && error.name === "AbortError") {
-                console.warn("Config request timed out, will retry.");
-                showConfigError("Configuration request timed out. Will retry automatically.");
-                return;
-            }
-            console.error("Failed to fetch config:", error);
-            clearConfigDisplay();
-            showConfigError(`Failed to load configuration: ${error.message || "Unknown error"}`);
-            return;
-        }
-    }
-    finally {
-        state.configInFlight = false;
-        state.configInitialLoadPending = false;
-        if (state.configLoadingDelayTimer) {
-            clearTimeout(state.configLoadingDelayTimer);
-            state.configLoadingDelayTimer = null;
-        }
-        // Hide loading state
-        if (state.configLoadingVisible && state.elements.configLoading) {
-            state.elements.configLoading.classList.add("hidden");
-            state.configLoadingVisible = false;
-        }
-    }
+        },
+    });
 }
 /**
  * Show error alert in config panel with message.
@@ -1667,7 +1541,7 @@ function clearConfigDisplay() {
    ========================================== */
 const setupWizard = {
     storageKey: "motioninocean.setupWizard.v1",
-    steps: ["environment", "preset", "review", "generate"],
+    steps: [...setupWizardSteps],
     currentStep: "environment",
     expertMode: false,
     initialized: false,
@@ -1720,29 +1594,27 @@ function saveWizardState() {
  * @returns {void}
  */
 function applyStoredWizardState() {
-    const stored = getWizardStateFromStorage();
-    if (!stored || typeof stored !== "object")
-        return;
-    const env = stored.environment || {};
-    if (document.getElementById("env-pi-version")) {
-        document.getElementById("env-pi-version").value = env.piVersion || "";
-    }
-    if (document.getElementById("env-intent")) {
-        document.getElementById("env-intent").value = env.intent || "";
-    }
-    if (document.getElementById("env-mock-camera")) {
-        document.getElementById("env-mock-camera").value = env.mockCamera || "false";
-    }
-    if (stored.preset && document.getElementById("preset-select")) {
-        document.getElementById("preset-select").value = stored.preset;
-    }
-    applyConfigToForm(stored.fields || {});
-    setupWizard.expertMode = Boolean(stored.expertMode);
-    const expertToggle = document.getElementById("expert-mode-toggle");
-    if (expertToggle)
-        expertToggle.checked = setupWizard.expertMode;
-    if (stored.currentStep && setupWizard.steps.includes(stored.currentStep)) {
-        setupWizard.currentStep = stored.currentStep;
+    const restored = restoreSetupWizardState(getWizardStateFromStorage(), {
+        steps: setupWizard.steps,
+        currentStep: setupWizard.currentStep,
+        expertMode: setupWizard.expertMode,
+        setValue: (id, value) => {
+            const input = document.getElementById(id);
+            if (input && value !== undefined && value !== null) {
+                input.value = String(value);
+            }
+        },
+        setChecked: (id, checked) => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.checked = checked;
+            }
+        },
+        applyFields: applyConfigToForm,
+    });
+    if (restored) {
+        setupWizard.expertMode = restored.expertMode;
+        setupWizard.currentStep = restored.currentStep;
     }
 }
 /**
@@ -1788,11 +1660,7 @@ function applyConfigToForm(config) {
 function inferPresetFromEnvironment() {
     const piVersion = document.getElementById("env-pi-version")?.value;
     const intent = document.getElementById("env-intent")?.value;
-    if (piVersion === "pi3")
-        return "pi3_low_power";
-    if (piVersion === "pi5" || intent === "management")
-        return "pi5_high_quality";
-    return "custom";
+    return inferSetupPreset(piVersion || "", intent || "");
 }
 /**
  * Apply a preset configuration to the setup form.
@@ -1862,21 +1730,14 @@ function setWizardStep(step) {
  * @returns {boolean} True if step is valid or expert mode enabled; false if validation required but failed.
  */
 function validateStep(step) {
-    if (setupWizard.expertMode)
-        return true;
-    if (step === "environment") {
-        return (Boolean(document.getElementById("env-pi-version")?.value) &&
-            Boolean(document.getElementById("env-intent")?.value));
-    }
-    if (step === "preset") {
-        return Boolean(document.getElementById("preset-select")?.value);
-    }
-    if (step === "review") {
-        const resolution = document.getElementById("setup-resolution")?.value || "";
-        const fps = Number.parseInt(document.getElementById("setup-fps")?.value || "", 10);
-        return /^\d+x\d+$/i.test(resolution) && Number.isInteger(fps) && fps >= 1 && fps <= 120;
-    }
-    return true;
+    const value = (id) => document.getElementById(id)?.value || "";
+    return validateSetupStep(step, setupWizard.expertMode, {
+        piVersion: value("env-pi-version"),
+        intent: value("env-intent"),
+        preset: value("preset-select"),
+        resolution: value("setup-resolution"),
+        fps: value("setup-fps"),
+    });
 }
 /**
  * Update wizard step completion indicators (✓, !, ○).
@@ -2022,46 +1883,48 @@ function onSetupPrevious() {
  * @throws {Error} If template fetch fails or response is not OK.
  */
 async function loadSetupTab() {
-    try {
-        const setupPanel = state.elements.setupPanel;
-        if (!setupPanel)
-            return;
-        const setupLoading = document.getElementById("setup-loading");
-        if (setupLoading)
-            setupLoading.classList.remove("hidden");
-        const response = await fetch("/api/setup/templates");
-        if (!response.ok)
-            throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        state.setupFormState = data.current_config || {};
-        state.setupDetectedDevices = data.detected_devices || {};
-        updateSetupUI(data);
-        applyStoredWizardState();
-        updatePresetRecommendation();
-        if (setupLoading)
-            setupLoading.classList.add("hidden");
-        if (!setupWizard.initialized) {
+    await loadSetupTemplates({
+        panelAvailable: Boolean(state.elements.setupPanel),
+        fetchTemplates: async () => {
+            const response = await fetch("/api/setup/templates");
+            if (!response.ok)
+                throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        },
+        setLoading: (isLoading) => {
+            const loading = document.getElementById("setup-loading");
+            if (loading)
+                loading.classList.toggle("hidden", !isLoading);
+        },
+        applyTemplates: (data) => {
+            state.setupFormState = data.current_config || {};
+            state.setupDetectedDevices = data.detected_devices || {};
+            updateSetupUI(data);
+            applyStoredWizardState();
+            updatePresetRecommendation();
+        },
+        isInitialized: () => setupWizard.initialized,
+        initializeEventListeners: () => {
             attachSetupEventListeners();
             setupWizard.initialized = true;
-        }
-        setWizardStep(setupWizard.currentStep);
-        const statusDot = document.getElementById("setup-status-indicator");
-        const statusText = document.getElementById("setup-status-text");
-        if (statusDot)
-            statusDot.className = "setup-status-dot ready";
-        if (statusText)
-            statusText.textContent = "Setup ready";
-    }
-    catch (error) {
-        console.error("Failed to load setup tab:", error);
-        showSetupError(`Failed to load setup: ${error.message}`);
-        const statusDot = document.getElementById("setup-status-indicator");
-        const statusText = document.getElementById("setup-status-text");
-        if (statusDot)
-            statusDot.className = "setup-status-dot error";
-        if (statusText)
-            statusText.textContent = "Setup load failed";
-    }
+        },
+        setWizardStep: () => setWizardStep(setupWizard.currentStep),
+        setStatus: (status) => {
+            const statusDot = document.getElementById("setup-status-indicator");
+            const statusText = document.getElementById("setup-status-text");
+            if (statusDot) {
+                statusDot.className =
+                    status === "ready" ? "setup-status-dot ready" : "setup-status-dot error";
+            }
+            if (statusText)
+                statusText.textContent = status === "ready" ? "Setup ready" : "Setup load failed";
+        },
+        onError: (error) => {
+            const message = error instanceof Error ? error.message : String(error);
+            showSetupError(`Failed to load setup: ${message}`);
+        },
+        logger: console,
+    });
 }
 /**
  * Analyze device detection results and provide setup guidance.
@@ -2075,63 +1938,8 @@ async function loadSetupTab() {
  * @returns {Object} Summary with status, tone, guidance, recommendations, device counts.
  */
 function getDeviceDetectionSummary(devices = {}, currentConfig = {}) {
-    const videoCount = devices.video_devices?.length || 0;
-    const mediaCount = devices.media_devices?.length || 0;
-    const dmaCount = devices.dma_heap_devices?.length || 0;
-    const hasVchiq = Boolean(devices.vchiq_device);
-    const cameraSignals = [videoCount > 0, mediaCount > 0, hasVchiq].filter(Boolean).length;
     const modeIntent = document.getElementById("env-intent")?.value || currentConfig.intent || "";
-    const isManagementMode = modeIntent === "management";
-    if (cameraSignals >= 2) {
-        return {
-            status: "Camera likely ready",
-            tone: "detected",
-            guidance: "Camera interfaces look available. You can proceed with real camera streaming.",
-            recommendations: [
-                "Enable the camera interface in raspi-config and reboot if the stream still fails.",
-                "Keep /dev/vchiq and /dev/video* mounted into the container for hardware access.",
-            ],
-            isManagementMode,
-            videoCount,
-            mediaCount,
-            dmaCount,
-            hasVchiq,
-        };
-    }
-    if (cameraSignals === 0) {
-        return {
-            status: "No camera detected",
-            tone: isManagementMode ? "warning" : "error",
-            guidance: isManagementMode
-                ? "Management mode can run without a physical camera, but streaming features will remain unavailable until hardware is attached."
-                : "No camera interfaces were found. Check host device mounts and camera interface settings.",
-            recommendations: [
-                "Verify /dev/vchiq exists on the host and is mounted into the container.",
-                "For local development without hardware, set MIO_MOCK_CAMERA=true.",
-                "If using Raspberry Pi, enable Camera in raspi-config and reboot.",
-            ],
-            isManagementMode,
-            videoCount,
-            mediaCount,
-            dmaCount,
-            hasVchiq,
-        };
-    }
-    return {
-        status: "Partial detection",
-        tone: "warning",
-        guidance: "Some camera signals were detected, but not all expected interfaces are present.",
-        recommendations: [
-            "Confirm /dev/vchiq and /dev/video* are both available to the container.",
-            "Check camera ribbon seating and reboot if interfaces are intermittent.",
-            "Use MIO_MOCK_CAMERA=true during development to continue testing setup flows.",
-        ],
-        isManagementMode,
-        videoCount,
-        mediaCount,
-        dmaCount,
-        hasVchiq,
-    };
+    return createDeviceDetectionSummary(devices, currentConfig, modeIntent);
 }
 /**
  * Render device detection status display with checklist and recommendations.
@@ -2377,36 +2185,17 @@ async function onGenerateClick() {
     try {
         validateSetupForm();
         const config = collectSetupConfig();
-        const validateResponse = await fetch("/api/setup/validate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(config),
-        });
-        if (!validateResponse.ok) {
-            const errorData = await validateResponse.json();
-            throw new Error(errorData.error?.message || "Validation failed");
-        }
-        const validationResult = await validateResponse.json();
-        if (!validationResult.valid && validationResult.errors?.length > 0) {
-            showSetupError(`Validation errors: ${validationResult.errors.join(", ")}`);
+        const result = await generateSetupConfiguration(config);
+        if (result.kind === "validation-error") {
+            showSetupError(`Validation errors: ${result.errors.join(", ")}`);
             return;
         }
-        const generateResponse = await fetch("/api/setup/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(config),
-        });
-        if (!generateResponse.ok) {
-            const errorData = await generateResponse.json();
-            throw new Error(errorData.error?.message || "Generation failed");
-        }
-        const result = await generateResponse.json();
         const dockerComposeOutput = document.getElementById("docker-compose-output");
         if (dockerComposeOutput)
-            dockerComposeOutput.value = result.docker_compose_yaml || "";
+            dockerComposeOutput.value = result.dockerComposeYaml;
         const envOutput = document.getElementById("env-output");
         if (envOutput)
-            envOutput.value = result.env_content || "";
+            envOutput.value = result.envContent;
         showSetupSuccess("Configuration generated successfully!");
         saveWizardState();
     }

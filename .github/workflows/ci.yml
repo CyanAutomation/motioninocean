@@ -35,7 +35,7 @@ jobs:
       - name: Run frontend unit tests
         run: |
           npm run build:frontend
-          node --test tests/frontend/*.test.mjs
+          npm run test:frontend
 
   test:
     name: Test Python ${{ matrix.python-version }}

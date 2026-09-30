@@ -1,29 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
-
-function slice(source, startToken, endToken) {
-  const start = source.indexOf(startToken);
-  const end = source.indexOf(endToken, start);
-  if (start === -1 || end === -1) {
-    throw new Error(`Unable to slice from ${startToken} to ${endToken}`);
-  }
-  return source.slice(start, end).trim();
-}
+import {
+  getDiagnosticCheckRows,
+  getDiagnosticSummaryBanner,
+  getDiagnosticSummaryState,
+} from "../../frontend/src/management-diagnostics.ts";
 
 test("diagnostic rows prefer structured status over derived booleans", () => {
-  const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
-  const rowsFn = slice(
-    managementJs,
-    "function getDiagnosticCheckRows",
-    "function getDiagnosticSummaryState",
-  );
-
-  const context = {};
-  vm.runInNewContext(`${rowsFn}`, context);
-
-  const rows = context.getDiagnosticCheckRows({
+  const rows = getDiagnosticCheckRows({
     registration: { valid: true, status: "warn", code: "REG_WARN" },
     url_validation: { blocked: false, status: "pass" },
     dns_resolution: { resolves: true, status: "pass", resolved_ips: ["203.0.113.1"] },
@@ -51,17 +35,7 @@ test("diagnostic rows prefer structured status over derived booleans", () => {
 });
 
 test("diagnostic summary/banner map connectivity categories to concise remediation", () => {
-  const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
-  const summaryFns = slice(
-    managementJs,
-    "function getDiagnosticSummaryState",
-    "function renderDiagnosticRecommendations",
-  );
-
-  const context = {};
-  vm.runInNewContext(`${summaryFns}`, context);
-
-  const summary = context.getDiagnosticSummaryState([
+  const summary = getDiagnosticSummaryState([
     { key: "Registration", state: "pass" },
     { key: "URL validation", state: "pass" },
     { key: "DNS resolution", state: "pass" },
@@ -70,7 +44,7 @@ test("diagnostic summary/banner map connectivity categories to concise remediati
   ]);
   assert.equal(summary.label, "Action required");
 
-  const banner = context.getDiagnosticSummaryBanner(
+  const banner = getDiagnosticSummaryBanner(
     summary,
     [
       { key: "Registration", state: "pass" },
@@ -88,4 +62,16 @@ test("diagnostic summary/banner map connectivity categories to concise remediati
 
   assert.match(banner.interpretation, /timed out/i);
   assert.equal(banner.cta, "Retry in 30s");
+});
+
+test("diagnostic summary distinguishes transient API warnings from actionable warnings", () => {
+  const transientSummary = getDiagnosticSummaryState([
+    { key: "API endpoint", state: "warn" },
+  ]);
+  const actionableSummary = getDiagnosticSummaryState([
+    { key: "Network connectivity", state: "warn" },
+  ]);
+
+  assert.equal(transientSummary.label, "Warning");
+  assert.equal(actionableSummary.label, "Action recommended");
 });

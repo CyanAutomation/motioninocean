@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import { applyMockStreamMode } from "../../pi_camera_in_docker/static/js/mock-stream-ui.js";
+import { applyMockStreamMode } from "../../frontend/src/mock-stream-ui.ts";
 
 function extractFunction(source, functionName) {
   const match = source.match(

@@ -2,10 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import { copyDiagnosticReport } from "../../pi_camera_in_docker/static/js/management-bootstrap.js";
+import { copyDiagnosticReport } from "../../frontend/src/management-bootstrap.ts";
+import { renderDiagnosticResults } from "../../frontend/src/management-diagnostic-renderer.ts";
+import {
+  getDiagnosticCheckRows,
+  getDiagnosticSummaryBanner,
+  getDiagnosticSummaryState,
+} from "../../frontend/src/management-diagnostics.ts";
 
 function extractDiagnosticHelpers(source) {
-  const start = source.indexOf("function getDiagnosticCheckRows");
+  const start = source.indexOf("function renderDiagnosticRecommendations");
   const end = source.indexOf("\nasync function setDiscoveryApproval", start);
   if (start === -1 || end === -1) {
     throw new Error("diagnostic helpers definition not found");
@@ -110,6 +116,12 @@ function evaluateHelpers() {
   const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
   const helperSource = extractDiagnosticHelpers(managementJs);
   const context = buildUiContext();
+  Object.assign(context, {
+    getDiagnosticCheckRows,
+    getDiagnosticSummaryState,
+    getDiagnosticSummaryBanner,
+    renderDiagnosticResultsUi: renderDiagnosticResults,
+  });
   vm.runInNewContext(`${helperSource};`, context);
   return context;
 }

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Render webcam metrics without owning application state or DOM discovery.
  */

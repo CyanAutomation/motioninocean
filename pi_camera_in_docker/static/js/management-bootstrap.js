@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Event binding and startup orchestration for the management dashboard.
  *
@@ -8,11 +7,14 @@
  */
 function isButton(element) {
     return (element != null &&
+        typeof element === "object" &&
         typeof element.addEventListener === "function" &&
         (typeof HTMLButtonElement === "undefined" || element instanceof HTMLButtonElement));
 }
 function isElement(element) {
-    return element != null && (typeof HTMLElement === "undefined" || element instanceof HTMLElement);
+    return (element != null &&
+        typeof element === "object" &&
+        (typeof HTMLElement === "undefined" || element instanceof HTMLElement));
 }
 /**
  * Copy the latest diagnostic report and provide user-facing failure feedback.

@@ -9,7 +9,7 @@ RPI_SUITE ?= bookworm
 PYTHON ?= python3
 PIP := $(PYTHON) -m pip
 
-.PHONY: help install install-dev install-node ensure-dev-tools test test-frontend lint format type-check security check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams docs-build docs-check jsdoc docs-clean ci validate
+.PHONY: help install install-dev install-node ensure-dev-tools test test-frontend frontend-health lint format type-check security check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
 help:
@@ -40,6 +40,7 @@ help:
 	@echo "Testing:"
 	@echo "  make test             Run all tests with coverage"
 	@echo "  make test-frontend    Run frontend JavaScript unit tests"
+	@echo "  make frontend-health  Run frontend tests with Fallow coverage report (Node.js 22+)"
 	@echo "  make test-unit        Run unit tests only"
 	@echo "  make test-integration Run integration tests only"
 	@echo "  make coverage         Generate coverage report"
@@ -173,7 +174,11 @@ test-frontend:
 	@echo "Building frontend TypeScript..."
 	npm run build:frontend
 	@echo "Running frontend tests..."
-	node --test tests/frontend/*.test.mjs
+	npm run test:frontend
+
+frontend-health:
+	@echo "Running frontend tests and Fallow health report with source coverage..."
+	npm run health:frontend
 
 test-unit: ensure-dev-tools
 	@echo "Running unit tests..."

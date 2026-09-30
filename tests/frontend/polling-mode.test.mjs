@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import { assertSinglePollingMode } from "../../pi_camera_in_docker/static/js/polling-mode.js";
+import { assertSinglePollingMode } from "../../frontend/src/polling-mode.ts";
 
 function extractStartConfigPolling(source) {
   const match = source.match(/function startConfigPolling\(\) \{[\s\S]*?\n^}/m);

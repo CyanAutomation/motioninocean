@@ -1,81 +1,74 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
+import {
+  hydrateCameraSettingsForm,
+  hydrateDiscoverySettingsForm,
+} from "../../frontend/src/settings-form.ts";
 
-function extractArrowFunction(source, functionName) {
-  const pattern = new RegExp(
-    `const ${functionName} = \\(\\) => \\{[\\s\\S]*?\n  \\};`,
-    "m",
-  );
-  const match = source.match(pattern);
-  if (!match) {
-    throw new Error(`${functionName}() definition not found`);
-  }
-  return match[0];
+function createDependencies(controls) {
+  const sliderValues = [];
+  return {
+    dependencies: {
+      getValueControl: (id) => controls[id] || null,
+      getCheckboxControl: (id) => controls[id] || null,
+      updateSlider: (control) => sliderValues.push(control.value),
+    },
+    sliderValues,
+  };
 }
 
-test("renderCameraSettings hydrates numeric 0 values without falling back", () => {
-  const settingsJs = fs.readFileSync("frontend/src/settings.ts", "utf8");
-  const renderCameraSettingsFn = extractArrowFunction(settingsJs, "renderCameraSettings");
-
-  const elements = {
-    "setting-fps": { value: "" },
-    "setting-jpeg-quality": { value: "" },
-    "setting-max-connections": { value: "" },
-    "setting-max-frame-age": { value: "" },
+test("renderCameraSettings hydrates numeric zero values without replacing them with defaults", () => {
+  const controls = {
+    "setting-resolution": { value: "", checked: false },
+    "setting-fps": { value: "", checked: false },
+    "setting-jpeg-quality": { value: "", checked: false },
+    "setting-max-connections": { value: "", checked: false },
+    "setting-max-frame-age": { value: "", checked: false },
   };
-  const sliderValues = [];
+  const { dependencies, sliderValues } = createDependencies(controls);
 
-  const context = {
-    currentSettings: {
-      camera: {
-        fps: 0,
-        jpeg_quality: 0,
-        max_stream_connections: 0,
-        max_frame_age_seconds: 0,
-      },
+  hydrateCameraSettingsForm(
+    {
+      fps: 0,
+      jpeg_quality: 0,
+      max_stream_connections: 0,
+      max_frame_age_seconds: 0,
     },
-    document: {
-      getElementById: (id) => elements[id] || null,
-    },
-    updateSliderDisplay: (slider) => {
-      sliderValues.push(slider.value);
-    },
-  };
+    dependencies,
+  );
 
-  vm.runInNewContext(`${renderCameraSettingsFn}; renderCameraSettings();`, context);
-
-  assert.equal(elements["setting-fps"].value, 0);
-  assert.equal(elements["setting-jpeg-quality"].value, 0);
-  assert.equal(elements["setting-max-connections"].value, 0);
-  assert.equal(elements["setting-max-frame-age"].value, 0);
-  assert.deepEqual(sliderValues, [0, 0]);
+  assert.equal(controls["setting-fps"].value, "0");
+  assert.equal(controls["setting-jpeg-quality"].value, "0");
+  assert.equal(controls["setting-max-connections"].value, "0");
+  assert.equal(controls["setting-max-frame-age"].value, "0");
+  assert.deepEqual(sliderValues, ["0", "0"]);
 });
 
-test("renderDiscoverySettings hydrates interval 0 without default fallback", () => {
-  const settingsJs = fs.readFileSync("frontend/src/settings.ts", "utf8");
-  const renderDiscoverySettingsFn = extractArrowFunction(settingsJs, "renderDiscoverySettings");
-
-  const intervalInput = { value: "" };
-
-  const context = {
-    currentSettings: {
-      discovery: {
-        discovery_interval_seconds: 0,
-      },
-    },
-    document: {
-      getElementById: (id) => {
-        if (id === "setting-discovery-interval") {
-          return intervalInput;
-        }
-        return null;
-      },
-    },
+test("renderDiscoverySettings hydrates interval zero and boolean state", () => {
+  const controls = {
+    "setting-discovery-enabled": { value: "", checked: false },
+    "setting-discovery-url": { value: "", checked: false },
+    "setting-discovery-token": { value: "", checked: false },
+    "setting-discovery-interval": { value: "", checked: false },
   };
+  const { dependencies } = createDependencies(controls);
 
-  vm.runInNewContext(`${renderDiscoverySettingsFn}; renderDiscoverySettings();`, context);
+  hydrateDiscoverySettingsForm(
+    {
+      discovery_enabled: true,
+      discovery_management_url: "http://hub:8001",
+      discovery_token: "secret",
+      discovery_interval_seconds: 0,
+    },
+    dependencies,
+  );
 
-  assert.equal(intervalInput.value, 0);
+  assert.equal(controls["setting-discovery-enabled"].checked, true);
+  assert.equal(controls["setting-discovery-url"].value, "http://hub:8001");
+  assert.equal(controls["setting-discovery-token"].value, "secret");
+  assert.equal(controls["setting-discovery-interval"].value, "0");
+
+  hydrateDiscoverySettingsForm({}, dependencies);
+  assert.equal(controls["setting-discovery-enabled"].checked, false);
+  assert.equal(controls["setting-discovery-interval"].value, "30");
 });
