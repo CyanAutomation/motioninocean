@@ -13,14 +13,20 @@ test("refreshStatuses discards stale in-flight poll result when webcam dataset c
     getNodes: () => nodes,
     getDatasetVersion: () => datasetVersion,
     getStatusHistory: () => history,
-    fetchStatusesForNodes: (nodeIds) =>
-      new Promise((resolve) => {
-        const results = new Map();
-        nodeIds.forEach((nodeId) => {
-          results.set(nodeId, { status: "ok", stream_available: true });
-          pendingByNodeId.set(nodeId, () => resolve(results));
-        });
-      }),
+    fetchStatusesForNodes: async (nodeIds) => {
+      const entries = await Promise.all(
+        Array.from(
+          nodeIds,
+          (nodeId) =>
+            new Promise((resolve) => {
+              pendingByNodeId.set(nodeId, () =>
+                resolve([nodeId, { status: "ok", stream_available: true }]),
+              );
+            }),
+        ),
+      );
+      return new Map(entries);
+    },
     setStatuses: (next) => {
       statuses = next;
     },
