@@ -1,76 +1,108 @@
-// @ts-nocheck
-
 /**
  * Settings Management UI Handler
  * Manages the Settings tab: loads schema, renders forms, handles saves, etc.
- * @global switchTab - Central tab switcher from app.js
+ * @global switchToTab - Central tab switcher from app.js
  */
-/* global switchTab */
 
-/**
- * Build a render-ready summary model from `/api/settings/changes` response data.
- *
- * @param {Object} changesPayload - API payload containing `overridden` entries.
- * @param {Object|null} schemaPayload - Loaded settings schema, used for restartability lookup.
- * @returns {{items: Array<Object>, restartRequired: boolean}} Render model for summary block.
- */
-function buildSettingsChangesSummaryModel(changesPayload, schemaPayload) {
-  const overridden = Array.isArray(changesPayload?.overridden) ? changesPayload.overridden : [];
-  const schemaProperties = schemaPayload || {};
+import {
+  buildSettingsChangesSummaryModel,
+  type SettingsChangesSummary,
+  type SettingsSchema,
+} from "./settings-summary.js";
+import { hydrateCameraSettingsForm, hydrateDiscoverySettingsForm } from "./settings-form.js";
+import { saveSettingsPatch } from "./settings-api.js";
+import { runSettingsSaveWorkflow } from "./settings-save-workflow.js";
 
-  const items = overridden
-    .filter((entry) => typeof entry?.category === "string" && typeof entry?.key === "string")
-    .map((entry) => {
-      const categorySchema = schemaProperties[entry.category];
-      const keySchema = categorySchema?.properties?.[entry.key] || {};
-      const restartable = keySchema.restartable === true;
-      return {
-        category: entry.category,
-        key: entry.key,
-        value: entry.value,
-        envValue: entry.env_value,
-        restartable,
-      };
-    });
+declare global {
+  interface Window {
+    _settingsEventCleanup?: Array<() => void>;
+    switchTab?: (tabName: string) => void;
+  }
+}
 
-  return {
-    items,
-    restartRequired: items.some((item) => item.restartable),
-  };
+function switchToTab(tabName: string): void {
+  window.switchTab?.(tabName);
+}
+
+type FormControl = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+type SettingsValues = Record<string, unknown>;
+type SettingsSnapshot = Record<string, SettingsValues | undefined>;
+interface PendingChange {
+  category: string;
+  property: string;
+  oldValue: unknown;
+  newValue: unknown;
+}
+
+type SettingsPatch = Record<string, Record<string, unknown>>;
+type SettingsValueKey = "oldValue" | "newValue";
+type SaveOutcome = "saved" | "failed" | "restart-required";
+
+interface AlertMetadata {
+  outcome?: SaveOutcome;
+  details?: string;
+  skipStatus?: boolean;
+}
+
+function getFormControl(id: string): FormControl | null {
+  const element = document.getElementById(id);
+  return element instanceof HTMLInputElement ||
+    element instanceof HTMLSelectElement ||
+    element instanceof HTMLTextAreaElement
+    ? element
+    : null;
+}
+
+function getCheckbox(id: string): HTMLInputElement | null {
+  const element = document.getElementById(id);
+  return element instanceof HTMLInputElement ? element : null;
+}
+
+function getButton(id: string): HTMLButtonElement {
+  const element = document.getElementById(id);
+  return element as HTMLButtonElement;
+}
+
+function getElement(id: string): HTMLElement {
+  return document.getElementById(id) as HTMLElement;
+}
+
+function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 const SettingsUI = (() => {
   // State
-  let schema = null;
-  let currentSettings = null;
+  let schema: SettingsSchema | null = null;
+  let currentSettings: SettingsSnapshot | null = null;
   let formDirty = false;
-  const dirtyFields = new Set();
+  const dirtyFields = new Set<string>();
 
   // DOM Elements
-  const settingsTab = () => document.getElementById("settings-tab-btn");
-  const settingsLoading = () => document.getElementById("settings-loading");
-  const saveBtn = () => document.getElementById("settings-save-btn");
-  const resetBtn = () => document.getElementById("settings-reset-btn");
-  const errorAlert = () => document.getElementById("settings-error-alert");
-  const successAlert = () => document.getElementById("settings-success-alert");
-  const undoAlert = () => document.getElementById("settings-undo-alert");
-  const saveStatus = () => document.getElementById("settings-save-status");
-  const saveStatusTime = () => document.getElementById("settings-save-status-time");
-  const saveStatusOutcome = () => document.getElementById("settings-save-status-outcome");
-  const saveStatusDetailsRow = () => document.getElementById("settings-save-status-details-row");
-  const saveStatusDetails = () => document.getElementById("settings-save-status-details");
-  const undoMessage = () => document.getElementById("settings-undo-message");
-  const undoBtn = () => document.getElementById("settings-undo-btn");
-  const confirmModal = () => document.getElementById("settings-confirm-modal");
-  const confirmList = () => document.getElementById("settings-confirm-change-list");
-  const confirmCancelBtn = () => document.getElementById("settings-confirm-cancel-btn");
-  const confirmSaveBtn = () => document.getElementById("settings-confirm-save-btn");
-  const changesSummary = () => document.getElementById("settings-changes-summary");
-  const changesList = () => document.getElementById("settings-changes-list");
-  const restartWarning = () => document.getElementById("settings-restart-warning");
+  const settingsTab = () => getElement("settings-tab-btn");
+  const settingsLoading = () => getElement("settings-loading");
+  const saveBtn = () => getButton("settings-save-btn");
+  const resetBtn = () => getButton("settings-reset-btn");
+  const errorAlert = () => getElement("settings-error-alert");
+  const successAlert = () => getElement("settings-success-alert");
+  const undoAlert = () => getElement("settings-undo-alert");
+  const saveStatus = () => getElement("settings-save-status");
+  const saveStatusTime = () => getElement("settings-save-status-time");
+  const saveStatusOutcome = () => getElement("settings-save-status-outcome");
+  const saveStatusDetailsRow = () => getElement("settings-save-status-details-row");
+  const saveStatusDetails = () => getElement("settings-save-status-details");
+  const undoMessage = () => getElement("settings-undo-message");
+  const undoBtn = () => getButton("settings-undo-btn");
+  const confirmModal = () => getElement("settings-confirm-modal");
+  const confirmList = () => getElement("settings-confirm-change-list");
+  const confirmCancelBtn = () => getButton("settings-confirm-cancel-btn");
+  const confirmSaveBtn = () => getButton("settings-confirm-save-btn");
+  const changesSummary = () => getElement("settings-changes-summary");
+  const changesList = () => getElement("settings-changes-list");
+  const restartWarning = () => getElement("settings-restart-warning");
 
-  let undoPatch = null;
-  let undoTimeoutId = null;
+  let undoPatch: SettingsPatch | null = null;
+  let undoTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * Initialize Settings UI.
@@ -82,38 +114,24 @@ const SettingsUI = (() => {
    */
   const init = () => {
     // Register tab click handler
-    if (settingsTab()) {
-      settingsTab().addEventListener("click", onTabClick);
-    }
+    settingsTab()?.addEventListener("click", onTabClick);
 
     // Register action handlers
-    if (saveBtn()) {
-      saveBtn().addEventListener("click", onSave);
-    }
-    if (resetBtn()) {
-      resetBtn().addEventListener("click", onReset);
-    }
-    if (undoBtn()) {
-      undoBtn().addEventListener("click", onUndo);
-    }
-    if (confirmCancelBtn()) {
-      confirmCancelBtn().addEventListener("click", () => closeConfirmModal(false));
-    }
-    if (confirmSaveBtn()) {
-      confirmSaveBtn().addEventListener("click", () => closeConfirmModal(true));
-    }
-    if (confirmModal()) {
-      confirmModal().addEventListener("click", (event) => {
-        if (event.target === confirmModal()) {
-          closeConfirmModal(false);
-        }
-      });
-    }
-    const handleEscapeKey = (event) => {
+    saveBtn()?.addEventListener("click", onSave);
+    resetBtn()?.addEventListener("click", onReset);
+    undoBtn()?.addEventListener("click", onUndo);
+    confirmCancelBtn()?.addEventListener("click", () => closeConfirmModal(false));
+    confirmSaveBtn()?.addEventListener("click", () => closeConfirmModal(true));
+    confirmModal()?.addEventListener("click", (event) => {
+      if (event.target === confirmModal()) {
+        closeConfirmModal(false);
+      }
+    });
+    const handleEscapeKey = (event: KeyboardEvent) => {
       if (
         event.key === "Escape" &&
         confirmModal() &&
-        !confirmModal().classList.contains("hidden")
+        !confirmModal()?.classList.contains("hidden")
       ) {
         closeConfirmModal(false);
       }
@@ -129,12 +147,12 @@ const SettingsUI = (() => {
     });
 
     // Register section toggle handlers
-    document.querySelectorAll(".settings-section-toggle").forEach((toggle) => {
+    document.querySelectorAll<HTMLElement>(".settings-section-toggle").forEach((toggle) => {
       toggle.addEventListener("click", onSectionToggle);
     });
 
     // Register section header click handlers (toggle collapse)
-    document.querySelectorAll(".settings-section-header").forEach((header) => {
+    document.querySelectorAll<HTMLElement>(".settings-section-header").forEach((header) => {
       header.addEventListener("click", onSectionHeaderClick);
     });
 
@@ -143,9 +161,9 @@ const SettingsUI = (() => {
     // duplicates when the user switches tabs or re-opens the settings panel.
     const settingsPanel = document.getElementById("settings-panel");
     if (settingsPanel) {
-      settingsPanel.addEventListener("input", (e) => {
-        if (e.target.classList.contains("setting-input")) {
-          onFieldChange(e);
+      settingsPanel.addEventListener("input", (event) => {
+        if (event.target instanceof Element && event.target.classList.contains("setting-input")) {
+          onFieldChange(event);
         }
       });
     }
@@ -161,11 +179,11 @@ const SettingsUI = (() => {
    * @param {Event} e - Click event.
    * @returns {Promise<void>}
    */
-  const onTabClick = async (e) => {
+  const onTabClick = async (e: Event): Promise<void> => {
     e.preventDefault();
 
     // Switch to settings tab using central handler
-    switchTab("settings");
+    switchToTab("settings");
 
     // Load data if not already loaded
     if (!schema || !currentSettings) {
@@ -184,7 +202,7 @@ const SettingsUI = (() => {
    */
   const loadSettings = async () => {
     try {
-      settingsLoading().classList.remove("hidden");
+      settingsLoading()?.classList.remove("hidden");
 
       // Fetch schema and current settings in parallel
       const [schemaResp, settingsResp] = await Promise.all([
@@ -210,11 +228,11 @@ const SettingsUI = (() => {
       await refreshChangesSummary();
 
       showSuccess("Settings loaded successfully", { skipStatus: true });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error loading settings:", error);
-      showError("Failed to load settings: " + error.message);
+      showError("Failed to load settings: " + describeError(error));
     } finally {
-      settingsLoading().classList.add("hidden");
+      settingsLoading()?.classList.add("hidden");
     }
   };
 
@@ -249,39 +267,11 @@ const SettingsUI = (() => {
    * @returns {void}
    */
   const renderCameraSettings = () => {
-    const cameraSettings = currentSettings.camera || {};
-
-    // Resolution
-    const resolutionSelect = document.getElementById("setting-resolution");
-    if (resolutionSelect) {
-      resolutionSelect.value = cameraSettings.resolution || "";
-    }
-
-    // FPS
-    const fpsSlider = document.getElementById("setting-fps");
-    if (fpsSlider) {
-      fpsSlider.value = cameraSettings.fps ?? 30;
-      updateSliderDisplay(fpsSlider);
-    }
-
-    // JPEG Quality
-    const qualitySlider = document.getElementById("setting-jpeg-quality");
-    if (qualitySlider) {
-      qualitySlider.value = cameraSettings.jpeg_quality ?? 85;
-      updateSliderDisplay(qualitySlider);
-    }
-
-    // Max Connections
-    const maxConnInput = document.getElementById("setting-max-connections");
-    if (maxConnInput) {
-      maxConnInput.value = cameraSettings.max_stream_connections ?? 2;
-    }
-
-    // Max Frame Age
-    const frameAgeInput = document.getElementById("setting-max-frame-age");
-    if (frameAgeInput) {
-      frameAgeInput.value = cameraSettings.max_frame_age_seconds ?? 10;
-    }
+    hydrateCameraSettingsForm(currentSettings?.camera || {}, {
+      getValueControl: getFormControl,
+      getCheckboxControl: getCheckbox,
+      updateSlider: updateSliderDisplay,
+    });
   };
 
   /**
@@ -292,24 +282,24 @@ const SettingsUI = (() => {
    * @returns {void}
    */
   const renderLoggingSettings = () => {
-    const loggingSettings = currentSettings.logging || {};
+    const loggingSettings = currentSettings?.logging || {};
 
     // Log Level
-    const logLevelSelect = document.getElementById("setting-log-level");
+    const logLevelSelect = getFormControl("setting-log-level");
     if (logLevelSelect) {
-      logLevelSelect.value = loggingSettings.log_level || "INFO";
+      logLevelSelect.value = String(loggingSettings.log_level || "INFO");
     }
 
     // Log Format
-    const logFormatSelect = document.getElementById("setting-log-format");
+    const logFormatSelect = getFormControl("setting-log-format");
     if (logFormatSelect) {
-      logFormatSelect.value = loggingSettings.log_format || "text";
+      logFormatSelect.value = String(loggingSettings.log_format || "text");
     }
 
     // Include Identifiers
-    const identifiersCheckbox = document.getElementById("setting-log-identifiers");
+    const identifiersCheckbox = getCheckbox("setting-log-identifiers");
     if (identifiersCheckbox) {
-      identifiersCheckbox.checked = loggingSettings.log_include_identifiers ?? false;
+      identifiersCheckbox.checked = loggingSettings.log_include_identifiers === true;
     }
   };
 
@@ -321,31 +311,11 @@ const SettingsUI = (() => {
    * @returns {void}
    */
   const renderDiscoverySettings = () => {
-    const discoverySettings = currentSettings.discovery || {};
-
-    // Discovery Enabled
-    const enabledCheckbox = document.getElementById("setting-discovery-enabled");
-    if (enabledCheckbox) {
-      enabledCheckbox.checked = discoverySettings.discovery_enabled ?? false;
-    }
-
-    // Management URL
-    const urlInput = document.getElementById("setting-discovery-url");
-    if (urlInput) {
-      urlInput.value = discoverySettings.discovery_management_url || "http://127.0.0.1:8001";
-    }
-
-    // Discovery Token
-    const tokenInput = document.getElementById("setting-discovery-token");
-    if (tokenInput) {
-      tokenInput.value = discoverySettings.discovery_token || "";
-    }
-
-    // Discovery Interval
-    const intervalInput = document.getElementById("setting-discovery-interval");
-    if (intervalInput) {
-      intervalInput.value = discoverySettings.discovery_interval_seconds ?? 30;
-    }
+    hydrateDiscoverySettingsForm(currentSettings?.discovery || {}, {
+      getValueControl: getFormControl,
+      getCheckboxControl: getCheckbox,
+      updateSlider: updateSliderDisplay,
+    });
   };
 
   /**
@@ -356,7 +326,7 @@ const SettingsUI = (() => {
    * @param {HTMLInputElement} slider - Slider input element.
    * @returns {void}
    */
-  const updateSliderDisplay = (slider) => {
+  const updateSliderDisplay = (slider: FormControl) => {
     const container = slider.parentElement;
     const display = container?.querySelector(".setting-value-display .setting-current-value");
     if (display) {
@@ -364,7 +334,7 @@ const SettingsUI = (() => {
     }
   };
 
-  let _fieldChangeDebounce = null;
+  let _fieldChangeDebounce: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * Handle field change event.
@@ -376,8 +346,16 @@ const SettingsUI = (() => {
    * @param {Event} e - Input event from delegated form listener.
    * @returns {void}
    */
-  const onFieldChange = (e) => {
-    const input = e.target;
+  const onFieldChange = (event: Event) => {
+    const target = event.target;
+    if (
+      !(target instanceof HTMLInputElement) &&
+      !(target instanceof HTMLSelectElement) &&
+      !(target instanceof HTMLTextAreaElement)
+    ) {
+      return;
+    }
+    const input = target;
 
     // Immediate visual feedback for sliders
     if (input.classList.contains("setting-slider")) {
@@ -385,7 +363,9 @@ const SettingsUI = (() => {
     }
 
     // Debounce dirty-state tracking so rapid events collapse into one update
-    clearTimeout(_fieldChangeDebounce);
+    if (_fieldChangeDebounce !== null) {
+      clearTimeout(_fieldChangeDebounce);
+    }
     _fieldChangeDebounce = setTimeout(() => {
       const category = input.dataset.category;
       const property = input.dataset.property;
@@ -406,8 +386,9 @@ const SettingsUI = (() => {
    * @returns {void}
    */
   const updateSaveButton = () => {
-    if (saveBtn()) {
-      saveBtn().disabled = !formDirty;
+    const button = saveBtn();
+    if (button) {
+      button.disabled = !formDirty;
     }
   };
 
@@ -420,11 +401,16 @@ const SettingsUI = (() => {
    * @param {Event} e - Click event from toggle button.
    * @returns {void}
    */
-  const onSectionToggle = (e) => {
+  const onSectionToggle = (e: Event) => {
     e.stopPropagation();
     const toggle = e.currentTarget;
+    if (!(toggle instanceof HTMLElement)) {
+      return;
+    }
     const section = toggle.dataset.section;
-    const content = document.querySelector(`.settings-section-content[data-section="${section}"]`);
+    const content = document.querySelector<HTMLElement>(
+      `.settings-section-content[data-section="${section}"]`,
+    );
     if (!content) return;
 
     const isExpanded = !content.classList.contains("collapsed");
@@ -463,9 +449,12 @@ const SettingsUI = (() => {
    * @param {Event} e - Click event from section header.
    * @returns {void}
    */
-  const onSectionHeaderClick = (e) => {
+  const onSectionHeaderClick = (e: Event) => {
     const header = e.currentTarget;
-    const toggle = header.querySelector(".settings-section-toggle");
+    if (!(header instanceof HTMLElement)) {
+      return;
+    }
+    const toggle = header.querySelector<HTMLElement>(".settings-section-toggle");
     if (toggle) {
       toggle.click();
     }
@@ -483,78 +472,28 @@ const SettingsUI = (() => {
    * @throws {Error} If request fails or response is unexpected status.
    */
   const onSave = async () => {
-    if (!formDirty || dirtyFields.size === 0) {
-      showWarning("No changes to save");
-      return;
-    }
-
-    const pendingChanges = buildPendingChanges();
-    if (pendingChanges.length === 0) {
-      showWarning("No valid settings changes found");
-      return;
-    }
-
-    const confirmed = await showSaveConfirmation(pendingChanges);
-    if (!confirmed) {
-      return;
-    }
-
-    const patch = buildPatchFromChanges(pendingChanges, "newValue");
-    const snapshotPatch = buildPatchFromChanges(pendingChanges, "oldValue");
-
-    try {
-      saveBtn().disabled = true;
-
-      // Send PATCH request
-      const response = await fetch("/api/v1/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      });
-
-      if (response.status === 200) {
-        const result = await response.json();
-        currentSettings = result.settings;
+    await runSettingsSaveWorkflow({
+      isDirty: () => formDirty,
+      dirtyFieldCount: () => dirtyFields.size,
+      getPendingChanges: buildPendingChanges,
+      confirm: showSaveConfirmation,
+      buildPatch: buildPatchFromChanges,
+      getSaveButton: saveBtn,
+      save: (patch) => saveSettingsPatch(fetch, patch),
+      setCurrentSettings: (settings) => {
+        currentSettings = settings as SettingsSnapshot;
         formDirty = false;
-        dirtyFields.clear();
-        setUndoState(snapshotPatch, pendingChanges);
-        updateSaveButton();
-        await refreshChangesSummary();
-        showSuccess("Settings saved successfully!", { outcome: "saved" });
-      } else if (response.status === 422) {
-        // Requires restart
-        const result = await response.json();
-        currentSettings = result.settings;
-        formDirty = false;
-        dirtyFields.clear();
-        setUndoState(snapshotPatch, pendingChanges);
-        updateSaveButton();
-        await refreshChangesSummary();
-        const restartDetails = Array.isArray(result.modified_on_restart)
-          ? result.modified_on_restart.join("\n")
-          : "Server restart required to apply some settings.";
-        showWarning("Settings saved! Some changes require server restart:\n" + restartDetails, {
-          outcome: "restart-required",
-          details: restartDetails,
-        });
-      } else if (response.status === 400) {
-        const result = await response.json();
-        const errors = result.validation_errors || {};
-        const errorList = Object.entries(errors)
-          .map(([key, msg]) => `${key}: ${msg}`)
-          .join("\n");
-        showError("Validation error:\n" + errorList, { outcome: "failed", details: errorList });
-      } else {
-        throw new Error(`HTTP ${response.status}`);
-      }
-    } catch (error) {
-      console.error("Error saving settings:", error);
-      showError("Failed to save settings: " + error.message, {
-        outcome: "failed",
-        details: error.message,
-      });
-      saveBtn().disabled = false;
-    }
+      },
+      clearDirtyFields: () => dirtyFields.clear(),
+      setUndoState,
+      updateSaveButton,
+      refreshChangesSummary,
+      showWarning,
+      showError,
+      showSuccess,
+      logError: (error) => console.error("Error saving settings:", error),
+      describeError,
+    });
   };
 
   /**
@@ -587,9 +526,9 @@ const SettingsUI = (() => {
       } else {
         throw new Error(`HTTP ${response.status}`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error resetting settings:", error);
-      showError("Failed to reset settings: " + error.message);
+      showError("Failed to reset settings: " + describeError(error));
     }
   };
 
@@ -599,7 +538,7 @@ const SettingsUI = (() => {
    * @param {Date} timestamp - Status event timestamp.
    * @returns {string} Localized timestamp string.
    */
-  const formatStatusTimestamp = (timestamp) => {
+  const formatStatusTimestamp = (timestamp: Date) => {
     return timestamp.toLocaleString();
   };
 
@@ -609,11 +548,7 @@ const SettingsUI = (() => {
    * @param {{outcome: string, details?: string}} metadata - Structured status metadata.
    * @returns {void}
    */
-  const updateSaveStatus = (metadata) => {
-    if (!saveStatus() || !saveStatusTime() || !saveStatusOutcome()) {
-      return;
-    }
-
+  const updateSaveStatus = (metadata: Pick<AlertMetadata, "outcome" | "details">) => {
     const timestamp = new Date();
     const outcomeLabels = {
       saved: "Saved",
@@ -633,7 +568,7 @@ const SettingsUI = (() => {
       "settings-save-status--restart-required",
     );
 
-    const normalizedOutcome = typeof metadata?.outcome === "string" ? metadata.outcome : "saved";
+    const normalizedOutcome: SaveOutcome = metadata.outcome || "saved";
     const outcomeClass = outcomeClassNames[normalizedOutcome] || outcomeClassNames.saved;
     saveStatus().classList.add(outcomeClass);
     saveStatusTime().textContent = formatStatusTimestamp(timestamp);
@@ -655,7 +590,7 @@ const SettingsUI = (() => {
    * @param {{outcome?: string, details?: string, skipStatus?: boolean}} metadata - Structured save status metadata.
    * @returns {void}
    */
-  const showError = (message, metadata = {}) => {
+  const showError = (message: string, metadata: AlertMetadata = {}) => {
     const alert = errorAlert();
     const msgElement = document.getElementById("settings-error-message");
     if (alert && msgElement) {
@@ -677,7 +612,7 @@ const SettingsUI = (() => {
    * @param {{outcome?: string, details?: string, skipStatus?: boolean}} metadata - Structured save status metadata.
    * @returns {void}
    */
-  const showSuccess = (message, metadata = {}) => {
+  const showSuccess = (message: string, metadata: AlertMetadata = {}) => {
     const alert = successAlert();
     const msgElement = document.getElementById("settings-success-message");
     if (alert && msgElement) {
@@ -699,7 +634,7 @@ const SettingsUI = (() => {
    * @param {{outcome?: string, details?: string, skipStatus?: boolean}} metadata - Structured save status metadata.
    * @returns {void}
    */
-  const showWarning = (message, metadata = {}) => {
+  const showWarning = (message: string, metadata: AlertMetadata = {}) => {
     showSuccess("ℹ️ " + message, {
       outcome: metadata.outcome || "restart-required",
       details: metadata.details || message,
@@ -712,7 +647,7 @@ const SettingsUI = (() => {
    * @param {unknown} value - Raw setting value.
    * @returns {string} Formatted value string.
    */
-  const formatSettingValue = (value) => {
+  const formatSettingValue = (value: unknown) => {
     if (value === null || value === undefined || value === "") {
       return "(empty)";
     }
@@ -728,8 +663,8 @@ const SettingsUI = (() => {
    * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} input - Input element.
    * @returns {unknown} Parsed value suitable for PATCH payload.
    */
-  const getInputValue = (input) => {
-    if (input.type === "checkbox") {
+  const getInputValue = (input: FormControl): unknown => {
+    if (input instanceof HTMLInputElement && input.type === "checkbox") {
       return input.checked;
     }
     if (input.type === "number" || input.type === "range") {
@@ -744,10 +679,11 @@ const SettingsUI = (() => {
    * @returns {Array<{category: string, property: string, oldValue: unknown, newValue: unknown}>} Changes.
    */
   const buildPendingChanges = () => {
-    const changes = [];
+    const changes: PendingChange[] = [];
     for (const fieldKey of dirtyFields) {
       const [category, property] = fieldKey.split(".");
-      const input = document.querySelector(
+      if (!category || !property) continue;
+      const input = document.querySelector<FormControl>(
         `.setting-input[data-category="${category}"][data-property="${property}"]`,
       );
       if (!input) {
@@ -767,8 +703,11 @@ const SettingsUI = (() => {
    * @param {"oldValue"|"newValue"} valueKey - Which value to map into payload.
    * @returns {Object} Patch payload object.
    */
-  const buildPatchFromChanges = (changes, valueKey) => {
-    return changes.reduce((patch, change) => {
+  const buildPatchFromChanges = (
+    changes: PendingChange[],
+    valueKey: SettingsValueKey,
+  ): SettingsPatch => {
+    return changes.reduce<SettingsPatch>((patch, change) => {
       if (!patch[change.category]) {
         patch[change.category] = {};
       }
@@ -777,7 +716,7 @@ const SettingsUI = (() => {
     }, {});
   };
 
-  let confirmModalResolver = null;
+  let confirmModalResolver: ((confirmed: boolean) => void) | null = null;
 
   /**
    * Render and open save confirmation modal.
@@ -785,7 +724,7 @@ const SettingsUI = (() => {
    * @param {Array<{category: string, property: string, oldValue: unknown, newValue: unknown}>} changes - Pending changes.
    * @returns {Promise<boolean>} True when user confirms save.
    */
-  const showSaveConfirmation = (changes) => {
+  const showSaveConfirmation = (changes: PendingChange[]): Promise<boolean> => {
     if (!confirmModal() || !confirmList()) {
       return Promise.resolve(window.confirm("Save settings changes?"));
     }
@@ -822,7 +761,7 @@ const SettingsUI = (() => {
    * @param {boolean} confirmed - Whether save was confirmed.
    * @returns {void}
    */
-  const closeConfirmModal = (confirmed) => {
+  const closeConfirmModal = (confirmed: boolean) => {
     if (confirmModal()) {
       confirmModal().classList.add("hidden");
     }
@@ -839,7 +778,7 @@ const SettingsUI = (() => {
    * @param {Array<{category: string, property: string}>} changes - Saved changes.
    * @returns {void}
    */
-  const setUndoState = (snapshotPatch, changes) => {
+  const setUndoState = (snapshotPatch: SettingsPatch, changes: PendingChange[]) => {
     clearUndoState();
     undoPatch = snapshotPatch;
 
@@ -913,9 +852,9 @@ const SettingsUI = (() => {
       showSuccess("Last save undone successfully", {
         details: "Reverted the most recent saved settings patch.",
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error undoing save:", error);
-      showError("Failed to undo save: " + error.message);
+      showError("Failed to undo save: " + describeError(error));
       if (undoBtn()) {
         undoBtn().disabled = false;
       }
@@ -928,13 +867,9 @@ const SettingsUI = (() => {
    * @param {{items: Array<Object>, restartRequired: boolean}} model - Changes summary model.
    * @returns {void}
    */
-  const renderChangesSummary = (model) => {
-    if (!changesSummary() || !changesList() || !restartWarning()) {
-      return;
-    }
-
+  const renderChangesSummary = (model: SettingsChangesSummary) => {
     changesList().innerHTML = "";
-    if (!Array.isArray(model.items) || model.items.length === 0) {
+    if (model.items.length === 0) {
       changesSummary().classList.add("hidden");
       restartWarning().classList.add("hidden");
       return;

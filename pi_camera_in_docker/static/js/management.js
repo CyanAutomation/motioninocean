@@ -3,6 +3,10 @@ import { bindNavigation, initializeManagementDashboard } from "./management-boot
 import { setActiveView as setManagementActiveView } from "./management-navigation.js";
 import { renderDiscoveredPanel as renderDiscoveredPanelContent, renderOverviewPanel as renderOverviewPanelContent, } from "./management-renderers.js";
 import { createStatusRefresher } from "./management-status.js";
+import { describeManagementApiError as describeApiError, fetchManagementSettings, saveManagementSettings, } from "./management-settings-api.js";
+import { buildManagementSettingsPatch, hydrateManagementSettingsForm, } from "./management-settings-view.js";
+import { renderDiagnosticResults as renderDiagnosticResultsUi } from "./management-diagnostic-renderer.js";
+import { getDiagnosticCheckRows, getDiagnosticSummaryState, } from "./management-diagnostics.js";
 import { isFailureStatus, normalizeWebcamStatusError, STATUS_SUBTYPE_CONFIG, statusClass, } from "./management-domain.js";
 /**
  * Motion In Ocean Management Dashboard
@@ -101,7 +105,6 @@ let webcamDatasetVersion = 0;
 let statusRefreshIntervalId;
 let latestDiagnosticResult = null;
 let overviewSnapshot = null;
-let currentSettingsPayload = null;
 let selectedDiscoveredNodeId = "";
 let activityFeed = [];
 let previousStatusByNode = new Map();
@@ -197,20 +200,6 @@ function getDiscoveryInfo(webcam = {}) {
     const lastAnnounceAt = discovery.last_announce_at || null;
     const approved = source === "discovered" ? discovery.approved === true : true;
     return { source, firstSeen, lastAnnounceAt, approved };
-}
-function describeApiError(errorPayload = {}) {
-    const code = errorPayload?.error?.code || errorPayload?.code;
-    const details = errorPayload?.error?.details || errorPayload?.details || {};
-    if (code === "DISCOVERY_PRIVATE_IP_BLOCKED") {
-        return `Discovery registration blocked by private-IP policy. ${details.remediation || "Set MIO_ALLOW_PRIVATE_IPS=true only for trusted internal networks."}`;
-    }
-    if (code === "WEBCAM_UNAUTHORIZED") {
-        return "Token/auth mismatch: the remote webcam rejected credentials. Update this node's webcam bearer token to match WEBCAM_CONTROL_PLANE_AUTH_TOKEN on the webcam node.";
-    }
-    if (code === "SSRF_BLOCKED") {
-        return "Private-IP policy blocked this target. Use a docker network hostname, or explicitly enable MIO_ALLOW_PRIVATE_IPS=true on management for trusted internal networks.";
-    }
-    return errorPayload?.error?.message || errorPayload?.message || "Request failed.";
 }
 function showFeedback(message, isError = false) {
     if (!(feedback instanceof HTMLElement)) {
@@ -708,86 +697,55 @@ function renderRuntimeSettingsChanges(changesPayload = {}) {
 }
 async function fetchSettingsData() {
     try {
-        const [settingsResponse, changesResponse] = await Promise.all([
-            managementFetch("/api/v1/settings"),
-            managementFetch("/api/v1/settings/changes"),
-        ]);
-        if (!settingsResponse.ok) {
-            throw new Error("Could not load settings.");
-        }
-        currentSettingsPayload = await settingsResponse.json();
-        const settingsDiscovery = currentSettingsPayload.discovery || {};
-        if (settingsDiscoveryEnabled instanceof HTMLInputElement) {
-            settingsDiscoveryEnabled.checked = Boolean(settingsDiscovery.discovery_enabled);
-        }
-        if (settingsDiscoveryUrl instanceof HTMLInputElement) {
-            settingsDiscoveryUrl.value = String(settingsDiscovery.discovery_management_url || "");
-        }
-        if (settingsDiscoveryToken instanceof HTMLInputElement) {
-            settingsDiscoveryToken.value = String(settingsDiscovery.discovery_token || "");
-        }
-        if (settingsDiscoveryInterval instanceof HTMLInputElement) {
-            settingsDiscoveryInterval.value = String(settingsDiscovery.discovery_interval_seconds ?? 30);
-        }
-        if (changesResponse.ok) {
-            const changesPayload = await changesResponse.json();
-            renderRuntimeSettingsChanges(changesPayload);
+        const { settings, changes } = await fetchManagementSettings(managementFetch);
+        hydrateManagementSettingsForm(settings.discovery, {
+            enabled: settingsDiscoveryEnabled,
+            url: settingsDiscoveryUrl,
+            token: settingsDiscoveryToken,
+            interval: settingsDiscoveryInterval,
+        });
+        if (changes !== undefined) {
+            renderRuntimeSettingsChanges(changes);
         }
         if (settingsValidationSummary instanceof HTMLElement) {
             settingsValidationSummary.textContent = "Validation summary";
         }
     }
     catch (error) {
-        setSettingsFeedback(error?.message || "Failed to load settings.", true);
+        setSettingsFeedback(error instanceof Error ? error.message : "Failed to load settings.", true);
     }
 }
 async function saveSettings() {
     if (settingsManagementApiToken instanceof HTMLInputElement) {
         setManagementBearerToken(settingsManagementApiToken.value);
     }
-    if (!(settingsDiscoveryEnabled instanceof HTMLInputElement) ||
-        !(settingsDiscoveryUrl instanceof HTMLInputElement) ||
-        !(settingsDiscoveryToken instanceof HTMLInputElement) ||
-        !(settingsDiscoveryInterval instanceof HTMLInputElement)) {
+    const patchPayload = buildManagementSettingsPatch({
+        enabled: settingsDiscoveryEnabled,
+        url: settingsDiscoveryUrl,
+        token: settingsDiscoveryToken,
+        interval: settingsDiscoveryInterval,
+    });
+    if (!patchPayload)
         return;
-    }
     setSettingsFeedback("");
-    const patchPayload = {
-        discovery: {
-            discovery_enabled: settingsDiscoveryEnabled.checked,
-            discovery_management_url: settingsDiscoveryUrl.value.trim(),
-            discovery_token: settingsDiscoveryToken.value.trim(),
-            discovery_interval_seconds: Number(settingsDiscoveryInterval.value || "30"),
-        },
-    };
-    try {
-        const response = await managementFetch("/api/v1/settings", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(patchPayload),
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (response.status === 422) {
-            setSettingsFeedback("Saved. Some changes require restart to take effect.");
-            if (settingsValidationSummary instanceof HTMLElement) {
-                settingsValidationSummary.textContent = `Requires restart (${(payload.modified_on_restart || []).length})`;
-            }
-            await fetchSettingsData();
-            return;
-        }
-        if (!response.ok) {
-            setSettingsFeedback(describeApiError(payload) || "Failed to save settings.", true);
-            return;
-        }
-        setSettingsFeedback("Settings saved.");
+    const result = await saveManagementSettings(managementFetch, patchPayload);
+    if (result.kind === "restart-required") {
+        setSettingsFeedback("Saved. Some changes require restart to take effect.");
         if (settingsValidationSummary instanceof HTMLElement) {
-            settingsValidationSummary.textContent = "Validation summary";
+            settingsValidationSummary.textContent = `Requires restart (${result.modifiedOnRestart.length})`;
         }
         await fetchSettingsData();
+        return;
     }
-    catch (error) {
-        setSettingsFeedback(error?.message || "Failed to save settings.", true);
+    if (result.kind === "failure") {
+        setSettingsFeedback(result.message || "Failed to save settings.", true);
+        return;
     }
+    setSettingsFeedback("Settings saved.");
+    if (settingsValidationSummary instanceof HTMLElement) {
+        settingsValidationSummary.textContent = "Validation summary";
+    }
+    await fetchSettingsData();
 }
 async function resetSettings() {
     setSettingsFeedback("");
@@ -1107,124 +1065,6 @@ async function diagnoseNode(nodeId) {
         showFeedback(error.message || "Network error occurred.", true);
     }
 }
-function getDiagnosticCheckRows(diagnostics = {}) {
-    const stateFor = (check, fallback) => {
-        const state = String(check?.status || "").toLowerCase();
-        return ["pass", "warn", "fail"].includes(state) ? state : fallback;
-    };
-    const codeMeta = (check) => (check?.code ? `Code: ${check.code}` : "");
-    const check = (key, name, fallback, detail, meta = codeMeta) => {
-        const value = diagnostics[name];
-        return {
-            key,
-            state: stateFor(value, fallback(value)),
-            detail: detail(value),
-            meta: meta(value),
-        };
-    };
-    return [
-        check("Registration", "registration", (value) => (value?.valid ? "pass" : "fail"), (value) => value?.valid
-            ? "Node registration is valid."
-            : value?.error || "Registration data is invalid."),
-        check("URL validation", "url_validation", (value) => (value?.blocked ? "fail" : "pass"), (value) => value?.blocked
-            ? value?.blocked_reason || "URL blocked by policy."
-            : "Base URL passed validation."),
-        check("DNS resolution", "dns_resolution", (value) => (value?.resolves ? "pass" : "fail"), (value) => (value?.resolves ? "DNS lookup succeeded." : value?.error || "DNS lookup failed."), (value) => (value?.resolved_ips?.length ? `IPs: ${value.resolved_ips.join(", ")}` : "")),
-        check("Network connectivity", "network_connectivity", (value) => (value?.reachable ? "pass" : "fail"), (value) => value?.reachable
-            ? "Node is reachable over the network."
-            : value?.error || "Could not reach node.", (value) => [value?.category && `Category: ${value.category}`, codeMeta(value)]
-            .filter(Boolean)
-            .join(" · ")),
-        check("API endpoint", "api_endpoint", (value) => value?.accessible === false ? "fail" : value?.healthy === false ? "warn" : "pass", (value) => value?.status_code
-            ? `HTTP ${value.status_code}`
-            : value?.error || "Endpoint check incomplete.", (value) => [
-            value?.healthy === false && value?.status_code === 503
-                ? "Node reachable but may still be initializing."
-                : "",
-            codeMeta(value),
-        ]
-            .filter(Boolean)
-            .join(" · ")),
-    ];
-}
-function getDiagnosticSummaryState(checkRows = []) {
-    const hasFail = checkRows.some((row) => row.state === "fail");
-    if (hasFail) {
-        return { label: "Action required", className: "diagnostic-pill--fail", state: "fail" };
-    }
-    const warningRows = checkRows.filter((row) => row.state === "warn");
-    if (warningRows.length > 0) {
-        const transientWarningKeys = new Set(["API endpoint"]);
-        const onlyTransientWarnings = warningRows.every((row) => transientWarningKeys.has(row.key));
-        if (onlyTransientWarnings) {
-            return { label: "Warning", className: "diagnostic-pill--warn", state: "warn" };
-        }
-        return { label: "Action recommended", className: "diagnostic-pill--warn", state: "warn" };
-    }
-    return { label: "Healthy", className: "diagnostic-pill--pass", state: "pass" };
-}
-function getConnectivityRemediation(category, diagnostics = {}) {
-    const code = diagnostics.network_connectivity?.code || diagnostics.url_validation?.code || "";
-    const codeText = code ? ` (${code})` : "";
-    const categoryMap = {
-        timeout: `Node connection timed out${codeText}. Retry in 30s while the service finishes startup.`,
-        tls: `TLS handshake failed${codeText}. Verify certificates or switch the webcam base URL to http:// if TLS is not configured.`,
-        dns: `Hostname could not be resolved${codeText}. Check the webcam base URL hostname and DNS configuration.`,
-        connection_refused_or_reset: `Connection was refused${codeText}. Confirm the webcam process is running and listening on the configured port.`,
-        network: `Network path is blocked${codeText}. Check firewall, routing, and container network settings.`,
-        ssrf_blocked: `SSRF protection blocked this target${codeText}. Use an allowed hostname or update private-IP policy for trusted networks.`,
-    };
-    if (categoryMap[category]) {
-        return categoryMap[category];
-    }
-    if (code === "SSRF_BLOCKED") {
-        return `SSRF protection blocked this target${codeText}. Update webcam base URL to an allowed address or relax policy for trusted private networks.`;
-    }
-    return "Review check details below to resolve connectivity issues.";
-}
-function getDiagnosticSummaryBanner(summary, checkRows = [], diagnostics = {}) {
-    if (summary.state === "pass") {
-        return {
-            interpretation: "All diagnostic checks passed; this webcam appears healthy and reachable.",
-            cta: "No action needed",
-        };
-    }
-    const apiWarning = checkRows.find((row) => row.key === "API endpoint" && row.state === "warn");
-    if (summary.state === "warn" && apiWarning) {
-        return {
-            interpretation: "Connectivity looks good, but the webcam API is still warming up.",
-            cta: "Retry in 30s",
-        };
-    }
-    if (diagnostics.url_validation?.code === "SSRF_BLOCKED") {
-        return {
-            interpretation: getConnectivityRemediation("ssrf_blocked", diagnostics),
-            cta: "Update webcam base URL",
-        };
-    }
-    if (diagnostics.network_connectivity?.category === "tls" ||
-        diagnostics.network_connectivity?.category === "dns" ||
-        diagnostics.network_connectivity?.category === "timeout" ||
-        diagnostics.network_connectivity?.category === "connection_refused_or_reset" ||
-        diagnostics.network_connectivity?.category === "network") {
-        return {
-            interpretation: getConnectivityRemediation(diagnostics.network_connectivity.category, diagnostics),
-            cta: diagnostics.network_connectivity.category === "timeout"
-                ? "Retry in 30s"
-                : "Update webcam base URL",
-        };
-    }
-    if (diagnostics.registration?.code === "WEBCAM_UNAUTHORIZED") {
-        return {
-            interpretation: "Node authentication failed. The configured webcam bearer token does not match WEBCAM_CONTROL_PLANE_AUTH_TOKEN on the node.",
-            cta: "Set auth token",
-        };
-    }
-    return {
-        interpretation: "One or more checks need remediation before this webcam can be considered healthy.",
-        cta: "Review recommendations",
-    };
-}
 function renderDiagnosticRecommendations(guidance = [], recommendations = []) {
     const structured = recommendations.length
         ? recommendations
@@ -1273,45 +1113,22 @@ function buildDiagnosticTextReport(diagnosticResult) {
 }
 function showDiagnosticResults(diagnosticResult) {
     latestDiagnosticResult = diagnosticResult;
-    const nodeId = diagnosticResult.node_id || "unknown";
-    const diagnostics = diagnosticResult.diagnostics || {};
-    const checkRows = getDiagnosticCheckRows(diagnostics);
-    const summary = getDiagnosticSummaryState(checkRows);
-    const banner = getDiagnosticSummaryBanner(summary, checkRows, diagnostics);
-    diagnosticWebcamId.textContent = nodeId;
-    diagnosticContext.textContent = `Generated at ${new Date().toLocaleString()}`;
-    diagnosticSummaryBadge.className = `diagnostic-pill ${summary.className}`;
-    diagnosticSummaryBadge.textContent = summary.label;
-    if (diagnosticOverallStatePill) {
-        diagnosticOverallStatePill.className = `diagnostic-pill ${summary.className}`;
-        diagnosticOverallStatePill.textContent = summary.label;
-    }
-    if (diagnosticSummaryInterpretation) {
-        diagnosticSummaryInterpretation.textContent = banner.interpretation;
-    }
-    if (diagnosticSummaryCta) {
-        diagnosticSummaryCta.textContent = banner.cta;
-    }
-    diagnosticChecksGrid.innerHTML = checkRows
-        .map((row) => `
-        <article class="diagnostic-check-card">
-          <div class="diagnostic-check-card__head">
-            <h4>${escapeHtml(row.key)}</h4>
-            <span class="diagnostic-pill diagnostic-pill--${escapeHtml(row.state)}">${escapeHtml(row.state.toUpperCase())}</span>
-          </div>
-          <p>${escapeHtml(row.detail)}</p>
-          ${row.meta ? `<small>${escapeHtml(row.meta)}</small>` : ""}
-        </article>
-      `)
-        .join("");
-    renderDiagnosticRecommendations(diagnosticResult.guidance || [], diagnosticResult.recommendations || []);
-    copyDiagnosticReportBtn.disabled = false;
-    setDiagnosticPanelExpanded(true);
-    if (isDiagnosticPanelContentVisible() &&
-        diagnosticPanel &&
-        typeof diagnosticPanel.focus === "function") {
-        diagnosticPanel.focus();
-    }
+    renderDiagnosticResultsUi(diagnosticResult, {
+        diagnosticWebcamId,
+        diagnosticContext,
+        diagnosticSummaryBadge,
+        diagnosticOverallStatePill,
+        diagnosticSummaryInterpretation,
+        diagnosticSummaryCta,
+        diagnosticChecksGrid,
+        diagnosticRecommendations,
+        copyDiagnosticReportBtn,
+        diagnosticPanel,
+        escapeHtml,
+        renderRecommendations: renderDiagnosticRecommendations,
+        setPanelExpanded: setDiagnosticPanelExpanded,
+        isPanelContentVisible: isDiagnosticPanelContentVisible,
+    });
 }
 /**
  * Approve or reject a discovered node.

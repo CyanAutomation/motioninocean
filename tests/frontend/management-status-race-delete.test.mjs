@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createStatusRefresher } from "../../pi_camera_in_docker/static/js/management-status.js";
+import { createStatusRefresher } from "../../frontend/src/management-status.ts";
 
 test("refreshStatuses discards stale in-flight poll result when webcam dataset changes", async () => {
   const pendingByNodeId = new Map();

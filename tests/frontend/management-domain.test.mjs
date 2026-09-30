@@ -5,7 +5,7 @@ import {
   isFailureStatus,
   normalizeWebcamStatusError,
   statusClass,
-} from "../../pi_camera_in_docker/static/js/management-domain.js";
+} from "../../frontend/src/management-domain.ts";
 
 test("management status helpers classify healthy, failed, and unknown states", () => {
   assert.equal(statusClass("ready"), "ui-status-pill--success");

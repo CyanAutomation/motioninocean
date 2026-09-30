@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { renderConfig } from "../../pi_camera_in_docker/static/js/config-renderer.js";
-import { renderMetrics } from "../../pi_camera_in_docker/static/js/metrics-renderer.js";
+import { renderConfig } from "../../frontend/src/config-renderer.ts";
+import { renderMetrics } from "../../frontend/src/metrics-renderer.ts";
 
 function element() {
   return { textContent: "", dataset: {}, classList: { toggle() {} } };

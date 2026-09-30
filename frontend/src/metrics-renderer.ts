@@ -1,8 +1,42 @@
-// @ts-nocheck
-
 /**
  * Render webcam metrics without owning application state or DOM discovery.
  */
+
+interface MetricsResponse {
+  camera_active?: boolean;
+  current_fps?: number;
+  uptime_seconds?: number;
+  frames_captured?: number;
+  last_frame_age_seconds?: number;
+  max_frame_age_seconds?: number;
+  resolution?: number[];
+}
+
+interface MetricsElements {
+  fpsValue: HTMLElement | null;
+  chipFps: HTMLElement | null;
+  performanceRiskValue: HTMLElement | null;
+  uptimeValue: HTMLElement | null;
+  framesRiskDetail: HTMLElement | null;
+  lastFrameAgeValue: HTMLElement | null;
+  lastFrameRiskValue: HTMLElement | null;
+  maxFrameAgeValue: HTMLElement | null;
+  maxFrameRiskValue: HTMLElement | null;
+  streamRiskValue: HTMLElement | null;
+  resolutionValue: HTMLElement | null;
+  lastUpdated: HTMLElement | null;
+}
+
+interface MetricsContext {
+  state: { elements: MetricsElements };
+  setConnectionStatus: (status: "stale" | "connected" | "inactive", text: string) => void;
+  resetBackoff: () => void;
+  increaseBackoff: () => void;
+  formatUptime: (seconds: number | undefined) => string;
+  formatNumber: (value: number | undefined) => string;
+  formatSeconds: (value: number | undefined) => string;
+  updateConnectionDisplays: () => void;
+}
 
 /**
  * Render the metrics response into the webcam status panel.
@@ -11,7 +45,7 @@
  * @param {Object} context - Application state and rendering dependencies.
  * @returns {void}
  */
-export function renderMetrics(data, context) {
+export function renderMetrics(data: MetricsResponse, context: MetricsContext): void {
   const {
     state,
     setConnectionStatus,
@@ -59,7 +93,7 @@ export function renderMetrics(data, context) {
   updateConnectionDisplays();
 }
 
-function setText(element, value) {
+function setText(element: HTMLElement | null | undefined, value: string): void {
   if (element) {
     element.textContent = value;
   }

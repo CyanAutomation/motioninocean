@@ -1,17 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyMockStreamMode } from "../../pi_camera_in_docker/static/js/mock-stream-ui.js";
-import { setActiveView } from "../../pi_camera_in_docker/static/js/management-navigation.js";
+import { applyMockStreamMode } from "../../frontend/src/mock-stream-ui.ts";
+import { setActiveView } from "../../frontend/src/management-navigation.ts";
 import {
   renderDiscoveredPanel,
   renderOverviewPanel,
-} from "../../pi_camera_in_docker/static/js/management-renderers.js";
-import { recordStatusHistory } from "../../pi_camera_in_docker/static/js/management-status.js";
-import { collectSetupConfig } from "../../pi_camera_in_docker/static/js/setup-config.js";
+} from "../../frontend/src/management-renderers.ts";
+import { recordStatusHistory } from "../../frontend/src/management-status.ts";
+import { collectSetupConfig } from "../../frontend/src/setup-config.ts";
 import {
   fetchReadmeContent,
   renderMarkdownContent,
-} from "../../pi_camera_in_docker/static/js/webcam-help.js";
+} from "../../frontend/src/webcam-help.ts";
 
 function createClassList() {
   const values = new Set();

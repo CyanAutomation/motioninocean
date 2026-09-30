@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 /**
  * Event binding and startup orchestration for the management dashboard.
  *
@@ -8,16 +6,93 @@
  * object, which keeps startup wiring independently testable.
  */
 
-function isButton(element) {
+interface DashboardElement extends EventTarget {
+  closest(selector: string): unknown;
+  dataset: DOMStringMap;
+  value: string;
+}
+
+interface ButtonCollection {
+  forEach(callback: (button: unknown) => void): void;
+}
+
+interface DashboardElements {
+  [key: string]: DashboardElement | ButtonCollection | null | undefined;
+  settingsTabButtons?: ButtonCollection;
+  webcamForm: DashboardElement;
+  cancelEditBtn: DashboardElement;
+  refreshBtn: DashboardElement;
+  tableBody: DashboardElement;
+  webcamTransport: DashboardElement;
+  diagnosticsAdvancedCheckbox?: DashboardElement;
+  diagnosticsCollapsibleContainer?: DashboardElement;
+}
+
+interface DashboardActions {
+  setActiveView: (view: string) => void;
+  openHelpPanel: () => void;
+  openExportPanel: () => void;
+  closeUtilityPanel: () => void;
+  toggleTheme: () => void;
+  submitNodeForm: (event: Event) => void;
+  resetForm: () => void;
+  refreshManagementData: () => Promise<unknown>;
+  showFeedback: (message: string, isError?: boolean) => void;
+  startStatusRefreshInterval: () => void;
+  stopStatusRefreshInterval: () => void;
+  renderOverviewPanel: () => void;
+  scanDiscoveredBtn?: () => void;
+  renderDiscoveredPanel: () => void;
+  setDiscoveredFeedback: (message: string, isError?: boolean) => void;
+  selectDiscoveredNode: (nodeId: string) => void;
+  applyDiscoveredDecision: (decision: "approve" | "reject" | "snooze") => Promise<unknown>;
+  fetchOverview: () => Promise<unknown>;
+  setSettingsTab: (tabName: string) => void;
+  saveSettings: () => void | Promise<void>;
+  resetSettings: () => void | Promise<void>;
+  fetchSettingsData: () => void | Promise<void>;
+  setNodeFormPanelCollapsed: (isCollapsed: boolean) => void;
+  getStoredNodeFormCollapsedPreference: () => boolean;
+  toggleNodeFormPanel: () => void;
+  onTableClick: (event: Event) => void;
+  updateBaseUrlValidation: (transport: string) => void;
+  setDiagnosticPanelExpanded: (isExpanded: boolean) => void;
+  toggleDiagnosticPanelContent: () => void;
+  getViewFromLocationHash: () => string;
+  initializeManagementState: () => void;
+  bindManagementNavigation: () => void;
+  fetchWebcams: () => Promise<unknown>;
+  refreshStatuses: () => Promise<unknown>;
+  getLatestDiagnosticResult: () => unknown;
+  buildDiagnosticTextReport: (result: unknown) => string;
+}
+
+interface DashboardContext {
+  elements: DashboardElements;
+  actions: DashboardActions;
+}
+
+interface DiagnosticClipboardActions {
+  getLatestDiagnosticResult: () => unknown;
+  showFeedback: (message: string, isError?: boolean) => void;
+  buildDiagnosticTextReport: (result: unknown) => string;
+}
+
+function isButton(element: unknown): element is DashboardElement {
   return (
     element != null &&
-    typeof element.addEventListener === "function" &&
+    typeof element === "object" &&
+    typeof (element as { addEventListener?: unknown }).addEventListener === "function" &&
     (typeof HTMLButtonElement === "undefined" || element instanceof HTMLButtonElement)
   );
 }
 
-function isElement(element) {
-  return element != null && (typeof HTMLElement === "undefined" || element instanceof HTMLElement);
+function isElement(element: unknown): element is DashboardElement {
+  return (
+    element != null &&
+    typeof element === "object" &&
+    (typeof HTMLElement === "undefined" || element instanceof HTMLElement)
+  );
 }
 
 /**
@@ -26,7 +101,7 @@ function isElement(element) {
  * @param {Object} actions - Diagnostic callbacks.
  * @returns {Promise<void>} Resolves after the copy attempt completes.
  */
-export async function copyDiagnosticReport(actions) {
+export async function copyDiagnosticReport(actions: DiagnosticClipboardActions): Promise<void> {
   const diagnosticResult = actions.getLatestDiagnosticResult();
   if (!diagnosticResult) {
     actions.showFeedback("Run Diagnose first to generate a report.", true);
@@ -48,7 +123,11 @@ export async function copyDiagnosticReport(actions) {
   }
 }
 
-function bindOptionalButton(button, eventName, handler) {
+function bindOptionalButton(
+  button: unknown,
+  eventName: string,
+  handler: () => void | Promise<void>,
+): void {
   if (isButton(button)) {
     button.addEventListener(eventName, handler);
   }
@@ -62,7 +141,7 @@ function bindOptionalButton(button, eventName, handler) {
  * @param {Object} context.actions - Navigation and utility callbacks.
  * @returns {void}
  */
-export function bindNavigation({ elements, actions }) {
+export function bindNavigation({ elements, actions }: DashboardContext): void {
   const viewButtons = [
     [elements.viewOverviewBtn, "overview"],
     [elements.viewDevicesBtn, "devices"],
@@ -76,7 +155,7 @@ export function bindNavigation({ elements, actions }) {
     [elements.mobileDevicesBtn, "devices"],
     [elements.mobileDiscoveredBtn, "discovered"],
     [elements.mobileSettingsBtn, "settings"],
-  ];
+  ] as const;
 
   viewButtons.forEach(([button, view]) => {
     bindOptionalButton(button, "click", () => actions.setActiveView(view));
@@ -89,7 +168,7 @@ export function bindNavigation({ elements, actions }) {
     [elements.mobileExportBtn, actions.openExportPanel],
     [elements.utilityPanelCloseBtn, actions.closeUtilityPanel],
     [elements.themeToggleBtn, actions.toggleTheme],
-  ];
+  ] as const;
   utilityButtons.forEach(([button, handler]) => {
     bindOptionalButton(button, "click", handler);
   });
@@ -109,7 +188,7 @@ export function bindNavigation({ elements, actions }) {
  * @param {Object} context.actions - Dashboard callbacks.
  * @returns {void}
  */
-export function bindDashboardControls({ elements, actions }) {
+export function bindDashboardControls({ elements, actions }: DashboardContext): void {
   elements.webcamForm.addEventListener("submit", actions.submitNodeForm);
   elements.cancelEditBtn.addEventListener("click", () => {
     actions.resetForm();
@@ -211,7 +290,7 @@ export function bindDashboardControls({ elements, actions }) {
  * @param {Object} context - Dashboard bootstrap context.
  * @returns {Promise<void>} Resolves after initial data has loaded.
  */
-export async function initializeManagementDashboard(context) {
+export async function initializeManagementDashboard(context: DashboardContext): Promise<void> {
   const { actions } = context;
   actions.initializeManagementState();
   actions.bindManagementNavigation();
