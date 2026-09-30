@@ -85,6 +85,22 @@ test("runSettingsSaveWorkflow reports restart-required changes", async () => {
   ]);
 });
 
+test("runSettingsSaveWorkflow safely formats non-string restart details", async () => {
+  const { dependencies, calls } = createDependencies({
+    save: async () => ({
+      kind: "restart-required",
+      settings: { camera: { fps: 24 } },
+      modifiedOnRestart: ["camera.resolution", 24, Symbol("camera")],
+    }),
+  });
+  await runSettingsSaveWorkflow(dependencies);
+  assert.deepEqual(calls.at(-1), [
+    "warning",
+    "Settings saved! Some changes require server restart:\ncamera.resolution\n24\nSymbol(camera)",
+    { outcome: "restart-required", details: "camera.resolution\n24\nSymbol(camera)" },
+  ]);
+});
+
 test("runSettingsSaveWorkflow supplies default restart details when none are returned", async () => {
   const { dependencies, calls } = createDependencies({
     save: async () => ({ kind: "restart-required", settings: { camera: { fps: 24 } } }),

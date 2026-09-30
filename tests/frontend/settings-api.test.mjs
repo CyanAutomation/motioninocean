@@ -61,3 +61,25 @@ test("saveSettingsPatch formats validation errors and rejects unexpected statuse
     /offline/,
   );
 });
+
+test("saveSettingsPatch handles malformed JSON for each supported response", async () => {
+  const malformedResponse = (status) => ({
+    status,
+    json: async () => {
+      throw new SyntaxError("Unexpected token");
+    },
+  });
+
+  await assert.rejects(
+    saveSettingsPatch(async () => malformedResponse(200), {}),
+    /Failed to parse successful response/,
+  );
+  await assert.rejects(
+    saveSettingsPatch(async () => malformedResponse(422), {}),
+    /Failed to parse restart-required response/,
+  );
+  assert.deepEqual(await saveSettingsPatch(async () => malformedResponse(400), {}), {
+    kind: "validation-error",
+    message: "Validation failed but could not parse error details",
+  });
+});

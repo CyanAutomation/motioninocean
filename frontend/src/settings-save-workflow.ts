@@ -83,7 +83,7 @@ export async function runSettingsSaveWorkflow<Settings, Patch>(
     }
 
     const restartDetails = result.modifiedOnRestart
-      ? result.modifiedOnRestart.join("\n")
+      ? result.modifiedOnRestart.map(String).join("\n")
       : "Server restart required to apply some settings.";
     dependencies.showWarning(
       "Settings saved! Some changes require server restart:\n" + restartDetails,
