@@ -8,8 +8,7 @@ on:
 run-name: >-
   DRY sweep · ${{ github.repository }}@main
 
-permissions:
-  contents: read
+permissions: {}
 
 # Protect the complete external Kaseki run from overlapping sweeps.
 concurrency:

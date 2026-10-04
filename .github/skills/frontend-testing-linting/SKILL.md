@@ -24,7 +24,7 @@ Validate frontend source changes using the scripts and test runner configured in
 
 ## Required inputs
 
-- Node.js 20, npm, and the changed source/test files.
+- Node.js 22, npm, and the changed source/test files.
 - A clear expected behavior for any frontend logic change.
 
 ## Step-by-step workflow

@@ -6,10 +6,9 @@ on:
   workflow_dispatch:
 
 run-name: >-
-  Docs sweep · ${{ github.repository }}@${{ github.event.repository.default_branch }}
+  Docs sweep · ${{ github.repository }}@main
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: kaseki-docs-${{ github.repository }}
@@ -17,7 +16,7 @@ concurrency:
 
 env:
   REPO_URL: ${{ github.server_url }}/${{ github.repository }}
-  REF: ${{ github.event.repository.default_branch }}
+  REF: main
   TASK_DESCRIPTION: Keep README.md and docs/ accurate against the current implementation.
   ALLOWLIST: README.md,docs/**/*.md
   VALIDATION_COMMAND: make docs-check
@@ -25,7 +24,7 @@ env:
 jobs:
   system_status:
     name: Kaseki System Status
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     environment: kaseki-agent
@@ -64,7 +63,7 @@ jobs:
   readiness:
     name: Kaseki System Readiness
     needs: system_status
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     environment: kaseki-agent
@@ -102,7 +101,7 @@ jobs:
   api_connection:
     name: Kaseki API Status
     needs: readiness
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     environment: kaseki-agent
@@ -144,7 +143,7 @@ jobs:
   dispatch:
     name: Submit Kaseki documentation sweep
     needs: api_connection
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 200
     environment: kaseki-agent

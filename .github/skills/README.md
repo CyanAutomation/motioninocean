@@ -18,7 +18,6 @@ These skills are short, task-specific playbooks for contributors and operators. 
 | Diagnose Raspberry Pi camera startup or streaming | [`pi-camera-troubleshooting`](./pi-camera-troubleshooting/SKILL.md) |
 | Build or validate documentation | [`documentation-build-validation`](./documentation-build-validation/SKILL.md) |
 | Create or update a Mermaid diagram | [`mermaid-creator`](./mermaid-creator/SKILL.md) |
-| Understand scheduled formatting pull requests | [`nightly-autofix-workflow`](./nightly-autofix-workflow/SKILL.md) |
 | Prepare a release | [`release-operator`](./release-operator/SKILL.md) |
 | Verify published release artifacts | [`release-publish`](./release-publish/SKILL.md) |
 
