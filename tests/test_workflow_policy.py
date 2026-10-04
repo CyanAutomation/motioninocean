@@ -52,7 +52,6 @@ def test_untrusted_security_scan_has_no_write_token(workspace_root):
 def test_privileged_manual_workflows_are_default_branch_only(workspace_root):
     """Do not allow dispatching privileged jobs from a branch's workflow file."""
     checks = {
-        "linting-autofix.yml": "autofix",
         "security-scan.yml": "scan",
     }
 
@@ -65,14 +64,27 @@ def test_privileged_manual_workflows_are_default_branch_only(workspace_root):
         )
 
 
-def test_kaseki_runs_only_on_main(workspace_root):
-    """Scheduled and dispatched Kaseki runs must always target main."""
-    workflow = load_workflow(workspace_root, "kaseki-dry.yaml")
-    job = workflow["jobs"]["dry_sweep"]
+def test_kaseki_workflows_target_main_without_github_token_permissions(workspace_root):
+    """Keep both Kaseki jobs on main and deny the unused workflow token."""
+    jobs = {
+        "kaseki-docs.yaml": {"system_status", "readiness", "api_connection", "dispatch"},
+        "kaseki-dry.yaml": {"dry_sweep"},
+    }
 
-    assert job["if"] == "github.ref == 'refs/heads/main'"
-    assert job["env"]["REF"] == "main"
-    assert "@main" in workflow["run-name"]
+    for filename, job_names in jobs.items():
+        workflow = load_workflow(workspace_root, filename)
+        ref = workflow.get("env", {}).get("REF")
+        if ref is None:
+            ref = workflow["jobs"]["dry_sweep"]["env"]["REF"]
+
+        assert workflow["permissions"] == {}
+        assert ref == "main"
+        assert "@main" in workflow["run-name"]
+        assert set(workflow["jobs"]) == job_names
+        assert all(
+            workflow["jobs"][job_name]["if"] == "github.ref == 'refs/heads/main'"
+            for job_name in job_names
+        )
 
 
 def test_kaseki_workflows_use_existing_validation_commands(workspace_root):
@@ -242,16 +254,48 @@ def test_security_enforcement_precedes_best_effort_reporting(workspace_root):
     assert "continue-on-error" not in sarif_report
 
 
-def test_autofix_requires_app_token_for_generated_prs(workspace_root):
-    """Use an app token so checks for the generated PR trigger without approval."""
-    workflow = load_workflow(workspace_root, "linting-autofix.yml")
-    steps = workflow["jobs"]["autofix"]["steps"]
-    token_check = next(step for step in steps if step.get("name") == "Require autofix app token")
-    create_pr = next(step for step in steps if step.get("name") == "Create Pull Request")
+def test_ci_and_release_checkouts_do_not_persist_credentials(workspace_root):
+    """Do not leave GitHub credentials available while repository code runs."""
+    for filename in ("ci.yml", "docker-publish.yml"):
+        workflow = load_workflow(workspace_root, filename)
+        checkouts = [
+            step
+            for job in workflow["jobs"].values()
+            for step in job.get("steps", [])
+            if step.get("uses", "").startswith("actions/checkout@")
+        ]
 
-    assert token_check["if"] == "steps.verify-changes.outputs.has-changes == 'true'"
-    assert token_check["env"]["AUTOFIX_GITHUB_TOKEN"] == "${{ secrets.AUTOFIX_GITHUB_TOKEN }}"
-    assert create_pr["with"]["token"] == "${{ secrets.AUTOFIX_GITHUB_TOKEN }}"
+        assert checkouts
+        assert all(step.get("with", {}).get("persist-credentials") is False for step in checkouts)
+
+
+def test_ci_and_release_use_node_22(workspace_root):
+    """Keep Node-based CI checks on the same maintained runtime as frontend tests."""
+    for filename in ("ci.yml", "docker-publish.yml"):
+        workflow = load_workflow(workspace_root, filename)
+        node_steps = [
+            step
+            for job in workflow["jobs"].values()
+            for step in job.get("steps", [])
+            if step.get("uses", "").startswith("actions/setup-node@")
+        ]
+
+        assert node_steps
+        assert all(str(step.get("with", {}).get("node-version")) == "22" for step in node_steps)
+
+
+def test_ci_lints_action_workflows(workspace_root):
+    """Run actionlint against every workflow in the CI lint job."""
+    workflow = load_workflow(workspace_root, "ci.yml")
+    steps = workflow["jobs"]["lint"]["steps"]
+
+    setup_go = next(step for step in steps if step.get("uses", "").startswith("actions/setup-go@"))
+    assert setup_go["with"]["go-version"] == "1.25.x"
+
+    actionlint = next(step for step in steps if step.get("name") == "Lint GitHub Actions workflows")
+    assert "go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12" in actionlint["run"]
+    assert '-ignore \'unexpected key "queue" for "concurrency" section\'' in actionlint["run"]
+    assert ".github/workflows/*.yml .github/workflows/*.yaml" in actionlint["run"]
 
 
 def test_kaseki_dry_scopes_token_and_pins_controller_host(workspace_root):

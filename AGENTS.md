@@ -91,7 +91,7 @@ Files: [pi_camera_in_docker/](pi_camera_in_docker/)
 
 - Python 3.10+ (3.11+ recommended)
 - Docker + Docker Compose
-- Node.js 20 (matches CI frontend tooling)
+- Node.js 22 (matches CI frontend tooling)
 - Git
 
 ### Initial Setup
