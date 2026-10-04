@@ -206,8 +206,8 @@ jobs:
 
           # Write to file to preserve multiline content
           echo "$CHANGELOG_CONTENT" > /tmp/changelog.txt
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
 
           # Debug output
           echo "Changelog content length: $(wc -c < /tmp/changelog.txt) bytes"

@@ -326,7 +326,7 @@ jobs:
 
           # Kaseki can run for up to three hours. Poll a little longer so a
           # terminal result created near that limit is still observed.
-          for attempt in $(seq 1 185); do
+          for _ in $(seq 1 185); do
             curl --fail-with-body --silent --show-error \
               --retry 3 --retry-all-errors \
               --connect-timeout 10 --max-time 60 \

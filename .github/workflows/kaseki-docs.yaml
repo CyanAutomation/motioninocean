@@ -392,7 +392,7 @@ jobs:
           trap 'rm -f "$response_file"' EXIT
 
           # Kaseki allows three hours per run; poll slightly longer for a final status.
-          for attempt in $(seq 1 185); do
+          for _ in $(seq 1 185); do
             curl --fail-with-body --silent --show-error \
               --retry 3 --retry-all-errors \
               --connect-timeout 10 --max-time 60 \
