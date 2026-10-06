@@ -36,16 +36,21 @@ jobs:
         run: |
           docker build --pull -t motion-in-ocean:scan .
 
-      - name: Verify patched libpcre2 package
+      - name: Verify patched Debian security packages
         run: |
           set -euo pipefail
           docker run --rm --entrypoint dpkg-query motion-in-ocean:scan \
             -W -f='${Package}\t${Version}\n' | sort > docker-package-inventory.txt
-          installed_version=$(awk '$1 == "libpcre2-8-0" { print $2 }' \
+          libpcre2_version=$(awk '$1 == "libpcre2-8-0" { print $2 }' \
             docker-package-inventory.txt)
-          echo "libpcre2-8-0=${installed_version}"
-          test -n "${installed_version}"
-          dpkg --compare-versions "${installed_version}" ge "10.42-1+deb12u1"
+          echo "libpcre2-8-0=${libpcre2_version}"
+          test -n "${libpcre2_version}"
+          dpkg --compare-versions "${libpcre2_version}" ge "10.42-1+deb12u1"
+          perl_base_version=$(awk '$1 == "perl-base" { print $2 }' \
+            docker-package-inventory.txt)
+          echo "perl-base=${perl_base_version}"
+          test -n "${perl_base_version}"
+          dpkg --compare-versions "${perl_base_version}" ge "5.36.0-7+deb12u4"
 
       - name: Verify Python runtime dependency inventory
         run: |

@@ -1,421 +1,235 @@
-"""
-Concurrency tests for the camera streaming application.
-Tests race conditions, concurrent stream access, signal handling, and resource exhaustion.
-"""
-
-import io
-import threading
-import time
-from collections import deque
-from threading import Condition, Event, Lock
-from typing import Optional
-
-import pytest
-
-
-class StreamStats:
-    """Test version of StreamStats class."""
-
-    def __init__(self) -> None:
-        self._lock = Lock()
-        self._frame_count: int = 0
-        self._last_frame_monotonic: Optional[float] = None
-        self._frame_times_monotonic: deque[float] = deque(maxlen=30)
-
-    def record_frame(self, monotonic_timestamp: float) -> None:
-        """Record a new frame timestamp from a monotonic clock."""
-        with self._lock:
-            self._frame_count += 1
-            self._last_frame_monotonic = monotonic_timestamp
-            self._frame_times_monotonic.append(monotonic_timestamp)
-
-    def get_fps(self) -> float:
-        """Calculate actual FPS from frame times."""
-        with self._lock:
-            frame_times = list(self._frame_times_monotonic)
-        if len(frame_times) < 2:
-            return 0.0
-        time_span = frame_times[-1] - frame_times[0]
-        if time_span == 0:
-            return 0.0
-        return (len(frame_times) - 1) / time_span
-
-    def snapshot(self) -> tuple[int, Optional[float], float]:
-        """Return a snapshot of frame count, last frame time, and FPS."""
-        with self._lock:
-            frame_count = self._frame_count
-            last_frame_time = self._last_frame_monotonic
-            frame_times = list(self._frame_times_monotonic)
-
-        # Calculate FPS outside lock using the snapshot
-        if len(frame_times) < 2:
-            current_fps = 0.0
-        else:
-            time_span = frame_times[-1] - frame_times[0]
-            current_fps = 0.0 if time_span == 0 else (len(frame_times) - 1) / time_span
-
-        return frame_count, last_frame_time, current_fps
-
-
-class FrameBuffer(io.BufferedIOBase):
-    """Test version of FrameBuffer class."""
-
-    def __init__(self, stats: StreamStats, max_frame_size: Optional[int] = None) -> None:
-        self.frame: Optional[bytes] = None
-        self.condition: Condition = Condition()
-        self._stats = stats
-        self._max_frame_size = max_frame_size
-        self._dropped_frames = 0
-
-    def write(self, buf: bytes) -> int:  # type: ignore[override]
-        """Write a new frame to the output buffer."""
-        frame_size = len(buf)
-
-        # Validate frame size to prevent memory exhaustion
-        if self._max_frame_size is not None and frame_size > self._max_frame_size:
-            self._dropped_frames += 1
-            # Return the size to satisfy encoder interface, but don't store the frame
-            return frame_size
-
-        with self.condition:
-            self.frame = buf
-            monotonic_now = time.monotonic()
-            self._stats.record_frame(monotonic_now)
-            self.condition.notify_all()
-        return frame_size
-
-    def get_dropped_frames(self) -> int:
-        """Return the number of dropped frames due to size limits."""
-        return self._dropped_frames
-
-
-class TestThreadSafety:
-    """Test thread safety of core components."""
-
-    def test_stream_stats_concurrent_writes(self):
-        """Verify StreamStats.record_frame is thread-safe under concurrent writes.
-
-        Contract: Multiple threads can safely record frames simultaneously without:
-        - Data loss (all frames counted)
-        - Crashes (no exceptions)
-        - Corruption (frame count matches input exactly)
-        """
-        stats = StreamStats()
-        num_threads = 10
-        frames_per_thread = 100
-        errors = []
-        base_time = time.monotonic()
-
-        def record_frames(thread_id: int) -> None:
-            try:
-                for frame_num in range(frames_per_thread):
-                    # Use deterministic timestamps; no sleep to test actual contention
-                    timestamp = base_time + (thread_id * frames_per_thread + frame_num) * 0.001
-                    stats.record_frame(timestamp)
-            except Exception as e:
-                errors.append((thread_id, frame_num, e))
-
-        # Start multiple threads recording frames concurrently
-        threads = [threading.Thread(target=record_frames, args=(i,)) for i in range(num_threads)]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join(timeout=10.0)
-
-        # Verify no exceptions during concurrent writes
-        assert len(errors) == 0, f"Errors during concurrent writes: {errors}"
-
-        # Verify exact frame count (no data loss or duplication)
-        frame_count, last_timestamp, _ = stats.snapshot()
-        expected_count = num_threads * frames_per_thread
-        assert frame_count == expected_count, (
-            f"Frame count mismatch: expected {expected_count}, got {frame_count}"
-        )
-
-        # Verify last timestamp is valid (proof of correct ordering)
-        assert last_timestamp is not None
-        assert last_timestamp > base_time, (
-            "Last frame timestamp should be later than base time (verifies frames were recorded)"
-        )
-
-    def test_stream_stats_concurrent_reads(self):
-        """Test that concurrent reads don't block or crash under concurrent access."""
-        stats = StreamStats()
-
-        # Pre-populate with some data
-        for _ in range(30):
-            stats.record_frame(time.monotonic())
-            time.sleep(0.01)
-
-        num_readers = 20
-        read_count = 50
-        errors = []
-
-        def read_stats():
-            try:
-                for _ in range(read_count):
-                    stats.snapshot()
-                    stats.get_fps()
-            except Exception as e:
-                errors.append(e)
-
-        threads = [threading.Thread(target=read_stats) for _ in range(num_readers)]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join(timeout=10.0)
-
-        # Verify no exceptions during concurrent reads (thread safety)
-        assert len(errors) == 0, f"Errors during concurrent reads: {errors}"
-
-        # Verify all threads completed (deterministic, not timing-based)
-        assert all(not t.is_alive() for t in threads), "Some reader threads did not complete"
-
-    def test_frame_buffer_concurrent_write_read(self):
-        """Test concurrent writes and reads on FrameBuffer without timing dependencies."""
-        stats = StreamStats()
-        buffer = FrameBuffer(stats)
-        errors = []
-        frames_written = [0]
-        frames_read = [0]
-        write_complete = Event()
-
-        def writer():
-            try:
-                for i in range(100):
-                    frame_data = b"frame_" + str(i).encode() * 100
-                    buffer.write(frame_data)
-                    frames_written[0] += 1
-            except Exception as e:
-                errors.append(e)
-            finally:
-                write_complete.set()
-
-        def reader():
-            try:
-                read_timeout = time.time() + 10.0
-                while time.time() < read_timeout and frames_read[0] < 50:
-                    with buffer.condition:
-                        # Wait for new frame or timeout
-                        buffer.condition.wait(timeout=0.5)
-                        if buffer.frame is not None:
-                            frames_read[0] += 1
-            except Exception as e:
-                errors.append(e)
-
-        # Start one writer and multiple readers
-        writer_thread = threading.Thread(target=writer)
-        reader_threads = [threading.Thread(target=reader) for _ in range(3)]
-
-        writer_thread.start()
-        for thread in reader_threads:
-            thread.start()
-
-        # Wait for writer to complete
-        assert write_complete.wait(timeout=5.0), "Writer did not complete within timeout"
-
-        # Wait for readers to finish
-        for thread in reader_threads:
-            thread.join(timeout=5.0)
-
-        # Verify no exceptions occurred
-        assert len(errors) == 0, f"Errors during concurrent read/write: {errors}"
-
-        # Verify frames were processed (deterministic, not timing-based)
-        assert frames_written[0] == 100, f"Expected all 100 frames written, got {frames_written[0]}"
-        assert frames_read[0] > 0, "Readers should have read at least one frame"
-
-
-class TestConcurrentStreamAccess:
-    """Test concurrent stream access scenarios."""
-
-    def test_multiple_stream_connections(self):
-        """Simulate multiple clients connecting to streams concurrently."""
-        active_connections = 0
-        connection_lock = Lock()
-        max_connections = 10
-        connection_errors = []
-
-        def simulate_stream_client(client_id: int):
-            nonlocal active_connections
-
-            def check_connection_limit():
-                """Check if connection limit is reached and raise error."""
-                if active_connections >= max_connections:
-                    msg = "Too many connections"
-                    raise RuntimeError(msg)
-
-            try:
-                # Increment connection counter
-                with connection_lock:
-                    check_connection_limit()
-                    active_connections += 1
-
-                # Simulate streaming for a short time
-                time.sleep(0.1)
-
-                # Decrement connection counter
-                with connection_lock:
-                    active_connections -= 1
-            except Exception as e:
-                connection_errors.append((client_id, e))
-
-        # Try to connect more clients than the limit
-        num_clients = 15
-        threads = [
-            threading.Thread(target=simulate_stream_client, args=(i,)) for i in range(num_clients)
-        ]
-
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join(timeout=5.0)
-
-        # Some connections should have been rejected
-        assert len(connection_errors) > 0, "Expected some connections to be rejected"
-
-        # Final connection count should be 0 (all cleaned up)
-        assert active_connections == 0, "Connection leak detected"
-
-
-class TestSignalHandling:
-    """Test signal handling for graceful shutdown."""
-
-    def test_mock_thread_forced_termination(self):
-        """Test forced termination of stuck mock thread."""
-        shutdown_event = Event()
-
-        def stuck_thread_function():
-            # Simulate a stuck thread that doesn't check shutdown_event
-            for _ in range(10):  # Limited iterations for test
-                if shutdown_event.is_set():
-                    break
-                time.sleep(0.1)
-
-        # Start stuck thread
-        mock_thread = threading.Thread(target=stuck_thread_function)
-        mock_thread.daemon = False
-        mock_thread.start()
-
-        # Signal shutdown
-        shutdown_event.set()
-
-        # Wait with timeout
-        mock_thread.join(timeout=0.5)
-
-        # In Python 3.12+, we can't change daemon status of running threads
-        # Instead, verify that the thread would eventually stop
-        if mock_thread.is_alive():
-            # Wait a bit more for the thread to notice shutdown_event
-            mock_thread.join(timeout=2.0)
-            # Thread should stop after checking shutdown_event
-            assert not mock_thread.is_alive(), "Thread should eventually stop"
-
-
-class TestResourceExhaustion:
-    """Test resource exhaustion scenarios."""
-
-    def test_frame_size_limit_enforcement(self):
-        """Test that oversized frames are rejected."""
-        stats = StreamStats()
-        max_size = 1024  # 1 KB limit
-        buffer = FrameBuffer(stats, max_frame_size=max_size)
-
-        # Write a small frame (should succeed)
-        small_frame = b"x" * 512
-        result = buffer.write(small_frame)
-        assert result == 512
-        assert buffer.frame == small_frame
-        assert buffer.get_dropped_frames() == 0
-
-        # Write a large frame (should be dropped)
-        large_frame = b"x" * 2048
-        result = buffer.write(large_frame)
-        assert result == 2048  # Returns size to satisfy encoder
-        assert buffer.frame == small_frame  # Frame not updated
-        assert buffer.get_dropped_frames() == 1
-
-    def test_frame_buffer_memory_protection(self):
-        """Test that frame buffer protects against memory exhaustion."""
-        stats = StreamStats()
-        # Set a reasonable limit (5 MB for 4K frame)
-        max_size = 5 * 1024 * 1024
-        buffer = FrameBuffer(stats, max_frame_size=max_size)
-
-        # Try to write increasingly large frames
-        sizes = [1024, 10240, 102400, 1024000, 10240000]  # 1KB to ~10MB
-        dropped_count = 0
-
-        for size in sizes:
-            frame = b"x" * size
-            buffer.write(frame)
-            dropped_count = max(buffer.get_dropped_frames(), dropped_count)
-
-        # At least one large frame should have been dropped
-        assert dropped_count > 0, "Expected large frames to be dropped"
-
-    def test_concurrent_frame_writes_under_load(self):
-        """Test system behavior under heavy concurrent frame writes."""
-        stats = StreamStats()
-        max_size = 1024 * 1024  # 1 MB
-        buffer = FrameBuffer(stats, max_frame_size=max_size)
-
-        write_errors = []
-        frames_written = 0
-        frames_dropped = 0
-
-        def write_frames():
-            nonlocal frames_written, frames_dropped
-            for i in range(50):
-                try:
-                    # Alternate between normal and oversized frames
-                    frame = b"x" * (max_size + 1000) if i % 10 == 0 else b"x" * 10000
-
-                    buffer.write(frame)
-                    frames_written += 1
-                except Exception as e:
-                    write_errors.append(e)
-
-        # Multiple concurrent writers
-        threads = [threading.Thread(target=write_frames) for _ in range(5)]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join(timeout=10.0)
-
-        frames_dropped = buffer.get_dropped_frames()
-
-        # No errors should occur
-        assert len(write_errors) == 0
-
-        # Some frames should have been dropped due to size
-        assert frames_dropped > 0
-
-        # Most frames should have been written
-        assert frames_written > 0
-
-
-class TestMonotonicTiming:
-    """Test monotonic clock usage for reliable timing."""
-
-    def test_frame_age_calculation(self):
-        """Test frame age calculation with monotonic time."""
-        stats = StreamStats()
-
-        # Record a frame
-        frame_time = time.monotonic()
-        stats.record_frame(frame_time)
-
-        # Wait a bit
-        time.sleep(0.1)
-
-        # Calculate age
-        _, last_frame_time, _ = stats.snapshot()
-        if last_frame_time is not None:
-            age = time.monotonic() - last_frame_time
-            assert age >= 0.1
-            assert age < 1.0
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+"""Behavioral concurrency tests for webcam streaming components."""
+
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier, Condition, Event, Lock, Thread
+
+from pi_camera_in_docker.modes.webcam import ConnectionTracker, FrameBuffer, StreamStats
+
+
+def test_stream_stats_counts_every_frame_from_concurrent_writers() -> None:
+    """Concurrent writes preserve exact frame counts.
+
+    Traceability: docs/product/PRD-backend.md#1-mjpeg-streaming-endpoint-p1.
+    """
+    worker_count = 8
+    frames_per_worker = 250
+    stats = StreamStats()
+    start = Barrier(worker_count)
+
+    def record_frames(worker_id: int) -> None:
+        start.wait(timeout=5)
+        for frame_index in range(frames_per_worker):
+            stats.record_frame(float(worker_id * frames_per_worker + frame_index))
+
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        futures = [executor.submit(record_frames, worker_id) for worker_id in range(worker_count)]
+        for future in futures:
+            future.result()
+
+    frame_count, last_timestamp, _current_fps = stats.snapshot()
+
+    assert frame_count == worker_count * frames_per_worker
+    assert last_timestamp is not None
+
+
+def test_stream_stats_snapshots_remain_consistent_during_writes() -> None:
+    """Snapshots pair counts and timestamps during concurrent writes.
+
+    Traceability: docs/product/PRD-backend.md#1-mjpeg-streaming-endpoint-p1.
+    """
+    writer_count = 4
+    reader_count = 4
+    writes_per_worker = 200
+    total_writes = writer_count * writes_per_worker
+    stats = StreamStats()
+    start = Barrier(writer_count + reader_count)
+
+    def record_frames(worker_id: int) -> None:
+        start.wait(timeout=5)
+        for frame_index in range(writes_per_worker):
+            stats.record_frame(float(worker_id * writes_per_worker + frame_index))
+
+    def read_snapshots() -> None:
+        start.wait(timeout=5)
+        for _ in range(300):
+            frame_count, last_timestamp, _current_fps = stats.snapshot()
+            assert 0 <= frame_count <= total_writes
+            assert (last_timestamp is None) is (frame_count == 0)
+
+    with ThreadPoolExecutor(max_workers=writer_count + reader_count) as executor:
+        futures = [executor.submit(record_frames, worker_id) for worker_id in range(writer_count)]
+        futures.extend(executor.submit(read_snapshots) for _ in range(reader_count))
+        for future in futures:
+            future.result()
+
+    assert stats.snapshot()[0] == total_writes
+
+
+def test_frame_buffer_wakes_waiting_readers_with_a_published_frame() -> None:
+    """A write notifies readers blocked on the frame buffer.
+
+    Traceability: docs/product/PRD-backend.md#1-mjpeg-streaming-endpoint-p1.
+    """
+    reader_count = 4
+    stats = StreamStats()
+    output = FrameBuffer(stats)
+    waiting_readers = Event()
+    received_frames: list[bytes | None] = []
+    frame = b"jpeg-frame"
+
+    class ReaderTrackingCondition(Condition):
+        def __init__(self) -> None:
+            super().__init__()
+            self._reader_count = 0
+            self._reader_count_lock = Lock()
+
+        def wait(self, timeout: float | None = None) -> bool:
+            with self._reader_count_lock:
+                self._reader_count += 1
+                if self._reader_count == reader_count:
+                    waiting_readers.set()
+            return super().wait(timeout)
+
+    output.condition = ReaderTrackingCondition()
+
+    def read_frame() -> None:
+        with output.condition:
+            assert output.condition.wait(timeout=5)
+            received_frames.append(output.frame)
+
+    with ThreadPoolExecutor(max_workers=reader_count) as executor:
+        futures = [executor.submit(read_frame) for _ in range(reader_count)]
+        assert waiting_readers.wait(timeout=5)
+        output.write(frame)
+        for future in futures:
+            future.result()
+
+    assert received_frames == [frame] * reader_count
+    assert stats.snapshot()[0] == 1
+
+
+def test_connection_tracker_enforces_limit_for_simultaneous_clients() -> None:
+    """The tracker admits no more than the configured client limit.
+
+    Traceability: docs/product/PRD-backend.md#1-mjpeg-streaming-endpoint-p1.
+    """
+    max_connections = 10
+    client_count = 20
+    tracker = ConnectionTracker()
+    start = Barrier(client_count)
+
+    def try_connect() -> bool:
+        start.wait(timeout=5)
+        return tracker.try_increment(max_connections)
+
+    with ThreadPoolExecutor(max_workers=client_count) as executor:
+        admitted = list(executor.map(lambda _client: try_connect(), range(client_count)))
+
+    assert sum(admitted) == max_connections
+    assert tracker.get_count() == max_connections
+    for _ in range(max_connections):
+        tracker.decrement()
+    assert tracker.get_count() == 0
+
+
+def test_frame_buffer_skips_oversized_frames_without_changing_stream_state() -> None:
+    """Oversized frames are dropped without replacing the last valid frame.
+
+    Traceability: docs/product/PRD-backend.md#1-mjpeg-streaming-endpoint-p1.
+    """
+    max_frame_size = 1024
+    stats = StreamStats()
+    output = FrameBuffer(stats, max_frame_size=max_frame_size)
+    accepted_frame = b"a" * max_frame_size
+    oversized_frame = b"b" * (max_frame_size + 1)
+
+    assert output.write(accepted_frame) == max_frame_size
+    before_oversized_write = stats.snapshot()
+    assert output.frame == accepted_frame
+
+    assert output.write(oversized_frame) == len(oversized_frame)
+    assert output.frame == accepted_frame
+    assert stats.snapshot() == before_oversized_write
+
+
+def test_concurrent_frame_buffer_writes_publish_a_complete_frame() -> None:
+    """Concurrent writes publish whole frames and count each accepted write.
+
+    Traceability: docs/product/PRD-backend.md#1-mjpeg-streaming-endpoint-p1.
+    """
+    writer_count = 8
+    writes_per_worker = 100
+    stats = StreamStats()
+    output = FrameBuffer(stats)
+    start = Barrier(writer_count)
+    expected_frames = {
+        f"worker-{worker_id}-frame-{frame_index}".encode()
+        for worker_id in range(writer_count)
+        for frame_index in range(writes_per_worker)
+    }
+
+    def write_frames(worker_id: int) -> None:
+        start.wait(timeout=5)
+        for frame_index in range(writes_per_worker):
+            output.write(f"worker-{worker_id}-frame-{frame_index}".encode())
+
+    with ThreadPoolExecutor(max_workers=writer_count) as executor:
+        futures = [executor.submit(write_frames, worker_id) for worker_id in range(writer_count)]
+        for future in futures:
+            future.result()
+
+    assert output.frame in expected_frames
+    assert stats.snapshot()[0] == writer_count * writes_per_worker
+
+
+def test_synthetic_frame_worker_stops_after_shutdown_is_requested(monkeypatch) -> None:
+    """The synthetic frame worker exits and clears its running state on shutdown.
+
+    Traceability: docs/product/PRD-backend.md#6-mock-camera-mode-p3.
+    """
+    from pi_camera_in_docker import main
+
+    recording_started = Event()
+    shutdown_requested = Event()
+    first_frame_written = Event()
+    written_frames: list[bytes] = []
+    workers: list[Thread] = []
+    real_thread = Thread
+
+    class OutputStub:
+        def write(self, frame: bytes) -> int:
+            written_frames.append(frame)
+            first_frame_written.set()
+            return len(frame)
+
+    def capture_worker(*args, **kwargs) -> Thread:
+        worker = real_thread(*args, **kwargs)
+        workers.append(worker)
+        return worker
+
+    frame = b"\xff\xd8mock-jpeg"
+    monkeypatch.setattr(main, "render_mio_mock_frame", lambda *_args: frame)
+    monkeypatch.setattr(main, "Thread", capture_worker)
+    state = {
+        "recording_started": recording_started,
+        "shutdown_requested": shutdown_requested,
+        "output": OutputStub(),
+    }
+
+    main._init_mock_camera_frames(
+        state,
+        {"resolution": (640, 480), "jpeg_quality": 85, "fps": 1000},
+    )
+    worker = workers[0]
+
+    try:
+        assert recording_started.wait(timeout=2)
+        assert first_frame_written.wait(timeout=2)
+    finally:
+        shutdown_requested.set()
+        worker.join(timeout=2)
+
+    assert not worker.is_alive()
+    assert not recording_started.is_set()
+    assert written_frames
+    assert written_frames[0] == frame

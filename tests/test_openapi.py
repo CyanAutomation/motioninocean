@@ -37,12 +37,6 @@ def _new_management_client(monkeypatch, tmp_path, management_token="test-token")
 class TestOpenAPISpec:
     """Tests for GET /openapi.json."""
 
-    def test_openapi_json_returns_200(self, monkeypatch, tmp_path):
-        """GET /openapi.json returns HTTP 200."""
-        client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get("/openapi.json")
-        assert response.status_code == 200
-
     def test_openapi_json_content_type(self, monkeypatch, tmp_path):
         """GET /openapi.json returns application/json content type."""
         client = _new_management_client(monkeypatch, tmp_path)
@@ -95,10 +89,10 @@ class TestOpenAPISpec:
         paths = client.get("/openapi.json").get_json()["paths"]
         assert any("webcams" in path for path in paths)
 
-    def test_openapi_json_unauthenticated(self, monkeypatch, tmp_path):
-        """GET /openapi.json is publicly accessible without auth token."""
+    def test_openapi_json_returns_200_without_auth(self, monkeypatch, tmp_path):
+        """GET /openapi.json is publicly accessible and returns HTTP 200."""
         client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get("/openapi.json")  # no Authorization header
+        response = client.get("/openapi.json")
         assert response.status_code == 200
 
     def test_openapi_metrics_snapshot_excludes_resolution(self, monkeypatch, tmp_path):
@@ -124,12 +118,6 @@ class TestOpenAPISpec:
 class TestApiDocs:
     """Tests for the built-in API reference page."""
 
-    def test_api_docs_returns_200(self, monkeypatch, tmp_path):
-        """GET /api/docs returns HTTP 200."""
-        client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get("/api/docs")
-        assert response.status_code == 200
-
     def test_api_docs_content_type_is_html(self, monkeypatch, tmp_path):
         """GET /api/docs returns text/html content type."""
         client = _new_management_client(monkeypatch, tmp_path)
@@ -153,36 +141,25 @@ class TestApiDocs:
         response = client.get("/api/docs")
         assert b"/openapi.json" in response.data
 
-    def test_api_docs_unauthenticated(self, monkeypatch, tmp_path):
-        """GET /api/docs is publicly accessible without auth token."""
+    def test_api_docs_returns_200_without_auth(self, monkeypatch, tmp_path):
+        """GET /api/docs is publicly accessible and returns HTTP 200."""
         client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get("/api/docs")  # no Authorization header
+        response = client.get("/api/docs")
         assert response.status_code == 200
 
 
 class TestReadmeHelpEndpoint:
     """Tests for GET /api/help/readme."""
 
-    def test_readme_help_returns_200(self, monkeypatch, tmp_path):
-        """GET /api/help/readme returns HTTP 200."""
-        client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get("/api/help/readme")
-        assert response.status_code == 200
-
-    def test_readme_help_returns_json_with_content(self, monkeypatch, tmp_path):
-        """GET /api/help/readme returns content in JSON payload."""
+    def test_readme_help_returns_json_content_without_auth(self, monkeypatch, tmp_path):
+        """GET /api/help/readme returns content without requiring authentication."""
         client = _new_management_client(monkeypatch, tmp_path)
         response = client.get("/api/help/readme")
         data = response.get_json()
+        assert response.status_code == 200
         assert "application/json" in response.content_type
         assert isinstance(data.get("content"), str)
         assert len(data["content"]) > 0
-
-    def test_readme_help_unauthenticated(self, monkeypatch, tmp_path):
-        """GET /api/help/readme is publicly accessible without auth token."""
-        client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get("/api/help/readme")
-        assert response.status_code == 200
 
 
 class TestDeprecatedAliases:
