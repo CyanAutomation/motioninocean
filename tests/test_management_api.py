@@ -14,6 +14,8 @@ from flask import Flask
 # Import workspace root path (WORKSPACE_ROOT is set in conftest.py)
 # For module-level imports
 workspace_root = Path(__file__).parent.parent
+# Lifecycle tests use a literal public IP; dedicated tests cover DNS behavior.
+DISCOVERY_LIFECYCLE_BASE_URL = "http://8.8.8.8"
 
 
 def _new_management_client(monkeypatch, tmp_path, management_token="test-token", webcam_token=""):
@@ -1091,7 +1093,7 @@ def test_discovery_announce_creates_then_updates_node(monkeypatch, tmp_path):
     create_payload = {
         "webcam_id": "node-discovery-1",
         "name": "Discovery Node",
-        "base_url": "http://example.com",
+        "base_url": DISCOVERY_LIFECYCLE_BASE_URL,
         "transport": "http",
         "capabilities": ["stream", "metrics"],
     }
@@ -1135,7 +1137,7 @@ def test_discovery_announce_update_repairs_incomplete_discovery_metadata(monkeyp
     create_payload = {
         "webcam_id": "node-discovery-incomplete-metadata",
         "name": "Discovery Incomplete",
-        "base_url": "http://example.com",
+        "base_url": DISCOVERY_LIFECYCLE_BASE_URL,
         "transport": "http",
         "capabilities": ["stream"],
     }
@@ -1181,7 +1183,7 @@ def test_discovery_announce_parallel_requests_do_not_duplicate_error(monkeypatch
     payload = {
         "webcam_id": "node-discovery-parallel",
         "name": "Discovery Parallel",
-        "base_url": "http://example.com",
+        "base_url": DISCOVERY_LIFECYCLE_BASE_URL,
         "transport": "http",
         "capabilities": ["stream"],
     }
@@ -1460,7 +1462,7 @@ def test_discovery_approval_endpoint(monkeypatch, tmp_path):
     announce_payload = {
         "webcam_id": "node-discovery-approval",
         "name": "Discovery Pending",
-        "base_url": "http://example.com",
+        "base_url": DISCOVERY_LIFECYCLE_BASE_URL,
         "transport": "http",
         "capabilities": ["stream"],
     }
@@ -1498,7 +1500,7 @@ def test_discovery_approval_returns_404_when_node_deleted_during_update(
     announce_payload = {
         "webcam_id": "node-discovery-approval-delete-race",
         "name": "Discovery Pending",
-        "base_url": "http://example.com",
+        "base_url": DISCOVERY_LIFECYCLE_BASE_URL,
         "transport": "http",
         "capabilities": ["stream"],
     }
@@ -1560,7 +1562,7 @@ def test_discovery_announce_preserves_approved_state_when_approval_happens_befor
     announce_payload = {
         "webcam_id": "node-discovery-approval-race-approve",
         "name": "Discovery Pending",
-        "base_url": "http://example.com",
+        "base_url": DISCOVERY_LIFECYCLE_BASE_URL,
         "transport": "http",
         "capabilities": ["stream"],
     }
@@ -1625,7 +1627,7 @@ def test_discovery_announce_preserves_rejected_state_when_rejection_happens_befo
     announce_payload = {
         "webcam_id": "node-discovery-approval-race-reject",
         "name": "Discovery Pending",
-        "base_url": "http://example.com",
+        "base_url": DISCOVERY_LIFECYCLE_BASE_URL,
         "transport": "http",
         "capabilities": ["stream"],
     }
@@ -1696,7 +1698,7 @@ def test_discovery_approval_does_not_roll_back_last_announce_at_during_concurren
     announce_payload = {
         "webcam_id": "node-discovery-last-announce-race",
         "name": "Discovery Pending",
-        "base_url": "http://example.com",
+        "base_url": DISCOVERY_LIFECYCLE_BASE_URL,
         "transport": "http",
         "capabilities": ["stream"],
     }
