@@ -90,11 +90,11 @@ jobs:
           trap 'rm -f "$response_file"' EXIT
 
           curl --fail-with-body --silent --show-error \
-            --retry 3 --retry-all-errors \
+            --retry 3 \
             --connect-timeout 10 --max-time 60 \
             --output "$response_file" \
             --header "Authorization: Bearer $KASEKI_API_TOKEN" \
-            "$KASEKI_BASE_URL/api/gateway-test?stage=1"
+            "$KASEKI_BASE_URL/api/v1/gateway-test?stage=1"
 
           jq -e '.status == "ok"' "$response_file" >/dev/null
 
@@ -248,7 +248,7 @@ jobs:
               --max-time 60 \
               --output "$response_file" \
               --write-out '%{http_code}' \
-              --request POST "$KASEKI_BASE_URL/api/runs" \
+              --request POST "$KASEKI_BASE_URL/api/v1/runs" \
               --header "Authorization: Bearer $KASEKI_API_TOKEN" \
               --header "Content-Type: application/json" \
               --data "$payload"
@@ -319,7 +319,7 @@ jobs:
               --connect-timeout 10 --max-time 60 \
               --output "$response_file" \
               --header "Authorization: Bearer $KASEKI_API_TOKEN" \
-              "$KASEKI_BASE_URL/api/runs/$RUN_ID/status"
+              "$KASEKI_BASE_URL/api/v1/runs/$RUN_ID/status"
 
             status="$(jq -er '.status' "$response_file")"
 
