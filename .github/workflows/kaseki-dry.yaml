@@ -56,22 +56,9 @@ jobs:
           fi
 
       - name: Verify controller health
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          response_file="$(mktemp)"
-          trap 'rm -f "$response_file"' EXIT
-
-          curl --fail-with-body --silent --show-error \
-            --retry 3 --retry-all-errors \
-            --connect-timeout 10 --max-time 20 \
-            --output "$response_file" \
-            "$KASEKI_BASE_URL/health"
-
-          jq -e '.status == "healthy"' "$response_file" >/dev/null
-
-          echo "Kaseki health check succeeded."
+        uses: CyanAutomation/kaseki-agent/.github/actions/verify-controller-health@30db5d15e117b8d8de13eb66766d48cf6b7d618b
+        with:
+          base-url: ${{ vars.KASEKI_BASE_URL }}
 
       - name: Verify controller readiness
         shell: bash

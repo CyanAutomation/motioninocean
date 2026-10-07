@@ -33,32 +33,20 @@ jobs:
       KASEKI_BASE_URL: ${{ vars.KASEKI_BASE_URL }}
 
     steps:
-      - name: Verify controller health
+      - name: Validate Kaseki controller URL
         shell: bash
         run: |
           set -euo pipefail
-
           : "${KASEKI_BASE_URL:?KASEKI_BASE_URL is not configured}"
-
-          [[ "$KASEKI_BASE_URL" == "https://kaseki-tunnel.scheimann.xyz" ]] || {
+          if [[ "$KASEKI_BASE_URL" != "https://kaseki-tunnel.scheimann.xyz" ]]; then
             echo "::error title=Invalid Kaseki controller URL::Use the approved HTTPS controller URL."
             exit 1
-          }
+          fi
 
-          response_file="$(mktemp)"
-          trap 'rm -f "$response_file"' EXIT
-
-          curl --fail-with-body \
-            --silent \
-            --show-error \
-            --retry 3 \
-            --retry-all-errors \
-            --connect-timeout 10 \
-            --max-time 20 \
-            --output "$response_file" \
-            "$KASEKI_BASE_URL/health"
-
-          jq -e '.status == "healthy"' "$response_file" >/dev/null
+      - name: Verify controller health
+        uses: CyanAutomation/kaseki-agent/.github/actions/verify-controller-health@30db5d15e117b8d8de13eb66766d48cf6b7d618b
+        with:
+          base-url: ${{ vars.KASEKI_BASE_URL }}
 
   readiness:
     name: Kaseki System Readiness
