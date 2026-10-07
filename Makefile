@@ -38,12 +38,11 @@ help:
 	@echo "  make validate-diagrams    Validate Mermaid diagram syntax"
 	@echo ""
 	@echo "Testing:"
-	@echo "  make test             Run all tests with coverage"
+	@echo "  make test             Run all tests"
 	@echo "  make test-frontend    Run frontend JavaScript unit tests"
 	@echo "  make frontend-health  Run frontend tests with Fallow coverage report (Node.js 22+)"
 	@echo "  make test-unit        Run unit tests only"
 	@echo "  make test-integration Run integration tests only"
-	@echo "  make coverage         Generate coverage report"
 	@echo ""
 	@echo "Development:"
 	@echo "  make run-mock         Run Flask app with mock camera"
@@ -166,7 +165,7 @@ validate-diagrams:
 
 # Testing targets
 test: ensure-dev-tools
-	@echo "Running all tests with coverage..."
+	@echo "Running all tests..."
 	$(MAKE) test-frontend
 	$(PYTHON) -m pytest tests/ -v
 
@@ -191,11 +190,6 @@ test-integration: ensure-dev-tools
 test-config: ensure-dev-tools
 	@echo "Running configuration tests..."
 	$(PYTHON) -m pytest tests/test_config.py -v
-
-coverage: ensure-dev-tools
-	@echo "Generating coverage report..."
-	$(PYTHON) -m pytest tests/
-	@echo "Coverage report generated in htmlcov/index.html"
 
 # Development targets
 run-mock:

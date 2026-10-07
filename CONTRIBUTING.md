@@ -97,9 +97,8 @@ make type-check        # Run type checker
 make security          # Run security checks
 
 # Testing
-make test              # Run all tests with coverage
+make test              # Run all tests
 make test-unit         # Run unit tests only
-make coverage          # Generate HTML coverage report
 
 # Development
 make run-mock          # Run Flask app with mock camera

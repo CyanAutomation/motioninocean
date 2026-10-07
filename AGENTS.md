@@ -321,7 +321,7 @@ async function fetchNodeStatus(nodeId, baseUrl, authToken) {
 ### Run Tests
 
 ```bash
-# Run all tests with coverage report
+# Run all tests
 make test
 
 # Run unit tests only
@@ -329,12 +329,7 @@ make test-unit
 
 # Run integration tests only
 make test-integration
-
-# Generate HTML coverage report
-make coverage
 ```
-
-Coverage reports at: [htmlcov/index.html](htmlcov/index.html)
 
 ### Test Structure
 

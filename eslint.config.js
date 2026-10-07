@@ -19,7 +19,6 @@ export default [
       "__pycache__/",
       ".venv/",
       "test_env/",
-      "coverage/",
       "pi_camera_in_docker/static/js/app.js",
       "pi_camera_in_docker/static/js/**/*.js",
     ],
