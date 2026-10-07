@@ -22,7 +22,7 @@ pytest-mock==3.16.0
 ruff==0.16.10
 
 # Code coverage
-coverage==7.16.1
+coverage==7.16.2
 
 # Type checking
 mypy==2.4.0
