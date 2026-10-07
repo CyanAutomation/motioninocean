@@ -183,7 +183,10 @@ def test_create_app_from_env_applies_resolution_and_fps_env(monkeypatch, tmp_pat
 
 
 def test_feature_flags_endpoint_excludes_octoprint_compatibility(monkeypatch, tmp_path):
-    """Feature flags API should expose only runtime-registered flags."""
+    """Feature flags API exposes only runtime-registered flags.
+
+    Traceability: docs/product/PRD-backend.md#4-environment-driven-configuration-p1.
+    """
     import importlib
     import sys
 

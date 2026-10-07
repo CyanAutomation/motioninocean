@@ -38,6 +38,22 @@ def _markdown_links(markdown: str) -> list[str]:
     return re.findall(r"(?<!!)\[[^\]]+\]\(([^)]+)\)", markdown)
 
 
+def _install_recording_python(tmp_path: Path, executable_name: str) -> tuple[Path, Path]:
+    executable = tmp_path / executable_name
+    capture_path = tmp_path / "python-invocation.txt"
+    executable.write_text(
+        "#!/bin/sh\n"
+        "{\n"
+        '  printf "MIO_MOCK_CAMERA=%s\\n" "$MIO_MOCK_CAMERA"\n'
+        '  printf "FLASK_ENV=%s\\n" "$FLASK_ENV"\n'
+        '  printf "%s\\n" "$@"\n'
+        f'}} > "{capture_path}"\n',
+        encoding="utf-8",
+    )
+    executable.chmod(0o755)
+    return executable, capture_path
+
+
 def test_every_skill_has_required_metadata_and_sections() -> None:
     required_metadata = {
         "name",
@@ -169,16 +185,56 @@ def test_diagram_validation_inputs_exist_and_failures_propagate(tmp_path: Path) 
     assert failure.returncode != 0, "Renderer errors must fail diagram validation"
 
 
-def test_run_mock_uses_the_canonical_flag_environment() -> None:
-    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
-    recipe = makefile.split("run-mock:\n", 1)[1].split("\n\n", 1)[0]
-    assert "MIO_MOCK_CAMERA=true" in recipe
+def test_run_mock_invokes_application_with_mock_flag(tmp_path: Path) -> None:
+    """The documented mock-run command invokes the app with the mock flag enabled.
+
+    Traceability: AGENTS.md#local-development-mock-camera.
+    """
+    _executable, capture_path = _install_recording_python(tmp_path, "python3")
+    test_env = os.environ.copy()
+    test_env["PATH"] = f"{tmp_path}{os.pathsep}{test_env['PATH']}"
+    test_env["FAKE_PYTHON_CAPTURE"] = str(capture_path)
+
+    result = subprocess.run(
+        ["make", "run-mock"],
+        cwd=REPO_ROOT,
+        env=test_env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert capture_path.read_text(encoding="utf-8").splitlines() == [
+        "MIO_MOCK_CAMERA=true",
+        "FLASK_ENV=development",
+        "pi_camera_in_docker/main.py",
+    ]
 
 
-def test_feature_flag_check_uses_selected_python_interpreter() -> None:
-    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
-    recipe = makefile.split("check-feature-flag-usage:\n", 1)[1].split("\n\n", 1)[0]
-    assert "$(PYTHON) -m pi_camera_in_docker.feature_flag_usage_check" in recipe
+def test_feature_flag_check_uses_selected_python_interpreter(tmp_path: Path) -> None:
+    """The Make target runs the feature-flag check through the selected interpreter.
+
+    Traceability: AGENTS.md#running-ci-locally.
+    """
+    executable, capture_path = _install_recording_python(tmp_path, "selected-python")
+    test_env = os.environ.copy()
+    test_env["FAKE_PYTHON_CAPTURE"] = str(capture_path)
+
+    result = subprocess.run(
+        ["make", "check-feature-flag-usage", f"PYTHON={executable}"],
+        cwd=REPO_ROOT,
+        env=test_env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert capture_path.read_text(encoding="utf-8").splitlines()[2:] == [
+        "-m",
+        "pi_camera_in_docker.feature_flag_usage_check",
+    ]
 
 
 def test_docs_check_uses_selected_python_and_propagates_build_failure(tmp_path: Path) -> None:

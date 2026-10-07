@@ -1,5 +1,6 @@
 """Integration tests for Sentry error tracking integration."""
 
+import logging
 from pathlib import Path
 from unittest import mock
 
@@ -229,8 +230,8 @@ class TestSentryIntegration:
         assert rate == 0.1
 
     def test_sentry_logging_integration_is_configured(self):
-        """LoggingIntegration should be explicitly present in the integrations list."""
-        from sentry_sdk.integrations.logging import LoggingIntegration
+        """Sentry forwards ERROR logs as events and WARNING logs as breadcrumbs."""
+        from sentry_sdk.integrations import logging as sentry_logging
 
         from pi_camera_in_docker.sentry_config import init_sentry
 
@@ -238,9 +239,13 @@ class TestSentryIntegration:
         with (
             mock.patch("sentry_sdk.init") as mock_init,
             mock.patch("sentry_sdk.set_tag"),
+            mock.patch.object(sentry_logging, "LoggingIntegration") as mock_logging,
         ):
             init_sentry(test_dsn, "webcam")
-            call_kwargs = mock_init.call_args[1]
-            integrations = call_kwargs["integrations"]
-            logging_integrations = [i for i in integrations if isinstance(i, LoggingIntegration)]
-            assert logging_integrations, "LoggingIntegration not found in integrations list"
+
+        mock_init.assert_called_once()
+        assert mock_logging.return_value in mock_init.call_args.kwargs["integrations"]
+        mock_logging.assert_called_once_with(
+            level=logging.WARNING,
+            event_level=logging.ERROR,
+        )

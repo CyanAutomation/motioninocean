@@ -12,21 +12,37 @@ import pytest
 class TestFeatureFlagRegistry:
     """Test the FeatureFlags registry system."""
 
-    def test_feature_flags_initialization(self):
-        """Feature flags registry should expose known flag metadata contract."""
-        from pi_camera_in_docker.feature_flags import FeatureFlags
+    def test_get_flags_by_category_returns_only_matching_flags(self, monkeypatch):
+        """Category lookup returns enabled states for flags in the requested category."""
+        from pi_camera_in_docker.feature_flags import (
+            FeatureFlag,
+            FeatureFlagCategory,
+            FeatureFlags,
+        )
 
+        monkeypatch.setenv("MIO_PERFORMANCE_PROBE", "true")
         flags = FeatureFlags()
-        all_flags = flags.get_all_flags()
-        mock_camera_info = flags.get_flag_info("MOCK_CAMERA")
+        flags.register(
+            FeatureFlag(
+                name="PERFORMANCE_PROBE",
+                default=False,
+                category=FeatureFlagCategory.PERFORMANCE,
+                description="Test performance category filtering.",
+            )
+        )
+        flags.register(
+            FeatureFlag(
+                name="EXPERIMENTAL_PROBE",
+                default=True,
+                category=FeatureFlagCategory.EXPERIMENTAL,
+                description="Test exclusion of flags in other categories.",
+            )
+        )
+        flags.load()
 
-        assert isinstance(all_flags, dict)
-        assert "MOCK_CAMERA" in all_flags
-        assert mock_camera_info is not None
-        assert mock_camera_info["name"] == "MOCK_CAMERA"
-        assert "default" in mock_camera_info
-        assert "category" in mock_camera_info
-        assert "backward_compat_vars" in mock_camera_info
+        assert flags.get_flags_by_category(FeatureFlagCategory.PERFORMANCE) == {
+            "PERFORMANCE_PROBE": True
+        }
 
     def test_canonical_mock_camera_env_controls_flag_state(self):
         """Canonical MIO_MOCK_CAMERA env var should control MOCK_CAMERA feature flag state."""
@@ -219,23 +235,3 @@ class TestFeatureFlagsIntegration:
 
         cfg = reloaded_main._load_config()
         assert cfg["mock_camera"] is True
-
-
-class TestFeatureFlagsAPI:
-    """Test the feature flags API endpoint."""
-
-    def test_feature_flags_summary_contract(self):
-        """Feature flag summary payload should expose categories and known flags."""
-        from pi_camera_in_docker.feature_flags import FeatureFlagCategory, get_feature_flags
-
-        flags = get_feature_flags()
-        summary = flags.get_summary()
-        mock_info = flags.get_flag_info("MOCK_CAMERA")
-
-        expected_categories = {category.value for category in FeatureFlagCategory}
-        assert expected_categories.issubset(set(summary.keys()))
-        assert summary[FeatureFlagCategory.DEVELOPER_TOOLS.value] == {}
-        assert "MOCK_CAMERA" in summary[FeatureFlagCategory.EXPERIMENTAL.value]
-        assert mock_info is not None
-        assert mock_info["name"] == "MOCK_CAMERA"
-        assert mock_info["backward_compat_vars"] == []

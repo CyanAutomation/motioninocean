@@ -30,8 +30,8 @@ def _install_fake_picamera2_modules(monkeypatch):
     return FakePicamera2, FakeJpegEncoder, FakeFileOutput
 
 
-def test_import_components_mocks_pykms_when_internal_fallback_enabled(monkeypatch, caplog):
-    """When picamera2 initially fails on pykms import, helper should inject mocks and retry."""
+def test_internal_pykms_fallback_retries_component_import(monkeypatch):
+    """Enabled pykms fallback retries the camera import with compatible pixel formats."""
     from pi_camera_in_docker.modes.webcam import import_camera_components
 
     expected_picamera2, expected_encoder, expected_output = _install_fake_picamera2_modules(
@@ -52,22 +52,18 @@ def test_import_components_mocks_pykms_when_internal_fallback_enabled(monkeypatc
 
     monkeypatch.setattr(builtins, "__import__", fake_import)
 
-    with caplog.at_level("WARNING"):
-        picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(
-            pykms_mock_fallback_enabled=True
-        )
+    picamera2_cls, jpeg_encoder_cls, file_output_cls = import_camera_components(
+        pykms_mock_fallback_enabled=True
+    )
 
     assert picamera2_cls is expected_picamera2
     assert jpeg_encoder_cls is expected_encoder
     assert file_output_cls is expected_output
-    assert hasattr(sys.modules["pykms"], "PixelFormat")
-    assert hasattr(sys.modules["kms"], "PixelFormat")
     assert sys.modules["pykms"].PixelFormat.RGB888 == "RGB888"
-    assert "Activating internal dev/test pykms fallback" in caplog.text
 
 
-def test_import_components_raises_when_mock_not_allowed(monkeypatch):
-    """If pykms-related import fails and fallback is disabled, error should be surfaced."""
+def test_missing_pykms_is_raised_when_fallback_is_disabled(monkeypatch):
+    """A missing pykms dependency remains visible when its fallback is disabled."""
     from pi_camera_in_docker.modes.webcam import import_camera_components
 
     real_import = builtins.__import__

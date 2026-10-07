@@ -232,6 +232,16 @@ sequenceDiagram
 ```
 
 **Resilience:** Announcements repeat (not one-shot); failures are retried on next cycle.
+Retries use exponential backoff with bounded scheduling jitter from 0 to
+`min(2 seconds, 25% of the current backoff)`, reducing synchronized retry bursts
+without adding unbounded delay.
+
+### API Request Limits (P2)
+
+Discovery announcements are limited to 10 requests per client per minute. Requests
+above the limit return HTTP 429 with a `RATE_LIMITED` error and a `Retry-After`
+header. This protects the management hub from repeated registration traffic while
+allowing periodic webcam announcements.
 
 ### Endpoints
 

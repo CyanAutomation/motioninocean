@@ -71,17 +71,11 @@ class TestOpenAPISpec:
         """The runtime endpoint serves the version-controlled JSON source of truth."""
         client = _new_management_client(monkeypatch, tmp_path)
         expected = json.loads((workspace_root / "docs" / "openapi.json").read_text())
+        actual = client.get("/openapi.json").get_json()
 
-        assert client.get("/openapi.json").get_json() == expected
-
-    def test_openapi_json_info_has_title_and_version(self, monkeypatch, tmp_path):
-        """GET /openapi.json info block includes title and version."""
-        client = _new_management_client(monkeypatch, tmp_path)
-        info = client.get("/openapi.json").get_json()["info"]
-        assert "title" in info
-        assert "version" in info
-        assert info["title"]  # non-empty
-        assert info["version"]  # non-empty
+        assert actual == expected
+        assert actual["info"]["title"]
+        assert actual["info"]["version"]
 
     def test_openapi_json_paths_includes_webcams(self, monkeypatch, tmp_path):
         """GET /openapi.json paths block includes /api/v1/webcams."""

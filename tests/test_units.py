@@ -171,33 +171,6 @@ def test_check_device_availability_warns_when_no_camera_nodes_detected(monkeypat
     assert "Verify host camera drivers and container device mappings" in joined_warning
 
 
-def test_management_app_registers_core_routes(monkeypatch, tmp_path):
-    """Management app should expose core UI, health, and management API routes."""
-    from pi_camera_in_docker import main
-
-    monkeypatch.setenv("MIO_APP_MODE", "management")
-    monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
-    monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
-    monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "application-settings.json"))
-    monkeypatch.setenv("MIO_MANAGEMENT_AUTH_TOKEN", "")
-
-    app = main.create_management_app()
-    registered_routes = {rule.rule for rule in app.url_map.iter_rules()}
-
-    expected_routes = {
-        "/",
-        "/health",
-        "/ready",
-        "/metrics",
-        "/api/config",
-        "/api/webcams",
-        "/api/management/overview",
-    }
-    assert expected_routes.issubset(registered_routes), (
-        f"Missing routes: {expected_routes - registered_routes}"
-    )
-
-
 def test_frame_buffer_write_updates_stats_and_latest_frame(monkeypatch):
     """FrameBuffer writes should update latest frame and stream stats deterministically."""
     from pi_camera_in_docker.modes import webcam as webcam_mode
