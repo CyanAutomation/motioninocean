@@ -120,39 +120,7 @@ addopts = [
     "-v",
     "--strict-markers",
     "--tb=short",
-    "--cov=pi_camera_in_docker",
-    "--cov-report=term-missing",
-    "--cov-report=html",
 ]
-
-[tool.coverage.run]
-# Coverage configuration
-source = ["pi_camera_in_docker"]
-omit = [
-    "*/tests/*",
-    "*/__pycache__/*",
-    "*/venv/*",
-    "*/.venv/*",
-]
-
-[tool.coverage.report]
-# Coverage reporting
-precision = 2
-show_missing = true
-skip_covered = false
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
-]
-
-[tool.coverage.html]
-directory = "htmlcov"
 
 [tool.bandit]
 # Bandit security linter configuration

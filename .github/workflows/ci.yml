@@ -69,16 +69,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
 
-      - name: Run tests with coverage
+      - name: Run tests
         run: |
           python -m pytest tests/ -v
-
-      - name: Archive coverage report
-        if: matrix.python-version == '3.11'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: coverage-report
-          path: htmlcov/
 
   runtime-dependency-resolution:
     name: Resolve default and optional runtime packages ${{ matrix.python-version }} / ${{ matrix.platform }}

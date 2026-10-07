@@ -15,14 +15,10 @@ setuptools==84.0.0
 
 # Testing framework
 pytest==9.1.1
-pytest-cov==7.1.0
 pytest-mock==3.16.0
 
 # Code quality tools
 ruff==0.16.10
-
-# Code coverage
-coverage==7.16.2
 
 # Type checking
 mypy==2.4.0
