@@ -22,6 +22,7 @@ from pi_camera_in_docker.config_validator import (
     validate_discovery_config,
     validate_settings_patch,
 )
+from pi_camera_in_docker.rate_limiter import InMemoryRateLimiter
 
 
 class TestConfigValidator:
@@ -131,24 +132,16 @@ class TestConfigValidator:
 class TestRateLimiting:
     """Tests for API rate limiting (1.4)"""
 
-    def test_rate_limiting_applies_expected_limits_to_management_routes(self, tmp_path):
-        """register_management_routes should apply route-specific limits when limiter is provided."""
+    def test_discovery_announcements_are_limited_to_ten_per_minute(self, tmp_path):
+        """A discovery client receives 429 after the per-minute announcement quota.
 
+        Traceability: docs/product/PRD-backend.md#api-request-limits-p2.
+        """
         from pi_camera_in_docker.management_api import register_management_routes
 
-        class RecordingLimiter:
-            def __init__(self):
-                self.applied_limits = []
-
-            def limit(self, limit_str):
-                def decorator(func):
-                    self.applied_limits.append((func.__name__, limit_str))
-                    return func
-
-                return decorator
-
+        now = [100.0]
         app = Flask(__name__)
-        limiter = RecordingLimiter()
+        limiter = InMemoryRateLimiter(clock=lambda: now[0], key_func=lambda: "discovery-client")
         register_management_routes(
             app=app,
             registry_path=str(tmp_path / "node-registry.json"),
@@ -157,12 +150,21 @@ class TestRateLimiting:
             limiter=limiter,
         )
 
-        applied = dict(limiter.applied_limits)
-        assert applied.get("announce_webcam") == "10/minute"
-        assert applied.get("list_webcams") == "1000/minute"
-        assert applied.get("webcam_status") == "1000/minute"
-        assert "100/minute" in applied.values()
-        assert len(limiter.applied_limits) >= 8
+        client = app.test_client()
+        headers = {"Authorization": "Bearer discovery-secret"}
+        url = "/api/v1/discovery/announce"
+
+        for _ in range(10):
+            response = client.post(url, headers=headers, json={})
+            assert response.status_code == 400
+
+        limited = client.post(url, headers=headers, json={})
+        assert limited.status_code == 429
+        assert limited.get_json()["error"] == "RATE_LIMITED"
+        assert limited.headers["Retry-After"] == "60"
+
+        now[0] = 161.0
+        assert client.post(url, headers=headers, json={}).status_code == 400
 
 
 class TestConfigValidationHints:

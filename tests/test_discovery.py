@@ -445,14 +445,23 @@ def test_discovery_run_loop_unexpected_exception_continues_with_backoff(monkeypa
     assert str(captured_exceptions[0]) == "boom"
 
 
-def test_discovery_run_loop_adds_scheduling_jitter_to_backoff(monkeypatch):
-    """Retry wait combines backoff with fixed, non-security scheduling jitter."""
+@pytest.mark.parametrize(
+    ("interval_seconds", "expected_max_jitter"),
+    [(4, 1.0), (10, 2.0)],
+)
+def test_discovery_retry_jitter_stays_within_the_backoff_bound(
+    monkeypatch, interval_seconds, expected_max_jitter
+):
+    """Retry jitter is bounded to reduce synchronized announcements without long delays.
+
+    Traceability: docs/product/PRD-backend.md#discovery-sequence-flow.
+    """
     from pi_camera_in_docker.discovery import DiscoveryAnnouncer
 
     announcer = DiscoveryAnnouncer(
         management_url="http://127.0.0.1:8001",
         token="token",
-        interval_seconds=10,
+        interval_seconds=interval_seconds,
         webcam_id="node-scheduling-jitter",
         payload={"webcam_id": "node-scheduling-jitter"},
         shutdown_event=threading.Event(),
@@ -463,15 +472,20 @@ def test_discovery_run_loop_adds_scheduling_jitter_to_backoff(monkeypatch):
         wait_calls.append(wait_seconds)
         return len(wait_calls) >= 2
 
-    jitter = 1.25
+    jitter_bounds = []
+
+    def max_jitter(lower: float, upper: float) -> float:
+        jitter_bounds.append((lower, upper))
+        return upper
+
     monkeypatch.setattr(announcer, "_wait_for_next_attempt", fake_wait_for_next_attempt)
     monkeypatch.setattr(announcer, "_announce_once", lambda: False)
-    monkeypatch.setattr("pi_camera_in_docker.discovery.random.uniform", lambda _a, _b: jitter)
+    monkeypatch.setattr("pi_camera_in_docker.discovery.random.uniform", max_jitter)
 
     announcer._run_loop()
 
-    backoff_seconds = 10.0
-    assert wait_calls == [0.0, backoff_seconds + jitter]
+    assert jitter_bounds == [(0.0, expected_max_jitter)]
+    assert wait_calls == [0.0, interval_seconds + expected_max_jitter]
 
 
 def test_discovery_announcer_restart_does_not_reset_app_shutdown_event(monkeypatch):
