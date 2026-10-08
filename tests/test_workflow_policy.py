@@ -118,12 +118,14 @@ def test_kaseki_workflows_check_api_capabilities_and_preflight(workspace_root):
             step for step in steps if step.get("name") == "Verify Kaseki runner preflight"
         )
 
-        assert "$KASEKI_BASE_URL/api/capabilities" in capabilities["run"]
+        # Kaseki mounts its public API under /api/v1; only health/readiness
+        # probes remain at the root.
+        assert "$KASEKI_BASE_URL/api/v1/capabilities" in capabilities["run"]
         assert 'index("patch")' in capabilities["run"]
         assert 'index("pr")' in capabilities["run"]
         assert capabilities["env"]["KASEKI_API_TOKEN"] == "${{ secrets.KASEKI_API_TOKEN }}"
 
-        assert "$KASEKI_BASE_URL/api/preflight" in preflight["run"]
+        assert "$KASEKI_BASE_URL/api/v1/preflight" in preflight["run"]
         assert ".failedChecks" in preflight["run"]
         assert ".errors" in preflight["run"]
         assert preflight["env"]["KASEKI_API_TOKEN"] == "${{ secrets.KASEKI_API_TOKEN }}"

@@ -185,7 +185,7 @@ jobs:
               --output "$response_file" \
               --write-out '%{http_code}' \
               --header "Authorization: Bearer $KASEKI_API_TOKEN" \
-              "$KASEKI_BASE_URL/api/capabilities"
+              "$KASEKI_BASE_URL/api/v1/capabilities"
           )"
 
           if [[ "$http_status" != "200" ]]; then
@@ -219,7 +219,7 @@ jobs:
               --output "$response_file" \
               --write-out '%{http_code}' \
               --header "Authorization: Bearer $KASEKI_API_TOKEN" \
-              "$KASEKI_BASE_URL/api/preflight"
+              "$KASEKI_BASE_URL/api/v1/preflight"
           )"
 
           preflight_status="$(jq -r '.status // "unknown"' "$response_file" 2>/dev/null || true)"
