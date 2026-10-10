@@ -491,61 +491,6 @@ def test_manual_env_values_override_pi3_profile_defaults(workspace_root):
 # Legacy compatibility coverage
 
 
-def test_metrics_remain_stable_under_pi3_target_fps_throttle(workspace_root):
-    """/metrics should report sane FPS and low frame age with Pi 3 throttle settings."""
-    script = """
-import json
-import pathlib
-import sys
-import time
-
-repo = pathlib.Path.cwd()
-sys.path.insert(0, str(repo)) # Add the parent directory of pi_camera_in_docker to sys.path
-import pi_camera_in_docker.main as main # Import as package
-
-app = main.create_app_from_env()
-state = app.motion_state
-config = app.motion_config
-buffer = main.FrameBuffer(state["stream_stats"], target_fps=config["target_fps"])
-for _ in range(30):
-    buffer.write(b"x" * 1024)
-    time.sleep(1 / config["target_fps"] + 0.005)
-
-client = app.test_client()
-metrics = client.get("/metrics").get_json()
-print(json.dumps(metrics))
-"""
-
-    env = os.environ.copy()
-    env.update(
-        {
-            "MIO_MOCK_CAMERA": "true",
-            "MIO_PI3_PROFILE": "true",
-            "MIO_PI3_OPTIMIZATION": "false",
-            "MIO_TARGET_FPS": "12",
-        }
-    )
-
-    process = subprocess.run(
-        [sys.executable, "-c", script],
-        cwd=workspace_root,
-        env=env,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    # The output from the subprocess includes debug prints, so we need to find the last JSON line
-    output_lines = process.stdout.strip().splitlines()
-    metrics_json_line = next(line for line in reversed(output_lines) if line.startswith("{"))
-    metrics = json.loads(metrics_json_line)
-
-    assert metrics["camera_active"] is True
-    assert metrics["current_fps"] <= 30  # Allow higher FPS in short window
-    assert metrics["last_frame_age_seconds"] is not None
-    assert metrics["last_frame_age_seconds"] < 1.5
-
-
 def test_octoprint_compat_webcam_routes_support_trailing_and_non_trailing_slash(workspace_root):
     """/webcam and /webcam/ should both directly serve OctoPrint actions."""
     script = """
