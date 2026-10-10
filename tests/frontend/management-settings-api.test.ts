@@ -39,11 +39,12 @@ test("describeManagementApiError preserves nested messages and handles malformed
 });
 
 test("fetchManagementSettings loads settings and optional override data concurrently", async () => {
-  const requested = [];
-  const fetcher = async (path) => {
+  const requested: string[] = [];
+  const fetcher: Parameters<typeof fetchManagementSettings>[0] = async (path) => {
     requested.push(path);
     return {
       ok: true,
+      status: 200,
       json: async () => (path.endsWith("/changes") ? { overridden: [] } : { discovery: {} }),
     };
   };
@@ -56,12 +57,13 @@ test("fetchManagementSettings loads settings and optional override data concurre
 
 test("fetchManagementSettings rejects a failed settings response and tolerates failed overrides", async () => {
   await assert.rejects(
-    fetchManagementSettings(async () => ({ ok: false })),
+    fetchManagementSettings(async () => ({ ok: false, status: 500, json: async () => ({}) })),
     /Could not load settings/,
   );
 
   const result = await fetchManagementSettings(async (path) => ({
     ok: !path.endsWith("/changes"),
+    status: path.endsWith("/changes") ? 503 : 200,
     json: async () => ({ discovery: { discovery_enabled: true } }),
   }));
   assert.equal(result.changes, undefined);
@@ -69,10 +71,10 @@ test("fetchManagementSettings rejects a failed settings response and tolerates f
 
 test("saveManagementSettings distinguishes restart, success, server failure, and network failure", async () => {
   const patch = { discovery: { discovery_enabled: true } };
-  const createResponse = (status, payload) => ({
+  const createResponse = (status: number, payload: unknown) => ({
     status,
     ok: status >= 200 && status < 300,
-    json: async () => payload,
+    json: async (): Promise<unknown> => payload,
   });
 
   assert.deepEqual(

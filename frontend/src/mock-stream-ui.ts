@@ -1,14 +1,23 @@
 export interface MockStreamElements {
-  videoStream: HTMLElement | null;
-  mockStreamPlaceholder: HTMLElement | null;
-  mockStreamAnimation: HTMLElement | null;
-  refreshBtn: HTMLElement | null;
-  fullscreenBtn: HTMLElement | null;
+  videoStream:
+    | (Pick<HTMLElement, "setAttribute"> & {
+        style: Pick<CSSStyleDeclaration, "opacity" | "filter">;
+      })
+    | null;
+  mockStreamPlaceholder: Pick<HTMLElement, "hidden"> | null;
+  mockStreamAnimation: {
+    classList: { toggle(name: string, force?: boolean): boolean | void };
+    getAttribute: Pick<HTMLElement, "getAttribute">["getAttribute"];
+    removeAttribute: Pick<HTMLElement, "removeAttribute">["removeAttribute"];
+    setAttribute: Pick<HTMLElement, "setAttribute">["setAttribute"];
+  } | null;
+  refreshBtn: Pick<HTMLElement, "title"> | null;
+  fullscreenBtn: Pick<HTMLElement, "title"> | null;
 }
 
 export interface MockStreamContext {
   elements: MockStreamElements;
-  document: Pick<Document, "getElementById">;
+  document: { getElementById(id: string): Pick<HTMLElement, "title"> | null };
   setConnectionStatus: (status: string, message: string) => void;
 }
 
@@ -49,14 +58,16 @@ function updatePlaceholder(elements: MockStreamElements, isMockModeActive: boole
   if (isMockModeActive) restartEmbeddedAnimation(animation);
 }
 
-function restartEmbeddedAnimation(animation: HTMLElement): void {
+function restartEmbeddedAnimation(
+  animation: NonNullable<MockStreamElements["mockStreamAnimation"]>,
+): void {
   const source = animation.getAttribute("data");
   if (!source) return;
   animation.removeAttribute("data");
   animation.setAttribute("data", source);
 }
 
-function updateVideo(video: HTMLElement | null, isMockModeActive: boolean): void {
+function updateVideo(video: MockStreamElements["videoStream"], isMockModeActive: boolean): void {
   if (!video) return;
   video.style.opacity = isMockModeActive ? "0.2" : "1";
   video.style.filter = isMockModeActive ? "grayscale(1)" : "none";
@@ -74,7 +85,7 @@ function updateControlTitles(
   setTitle(context.document.getElementById("vc-fullscreen-btn"), fullscreenTitle);
 }
 
-function setTitle(element: HTMLElement | null, title: string): void {
+function setTitle(element: MockStreamElements["refreshBtn"], title: string): void {
   if (element) element.title = title;
 }
 

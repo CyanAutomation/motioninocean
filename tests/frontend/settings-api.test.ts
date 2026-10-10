@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { saveSettingsPatch } from "../../frontend/src/settings-api.ts";
 
-function response(status, body) {
+function response(status: number, body: unknown): Pick<Response, "status" | "json"> {
   return {
     status,
     json: async () => body,
@@ -11,7 +11,7 @@ function response(status, body) {
 
 test("saveSettingsPatch classifies saved and restart-required responses", async () => {
   const patch = { camera: { fps: 24 } };
-  const fetcher = async (_url, options) => {
+  const fetcher: Parameters<typeof saveSettingsPatch>[0] = async (_url, options) => {
     assert.equal(options.method, "PATCH");
     assert.deepEqual(JSON.parse(options.body), patch);
     return response(200, { settings: { camera: { fps: 24 } } });
@@ -63,7 +63,7 @@ test("saveSettingsPatch formats validation errors and rejects unexpected statuse
 });
 
 test("saveSettingsPatch handles malformed JSON for each supported response", async () => {
-  const malformedResponse = (status) => ({
+  const malformedResponse = (status: number): Pick<Response, "status" | "json"> => ({
     status,
     json: async () => {
       throw new SyntaxError("Unexpected token");

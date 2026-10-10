@@ -1,8 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { runConfigUpdate } from "../../frontend/src/config-update.ts";
+import {
+  runConfigUpdate,
+  type ConfigUpdateDependencies,
+  type ConfigUpdateState,
+} from "../../frontend/src/config-update.ts";
 
-function createState(overrides = {}) {
+function createState(overrides: Partial<ConfigUpdateState> = {}): ConfigUpdateState {
   return {
     configInFlight: false,
     configInitialLoadPending: false,
@@ -12,29 +16,48 @@ function createState(overrides = {}) {
   };
 }
 
-function createDependencies(overrides = {}) {
-  const calls = { rendered: [], errors: [], warnings: [], logged: [], cleared: 0 };
+function createDependencies(overrides: Partial<ConfigUpdateDependencies> = {}) {
+  const calls: {
+    rendered: unknown[];
+    errors: string[];
+    warnings: string[];
+    logged: Array<[string, unknown]>;
+    cleared: number;
+  } = { rendered: [], errors: [], warnings: [], logged: [], cleared: 0 };
   const classes = new Set(["hidden"]);
   const dependencies = {
     isActive: true,
     loadingElement: {
-      classList: { add: (name) => classes.add(name), remove: (name) => classes.delete(name) },
+      classList: {
+        add: (...names: string[]) => {
+          names.forEach((name) => classes.add(name));
+        },
+        remove: (...names: string[]) => {
+          names.forEach((name) => classes.delete(name));
+        },
+      },
     },
     fetchConfig: async () => ({ stream: { fps: 24 } }),
-    renderConfig: (data) => calls.rendered.push(data),
+    renderConfig: (data: unknown) => {
+      calls.rendered.push(data);
+    },
     clearConfigDisplay: () => {
       calls.cleared += 1;
     },
-    showConfigError: (message) => calls.errors.push(message),
-    logger: {
-      warn: (message) => calls.warnings.push(message),
-      error: (...args) => calls.logged.push(args),
+    showConfigError: (message: string) => {
+      calls.errors.push(message);
     },
-    classes,
-    calls,
+    logger: {
+      warn: (message: string) => {
+        calls.warnings.push(message);
+      },
+      error: (message: string, error: unknown) => {
+        calls.logged.push([message, error]);
+      },
+    },
     ...overrides,
   };
-  return dependencies;
+  return Object.assign(dependencies, { classes, calls });
 }
 
 test("runConfigUpdate skips inactive and already-running refreshes", async () => {
@@ -45,9 +68,9 @@ test("runConfigUpdate skips inactive and already-running refreshes", async () =>
 });
 
 test("runConfigUpdate renders success, timestamps it, and cleans up delayed loading", async () => {
-  let resolveConfig;
-  let showLoading;
-  const cancelledTimers = [];
+  let resolveConfig: ((value: unknown) => void) | undefined;
+  let showLoading: (() => void) | undefined;
+  const cancelledTimers: Array<ReturnType<typeof setTimeout> | number> = [];
   const state = createState({ configInitialLoadPending: true });
   const dependencies = createDependencies({
     schedule: (callback) => {
@@ -64,9 +87,11 @@ test("runConfigUpdate renders success, timestamps it, and cleans up delayed load
 
   assert.equal(state.configInFlight, true);
   assert.equal(state.configLoadingDelayTimer, 1);
+  assert.ok(showLoading);
   showLoading();
   assert.equal(state.configLoadingVisible, true);
   assert.equal(dependencies.classes.has("hidden"), false);
+  assert.ok(resolveConfig);
   resolveConfig({ stream: { fps: 30 } });
   await update;
 

@@ -1,25 +1,26 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { loadSetupTemplates } from "../../frontend/src/setup-load.ts";
+import { loadSetupTemplates, type SetupLoadDependencies } from "../../frontend/src/setup-load.ts";
 
-function createCallbacks(overrides = {}) {
-  const calls = [];
-  return {
-    calls,
-    dependencies: {
-      panelAvailable: true,
-      fetchTemplates: async () => ({ current_config: { camera: {} } }),
-      setLoading: (isLoading) => calls.push(["loading", isLoading]),
-      applyTemplates: (data) => calls.push(["data", data]),
-      isInitialized: () => false,
-      initializeEventListeners: () => calls.push(["initialize"]),
-      setWizardStep: () => calls.push(["step"]),
-      setStatus: (status) => calls.push(["status", status]),
-      onError: (error) => calls.push(["error", error.message]),
-      logger: { error: (message, error) => calls.push(["log", message, error.message]) },
-      ...overrides,
+function createCallbacks(overrides: Partial<SetupLoadDependencies> = {}) {
+  const calls: unknown[][] = [];
+  const dependencies: SetupLoadDependencies = {
+    panelAvailable: true,
+    fetchTemplates: async () => ({ current_config: { camera: {} } }),
+    setLoading: (isLoading) => calls.push(["loading", isLoading]),
+    applyTemplates: (data) => calls.push(["data", data]),
+    isInitialized: () => false,
+    initializeEventListeners: () => calls.push(["initialize"]),
+    setWizardStep: () => calls.push(["step"]),
+    setStatus: (status) => calls.push(["status", status]),
+    onError: (error) => calls.push(["error", error instanceof Error ? error.message : error]),
+    logger: {
+      error: (message, error) =>
+        calls.push(["log", message, error instanceof Error ? error.message : error]),
     },
+    ...overrides,
   };
+  return { calls, dependencies };
 }
 
 test("loadSetupTemplates applies fetched state and initializes the wizard", async () => {

@@ -1,20 +1,27 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { showWebcamHelpModal } from "../../frontend/src/webcam-help-modal.ts";
+import {
+  showWebcamHelpModal,
+  type HelpModalPayload,
+  type WebcamHelpModalDependencies,
+} from "../../frontend/src/webcam-help-modal.ts";
 
-function createDependencies(overrides = {}) {
-  const calls = [];
+function createDependencies(overrides: Partial<WebcamHelpModalDependencies> = {}) {
+  const calls: HelpModalPayload[] = [];
+  const dependencies: WebcamHelpModalDependencies = {
+    fetchReadme: async () => ({ content: "# Help" }),
+    openModal: (payload) => {
+      calls.push(payload);
+    },
+    renderMarkdown: (content) => `<article>${content}</article>`,
+    sanitizeHtml: (html) => html,
+    escapeHtml: (value) => String(value),
+    warn: () => {},
+    ...overrides,
+  };
   return {
     calls,
-    dependencies: {
-      fetchReadme: async () => ({ content: "# Help" }),
-      openModal: (payload) => calls.push(payload),
-      renderMarkdown: (content) => `<article>${content}</article>`,
-      sanitizeHtml: (html) => html,
-      escapeHtml: (value) => String(value),
-      warn: () => {},
-      ...overrides,
-    },
+    dependencies,
   };
 }
 
@@ -55,14 +62,16 @@ test("showWebcamHelpModal links to documentation when content is unavailable", a
 });
 
 test("showWebcamHelpModal escapes content when rendering or sanitizing fails", async () => {
-  const warnings = [];
+  const warnings: Array<[string, unknown]> = [];
   const { dependencies, calls } = createDependencies({
     fetchReadme: async () => ({ content: "<script>alert(1)</script>" }),
     renderMarkdown: () => {
       throw new Error("renderer failed");
     },
     escapeHtml: (value) => String(value).replace(/</g, "&lt;").replace(/>/g, "&gt;"),
-    warn: (...args) => warnings.push(args),
+    warn: (message: string, error: unknown) => {
+      warnings.push([message, error]);
+    },
   });
 
   await showWebcamHelpModal(dependencies);

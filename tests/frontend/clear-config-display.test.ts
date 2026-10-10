@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 
-function extractClearConfigDisplay(source) {
+function extractClearConfigDisplay(source: string): string {
   const match = source.match(/function clearConfigDisplay\(\) \{[\s\S]*?\n^}/m);
   if (!match) {
     throw new Error("clearConfigDisplay() definition not found");
@@ -16,7 +16,8 @@ test("clearConfigDisplay only resets dedicated config value nodes", () => {
   try {
     appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
   } catch (error) {
-    throw new Error(`Failed to read app.js: ${error.message}`, { cause: error });
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to read app.js: ${message}`, { cause: error });
   }
   const clearConfigDisplayFn = extractClearConfigDisplay(appJs);
 
@@ -71,11 +72,11 @@ test("clearConfigDisplay only resets dedicated config value nodes", () => {
   };
 
   const structuralBefore = JSON.parse(JSON.stringify(structuralNodes));
-  let selectorUsed = null;
+  let selectorUsed: string | null = null;
 
   const context = {
     document: {
-      querySelectorAll: (selector) => {
+      querySelectorAll: (selector: string) => {
         selectorUsed = selector;
         if (selector === '[data-config-value="true"]') {
           return [targetValueA, targetValueB];

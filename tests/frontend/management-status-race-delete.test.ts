@@ -1,13 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createStatusRefresher } from "../../frontend/src/management-status.ts";
+import { createStatusRefresher, type NodeStatus } from "../../frontend/src/management-status.ts";
 
 test("refreshStatuses discards stale in-flight poll result when webcam dataset changes", async () => {
-  const pendingByNodeId = new Map();
+  const pendingByNodeId = new Map<string, () => void>();
   let nodes = [{ id: "node-a" }, { id: "node-b" }];
   let datasetVersion = 1;
-  let statuses = new Map([["node-a", { status: "ok", stream_available: true }]]);
-  const history = new Map();
+  let statuses = new Map<string, NodeStatus>([
+    ["node-a", { status: "ok", stream_available: true }],
+  ]);
+  const history = new Map<string, NodeStatus>();
   let renderCount = 0;
   const refreshStatuses = createStatusRefresher({
     getNodes: () => nodes,
@@ -18,7 +20,7 @@ test("refreshStatuses discards stale in-flight poll result when webcam dataset c
         Array.from(
           nodeIds,
           (nodeId) =>
-            new Promise((resolve) => {
+            new Promise<[string, NodeStatus]>((resolve) => {
               pendingByNodeId.set(nodeId, () =>
                 resolve([nodeId, { status: "ok", stream_available: true }]),
               );

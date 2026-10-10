@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { asTestDouble } from "./test-doubles.ts";
 
-function extractFunction(source, functionName) {
+function extractFunction(source: string, functionName: string): string {
   const match = source.match(
     new RegExp(`function ${functionName}\\([^)]*\\) \\{[\\s\\S]*?\\n^}`, "m"),
   );
@@ -20,10 +21,10 @@ test("topbar mascot initializes and follows every supported tab", () => {
   const updateMascotForTabFn = extractFunction(appJs, "updateMascotForTab");
 
   const heroImage = { src: "", alt: "" };
-  const elements = new Map([["mio-hero-image", heroImage]]);
+  const elements = new Map<string, typeof heroImage>([["mio-hero-image", heroImage]]);
   const context = {
     DEFAULT_MIO_PATH: "/static/img/mio/default.png",
-    getElementById: (id) => elements.get(id) ?? null,
+    getElementById: (id: string) => elements.get(id) ?? null,
     document: {
       body: {
         dataset: {
@@ -35,7 +36,7 @@ test("topbar mascot initializes and follows every supported tab", () => {
           mioFloating: "/static/img/mio/mio_floating.svg",
         },
       },
-      getElementById(id) {
+      getElementById(id: string) {
         return elements.get(id) ?? null;
       },
       querySelectorAll() {
@@ -49,8 +50,13 @@ test("topbar mascot initializes and follows every supported tab", () => {
 
   vm.runInNewContext(`${cacheElementsFn}\n${getMioAssetsFn}\n${updateMascotForTabFn}`, context);
 
-  assert.doesNotThrow(() => context.cacheElements());
-  assert.equal(context.state.elements.mioHeroImage, heroImage);
+  const evaluatedContext = asTestDouble<{
+    cacheElements(): void;
+    updateMascotForTab(tab: string): void;
+    state: { elements: { mioHeroImage: typeof heroImage } };
+  }>(context);
+  assert.doesNotThrow(() => evaluatedContext.cacheElements());
+  assert.equal(evaluatedContext.state.elements.mioHeroImage, heroImage);
 
   const tabExpectations = [
     ["main", "/static/img/mio/mio_happy.png", "Mio mascot for Stream view"],
@@ -60,7 +66,7 @@ test("topbar mascot initializes and follows every supported tab", () => {
   ];
 
   for (const [tab, expectedSrc, expectedAlt] of tabExpectations) {
-    assert.doesNotThrow(() => context.updateMascotForTab(tab));
+    assert.doesNotThrow(() => evaluatedContext.updateMascotForTab(tab));
     assert.equal(heroImage.src, expectedSrc);
     assert.equal(heroImage.alt, expectedAlt);
   }

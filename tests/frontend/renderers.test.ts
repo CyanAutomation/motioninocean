@@ -5,29 +5,27 @@ import { renderConfig } from "../../frontend/src/config-renderer.ts";
 import { renderMetrics } from "../../frontend/src/metrics-renderer.ts";
 
 function element() {
-  return { textContent: "", dataset: {}, classList: { toggle() {} } };
+  return { textContent: "" };
 }
 
 test("renderMetrics renders connected stream metrics through the supplied dependencies", () => {
   const state = {
-    elements: Object.fromEntries(
-      [
-        "fpsValue",
-        "chipFps",
-        "performanceRiskValue",
-        "uptimeValue",
-        "framesRiskDetail",
-        "lastFrameAgeValue",
-        "lastFrameRiskValue",
-        "maxFrameAgeValue",
-        "maxFrameRiskValue",
-        "streamRiskValue",
-        "resolutionValue",
-        "lastUpdated",
-      ].map((key) => [key, element()]),
-    ),
+    elements: {
+      fpsValue: element(),
+      chipFps: element(),
+      performanceRiskValue: element(),
+      uptimeValue: element(),
+      framesRiskDetail: element(),
+      lastFrameAgeValue: element(),
+      lastFrameRiskValue: element(),
+      maxFrameAgeValue: element(),
+      maxFrameRiskValue: element(),
+      streamRiskValue: element(),
+      resolutionValue: element(),
+      lastUpdated: element(),
+    },
   };
-  const statuses = [];
+  const statuses: Array<["stale" | "connected" | "inactive", string]> = [];
   let resetCalls = 0;
   let increaseCalls = 0;
 
@@ -82,7 +80,8 @@ test("renderConfig renders partial configuration and derives overall health", ()
       formatUptime: (value) => `${value}s`,
       applyMockStreamMode: () => {},
       setHealthIndicator: (id, value) => indicators.set(id, value),
-      normalizeHealthState: (value) => value,
+      normalizeHealthState: (value) =>
+        value === "ok" || value === "warn" || value === "fail" ? value : "unknown",
       healthText: { ok: "OK", warn: "Warning", fail: "Failed", unknown: "Unknown" },
       updateConnectionDisplays: () => {},
     },
@@ -97,7 +96,7 @@ test("renderConfig renders partial configuration and derives overall health", ()
 
 test("renderConfig renders runtime fallback state and optional stream values", () => {
   const values = new Map();
-  const mockModes = [];
+  const mockModes: Array<[boolean, boolean]> = [];
   const state = { streamConnections: { current: "--", max: "--" } };
 
   renderConfig(
@@ -113,7 +112,8 @@ test("renderConfig renders runtime fallback state and optional stream values", (
       formatUptime: () => "unknown",
       applyMockStreamMode: (...args) => mockModes.push(args),
       setHealthIndicator: () => {},
-      normalizeHealthState: (value) => value,
+      normalizeHealthState: (value) =>
+        value === "ok" || value === "warn" || value === "fail" ? value : "unknown",
       healthText: { ok: "OK", warn: "Warning", fail: "Failed", unknown: "Unknown" },
       updateConnectionDisplays: () => {},
     },
@@ -137,7 +137,8 @@ test("renderConfig derives unknown health when no health states are supplied", (
       formatUptime: String,
       applyMockStreamMode: () => {},
       setHealthIndicator: (id, value) => indicators.set(id, value),
-      normalizeHealthState: (value) => value,
+      normalizeHealthState: (value) =>
+        value === "ok" || value === "warn" || value === "fail" ? value : "unknown",
       healthText: { ok: "OK", warn: "Warning", fail: "Failed", unknown: "Unknown" },
       updateConnectionDisplays: () => {},
     },

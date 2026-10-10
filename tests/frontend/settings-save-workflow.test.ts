@@ -1,10 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { runSettingsSaveWorkflow } from "../../frontend/src/settings-save-workflow.ts";
+import {
+  runSettingsSaveWorkflow,
+  type SettingsSaveWorkflowDependencies,
+} from "../../frontend/src/settings-save-workflow.ts";
 
-function createDependencies(overrides = {}) {
-  const calls = [];
-  const dependencies = {
+type TestSettings = { camera: { fps: number } };
+type TestPatch = { camera: { fps: number } };
+type TestDependencies = SettingsSaveWorkflowDependencies<TestSettings, TestPatch>;
+
+function createDependencies(overrides: Partial<TestDependencies> = {}) {
+  const calls: unknown[][] = [];
+  const dependencies: TestDependencies = {
     isDirty: () => true,
     dirtyFieldCount: () => 1,
     getPendingChanges: () => [{ category: "camera", property: "fps", oldValue: 20, newValue: 24 }],
@@ -16,7 +23,9 @@ function createDependencies(overrides = {}) {
     clearDirtyFields: () => calls.push(["clear-dirty"]),
     setUndoState: (snapshot, changes) => calls.push(["undo", snapshot, changes]),
     updateSaveButton: () => calls.push(["update-button"]),
-    refreshChangesSummary: async () => calls.push(["refresh-summary"]),
+    refreshChangesSummary: async () => {
+      calls.push(["refresh-summary"]);
+    },
     showWarning: (message, metadata) => calls.push(["warning", message, metadata]),
     showError: (message, metadata) => calls.push(["error", message, metadata]),
     showSuccess: (message, metadata) => calls.push(["success", message, metadata]),

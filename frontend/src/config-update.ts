@@ -1,14 +1,14 @@
 export interface ConfigUpdateState {
   configInFlight: boolean;
   configInitialLoadPending: boolean;
-  configLoadingDelayTimer: ReturnType<typeof setTimeout> | null;
+  configLoadingDelayTimer: ReturnType<typeof setTimeout> | number | null;
   configLoadingVisible: boolean;
   lastConfigUpdate?: Date | null;
 }
 
 export interface ConfigUpdateDependencies {
   isActive: boolean;
-  loadingElement?: Pick<HTMLElement, "classList"> | null;
+  loadingElement?: { classList: Pick<DOMTokenList, "add" | "remove"> } | null;
   fetchConfig: () => Promise<unknown>;
   renderConfig: (data: unknown) => void;
   clearConfigDisplay: () => void;
@@ -18,8 +18,8 @@ export interface ConfigUpdateDependencies {
     error: (message: string, error: unknown) => void;
   };
   onSuccess?: () => void;
-  schedule?: typeof setTimeout;
-  cancel?: typeof clearTimeout;
+  schedule?: (callback: () => void, delay?: number) => ReturnType<typeof setTimeout> | number;
+  cancel?: (timer: ReturnType<typeof setTimeout> | number) => void;
 }
 
 function isAbortError(error: unknown): boolean {

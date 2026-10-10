@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 import { assertSinglePollingMode } from "../../frontend/src/polling-mode.ts";
+import { asTestDouble } from "./test-doubles.ts";
 
-function extractStartConfigPolling(source) {
+function extractStartConfigPolling(source: string): string {
   const match = source.match(/function startConfigPolling\(\) \{[\s\S]*?\n^}/m);
   if (!match) {
     throw new Error("startConfigPolling() definition not found");
@@ -41,7 +42,7 @@ const pollingModeCases = [
 
 for (const { name, state, valid } of pollingModeCases) {
   test(`assertSinglePollingMode validates ${name}`, () => {
-    const assertionCalls = [];
+    const assertionCalls: Array<{ condition: boolean; message: string }> = [];
     const result = assertSinglePollingMode(state, (condition, message) => {
       assertionCalls.push({ condition, message });
     });
@@ -56,14 +57,17 @@ test("startConfigPolling schedules a single 5s config polling interval", () => {
   const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
   const startConfigPollingFn = extractStartConfigPolling(appJs);
 
-  const setIntervalCalls = [];
+  const setIntervalCalls: Array<{
+    callback: () => Promise<void>;
+    delayMs: number;
+  }> = [];
   const createdInterval = { id: "config-poll-interval" };
   const context = {
-    state: { configPollingInterval: null },
+    state: { configPollingInterval: null as unknown },
     CONFIG_POLL_INTERVAL_MS: 5000,
     updateConfig: () => Promise.resolve(),
     console: { error: () => {} },
-    setInterval: (callback, delayMs) => {
+    setInterval: (callback: () => Promise<void>, delayMs: number) => {
       setIntervalCalls.push({ callback, delayMs });
       return createdInterval;
     },
@@ -71,9 +75,10 @@ test("startConfigPolling schedules a single 5s config polling interval", () => {
 
   vm.runInNewContext(`${startConfigPollingFn};`, context);
 
-  context.startConfigPolling();
-  context.startConfigPolling();
-  context.startConfigPolling();
+  const evaluatedContext = asTestDouble<typeof context & { startConfigPolling(): void }>(context);
+  evaluatedContext.startConfigPolling();
+  evaluatedContext.startConfigPolling();
+  evaluatedContext.startConfigPolling();
 
   assert.equal(setIntervalCalls.length, 1);
   assert.equal(setIntervalCalls[0].delayMs, 5000);

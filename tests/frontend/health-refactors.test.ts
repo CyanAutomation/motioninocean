@@ -1,37 +1,50 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyMockStreamMode } from "../../frontend/src/mock-stream-ui.ts";
-import { setActiveView } from "../../frontend/src/management-navigation.ts";
+import { applyMockStreamMode, type MockStreamContext } from "../../frontend/src/mock-stream-ui.ts";
+import {
+  setActiveView,
+  type ManagementNavigationContext,
+} from "../../frontend/src/management-navigation.ts";
 import {
   renderDiscoveredPanel,
   renderOverviewPanel,
+  type DiscoveredPanelContext,
+  type OverviewPanelContext,
 } from "../../frontend/src/management-renderers.ts";
-import { recordStatusHistory } from "../../frontend/src/management-status.ts";
+import { recordStatusHistory, type NodeStatus } from "../../frontend/src/management-status.ts";
 import { collectSetupConfig } from "../../frontend/src/setup-config.ts";
 import { fetchReadmeContent, renderMarkdownContent } from "../../frontend/src/webcam-help.ts";
 
 function createClassList() {
-  const values = new Set();
+  const values = new Set<string>();
   return {
-    toggle(name, force) {
+    toggle(name: string, force?: boolean) {
       const enabled = force ?? !values.has(name);
-      enabled ? values.add(name) : values.delete(name);
+      if (enabled) values.add(name);
+      else values.delete(name);
+      return enabled;
     },
-    contains(name) {
+    contains(name: string) {
       return values.has(name);
     },
   };
 }
 
 class MockHTMLElement {
+  classList = createClassList();
+  attributes = new Map<string, string>();
+  innerHTML = "";
+  textContent = "";
+  title = "";
+  disabled = false;
+  hidden = false;
+  style = { opacity: "", filter: "" };
+
   constructor() {
     this.classList = createClassList();
-    this.attributes = new Map();
-    this.innerHTML = "";
-    this.textContent = "";
   }
 
-  setAttribute(name, value) {
+  setAttribute(name: string, value: string) {
     this.attributes.set(name, value);
   }
 }
@@ -39,7 +52,7 @@ class MockHTMLElement {
 class MockHTMLButtonElement extends MockHTMLElement {}
 
 test("collectSetupConfig reads defaults and parses wizard inputs", () => {
-  const values = new Map([
+  const values = new Map<string, string>([
     ["setup-resolution", "1280x720"],
     ["setup-fps", "24fps"],
     ["setup-jpeg-quality", "0"],
@@ -51,7 +64,8 @@ test("collectSetupConfig reads defaults and parses wizard inputs", () => {
     ["setup-auth-token", "secret"],
   ]);
   const documentRef = {
-    getElementById: (id) => (values.has(id) ? { value: values.get(id) } : null),
+    getElementById: (id: string) =>
+      values.has(id) ? { nodeType: 1, value: values.get(id) } : null,
   };
   assert.deepEqual(collectSetupConfig(documentRef), {
     resolution: "1280x720",
@@ -80,17 +94,19 @@ test("collectSetupConfig reads defaults and parses wizard inputs", () => {
 });
 
 test("fetchReadmeContent normalizes successful and degraded API responses", async () => {
-  const responses = [
+  const responses: Array<{ ok: boolean; json: () => Promise<unknown> }> = [
     { ok: true, json: async () => ({ content: "# Help", source: "readme" }) },
     {
       ok: false,
       json: async () => ({ status: "degraded", message: "README unavailable" }),
     },
   ];
-  let request;
-  const fetcher = async (...args) => {
-    request = args;
-    return responses.shift();
+  let request: [string, Parameters<typeof fetch>[1]] | undefined;
+  const fetcher = async (input: string, init?: Parameters<typeof fetch>[1]) => {
+    request = [input, init];
+    const response = responses.shift();
+    if (!response) throw new Error("No mock response available");
+    return response;
   };
 
   assert.deepEqual(await fetchReadmeContent(fetcher), {
@@ -147,12 +163,12 @@ test("setActiveView updates selected panels, navigation controls, and the hash",
     railButtons,
     location,
     history: {
-      replaceState: (_state, _title, hash) => {
+      replaceState: (_state: unknown, _title: string, hash: string) => {
         historyUpdates += 1;
         location.hash = hash;
       },
     },
-  };
+  } satisfies ManagementNavigationContext;
 
   setActiveView("discovered", Object.keys(views), context);
   assert.equal(views.discovered.classList.contains("hidden"), false);
@@ -191,8 +207,8 @@ test("renderOverviewPanel displays summary, activity, and actionable node states
       ["b", { error_code: "SSRF_BLOCKED" }],
     ]),
     pendingDiscoveryCount: 1,
-    escapeHtml: (value) => String(value).replace(/</g, "&lt;").replace(/>/g, "&gt;"),
-  };
+    escapeHtml: (value: unknown) => String(value).replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+  } satisfies OverviewPanelContext;
   renderOverviewPanel(context);
 
   assert.equal(total.textContent, "3");
@@ -224,8 +240,8 @@ test("renderDiscoveredPanel selects a visible node and disables decisions when e
     ]),
     snoozedIds: new Set(["node-2"]),
     actionButtons: buttons,
-    escapeHtml: (value) => String(value).replace(/</g, "&lt;").replace(/>/g, "&gt;"),
-  };
+    escapeHtml: (value: unknown) => String(value).replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+  } satisfies DiscoveredPanelContext;
 
   let selectedNodeId = renderDiscoveredPanel(context);
   assert.equal(selectedNodeId, "node-1");
@@ -247,46 +263,60 @@ test("renderDiscoveredPanel selects a visible node and disables decisions when e
 });
 
 test("recordStatusHistory announces initialization, transitions, and recovery", () => {
-  const events = [];
-  const history = new Map();
+  const events: Array<[string] | [string, string]> = [];
+  const history = new Map<string, NodeStatus>();
 
   recordStatusHistory(
     new Map([["node-a", { status: "error", error_code: "DOWN" }]]),
     history,
-    (...args) => events.push(args),
+    (message: string, level?: string) => {
+      if (level) events.push([message, level]);
+      else events.push([message]);
+    },
   );
-  recordStatusHistory(new Map([["node-a", { status: "ok" }]]), history, (...args) =>
-    events.push(args),
-  );
+  recordStatusHistory(new Map([["node-a", { status: "ok" }]]), history, (message, level) => {
+    if (level) events.push([message, level]);
+    else events.push([message]);
+  });
 
   assert.deepEqual(JSON.parse(JSON.stringify(events)), [
     ["node-a status initialized: error."],
     ["node-a status changed to ok."],
     ["node-a recovered.", "success"],
   ]);
-  assert.equal(history.get("node-a").status, "ok");
+  const latestStatus = history.get("node-a");
+  assert.ok(latestStatus);
+  assert.equal(latestStatus.status, "ok");
 });
 
 test("applyMockStreamMode updates stream appearance, controls, animation, and mock status", () => {
-  const toggles = [];
+  const toggles: Array<[string, boolean?]> = [];
   const placeholder = { hidden: true };
-  const animation = {
-    classList: { toggle: (...args) => toggles.push(args) },
+  const animation: NonNullable<MockStreamContext["elements"]["mockStreamAnimation"]> & {
+    attributes: Record<string, string>;
+  } = {
+    classList: {
+      toggle(name: string, force?: boolean) {
+        toggles.push([name, force]);
+      },
+    },
     attributes: { data: "/mock.svg" },
-    getAttribute(name) {
+    getAttribute(name: string) {
       return this.attributes[name] ?? null;
     },
-    removeAttribute(name) {
+    removeAttribute(name: string) {
       delete this.attributes[name];
     },
-    setAttribute(name, value) {
+    setAttribute(name: string, value: string) {
       this.attributes[name] = value;
     },
   };
-  const video = {
-    style: {},
+  const video: NonNullable<MockStreamContext["elements"]["videoStream"]> & {
+    attributes: Record<string, string>;
+  } = {
+    style: { opacity: "", filter: "" },
     attributes: {},
-    setAttribute(name, value) {
+    setAttribute(name: string, value: string) {
       this.attributes[name] = value;
     },
   };
@@ -294,9 +324,9 @@ test("applyMockStreamMode updates stream appearance, controls, animation, and mo
   const fullscreen = { title: "" };
   const compactRefresh = { title: "" };
   const compactFullscreen = { title: "" };
-  const statuses = [];
+  const statuses: Array<[string, string]> = [];
 
-  applyMockStreamMode(true, true, {
+  const context = {
     elements: {
       videoStream: video,
       mockStreamPlaceholder: placeholder,
@@ -305,15 +335,18 @@ test("applyMockStreamMode updates stream appearance, controls, animation, and mo
       fullscreenBtn: fullscreen,
     },
     document: {
-      getElementById: (id) =>
+      getElementById: (id: string) =>
         id === "vc-refresh-btn"
           ? compactRefresh
           : id === "vc-fullscreen-btn"
             ? compactFullscreen
             : null,
     },
-    setConnectionStatus: (...args) => statuses.push(args),
-  });
+    setConnectionStatus: (status: string, message: string) => {
+      statuses.push([status, message]);
+    },
+  } satisfies MockStreamContext;
+  applyMockStreamMode(true, true, context);
 
   assert.equal(placeholder.hidden, false);
   assert.deepEqual(video.style, { opacity: "0.2", filter: "grayscale(1)" });

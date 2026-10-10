@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { generateSetupConfiguration } from "../../frontend/src/setup-generation.ts";
 
-function makeResponse(status, payload) {
+function makeResponse(status: number, payload: unknown): Pick<Response, "ok" | "json"> {
   return {
     ok: status >= 200 && status < 300,
     json: async () => payload,
@@ -10,8 +10,11 @@ function makeResponse(status, payload) {
 }
 
 test("generateSetupConfiguration validates before generating and returns generated contents", async () => {
-  const calls = [];
-  const fetcher = async (path, options) => {
+  const calls: Array<{ path: string; options: { body: string } }> = [];
+  const fetcher: NonNullable<Parameters<typeof generateSetupConfiguration>[1]> = async (
+    path,
+    options,
+  ) => {
     calls.push({ path, options });
     return path.endsWith("/validate")
       ? makeResponse(200, { valid: true })
@@ -34,7 +37,7 @@ test("generateSetupConfiguration validates before generating and returns generat
 });
 
 test("generateSetupConfiguration stops and returns validation errors", async () => {
-  const calls = [];
+  const calls: string[] = [];
   const result = await generateSetupConfiguration({}, async (path) => {
     calls.push(path);
     return makeResponse(200, { valid: false, errors: ["missing camera", "invalid FPS"] });

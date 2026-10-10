@@ -10,7 +10,66 @@ import {
   getDiagnosticSummaryState,
 } from "../../frontend/src/management-diagnostics.ts";
 
-function extractDiagnosticHelpers(source) {
+type ClipboardActions = Parameters<typeof copyDiagnosticReport>[0] & {
+  lastFeedback?: { message: string; isError: boolean };
+};
+
+interface ClassListMock {
+  add(value: string): void;
+  remove(value: string): void;
+  toggle(value: string, force?: boolean): boolean;
+  contains(value: string): boolean;
+}
+
+class MockHTMLElement {
+  hidden = false;
+  classList: ClassListMock;
+  focus = () => {};
+
+  constructor(classList: ClassListMock) {
+    this.classList = classList;
+  }
+}
+
+class MockHTMLInputElement extends MockHTMLElement {
+  checked = false;
+
+  constructor(classList: ClassListMock) {
+    super(classList);
+  }
+}
+
+interface DiagnosticTestContext {
+  HTMLInputElement: typeof MockHTMLInputElement;
+  HTMLElement: typeof MockHTMLElement;
+  escapeHtml(value: unknown): string;
+  asRecord(value: unknown): Record<string, unknown>;
+  latestDiagnosticResult: unknown;
+  diagnosticWebcamId: { textContent: string };
+  diagnosticContext: { textContent: string };
+  diagnosticSummaryBadge: { className: string; textContent: string };
+  diagnosticOverallStatePill: { className: string; textContent: string };
+  diagnosticSummaryInterpretation: { textContent: string };
+  diagnosticSummaryCta: { textContent: string };
+  diagnosticChecksGrid: { innerHTML: string };
+  diagnosticRecommendations: { innerHTML: string };
+  copyDiagnosticReportBtn: { disabled: boolean };
+  diagnosticPanel: MockHTMLElement;
+  diagnosticsAdvancedCheckbox: MockHTMLInputElement;
+  diagnosticsCollapsibleContainer: MockHTMLElement;
+  panelFocus: { called: number };
+  globalThis: Record<string, unknown>;
+  setDiagnosticPanelExpanded(isExpanded: boolean): void;
+  isDiagnosticPanelContentVisible(): boolean;
+  showDiagnosticResults(result: unknown): void;
+  toggleDiagnosticPanelContent(): void;
+  getDiagnosticCheckRows: typeof getDiagnosticCheckRows;
+  getDiagnosticSummaryState: typeof getDiagnosticSummaryState;
+  getDiagnosticSummaryBanner: typeof getDiagnosticSummaryBanner;
+  renderDiagnosticResultsUi: typeof renderDiagnosticResults;
+}
+
+function extractDiagnosticHelpers(source: string): string {
   const start = source.indexOf("function renderDiagnosticRecommendations");
   const end = source.indexOf("\nasync function setDiscoveryApproval", start);
   if (start === -1 || end === -1) {
@@ -19,7 +78,7 @@ function extractDiagnosticHelpers(source) {
   return source.slice(start, end).trim();
 }
 
-function extractDiagnosticToggleHelpers(source) {
+function extractDiagnosticToggleHelpers(source: string): string {
   const start = source.indexOf("function setDiagnosticPanelExpanded");
   const end = source.indexOf("\nfunction updateBaseUrlValidation", start);
   if (start === -1 || end === -1) {
@@ -28,15 +87,19 @@ function extractDiagnosticToggleHelpers(source) {
   return source.slice(start, end).trim();
 }
 
-function buildUiContext() {
+function buildUiContext(): DiagnosticTestContext {
   const panelFocus = { called: 0 };
 
   const makeClassList = () => {
-    const values = new Set();
+    const values = new Set<string>();
     return {
-      add: (value) => values.add(value),
-      remove: (value) => values.delete(value),
-      toggle: (value, force) => {
+      add: (value: string) => {
+        values.add(value);
+      },
+      remove: (value: string) => {
+        values.delete(value);
+      },
+      toggle: (value: string, force?: boolean) => {
         if (force === true) {
           values.add(value);
           return true;
@@ -55,37 +118,24 @@ function buildUiContext() {
         values.add(value);
         return true;
       },
-      contains: (value) => values.has(value),
+      contains: (value: string) => values.has(value),
     };
   };
 
-  class MockHTMLElement {
-    constructor() {
-      this.hidden = false;
-      this.classList = makeClassList();
-    }
-  }
-
-  class MockHTMLInputElement extends MockHTMLElement {
-    constructor() {
-      super();
-      this.checked = false;
-    }
-  }
-
-  const diagnosticsAdvancedCheckbox = new MockHTMLInputElement();
-  const diagnosticsCollapsibleContainer = new MockHTMLElement();
+  const diagnosticsAdvancedCheckbox = new MockHTMLInputElement(makeClassList());
+  const diagnosticsCollapsibleContainer = new MockHTMLElement(makeClassList());
   diagnosticsCollapsibleContainer.hidden = true;
   diagnosticsCollapsibleContainer.classList.add("hidden");
 
-  const diagnosticPanel = new MockHTMLElement();
+  const diagnosticPanel = new MockHTMLElement(makeClassList());
   diagnosticPanel.focus = () => (panelFocus.called += 1);
 
   const context = {
     HTMLInputElement: MockHTMLInputElement,
     HTMLElement: MockHTMLElement,
-    escapeHtml: (value) => String(value),
-    asRecord: (value) => (typeof value === "object" && value !== null ? value : {}),
+    escapeHtml: (value: unknown) => String(value),
+    asRecord: (value: unknown): Record<string, unknown> =>
+      typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {},
     latestDiagnosticResult: null,
     diagnosticWebcamId: { textContent: "" },
     diagnosticContext: { textContent: "" },
@@ -101,9 +151,17 @@ function buildUiContext() {
     diagnosticsCollapsibleContainer,
     panelFocus,
     globalThis: {},
+    setDiagnosticPanelExpanded: (_isExpanded: boolean) => {},
+    isDiagnosticPanelContentVisible: () => false,
+    showDiagnosticResults: () => {},
+    toggleDiagnosticPanelContent: () => {},
+    getDiagnosticCheckRows,
+    getDiagnosticSummaryState,
+    getDiagnosticSummaryBanner,
+    renderDiagnosticResultsUi: renderDiagnosticResults,
   };
 
-  context.setDiagnosticPanelExpanded = (isExpanded) => {
+  context.setDiagnosticPanelExpanded = (isExpanded: boolean) => {
     context.diagnosticsAdvancedCheckbox.checked = isExpanded;
     context.diagnosticsCollapsibleContainer.hidden = !isExpanded;
     context.diagnosticsCollapsibleContainer.classList.toggle("hidden", !isExpanded);
@@ -117,12 +175,6 @@ function evaluateHelpers() {
   const managementJs = fs.readFileSync("pi_camera_in_docker/static/js/management.js", "utf8");
   const helperSource = extractDiagnosticHelpers(managementJs);
   const context = buildUiContext();
-  Object.assign(context, {
-    getDiagnosticCheckRows,
-    getDiagnosticSummaryState,
-    getDiagnosticSummaryBanner,
-    renderDiagnosticResultsUi: renderDiagnosticResults,
-  });
   vm.runInNewContext(`${helperSource};`, context);
   return context;
 }
@@ -334,7 +386,7 @@ test("diagnostics template exposes Advanced toggle with expected label and contr
 });
 
 test("clipboard resilience: explicit Copy action reports unavailable clipboard", async () => {
-  const actions = {
+  const actions: ClipboardActions = {
     getLatestDiagnosticResult: () => ({
       node_id: "node-1",
       diagnostics: {},
@@ -342,7 +394,7 @@ test("clipboard resilience: explicit Copy action reports unavailable clipboard",
       recommendations: [],
     }),
     buildDiagnosticTextReport: () => "report",
-    showFeedback: (message, isError = false) => {
+    showFeedback: (message: string, isError = false) => {
       actions.lastFeedback = { message, isError };
     },
   };
@@ -357,7 +409,7 @@ test("clipboard resilience: explicit Copy action reports unavailable clipboard",
 
 test("clipboard resilience: explicit Copy action handles clipboard rejection", async () => {
   let writeCalls = 0;
-  const actions = {
+  const actions: ClipboardActions = {
     getLatestDiagnosticResult: () => ({
       node_id: "node-1",
       diagnostics: {},
@@ -365,7 +417,7 @@ test("clipboard resilience: explicit Copy action handles clipboard rejection", a
       recommendations: [],
     }),
     buildDiagnosticTextReport: () => "report",
-    showFeedback: (message, isError = false) => {
+    showFeedback: (message: string, isError = false) => {
       actions.lastFeedback = { message, isError };
     },
   };

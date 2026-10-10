@@ -10,7 +10,13 @@ export interface SetupConfig {
   auth_token: string;
 }
 
-type InputDocument = Pick<Document, "getElementById">;
+type InputElement = Pick<HTMLElement, "nodeType"> & {
+  value?: unknown;
+};
+
+interface InputDocument {
+  getElementById(id: string): InputElement | null;
+}
 
 /**
  * Read and normalize configuration values from the setup wizard form.
@@ -33,7 +39,8 @@ export function collectSetupConfig(documentRef: InputDocument = document): Setup
 }
 
 function readValue(documentRef: InputDocument, id: string): string {
-  return (documentRef.getElementById(id) as HTMLInputElement | null)?.value || "";
+  const value = documentRef.getElementById(id)?.value;
+  return typeof value === "string" ? value : "";
 }
 
 function readInteger(documentRef: InputDocument, id: string, fallback: number): number {

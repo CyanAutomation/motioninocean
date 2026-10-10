@@ -4,9 +4,7 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "rootDir": ".",
-    "types": ["node"],
-    // Existing VM tests use minimal mock objects rather than full browser and Node interfaces.
-    "noCheck": true
+    "types": ["node"]
   },
   "include": ["tests/frontend/**/*.test.ts"]
 }

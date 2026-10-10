@@ -1,15 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { renderDiagnosticResults } from "../../frontend/src/management-diagnostic-renderer.ts";
+import {
+  renderDiagnosticResults,
+  type DiagnosticRendererDependencies,
+} from "../../frontend/src/management-diagnostic-renderer.ts";
 
 function createDependencies() {
   const elements = {
     diagnosticWebcamId: { textContent: "" },
     diagnosticContext: { textContent: "" },
     diagnosticSummaryBadge: { className: "", textContent: "" },
-    diagnosticOverallStatePill: { className: "", textContent: "" },
-    diagnosticSummaryInterpretation: { textContent: "" },
-    diagnosticSummaryCta: { textContent: "" },
+    diagnosticOverallStatePill: { className: "", textContent: "" } as {
+      className: string;
+      textContent: string;
+    } | null,
+    diagnosticSummaryInterpretation: { textContent: "" } as { textContent: string } | null,
+    diagnosticSummaryCta: { textContent: "" } as { textContent: string } | null,
     diagnosticChecksGrid: { innerHTML: "" },
     diagnosticRecommendations: { innerHTML: "" },
     copyDiagnosticReportBtn: { disabled: true },
@@ -20,22 +26,26 @@ function createDependencies() {
       },
     },
   };
-  const state = { expanded: false, recommendations: null };
+  const state: {
+    expanded: boolean;
+    recommendations: { guidance: unknown[]; recommendations: unknown[] } | null;
+  } = { expanded: false, recommendations: null };
+  const dependencies: DiagnosticRendererDependencies = {
+    ...elements,
+    escapeHtml: (value: unknown) => String(value).replaceAll("<", "&lt;").replaceAll(">", "&gt;"),
+    renderRecommendations: (guidance, recommendations) => {
+      state.recommendations = { guidance, recommendations };
+    },
+    setPanelExpanded: (expanded) => {
+      state.expanded = expanded;
+    },
+    isPanelContentVisible: () => state.expanded,
+    now: () => new Date("2026-09-30T12:00:00.000Z"),
+  };
   return {
     elements,
     state,
-    dependencies: {
-      ...elements,
-      escapeHtml: (value) => String(value).replaceAll("<", "&lt;").replaceAll(">", "&gt;"),
-      renderRecommendations: (guidance, recommendations) => {
-        state.recommendations = { guidance, recommendations };
-      },
-      setPanelExpanded: (expanded) => {
-        state.expanded = expanded;
-      },
-      isPanelContentVisible: () => state.expanded,
-      now: () => new Date("2026-09-30T12:00:00.000Z"),
-    },
+    dependencies,
   };
 }
 
