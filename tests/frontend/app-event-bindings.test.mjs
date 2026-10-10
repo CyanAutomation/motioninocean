@@ -13,9 +13,6 @@ test("bindOptionalEventListeners attaches all listeners to available targets", (
 
   target.dispatchEvent(new Event("first"));
   target.dispatchEvent(new Event("second"));
-  assert.equal(calls, 2);
-});
-
-test("bindOptionalEventListeners tolerates an empty binding list", () => {
   assert.doesNotThrow(() => bindOptionalEventListeners([]));
+  assert.equal(calls, 2);
 });

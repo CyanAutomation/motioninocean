@@ -6,8 +6,11 @@ import json
 import os
 import re
 import subprocess
+from datetime import date
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
+
+import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -55,6 +58,10 @@ def _install_recording_python(tmp_path: Path, executable_name: str) -> tuple[Pat
 
 
 def test_every_skill_has_required_metadata_and_sections() -> None:
+    """Keep skill documents aligned with the repository's skill template.
+
+    Traceability: .github/skills/_template/SKILL.md.
+    """
     required_metadata = {
         "name",
         "description",
@@ -67,22 +74,29 @@ def test_every_skill_has_required_metadata_and_sections() -> None:
         content = path.read_text(encoding="utf-8")
         assert content.startswith("---\n"), f"{path.relative_to(REPO_ROOT)} has no frontmatter"
         frontmatter = content.split("---\n", 2)[1]
-        metadata = {
-            line.split(":", 1)[0].strip()
-            for line in frontmatter.splitlines()
-            if ":" in line and not line.lstrip().startswith("-")
-        }
-        assert required_metadata <= metadata, (
+        metadata = yaml.safe_load(frontmatter)
+        assert isinstance(metadata, dict), f"{path.relative_to(REPO_ROOT)} has invalid frontmatter"
+        assert required_metadata <= metadata.keys(), (
             f"{path.relative_to(REPO_ROOT)} is missing metadata: "
             f"{sorted(required_metadata - metadata)}"
         )
-        review_date = re.search(r"^last-reviewed:\s*(\S+)\s*$", frontmatter, re.MULTILINE)
-        valid_review_date = review_date and (
-            review_date.group(1) == "YYYY-MM-DD"
+        review_date = metadata["last-reviewed"]
+        valid_review_date = (
+            review_date == "YYYY-MM-DD"
             if path.parent.name == "_template"
-            else re.fullmatch(r"\d{4}-\d{2}-\d{2}", review_date.group(1))
+            else isinstance(review_date, date)
         )
         assert valid_review_date, f"{path.relative_to(REPO_ROOT)} needs an ISO last-reviewed date"
+        assert all(
+            isinstance(metadata[key], str) and metadata[key]
+            for key in required_metadata
+            - {
+                "compatible-repo-areas",
+                "last-reviewed",
+            }
+        ), f"{path.relative_to(REPO_ROOT)} has empty or non-text metadata"
+        assert isinstance(metadata["compatible-repo-areas"], list)
+        assert all(isinstance(area, str) and area for area in metadata["compatible-repo-areas"])
         for heading in REQUIRED_HEADINGS:
             assert f"## {heading}" in content, (
                 f"{path.relative_to(REPO_ROOT)} is missing section {heading!r}"

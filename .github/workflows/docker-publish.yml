@@ -189,19 +189,11 @@ jobs:
           echo "Extracting changelog for version: ${VERSION}"
 
           # Extract the section for this version from the repository changelog.
-          if [ -f "docs/CHANGELOG.md" ]; then
-            # Use awk to extract content between version headers
-            CHANGELOG_CONTENT=$(awk "/## \[${VERSION}\]/,/## \[.*\]/{if (/## \[${VERSION}\]/) {found=1; next} if (/## \[.*\]/ && found) exit; if (found) print}" docs/CHANGELOG.md | sed '/^$/d')
-
-            if [ -z "$CHANGELOG_CONTENT" ]; then
-              echo "Warning: No changelog section found for version ${VERSION}"
-              CHANGELOG_CONTENT="Release ${VERSION} - See commit history for details."
-            else
-              echo "Found changelog section for version ${VERSION}"
-            fi
+          CHANGELOG_CONTENT=$(bash scripts/extract_release_changelog.sh "$VERSION" docs/CHANGELOG.md)
+          if [[ "$CHANGELOG_CONTENT" == "Release ${VERSION} - See commit history for details." ]]; then
+            echo "Using release-note fallback for ${VERSION}"
           else
-            echo "Warning: docs/CHANGELOG.md not found"
-            CHANGELOG_CONTENT="Release ${VERSION} - See commit history for details."
+            echo "Found changelog section for ${VERSION}"
           fi
 
           # Write to file to preserve multiline content

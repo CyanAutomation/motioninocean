@@ -118,22 +118,16 @@ class TestApiDocs:
         response = client.get("/api/docs")
         assert "text/html" in response.content_type
 
-    def test_api_docs_is_self_contained_and_lists_the_spec(self, monkeypatch, tmp_path):
-        """GET /api/docs does not depend on a third-party CDN."""
+    def test_api_docs_is_self_contained_and_points_to_the_spec(self, monkeypatch, tmp_path):
+        """GET /api/docs uses local assets and links to the API spec endpoint."""
         client = _new_management_client(monkeypatch, tmp_path)
         response = client.get("/api/docs")
         assert b"swagger-ui" not in response.data.lower()
         assert b"unpkg.com" not in response.data.lower()
-        assert b"openapi.json" in response.data.lower()
+        assert b"/openapi.json" in response.data
         assert b"/static/js/api-docs.js" in response.data
         assert b"/static/css/api-docs.css" in response.data
         assert b"Motion In Ocean API" in response.data
-
-    def test_api_docs_points_to_openapi_json(self, monkeypatch, tmp_path):
-        """GET /api/docs HTML references /openapi.json as the spec URL."""
-        client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get("/api/docs")
-        assert b"/openapi.json" in response.data
 
     def test_api_docs_returns_200_without_auth(self, monkeypatch, tmp_path):
         """GET /api/docs is publicly accessible and returns HTTP 200."""

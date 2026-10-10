@@ -152,6 +152,36 @@ def test_frame_buffer_skips_oversized_frames_without_changing_stream_state() -> 
     assert stats.snapshot() == before_oversized_write
 
 
+def test_frame_buffer_throttles_frames_to_the_configured_target_fps(monkeypatch) -> None:
+    """Frames arriving before the target interval are dropped without changing stats.
+
+    Traceability: docs/product/PRD-backend.md#1-mjpeg-streaming-endpoint-p1.
+    """
+    from pi_camera_in_docker.modes import webcam
+
+    timestamps = iter([10.0, 10.05, 10.0 + 1 / 12 + 0.000001, 10.0 + 2 / 12 + 0.000002])
+    monkeypatch.setattr(webcam.time, "monotonic", lambda: next(timestamps))
+
+    stats = StreamStats()
+    output = FrameBuffer(stats, target_fps=12)
+
+    assert output.write(b"frame-1") == len(b"frame-1")
+    assert output.frame == b"frame-1"
+    assert stats.snapshot()[0] == 1
+
+    assert output.write(b"too-soon") == len(b"too-soon")
+    assert output.frame == b"frame-1"
+    assert stats.snapshot()[0] == 1
+
+    assert output.write(b"frame-2") == len(b"frame-2")
+    assert output.frame == b"frame-2"
+    assert stats.snapshot()[0] == 2
+
+    assert output.write(b"frame-3") == len(b"frame-3")
+    assert output.frame == b"frame-3"
+    assert stats.snapshot()[0] == 3
+
+
 def test_concurrent_frame_buffer_writes_publish_a_complete_frame() -> None:
     """Concurrent writes publish whole frames and count each accepted write.
 

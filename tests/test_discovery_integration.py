@@ -6,7 +6,6 @@ Tests the full workflow of webcam nodes announcing themselves to management.
 import json
 import tempfile
 import threading
-import time
 from unittest.mock import MagicMock, patch
 
 
@@ -109,149 +108,126 @@ class TestDiscoveryAnnounceIntegration:
 
             assert result is False
 
-    def test_announcer_retries_with_exponential_backoff(self):
-        """Verify announcer retries with exponential backoff on failures."""
-        import urllib.error
+    def test_announcer_retries_with_exponential_backoff_and_resets_after_success(self, monkeypatch):
+        """Retries follow bounded exponential backoff and reset after success.
 
-        from discovery import DiscoveryAnnouncer
-
-        shutdown_event = threading.Event()
-        payload = {"webcam_id": "node-test-4"}
-
-        with patch("urllib.request.urlopen") as mock_urlopen:
-            # Fail first, then succeed later
-            mock_response = MagicMock()
-            mock_response.status = 201
-            mock_response.__enter__ = MagicMock(return_value=mock_response)
-            mock_response.__exit__ = MagicMock(return_value=False)
-
-            mock_urlopen.side_effect = [
-                urllib.error.URLError("Connection refused"),
-                urllib.error.URLError("Connection refused"),
-                mock_response,  # Success on third attempt
-            ]
-
-            announcer = DiscoveryAnnouncer(
-                management_url="http://management.local:8001",
-                token="test-token",
-                interval_seconds=0.01,  # Very short interval for testing
-                webcam_id=payload["webcam_id"],
-                payload=payload,
-                shutdown_event=shutdown_event,
-            )
-
-            # Run the announce loop for a short time - with short interval it should retry
-            announcer.start()
-            time.sleep(3.0)  # Allow retries to happen with exponential backoff
-            announcer.stop()
-
-            # Should have attempted at least 2 times - first 2 failures
-            assert mock_urlopen.call_count >= 2
-
-    def test_announcer_snapshot_succeeds_under_concurrent_mutations(self):
-        """Verify _payload_snapshot() reliably succeeds despite concurrent mutations.
-
-        The snapshot mechanism must be thread-safe: when the payload is being actively
-        mutated from another thread, _announce_once() should still succeed with high
-        reliability (≥98%) without raising exceptions.
+        Traceability: docs/product/PRD-backend.md#discovery-sequence-flow.
         """
-        from discovery import DiscoveryAnnouncer
+        from pi_camera_in_docker import discovery as discovery_module
 
-        shutdown_event = threading.Event()
+        announcer = discovery_module.DiscoveryAnnouncer(
+            management_url="http://management.local:8001",
+            token="test-token",
+            interval_seconds=4,
+            webcam_id="node-test-4",
+            payload={"webcam_id": "node-test-4"},
+            shutdown_event=threading.Event(),
+        )
+        retry_waits: list[float] = []
+        jitter_bounds: list[tuple[float, float]] = []
+        jitter_values = iter([0.5, 1.0])
+        attempt_results = iter([False, False, True])
+        observed_attempts: list[bool] = []
+
+        def fake_wait(wait_seconds: float) -> bool:
+            retry_waits.append(wait_seconds)
+            return len(retry_waits) == 4
+
+        def fake_jitter(low: float, high: float) -> float:
+            jitter_bounds.append((low, high))
+            return next(jitter_values)
+
+        def fake_announce() -> bool:
+            result = next(attempt_results)
+            observed_attempts.append(result)
+            return result
+
+        monkeypatch.setattr(announcer, "_wait_for_next_attempt", fake_wait)
+        monkeypatch.setattr(announcer, "_announce_once", fake_announce)
+        monkeypatch.setattr(discovery_module.random, "uniform", fake_jitter)
+
+        announcer._run_loop()
+
+        assert retry_waits == [0.0, 4.5, 9.0, 4.0]
+        assert jitter_bounds == [(0.0, 1.0), (0.0, 2.0)]
+        assert observed_attempts == [False, False, True]
+
+    def test_announce_once_serializes_a_deep_payload_snapshot(self, monkeypatch):
+        """Changes to the live payload after snapshotting do not alter the request body."""
+        from pi_camera_in_docker import discovery as discovery_module
+
         payload = {
-            "webcam_id": "node-test-concurrent",
-            "labels": {"k0": "v0"},
+            "webcam_id": "node-test-snapshot",
+            "labels": {"location": "kitchen"},
         }
-
-        mock_response = MagicMock()
-        mock_response.status = 201
-        mock_response.__enter__ = MagicMock(return_value=mock_response)
-        mock_response.__exit__ = MagicMock(return_value=False)
-
-        announcer = DiscoveryAnnouncer(
+        announcer = discovery_module.DiscoveryAnnouncer(
             management_url="http://management.local:8001",
             token="test-token",
             interval_seconds=30,
             webcam_id=payload["webcam_id"],
             payload=payload,
-            shutdown_event=shutdown_event,
+            shutdown_event=threading.Event(),
         )
+        mock_response = MagicMock()
+        mock_response.status = 201
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.__exit__ = MagicMock(return_value=False)
+        original_dumps = discovery_module.json.dumps
 
-        stop_mutator = threading.Event()
+        def mutate_live_payload(snapshot):
+            announcer.payload["labels"]["location"] = "garage"
+            return original_dumps(snapshot)
 
-        def mutate_payload() -> None:
-            """Aggressively mutate payload to stress-test snapshot mechanism."""
-            index = 0
-            keyspace = 64
-            while not stop_mutator.is_set():
-                key = f"k{index % keyspace}"
-                announcer.payload["labels"][key] = f"v{index}"
-                if index % 3 == 0:
-                    announcer.payload["labels"].pop(f"k{(index - 1) % keyspace}", None)
-                index += 1
-                # Keep stress high but prevent runaway payload growth/CPU starvation.
-                time.sleep(0.0001)
+        monkeypatch.setattr(discovery_module.json, "dumps", mutate_live_payload)
+        with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
+            assert announcer._announce_once() is True
 
-        mutator = threading.Thread(target=mutate_payload, daemon=True)
-        mutator.start()
+        request = mock_urlopen.call_args.args[0]
+        posted_payload = json.loads(request.data)
+        assert posted_payload["labels"]["location"] == "kitchen"
+        assert announcer.payload["labels"]["location"] == "garage"
 
-        success_count = 0
-        error_count = 0
-
-        try:
-            with patch("urllib.request.urlopen", return_value=mock_response):
-                for _ in range(50):
-                    result = announcer._announce_once()
-                    if result is True:
-                        success_count += 1
-                    elif result is False:
-                        error_count += 1
-        finally:
-            stop_mutator.set()
-            mutator.join(timeout=1.0)
-
-        # Behavioral contract: snapshot mechanism must be highly reliable
-        # ≥98% success rate (at least 49/50) indicates robust thread-safety
-        assert success_count >= 49, (
-            f"Snapshot reliability too low: {success_count}/50 successful "
-            f"({100 * success_count / 50:.1f}%). Lock-based snapshot mechanism failed."
-        )
-
-    def test_announcer_thread_lifecycle(self):
+    def test_announcer_thread_stops_after_active_announcement_finishes(self, monkeypatch):
         """Verify announcer thread starts and stops correctly."""
-        from discovery import DiscoveryAnnouncer
+        from pi_camera_in_docker.discovery import DiscoveryAnnouncer
 
         shutdown_event = threading.Event()
-        payload = {"webcam_id": "node-test-5"}
+        announcer = DiscoveryAnnouncer(
+            management_url="http://management.local:8001",
+            token="test-token",
+            interval_seconds=30,
+            webcam_id="node-test-5",
+            payload={"webcam_id": "node-test-5"},
+            shutdown_event=shutdown_event,
+        )
+        attempt_started = threading.Event()
+        release_attempt = threading.Event()
+        loop_stopped = threading.Event()
+        original_run_loop = announcer._run_loop
 
-        with patch("urllib.request.urlopen") as mock_urlopen:
-            mock_response = MagicMock()
-            mock_response.status = 201
-            mock_response.__enter__ = MagicMock(return_value=mock_response)
-            mock_response.__exit__ = MagicMock(return_value=False)
-            mock_urlopen.return_value = mock_response
+        def blocked_announcement() -> bool:
+            attempt_started.set()
+            assert release_attempt.wait(timeout=2)
+            return True
 
-            announcer = DiscoveryAnnouncer(
-                management_url="http://management.local:8001",
-                token="test-token",
-                interval_seconds=0.05,  # Very short interval
-                webcam_id=payload["webcam_id"],
-                payload=payload,
-                shutdown_event=shutdown_event,
-            )
+        def observe_run_loop() -> None:
+            try:
+                original_run_loop()
+            finally:
+                loop_stopped.set()
 
-            # Verify thread not started yet
-            assert announcer._thread is None or not announcer._thread.is_alive()
+        monkeypatch.setattr(announcer, "_announce_once", blocked_announcement)
+        monkeypatch.setattr(announcer, "_run_loop", observe_run_loop)
+        announcer.start()
 
-            # Start and verify thread is running
-            announcer.start()
-            assert announcer._thread is not None
-            assert announcer._thread.is_alive()
-
-            # Stop and verify thread is cleaned up
-            announcer.stop()
-            time.sleep(0.2)  # Give thread time to exit
-            assert announcer._thread is None
+        try:
+            assert attempt_started.wait(timeout=2)
+            release_attempt.set()
+            announcer.stop(timeout_seconds=2)
+            assert loop_stopped.is_set()
+        finally:
+            release_attempt.set()
+            announcer.stop(timeout_seconds=2)
 
 
 class TestDiscoveryEndToEnd:
