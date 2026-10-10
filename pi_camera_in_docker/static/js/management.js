@@ -6,6 +6,7 @@ import { describeManagementApiError as describeApiError, fetchManagementSettings
 import { buildManagementSettingsPatch, hydrateManagementSettingsForm, } from "./management-settings-view.js";
 import { renderDiagnosticResults as renderDiagnosticResultsUi } from "./management-diagnostic-renderer.js";
 import { getDiagnosticCheckRows, getDiagnosticSummaryState } from "./management-diagnostics.js";
+import { createManagementBearerTokenSession } from "./management-auth.js";
 import { isFailureStatus, normalizeWebcamStatusError, STATUS_SUBTYPE_CONFIG, statusClass, } from "./management-domain.js";
 function getElementById(id) {
     return document.getElementById(id);
@@ -125,7 +126,7 @@ let selectedDiscoveredNodeId = "";
 let activityFeed = [];
 let previousStatusByNode = new Map();
 let discoveredSnoozedIds = new Set();
-let managementApiBearerToken = "";
+const managementBearerTokenSession = createManagementBearerTokenSession(() => globalThis.localStorage);
 const API_AUTH_HINT = "Management API request unauthorized. Provide a valid Management API Bearer Token, then click Refresh to retry.";
 const DOCKER_BASE_URL_PATTERN = String.raw `docker://[^\s/:]+:\d+/[^\s/]+`;
 const DOCKER_BASE_URL_HINT = "Use format: docker://proxy-hostname:port/container-id";
@@ -133,7 +134,6 @@ const NODE_FORM_COLLAPSED_STORAGE_KEY = "management.webcamFormCollapsed";
 const VIEW_HASH_PREFIX = "#";
 const VIEWS = ["overview", "devices", "discovered", "settings"];
 const THEME_STORAGE_KEY = "management.theme";
-const API_TOKEN_STORAGE_KEY = "management.apiToken";
 const SNOOZE_STORAGE_KEY = "management.discoveredSnoozedIds";
 function setDiagnosticPanelExpanded(isExpanded) {
     if (!(diagnosticsAdvancedCheckbox instanceof HTMLInputElement) ||
@@ -234,7 +234,7 @@ function showFeedback(message, isError = false) {
     feedback.style.color = isError ? "#b91c1c" : "#166534";
 }
 function getManagementBearerToken() {
-    return managementApiBearerToken;
+    return managementBearerTokenSession.getToken();
 }
 function syncManagementTokenInputs(token) {
     if (managementApiTokenInput instanceof HTMLInputElement) {
@@ -244,35 +244,13 @@ function syncManagementTokenInputs(token) {
         settingsManagementApiToken.value = token;
     }
 }
-function setManagementBearerToken(token, { persist = true } = {}) {
-    const normalized = String(token || "").trim();
-    managementApiBearerToken = normalized;
+function setManagementBearerToken(token) {
+    const normalized = managementBearerTokenSession.setToken(token);
     syncManagementTokenInputs(normalized);
-    if (!persist) {
-        return;
-    }
-    try {
-        if (normalized) {
-            globalThis.localStorage?.setItem(API_TOKEN_STORAGE_KEY, normalized);
-        }
-        else {
-            globalThis.localStorage?.removeItem(API_TOKEN_STORAGE_KEY);
-        }
-    }
-    catch {
-        // Ignore local storage failures.
-    }
 }
 function initializeManagementBearerToken() {
-    let storedToken = "";
-    try {
-        storedToken = globalThis.localStorage?.getItem(API_TOKEN_STORAGE_KEY) || "";
-    }
-    catch {
-        // Ignore local storage failures.
-    }
     const fallbackInputToken = managementApiTokenInput instanceof HTMLInputElement ? managementApiTokenInput.value.trim() : "";
-    setManagementBearerToken(storedToken || fallbackInputToken, { persist: false });
+    setManagementBearerToken(fallbackInputToken);
 }
 function openUtilityPanel(title, htmlContent) {
     if (!(utilityPanel instanceof HTMLElement) ||

@@ -16,6 +16,7 @@ import {
 } from "./management-settings-view.js";
 import { renderDiagnosticResults as renderDiagnosticResultsUi } from "./management-diagnostic-renderer.js";
 import { getDiagnosticCheckRows, getDiagnosticSummaryState } from "./management-diagnostics.js";
+import { createManagementBearerTokenSession } from "./management-auth.js";
 import {
   isFailureStatus,
   normalizeWebcamStatusError,
@@ -182,7 +183,9 @@ let selectedDiscoveredNodeId = "";
 let activityFeed: ActivityEntry[] = [];
 let previousStatusByNode = new Map<string, WebcamApiStatus>();
 let discoveredSnoozedIds = new Set<string>();
-let managementApiBearerToken = "";
+const managementBearerTokenSession = createManagementBearerTokenSession(
+  () => globalThis.localStorage,
+);
 const API_AUTH_HINT =
   "Management API request unauthorized. Provide a valid Management API Bearer Token, then click Refresh to retry.";
 
@@ -192,7 +195,6 @@ const NODE_FORM_COLLAPSED_STORAGE_KEY = "management.webcamFormCollapsed";
 const VIEW_HASH_PREFIX = "#";
 const VIEWS = ["overview", "devices", "discovered", "settings"];
 const THEME_STORAGE_KEY = "management.theme";
-const API_TOKEN_STORAGE_KEY = "management.apiToken";
 const SNOOZE_STORAGE_KEY = "management.discoveredSnoozedIds";
 
 function setDiagnosticPanelExpanded(isExpanded: boolean): void {
@@ -316,7 +318,7 @@ function showFeedback(message: string, isError = false): void {
 }
 
 function getManagementBearerToken() {
-  return managementApiBearerToken;
+  return managementBearerTokenSession.getToken();
 }
 
 function syncManagementTokenInputs(token: string): void {
@@ -328,40 +330,15 @@ function syncManagementTokenInputs(token: string): void {
   }
 }
 
-function setManagementBearerToken(
-  token: string,
-  { persist = true }: { persist?: boolean } = {},
-): void {
-  const normalized = String(token || "").trim();
-  managementApiBearerToken = normalized;
+function setManagementBearerToken(token: string): void {
+  const normalized = managementBearerTokenSession.setToken(token);
   syncManagementTokenInputs(normalized);
-
-  if (!persist) {
-    return;
-  }
-
-  try {
-    if (normalized) {
-      globalThis.localStorage?.setItem(API_TOKEN_STORAGE_KEY, normalized);
-    } else {
-      globalThis.localStorage?.removeItem(API_TOKEN_STORAGE_KEY);
-    }
-  } catch {
-    // Ignore local storage failures.
-  }
 }
 
 function initializeManagementBearerToken() {
-  let storedToken = "";
-  try {
-    storedToken = globalThis.localStorage?.getItem(API_TOKEN_STORAGE_KEY) || "";
-  } catch {
-    // Ignore local storage failures.
-  }
-
   const fallbackInputToken =
     managementApiTokenInput instanceof HTMLInputElement ? managementApiTokenInput.value.trim() : "";
-  setManagementBearerToken(storedToken || fallbackInputToken, { persist: false });
+  setManagementBearerToken(fallbackInputToken);
 }
 
 function openUtilityPanel(title: string, htmlContent: string): void {
