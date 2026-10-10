@@ -8,10 +8,7 @@ import {
 } from "../../frontend/src/management-renderers.ts";
 import { recordStatusHistory } from "../../frontend/src/management-status.ts";
 import { collectSetupConfig } from "../../frontend/src/setup-config.ts";
-import {
-  fetchReadmeContent,
-  renderMarkdownContent,
-} from "../../frontend/src/webcam-help.ts";
+import { fetchReadmeContent, renderMarkdownContent } from "../../frontend/src/webcam-help.ts";
 
 function createClassList() {
   const values = new Set();

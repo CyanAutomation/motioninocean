@@ -19,12 +19,11 @@ export default [
       "__pycache__/",
       ".venv/",
       "test_env/",
-      "pi_camera_in_docker/static/js/app.js",
       "pi_camera_in_docker/static/js/**/*.js",
     ],
   },
   {
-    files: ["**/*.js"],
+    files: ["**/*.js", "**/*.mjs", "**/*.cjs"],
     rules: {
       "no-unused-vars": [
         "error",
@@ -36,7 +35,7 @@ export default [
     },
   },
   {
-    files: ["frontend/src/**/*.ts"],
+    files: ["**/*.ts"],
     languageOptions: {
       parser: tseslint.parser,
     },

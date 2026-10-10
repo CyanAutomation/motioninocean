@@ -36,17 +36,17 @@ Turn a CI failure into a reproducible cause, a focused fix, and a passing rerun 
 5. Rerun the failing command, then run `make validate` for broader local coverage.
 6. Report the root cause, changed files, and exact validation results. Escalate runner, secret, or permissions issues to a maintainer.
 
-| CI job | Local reproduction | Notes |
-| --- | --- | --- |
-| `frontend-tests` | `make test-frontend` | Builds TypeScript and runs `node --test tests/frontend/*.test.mjs`. |
-| `test` | `python -m pytest tests/ -v` | CI tests Python 3.10, 3.11, and 3.12. |
-| `runtime-dependency-resolution` | Repeat the `pip download` step in `.github/workflows/ci.yml` with the same interpreter/platform. | The matrix checks default and optional runtime requirements on x86_64 and aarch64. |
-| `lint` | `make lint`, `npm run type-check`, `npm run build:frontend`, `python -m ruff format --check .`, `python -m pi_camera_in_docker.feature_flag_usage_check` | CI also verifies generated frontend files stay unchanged. |
-| `type-check` | `make type-check` | A mypy failure is blocking. |
-| `security` | `make security` | Runs Bandit. |
-| `scan` | Build the image, then run Trivy as configured in `.github/workflows/security-scan.yml`. | Reports all severities; fixed HIGH and CRITICAL findings block. |
-| `upload-sarif` | Inspect the preceding `scan` output and artifact. | Runs only for default-branch pushes or manual runs on that branch, with security-events permission. |
-| `arm64-smoke` | `docker buildx build --platform linux/arm64 --build-arg INCLUDE_MOCK_CAMERA=true --load --tag motion-in-ocean:arm64-smoke .` | Requires Docker Buildx and ARM emulation support. |
+| CI job                          | Local reproduction                                                                                                                                       | Notes                                                                                               |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `frontend-tests`                | `make test-frontend`                                                                                                                                     | Builds TypeScript and runs `npm run test:frontend` over `tests/frontend/*.test.ts`.                 |
+| `test`                          | `python -m pytest tests/ -v`                                                                                                                             | CI tests Python 3.10, 3.11, and 3.12.                                                               |
+| `runtime-dependency-resolution` | Repeat the `pip download` step in `.github/workflows/ci.yml` with the same interpreter/platform.                                                         | The matrix checks default and optional runtime requirements on x86_64 and aarch64.                  |
+| `lint`                          | `make lint`, `npm run type-check`, `npm run build:frontend`, `python -m ruff format --check .`, `python -m pi_camera_in_docker.feature_flag_usage_check` | CI also verifies generated frontend files stay unchanged.                                           |
+| `type-check`                    | `make type-check`                                                                                                                                        | A mypy failure is blocking.                                                                         |
+| `security`                      | `make security`                                                                                                                                          | Runs Bandit.                                                                                        |
+| `scan`                          | Build the image, then run Trivy as configured in `.github/workflows/security-scan.yml`.                                                                  | Reports all severities; fixed HIGH and CRITICAL findings block.                                     |
+| `upload-sarif`                  | Inspect the preceding `scan` output and artifact.                                                                                                        | Runs only for default-branch pushes or manual runs on that branch, with security-events permission. |
+| `arm64-smoke`                   | `docker buildx build --platform linux/arm64 --build-arg INCLUDE_MOCK_CAMERA=true --load --tag motion-in-ocean:arm64-smoke .`                             | Requires Docker Buildx and ARM emulation support.                                                   |
 
 ## Validation checklist
 

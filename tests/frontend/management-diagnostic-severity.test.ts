@@ -65,9 +65,7 @@ test("diagnostic summary/banner map connectivity categories to concise remediati
 });
 
 test("diagnostic summary distinguishes transient API warnings from actionable warnings", () => {
-  const transientSummary = getDiagnosticSummaryState([
-    { key: "API endpoint", state: "warn" },
-  ]);
+  const transientSummary = getDiagnosticSummaryState([{ key: "API endpoint", state: "warn" }]);
   const actionableSummary = getDiagnosticSummaryState([
     { key: "Network connectivity", state: "warn" },
   ]);

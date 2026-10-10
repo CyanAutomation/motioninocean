@@ -6,6 +6,7 @@ export interface WebcamSummary {
 }
 
 export interface ActivityEntry {
+  level?: string;
   timestamp: string;
   message: string;
 }

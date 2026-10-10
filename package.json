@@ -2,17 +2,19 @@
   "type": "module",
   "scripts": {
     "build:frontend": "tsc -p tsconfig.json",
-    "lint": "eslint . --ignore-pattern 'node_modules/**' --ignore-pattern 'docs/_build/**' --ignore-pattern 'docs/_autosummary/**'",
-    "type-check": "tsc -p tsconfig.json --noEmit",
-    "test:frontend": "tsx --test tests/frontend/*.test.mjs",
-    "health:frontend": "node scripts/frontend-health.mjs",
+    "lint": "eslint . --ext .js,.mjs,.cjs,.ts --ignore-pattern 'node_modules/**' --ignore-pattern 'docs/_build/**' --ignore-pattern 'docs/_autosummary/**'",
+    "type-check": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tools.json && tsc -p tsconfig.tests.json",
+    "test:frontend": "tsx --test tests/frontend/*.test.ts",
+    "health:frontend": "tsx scripts/frontend-health.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
+    "@types/node": "^22.20.5",
     "eslint": "^10.12.0",
     "globals": "^17.13.0",
+    "jiti": "^2.7.0",
     "prettier": "^3.9.9",
     "tsx": "4.23.15",
     "typescript": "^5.9.3",

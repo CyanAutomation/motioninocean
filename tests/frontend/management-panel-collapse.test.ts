@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import ts from "typescript";
 import { bindDashboardControls } from "../../frontend/src/management-bootstrap.ts";
 
 function extractFunction(source, signature, nextSignature) {
@@ -30,22 +31,25 @@ function createClassList() {
 }
 
 test("webcam form panel toggle defaults expanded and flips collapsed state with storage persistence", async () => {
-  const managementJs = fs.readFileSync("frontend/src/management.ts", "utf8");
+  const managementSource = fs.readFileSync("frontend/src/management.ts", "utf8");
+  const managementJs = ts.transpileModule(managementSource, {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
 
   const setNodeFormPanelCollapsedFn = extractFunction(
     managementJs,
     "function setNodeFormPanelCollapsed",
-    "\n\nfunction toggleNodeFormPanel",
+    "\nfunction toggleNodeFormPanel",
   );
   const toggleNodeFormPanelFn = extractFunction(
     managementJs,
     "function toggleNodeFormPanel",
-    "\n\nfunction getStoredNodeFormCollapsedPreference",
+    "\nfunction getStoredNodeFormCollapsedPreference",
   );
   const getStoredNodeFormCollapsedPreferenceFn = extractFunction(
     managementJs,
     "function getStoredNodeFormCollapsedPreference",
-    "\n\n/**\n * Submit webcam form (create or update).",
+    "\nasync function submitNodeForm",
   );
 
   class MockHTMLElement {

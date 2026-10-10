@@ -77,7 +77,7 @@ export async function fetchManagementSettings(
 /** Save management settings and classify the server response for the UI. */
 export async function saveManagementSettings(
   fetcher: SettingsFetcher,
-  patchPayload: JsonRecord,
+  patchPayload: object,
 ): Promise<ManagementSettingsSaveResult> {
   try {
     const response = await fetcher("/api/v1/settings", {

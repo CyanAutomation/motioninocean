@@ -23,7 +23,7 @@ Motion In Ocean enables reliable, stateless camera streaming for Raspberry Pi in
 - Flask (lightweight HTTP API)
 - Picamera2 / libcamera (modern RPi camera support)
 - Docker / Docker Compose (all deployments containerized)
-- JavaScript/HTML/CSS (web UI for streaming viewer and management dashboard)
+- TypeScript/HTML/CSS (web UI for streaming viewer and management dashboard)
 
 ---
 
@@ -64,22 +64,22 @@ See [pi_camera_in_docker/runtime_config.py](pi_camera_in_docker/runtime_config.p
 
 ### Key Modules
 
-| Module                          | Purpose                                                 |
-| ------------------------------- | ------------------------------------------------------- |
-| **main.py**                     | Flask app, mode detection, initialization               |
-| **modes/webcam.py**             | Camera capture, frame buffer, MJPEG streaming           |
-| **management_api.py**           | Node registry, discovery endpoints, SSRF validation     |
-| **discovery.py**                | DiscoveryAnnouncer daemon thread (self-registration)    |
-| **settings_api.py**             | `/api/settings` GET/PATCH endpoints, schema             |
-| **shared.py**                   | Common routes: `/health`, `/ready`, `/metrics`          |
-| **application_settings.py**     | Atomic file-based settings persistence                  |
-| **runtime_config.py**           | Environment-based config loading, merging               |
-| **feature_flags.py**            | Runtime feature flag registry (currently mock camera)   |
-| **config_validator.py**         | Runtime config validation with helpful error hints      |
-| **settings_schema.py**          | JSON schema for all editable settings                   |
-| **transport_url_validation.py** | SSRF protection, URL safeguarding                       |
-| **cat_gif_generator.py**        | Optional animated mock stream source                   |
-| **logging_config.py**           | Structured JSON logging setup                           |
+| Module                          | Purpose                                               |
+| ------------------------------- | ----------------------------------------------------- |
+| **main.py**                     | Flask app, mode detection, initialization             |
+| **modes/webcam.py**             | Camera capture, frame buffer, MJPEG streaming         |
+| **management_api.py**           | Node registry, discovery endpoints, SSRF validation   |
+| **discovery.py**                | DiscoveryAnnouncer daemon thread (self-registration)  |
+| **settings_api.py**             | `/api/settings` GET/PATCH endpoints, schema           |
+| **shared.py**                   | Common routes: `/health`, `/ready`, `/metrics`        |
+| **application_settings.py**     | Atomic file-based settings persistence                |
+| **runtime_config.py**           | Environment-based config loading, merging             |
+| **feature_flags.py**            | Runtime feature flag registry (currently mock camera) |
+| **config_validator.py**         | Runtime config validation with helpful error hints    |
+| **settings_schema.py**          | JSON schema for all editable settings                 |
+| **transport_url_validation.py** | SSRF protection, URL safeguarding                     |
+| **cat_gif_generator.py**        | Optional animated mock stream source                  |
+| **logging_config.py**           | Structured JSON logging setup                         |
 
 Files: [pi_camera_in_docker/](pi_camera_in_docker/)
 
@@ -279,31 +279,27 @@ def capture_frame(timeout_ms: Optional[int] = None) -> bytes:
     # Implementation
 ```
 
-**JavaScript (JSDoc Comments)**
+**Frontend TypeScript**
 
-All public functions in JavaScript must have JSDoc headers with:
+Browser source is authored in `frontend/src/` and compiled to
+`pi_camera_in_docker/static/js/`. Use explicit parameter and return types in TypeScript
+signatures. Add JSDoc comments to explain purpose, behavior, side effects, and errors; avoid
+duplicating types in JSDoc tags. Tests in `tests/frontend/` are TypeScript files run with `tsx`.
 
-- Brief description tag @description or inline
-- Parameter documentation @param with type and description
-- Return type @returns with Promise<T> for async functions
-- Exception information @throws for error cases
-- @async for async functions
-
-```javascript
+```typescript
 /**
  * Fetch stream metadata from remote node.
  *
  * Queries /api/status endpoint with bearer token authentication.
  * Includes automatic retry with exponential backoff on network errors.
  *
- * @param {string} nodeId - Unique node identifier
- * @param {string} baseUrl - Node base URL (http[s]://host:port)
- * @param {string} authToken - Bearer token for authentication
- * @returns {Promise<Object>} Node status object with stream info
- * @throws {Error} If node unreachable after retries or auth fails
- * @async
+ * @throws {Error} If node unreachable after retries or auth fails.
  */
-async function fetchNodeStatus(nodeId, baseUrl, authToken) {
+async function fetchNodeStatus(
+  nodeId: string,
+  baseUrl: string,
+  authToken: string,
+): Promise<NodeStatus> {
   // Implementation
 }
 ```
@@ -492,9 +488,7 @@ All responses use JSON with consistent structure:
 ```json
 {
   "status": "ok",
-  "data": {
-    /* response-specific data */
-  }
+  "data": {/* response-specific data */}
 }
 ```
 
@@ -619,19 +613,15 @@ openssl rand -hex 32
 Frontend assets in [pi_camera_in_docker/static](pi_camera_in_docker/static) and [pi_camera_in_docker/templates](pi_camera_in_docker/templates):
 
 ```
-ui/
-├── templates/
-│   ├── index.html         # Streaming viewer
-│   └── management.html    # Node management dashboard
-├── static/
-│   ├── js/
-│   │   ├── app.js         # Streaming viewer logic
-│   │   ├── management.js  # Node management logic
-│   │   └── settings.js    # Settings panel
-│   └── css/
-│       ├── style.css, theme.css, base.css
-│       ├── components.css, management.css, settings.css
-│       └── tabs-config.css
+frontend/
+├── src/*.ts               # Browser source modules
+└── tests/frontend/*.test.ts
+
+pi_camera_in_docker/
+├── templates/             # Streaming viewer and management dashboard
+└── static/
+    ├── js/*.js            # Generated browser modules; rebuild from frontend/src/
+    └── css/                # Stylesheets
 ```
 
 ### Frontend validation and interface review
@@ -908,7 +898,7 @@ See [.github/skills/pi-camera-troubleshooting/SKILL.md](.github/skills/pi-camera
 
 ## Building & Generating Documentation
 
-Motion In Ocean uses automated documentation generation from source code docstrings and JSDoc comments.
+Motion In Ocean uses automated documentation generation from Python docstrings and TypeScript JSDoc comments.
 
 ### Building Sphinx Documentation (Python)
 
@@ -927,12 +917,12 @@ make docs-check
 make docs-clean
 ```
 
-### Generating JSDoc (JavaScript)
+### Generating JSDoc (TypeScript)
 
-Generate HTML documentation from JavaScript JSDoc comments:
+Compile the frontend and generate HTML documentation from TypeScript JSDoc comments:
 
 ```bash
-# Build JSDoc
+# Build frontend output and JSDoc
 make jsdoc
 # Output: docs/_build/html/js/index.html
 ```
@@ -940,7 +930,7 @@ make jsdoc
 ### Documentation Structure
 
 - **Python API:** Auto-generated from Google-style docstrings in `pi_camera_in_docker/*.py`
-- **JavaScript API:** Auto-generated from JSDoc comments in `pi_camera_in_docker/static/js/*.js`
+- **Frontend API:** Authored in `frontend/src/*.ts`; browser JavaScript is generated under `pi_camera_in_docker/static/js/`
 - **Guides:** Manual markdown files in `docs/guides/` (DEPLOYMENT.md, FEATURE_FLAGS.md, etc.)
 
 ### Documentation Requirements
@@ -948,7 +938,7 @@ make jsdoc
 When adding new functions/classes:
 
 1. **Python:** Add Google-style docstring with Args, Returns, Raises sections
-2. **JavaScript:** Add JSDoc header with @param, @returns, @throws, @async tags
+2. **TypeScript:** Add explicit parameter/return types and JSDoc descriptions for public APIs
 3. **Build locally:** `make docs-check` to validate before pushing
 4. **PR checklist:** Ensure "Documentation updated" if behavior changed
 

@@ -23,6 +23,7 @@ test("topbar mascot initializes and follows every supported tab", () => {
   const elements = new Map([["mio-hero-image", heroImage]]);
   const context = {
     DEFAULT_MIO_PATH: "/static/img/mio/default.png",
+    getElementById: (id) => elements.get(id) ?? null,
     document: {
       body: {
         dataset: {

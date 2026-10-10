@@ -1,31 +1,31 @@
-// @ts-nocheck
-
 /**
  * motion-in-ocean - Camera Stream Application
  * Real-time stats, fullscreen, refresh, and connection monitoring
  */
 
 import { renderConfig as renderConfigPanel } from "./config-renderer.js";
-import { renderMetrics as renderMetricsPanel } from "./metrics-renderer.js";
+import { renderMetrics as renderMetricsPanel, type MetricsResponse } from "./metrics-renderer.js";
 import { applyMockStreamMode as applyMockStreamModeUi } from "./mock-stream-ui.js";
 import { assertSinglePollingMode as assertPollingState } from "./polling-mode.js";
-import { collectSetupConfig as collectWizardConfig } from "./setup-config.js";
+import { collectSetupConfig as collectWizardConfig, type SetupConfig } from "./setup-config.js";
 import {
   createDeviceDetectionSummary,
   inferSetupPreset,
   restoreSetupWizardState,
   setupWizardSteps,
   validateSetupStep,
+  type DeviceDetectionPayload,
+  type SetupWizardStep,
 } from "./setup-wizard.js";
 import {
   fetchReadmeContent as fetchReadmeHelp,
   renderMarkdownContent as renderReadmeMarkdown,
 } from "./webcam-help.js";
-import { toggleFullscreen as toggleFullscreenUi } from "./fullscreen.js";
+import { toggleFullscreen as toggleFullscreenUi, type FullscreenDocument } from "./fullscreen.js";
 import { generateSetupConfiguration } from "./setup-generation.js";
 import { runConfigUpdate } from "./config-update.js";
 import { loadSetupTemplates } from "./setup-load.js";
-import { bindOptionalEventListeners } from "./app-event-bindings.js";
+import { bindOptionalEventListeners, type OptionalEventBinding } from "./app-event-bindings.js";
 import { showWebcamHelpModal } from "./webcam-help-modal.js";
 
 const REQUEST_TIMEOUT_MS = 5000;
@@ -34,7 +34,104 @@ const THEME_STORAGE_KEY = "webcam.theme";
 const DEFAULT_MIO_PATH = "/static/img/mio/mio_avatar.png";
 const CHANGELOG_MAX_VISIBLE_ENTRIES = 3;
 
-const state = {
+interface AppElements {
+  [name: string]: HTMLElement | HTMLElement[] | null;
+  availabilityDetail: HTMLElement | null;
+  availabilityRiskValue: HTMLElement | null;
+  chipConnected: HTMLElement | null;
+  chipFps: HTMLElement | null;
+  chipInactive: HTMLElement | null;
+  chipStale: HTMLElement | null;
+  configErrorAlert: HTMLElement | null;
+  configErrorMessage: HTMLElement | null;
+  configLoading: HTMLElement | null;
+  configPanel: HTMLElement | null;
+  configRefreshBtn: HTMLButtonElement | null;
+  connectionChipValue: HTMLElement | null;
+  fpsValue: HTMLElement | null;
+  framesRiskDetail: HTMLElement | null;
+  fullscreenBtn: HTMLButtonElement | null;
+  lastFrameAgeValue: HTMLElement | null;
+  lastFrameRiskValue: HTMLElement | null;
+  lastUpdated: HTMLElement | null;
+  maxFrameAgeValue: HTMLElement | null;
+  maxFrameRiskValue: HTMLElement | null;
+  mioHeroImage: HTMLImageElement | null;
+  mockStreamAnimation: HTMLImageElement | null;
+  mockStreamPlaceholder: HTMLElement | null;
+  performanceRiskValue: HTMLElement | null;
+  railChangelogBtn: HTMLButtonElement | null;
+  railHelpBtn: HTMLButtonElement | null;
+  refreshBtn: HTMLButtonElement | null;
+  refreshStreamHeaderBtn: HTMLButtonElement | null;
+  resolutionValue: HTMLElement | null;
+  settingsPanel: HTMLElement | null;
+  setupPanel: HTMLElement | null;
+  statsPanel: HTMLElement | null;
+  statusIndicator: HTMLElement | null;
+  statusText: HTMLElement | null;
+  streamRiskValue: HTMLElement | null;
+  tabButtons: HTMLButtonElement[] | null;
+  themeIconMoon: HTMLElement | null;
+  themeIconSun: HTMLElement | null;
+  themeToggleBtn: HTMLButtonElement | null;
+  toggleStatsBtn: HTMLButtonElement | null;
+  uptimeValue: HTMLElement | null;
+  utilityModal: HTMLElement | null;
+  utilityModalCloseBtn: HTMLButtonElement | null;
+  utilityModalContent: HTMLElement | null;
+  utilityModalTitle: HTMLElement | null;
+  videoStream: HTMLImageElement | null;
+  viewSubtitle: HTMLElement | null;
+  viewTitle: HTMLElement | null;
+}
+
+interface AppState {
+  updateInterval: boolean | null;
+  baseUpdateFrequency: number;
+  updateFrequency: number;
+  maxUpdateFrequency: number;
+  consecutiveFailures: number;
+  connectionTimeout: ReturnType<typeof setTimeout> | null;
+  isConnected: boolean;
+  statsCollapsed: boolean;
+  statsInFlight: boolean;
+  configInFlight: boolean;
+  currentTab: string;
+  lastConfigUpdate: Date | null;
+  configPollingInterval: ReturnType<typeof setInterval> | null;
+  configInitialLoadPending: boolean;
+  configLoadingDelayTimer: ReturnType<typeof setTimeout> | null;
+  configLoadingVisible: boolean;
+  setupInitialLoadPending: boolean;
+  setupLoadingDelayTimer: ReturnType<typeof setTimeout> | null;
+  setupLoadingVisible: boolean;
+  setupFormState: Partial<SetupConfig> & Record<string, unknown>;
+  setupDetectedDevices: DeviceDetectionPayload;
+  streamConnections: { current: string; max: string };
+  previouslyFocusedElement: HTMLElement | null;
+  utilityModalOpen: boolean;
+  changelogCache: ChangelogPayload | null;
+  elements: AppElements;
+}
+
+interface ChangelogEntry {
+  changes: string[];
+  release_date: string | null;
+  version: string;
+}
+
+interface ChangelogPayload {
+  entries: ChangelogEntry[];
+  full_changelog_url?: string;
+  message?: string;
+  source?: string;
+  status: string;
+}
+
+type DeviceConfiguration = Record<string, unknown> & { intent?: string };
+
+const state: AppState = {
   updateInterval: null,
   baseUpdateFrequency: 2000,
   updateFrequency: 2000,
@@ -69,6 +166,7 @@ const state = {
     mockStreamAnimation: null,
     statsPanel: null,
     configPanel: null,
+    settingsPanel: null,
     setupPanel: null,
     toggleStatsBtn: null,
     refreshBtn: null,
@@ -108,13 +206,15 @@ const state = {
     utilityModalCloseBtn: null,
     utilityModalTitle: null,
     utilityModalContent: null,
+    configLoading: null,
+    configErrorAlert: null,
+    configErrorMessage: null,
     // Cached tab buttons (set in cacheElements)
     tabButtons: null,
   },
 };
 
-/** @type {EventSource|null} Active SSE connection for metrics streaming. */
-let metricsEventSource = null;
+let metricsEventSource: EventSource | null = null;
 
 /**
  * Initialize the application
@@ -135,6 +235,47 @@ function init() {
   console.log("motion-in-ocean camera stream initialized");
 }
 
+function getElementById<T extends HTMLElement = HTMLElement>(id: string): T | null {
+  return document.getElementById(id) as T | null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function toSetupFormState(value: unknown): Partial<SetupConfig> & Record<string, unknown> {
+  const record = asRecord(value);
+  const config: Partial<SetupConfig> = {};
+  if (typeof record.resolution === "string") config.resolution = record.resolution;
+  if (typeof record.fps === "number") config.fps = record.fps;
+  if (typeof record.jpeg_quality === "number") config.jpeg_quality = record.jpeg_quality;
+  if (typeof record.max_connections === "number") config.max_connections = record.max_connections;
+  if (typeof record.target_fps === "number" || record.target_fps === null) {
+    config.target_fps = record.target_fps;
+  }
+  if (typeof record.pi3_profile === "boolean") config.pi3_profile = record.pi3_profile;
+  if (typeof record.cors_origins === "string") config.cors_origins = record.cors_origins;
+  if (typeof record.mock_camera === "boolean") config.mock_camera = record.mock_camera;
+  if (typeof record.auth_token === "string") config.auth_token = record.auth_token;
+  return { ...record, ...config };
+}
+
+function toDeviceDetectionPayload(value: unknown): DeviceDetectionPayload {
+  const record = asRecord(value);
+  const deviceList = (key: string): string[] | undefined =>
+    Array.isArray(record[key])
+      ? record[key].filter((entry): entry is string => typeof entry === "string")
+      : undefined;
+  return {
+    video_devices: deviceList("video_devices"),
+    media_devices: deviceList("media_devices"),
+    dma_heap_devices: deviceList("dma_heap_devices"),
+    vchiq_device: record.vchiq_device,
+  };
+}
+
 /**
  * Apply theme mode to webcam page.
  *
@@ -143,7 +284,7 @@ function init() {
  * @param {string} theme - Theme name ("light" or "dark").
  * @returns {void}
  */
-function applyTheme(theme) {
+function applyTheme(theme: string) {
   const resolvedTheme = theme === "dark" ? "dark" : "light";
   document.documentElement.setAttribute("data-theme", resolvedTheme);
 
@@ -183,61 +324,64 @@ function initializeTheme() {
  * Cache DOM elements for performance
  */
 function cacheElements() {
-  state.elements.videoStream = document.getElementById("video-stream");
-  state.elements.mockStreamPlaceholder = document.getElementById("mock-stream-placeholder");
-  state.elements.mockStreamAnimation = document.getElementById("mock-stream-animation");
-  state.elements.statsPanel = document.getElementById("stats-panel");
-  state.elements.configPanel = document.getElementById("config-panel");
-  state.elements.settingsPanel = document.getElementById("settings-panel");
-  state.elements.setupPanel = document.getElementById("setup-panel");
-  state.elements.toggleStatsBtn = document.getElementById("toggle-stats-btn");
-  state.elements.refreshBtn = document.getElementById("refresh-btn");
-  state.elements.fullscreenBtn = document.getElementById("fullscreen-btn");
-  state.elements.refreshStreamHeaderBtn = document.getElementById("refresh-stream-header-btn");
-  state.elements.statusIndicator = document.getElementById("status-indicator");
-  state.elements.statusText = document.getElementById("status-text");
-  state.elements.themeToggleBtn = document.getElementById("theme-toggle-btn");
-  state.elements.themeIconMoon = document.getElementById("theme-icon-moon");
-  state.elements.themeIconSun = document.getElementById("theme-icon-sun");
-  state.elements.configRefreshBtn = document.getElementById("config-refresh-btn");
+  state.elements.videoStream = getElementById<HTMLImageElement>("video-stream");
+  state.elements.mockStreamPlaceholder = getElementById("mock-stream-placeholder");
+  state.elements.mockStreamAnimation = getElementById<HTMLImageElement>("mock-stream-animation");
+  state.elements.statsPanel = getElementById("stats-panel");
+  state.elements.configPanel = getElementById("config-panel");
+  state.elements.settingsPanel = getElementById("settings-panel");
+  state.elements.setupPanel = getElementById("setup-panel");
+  state.elements.toggleStatsBtn = getElementById<HTMLButtonElement>("toggle-stats-btn");
+  state.elements.refreshBtn = getElementById<HTMLButtonElement>("refresh-btn");
+  state.elements.fullscreenBtn = getElementById<HTMLButtonElement>("fullscreen-btn");
+  state.elements.refreshStreamHeaderBtn = getElementById<HTMLButtonElement>(
+    "refresh-stream-header-btn",
+  );
+  state.elements.statusIndicator = getElementById("status-indicator");
+  state.elements.statusText = getElementById("status-text");
+  state.elements.themeToggleBtn = getElementById<HTMLButtonElement>("theme-toggle-btn");
+  state.elements.themeIconMoon = getElementById("theme-icon-moon");
+  state.elements.themeIconSun = getElementById("theme-icon-sun");
+  state.elements.configRefreshBtn = getElementById<HTMLButtonElement>("config-refresh-btn");
 
-  state.elements.fpsValue = document.getElementById("fps-value");
-  state.elements.uptimeValue = document.getElementById("uptime-value");
-  state.elements.framesRiskDetail = document.getElementById("frames-risk-detail");
-  state.elements.lastFrameAgeValue = document.getElementById("last-frame-age-value");
-  state.elements.maxFrameAgeValue = document.getElementById("max-frame-age-value");
-  state.elements.resolutionValue = document.getElementById("resolution-value");
-  state.elements.lastUpdated = document.getElementById("last-updated");
-  state.elements.viewTitle = document.getElementById("webcam-view-title");
-  state.elements.viewSubtitle = document.getElementById("webcam-view-subtitle");
-  state.elements.connectionChipValue = document.getElementById("connection-chip-value");
-  state.elements.performanceRiskValue = document.getElementById("performance-risk-value");
-  state.elements.streamRiskValue = document.getElementById("stream-risk-value");
-  state.elements.lastFrameRiskValue = document.getElementById("last-frame-risk-value");
-  state.elements.maxFrameRiskValue = document.getElementById("max-frame-risk-value");
-  state.elements.availabilityRiskValue = document.getElementById("availability-risk-value");
-  state.elements.availabilityDetail = document.getElementById("availability-detail");
+  state.elements.fpsValue = getElementById("fps-value");
+  state.elements.uptimeValue = getElementById("uptime-value");
+  state.elements.framesRiskDetail = getElementById("frames-risk-detail");
+  state.elements.lastFrameAgeValue = getElementById("last-frame-age-value");
+  state.elements.maxFrameAgeValue = getElementById("max-frame-age-value");
+  state.elements.resolutionValue = getElementById("resolution-value");
+  state.elements.lastUpdated = getElementById("last-updated");
+  state.elements.viewTitle = getElementById("webcam-view-title");
+  state.elements.viewSubtitle = getElementById("webcam-view-subtitle");
+  state.elements.connectionChipValue = getElementById("connection-chip-value");
+  state.elements.performanceRiskValue = getElementById("performance-risk-value");
+  state.elements.streamRiskValue = getElementById("stream-risk-value");
+  state.elements.lastFrameRiskValue = getElementById("last-frame-risk-value");
+  state.elements.maxFrameRiskValue = getElementById("max-frame-risk-value");
+  state.elements.availabilityRiskValue = getElementById("availability-risk-value");
+  state.elements.availabilityDetail = getElementById("availability-detail");
 
   // Header status chips
-  state.elements.chipConnected = document.getElementById("chip-connected");
-  state.elements.chipStale = document.getElementById("chip-stale");
-  state.elements.chipInactive = document.getElementById("chip-inactive");
-  state.elements.chipFps = document.getElementById("chip-fps");
-  state.elements.mioHeroImage = document.getElementById("mio-hero-image");
-  state.elements.railChangelogBtn = document.getElementById("rail-changelog-btn");
-  state.elements.railHelpBtn = document.getElementById("rail-help-btn");
-  state.elements.utilityModal = document.getElementById("utility-modal");
-  state.elements.utilityModalCloseBtn = document.getElementById("utility-modal-close-btn");
-  state.elements.utilityModalTitle = document.getElementById("utility-modal-title");
-  state.elements.utilityModalContent = document.getElementById("utility-modal-content");
+  state.elements.chipConnected = getElementById("chip-connected");
+  state.elements.chipStale = getElementById("chip-stale");
+  state.elements.chipInactive = getElementById("chip-inactive");
+  state.elements.chipFps = getElementById("chip-fps");
+  state.elements.mioHeroImage = getElementById<HTMLImageElement>("mio-hero-image");
+  state.elements.railChangelogBtn = getElementById<HTMLButtonElement>("rail-changelog-btn");
+  state.elements.railHelpBtn = getElementById<HTMLButtonElement>("rail-help-btn");
+  state.elements.utilityModal = getElementById("utility-modal");
+  state.elements.utilityModalCloseBtn =
+    getElementById<HTMLButtonElement>("utility-modal-close-btn");
+  state.elements.utilityModalTitle = getElementById("utility-modal-title");
+  state.elements.utilityModalContent = getElementById("utility-modal-content");
 
   // Config panel elements
-  state.elements.configLoading = document.getElementById("config-loading");
-  state.elements.configErrorAlert = document.getElementById("config-error-alert");
-  state.elements.configErrorMessage = document.getElementById("config-error-message");
+  state.elements.configLoading = getElementById("config-loading");
+  state.elements.configErrorAlert = getElementById("config-error-alert");
+  state.elements.configErrorMessage = getElementById("config-error-message");
 
   // Cache tab buttons to avoid a repeated DOM query on every tab switch
-  state.elements.tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+  state.elements.tabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".tab-btn"));
 
   if (state.elements.mockStreamAnimation) {
     state.elements.mockStreamAnimation.onerror = () => {
@@ -258,37 +402,38 @@ function attachHandlers() {
     const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
     applyTheme(currentTheme === "dark" ? "light" : "dark");
   };
-  const clickBindings = [
-    [state.elements.toggleStatsBtn, toggleStats],
-    [state.elements.refreshBtn, refreshStream],
-    [state.elements.refreshStreamHeaderBtn, refreshStream],
-    [state.elements.fullscreenBtn, toggleFullscreen],
-    [state.elements.themeToggleBtn, themeToggle],
-    [state.elements.configRefreshBtn, refreshConfigPanel],
-    [state.elements.railChangelogBtn, openChangelogModal],
-    [state.elements.railHelpBtn, openHelpModal],
-    [state.elements.utilityModalCloseBtn, closeUtilityModal],
+  const clickBindings: OptionalEventBinding[] = [
+    { target: state.elements.toggleStatsBtn, type: "click", listener: toggleStats },
+    { target: state.elements.refreshBtn, type: "click", listener: refreshStream },
+    { target: state.elements.refreshStreamHeaderBtn, type: "click", listener: refreshStream },
+    { target: state.elements.fullscreenBtn, type: "click", listener: toggleFullscreen },
+    { target: state.elements.themeToggleBtn, type: "click", listener: themeToggle },
+    { target: state.elements.configRefreshBtn, type: "click", listener: refreshConfigPanel },
+    { target: state.elements.railChangelogBtn, type: "click", listener: openChangelogModal },
+    { target: state.elements.railHelpBtn, type: "click", listener: openHelpModal },
+    { target: state.elements.utilityModalCloseBtn, type: "click", listener: closeUtilityModal },
   ];
 
   // Proxy buttons inside the video controls mirror the main action buttons.
-  const vcRefreshBtn = document.getElementById("vc-refresh-btn");
-  const vcFullscreenBtn = document.getElementById("vc-fullscreen-btn");
-  clickBindings.push([vcRefreshBtn, refreshStream], [vcFullscreenBtn, toggleFullscreen]);
+  const vcRefreshBtn = getElementById<HTMLButtonElement>("vc-refresh-btn");
+  const vcFullscreenBtn = getElementById<HTMLButtonElement>("vc-fullscreen-btn");
+  clickBindings.push(
+    { target: vcRefreshBtn, type: "click", listener: refreshStream },
+    { target: vcFullscreenBtn, type: "click", listener: toggleFullscreen },
+  );
 
-  const eventBindings = clickBindings.map(([target, listener]) => ({
-    target,
-    type: "click",
-    listener,
-  }));
-  eventBindings.push({
-    target: state.elements.utilityModal,
-    type: "click",
-    listener: (event) => {
-      if (event.target === state.elements.utilityModal) {
-        closeUtilityModal();
-      }
+  const eventBindings: OptionalEventBinding[] = [
+    ...clickBindings,
+    {
+      target: state.elements.utilityModal,
+      type: "click",
+      listener: (event: Event) => {
+        if (event.target === state.elements.utilityModal) {
+          closeUtilityModal();
+        }
+      },
     },
-  });
+  ];
   eventBindings.push(
     { target: state.elements.videoStream, type: "load", listener: onStreamLoad },
     { target: state.elements.videoStream, type: "error", listener: onStreamError },
@@ -296,10 +441,10 @@ function attachHandlers() {
   bindOptionalEventListeners(eventBindings);
 
   // Tab navigation handlers
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
+  document.querySelectorAll<HTMLButtonElement>(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const tab = btn.getAttribute("data-tab");
-      switchTab(tab);
+      if (tab) switchTab(tab);
     });
   });
 
@@ -346,7 +491,7 @@ function attachHandlers() {
  * @param {string} options.htmlContent - HTML content to render in the modal body.
  * @returns {void}
  */
-function openUtilityModal({ title, htmlContent }) {
+function openUtilityModal({ title, htmlContent }: { title: string; htmlContent: string }) {
   if (
     !state.elements.utilityModal ||
     !state.elements.utilityModalTitle ||
@@ -423,12 +568,12 @@ function closeUtilityModal() {
  * @param {KeyboardEvent} event - Keydown event for Tab navigation.
  * @returns {void}
  */
-function trapUtilityModalTabCycle(event) {
+function trapUtilityModalTabCycle(event: KeyboardEvent) {
   if (!state.elements.utilityModal) {
     return;
   }
 
-  const focusableElements = state.elements.utilityModal.querySelectorAll(
+  const focusableElements = state.elements.utilityModal.querySelectorAll<HTMLElement>(
     'a[href], area[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
   );
 
@@ -459,7 +604,7 @@ function trapUtilityModalTabCycle(event) {
  * @throws {Error} If the API request fails.
  * @async
  */
-async function fetchChangelogData() {
+async function fetchChangelogData(): Promise<ChangelogPayload> {
   if (state.changelogCache) {
     return state.changelogCache;
   }
@@ -470,7 +615,7 @@ async function fetchChangelogData() {
     },
   });
 
-  const payload = await response.json();
+  const payload = (await response.json()) as ChangelogPayload;
   if (!response.ok && payload.status !== "degraded") {
     throw new Error(payload.message || "Failed to load changelog");
   }
@@ -485,7 +630,7 @@ async function fetchChangelogData() {
  * @param {{status: string, entries: Array<{version: string, release_date: string|null, changes: string[]}>, message?: string, full_changelog_url?: string}} payload - Changelog API payload.
  * @returns {string} Safe HTML string for modal content.
  */
-function renderChangelogHtml(payload) {
+function renderChangelogHtml(payload: ChangelogPayload): string {
   const entries = Array.isArray(payload.entries) ? payload.entries : [];
   const visibleEntries = entries.slice(0, CHANGELOG_MAX_VISIBLE_ENTRIES);
   const debugModeEnabled = isDebugModeEnabled();
@@ -548,7 +693,7 @@ function isDebugModeEnabled() {
  * @param {boolean} debugModeEnabled - Whether debug diagnostics should be shown.
  * @returns {string} Safe degraded status note markup.
  */
-function renderDegradedChangelogNote(payload, debugModeEnabled) {
+function renderDegradedChangelogNote(payload: ChangelogPayload, debugModeEnabled: boolean): string {
   const userFriendlyMessage =
     "We couldn't load the latest changelog details right now. Try again shortly.";
 
@@ -573,7 +718,7 @@ function renderDegradedChangelogNote(payload, debugModeEnabled) {
  * @param {string} markdown - Trusted markdown content returned by /api/help/readme.
  * @returns {string} Sanitized HTML output for modal rendering.
  */
-function renderMarkdownContent(markdown) {
+function renderMarkdownContent(markdown: string): string {
   return renderReadmeMarkdown(markdown);
 }
 
@@ -587,7 +732,7 @@ function renderMarkdownContent(markdown) {
  * @param {string} html - Potentially unsafe HTML content.
  * @returns {string} Sanitized HTML safe for modal rendering.
  */
-function sanitizeUtilityHtml(html) {
+function sanitizeUtilityHtml(html: string): string {
   const allowedTags = new Set([
     "a",
     "article",
@@ -620,7 +765,7 @@ function sanitizeUtilityHtml(html) {
   const parsedDocument = parser.parseFromString(String(html || ""), "text/html");
   const outputDocument = document.implementation.createHTMLDocument("");
 
-  const sanitizeNode = (node) => {
+  const sanitizeNode = (node: Node): Node | null => {
     if (node.nodeType === Node.TEXT_NODE) {
       return outputDocument.createTextNode(node.textContent || "");
     }
@@ -629,11 +774,11 @@ function sanitizeUtilityHtml(html) {
       return null;
     }
 
-    const sourceElement = /** @type {Element} */ node;
+    const sourceElement = node as Element;
     const tagName = sourceElement.tagName.toLowerCase();
     const childNodes = Array.from(sourceElement.childNodes)
       .map((child) => sanitizeNode(child))
-      .filter(Boolean);
+      .filter((child): child is Node => child !== null);
 
     if (!allowedTags.has(tagName)) {
       const fragment = outputDocument.createDocumentFragment();
@@ -666,7 +811,7 @@ function sanitizeUtilityHtml(html) {
   const wrapper = outputDocument.createElement("div");
   Array.from(parsedDocument.body.childNodes)
     .map((child) => sanitizeNode(child))
-    .filter(Boolean)
+    .filter((child): child is Node => child !== null)
     .forEach((child) => wrapper.appendChild(child));
 
   return wrapper.innerHTML;
@@ -678,7 +823,7 @@ function sanitizeUtilityHtml(html) {
  * @param {string} href - Link href candidate.
  * @returns {string} Safe href value, or empty string when rejected.
  */
-function sanitizeAnchorHref(href) {
+function sanitizeAnchorHref(href: string): string {
   const raw = String(href || "").trim();
   if (!raw) {
     return "";
@@ -708,7 +853,7 @@ function sanitizeAnchorHref(href) {
  * @param {string} href - Sanitized anchor href value.
  * @returns {boolean} True for external absolute HTTP(S) URLs.
  */
-function isExternalNavigationLink(href) {
+function isExternalNavigationLink(href: string): boolean {
   if (!href) {
     return false;
   }
@@ -802,7 +947,7 @@ async function updateStats() {
       const data = await fetchMetrics();
       requestAnimationFrame(() => renderMetrics(data));
     } catch (error) {
-      if (error && error.name === "AbortError") {
+      if (error instanceof Error && error.name === "AbortError") {
         console.warn("Stats request timed out, will retry.");
         increaseBackoff();
         return;
@@ -817,7 +962,7 @@ async function updateStats() {
 }
 
 /** Render the disconnected state after a failed metrics request. */
-function handleStatsUpdateError(error) {
+function handleStatsUpdateError(error: unknown) {
   console.error("Failed to fetch stats:", error);
   setConnectionStatus("disconnected", "Disconnected");
   increaseBackoff();
@@ -835,8 +980,9 @@ function handleStatsUpdateError(error) {
     "maxFrameRiskValue",
   ];
   placeholderIds.forEach((elementKey) => {
-    if (state.elements[elementKey]) {
-      state.elements[elementKey].textContent = "--";
+    const element = state.elements[elementKey];
+    if (element instanceof HTMLElement) {
+      element.textContent = "--";
     }
   });
   if (state.elements.streamRiskValue) state.elements.streamRiskValue.textContent = "Offline";
@@ -890,10 +1036,11 @@ function refreshStream() {
   const streamUrl = state.elements.videoStream.src.split("?")[0];
   state.elements.videoStream.src = streamUrl;
 
-  if (state.elements.refreshBtn) {
-    state.elements.refreshBtn.style.transform = "rotate(360deg)";
+  const refreshButton = state.elements.refreshBtn;
+  if (refreshButton) {
+    refreshButton.style.transform = "rotate(360deg)";
     setTimeout(() => {
-      state.elements.refreshBtn.style.transform = "";
+      refreshButton.style.transform = "";
     }, 300);
   }
 }
@@ -907,19 +1054,20 @@ function refreshStream() {
  * @returns {void}
  */
 async function toggleFullscreen() {
-  const container = state.elements.videoStream?.closest(".video-container");
-  await toggleFullscreenUi(container, document);
+  const container = state.elements.videoStream?.closest<HTMLElement>(".video-container") ?? null;
+  await toggleFullscreenUi(container, document as FullscreenDocument);
 }
 
 /**
  * Handle fullscreen change events
  */
 function onFullscreenChange() {
+  const fullscreenDocument = document as FullscreenDocument;
   const isFullscreen = !!(
-    document.fullscreenElement ||
-    document.webkitFullscreenElement ||
-    document.mozFullScreenElement ||
-    document.msFullscreenElement
+    fullscreenDocument.fullscreenElement ||
+    fullscreenDocument.webkitFullscreenElement ||
+    fullscreenDocument.mozFullScreenElement ||
+    fullscreenDocument.msFullscreenElement
   );
 
   if (state.elements.fullscreenBtn) {
@@ -979,7 +1127,7 @@ function onStreamError() {
  * @param {string} text - Display text for status indicator.
  * @returns {void}
  */
-function setConnectionStatus(status, text) {
+function setConnectionStatus(status: string, text: string): void {
   state.isConnected = status === "connected" || status === "stale";
 
   if (state.elements.statusIndicator) {
@@ -1099,7 +1247,7 @@ function stopStatsUpdate() {
  * @param {number} nextFrequency - Polling frequency in milliseconds (unused by SSE).
  * @returns {void}
  */
-function setUpdateFrequency(nextFrequency) {
+function setUpdateFrequency(nextFrequency: number): void {
   if (state.updateFrequency === nextFrequency) return;
   state.updateFrequency = nextFrequency;
 }
@@ -1174,7 +1322,7 @@ async function fetchMetrics() {
  * @param {Object} data - Metrics data object from /metrics endpoint.
  * @returns {void}
  */
-function renderMetrics(data) {
+function renderMetrics(data: MetricsResponse): void {
   renderMetricsPanel(data, {
     state,
     setConnectionStatus,
@@ -1219,7 +1367,7 @@ function updateConnectionDisplays() {
  * @param {number|string|null|undefined} value
  * @returns {string}
  */
-function formatConnectionValue(value) {
+function formatConnectionValue(value: number | string | null | undefined): string {
   if (value === null || value === undefined) {
     return "--";
   }
@@ -1240,7 +1388,7 @@ function formatConnectionValue(value) {
  * @param {number} seconds - Uptime in seconds.
  * @returns {string} Formatted uptime string, or "0s" if invalid.
  */
-function formatUptime(seconds) {
+function formatUptime(seconds: number | undefined): string {
   if (!seconds || seconds < 0) return "0s";
 
   const days = Math.floor(seconds / 86400);
@@ -1265,7 +1413,7 @@ function formatUptime(seconds) {
  * @param {number} num - Number to format.
  * @returns {string} Formatted number string.
  */
-function formatNumber(num) {
+function formatNumber(num: number | undefined): string {
   if (num === null || num === undefined) return "0";
   return num.toLocaleString();
 }
@@ -1278,7 +1426,7 @@ function formatNumber(num) {
  * @param {number} seconds - Seconds value.
  * @returns {string} Formatted seconds string, or "--" if invalid.
  */
-function formatSeconds(seconds) {
+function formatSeconds(seconds: number | undefined): string {
   if (seconds === null || seconds === undefined) return "--";
   if (Number.isNaN(seconds)) return "--";
   return `${Number(seconds).toFixed(2)}s`;
@@ -1292,7 +1440,7 @@ function formatSeconds(seconds) {
  * @returns {void}
  */
 function hideLoading() {
-  const loadingOverlay = document.querySelector(".loading-overlay");
+  const loadingOverlay = document.querySelector<HTMLElement>(".loading-overlay");
   if (loadingOverlay) {
     loadingOverlay.style.opacity = "0";
     setTimeout(() => {
@@ -1312,7 +1460,7 @@ function hideLoading() {
  * @param {string} tabName - Tab name ("main", "config", "setup").
  * @returns {void}
  */
-function switchTab(tabName) {
+function switchTab(tabName: string): void {
   const wasConfigTab = state.currentTab === "config";
   const wasSetupTab = state.currentTab === "setup";
   state.currentTab = tabName;
@@ -1323,7 +1471,7 @@ function switchTab(tabName) {
   updateMascotForTab(tabName);
 
   // Update visible panels
-  const mainSection = document.querySelector(".video-section");
+  const mainSection = document.querySelector<HTMLElement>(".video-section");
   const statsPanel = state.elements.statsPanel;
   const configPanel = state.elements.configPanel;
   const settingsPanel = state.elements.settingsPanel;
@@ -1342,29 +1490,44 @@ function switchTab(tabName) {
 }
 
 /** Update active state on all tab buttons. */
-function updateTabButtons(tabName) {
-  (state.elements.tabButtons || document.querySelectorAll(".tab-btn")).forEach((btn) => {
+function updateTabButtons(tabName: string): void {
+  const tabButtons =
+    state.elements.tabButtons ??
+    Array.from(document.querySelectorAll<HTMLButtonElement>(".tab-btn"));
+  tabButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.getAttribute("data-tab") === tabName);
   });
 }
 
 /** Show the panel associated with a tab and hide the others. */
-function setTabPanelVisibility(tabName, panels) {
+function setTabPanelVisibility(
+  tabName: string,
+  panels: {
+    mainSection: HTMLElement | null;
+    statsPanel: HTMLElement | null;
+    configPanel: HTMLElement | null;
+    settingsPanel: HTMLElement | null;
+    setupPanel: HTMLElement | null;
+  },
+): void {
   const { mainSection, statsPanel, configPanel, settingsPanel, setupPanel } = panels;
-  const visiblePanel =
-    {
-      main: [mainSection, statsPanel],
-      config: [configPanel],
-      settings: [settingsPanel],
-      setup: [setupPanel],
-    }[tabName] || [];
+  const panelMap: Record<string, Array<HTMLElement | null>> = {
+    main: [mainSection, statsPanel],
+    config: [configPanel],
+    settings: [settingsPanel],
+    setup: [setupPanel],
+  };
+  const visiblePanel = panelMap[tabName] || [];
   [mainSection, statsPanel, configPanel, settingsPanel, setupPanel].forEach((panel) => {
     if (panel) panel.classList.toggle("hidden", !visiblePanel.includes(panel));
   });
 }
 
 /** Start and stop services required by the selected tab. */
-function activateTabServices(tabName, { wasConfigTab, wasSetupTab }) {
+function activateTabServices(
+  tabName: string,
+  { wasConfigTab, wasSetupTab }: { wasConfigTab: boolean; wasSetupTab: boolean },
+): void {
   if (tabName === "main") {
     stopConfigPolling();
     if (!state.statsCollapsed) startStatsUpdate();
@@ -1388,7 +1551,10 @@ function activateTabServices(tabName, { wasConfigTab, wasSetupTab }) {
  *
  * @returns {{avatar: string, happy: string, curious: string, sleeping: string, winking: string, floating: string}}
  */
-function getMioAssets() {
+function getMioAssets(): Record<
+  "avatar" | "curious" | "floating" | "happy" | "sleeping" | "winking",
+  string
+> {
   const { dataset } = document.body;
   return {
     avatar: dataset.mioAvatar || DEFAULT_MIO_PATH,
@@ -1406,9 +1572,9 @@ function getMioAssets() {
  * @param {string} tabName - Active view key.
  * @returns {void}
  */
-function updateMascotForTab(tabName) {
+function updateMascotForTab(tabName: string): void {
   const assets = getMioAssets();
-  const mascotByTab = {
+  const mascotByTab: Record<string, { src: string; alt: string }> = {
     main: {
       src: assets.happy,
       alt: "Mio mascot for Stream view",
@@ -1440,14 +1606,14 @@ function updateMascotForTab(tabName) {
  * @param {string} tabName - Active view key.
  * @returns {void}
  */
-function updateViewMeta(tabName) {
-  const titleByTab = {
+function updateViewMeta(tabName: string): void {
+  const titleByTab: Record<string, string> = {
     main: "Stream",
     config: "Configuration",
     setup: "Set-Up",
     settings: "Runtime Settings",
   };
-  const subtitleByTab = {
+  const subtitleByTab: Record<string, string> = {
     main: "Camera Live Stream",
     config: "Resolution, FPS, and JPEG tuning",
     setup: "Guided setup and generated files",
@@ -1545,7 +1711,7 @@ async function updateConfig() {
  * @param {string} message - Error message to display.
  * @returns {void}
  */
-function showConfigError(message) {
+function showConfigError(message: string): void {
   if (!state.elements.configErrorAlert) return;
 
   if (state.elements.configErrorMessage) {
@@ -1563,8 +1729,8 @@ function showConfigError(message) {
  * @param {Object} data - Configuration data object from /api/config endpoint.
  * @returns {void}
  */
-function renderConfig(data) {
-  renderConfigPanel(data, {
+function renderConfig(data: unknown): void {
+  renderConfigPanel(asRecord(data) as Parameters<typeof renderConfigPanel>[0], {
     state,
     setConfigValue,
     formatBoolean,
@@ -1584,7 +1750,7 @@ function renderConfig(data) {
  * @param {boolean} isFallbackActive - Whether active mock fallback is currently in use.
  * @returns {void}
  */
-function applyMockStreamMode(isMockModeActive, isFallbackActive) {
+function applyMockStreamMode(isMockModeActive: boolean, isFallbackActive: boolean): void {
   applyMockStreamModeUi(isMockModeActive, isFallbackActive, {
     elements: state.elements,
     document,
@@ -1599,7 +1765,7 @@ const HEALTH_TEXT = {
   unknown: "Unknown",
 };
 
-function normalizeHealthState(stateValue) {
+function normalizeHealthState(stateValue: unknown): "fail" | "ok" | "unknown" | "warn" {
   const normalized = String(stateValue || "").toLowerCase();
 
   if (["ok", "pass", "healthy", "ready"].includes(normalized)) return "ok";
@@ -1608,21 +1774,23 @@ function normalizeHealthState(stateValue) {
   return "unknown";
 }
 
-function setHealthIndicator(elementId, indicator) {
-  const element = document.getElementById(elementId);
+function setHealthIndicator(elementId: string, indicator: unknown): void {
+  const element = getElementById(elementId);
   if (!element) return;
 
-  const stateKey = normalizeHealthState(indicator?.state);
+  const indicatorRecord = asRecord(indicator);
+  const stateKey = normalizeHealthState(indicatorRecord.state);
   const labelText =
-    typeof indicator?.label === "string" && indicator.label.trim().length > 0
-      ? indicator.label
+    typeof indicatorRecord.label === "string" && indicatorRecord.label.trim().length > 0
+      ? indicatorRecord.label
       : HEALTH_TEXT[stateKey];
 
   element.textContent = labelText;
   element.className = `config-value health-indicator health-${stateKey}`;
   element.setAttribute("data-health-state", stateKey);
 
-  const detailText = typeof indicator?.details === "string" ? indicator.details.trim() : "";
+  const detailText =
+    typeof indicatorRecord.details === "string" ? indicatorRecord.details.trim() : "";
   if (detailText) {
     element.title = detailText;
   } else {
@@ -1640,11 +1808,11 @@ function setHealthIndicator(elementId, indicator) {
  * @param {string} value - Value to display.
  * @returns {void}
  */
-function setConfigValue(elementId, value) {
-  const element = document.getElementById(elementId);
+function setConfigValue(elementId: string, value: string | number): void {
+  const element = getElementById(elementId);
   if (!element) return;
 
-  element.textContent = value;
+  element.textContent = String(value);
 
   // Apply badge styling for boolean values
   if (value === "Enabled" || value === "Yes") {
@@ -1664,7 +1832,7 @@ function setConfigValue(elementId, value) {
  * @param {boolean|null|undefined} value - Boolean value to format.
  * @returns {string} Formatted string ("Enabled", "Disabled", or "--").
  */
-function formatBoolean(value) {
+function formatBoolean(value: boolean | null | undefined): string {
   if (value === null || value === undefined) return "--";
   return value ? "Enabled" : "Disabled";
 }
@@ -1699,7 +1867,13 @@ function clearConfigDisplay() {
    Setup Tab Functions
    ========================================== */
 
-const setupWizard = {
+const setupWizard: {
+  storageKey: string;
+  steps: readonly SetupWizardStep[];
+  currentStep: SetupWizardStep;
+  expertMode: boolean;
+  initialized: boolean;
+} = {
   storageKey: "motioninocean.setupWizard.v1",
   steps: [...setupWizardSteps],
   currentStep: "environment",
@@ -1715,7 +1889,7 @@ const setupWizard = {
  *
  * @returns {Object} Wizard state object or empty object.
  */
-function getWizardStateFromStorage() {
+function getWizardStateFromStorage(): unknown {
   try {
     const raw = localStorage.getItem(setupWizard.storageKey);
     return raw ? JSON.parse(raw) : {};
@@ -1737,11 +1911,11 @@ function saveWizardState() {
     currentStep: setupWizard.currentStep,
     expertMode: setupWizard.expertMode,
     environment: {
-      piVersion: document.getElementById("env-pi-version")?.value || "",
-      intent: document.getElementById("env-intent")?.value || "",
-      mockCamera: document.getElementById("env-mock-camera")?.value || "false",
+      piVersion: getElementById<HTMLInputElement>("env-pi-version")?.value || "",
+      intent: getElementById<HTMLSelectElement>("env-intent")?.value || "",
+      mockCamera: getElementById<HTMLSelectElement>("env-mock-camera")?.value || "false",
     },
-    preset: document.getElementById("preset-select")?.value || "custom",
+    preset: getElementById<HTMLSelectElement>("preset-select")?.value || "custom",
     fields: collectSetupConfig(),
   };
 
@@ -1762,13 +1936,13 @@ function applyStoredWizardState() {
     currentStep: setupWizard.currentStep,
     expertMode: setupWizard.expertMode,
     setValue: (id, value) => {
-      const input = document.getElementById(id);
+      const input = getElementById<HTMLInputElement | HTMLSelectElement>(id);
       if (input && value !== undefined && value !== null) {
         input.value = String(value);
       }
     },
     setChecked: (id, checked) => {
-      const input = document.getElementById(id);
+      const input = getElementById<HTMLInputElement>(id);
       if (input) {
         input.checked = checked;
       }
@@ -1787,7 +1961,7 @@ function applyStoredWizardState() {
  *
  * @returns {Object} Configuration object with resolution, fps, quality settings.
  */
-function collectSetupConfig() {
+function collectSetupConfig(): SetupConfig {
   return collectWizardConfig(document);
 }
 
@@ -1797,13 +1971,13 @@ function collectSetupConfig() {
  * @param {Object} config - Configuration object with setup values.
  * @returns {void}
  */
-function applyConfigToForm(config) {
+function applyConfigToForm(config: Partial<SetupConfig>): void {
   if (!config || typeof config !== "object") return;
 
-  const setValue = (id, value) => {
-    const el = document.getElementById(id);
+  const setValue = (id: string, value: string | number | boolean | null | undefined): void => {
+    const el = getElementById<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(id);
     if (el !== null && el !== undefined && value !== undefined && value !== null) {
-      el.value = value;
+      el.value = String(value);
     }
   };
 
@@ -1825,9 +1999,9 @@ function applyConfigToForm(config) {
  *
  * @returns {string} Preset name ("pi3_low_power", "pi5_high_quality", or "custom").
  */
-function inferPresetFromEnvironment() {
-  const piVersion = document.getElementById("env-pi-version")?.value;
-  const intent = document.getElementById("env-intent")?.value;
+function inferPresetFromEnvironment(): string {
+  const piVersion = getElementById<HTMLInputElement>("env-pi-version")?.value;
+  const intent = getElementById<HTMLSelectElement>("env-intent")?.value;
   return inferSetupPreset(piVersion || "", intent || "");
 }
 
@@ -1837,8 +2011,8 @@ function inferPresetFromEnvironment() {
  * @param {string} preset - Preset name ("pi3_low_power", "pi5_high_quality", "custom").
  * @returns {void}
  */
-function applyPresetToForm(preset) {
-  const envMockCamera = document.getElementById("env-mock-camera")?.value || "false";
+function applyPresetToForm(preset: string): void {
+  const envMockCamera = getElementById<HTMLSelectElement>("env-mock-camera")?.value || "false";
 
   if (preset === "pi3_low_power") {
     applyConfigToForm({
@@ -1867,7 +2041,7 @@ function applyPresetToForm(preset) {
   }
 }
 
-function getStepIndex(step) {
+function getStepIndex(step: SetupWizardStep): number {
   return setupWizard.steps.indexOf(step);
 }
 
@@ -1877,15 +2051,15 @@ function getStepIndex(step) {
  * @param {string} step - Step name (e.g., "environment", "preset", "review").
  * @returns {void}
  */
-function setWizardStep(step) {
+function setWizardStep(step: SetupWizardStep): void {
   if (!setupWizard.steps.includes(step)) return;
   setupWizard.currentStep = step;
 
-  document.querySelectorAll(".wizard-step-panel").forEach((panel) => {
+  document.querySelectorAll<HTMLElement>(".wizard-step-panel").forEach((panel) => {
     panel.classList.toggle("hidden", panel.getAttribute("data-step-panel") !== step);
   });
 
-  document.querySelectorAll(".wizard-step").forEach((stepButton) => {
+  document.querySelectorAll<HTMLElement>(".wizard-step").forEach((stepButton) => {
     const isActive = stepButton.getAttribute("data-step") === step;
     stepButton.classList.toggle("is-active", isActive);
   });
@@ -1902,8 +2076,9 @@ function setWizardStep(step) {
  * @param {string} step - Step name to validate ("environment", "preset", "review", etc.).
  * @returns {boolean} True if step is valid or expert mode enabled; false if validation required but failed.
  */
-function validateStep(step) {
-  const value = (id) => document.getElementById(id)?.value || "";
+function validateStep(step: SetupWizardStep): boolean {
+  const value = (id: string): string =>
+    getElementById<HTMLInputElement | HTMLSelectElement>(id)?.value || "";
   return validateSetupStep(step, setupWizard.expertMode, {
     piVersion: value("env-pi-version"),
     intent: value("env-intent"),
@@ -1949,8 +2124,8 @@ function updateWizardCompletion() {
  */
 function updateWizardNavigation() {
   const currentIndex = getStepIndex(setupWizard.currentStep);
-  const prevBtn = document.getElementById("setup-prev-btn");
-  const nextBtn = document.getElementById("setup-next-btn");
+  const prevBtn = getElementById<HTMLButtonElement>("setup-prev-btn");
+  const nextBtn = getElementById<HTMLButtonElement>("setup-next-btn");
 
   if (prevBtn) prevBtn.disabled = currentIndex <= 0;
 
@@ -1965,7 +2140,7 @@ function updateWizardNavigation() {
   }
 }
 
-function escapeHtml(unsafe) {
+function escapeHtml(unsafe: unknown): string {
   return String(unsafe)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -1984,12 +2159,12 @@ function escapeHtml(unsafe) {
  */
 function updatePresetRecommendation() {
   const recommendedPreset = inferPresetFromEnvironment();
-  const recommendation = document.getElementById("preset-recommendation");
+  const recommendation = getElementById("preset-recommendation");
   if (recommendation) {
     recommendation.textContent = `Recommended from environment answers: ${recommendedPreset}`;
   }
 
-  const presetSelect = document.getElementById("preset-select");
+  const presetSelect = getElementById<HTMLSelectElement>("preset-select");
   if (presetSelect && (!presetSelect.value || presetSelect.value === "custom")) {
     presetSelect.value = recommendedPreset;
     applyPresetToForm(recommendedPreset);
@@ -2007,9 +2182,9 @@ function updateReviewSummary() {
   const summary = document.getElementById("review-summary");
   if (!summary) return;
 
-  const piVersion = document.getElementById("env-pi-version")?.value || "not selected";
-  const intent = document.getElementById("env-intent")?.value || "not selected";
-  const preset = document.getElementById("preset-select")?.value || "custom";
+  const piVersion = getElementById<HTMLInputElement>("env-pi-version")?.value || "not selected";
+  const intent = getElementById<HTMLSelectElement>("env-intent")?.value || "not selected";
+  const preset = getElementById<HTMLSelectElement>("preset-select")?.value || "custom";
   const config = collectSetupConfig();
 
   summary.innerHTML = `<div class="instructions-header">🧾 Configuration summary</div>
@@ -2078,9 +2253,10 @@ async function loadSetupTab() {
       if (loading) loading.classList.toggle("hidden", !isLoading);
     },
     applyTemplates: (data) => {
-      state.setupFormState = data.current_config || {};
-      state.setupDetectedDevices = data.detected_devices || {};
-      updateSetupUI(data);
+      const templates = asRecord(data);
+      state.setupFormState = toSetupFormState(templates.current_config);
+      state.setupDetectedDevices = toDeviceDetectionPayload(templates.detected_devices);
+      updateSetupUI(templates);
       applyStoredWizardState();
       updatePresetRecommendation();
     },
@@ -2119,8 +2295,12 @@ async function loadSetupTab() {
  * @param {Object} [currentConfig={}] - Current configuration object with intent mode.
  * @returns {Object} Summary with status, tone, guidance, recommendations, device counts.
  */
-function getDeviceDetectionSummary(devices = {}, currentConfig = {}) {
-  const modeIntent = document.getElementById("env-intent")?.value || currentConfig.intent || "";
+function getDeviceDetectionSummary(
+  devices: DeviceDetectionPayload = {},
+  currentConfig: DeviceConfiguration = {},
+) {
+  const configuredIntent = typeof currentConfig.intent === "string" ? currentConfig.intent : "";
+  const modeIntent = getElementById<HTMLSelectElement>("env-intent")?.value || configuredIntent;
   return createDeviceDetectionSummary(devices, currentConfig, modeIntent);
 }
 
@@ -2135,8 +2315,11 @@ function getDeviceDetectionSummary(devices = {}, currentConfig = {}) {
  * @param {Object} [currentConfig={}] - Current configuration object.
  * @returns {void}
  */
-function renderDeviceStatus(devices = {}, currentConfig = {}) {
-  const deviceStatus = document.getElementById("device-status");
+function renderDeviceStatus(
+  devices: DeviceDetectionPayload = {},
+  currentConfig: DeviceConfiguration = {},
+): void {
+  const deviceStatus = getElementById("device-status");
   if (!deviceStatus) return;
 
   const summary = getDeviceDetectionSummary(devices, currentConfig);
@@ -2145,17 +2328,17 @@ function renderDeviceStatus(devices = {}, currentConfig = {}) {
     {
       label: "Video devices (/dev/video*)",
       passed: summary.videoCount > 0,
-      detail: summary.videoCount > 0 ? devices.video_devices.join(", ") : "None",
+      detail: summary.videoCount > 0 ? (devices.video_devices || []).join(", ") : "None",
     },
     {
       label: "Media devices (/dev/media*)",
       passed: summary.mediaCount > 0,
-      detail: summary.mediaCount > 0 ? devices.media_devices.join(", ") : "None",
+      detail: summary.mediaCount > 0 ? (devices.media_devices || []).join(", ") : "None",
     },
     {
       label: "DMA heap",
       passed: summary.dmaCount > 0,
-      detail: summary.dmaCount > 0 ? devices.dma_heap_devices.join(", ") : "None",
+      detail: summary.dmaCount > 0 ? (devices.dma_heap_devices || []).join(", ") : "None",
     },
     {
       label: "/dev/vchiq",
@@ -2212,7 +2395,7 @@ function renderDeviceStatus(devices = {}, currentConfig = {}) {
  * @throws {Error} If device template fetch fails.
  */
 async function rescanSetupDevices() {
-  const rescanBtn = document.getElementById("rescan-devices-btn");
+  const rescanBtn = getElementById<HTMLButtonElement>("rescan-devices-btn");
   if (rescanBtn) {
     rescanBtn.disabled = true;
     rescanBtn.textContent = "Scanning...";
@@ -2222,13 +2405,15 @@ async function rescanSetupDevices() {
     const response = await fetch("/api/setup/templates");
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    const data = await response.json();
-    state.setupDetectedDevices = data.detected_devices || {};
-    state.setupFormState = data.current_config || state.setupFormState;
+    const data = asRecord(await response.json());
+    state.setupDetectedDevices = toDeviceDetectionPayload(data.detected_devices);
+    state.setupFormState = toSetupFormState(data.current_config || state.setupFormState);
     renderDeviceStatus(state.setupDetectedDevices, state.setupFormState);
   } catch (error) {
     console.error("Failed to rescan devices:", error);
-    showSetupError(`Failed to re-scan devices: ${error.message}`);
+    showSetupError(
+      `Failed to re-scan devices: ${error instanceof Error ? error.message : String(error)}`,
+    );
   } finally {
     if (rescanBtn) {
       rescanBtn.disabled = false;
@@ -2246,21 +2431,24 @@ async function rescanSetupDevices() {
  * @param {Object} data - Setup templates data with detected_devices and current_config.
  * @returns {void}
  */
-function updateSetupUI(data) {
-  state.setupDetectedDevices = data.detected_devices || state.setupDetectedDevices || {};
-  renderDeviceStatus(state.setupDetectedDevices, data.current_config || {});
+function updateSetupUI(data: Record<string, unknown>): void {
+  const currentConfig = toSetupFormState(data.current_config);
+  state.setupDetectedDevices = toDeviceDetectionPayload(
+    data.detected_devices || state.setupDetectedDevices,
+  );
+  state.setupFormState = currentConfig;
+  renderDeviceStatus(state.setupDetectedDevices, currentConfig);
 
-  applyConfigToForm(data.current_config || {});
+  applyConfigToForm(currentConfig);
 
-  if (data.current_config?.mock_camera !== undefined) {
-    document.getElementById("env-mock-camera").value = data.current_config.mock_camera
-      ? "true"
-      : "false";
+  if (typeof currentConfig.mock_camera === "boolean") {
+    const mockCameraInput = getElementById<HTMLSelectElement>("env-mock-camera");
+    if (mockCameraInput) mockCameraInput.value = currentConfig.mock_camera ? "true" : "false";
   }
 }
 
 function attachSetupEventListeners() {
-  const presetSelect = document.getElementById("preset-select");
+  const presetSelect = getElementById<HTMLSelectElement>("preset-select");
   if (presetSelect) {
     presetSelect.addEventListener("change", (event) => {
       onPresetChange(event);
@@ -2269,16 +2457,16 @@ function attachSetupEventListeners() {
     });
   }
 
-  const generateBtn = document.getElementById("generate-btn");
+  const generateBtn = getElementById<HTMLButtonElement>("generate-btn");
   if (generateBtn) {
     generateBtn.addEventListener("click", onGenerateClick);
   }
 
-  const expertToggle = document.getElementById("expert-mode-toggle");
+  const expertToggle = getElementById<HTMLInputElement>("expert-mode-toggle");
   if (expertToggle) {
-    expertToggle.addEventListener("change", (event) => {
-      setupWizard.expertMode = event.target.checked;
-      const advancedPanel = document.getElementById("advanced-review-panel");
+    expertToggle.addEventListener("change", () => {
+      setupWizard.expertMode = expertToggle.checked;
+      const advancedPanel = getElementById<HTMLDetailsElement>("advanced-review-panel");
       if (advancedPanel) advancedPanel.open = setupWizard.expertMode;
       updateWizardNavigation();
       updateWizardCompletion();
@@ -2286,39 +2474,41 @@ function attachSetupEventListeners() {
     });
   }
 
-  const nextBtn = document.getElementById("setup-next-btn");
+  const nextBtn = getElementById<HTMLButtonElement>("setup-next-btn");
   if (nextBtn) nextBtn.addEventListener("click", onSetupNext);
 
-  const prevBtn = document.getElementById("setup-prev-btn");
+  const prevBtn = getElementById<HTMLButtonElement>("setup-prev-btn");
   if (prevBtn) prevBtn.addEventListener("click", onSetupPrevious);
 
-  const rescanBtn = document.getElementById("rescan-devices-btn");
+  const rescanBtn = getElementById<HTMLButtonElement>("rescan-devices-btn");
   if (rescanBtn) rescanBtn.addEventListener("click", rescanSetupDevices);
 
-  document.querySelectorAll(".wizard-step").forEach((btn) => {
+  document.querySelectorAll<HTMLButtonElement>(".wizard-step").forEach((btn) => {
     btn.addEventListener("click", () => {
       const requestedStep = btn.getAttribute("data-step");
-      const requestedIndex = getStepIndex(requestedStep);
+      if (!setupWizard.steps.some((step) => step === requestedStep)) return;
+      const step = requestedStep as SetupWizardStep;
+      const requestedIndex = getStepIndex(step);
       const currentIndex = getStepIndex(setupWizard.currentStep);
       if (requestedIndex <= currentIndex || validateStep(setupWizard.currentStep)) {
-        setWizardStep(requestedStep);
+        setWizardStep(step);
       }
     });
   });
 
-  document.querySelectorAll(".output-copy-btn").forEach((btn) => {
-    btn.addEventListener("click", function () {
-      const targetId = this.getAttribute("data-target");
-      copyToClipboard(targetId, this);
+  document.querySelectorAll<HTMLButtonElement>(".output-copy-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetId = button.getAttribute("data-target");
+      if (targetId) copyToClipboard(targetId, button);
     });
   });
 
   ["env-pi-version", "env-intent", "env-mock-camera"].forEach((id) => {
-    const field = document.getElementById(id);
+    const field = getElementById<HTMLInputElement | HTMLSelectElement>(id);
     if (!field) return;
     field.addEventListener("change", () => {
       if (id === "env-mock-camera") {
-        const mockCameraField = document.getElementById("setup-mock-camera");
+        const mockCameraField = getElementById<HTMLSelectElement>("setup-mock-camera");
         if (mockCameraField) mockCameraField.value = field.value;
       }
       if (id === "env-intent") {
@@ -2330,7 +2520,7 @@ function attachSetupEventListeners() {
     });
   });
 
-  document.querySelectorAll("[data-field]").forEach((field) => {
+  document.querySelectorAll<HTMLElement>("[data-field]").forEach((field) => {
     field.addEventListener("input", () => {
       validateSetupForm();
       updateReviewSummary();
@@ -2344,8 +2534,10 @@ function attachSetupEventListeners() {
   });
 }
 
-function onPresetChange(event) {
-  const preset = event.target.value;
+function onPresetChange(event: Event): void {
+  const target = event.currentTarget;
+  if (!(target instanceof HTMLSelectElement)) return;
+  const preset = target.value;
   applyPresetToForm(preset);
   validateSetupForm();
 }
@@ -2360,14 +2552,15 @@ function onPresetChange(event) {
  * @returns {void}
  */
 function validateSetupForm() {
-  const resolution = document.getElementById("setup-resolution")?.value || "";
-  const fps = document.getElementById("setup-fps")?.value || "";
+  const resolution = getElementById<HTMLInputElement>("setup-resolution")?.value || "";
+  const fps = getElementById<HTMLInputElement>("setup-fps")?.value || "";
 
   if (resolution && !/^\d+x\d+$/i.test(resolution)) {
     console.warn("Invalid resolution format. Use WIDTHxHEIGHT (e.g., 640x480)");
   }
 
-  if (fps && (isNaN(fps) || parseInt(fps, 10) < 0 || parseInt(fps, 10) > 120)) {
+  const fpsNumber = Number.parseInt(fps, 10);
+  if (fps && (Number.isNaN(Number(fps)) || fpsNumber < 0 || fpsNumber > 120)) {
     console.warn("FPS must be between 0 and 120");
   }
 
@@ -2395,25 +2588,25 @@ async function onGenerateClick() {
       return;
     }
 
-    const dockerComposeOutput = document.getElementById("docker-compose-output");
+    const dockerComposeOutput = getElementById<HTMLTextAreaElement>("docker-compose-output");
     if (dockerComposeOutput) dockerComposeOutput.value = result.dockerComposeYaml;
 
-    const envOutput = document.getElementById("env-output");
+    const envOutput = getElementById<HTMLTextAreaElement>("env-output");
     if (envOutput) envOutput.value = result.envContent;
 
     showSetupSuccess("Configuration generated successfully!");
     saveWizardState();
   } catch (error) {
     console.error("Generation failed:", error);
-    showSetupError(`Generation failed: ${error.message}`);
+    showSetupError(`Generation failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
 /**
  * Copy textarea content to clipboard
  */
-function copyToClipboard(targetId, buttonElement) {
-  const textarea = document.getElementById(targetId);
+function copyToClipboard(targetId: string, buttonElement: HTMLButtonElement): void {
+  const textarea = getElementById<HTMLTextAreaElement>(targetId);
   if (!textarea) return;
 
   textarea.select();
@@ -2438,9 +2631,9 @@ function copyToClipboard(targetId, buttonElement) {
  * @param {string} message - Error message to display.
  * @returns {void}
  */
-function showSetupError(message) {
-  const errorAlert = document.getElementById("setup-error-alert");
-  const errorMessage = document.getElementById("setup-error-message");
+function showSetupError(message: string): void {
+  const errorAlert = getElementById("setup-error-alert");
+  const errorMessage = getElementById("setup-error-message");
 
   if (errorAlert && errorMessage) {
     errorMessage.textContent = message;
@@ -2456,9 +2649,9 @@ function showSetupError(message) {
  * @param {string} message - Success message to display.
  * @returns {void}
  */
-function showSetupSuccess(message) {
-  const successAlert = document.getElementById("setup-success-alert");
-  const successMessage = document.getElementById("setup-success-message");
+function showSetupSuccess(message: string): void {
+  const successAlert = getElementById("setup-success-alert");
+  const successMessage = getElementById("setup-success-message");
 
   if (successAlert && successMessage) {
     successMessage.textContent = message;
@@ -2470,6 +2663,12 @@ function showSetupSuccess(message) {
   }
 }
 
-// settings.js remains a separate classic script and uses this tab boundary.
-globalThis.switchTab = switchTab;
+declare global {
+  interface Window {
+    switchTab?: (tabName: string) => void;
+  }
+}
+
+// settings.js remains a separate module and uses this tab boundary.
+window.switchTab = switchTab;
 document.addEventListener("DOMContentLoaded", init);

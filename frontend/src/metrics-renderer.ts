@@ -2,7 +2,7 @@
  * Render webcam metrics without owning application state or DOM discovery.
  */
 
-interface MetricsResponse {
+export interface MetricsResponse {
   camera_active?: boolean;
   current_fps?: number;
   uptime_seconds?: number;

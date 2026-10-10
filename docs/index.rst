@@ -80,7 +80,7 @@ Documentation Structure
 =======================
 
 - **Python API:** Auto-generated from Google-style docstrings
-- **JavaScript API:** Auto-generated from JSDoc comments
+- **Frontend API:** Authored in TypeScript under ``frontend/src/`` and documented from JSDoc comments
 - **Guides:** Deployment patterns, feature flags, environment variables
 - **Standards:** Documentation, code quality, testing
 

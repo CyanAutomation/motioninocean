@@ -85,6 +85,7 @@ function buildUiContext() {
     HTMLInputElement: MockHTMLInputElement,
     HTMLElement: MockHTMLElement,
     escapeHtml: (value) => String(value),
+    asRecord: (value) => (typeof value === "object" && value !== null ? value : {}),
     latestDiagnosticResult: null,
     diagnosticWebcamId: { textContent: "" },
     diagnosticContext: { textContent: "" },

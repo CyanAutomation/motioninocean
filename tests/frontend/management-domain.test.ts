@@ -25,15 +25,18 @@ test("management status error normalization supplies stable fallback fields", ()
     error_details: null,
   });
 
-  assert.deepEqual(normalizeWebcamStatusError({
-    code: "SSRF_BLOCKED",
-    message: "blocked",
-    details: { host: "127.0.0.1" },
-  }), {
-    status: "error",
-    stream_available: false,
-    error_code: "SSRF_BLOCKED",
-    error_message: "blocked",
-    error_details: { host: "127.0.0.1" },
-  });
+  assert.deepEqual(
+    normalizeWebcamStatusError({
+      code: "SSRF_BLOCKED",
+      message: "blocked",
+      details: { host: "127.0.0.1" },
+    }),
+    {
+      status: "error",
+      stream_available: false,
+      error_code: "SSRF_BLOCKED",
+      error_message: "blocked",
+      error_details: { host: "127.0.0.1" },
+    },
+  );
 });

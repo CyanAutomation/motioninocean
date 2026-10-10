@@ -39,6 +39,7 @@ Run the same relevant checks contributors and CI use, and report any checks that
    ```
 
    `make ci` runs lint, format check, type check, feature-flag usage validation, and tests. `make validate` adds Bandit through `make security`.
+
 4. For frontend-only changes, run `make test-frontend`, `npm run lint`, and `npm run type-check`. CI also checks that `npm run build:frontend` leaves generated files under `pi_camera_in_docker/static/js` unchanged.
 5. For container changes, inspect `.github/workflows/security-scan.yml`. It builds an image, reports all Trivy severities, blocks fixed HIGH and CRITICAL findings, publishes SARIF on default-branch pushes, and smoke-tests an ARM64 image.
 6. Record the exact commands run and any local environment limitations.
@@ -62,7 +63,7 @@ Run the same relevant checks contributors and CI use, and report any checks that
 ## Common failure modes and recovery actions
 
 - **Failure:** `make ci` passes but Bandit has not run. **Recovery:** Run `make security` or `make validate`; Bandit is not included in `make ci`.
-- **Failure:** Frontend tests fail after editing TypeScript. **Recovery:** Run `npm run build:frontend`, inspect generated JavaScript, then run `node --test tests/frontend/*.test.mjs`.
+- **Failure:** Frontend tests fail after editing TypeScript. **Recovery:** Run `npm run build:frontend`, inspect generated JavaScript, then run `npm run test:frontend`.
 - **Failure:** A local command is missing. **Recovery:** Compare the command with `Makefile` or `package.json`; do not substitute an assumed script.
 - **Failure:** Trivy is unavailable locally. **Recovery:** Record that limitation and use the required GitHub Actions result for the image scan.
 

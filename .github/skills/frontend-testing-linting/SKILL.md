@@ -1,6 +1,6 @@
 ---
 name: frontend-testing-linting
-description: Build, test, lint, type-check, and format the project’s TypeScript and JavaScript. Use for changes under frontend/, tests/frontend/, or generated frontend assets.
+description: Build, test, lint, type-check, and format the project’s TypeScript frontend and generated browser assets. Use for changes under frontend/, tests/frontend/, or generated frontend assets.
 owner: motion-in-ocean team
 last-reviewed: 2026-09-25
 category: Development
@@ -42,7 +42,8 @@ Validate frontend source changes using the scripts and test runner configured in
    make test-frontend
    ```
 
-   This runs `npm run build:frontend` and `node --test tests/frontend/*.test.mjs`.
+   This runs `npm run build:frontend` and `npm run test:frontend`, which executes `tests/frontend/*.test.ts` with `tsx`.
+
 4. Run static checks:
 
    ```bash
@@ -65,7 +66,7 @@ Validate frontend source changes using the scripts and test runner configured in
 ## Source of truth
 
 - `package.json` — Supported npm scripts and frontend tool dependencies.
-- `tsconfig.json` — TypeScript source and compiler settings.
+- `tsconfig.json`, `tsconfig.tools.json`, and `tsconfig.tests.json` — TypeScript source, tooling, and test compiler settings.
 - `.github/workflows/ci.yml` — Node version, frontend test command, and generated-file check.
 - `frontend/src/` — TypeScript source modules.
 - `tests/frontend/` — Node built-in test cases.
@@ -73,7 +74,7 @@ Validate frontend source changes using the scripts and test runner configured in
 
 ## Common failure modes and recovery actions
 
-- **Failure:** `make test-frontend` cannot find a test file. **Recovery:** Check `tests/frontend/*.test.mjs` and confirm the test was added to the repository.
+- **Failure:** `make test-frontend` cannot find a test file. **Recovery:** Check `tests/frontend/*.test.ts` and confirm the test was added to the repository.
 - **Failure:** Generated JavaScript differs after build. **Recovery:** Inspect the TypeScript changes and generated diff; rebuild with `npm run build:frontend`.
 - **Failure:** An npm command is unknown. **Recovery:** Check `package.json`; the supported scripts are `build:frontend`, `lint`, `type-check`, `format`, and `format:check`.
 - **Failure:** Lint fixes cause broad unrelated edits. **Recovery:** Format only the intended files with the repository tool and inspect the diff.
