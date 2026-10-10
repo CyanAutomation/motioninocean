@@ -1,13 +1,16 @@
-export interface FullscreenContainer extends Element {
+export interface FullscreenContainer {
+  requestFullscreen?: () => Promise<void> | void;
   webkitRequestFullscreen?: () => Promise<void> | void;
   mozRequestFullScreen?: () => Promise<void> | void;
   msRequestFullscreen?: () => Promise<void> | void;
 }
 
-export interface FullscreenDocument extends Document {
-  webkitFullscreenElement?: Element | null;
-  mozFullScreenElement?: Element | null;
-  msFullscreenElement?: Element | null;
+export interface FullscreenDocument {
+  fullscreenElement?: unknown;
+  webkitFullscreenElement?: unknown;
+  mozFullScreenElement?: unknown;
+  msFullscreenElement?: unknown;
+  exitFullscreen?: () => Promise<void> | void;
   webkitExitFullscreen?: () => Promise<void> | void;
   mozCancelFullScreen?: () => Promise<void> | void;
   msExitFullscreen?: () => Promise<void> | void;

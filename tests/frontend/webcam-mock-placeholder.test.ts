@@ -2,9 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import { applyMockStreamMode } from "../../frontend/src/mock-stream-ui.ts";
+import { applyMockStreamMode, type MockStreamContext } from "../../frontend/src/mock-stream-ui.ts";
+import { asTestDouble } from "./test-doubles.ts";
 
-function extractFunction(source, functionName) {
+function extractFunction(source: string, functionName: string): string {
   const match = source.match(
     new RegExp(`function ${functionName}\\([^)]*\\) \\{[\\s\\S]*?\\n^}`, "m"),
   );
@@ -17,9 +18,9 @@ function extractFunction(source, functionName) {
 test("applyMockStreamMode toggles placeholder visibility for mock runtime states", () => {
   const placeholder = { hidden: true };
   const video = {
-    style: {},
-    attributes: {},
-    setAttribute(name, value) {
+    style: { opacity: "", filter: "" },
+    attributes: {} as Record<string, string>,
+    setAttribute(name: string, value: string) {
       this.attributes[name] = value;
     },
   };
@@ -30,15 +31,15 @@ test("applyMockStreamMode toggles placeholder visibility for mock runtime states
         videoStream: video,
         mockStreamPlaceholder: placeholder,
         mockStreamAnimation: {
-          attributes: { data: "/static/img/mio/mio_mock_stream.svg" },
-          classList: { toggle() {} },
-          getAttribute(name) {
+          attributes: { data: "/static/img/mio/mio_mock_stream.svg" } as Record<string, string>,
+          classList: { toggle: (_name: string, _force?: boolean) => {} },
+          getAttribute(name: string) {
             return this.attributes[name] ?? null;
           },
-          removeAttribute(name) {
+          removeAttribute(name: string) {
             delete this.attributes[name];
           },
-          setAttribute(name, value) {
+          setAttribute(name: string, value: string) {
             this.attributes[name] = value;
           },
         },
@@ -52,20 +53,17 @@ test("applyMockStreamMode toggles placeholder visibility for mock runtime states
     setConnectionStatus: () => {},
   };
 
-  applyMockStreamMode(true, false, {
+  const streamContext = asTestDouble<MockStreamContext>({
     elements: context.state.elements,
     document: context.document,
     setConnectionStatus: context.setConnectionStatus,
   });
+  applyMockStreamMode(true, false, streamContext);
   assert.equal(placeholder.hidden, false);
   assert.equal(video.style.opacity, "0.2");
   assert.equal(video.attributes["aria-hidden"], "true");
 
-  applyMockStreamMode(false, false, {
-    elements: context.state.elements,
-    document: context.document,
-    setConnectionStatus: context.setConnectionStatus,
-  });
+  applyMockStreamMode(false, false, streamContext);
   assert.equal(placeholder.hidden, true);
   assert.equal(video.style.opacity, "1");
   assert.equal(video.attributes["aria-hidden"], "false");
@@ -115,7 +113,7 @@ test("mock stream visibility updates do not alter hero mascot behavior", () => {
           mioFloating: "/static/img/mio/mio_floating.svg",
         },
       },
-      getElementById: () => null,
+      getElementById: (_id: string) => null,
     },
     state: {
       elements: {
@@ -132,19 +130,25 @@ test("mock stream visibility updates do not alter hero mascot behavior", () => {
 
   vm.runInNewContext(`${getMioAssetsFn}\n${updateMascotForTabFn};`, context);
 
-  context.updateMascotForTab("settings");
+  const evaluatedContext = asTestDouble<typeof context & { updateMascotForTab(tab: string): void }>(
+    context,
+  );
+  evaluatedContext.updateMascotForTab("settings");
   const before = { ...heroImage };
 
-  applyMockStreamMode(true, true, {
-    elements: context.state.elements,
+  const streamContext = asTestDouble<MockStreamContext>({
+    elements: {
+      videoStream: context.state.elements.videoStream,
+      mockStreamPlaceholder: context.state.elements.mockStreamPlaceholder,
+      mockStreamAnimation: null,
+      refreshBtn: null,
+      fullscreenBtn: null,
+    },
     document: context.document,
     setConnectionStatus: context.setConnectionStatus,
   });
-  applyMockStreamMode(false, false, {
-    elements: context.state.elements,
-    document: context.document,
-    setConnectionStatus: context.setConnectionStatus,
-  });
+  applyMockStreamMode(true, true, streamContext);
+  applyMockStreamMode(false, false, streamContext);
 
   assert.deepEqual(heroImage, before);
 });

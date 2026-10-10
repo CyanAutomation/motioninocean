@@ -2,7 +2,7 @@
  * Render webcam metrics without owning application state or DOM discovery.
  */
 
-interface MetricsResponse {
+export interface MetricsResponse {
   camera_active?: boolean;
   current_fps?: number;
   uptime_seconds?: number;
@@ -12,19 +12,23 @@ interface MetricsResponse {
   resolution?: number[];
 }
 
+interface MetricsTextElement {
+  textContent: string | null;
+}
+
 interface MetricsElements {
-  fpsValue: HTMLElement | null;
-  chipFps: HTMLElement | null;
-  performanceRiskValue: HTMLElement | null;
-  uptimeValue: HTMLElement | null;
-  framesRiskDetail: HTMLElement | null;
-  lastFrameAgeValue: HTMLElement | null;
-  lastFrameRiskValue: HTMLElement | null;
-  maxFrameAgeValue: HTMLElement | null;
-  maxFrameRiskValue: HTMLElement | null;
-  streamRiskValue: HTMLElement | null;
-  resolutionValue: HTMLElement | null;
-  lastUpdated: HTMLElement | null;
+  fpsValue: MetricsTextElement | null;
+  chipFps: MetricsTextElement | null;
+  performanceRiskValue: MetricsTextElement | null;
+  uptimeValue: MetricsTextElement | null;
+  framesRiskDetail: MetricsTextElement | null;
+  lastFrameAgeValue: MetricsTextElement | null;
+  lastFrameRiskValue: MetricsTextElement | null;
+  maxFrameAgeValue: MetricsTextElement | null;
+  maxFrameRiskValue: MetricsTextElement | null;
+  streamRiskValue: MetricsTextElement | null;
+  resolutionValue: MetricsTextElement | null;
+  lastUpdated: MetricsTextElement | null;
 }
 
 interface MetricsContext {
@@ -93,7 +97,7 @@ export function renderMetrics(data: MetricsResponse, context: MetricsContext): v
   updateConnectionDisplays();
 }
 
-function setText(element: HTMLElement | null | undefined, value: string): void {
+function setText(element: MetricsTextElement | null | undefined, value: string): void {
   if (element) {
     element.textContent = value;
   }

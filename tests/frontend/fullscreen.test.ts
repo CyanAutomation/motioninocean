@@ -1,23 +1,40 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { toggleFullscreen } from "../../frontend/src/fullscreen.ts";
+import {
+  toggleFullscreen,
+  type FullscreenContainer,
+  type FullscreenDocument,
+} from "../../frontend/src/fullscreen.ts";
 
 function captureLogger() {
-  const warnings = [];
-  const errors = [];
+  const warnings: string[] = [];
+  const errors: string[] = [];
   return {
-    logger: { warn: (message) => warnings.push(message), error: (message) => errors.push(message) },
+    logger: {
+      warn: (message: string) => {
+        warnings.push(message);
+      },
+      error: (message: string) => {
+        errors.push(message);
+      },
+    },
     warnings,
     errors,
   };
 }
 
 test("toggleFullscreen enters and exits native fullscreen", async () => {
-  const calls = [];
-  const container = { requestFullscreen: () => calls.push("enter") };
-  const fullscreenDocument = {
+  const calls: string[] = [];
+  const container: FullscreenContainer = {
+    requestFullscreen: () => {
+      calls.push("enter");
+    },
+  };
+  const fullscreenDocument: FullscreenDocument = {
     fullscreenElement: null,
-    exitFullscreen: () => calls.push("exit"),
+    exitFullscreen: () => {
+      calls.push("exit");
+    },
   };
 
   await toggleFullscreen(container, fullscreenDocument);
@@ -29,13 +46,17 @@ test("toggleFullscreen enters and exits native fullscreen", async () => {
 });
 
 test("toggleFullscreen falls back through browser-prefixed enter and exit methods", async () => {
-  const calls = [];
+  const calls: string[] = [];
   const container = {
-    webkitRequestFullscreen: () => calls.push("webkit-enter"),
+    webkitRequestFullscreen: () => {
+      calls.push("webkit-enter");
+    },
   };
   const fullscreenDocument = {
     mozFullScreenElement: {},
-    msExitFullscreen: () => calls.push("ms-exit"),
+    msExitFullscreen: () => {
+      calls.push("ms-exit");
+    },
   };
 
   await toggleFullscreen(container, fullscreenDocument);
@@ -46,21 +67,45 @@ test("toggleFullscreen falls back through browser-prefixed enter and exit method
 });
 
 test("toggleFullscreen supports Mozilla prefixed APIs", async () => {
-  const calls = [];
-  await toggleFullscreen({ mozRequestFullScreen: () => calls.push("moz-enter") }, {});
+  const calls: string[] = [];
+  await toggleFullscreen(
+    {
+      mozRequestFullScreen: () => {
+        calls.push("moz-enter");
+      },
+    },
+    {},
+  );
   await toggleFullscreen(
     {},
-    { mozFullScreenElement: {}, mozCancelFullScreen: () => calls.push("moz-exit") },
+    {
+      mozFullScreenElement: {},
+      mozCancelFullScreen: () => {
+        calls.push("moz-exit");
+      },
+    },
   );
   assert.deepEqual(calls, ["moz-enter", "moz-exit"]);
 });
 
 test("toggleFullscreen supports remaining WebKit and Microsoft prefixed APIs", async () => {
-  const calls = [];
-  await toggleFullscreen({ msRequestFullscreen: () => calls.push("ms-enter") }, {});
+  const calls: string[] = [];
+  await toggleFullscreen(
+    {
+      msRequestFullscreen: () => {
+        calls.push("ms-enter");
+      },
+    },
+    {},
+  );
   await toggleFullscreen(
     {},
-    { webkitFullscreenElement: {}, webkitExitFullscreen: () => calls.push("webkit-exit") },
+    {
+      webkitFullscreenElement: {},
+      webkitExitFullscreen: () => {
+        calls.push("webkit-exit");
+      },
+    },
   );
   assert.deepEqual(calls, ["ms-enter", "webkit-exit"]);
 });

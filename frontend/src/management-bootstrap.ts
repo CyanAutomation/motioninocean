@@ -6,10 +6,8 @@
  * object, which keeps startup wiring independently testable.
  */
 
-interface DashboardElement extends EventTarget {
-  closest(selector: string): unknown;
-  dataset: DOMStringMap;
-  value: string;
+interface DashboardElement extends HTMLElement {
+  value?: string;
 }
 
 interface ButtonCollection {
@@ -70,6 +68,19 @@ interface DashboardActions {
 interface DashboardContext {
   elements: DashboardElements;
   actions: DashboardActions;
+}
+
+interface NavigationContext {
+  elements: Partial<DashboardElements>;
+  actions: Pick<
+    DashboardActions,
+    | "closeUtilityPanel"
+    | "getViewFromLocationHash"
+    | "openExportPanel"
+    | "openHelpPanel"
+    | "setActiveView"
+    | "toggleTheme"
+  >;
 }
 
 interface DiagnosticClipboardActions {
@@ -141,7 +152,7 @@ function bindOptionalButton(
  * @param {Object} context.actions - Navigation and utility callbacks.
  * @returns {void}
  */
-export function bindNavigation({ elements, actions }: DashboardContext): void {
+export function bindNavigation({ elements, actions }: NavigationContext): void {
   const viewButtons = [
     [elements.viewOverviewBtn, "overview"],
     [elements.viewDevicesBtn, "devices"],
@@ -269,7 +280,7 @@ export function bindDashboardControls({ elements, actions }: DashboardContext): 
     }
     actions.updateBaseUrlValidation(event.target.value);
   });
-  actions.updateBaseUrlValidation(elements.webcamTransport.value);
+  actions.updateBaseUrlValidation(elements.webcamTransport.value || "");
 
   if (elements.diagnosticsAdvancedCheckbox && elements.diagnosticsCollapsibleContainer) {
     actions.setDiagnosticPanelExpanded(false);

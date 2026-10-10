@@ -162,129 +162,26 @@ def update_settings() -> dict:
 
 ---
 
-## JavaScript Documentation (JSDoc)
+## Frontend TypeScript Documentation
 
-### Module Header
+Frontend behavior is authored in `frontend/src/` and compiled to browser JavaScript in
+`pi_camera_in_docker/static/js/`. Put parameter and return types in TypeScript signatures;
+use JSDoc for purpose, behavior, side effects, and errors. `make jsdoc` builds the generated
+API reference from the compiled files.
 
-```javascript
+```typescript
 /**
- * Streaming viewer for motion-in-ocean webcam.
+ * Fetch stream metadata from a remote node.
  *
- * Handles video stream display, connection state management,
- * and real-time frame rate/ status monitoring.
+ * Uses bearer-token authentication and retries transient network failures.
  *
- * @module app
+ * @throws {Error} If the node is unreachable or rejects authentication.
  */
-```
-
-### Async Function
-
-```javascript
-/**
- * Fetch stream metadata from remote node.
- *
- * Queries /api/status endpoint with bearer token authentication.
- * Includes automatic retry with exponential backoff on network errors.
- *
- * @param {string} nodeId - Unique node identifier
- * @param {string} baseUrl - Node base URL (http[s]://host:port)
- * @param {string} authToken - Bearer token for authentication
- * @returns {Promise<Object>} Node status object with keys:
- *   status (string), stream_available (boolean), fps (number)
- * @throws {Error} If node unreachable after retries or auth fails
- * @async
- */
-async function fetchNodeStatus(nodeId, baseUrl, authToken) {
-  // Implementation
-}
-```
-
-### Synchronous Function
-
-```javascript
-/**
- * Parse MJPEG content-type header and extract boundary.
- *
- * Extracts the multipart boundary string from MJPEG stream
- * headers for frame separation and decoding.
- *
- * @param {string} contentType - HTTP Content-Type header value
- * @returns {string} Multipart boundary string (e.g., "frame")
- * @throws {Error} If boundary not found in content-type
- */
-function extractMjpegBoundary(contentType) {
-  // Implementation
-}
-```
-
-### Class / IIFE Pattern
-
-```javascript
-/**
- * Manage WebSocket connection to streaming server.
- *
- * Wraps native WebSocket with exponential backoff reconnection,
- * message buffering, and automatic cleanup on disconnect.
- *
- * @class StreamConnection
- *
- * @example
- * const conn = new StreamConnection(
- *   "ws://localhost:8000/stream",
- *   {auth_token: "abc123", max_retries: 5}
- * );
- * conn.onFrame = (frame) => displayImage(frame);
- * conn.connect();
- */
-class StreamConnection {
-  /**
-   * Create a new streaming connection.
-   *
-   * @param {string} wsUrl - WebSocket server URL
-   * @param {Object} options - Configuration options
-   * @param {string} options.auth_token - Bearer token for authentication
-   * @param {number} options.max_retries - Maximum reconnection attempts
-   * @param {number} options.backoff_ms - Initial backoff in milliseconds
-   *
-   * @throws {TypeError} If wsUrl is not a valid URL string
-   */
-  constructor(wsUrl, options = {}) {
-    // Implementation
-  }
-
-  /**
-   * Establish connection to server and start receiving frames.
-   *
-   * Returns immediately; connection is asynchronous.
-   * Emits 'connected' event when ready, 'error' on failure.
-   *
-   * @returns {Promise<void>} Resolves when first frame received
-   * @throws {Error} If max_retries exceeded
-   * @async
-   */
-  async connect() {
-    // Implementation
-  }
-}
-```
-
-### Private Function (> 10 LOC)
-
-```javascript
-/**
- * Parse raw MJPEG frame boundary and extract image data.
- *
- * Internal helper for decoding MJPEG multipart boundaries and
- * extracting individual JPEG frame bytes from stream.
- * Not for external use; subject to change.
- *
- * @private
- * @param {Uint8Array} buffer - Raw stream buffer
- * @param {string} boundary - Multipart boundary marker
- * @returns {Object} Extracted frame with keys: data (Uint8Array), size
- * @throws {Error} If boundary not found in buffer
- */
-function _decodeFrameFromBuffer(buffer, boundary) {
+async function fetchNodeStatus(
+  nodeId: string,
+  baseUrl: string,
+  authToken: string,
+): Promise<NodeStatus> {
   // Implementation
 }
 ```
@@ -341,40 +238,34 @@ def configure_stream(
     # Implementation
 ```
 
-### JavaScript: Async with Retry
+### TypeScript: Async with Retry
 
-```javascript
+```typescript
 /**
  * Fetch data with exponential backoff retry.
  *
  * Implements standard retry pattern with jitter to prevent
  * thundering herd on recovery.
  *
- * @param {string} url - HTTP endpoint
- * @param {number} maxRetries - Maximum attempts (default 3)
- * @returns {Promise<Response>} Fetch response object
  * @throws {Error} If max retries exceeded
- * @async
  */
-async function fetchWithRetry(url, maxRetries = 3) {
+async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
   // Implementation
 }
 ```
 
-### JavaScript: Error Handling
+### TypeScript: Error Handling
 
-```javascript
+```typescript
 /**
  * Display error message to user with automatic dismissal.
  *
  * Shows transient errors for 5 seconds, persistent errors require
  * manual dismissal. Logs errors for debugging.
  *
- * @param {Error} error - Error object or message string
- * @param {number} timeout_ms - Auto-dismiss timeout in ms (0 = never)
  * @throws {TypeError} If error not Error or string
  */
-function showError(error, timeout_ms = 5000) {
+function showError(error: Error | string, timeoutMs = 5000): void {
   // Implementation
 }
 ```
@@ -392,9 +283,8 @@ make docs-check
 # Build full Sphinx HTML documentation
 make docs-build
 
-# Build JSDoc for JavaScript files
+# Build API docs from TypeScript JSDoc comments
 make jsdoc
-
 # Clean generated docs
 make docs-clean
 ```
@@ -407,8 +297,8 @@ When documenting new functions/classes:
 
 - [ ] **Python**: Google-style docstring with Args, Returns, Raises, Examples (if needed)
 - [ ] **Python private functions > 5 LOC**: Include docstring explaining purpose
-- [ ] **JavaScript**: JSDoc header with @param, @returns, @throws, @async (if applicable)
-- [ ] **JavaScript private functions > 10 LOC**: Include docstring with @private tag
+- [ ] **TypeScript**: Explicit parameter and return types; JSDoc describes purpose and behavior
+- [ ] **Private TypeScript functions > 10 LOC**: Include a doc comment explaining purpose
 - [ ] **Classes**: Document constructor and all public methods
 - [ ] **Modules**: Add module-level docstring with purpose and scope
 - [ ] **REST endpoints**: Document request body, response format, status codes, authentication

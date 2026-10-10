@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { bindNavigation, initializeManagementDashboard } from "./management-bootstrap.js";
 import { setActiveView as setManagementActiveView } from "./management-navigation.js";
 import { renderDiscoveredPanel as renderDiscoveredPanelContent, renderOverviewPanel as renderOverviewPanelContent, } from "./management-renderers.js";
@@ -6,8 +5,26 @@ import { createStatusRefresher } from "./management-status.js";
 import { describeManagementApiError as describeApiError, fetchManagementSettings, saveManagementSettings, } from "./management-settings-api.js";
 import { buildManagementSettingsPatch, hydrateManagementSettingsForm, } from "./management-settings-view.js";
 import { renderDiagnosticResults as renderDiagnosticResultsUi } from "./management-diagnostic-renderer.js";
-import { getDiagnosticCheckRows, getDiagnosticSummaryState, } from "./management-diagnostics.js";
+import { getDiagnosticCheckRows, getDiagnosticSummaryState } from "./management-diagnostics.js";
+import { createManagementBearerTokenSession } from "./management-auth.js";
 import { isFailureStatus, normalizeWebcamStatusError, STATUS_SUBTYPE_CONFIG, statusClass, } from "./management-domain.js";
+function getElementById(id) {
+    return document.getElementById(id);
+}
+function requireElementById(id) {
+    return getElementById(id);
+}
+function asRecord(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value)
+        ? value
+        : {};
+}
+function getErrorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
+}
+function isUnauthorizedError(error) {
+    return error instanceof Error && "isUnauthorized" in error && error.isUnauthorized === true;
+}
 /**
  * Motion In Ocean Management Dashboard
  *
@@ -15,101 +32,101 @@ import { isFailureStatus, normalizeWebcamStatusError, STATUS_SUBTYPE_CONFIG, sta
  * diagnostics, and remote action execution. Implements webcam CRUD operations, bearer token
  * authentication, and real-time status polling.
  */
-const tableBody = document.getElementById("webcams-table-body");
-const webcamForm = document.getElementById("webcam-form");
-const feedback = document.getElementById("form-feedback");
-const formTitle = document.getElementById("form-title");
-const cancelEditBtn = document.getElementById("cancel-edit-btn");
-const refreshBtn = document.getElementById("refresh-webcams-btn");
-const toggleWebcamFormPanelBtn = document.getElementById("toggle-webcam-form-panel-btn");
-const managementLayout = document.getElementById("management-layout");
-const webcamFormPanelContainer = document.getElementById("webcam-form-panel-container");
-const webcamFormContentWrapper = document.getElementById("webcam-form-content-wrapper");
-const webcamFormContent = document.getElementById("webcam-form-content");
-const editingWebcamIdInput = document.getElementById("editing-webcam-id");
-const diagnosticWebcamId = document.getElementById("diagnostic-webcam-id");
-const diagnosticContext = document.getElementById("diagnostic-context");
-const diagnosticSummaryBadge = document.getElementById("diagnostic-summary-badge");
-const diagnosticOverallStatePill = document.getElementById("diagnostic-overall-state-pill");
-const diagnosticSummaryInterpretation = document.getElementById("diagnostic-summary-interpretation");
-const diagnosticSummaryCta = document.getElementById("diagnostic-summary-cta");
-const diagnosticChecksGrid = document.getElementById("diagnostic-checks-grid");
-const diagnosticRecommendations = document.getElementById("diagnostic-recommendations");
-const copyDiagnosticReportBtn = document.getElementById("copy-diagnostic-report-btn");
-const diagnosticPanel = document.getElementById("diagnostic-panel");
-const advancedDiagnosticsToggle = document.getElementById("advanced-diagnostics-toggle");
-const diagnosticPanelContent = document.getElementById("diagnostic-panel-content");
+const tableBody = getElementById("webcams-table-body");
+const webcamForm = getElementById("webcam-form");
+const feedback = getElementById("form-feedback");
+const formTitle = getElementById("form-title");
+const cancelEditBtn = getElementById("cancel-edit-btn");
+const refreshBtn = getElementById("refresh-webcams-btn");
+const toggleWebcamFormPanelBtn = getElementById("toggle-webcam-form-panel-btn");
+const managementLayout = getElementById("management-layout");
+const webcamFormPanelContainer = getElementById("webcam-form-panel-container");
+const webcamFormContentWrapper = getElementById("webcam-form-content-wrapper");
+const webcamFormContent = getElementById("webcam-form-content");
+const editingWebcamIdInput = getElementById("editing-webcam-id");
+const diagnosticWebcamId = getElementById("diagnostic-webcam-id");
+const diagnosticContext = getElementById("diagnostic-context");
+const diagnosticSummaryBadge = getElementById("diagnostic-summary-badge");
+const diagnosticOverallStatePill = getElementById("diagnostic-overall-state-pill");
+const diagnosticSummaryInterpretation = getElementById("diagnostic-summary-interpretation");
+const diagnosticSummaryCta = getElementById("diagnostic-summary-cta");
+const diagnosticChecksGrid = getElementById("diagnostic-checks-grid");
+const diagnosticRecommendations = getElementById("diagnostic-recommendations");
+const copyDiagnosticReportBtn = getElementById("copy-diagnostic-report-btn");
+const diagnosticPanel = getElementById("diagnostic-panel");
+const advancedDiagnosticsToggle = getElementById("advanced-diagnostics-toggle");
+const diagnosticPanelContent = getElementById("diagnostic-panel-content");
 const diagnosticsAdvancedCheckbox = advancedDiagnosticsToggle;
 const diagnosticsCollapsibleContainer = diagnosticPanelContent;
-const managementMain = document.getElementById("management-main");
-const overviewView = document.getElementById("overview-view");
-const devicesView = document.getElementById("devices-view");
-const discoveredView = document.getElementById("discovered-view");
-const settingsView = document.getElementById("settings-view");
-const overviewTotalWebcams = document.getElementById("overview-total-webcams");
-const overviewHealthyWebcams = document.getElementById("overview-healthy-webcams");
-const overviewUnavailableWebcams = document.getElementById("overview-unavailable-webcams");
-const overviewStreamingWebcams = document.getElementById("overview-streaming-webcams");
-const overviewActivityList = document.getElementById("overview-activity-list");
-const overviewActionList = document.getElementById("overview-action-list");
-const refreshDashboardBtn = document.getElementById("refresh-dashboard-btn");
-const scanDiscoveredBtn = document.getElementById("scan-discovered-btn");
-const discoveredList = document.getElementById("discovered-list");
-const discoveredNotes = document.getElementById("discovered-notes");
-const discoveredFeedback = document.getElementById("discovered-feedback");
-const discoveredApproveBtn = document.getElementById("discovered-approve-btn");
-const discoveredRejectBtn = document.getElementById("discovered-reject-btn");
-const discoveredLaterBtn = document.getElementById("discovered-later-btn");
-const viewOverviewBtn = document.getElementById("view-overview-btn");
-const viewDevicesBtn = document.getElementById("view-devices-btn");
-const viewDiscoveredBtn = document.getElementById("view-discovered-btn");
-const viewSettingsBtn = document.getElementById("view-settings-btn");
-const railOverviewBtn = document.getElementById("rail-overview-btn");
-const railDevicesBtn = document.getElementById("rail-devices-btn");
-const railDiscoveredBtn = document.getElementById("rail-discovered-btn");
-const railSettingsBtn = document.getElementById("rail-settings-btn");
-const railExportBtn = document.getElementById("rail-export-btn");
-const railHelpBtn = document.getElementById("rail-help-btn");
-const mobileOverviewBtn = document.getElementById("mobile-overview-btn");
-const mobileDevicesBtn = document.getElementById("mobile-devices-btn");
-const mobileDiscoveredBtn = document.getElementById("mobile-discovered-btn");
-const mobileSettingsBtn = document.getElementById("mobile-settings-btn");
-const mobileExportBtn = document.getElementById("mobile-export-btn");
-const mobileHelpBtn = document.getElementById("mobile-help-btn");
-const themeToggleBtn = document.getElementById("theme-toggle-btn");
-const refreshSettingsBtn = document.getElementById("refresh-settings-btn");
-const settingsSaveBtn = document.getElementById("settings-save-btn");
-const settingsResetBtn = document.getElementById("settings-reset-btn");
-const settingsFeedback = document.getElementById("settings-feedback");
-const settingsManagementApiToken = document.getElementById("settings-management-api-token");
-const settingsDiscoveryEnabled = document.getElementById("settings-discovery-enabled");
-const settingsDiscoveryUrl = document.getElementById("settings-discovery-url");
-const settingsDiscoveryToken = document.getElementById("settings-discovery-token");
-const settingsDiscoveryInterval = document.getElementById("settings-discovery-interval");
-const settingsRuntimeSummary = document.getElementById("settings-runtime-summary");
-const settingsValidationSummary = document.getElementById("settings-validation-summary");
-const settingsOverridesList = document.getElementById("settings-overrides-list");
+const managementMain = getElementById("management-main");
+const overviewView = getElementById("overview-view");
+const devicesView = getElementById("devices-view");
+const discoveredView = getElementById("discovered-view");
+const settingsView = getElementById("settings-view");
+const overviewTotalWebcams = getElementById("overview-total-webcams");
+const overviewHealthyWebcams = getElementById("overview-healthy-webcams");
+const overviewUnavailableWebcams = getElementById("overview-unavailable-webcams");
+const overviewStreamingWebcams = getElementById("overview-streaming-webcams");
+const overviewActivityList = getElementById("overview-activity-list");
+const overviewActionList = getElementById("overview-action-list");
+const refreshDashboardBtn = getElementById("refresh-dashboard-btn");
+const scanDiscoveredBtn = getElementById("scan-discovered-btn");
+const discoveredList = getElementById("discovered-list");
+const discoveredNotes = getElementById("discovered-notes");
+const discoveredFeedback = getElementById("discovered-feedback");
+const discoveredApproveBtn = getElementById("discovered-approve-btn");
+const discoveredRejectBtn = getElementById("discovered-reject-btn");
+const discoveredLaterBtn = getElementById("discovered-later-btn");
+const viewOverviewBtn = getElementById("view-overview-btn");
+const viewDevicesBtn = getElementById("view-devices-btn");
+const viewDiscoveredBtn = getElementById("view-discovered-btn");
+const viewSettingsBtn = getElementById("view-settings-btn");
+const railOverviewBtn = getElementById("rail-overview-btn");
+const railDevicesBtn = getElementById("rail-devices-btn");
+const railDiscoveredBtn = getElementById("rail-discovered-btn");
+const railSettingsBtn = getElementById("rail-settings-btn");
+const railExportBtn = getElementById("rail-export-btn");
+const railHelpBtn = getElementById("rail-help-btn");
+const mobileOverviewBtn = getElementById("mobile-overview-btn");
+const mobileDevicesBtn = getElementById("mobile-devices-btn");
+const mobileDiscoveredBtn = getElementById("mobile-discovered-btn");
+const mobileSettingsBtn = getElementById("mobile-settings-btn");
+const mobileExportBtn = getElementById("mobile-export-btn");
+const mobileHelpBtn = getElementById("mobile-help-btn");
+const themeToggleBtn = getElementById("theme-toggle-btn");
+const refreshSettingsBtn = getElementById("refresh-settings-btn");
+const settingsSaveBtn = getElementById("settings-save-btn");
+const settingsResetBtn = getElementById("settings-reset-btn");
+const settingsFeedback = getElementById("settings-feedback");
+const settingsManagementApiToken = getElementById("settings-management-api-token");
+const settingsDiscoveryEnabled = getElementById("settings-discovery-enabled");
+const settingsDiscoveryUrl = getElementById("settings-discovery-url");
+const settingsDiscoveryToken = getElementById("settings-discovery-token");
+const settingsDiscoveryInterval = getElementById("settings-discovery-interval");
+const settingsRuntimeSummary = getElementById("settings-runtime-summary");
+const settingsValidationSummary = getElementById("settings-validation-summary");
+const settingsOverridesList = getElementById("settings-overrides-list");
 const settingsTabButtons = document.querySelectorAll("[data-settings-tab]");
-const settingsAuthPanel = document.getElementById("settings-auth-panel");
-const settingsDiscoveryPanel = document.getElementById("settings-discovery-panel");
-const settingsRuntimePanel = document.getElementById("settings-runtime-panel");
-const utilityPanel = document.getElementById("utility-panel");
-const utilityPanelTitle = document.getElementById("utility-panel-title");
-const utilityPanelContent = document.getElementById("utility-panel-content");
-const utilityPanelCloseBtn = document.getElementById("utility-panel-close-btn");
-const managementApiTokenInput = document.getElementById("management-api-token");
+const settingsAuthPanel = getElementById("settings-auth-panel");
+const settingsDiscoveryPanel = getElementById("settings-discovery-panel");
+const settingsRuntimePanel = getElementById("settings-runtime-panel");
+const utilityPanel = getElementById("utility-panel");
+const utilityPanelTitle = getElementById("utility-panel-title");
+const utilityPanelContent = getElementById("utility-panel-content");
+const utilityPanelCloseBtn = getElementById("utility-panel-close-btn");
+const managementApiTokenInput = getElementById("management-api-token");
 let webcams = [];
 let webcamStatusMap = new Map();
 let webcamStatusAggregationMap = new Map();
 let webcamDatasetVersion = 0;
-let statusRefreshIntervalId;
+let statusRefreshIntervalId = null;
 let latestDiagnosticResult = null;
 let overviewSnapshot = null;
 let selectedDiscoveredNodeId = "";
 let activityFeed = [];
 let previousStatusByNode = new Map();
 let discoveredSnoozedIds = new Set();
-let managementApiBearerToken = "";
+const managementBearerTokenSession = createManagementBearerTokenSession(() => globalThis.localStorage);
 const API_AUTH_HINT = "Management API request unauthorized. Provide a valid Management API Bearer Token, then click Refresh to retry.";
 const DOCKER_BASE_URL_PATTERN = String.raw `docker://[^\s/:]+:\d+/[^\s/]+`;
 const DOCKER_BASE_URL_HINT = "Use format: docker://proxy-hostname:port/container-id";
@@ -117,7 +134,6 @@ const NODE_FORM_COLLAPSED_STORAGE_KEY = "management.webcamFormCollapsed";
 const VIEW_HASH_PREFIX = "#";
 const VIEWS = ["overview", "devices", "discovered", "settings"];
 const THEME_STORAGE_KEY = "management.theme";
-const API_TOKEN_STORAGE_KEY = "management.apiToken";
 const SNOOZE_STORAGE_KEY = "management.discoveredSnoozedIds";
 function setDiagnosticPanelExpanded(isExpanded) {
     if (!(diagnosticsAdvancedCheckbox instanceof HTMLInputElement) ||
@@ -141,6 +157,11 @@ function getMissingRequiredElementIds() {
         ["editing-webcam-id", editingWebcamIdInput],
         ["webcam-transport", document.getElementById("webcam-transport")],
         ["copy-diagnostic-report-btn", copyDiagnosticReportBtn],
+        ["diagnostic-webcam-id", diagnosticWebcamId],
+        ["diagnostic-context", diagnosticContext],
+        ["diagnostic-summary-badge", diagnosticSummaryBadge],
+        ["diagnostic-checks-grid", diagnosticChecksGrid],
+        ["diagnostic-recommendations", diagnosticRecommendations],
         ["management-main", managementMain],
         ["overview-view", overviewView],
         ["devices-view", devicesView],
@@ -213,7 +234,7 @@ function showFeedback(message, isError = false) {
     feedback.style.color = isError ? "#b91c1c" : "#166534";
 }
 function getManagementBearerToken() {
-    return managementApiBearerToken;
+    return managementBearerTokenSession.getToken();
 }
 function syncManagementTokenInputs(token) {
     if (managementApiTokenInput instanceof HTMLInputElement) {
@@ -223,35 +244,13 @@ function syncManagementTokenInputs(token) {
         settingsManagementApiToken.value = token;
     }
 }
-function setManagementBearerToken(token, { persist = true } = {}) {
-    const normalized = String(token || "").trim();
-    managementApiBearerToken = normalized;
+function setManagementBearerToken(token) {
+    const normalized = managementBearerTokenSession.setToken(token);
     syncManagementTokenInputs(normalized);
-    if (!persist) {
-        return;
-    }
-    try {
-        if (normalized) {
-            globalThis.localStorage?.setItem(API_TOKEN_STORAGE_KEY, normalized);
-        }
-        else {
-            globalThis.localStorage?.removeItem(API_TOKEN_STORAGE_KEY);
-        }
-    }
-    catch {
-        // Ignore local storage failures.
-    }
 }
 function initializeManagementBearerToken() {
-    let storedToken = "";
-    try {
-        storedToken = globalThis.localStorage?.getItem(API_TOKEN_STORAGE_KEY) || "";
-    }
-    catch {
-        // Ignore local storage failures.
-    }
     const fallbackInputToken = managementApiTokenInput instanceof HTMLInputElement ? managementApiTokenInput.value.trim() : "";
-    setManagementBearerToken(storedToken || fallbackInputToken, { persist: false });
+    setManagementBearerToken(fallbackInputToken);
 }
 function openUtilityPanel(title, htmlContent) {
     if (!(utilityPanel instanceof HTMLElement) ||
@@ -302,29 +301,32 @@ function openExportPanel() {
  */
 async function managementFetch(path, options = {}) {
     const token = getManagementBearerToken();
-    const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers = new Headers(options.headers);
+    if (token)
+        headers.set("Authorization", `Bearer ${token}`);
     const response = await fetch(path, {
         ...options,
-        headers: { ...options.headers, ...authHeaders },
+        headers,
     });
     if (response.status === 401) {
-        const unauthorizedError = new Error(API_AUTH_HINT);
-        unauthorizedError.isUnauthorized = true;
-        unauthorizedError.response = response;
+        const unauthorizedError = Object.assign(new Error(API_AUTH_HINT), {
+            isUnauthorized: true,
+            response,
+        });
         throw unauthorizedError;
     }
     return response;
 }
 function getAuthPayload() {
-    const type = document.getElementById("webcam-auth-type").value;
+    const type = requireElementById("webcam-auth-type").value;
     if (type !== "bearer") {
         return { type: "none" };
     }
-    const token = document.getElementById("webcam-auth-token").value.trim();
+    const token = requireElementById("webcam-auth-token").value.trim();
     return token ? { type, token } : { type };
 }
 function getParsedLabels() {
-    const raw = document.getElementById("webcam-labels").value.trim();
+    const raw = requireElementById("webcam-labels").value.trim();
     if (!raw) {
         return {};
     }
@@ -332,23 +334,22 @@ function getParsedLabels() {
 }
 function buildWebcamPayload({ preserveLastSeen = false } = {}) {
     const nowIso = new Date().toISOString();
-    const capabilities = document
-        .getElementById("webcam-capabilities")
+    const capabilities = requireElementById("webcam-capabilities")
         .value.split(",")
         .map((entry) => entry.trim())
         .filter(Boolean);
     const payload = {
-        id: document.getElementById("webcam-id").value.trim(),
-        name: document.getElementById("webcam-name").value.trim(),
-        base_url: document.getElementById("webcam-base-url").value.trim(),
-        transport: document.getElementById("webcam-transport").value,
+        id: requireElementById("webcam-id").value.trim(),
+        name: requireElementById("webcam-name").value.trim(),
+        base_url: requireElementById("webcam-base-url").value.trim(),
+        transport: requireElementById("webcam-transport").value,
         auth: getAuthPayload(),
         capabilities,
         labels: getParsedLabels(),
         last_seen: nowIso,
     };
     if (preserveLastSeen) {
-        const existing = webcams.find((node) => node.id === editingWebcamIdInput.value);
+        const existing = webcams.find((node) => node.id === editingWebcamIdInput?.value);
         if (existing?.last_seen) {
             payload.last_seen = existing.last_seen;
         }
@@ -361,15 +362,19 @@ function enrichStatusWithAggregation(webcamId, status = {}) {
         first_failure_at: null,
         consecutive_failures: 0,
     };
+    const reportedFailures = status.consecutive_failures;
     const next = {
         last_success_at: status.last_success_at || existing.last_success_at,
         first_failure_at: status.first_failure_at || existing.first_failure_at,
-        consecutive_failures: Number.isFinite(status.consecutive_failures)
-            ? status.consecutive_failures
+        consecutive_failures: typeof reportedFailures === "number" && Number.isFinite(reportedFailures)
+            ? reportedFailures
             : existing.consecutive_failures,
     };
     const nowIso = new Date().toISOString();
-    if (isFailureStatus(status)) {
+    if (isFailureStatus({
+        status: typeof status.status === "string" ? status.status : undefined,
+        error_code: typeof status.error_code === "string" ? status.error_code : undefined,
+    })) {
         next.first_failure_at = next.first_failure_at || nowIso;
         next.consecutive_failures += 1;
     }
@@ -389,7 +394,7 @@ function formatAggregationDetails(status = {}) {
     if (status.first_failure_at) {
         fragments.push(`First failure: ${new Date(status.first_failure_at).toLocaleString()}`);
     }
-    if (status.consecutive_failures > 0) {
+    if (typeof status.consecutive_failures === "number" && status.consecutive_failures > 0) {
         fragments.push(`Consecutive failures: ${status.consecutive_failures}`);
     }
     return fragments.join(" • ");
@@ -442,12 +447,12 @@ function getStatusReason(status = {}) {
             hint: "Confirm the webcam is running the compatible management service and exposes /api/status.",
         },
     };
-    if (code && knownReasons[code]) {
-        const reason = knownReasons[code];
+    const reason = typeof code === "string" ? knownReasons[code] : undefined;
+    if (reason) {
         return `${reason.title} ${reason.hint}`;
     }
     if (status.error_message) {
-        return status.error_message;
+        return String(status.error_message);
     }
     return "No additional details available.";
 }
@@ -466,10 +471,10 @@ function normalizeWebcamStatusForUi(status = {}) {
         reasonText = "Ready and responding.";
     }
     else if (subtype === "partial_probe") {
-        reasonText = status.error_message || "Node responded, but readiness is incomplete.";
+        reasonText = String(status.error_message || "Node responded, but readiness is incomplete.");
     }
     else if (subtype === "degraded") {
-        reasonText = status.error_message || "Node is reachable, but operating in a degraded mode.";
+        reasonText = String(status.error_message || "Node is reachable, but operating in a degraded mode.");
     }
     return {
         subtype,
@@ -682,7 +687,8 @@ function setSettingsTab(tabName) {
     });
 }
 function renderRuntimeSettingsChanges(changesPayload = {}) {
-    const overridden = Array.isArray(changesPayload.overridden) ? changesPayload.overridden : [];
+    const overriddenValue = asRecord(changesPayload).overridden;
+    const overridden = Array.isArray(overriddenValue) ? overriddenValue : [];
     if (settingsRuntimeSummary instanceof HTMLElement) {
         settingsRuntimeSummary.textContent =
             overridden.length > 0 ? "Using custom values" : "Using environment defaults";
@@ -690,7 +696,10 @@ function renderRuntimeSettingsChanges(changesPayload = {}) {
     if (settingsOverridesList instanceof HTMLElement) {
         settingsOverridesList.innerHTML = overridden.length
             ? overridden
-                .map((entry) => `<li>${escapeHtml(entry.category || "unknown")}.${escapeHtml(entry.key || "unknown")} = ${escapeHtml(JSON.stringify(entry.value))}</li>`)
+                .map((entry) => {
+                const item = asRecord(entry);
+                return `<li>${escapeHtml(item.category || "unknown")}.${escapeHtml(item.key || "unknown")} = ${escapeHtml(JSON.stringify(item.value))}</li>`;
+            })
                 .join("")
             : "<li>No overrides.</li>";
     }
@@ -759,10 +768,12 @@ async function resetSettings() {
         await fetchSettingsData();
     }
     catch (error) {
-        setSettingsFeedback(error?.message || "Reset failed.", true);
+        setSettingsFeedback(getErrorMessage(error) || "Reset failed.", true);
     }
 }
 function renderRows() {
+    if (!(tableBody instanceof HTMLTableSectionElement))
+        return;
     if (!webcams.length) {
         tableBody.innerHTML = '<tr><td colspan="8" class="empty">No nodes registered.</td></tr>';
         return;
@@ -828,7 +839,7 @@ async function fetchWebcams() {
             throw new Error("Failed to load nodes");
         }
         const payload = await response.json();
-        webcams = payload.webcams || payload.nodes || [];
+        webcams = (payload.webcams || payload.nodes || []);
         webcamDatasetVersion += 1;
         const activeNodeIds = new Set(webcams.map((node) => node.id));
         for (const nodeId of webcamStatusMap.keys()) {
@@ -845,11 +856,11 @@ async function fetchWebcams() {
         renderOverviewPanel();
     }
     catch (error) {
-        if (error?.isUnauthorized) {
+        if (isUnauthorizedError(error)) {
             showFeedback(API_AUTH_HINT, true);
         }
         else {
-            showFeedback(error.message || "Failed to load nodes", true);
+            showFeedback(getErrorMessage(error) || "Failed to load nodes", true);
         }
         throw error;
     }
@@ -870,7 +881,7 @@ function startStatusRefreshInterval() {
 function stopStatusRefreshInterval() {
     if (statusRefreshIntervalId) {
         window.clearInterval(statusRefreshIntervalId);
-        statusRefreshIntervalId = undefined;
+        statusRefreshIntervalId = null;
     }
 }
 const refreshStatusCoordinator = createStatusRefresher({
@@ -898,30 +909,32 @@ async function fetchStatusesForNodes(nodeIds, allowManualFeedback, onUnauthorize
             const response = await managementFetch(`/api/v1/webcams/${encodeURIComponent(nodeId)}/status`);
             if (!response.ok) {
                 const parsed = await response.json().catch(() => ({}));
-                const errorPayload = parsed?.error || parsed || {};
+                const parsedRecord = asRecord(parsed);
+                const errorPayload = asRecord(parsedRecord.error || parsedRecord);
                 statuses.set(nodeId, enrichStatusWithAggregation(nodeId, normalizeWebcamStatusError(errorPayload)));
                 return;
             }
-            statuses.set(nodeId, enrichStatusWithAggregation(nodeId, await response.json()));
+            const parsedStatus = asRecord(await response.json());
+            statuses.set(nodeId, enrichStatusWithAggregation(nodeId, parsedStatus));
         }
         catch (error) {
-            if (allowManualFeedback && error?.isUnauthorized) {
+            if (allowManualFeedback && isUnauthorizedError(error)) {
                 onUnauthorized();
             }
             statuses.set(nodeId, enrichStatusWithAggregation(nodeId, normalizeWebcamStatusError({
-                message: error?.message || "Failed to refresh webcam status.",
+                message: getErrorMessage(error) || "Failed to refresh webcam status.",
             })));
         }
     }));
     return statuses;
 }
 function resetForm() {
-    webcamForm.reset();
-    updateBaseUrlValidation(document.getElementById("webcam-transport").value);
-    editingWebcamIdInput.value = "";
-    formTitle.textContent = "Add node";
-    document.getElementById("webcam-id").disabled = false;
-    cancelEditBtn.classList.add("hidden");
+    requireElementById("webcam-form").reset();
+    updateBaseUrlValidation(requireElementById("webcam-transport").value);
+    requireElementById("editing-webcam-id").value = "";
+    requireElementById("form-title").textContent = "Add node";
+    requireElementById("webcam-id").disabled = false;
+    requireElementById("cancel-edit-btn").classList.add("hidden");
 }
 function setNodeFormPanelCollapsed(isCollapsed) {
     const isExpanded = !isCollapsed;
@@ -977,7 +990,7 @@ function getStoredNodeFormCollapsedPreference() {
 async function submitNodeForm(event) {
     event.preventDefault();
     showFeedback("");
-    const editingNodeId = editingWebcamIdInput.value;
+    const editingNodeId = requireElementById("editing-webcam-id").value;
     const isEdit = Boolean(editingNodeId);
     let payload;
     try {
@@ -1007,11 +1020,11 @@ async function submitNodeForm(event) {
         await refreshManagementData();
     }
     catch (error) {
-        if (error?.isUnauthorized) {
+        if (isUnauthorizedError(error)) {
             showFeedback(API_AUTH_HINT, true);
             return;
         }
-        showFeedback(error.message || "Network error occurred.", true);
+        showFeedback(getErrorMessage(error) || "Network error occurred.", true);
     }
 }
 /**
@@ -1025,19 +1038,19 @@ function beginEditNode(nodeId) {
     if (!webcam) {
         return;
     }
-    editingWebcamIdInput.value = webcam.id;
-    formTitle.textContent = `Edit webcam: ${webcam.id}`;
-    document.getElementById("webcam-id").value = webcam.id;
-    document.getElementById("webcam-id").disabled = true;
-    document.getElementById("webcam-name").value = webcam.name || "";
-    document.getElementById("webcam-base-url").value = webcam.base_url || "";
-    document.getElementById("webcam-transport").value = webcam.transport || "http";
-    updateBaseUrlValidation(document.getElementById("webcam-transport").value);
-    document.getElementById("webcam-auth-type").value = webcam.auth?.type || "none";
-    document.getElementById("webcam-auth-token").value = webcam.auth?.token || "";
-    document.getElementById("webcam-capabilities").value = (webcam.capabilities || []).join(", ");
-    document.getElementById("webcam-labels").value = JSON.stringify(webcam.labels || {}, null, 2);
-    cancelEditBtn.classList.remove("hidden");
+    requireElementById("editing-webcam-id").value = webcam.id;
+    requireElementById("form-title").textContent = `Edit webcam: ${webcam.id}`;
+    requireElementById("webcam-id").value = webcam.id;
+    requireElementById("webcam-id").disabled = true;
+    requireElementById("webcam-name").value = webcam.name || "";
+    requireElementById("webcam-base-url").value = webcam.base_url || "";
+    requireElementById("webcam-transport").value = webcam.transport || "http";
+    updateBaseUrlValidation(requireElementById("webcam-transport").value);
+    requireElementById("webcam-auth-type").value = webcam.auth?.type || "none";
+    requireElementById("webcam-auth-token").value = webcam.auth?.token || "";
+    requireElementById("webcam-capabilities").value = (webcam.capabilities || []).join(", ");
+    requireElementById("webcam-labels").value = JSON.stringify(webcam.labels || {}, null, 2);
+    requireElementById("cancel-edit-btn").classList.remove("hidden");
 }
 /**
  * Fetch and display diagnostic results for a node.
@@ -1051,28 +1064,31 @@ async function diagnoseNode(nodeId) {
         const response = await managementFetch(`/api/v1/webcams/${encodeURIComponent(nodeId)}/diagnose`);
         if (!response.ok) {
             const errorPayload = await response.json().catch(() => ({}));
-            showFeedback(errorPayload?.error?.message || "Diagnostic request failed", true);
+            const errorMessage = asRecord(asRecord(errorPayload).error).message;
+            showFeedback(typeof errorMessage === "string" ? errorMessage : "Diagnostic request failed", true);
             return;
         }
         const diagnosticResult = await response.json();
         showDiagnosticResults(diagnosticResult);
     }
     catch (error) {
-        if (error?.isUnauthorized) {
+        if (isUnauthorizedError(error)) {
             showFeedback(API_AUTH_HINT, true);
             return;
         }
-        showFeedback(error.message || "Network error occurred.", true);
+        showFeedback(getErrorMessage(error) || "Network error occurred.", true);
     }
 }
 function renderDiagnosticRecommendations(guidance = [], recommendations = []) {
+    const normalizedRecommendations = recommendations.map((entry) => asRecord(entry));
     const structured = recommendations.length
-        ? recommendations
+        ? normalizedRecommendations
         : guidance.map((item) => ({ message: item, status: "warn" }));
     const recommendationsList = structured.length
         ? structured
             .map((item) => {
-            const state = ["pass", "warn", "fail"].includes(item.status) ? item.status : "warn";
+            const itemStatus = typeof item.status === "string" ? item.status : "";
+            const state = ["pass", "warn", "fail"].includes(itemStatus) ? itemStatus : "warn";
             const icon = state === "pass" ? "[PASS]" : state === "warn" ? "[WARN]" : "[FAIL]";
             const codeSuffix = item.code ? ` <small>(Code: ${escapeHtml(item.code)})</small>` : "";
             return `<li><span class="diagnostic-pill diagnostic-pill--${state}">${icon}</span> ${escapeHtml(item.message || "")}${codeSuffix}</li>`;
@@ -1085,10 +1101,11 @@ function renderDiagnosticRecommendations(guidance = [], recommendations = []) {
   `;
 }
 function buildDiagnosticTextReport(diagnosticResult) {
-    const nodeId = diagnosticResult.node_id || "unknown";
-    const diagnostics = diagnosticResult.diagnostics || {};
-    const guidance = diagnosticResult.guidance || [];
-    const recommendations = diagnosticResult.recommendations || [];
+    const result = asRecord(diagnosticResult);
+    const nodeId = result.node_id || "unknown";
+    const diagnostics = asRecord(result.diagnostics);
+    const guidance = Array.isArray(result.guidance) ? result.guidance : [];
+    const recommendations = Array.isArray(result.recommendations) ? result.recommendations : [];
     const checkRows = getDiagnosticCheckRows(diagnostics);
     const summary = getDiagnosticSummaryState(checkRows);
     let output = `Diagnostic Report\nNode: ${nodeId}\nSummary: ${summary.label}\n\nChecks:\n`;
@@ -1104,9 +1121,10 @@ function buildDiagnosticTextReport(diagnosticResult) {
         output += "- No recommendations provided.\n";
     }
     else {
-        reportRecommendations.forEach((item) => {
+        reportRecommendations.forEach((entry) => {
+            const item = asRecord(entry);
             const icon = item.status === "pass" ? "[PASS]" : item.status === "fail" ? "[FAIL]" : "[WARN]";
-            output += `- ${icon} ${item.message}${item.code ? ` (Code: ${item.code})` : ""}\n`;
+            output += `- ${icon} ${String(item.message ?? "")}${item.code ? ` (Code: ${item.code})` : ""}\n`;
         });
     }
     return output;
@@ -1114,15 +1132,15 @@ function buildDiagnosticTextReport(diagnosticResult) {
 function showDiagnosticResults(diagnosticResult) {
     latestDiagnosticResult = diagnosticResult;
     renderDiagnosticResultsUi(diagnosticResult, {
-        diagnosticWebcamId,
-        diagnosticContext,
-        diagnosticSummaryBadge,
+        diagnosticWebcamId: diagnosticWebcamId,
+        diagnosticContext: diagnosticContext,
+        diagnosticSummaryBadge: diagnosticSummaryBadge,
         diagnosticOverallStatePill,
         diagnosticSummaryInterpretation,
         diagnosticSummaryCta,
-        diagnosticChecksGrid,
-        diagnosticRecommendations,
-        copyDiagnosticReportBtn,
+        diagnosticChecksGrid: diagnosticChecksGrid,
+        diagnosticRecommendations: diagnosticRecommendations,
+        copyDiagnosticReportBtn: copyDiagnosticReportBtn,
         diagnosticPanel,
         escapeHtml,
         renderRecommendations: renderDiagnosticRecommendations,
@@ -1155,11 +1173,11 @@ async function setDiscoveryApproval(nodeId, decision) {
         return true;
     }
     catch (error) {
-        if (error?.isUnauthorized) {
+        if (isUnauthorizedError(error)) {
             showFeedback(API_AUTH_HINT, true);
             return false;
         }
-        showFeedback(error.message || "Network error occurred.", true);
+        showFeedback(getErrorMessage(error) || "Network error occurred.", true);
         return false;
     }
 }
@@ -1177,17 +1195,17 @@ async function removeNode(nodeId) {
             return;
         }
         showFeedback(`Node ${nodeId} removed.`);
-        if (editingWebcamIdInput.value === nodeId) {
+        if (requireElementById("editing-webcam-id").value === nodeId) {
             resetForm();
         }
         await refreshManagementData();
     }
     catch (error) {
-        if (error?.isUnauthorized) {
+        if (isUnauthorizedError(error)) {
             showFeedback(API_AUTH_HINT, true);
             return;
         }
-        showFeedback(error.message || "Network error occurred.", true);
+        showFeedback(getErrorMessage(error) || "Network error occurred.", true);
     }
 }
 function onTableClick(event) {
@@ -1244,9 +1262,9 @@ async function init() {
     }
     await initializeManagementDashboard({
         elements: {
-            webcamForm,
-            cancelEditBtn,
-            refreshBtn,
+            webcamForm: requireElementById("webcam-form"),
+            cancelEditBtn: requireElementById("cancel-edit-btn"),
+            refreshBtn: requireElementById("refresh-webcams-btn"),
             refreshDashboardBtn,
             scanDiscoveredBtn,
             discoveredList,
@@ -1259,10 +1277,10 @@ async function init() {
             refreshSettingsBtn,
             toggleWebcamFormPanelBtn,
             webcamFormContent,
-            tableBody,
-            webcamTransport: document.getElementById("webcam-transport"),
-            diagnosticsAdvancedCheckbox,
-            diagnosticsCollapsibleContainer,
+            tableBody: requireElementById("webcams-table-body"),
+            webcamTransport: requireElementById("webcam-transport"),
+            diagnosticsAdvancedCheckbox: diagnosticsAdvancedCheckbox || undefined,
+            diagnosticsCollapsibleContainer: diagnosticsCollapsibleContainer || undefined,
             copyDiagnosticReportBtn,
             viewOverviewBtn,
             viewDevicesBtn,
@@ -1285,6 +1303,15 @@ async function init() {
         },
         actions: {
             initializeManagementState,
+            setActiveView,
+            getViewFromLocationHash,
+            openHelpPanel,
+            openExportPanel,
+            closeUtilityPanel,
+            toggleTheme: () => {
+                const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+                applyTheme(currentTheme === "dark" ? "light" : "dark");
+            },
             bindManagementNavigation: () => bindNavigation({
                 elements: {
                     viewOverviewBtn,

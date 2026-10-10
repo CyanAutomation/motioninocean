@@ -6,6 +6,13 @@ import {
   getDiagnosticSummaryState,
 } from "../../frontend/src/management-diagnostics.ts";
 
+const row = (key: string, state: "pass" | "warn" | "fail") => ({
+  key,
+  state,
+  detail: "",
+  meta: "",
+});
+
 test("diagnostic rows prefer structured status over derived booleans", () => {
   const rows = getDiagnosticCheckRows({
     registration: { valid: true, status: "warn", code: "REG_WARN" },
@@ -36,22 +43,22 @@ test("diagnostic rows prefer structured status over derived booleans", () => {
 
 test("diagnostic summary/banner map connectivity categories to concise remediation", () => {
   const summary = getDiagnosticSummaryState([
-    { key: "Registration", state: "pass" },
-    { key: "URL validation", state: "pass" },
-    { key: "DNS resolution", state: "pass" },
-    { key: "Network connectivity", state: "fail" },
-    { key: "API endpoint", state: "pass" },
+    row("Registration", "pass"),
+    row("URL validation", "pass"),
+    row("DNS resolution", "pass"),
+    row("Network connectivity", "fail"),
+    row("API endpoint", "pass"),
   ]);
   assert.equal(summary.label, "Action required");
 
   const banner = getDiagnosticSummaryBanner(
     summary,
     [
-      { key: "Registration", state: "pass" },
-      { key: "URL validation", state: "pass" },
-      { key: "DNS resolution", state: "pass" },
-      { key: "Network connectivity", state: "fail" },
-      { key: "API endpoint", state: "pass" },
+      row("Registration", "pass"),
+      row("URL validation", "pass"),
+      row("DNS resolution", "pass"),
+      row("Network connectivity", "fail"),
+      row("API endpoint", "pass"),
     ],
     {
       network_connectivity: { category: "timeout", code: "NETWORK_CONNECTIVITY_ERROR" },
@@ -65,12 +72,8 @@ test("diagnostic summary/banner map connectivity categories to concise remediati
 });
 
 test("diagnostic summary distinguishes transient API warnings from actionable warnings", () => {
-  const transientSummary = getDiagnosticSummaryState([
-    { key: "API endpoint", state: "warn" },
-  ]);
-  const actionableSummary = getDiagnosticSummaryState([
-    { key: "Network connectivity", state: "warn" },
-  ]);
+  const transientSummary = getDiagnosticSummaryState([row("API endpoint", "warn")]);
+  const actionableSummary = getDiagnosticSummaryState([row("Network connectivity", "warn")]);
 
   assert.equal(transientSummary.label, "Warning");
   assert.equal(actionableSummary.label, "Action recommended");

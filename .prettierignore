@@ -1,4 +1,5 @@
 node_modules/
+pi_camera_in_docker/static/js/
 __pycache__/
 *.pyc
 .git/

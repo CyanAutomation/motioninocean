@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { asTestDouble } from "./test-doubles.ts";
 
-function slice(source, startToken, endToken) {
+function slice(source: string, startToken: string, endToken: string): string {
   const start = source.indexOf(startToken);
   const end = source.indexOf(endToken, start);
   if (start === -1 || end === -1) {
@@ -35,18 +36,23 @@ test("management init exits safely when required DOM ids are missing", async () 
   const managementJs = fs.readFileSync("frontend/src/management.ts", "utf8");
   const initFn = slice(managementJs, "async function init()", "\n\ninit().catch");
 
-  const feedbackCalls = [];
-  const consoleErrors = [];
+  const feedbackCalls: unknown[][] = [];
+  const consoleErrors: string[] = [];
   const context = {
     getMissingRequiredElementIds: () => ["webcam-form"],
     console: {
-      error: (message) => consoleErrors.push(message),
+      error: (message: string) => {
+        consoleErrors.push(message);
+      },
     },
-    showFeedback: (...args) => feedbackCalls.push(args),
+    showFeedback: (message: string, isError = false) => {
+      feedbackCalls.push([message, isError]);
+    },
   };
 
   vm.runInNewContext(`${initFn};`, context);
-  await context.init();
+  const evaluatedContext = asTestDouble<typeof context & { init(): Promise<void> }>(context);
+  await evaluatedContext.init();
 
   assert.equal(feedbackCalls.length, 1);
   assert.deepEqual(feedbackCalls[0], [

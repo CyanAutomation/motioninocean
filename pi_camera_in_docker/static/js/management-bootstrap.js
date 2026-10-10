@@ -170,7 +170,7 @@ export function bindDashboardControls({ elements, actions }) {
         }
         actions.updateBaseUrlValidation(event.target.value);
     });
-    actions.updateBaseUrlValidation(elements.webcamTransport.value);
+    actions.updateBaseUrlValidation(elements.webcamTransport.value || "");
     if (elements.diagnosticsAdvancedCheckbox && elements.diagnosticsCollapsibleContainer) {
         actions.setDiagnosticPanelExpanded(false);
         elements.diagnosticsAdvancedCheckbox.addEventListener("change", actions.toggleDiagnosticPanelContent);

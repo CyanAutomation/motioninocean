@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { asTestDouble } from "./test-doubles.ts";
 
-function extractFunction(source, functionName) {
+function extractFunction(source: string, functionName: string): string {
   const match = source.match(
     new RegExp(`function ${functionName}\\([^)]*\\) \\{[\\s\\S]*?\\n^}`, "m"),
   );
@@ -17,15 +18,15 @@ test("applyTheme updates document theme, icons, and storage", () => {
   const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
   const applyThemeFn = extractFunction(appJs, "applyTheme");
 
-  const writes = [];
+  const writes: Array<[string, string]> = [];
   const moonStyle = { display: "" };
   const sunStyle = { display: "" };
   const context = {
     THEME_STORAGE_KEY: "webcam.theme",
     document: {
       documentElement: {
-        attributes: {},
-        setAttribute(name, value) {
+        attributes: {} as Record<string, string>,
+        setAttribute(name: string, value: string) {
           this.attributes[name] = value;
         },
       },
@@ -37,14 +38,14 @@ test("applyTheme updates document theme, icons, and storage", () => {
       },
     },
     localStorage: {
-      setItem(key, value) {
+      setItem(key: string, value: string) {
         writes.push([key, value]);
       },
     },
   };
 
   vm.runInNewContext(`${applyThemeFn};`, context);
-  context.applyTheme("dark");
+  asTestDouble<typeof context & { applyTheme(theme: string): void }>(context).applyTheme("dark");
 
   assert.equal(context.document.documentElement.attributes["data-theme"], "dark");
   assert.equal(moonStyle.display, "none");
@@ -56,7 +57,7 @@ test("initializeTheme loads persisted preference and calls applyTheme", () => {
   const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
   const initializeThemeFn = extractFunction(appJs, "initializeTheme");
 
-  const calls = [];
+  const calls: string[] = [];
   const context = {
     THEME_STORAGE_KEY: "webcam.theme",
     localStorage: {
@@ -64,13 +65,13 @@ test("initializeTheme loads persisted preference and calls applyTheme", () => {
         return "dark";
       },
     },
-    applyTheme: (theme) => {
+    applyTheme: (theme: string) => {
       calls.push(theme);
     },
   };
 
   vm.runInNewContext(`${initializeThemeFn};`, context);
-  context.initializeTheme();
+  asTestDouble<typeof context & { initializeTheme(): void }>(context).initializeTheme();
 
   assert.deepEqual(calls, ["dark"]);
 });

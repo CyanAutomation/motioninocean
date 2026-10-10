@@ -4,15 +4,23 @@ import {
   hydrateCameraSettingsForm,
   hydrateDiscoverySettingsForm,
 } from "../../frontend/src/settings-form.ts";
+import { asTestDouble } from "./test-doubles.ts";
 
-function createDependencies(controls) {
-  const sliderValues = [];
+interface TestControl {
+  value: string;
+  checked: boolean;
+}
+
+function createDependencies(controls: Record<string, TestControl>) {
+  const sliderValues: string[] = [];
   return {
-    dependencies: {
-      getValueControl: (id) => controls[id] || null,
-      getCheckboxControl: (id) => controls[id] || null,
-      updateSlider: (control) => sliderValues.push(control.value),
-    },
+    dependencies: asTestDouble<Parameters<typeof hydrateCameraSettingsForm>[1]>({
+      getValueControl: (id: string) => controls[id] || null,
+      getCheckboxControl: (id: string) => controls[id] || null,
+      updateSlider: (control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement) => {
+        sliderValues.push(control.value);
+      },
+    }),
     sliderValues,
   };
 }

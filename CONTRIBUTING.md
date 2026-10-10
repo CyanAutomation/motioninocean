@@ -151,18 +151,18 @@ Motion-in-ocean provides **execution playbooks** (skills) for common development
 
 **Quick navigation by scenario:**
 
-| Scenario | Skill | Command |
-| ---------- | ------- | --------- |
-| Starting a code change | [`contributor-workflow`](.github/skills/contributor-workflow/SKILL.md) | `make ci` to validate |
-| CI job failed | [`ci-triage`](.github/skills/ci-triage/SKILL.md) | Read playbooks for your job type |
-| Before opening PR | [`ci-quality-gates`](.github/skills/ci-quality-gates/SKILL.md) | Run local checks matching CI |
-| JavaScript/TypeScript changes | [`frontend-testing-linting`](.github/skills/frontend-testing-linting/SKILL.md) | `make test-frontend && npm run lint && npm run type-check` |
-| Reviewing interface changes | [`ui-review`](.github/skills/ui-review/SKILL.md) | Review layout, accessibility, and workflows in the running app |
-| Creating diagrams | [`mermaid-creator`](.github/skills/mermaid-creator/SKILL.md) | Reference for Mermaid syntax |
-| Building docs | [`documentation-build-validation`](.github/skills/documentation-build-validation/SKILL.md) | `make docs-check && make docs-build` |
-| Dependency update PR | [`dependabot-dependency-management`](.github/skills/dependabot-dependency-management/SKILL.md) | Review & test Dependabot PR |
-| Feature behind a flag | [`feature-flag-management`](.github/skills/feature-flag-management/SKILL.md) | Enable flag via env var |
-| Camera not streaming | [`pi-camera-troubleshooting`](.github/skills/pi-camera-troubleshooting/SKILL.md) | Run diagnostics, check device mapping |
+| Scenario                      | Skill                                                                                          | Command                                                        |
+| ----------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Starting a code change        | [`contributor-workflow`](.github/skills/contributor-workflow/SKILL.md)                         | `make ci` to validate                                          |
+| CI job failed                 | [`ci-triage`](.github/skills/ci-triage/SKILL.md)                                               | Read playbooks for your job type                               |
+| Before opening PR             | [`ci-quality-gates`](.github/skills/ci-quality-gates/SKILL.md)                                 | Run local checks matching CI                                   |
+| JavaScript/TypeScript changes | [`frontend-testing-linting`](.github/skills/frontend-testing-linting/SKILL.md)                 | `make test-frontend && npm run lint && npm run type-check`     |
+| Reviewing interface changes   | [`ui-review`](.github/skills/ui-review/SKILL.md)                                               | Review layout, accessibility, and workflows in the running app |
+| Creating diagrams             | [`mermaid-creator`](.github/skills/mermaid-creator/SKILL.md)                                   | Reference for Mermaid syntax                                   |
+| Building docs                 | [`documentation-build-validation`](.github/skills/documentation-build-validation/SKILL.md)     | `make docs-check && make docs-build`                           |
+| Dependency update PR          | [`dependabot-dependency-management`](.github/skills/dependabot-dependency-management/SKILL.md) | Review & test Dependabot PR                                    |
+| Feature behind a flag         | [`feature-flag-management`](.github/skills/feature-flag-management/SKILL.md)                   | Enable flag via env var                                        |
+| Camera not streaming          | [`pi-camera-troubleshooting`](.github/skills/pi-camera-troubleshooting/SKILL.md)               | Run diagnostics, check device mapping                          |
 
 **Full index:** [`.github/skills/README.md`](.github/skills/README.md) — Searchable by role and use case.
 
@@ -184,7 +184,7 @@ Please keep changes:
 
 ### Documentation standards
 
-All new code must include comprehensive docstrings and JSDoc headers. Use the quick reference at [docs/DOCUMENTATION_GUIDE.md](docs/DOCUMENTATION_GUIDE.md) for examples and validation commands.
+Python code uses docstrings. Frontend code is authored in TypeScript with explicit parameter and return types; use JSDoc comments to explain behavior and errors. See [docs/DOCUMENTATION_GUIDE.md](docs/DOCUMENTATION_GUIDE.md) for examples and validation commands.
 
 #### Python Documentation (Google-Style Docstrings)
 
@@ -233,47 +233,43 @@ def capture_frame(timeout_ms: Optional[int] = None) -> bytes:
     """
 ```
 
-#### JavaScript Documentation (JSDoc)
+#### Frontend TypeScript Documentation
 
 **Required for:**
 
-- All public functions
-- All classes and constructors
-- Private functions/methods with > 10 lines of code
-- All module-level headers
+- Public functions and classes need descriptive JSDoc comments.
+- TypeScript signatures are the source of truth for parameter and return types.
+- Private functions longer than 10 lines should have a comment explaining their purpose.
 
 **Components:**
 
 - Brief description (inline or @description)
-- `@param {type}` — Parameter type and description
-- `@returns {type}` — Return type and description
-- `@throws` — Exception types that can be raised
-- `@async` — For async functions
-- `@private` — For internal use only
+- Purpose and behavior
+- Important side effects or error conditions
+- `@throws` when a public function has meaningful failure cases
 
 **Reference files with examples:**
 
-- [pi_camera_in_docker/static/js/app.js](pi_camera_in_docker/static/js/app.js) — Streaming viewer logic
-- [pi_camera_in_docker/static/js/management.js](pi_camera_in_docker/static/js/management.js) — Node management dashboard
-- [pi_camera_in_docker/static/js/settings.js](pi_camera_in_docker/static/js/settings.js) — Settings form handling
+- [frontend/src/app.ts](frontend/src/app.ts) — Streaming viewer logic
+- [frontend/src/management.ts](frontend/src/management.ts) — Node management dashboard
+- [frontend/src/settings.ts](frontend/src/settings.ts) — Settings form handling
 
 **Example:**
 
-```javascript
+```typescript
 /**
  * Fetch stream metadata from remote node.
  *
  * Queries /api/status endpoint with bearer token authentication.
  * Includes automatic retry with exponential backoff on network errors.
  *
- * @param {string} nodeId - Unique node identifier
- * @param {string} baseUrl - Node base URL (http[s]://host:port)
- * @param {string} authToken - Bearer token for authentication
- * @returns {Promise<Object>} Node status object with stream info
- * @throws {Error} If node unreachable after retries or auth fails
- * @async
+ * @throws {Error} If node unreachable after retries or auth fails.
  */
-async function fetchNodeStatus(nodeId, baseUrl, authToken) {
+async function fetchNodeStatus(
+  nodeId: string,
+  baseUrl: string,
+  authToken: string,
+): Promise<NodeStatus> {
   // Implementation
 }
 ```
@@ -289,7 +285,7 @@ make docs-check
 # Build full HTML documentation from docstrings
 make docs-build
 
-# Build JSDoc for JavaScript
+# Build API docs from TypeScript JSDoc comments
 make jsdoc
 
 # Clean build artifacts
@@ -436,7 +432,7 @@ Please use clear commit messages:
 
 If your PR changes behaviour, config, or adds new public functions, please ensure:
 
-- Documentation (docstrings/JSDoc) is updated
+- Documentation (Python docstrings and TypeScript JSDoc) is updated
 - README and relevant docs in `docs/` are updated
 - Documentation builds without warnings (`make docs-check`)
 

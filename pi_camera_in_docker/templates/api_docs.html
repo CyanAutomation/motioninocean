@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Motion In Ocean API</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/api-docs.css') }}" />
-    <script defer src="{{ url_for('static', filename='js/api-docs.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/api-docs.js') }}"></script>
   </head>
   <body>
     <main id="api-reference" data-spec-url="{{ url_for('openapi_spec') }}">

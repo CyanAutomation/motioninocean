@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { asTestDouble } from "./test-doubles.ts";
 
-function extractRefreshConfigPanel(source) {
+function extractRefreshConfigPanel(source: string): string {
   const match = source.match(/function refreshConfigPanel\(\) \{[\s\S]*?\n^}/m);
   if (!match) {
     throw new Error("refreshConfigPanel() definition not found");
@@ -29,7 +30,8 @@ test("refreshConfigPanel marks initial load pending and requests config update",
   };
 
   vm.runInNewContext(`${refreshConfigPanelFn};`, context);
-  context.refreshConfigPanel();
+  const evaluatedContext = asTestDouble<typeof context & { refreshConfigPanel(): void }>(context);
+  evaluatedContext.refreshConfigPanel();
   await Promise.resolve();
 
   assert.equal(context.state.configInitialLoadPending, true);

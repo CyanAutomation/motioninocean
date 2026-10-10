@@ -1,13 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createStatusRefresher } from "../../frontend/src/management-status.ts";
+import { createStatusRefresher, type NodeStatus } from "../../frontend/src/management-status.ts";
 
 test("refreshStatuses schedules a second pass for overlapping timer+manual calls without duplicate feedback", async () => {
-  const feedbackCalls = [];
+  const feedbackCalls: Array<[string, boolean]> = [];
   let fetchCount = 0;
-  let resolveFirstFetch;
+  let resolveFirstFetch: (() => void) | undefined;
   const nodes = [{ id: "node-a" }];
-  let statuses = new Map();
+  let statuses = new Map<string, NodeStatus>();
   const refreshStatuses = createStatusRefresher({
     getNodes: () => nodes,
     getDatasetVersion: () => 1,
@@ -37,17 +37,20 @@ test("refreshStatuses schedules a second pass for overlapping timer+manual calls
   await new Promise((resolve) => setImmediate(resolve));
 
   await refreshStatuses();
+  assert.ok(resolveFirstFetch);
   resolveFirstFetch();
   await intervalRun;
 
   assert.equal(fetchCount, 2);
   assert.equal(feedbackCalls.length, 1);
   assert.deepEqual(feedbackCalls[0], ["hint", true]);
-  assert.equal(statuses.get("node-a").status, "error");
+  const latestStatus = statuses.get("node-a");
+  assert.ok(latestStatus);
+  assert.equal(latestStatus.status, "error");
 });
 
 test("refreshStatuses preserves manual feedback for the first manual unauthorized cycle", async () => {
-  const feedbackCalls = [];
+  const feedbackCalls: Array<[string, boolean]> = [];
   const refreshStatuses = createStatusRefresher({
     getNodes: () => [{ id: "node-a" }],
     getDatasetVersion: () => 0,

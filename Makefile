@@ -31,7 +31,7 @@ help:
 	@echo "Documentation:"
 	@echo "  make docs-build       Build Sphinx HTML documentation"
 	@echo "  make docs-check       Check if documentation builds (CI validation)"
-	@echo "  make jsdoc            Build JSDoc for JavaScript files"
+	@echo "  make jsdoc            Build API docs from TypeScript JSDoc comments"
 	@echo "  make docs-clean       Clean documentation build artifacts"
 	@echo ""
 	@echo "Validation:"
@@ -39,7 +39,7 @@ help:
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test             Run all tests"
-	@echo "  make test-frontend    Run frontend JavaScript unit tests"
+	@echo "  make test-frontend    Build TypeScript and run frontend tests"
 	@echo "  make frontend-health  Run frontend tests with Fallow coverage report (Node.js 22+)"
 	@echo "  make test-unit        Run unit tests only"
 	@echo "  make test-integration Run integration tests only"
@@ -145,7 +145,8 @@ docs-check:
 	@echo "✓ Documentation check passed!"
 
 jsdoc:
-	@echo "Building JSDoc documentation..."
+	@echo "Building TypeScript API documentation..."
+	npm run build:frontend
 	@if ! command -v jsdoc &> /dev/null; then \
 		echo "Installing JSDoc..."; \
 		npm install --save-dev jsdoc docdash; \

@@ -449,7 +449,10 @@
         </div>
         <div id="settings-auth-panel" class="settings-panel">
           <h3>Management API auth</h3>
-          <p>This token is stored in this browser and sent with management API requests.</p>
+          <p>
+            This token stays in page memory for this dashboard session and is sent with management
+            API requests. It is cleared when the page reloads or closes.
+          </p>
           <div class="ui-form-control">
             <label for="settings-management-api-token"
               >MANAGEMENT_AUTH_TOKEN (dashboard token)</label

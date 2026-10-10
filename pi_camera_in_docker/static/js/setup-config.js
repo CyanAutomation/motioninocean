@@ -18,7 +18,8 @@ export function collectSetupConfig(documentRef = document) {
     };
 }
 function readValue(documentRef, id) {
-    return documentRef.getElementById(id)?.value || "";
+    const value = documentRef.getElementById(id)?.value;
+    return typeof value === "string" ? value : "";
 }
 function readInteger(documentRef, id, fallback) {
     const value = readValue(documentRef, id) || String(fallback);

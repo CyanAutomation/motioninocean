@@ -21,7 +21,10 @@ interface MarkdownState {
  * @throws {Error} When the request fails and the API did not return degraded content.
  */
 export async function fetchReadmeContent(
-  fetcher: typeof fetch = fetch,
+  fetcher: (
+    input: string,
+    init?: Parameters<typeof fetch>[1],
+  ) => Promise<Pick<Response, "ok" | "json">> = fetch,
 ): Promise<ReadmeHelpPayload> {
   const response = await fetcher("/api/help/readme", {
     headers: { Accept: "application/json, text/plain" },
@@ -35,7 +38,9 @@ export async function fetchReadmeContent(
   return normalizedPayload;
 }
 
-async function readJsonPayload(response: Response): Promise<Record<string, unknown>> {
+async function readJsonPayload(
+  response: Pick<Response, "ok" | "json">,
+): Promise<Record<string, unknown>> {
   try {
     const payload: unknown = await response.json();
     return isRecord(payload) ? payload : {};
