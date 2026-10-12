@@ -34,6 +34,12 @@ Common integrations: [Home Assistant](https://www.home-assistant.io/), [OctoPrin
 
 ## Quick Start
 
+### Before exposing the service to your network
+
+The example `.env` files bind to `0.0.0.0` (all host interfaces). They leave authentication tokens empty, which disables token protection on the routes that support it; webcam Compose also defaults CORS to `*`. Anyone who can reach the published port may be able to use the web UI and unprotected endpoints.
+
+For a local-only trial, edit `.env` and set `MIO_BIND_HOST=127.0.0.1` before starting Compose. For network access, configure a strong `MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN` for webcam control-plane routes and/or `MIO_MANAGEMENT_AUTH_TOKEN` for protected management routes, and set `MIO_CORS_ORIGINS` to the origins you need. Discovery uses a separate shared secret. See [Authentication Boundaries and Headers](docs/guides/DEPLOYMENT.md#authentication-boundaries-and-headers) for route coverage and token flows. Authentication is optional, so configuring a token does not make every endpoint private.
+
 **Webcam mode (single camera):**
 
 ```bash
@@ -61,6 +67,30 @@ Open `http://localhost:8001`.
 > ```bash
 > docker compose -f docker-compose.yaml -f docker-compose.mock.yaml up -d
 > ```
+
+### Verify the deployment and view the stream
+
+Run these commands from the copied deployment directory. Webcam mode may report `not_ready` while the camera initializes; retry until it returns HTTP 200 with `"status":"ready"`. Management mode does not require a camera and should return ready immediately. If webcam token authentication is enabled, include the bearer header shown in the API example below when checking `/ready`.
+
+```bash
+# Webcam deployment
+docker compose ps
+curl -i http://localhost:8000/ready
+
+# If startup fails, inspect recent container logs
+docker compose logs --tail=100 motion-in-ocean
+```
+
+For management mode, use `http://localhost:8001/ready` and the same `docker compose` commands from its deployment directory.
+
+In webcam mode, open `http://localhost:8000/stream.mjpg` in a browser or MJPEG-capable client to view the camera stream. To inspect the webcam status API when a control-plane token is configured:
+
+```bash
+TOKEN='paste the MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN value here'
+curl -H "Authorization: Bearer ${TOKEN}" http://localhost:8000/api/status
+```
+
+The status response includes the current application status and stream availability. If no webcam token is configured, the `Authorization` header can be omitted. See [API Documentation](#api-documentation) for the full endpoint reference.
 
 ## Docker Images
 
