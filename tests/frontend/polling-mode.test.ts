@@ -1,17 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
 import { assertSinglePollingMode } from "../../frontend/src/polling-mode.ts";
-import { asTestDouble } from "./test-doubles.ts";
-
-function extractStartConfigPolling(source: string): string {
-  const match = source.match(/function startConfigPolling\(\) \{[\s\S]*?\n^}/m);
-  if (!match) {
-    throw new Error("startConfigPolling() definition not found");
-  }
-  return match[0];
-}
+import {
+  CONFIG_POLL_INTERVAL_MS,
+  startConfigPolling,
+  type ConfigPollingDependencies,
+} from "../../frontend/src/config-polling.ts";
 
 const pollingModeCases = [
   { name: "no polling", state: { sse: false, config: false, timestamp: false }, valid: true },
@@ -53,34 +47,34 @@ for (const { name, state, valid } of pollingModeCases) {
   });
 }
 
-test("startConfigPolling schedules a single 5s config polling interval", () => {
-  const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
-  const startConfigPollingFn = extractStartConfigPolling(appJs);
-
-  const setIntervalCalls: Array<{
-    callback: () => Promise<void>;
-    delayMs: number;
-  }> = [];
-  const createdInterval = { id: "config-poll-interval" };
-  const context = {
-    state: { configPollingInterval: null as unknown },
-    CONFIG_POLL_INTERVAL_MS: 5000,
-    updateConfig: () => Promise.resolve(),
-    console: { error: () => {} },
-    setInterval: (callback: () => Promise<void>, delayMs: number) => {
+test("startConfigPolling schedules one config refresh interval", async () => {
+  const setIntervalCalls: Array<{ callback: () => void; delayMs: number }> = [];
+  const createdInterval = { id: "config-poll-interval" } as unknown as ReturnType<
+    typeof setInterval
+  >;
+  let updateCalls = 0;
+  const state = {
+    configPollingInterval: null as ReturnType<typeof setInterval> | null,
+    configInitialLoadPending: false,
+  };
+  const dependencies: ConfigPollingDependencies = {
+    updateConfig: async () => {
+      updateCalls += 1;
+    },
+    logError: () => {},
+    scheduleInterval: (callback, delayMs) => {
       setIntervalCalls.push({ callback, delayMs });
       return createdInterval;
     },
   };
 
-  vm.runInNewContext(`${startConfigPollingFn};`, context);
-
-  const evaluatedContext = asTestDouble<typeof context & { startConfigPolling(): void }>(context);
-  evaluatedContext.startConfigPolling();
-  evaluatedContext.startConfigPolling();
-  evaluatedContext.startConfigPolling();
+  startConfigPolling(state, dependencies);
+  startConfigPolling(state, dependencies);
 
   assert.equal(setIntervalCalls.length, 1);
-  assert.equal(setIntervalCalls[0].delayMs, 5000);
-  assert.equal(context.state.configPollingInterval, createdInterval);
+  assert.equal(setIntervalCalls[0].delayMs, CONFIG_POLL_INTERVAL_MS);
+  assert.equal(state.configPollingInterval, createdInterval);
+  setIntervalCalls[0].callback();
+  await Promise.resolve();
+  assert.equal(updateCalls, 1);
 });

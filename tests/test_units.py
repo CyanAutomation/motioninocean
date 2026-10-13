@@ -15,160 +15,72 @@ workspace_root = Path(__file__).parent.parent
 sys.path.insert(0, str(workspace_root))
 
 
-def test_check_device_availability_logs_preflight_with_nodes_present(monkeypatch):
-    """Preflight should summarize discovered node counts and samples."""
-    from pathlib import Path
-
+@pytest.mark.parametrize(
+    ("present_paths", "expected_counts", "expected_warnings"),
+    [
+        (
+            {
+                "/dev/vchiq",
+                "/dev/video0",
+                "/dev/video1",
+                "/dev/media0",
+                "/dev/v4l-subdev0",
+                "/dev/dma_heap/linux,cma",
+                "/dev/dma_heap/system",
+            },
+            ("video=2", "media=1", "v4l_subdev=1", "dma_heap=2"),
+            (),
+        ),
+        (
+            {"/dev/vchiq", "/dev/video0", "/dev/dma_heap/system"},
+            ("video=1", "media=0", "v4l_subdev=0", "dma_heap=1"),
+            (),
+        ),
+        (
+            {"/dev/vchiq", "/dev/media0", "/dev/v4l-subdev0"},
+            ("video=0", "media=1", "v4l_subdev=1", "dma_heap=0"),
+            ("partial node availability", "Streaming is likely unavailable"),
+        ),
+        (
+            set(),
+            ("video=0", "media=0", "v4l_subdev=0", "dma_heap=0"),
+            (
+                "Critical camera devices not found",
+                "Camera enumeration is likely to fail in this container",
+                "Verify host camera drivers and container device mappings",
+            ),
+        ),
+    ],
+    ids=("complete-inventory", "video-node-is-sufficient", "partial-inventory", "empty-inventory"),
+)
+def test_device_preflight_reports_inventory_and_actionable_warnings(
+    monkeypatch, present_paths, expected_counts, expected_warnings
+):
+    """Device preflight summarizes detected nodes and warns when streaming is unavailable."""
     from pi_camera_in_docker import main
 
-    def fake_glob(self, pattern):
-        matches = {
-            "/dev/video*": [Path("/dev/video0"), Path("/dev/video1")],
-            "/dev/media*": [Path("/dev/media0")],
-            "/dev/v4l-subdev*": [Path("/dev/v4l-subdev0")],
-            "/dev/dma_heap/*": [Path("/dev/dma_heap/linux,cma"), Path("/dev/dma_heap/system")],
-        }
-        return matches.get(pattern, [])
-
-    # Mock Path.is_dir() and Path.exists() for specific paths
-    # (these are instance methods, so we need to patch the class)
-    def mock_path_is_dir(self):
-        return str(self) == "/dev/dma_heap"
-
-    def mock_path_exists(self):
-        # We also need to mock specific device paths to exist
-        return str(self) in [
-            "/dev/vchiq",
-            "/dev/video0",
-            "/dev/video1",
-            "/dev/media0",
-            "/dev/v4l-subdev0",
-            "/dev/dri",
-            "/dev/dma_heap/linux,cma",
-            "/dev/dma_heap/system",
-        ]
-
-    monkeypatch.setattr(Path, "glob", fake_glob)
-    monkeypatch.setattr(Path, "is_dir", mock_path_is_dir)
-    monkeypatch.setattr(Path, "exists", mock_path_exists)
-
-    logged_info = []
+    monkeypatch.setattr(Path, "exists", lambda path: str(path) in present_paths)
+    info_logs = []
+    warning_logs = []
     monkeypatch.setattr(
-        main.logger, "info", lambda msg, *args: logged_info.append(msg % args if args else msg)
+        main.logger, "info", lambda msg, *args: info_logs.append(msg % args if args else msg)
     )
-
-    main._check_device_availability({"mock_camera": False})
-
-    preflight_logs = [entry for entry in logged_info if "Camera preflight:" in entry]
-    assert preflight_logs
-    assert "video=2" in preflight_logs[0]
-    assert "/dev/video0" in preflight_logs[0]
-    assert "/dev/dma_heap/linux,cma" in preflight_logs[0]
-
-
-def test_check_device_availability_does_not_warn_when_video_nodes_exist(monkeypatch):
-    """Preflight should not warn for missing non-video node groups when video nodes exist."""
-    from pathlib import Path
-
-    from pi_camera_in_docker import main
-
-    def fake_glob(self, pattern):
-        matches = {
-            "/dev/video*": [Path("/dev/video0")],
-            "/dev/media*": [],
-            "/dev/v4l-subdev*": [],
-            "/dev/dma_heap/*": [Path("/dev/dma_heap/system")],
-        }
-        return matches.get(pattern, [])
-
-    def mock_path_is_dir(self):
-        return str(self) == "/dev/dma_heap"
-
-    def mock_path_exists(self):
-        return str(self) in ["/dev/vchiq", "/dev/video0", "/dev/media0", "/dev/dma_heap/system"]
-
-    monkeypatch.setattr(Path, "glob", fake_glob)
-    monkeypatch.setattr(Path, "is_dir", mock_path_is_dir)
-    monkeypatch.setattr(Path, "exists", mock_path_exists)
-
-    logged_warning = []
     monkeypatch.setattr(
         main.logger,
         "warning",
-        lambda msg, *args: logged_warning.append(msg % args if args else msg),
+        lambda msg, *args: warning_logs.append(msg % args if args else msg),
     )
 
     main._check_device_availability({"mock_camera": False})
 
-    assert not logged_warning
-
-
-def test_check_device_availability_warns_when_video_nodes_missing(monkeypatch):
-    """Preflight should warn when no video node is present, even if others exist."""
-    from pathlib import Path
-
-    from pi_camera_in_docker import main
-
-    def fake_glob(self, pattern):
-        matches = {
-            "/dev/video*": [],
-            "/dev/media*": [Path("/dev/media0")],
-            "/dev/v4l-subdev*": [Path("/dev/v4l-subdev0")],
-            "/dev/dma_heap/*": [Path("/dev/dma_heap/system")],
-        }
-        return matches.get(pattern, [])
-
-    def mock_path_is_dir(self):
-        return str(self) == "/dev/dma_heap"
-
-    def mock_path_exists(self):
-        return str(self) in [
-            "/dev/vchiq",
-            "/dev/media0",
-            "/dev/v4l-subdev0",
-            "/dev/dma_heap/system",
-        ]
-
-    monkeypatch.setattr(Path, "glob", fake_glob)
-    monkeypatch.setattr(Path, "is_dir", mock_path_is_dir)
-    monkeypatch.setattr(Path, "exists", mock_path_exists)
-
-    logged_warning = []
-    monkeypatch.setattr(
-        main.logger,
-        "warning",
-        lambda msg, *args: logged_warning.append(msg % args if args else msg),
-    )
-
-    main._check_device_availability({"mock_camera": False})
-
-    joined_warning = "\n".join(logged_warning)
-    assert "Camera device preflight found partial node availability" in joined_warning
-    assert "Streaming is likely unavailable" in joined_warning
-
-
-def test_check_device_availability_warns_when_no_camera_nodes_detected(monkeypatch):
-    """No video/media/subdev nodes should trigger stronger enumeration warning."""
-    from pathlib import Path
-
-    from pi_camera_in_docker import main
-
-    monkeypatch.setattr(Path, "glob", lambda self, pattern: [])
-    monkeypatch.setattr(Path, "exists", lambda self: False)
-
-    logged_warning = []
-    monkeypatch.setattr(
-        main.logger,
-        "warning",
-        lambda msg, *args: logged_warning.append(msg % args if args else msg),
-    )
-
-    main._check_device_availability({"mock_camera": False})
-
-    joined_warning = "\n".join(logged_warning)
-    assert "Critical camera devices not found" in joined_warning
-    assert "Camera enumeration is likely to fail in this container" in joined_warning
-    assert "Verify host camera drivers and container device mappings" in joined_warning
+    preflight = next(entry for entry in info_logs if "Camera preflight:" in entry)
+    for expected_count in expected_counts:
+        assert expected_count in preflight
+    joined_warnings = "\n".join(warning_logs)
+    for expected_warning in expected_warnings:
+        assert expected_warning in joined_warnings
+    if not expected_warnings:
+        assert warning_logs == []
 
 
 def test_frame_buffer_write_updates_stats_and_latest_frame(monkeypatch):
@@ -220,76 +132,71 @@ def test_healthcheck_url_validation_allows_valid_hostname(monkeypatch):
     assert captured["url"] == "http://example.com/health"
 
 
-@pytest.mark.parametrize(
-    "has_module_func,class_result,expected_result,expected_path",
-    [
-        (
-            True,
-            [{"id": "cam1"}],
-            [{"id": "cam1"}],
-            "Picamera2.global_camera_info",
-        ),
-        (
-            True,
-            [{"id": "module-cam"}],
-            [{"id": "module-cam"}],
-            "Picamera2.global_camera_info",
-        ),
-        (
-            False,
-            [{"id": "cam1"}],
-            [{"id": "cam1"}],
-            "Picamera2.global_camera_info",
-        ),
-        (
-            False,
-            [{"id": "cam2"}],
-            [{"id": "cam2"}],
-            "Picamera2.global_camera_info",
-        ),
-    ],
-)
-def test_get_camera_info_precedence(
-    monkeypatch, has_module_func, class_result, expected_result, expected_path
-):
-    """Camera detection should prefer class method and fallback appropriately."""
-    import importlib
-    import sys
-    import tempfile
+def test_get_camera_info_prefers_class_inventory_over_module_fallback(monkeypatch):
+    """Camera discovery uses the class API when both supported APIs are available."""
     import types
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        monkeypatch.setenv("NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
-        monkeypatch.setenv("MIO_APP_MODE", "management")
-        monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
+    from pi_camera_in_docker import main
 
-        fake_module = types.ModuleType("picamera2")
+    class FakePicamera2:
+        @staticmethod
+        def global_camera_info():
+            return [{"id": "class-camera"}]
 
-        def module_global_camera_info():
-            return [{"id": "module-cam"}]
+    fake_module = types.ModuleType("picamera2")
 
-        class FakePicamera2:
-            @staticmethod
-            def global_camera_info():
-                return class_result
+    def module_global_camera_info():
+        return [{"id": "module-camera"}]
 
-        if has_module_func:
-            FakePicamera2.global_camera_info = staticmethod(module_global_camera_info)
-            fake_module.global_camera_info = module_global_camera_info
+    fake_module.global_camera_info = module_global_camera_info
+    monkeypatch.setitem(sys.modules, "picamera2", fake_module)
 
-        fake_module.Picamera2 = FakePicamera2
-        sys.modules["picamera2"] = fake_module
+    camera_info, detection_path = main._get_camera_info(FakePicamera2)
 
-        sys.modules.pop("main", None)
-        main = importlib.import_module("pi_camera_in_docker.main")
+    assert camera_info == [{"id": "class-camera"}]
+    assert detection_path == "Picamera2.global_camera_info"
 
-        camera_info, detection_path = main._get_camera_info(FakePicamera2)
 
-        assert camera_info == expected_result
-        assert detection_path == expected_path
+def test_get_camera_info_falls_back_to_module_inventory_when_class_query_fails(monkeypatch):
+    """Camera discovery falls back to the module API when the class query raises."""
+    import types
 
-        sys.modules.pop("main", None)
-        sys.modules.pop("picamera2", None)
+    from pi_camera_in_docker import main
+
+    class FakePicamera2:
+        @staticmethod
+        def global_camera_info():
+            raise RuntimeError("class API unavailable")
+
+    fake_module = types.ModuleType("picamera2")
+
+    def module_global_camera_info():
+        return [{"id": "module-camera"}]
+
+    fake_module.global_camera_info = module_global_camera_info
+    monkeypatch.setitem(sys.modules, "picamera2", fake_module)
+
+    camera_info, detection_path = main._get_camera_info(FakePicamera2)
+
+    assert camera_info == [{"id": "module-camera"}]
+    assert detection_path == "picamera2.global_camera_info"
+
+
+def test_get_camera_info_returns_empty_inventory_when_no_query_api_is_available(monkeypatch):
+    """Camera discovery reports no inventory when neither supported API is available."""
+    import types
+
+    from pi_camera_in_docker import main
+
+    class FakePicamera2:
+        pass
+
+    monkeypatch.setitem(sys.modules, "picamera2", types.ModuleType("picamera2"))
+
+    camera_info, detection_path = main._get_camera_info(FakePicamera2)
+
+    assert camera_info == []
+    assert detection_path == "none"
 
 
 def test_run_webcam_mode_logs_device_inventory_when_no_cameras_detected(monkeypatch):
