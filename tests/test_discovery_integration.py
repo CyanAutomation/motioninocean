@@ -490,12 +490,22 @@ class TestDiscoveryEndToEnd:
             assert response.status_code == 401, "Should fail without valid secret"
 
     def test_discovery_node_updates_last_announce_timestamp(self, monkeypatch):
-        """Verify repeated announcements update last_announce_at timestamp."""
-        import time
+        """Repeated announcements update last_announce_at and preserve first_seen."""
 
         from flask import Flask
 
-        from pi_camera_in_docker.management_api import register_management_routes
+        from pi_camera_in_docker import management_api
+
+        timestamps = iter(
+            [
+                "2025-01-01T00:00:00+00:00",  # First announcement last_seen
+                "2025-01-01T00:00:01+00:00",  # First announcement metadata
+                "2025-01-01T00:00:02+00:00",  # Repeat announcement last_seen
+                "2025-01-01T00:00:03+00:00",  # Repeat announcement candidate metadata
+                "2025-01-01T00:00:04+00:00",  # Updated last_announce_at
+            ]
+        )
+        monkeypatch.setattr(management_api, "_utc_now_iso", lambda: next(timestamps))
 
         with tempfile.TemporaryDirectory() as registry_dir:
             registry_path = f"{registry_dir}/registry.json"
@@ -503,7 +513,7 @@ class TestDiscoveryEndToEnd:
             app = Flask(__name__)
 
             monkeypatch.setenv("MIO_ALLOW_PRIVATE_IPS", "true")
-            register_management_routes(
+            management_api.register_management_routes(
                 app,
                 registry_path,
                 node_discovery_shared_secret="discovery-secret",
@@ -526,8 +536,6 @@ class TestDiscoveryEndToEnd:
             )
             assert response1.status_code == 201, response1.json
             first_announce = response1.json["node"]["discovery"]["last_announce_at"]
-
-            time.sleep(0.1)  # Small delay
 
             # Second announcement
             response2 = client.post(

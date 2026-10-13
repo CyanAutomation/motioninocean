@@ -24,12 +24,16 @@ import {
 import { toggleFullscreen as toggleFullscreenUi, type FullscreenDocument } from "./fullscreen.js";
 import { generateSetupConfiguration } from "./setup-generation.js";
 import { runConfigUpdate } from "./config-update.js";
+import {
+  refreshConfigPanel as refreshConfigPanelUi,
+  startConfigPolling as startConfigPollingUi,
+} from "./config-polling.js";
+import { clearConfigDisplay as clearConfigDisplayUi } from "./config-display.js";
 import { loadSetupTemplates } from "./setup-load.js";
 import { bindOptionalEventListeners, type OptionalEventBinding } from "./app-event-bindings.js";
 import { showWebcamHelpModal } from "./webcam-help-modal.js";
 
 const REQUEST_TIMEOUT_MS = 5000;
-const CONFIG_POLL_INTERVAL_MS = 5000;
 const THEME_STORAGE_KEY = "webcam.theme";
 const DEFAULT_MIO_PATH = "/static/img/mio/mio_avatar.png";
 const CHANGELOG_MAX_VISIBLE_ENTRIES = 3;
@@ -1632,11 +1636,10 @@ function updateViewMeta(tabName: string): void {
  * Start periodic config polling
  */
 function startConfigPolling() {
-  if (state.configPollingInterval) return;
-
-  state.configPollingInterval = setInterval(() => {
-    updateConfig().catch((error) => console.error("Config update failed:", error));
-  }, CONFIG_POLL_INTERVAL_MS);
+  startConfigPollingUi(state, {
+    updateConfig,
+    logError: (message, error) => console.error(message, error),
+  });
 }
 
 /**
@@ -1657,8 +1660,10 @@ function stopConfigPolling() {
  * @returns {void}
  */
 function refreshConfigPanel() {
-  state.configInitialLoadPending = true;
-  updateConfig().catch((error) => console.error("Config update failed:", error));
+  refreshConfigPanelUi(state, {
+    updateConfig,
+    logError: (message, error) => console.error(message, error),
+  });
 }
 
 /**
@@ -1845,22 +1850,7 @@ function formatBoolean(value: boolean | null | undefined): string {
  * @returns {void}
  */
 function clearConfigDisplay() {
-  const configValues = document.querySelectorAll('[data-config-value="true"]');
-  configValues.forEach((el) => {
-    el.textContent = "--";
-    el.className = "config-value";
-    if (el.id && el.id.startsWith("config-health-")) {
-      el.classList.add("health-indicator", "health-unknown");
-      el.setAttribute("data-health-state", "unknown");
-    } else {
-      el.removeAttribute("data-health-state");
-    }
-    el.removeAttribute("title");
-  });
-
-  state.streamConnections.current = "--";
-  state.streamConnections.max = "--";
-  updateConnectionDisplays();
+  clearConfigDisplayUi(document, state, updateConnectionDisplays);
 }
 
 /* ==========================================

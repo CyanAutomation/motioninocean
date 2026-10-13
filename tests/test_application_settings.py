@@ -8,7 +8,6 @@ import json
 import sys
 import tempfile
 import threading
-from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -484,20 +483,59 @@ class TestApplicationSettingsConcurrency:
         assert settings_path.exists()
         assert (settings_path.parent / f"{settings_path.name}.lock").exists()
 
-    def test_load_acquires_lock(self, temp_settings_file, monkeypatch):
-        """Load should acquire the settings lock before reading."""
+    def test_load_waits_for_an_in_progress_settings_write(self, temp_settings_file, monkeypatch):
+        """Readers observe the new settings only after a concurrent update is committed."""
         settings = ApplicationSettings(temp_settings_file)
-        lock_used = {"value": False}
+        settings.set("camera", "fps", 30, "initial")
+        reader = ApplicationSettings(temp_settings_file)
+        write_started = threading.Event()
+        allow_write_to_finish = threading.Event()
+        read_started = threading.Event()
+        read_finished = threading.Event()
+        write_finished = threading.Event()
+        loaded_values = []
+        original_save_atomic = settings._save_atomic
+        original_load_unlocked = reader._load_unlocked
 
-        @contextmanager
-        def tracked_lock():
-            lock_used["value"] = True
-            yield
+        def pause_before_save(data):
+            write_started.set()
+            assert allow_write_to_finish.wait(timeout=1)
+            original_save_atomic(data)
 
-        monkeypatch.setattr(settings, "_exclusive_lock", tracked_lock)
+        def observe_read():
+            read_started.set()
+            return original_load_unlocked()
 
-        settings.load()
-        assert lock_used["value"] is True
+        monkeypatch.setattr(settings, "_save_atomic", pause_before_save)
+        monkeypatch.setattr(reader, "_load_unlocked", observe_read)
+
+        def update_settings():
+            settings.set("camera", "fps", 60, "writer")
+            write_finished.set()
+
+        def load_settings():
+            loaded_values.append(reader.load())
+            read_finished.set()
+
+        write_thread = threading.Thread(target=update_settings)
+        write_thread.start()
+        assert write_started.wait(timeout=1)
+        load_thread = threading.Thread(target=load_settings)
+        load_thread.start()
+        try:
+            assert not read_started.wait(timeout=0.05)
+        finally:
+            allow_write_to_finish.set()
+
+        write_thread.join(timeout=1)
+        assert read_started.wait(timeout=1)
+        load_thread.join(timeout=1)
+        assert not write_thread.is_alive()
+        assert not load_thread.is_alive()
+        assert write_finished.is_set()
+        assert read_finished.is_set()
+        assert len(loaded_values) == 1
+        assert loaded_values[0]["settings"]["camera"]["fps"] == 60
 
     def test_load_handles_file_removed_after_exists_check(self, temp_settings_file, monkeypatch):
         """Load should return defaults when file disappears during read."""

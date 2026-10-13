@@ -1,103 +1,67 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
-
-function extractClearConfigDisplay(source: string): string {
-  const match = source.match(/function clearConfigDisplay\(\) \{[\s\S]*?\n^}/m);
-  if (!match) {
-    throw new Error("clearConfigDisplay() definition not found");
-  }
-  return match[0];
-}
+import { clearConfigDisplay, type ConfigDisplayValue } from "../../frontend/src/config-display.ts";
 
 test("clearConfigDisplay only resets dedicated config value nodes", () => {
-  let appJs;
-  try {
-    appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to read app.js: ${message}`, { cause: error });
-  }
-  const clearConfigDisplayFn = extractClearConfigDisplay(appJs);
-
-  const targetValueA = {
+  const attributesA: Record<string, string> = { title: "Enabled state" };
+  const targetValueA: ConfigDisplayValue = {
+    id: "config-camera-enabled",
     textContent: "Enabled",
     className: "config-value config-badge enabled",
-    removeAttribute: () => {},
+    classList: { add: (..._names: string[]) => {} },
+    setAttribute: (name, value) => {
+      attributesA[name] = value;
+    },
+    removeAttribute: (name) => {
+      delete attributesA[name];
+    },
   };
-  const targetValueB = {
+  const attributesB: Record<string, string> = {
+    title: "Camera is healthy",
+    "data-health-state": "healthy",
+  };
+  const healthValue: ConfigDisplayValue = {
+    id: "config-health-camera",
     textContent: "42",
-    className: "config-value highlight",
-    removeAttribute: () => {},
-  };
-
-  const structuralNodes = {
-    loading: {
-      id: "config-loading",
-      className: "config-loading hidden",
-      textContent: "",
-      children: [{ id: "spinner" }],
-    },
-    statusIndicator: {
-      id: "config-status-indicator",
-      className: "config-status-dot fetching",
-      textContent: "",
-      children: [],
-    },
-    statusText: {
-      id: "config-status-text",
-      className: "config-status-text",
-      textContent: "Fetching configuration...",
-      children: [],
-    },
-    errorAlert: {
-      id: "config-error-alert",
-      className: "config-alert error hidden",
-      textContent: "",
-      children: [{ id: "config-error-message" }, { id: "dismiss-btn" }],
-    },
-    panel: {
-      id: "config-panel",
-      className: "config-panel hidden",
-      textContent: "",
-      children: [{ id: "config-loading" }, { id: "config-content" }],
-    },
-    lastUpdate: {
-      id: "config-last-update-time",
-      className: "config-timestamp-display",
-      textContent: "Now",
-      children: [],
-    },
-  };
-
-  const structuralBefore = JSON.parse(JSON.stringify(structuralNodes));
-  let selectorUsed: string | null = null;
-
-  const context = {
-    document: {
-      querySelectorAll: (selector: string) => {
-        selectorUsed = selector;
-        if (selector === '[data-config-value="true"]') {
-          return [targetValueA, targetValueB];
-        }
-        return [];
+    className: "config-value health-indicator health-ok",
+    classList: {
+      add: (...names) => {
+        const classes = new Set(healthValue.className.split(" "));
+        names.forEach((name) => classes.add(name));
+        healthValue.className = [...classes].join(" ");
       },
     },
-    state: {
-      streamConnections: { current: "5", max: "10" },
+    setAttribute: (name, value) => {
+      attributesB[name] = value;
     },
-    updateConnectionDisplays: () => {},
+    removeAttribute: (name) => {
+      delete attributesB[name];
+    },
   };
+  let selectorUsed: string | null = null;
+  const state = { streamConnections: { current: "5", max: "10" } };
+  let connectionDisplaysUpdated = 0;
 
-  vm.runInNewContext(`${clearConfigDisplayFn}; clearConfigDisplay();`, context);
+  clearConfigDisplay(
+    {
+      querySelectorAll: (selector) => {
+        selectorUsed = selector;
+        return [targetValueA, healthValue];
+      },
+    },
+    state,
+    () => {
+      connectionDisplaysUpdated += 1;
+    },
+  );
 
   assert.equal(selectorUsed, '[data-config-value="true"]');
-
   assert.equal(targetValueA.textContent, "--");
   assert.equal(targetValueA.className, "config-value");
-  assert.equal(targetValueB.textContent, "--");
-  assert.equal(targetValueB.className, "config-value");
-
-  assert.deepEqual(structuralNodes, structuralBefore);
+  assert.deepEqual(attributesA, {});
+  assert.equal(healthValue.textContent, "--");
+  assert.equal(healthValue.className, "config-value health-indicator health-unknown");
+  assert.deepEqual(attributesB, { "data-health-state": "unknown" });
+  assert.deepEqual(state.streamConnections, { current: "--", max: "--" });
+  assert.equal(connectionDisplaysUpdated, 1);
 });

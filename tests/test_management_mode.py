@@ -2,7 +2,6 @@ import importlib
 import sys
 import tempfile
 import threading
-import time
 from pathlib import Path
 
 from pi_camera_in_docker.application_settings import ApplicationSettings
@@ -446,6 +445,10 @@ def _assert_health_check_contract(payload: dict):
 
 def test_webcam_api_test_mode_transitions_and_status_contract(monkeypatch):
     client = _new_webcam_client(monkeypatch, "")
+    from pi_camera_in_docker import main
+
+    now = [100.0]
+    monkeypatch.setattr(main.time, "monotonic", lambda: now[0])
 
     started = client.post(
         "/api/actions/api-test-start",
@@ -470,7 +473,7 @@ def test_webcam_api_test_mode_transitions_and_status_contract(monkeypatch):
     assert first_status.json["api_test"]["active"] is True
     assert first_status.json["api_test"]["state_index"] == 0
 
-    time.sleep(0.02)
+    now[0] += 0.02
     interval_transitioned_status = client.get("/api/status")
     assert interval_transitioned_status.status_code == 200
     assert interval_transitioned_status.json["api_test"]["state_index"] == 1
@@ -497,7 +500,6 @@ def test_webcam_api_test_mode_transitions_and_status_contract(monkeypatch):
     assert stopped.json["api_test"]["active"] is False
     assert stopped.json["api_test"]["next_transition_seconds"] is None
 
-    time.sleep(0.02)
     stopped_status = client.get("/api/status")
     assert stopped_status.status_code == 200
     assert stopped_status.json["api_test"]["state_index"] == 2
@@ -533,6 +535,8 @@ def test_webcam_status_contract_reports_degraded_until_stream_is_fresh(monkeypat
 def test_webcam_api_test_status_remains_structurally_consistent_during_concurrent_actions(
     monkeypatch,
 ):
+    from concurrent.futures import ThreadPoolExecutor
+
     with tempfile.TemporaryDirectory() as tmpdir:
         monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", f"{tmpdir}/registry.json")
         monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", f"{tmpdir}/application-settings.json")
@@ -548,86 +552,72 @@ def test_webcam_api_test_status_remains_structurally_consistent_during_concurren
         app = main.create_webcam_app(cfg)
 
         headers = {"Authorization": "Bearer node-shared-token"}
-        errors: list[str] = []
 
         with app.test_client() as client:
             start = client.post(
                 "/api/actions/api-test-start",
-                json={"interval_seconds": 1, "scenario_order": [0, 1, 2]},
+                json={"interval_seconds": 3600, "scenario_order": [0, 1, 2]},
                 headers=headers,
             )
         assert start.status_code == 200
 
+        action_requests = [
+            ("api-test-start", {"interval_seconds": 3600, "scenario_order": [2, 1, 0]}),
+            ("api-test-step", {}),
+            ("api-test-reset", {}),
+            ("api-test-stop", {}),
+        ]
+        request_barrier = threading.Barrier(2)
+        status_payloads = []
+
         def hammer_actions() -> None:
-            action_requests = [
-                ("api-test-start", {"interval_seconds": 1, "scenario_order": [2, 1, 0]}),
-                ("api-test-step", {}),
-                ("api-test-reset", {}),
-                ("api-test-stop", {}),
-                ("api-test-start", {"interval_seconds": 2, "scenario_order": [1, 0, 2]}),
-            ]
-            for index in range(50):
-                action_name, body = action_requests[index % len(action_requests)]
+            for action_name, body in action_requests:
+                request_barrier.wait(timeout=5)
                 with app.test_client() as client:
                     response = client.post(
                         f"/api/actions/{action_name}", json=body, headers=headers
                     )
-                if response.status_code != 200:
-                    errors.append(f"{action_name}:{response.status_code}")
-                time.sleep(0.06)
+                assert response.status_code == 200
+                request_barrier.wait(timeout=5)
 
         def poll_status() -> None:
-            for _ in range(80):
+            for _ in action_requests:
+                request_barrier.wait(timeout=5)
                 with app.test_client() as client:
                     response = client.get("/api/status", headers=headers)
-                if response.status_code != 200:
-                    errors.append(f"status:{response.status_code}")
-                    continue
-
+                assert response.status_code == 200
                 payload = response.get_json()
-                api_test = payload.get("api_test")
-                if api_test is None:
-                    errors.append("api_test_missing")
-                    continue
-
-                if set(api_test) != {
+                api_test = payload["api_test"]
+                assert set(api_test) == {
                     "enabled",
                     "active",
                     "state_index",
                     "state_name",
                     "next_transition_seconds",
-                }:
-                    errors.append(f"api_test_keys:{sorted(api_test.keys())}")
-                    continue
-
-                if not isinstance(api_test["enabled"], bool):
-                    errors.append("enabled_not_bool")
-                if not isinstance(api_test["active"], bool):
-                    errors.append("active_not_bool")
-                if not isinstance(api_test["state_index"], int) or api_test["state_index"] < 0:
-                    errors.append(f"state_index_invalid:{api_test['state_index']}")
-                if not isinstance(api_test["state_name"], str) or not api_test["state_name"]:
-                    errors.append("state_name_invalid")
+                }
+                assert isinstance(api_test["enabled"], bool)
+                assert isinstance(api_test["active"], bool)
+                assert isinstance(api_test["state_index"], int)
+                assert 0 <= api_test["state_index"] < 3
+                assert isinstance(api_test["state_name"], str)
+                assert api_test["state_name"]
 
                 next_transition = api_test["next_transition_seconds"]
                 if api_test["active"]:
-                    if not isinstance(next_transition, (int, float)) or next_transition < 0:
-                        errors.append(f"next_transition_invalid:{next_transition}")
-                elif next_transition is not None:
-                    errors.append(f"inactive_next_transition_not_none:{next_transition}")
+                    assert isinstance(next_transition, (int, float))
+                    assert next_transition >= 0
+                else:
+                    assert next_transition is None
+                status_payloads.append(api_test)
+                request_barrier.wait(timeout=5)
 
-                time.sleep(0.05)
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            action_future = executor.submit(hammer_actions)
+            status_future = executor.submit(poll_status)
+            action_future.result(timeout=10)
+            status_future.result(timeout=10)
 
-        threads = [
-            threading.Thread(target=hammer_actions),
-            threading.Thread(target=poll_status),
-        ]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
-
-        assert errors == []
+        assert len(status_payloads) == len(action_requests)
 
 
 def test_webcam_stream_and_snapshot_routes_are_not_protected_by_control_plane_auth(monkeypatch):

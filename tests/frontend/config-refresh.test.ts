@@ -1,39 +1,26 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
-import { asTestDouble } from "./test-doubles.ts";
-
-function extractRefreshConfigPanel(source: string): string {
-  const match = source.match(/function refreshConfigPanel\(\) \{[\s\S]*?\n^}/m);
-  if (!match) {
-    throw new Error("refreshConfigPanel() definition not found");
-  }
-  return match[0];
-}
+import {
+  refreshConfigPanel,
+  type ConfigPollingDependencies,
+} from "../../frontend/src/config-polling.ts";
 
 test("refreshConfigPanel marks initial load pending and requests config update", async () => {
-  const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
-  const refreshConfigPanelFn = extractRefreshConfigPanel(appJs);
-
   let updateCalls = 0;
-  const context = {
-    state: {
-      configInitialLoadPending: false,
-    },
+  const state = {
+    configInitialLoadPending: false,
+    configPollingInterval: null as ReturnType<typeof setInterval> | null,
+  };
+  const dependencies: ConfigPollingDependencies = {
     updateConfig: async () => {
       updateCalls += 1;
     },
-    console: {
-      error: () => {},
-    },
+    logError: () => {},
   };
 
-  vm.runInNewContext(`${refreshConfigPanelFn};`, context);
-  const evaluatedContext = asTestDouble<typeof context & { refreshConfigPanel(): void }>(context);
-  evaluatedContext.refreshConfigPanel();
+  refreshConfigPanel(state, dependencies);
   await Promise.resolve();
 
-  assert.equal(context.state.configInitialLoadPending, true);
+  assert.equal(state.configInitialLoadPending, true);
   assert.equal(updateCalls, 1);
 });
