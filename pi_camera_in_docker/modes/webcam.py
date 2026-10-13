@@ -233,7 +233,7 @@ def import_camera_components(pykms_mock_fallback_enabled: bool):
                 XBGR8888 = "XBGR8888"
 
             pykms_mock.PixelFormat = PixelFormatMock  # type: ignore
-            kms_mock.PixelFormat = PixelFormatMock  # type: ignore # type: ignore[attr-defined]
+            kms_mock.PixelFormat = PixelFormatMock  # type: ignore[attr-defined]
             sys.modules["pykms"] = pykms_mock
             sys.modules["kms"] = kms_mock
             from picamera2 import Picamera2
