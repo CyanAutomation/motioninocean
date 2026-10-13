@@ -400,7 +400,6 @@ Please use clear commit messages:
    ```bash
    npm run lint
    npm run type-check
-   npm run format:check
    ```
 
    **Reference:** [`frontend-testing-linting`](.github/skills/frontend-testing-linting/SKILL.md) skill

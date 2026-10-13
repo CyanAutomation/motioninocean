@@ -94,7 +94,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [settings] Reject unknown categories and fixed-schema keys in patches (#468)
 - [build] Add git SHA provenance to image metadata and startup logs (#467)
 - [tests] Add config validator import and disabled discovery coverage (#466)
-- [lint] Fix Ruff issues and run Prettier (#465)
+- [lint] Fix Ruff issues and formatting (#465)
 - [tests] Add targeted mock UI and frame generation coverage (#464)
 - [webcam] Toggle mock placeholder visibility from runtime config (#463)
 - [webcam] Add mock stream placeholder to index template (#462)

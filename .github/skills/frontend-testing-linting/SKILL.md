@@ -1,6 +1,6 @@
 ---
 name: frontend-testing-linting
-description: Build, test, lint, type-check, and format the project’s TypeScript frontend and generated browser assets. Use for changes under frontend/, tests/frontend/, or generated frontend assets.
+description: Build, test, lint, and type-check the project’s TypeScript frontend and generated browser assets. Use for changes under frontend/, tests/frontend/, or generated frontend assets.
 owner: motion-in-ocean team
 last-reviewed: 2026-09-25
 category: Development
@@ -49,7 +49,6 @@ Validate frontend source changes using the scripts and test runner configured in
    ```bash
    npm run lint
    npm run type-check
-   npm run format:check
    ```
 
 5. If a TypeScript change updates generated files under `pi_camera_in_docker/static/js`, review and commit the intended output. CI checks regeneration with `git diff --exit-code -- pi_camera_in_docker/static/js`.
@@ -59,7 +58,7 @@ Validate frontend source changes using the scripts and test runner configured in
 
 - [ ] Focused test fails before and passes after a behavior fix.
 - [ ] `make test-frontend` passes.
-- [ ] `npm run lint`, `npm run type-check`, and `npm run format:check` pass.
+- [ ] `npm run lint` and `npm run type-check` pass.
 - [ ] Generated assets are current and intentional.
 - [ ] Visible changes have been reviewed at relevant viewport sizes and with keyboard input.
 
@@ -76,8 +75,8 @@ Validate frontend source changes using the scripts and test runner configured in
 
 - **Failure:** `make test-frontend` cannot find a test file. **Recovery:** Check `tests/frontend/*.test.ts` and confirm the test was added to the repository.
 - **Failure:** Generated JavaScript differs after build. **Recovery:** Inspect the TypeScript changes and generated diff; rebuild with `npm run build:frontend`.
-- **Failure:** An npm command is unknown. **Recovery:** Check `package.json`; the supported scripts are `build:frontend`, `lint`, `type-check`, `format`, and `format:check`.
-- **Failure:** Lint fixes cause broad unrelated edits. **Recovery:** Format only the intended files with the repository tool and inspect the diff.
+- **Failure:** An npm command is unknown. **Recovery:** Check `package.json`; the supported scripts are `build:frontend`, `lint`, `type-check`, and `test:frontend`.
+- **Failure:** Lint fixes cause broad unrelated edits. **Recovery:** Inspect the diff and keep fixes scoped to the intended files.
 
 ## Related Skills
 

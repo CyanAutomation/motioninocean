@@ -6,5 +6,5 @@
     "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["scripts/frontend-health.ts", "eslint.config.ts", "tests/frontend/api-docs.test.ts"]
+  "include": ["scripts/frontend-health.ts", "tests/frontend/api-docs.test.ts"]
 }
