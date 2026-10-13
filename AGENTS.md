@@ -78,7 +78,6 @@ See [pi_camera_in_docker/runtime_config.py](pi_camera_in_docker/runtime_config.p
 | **config_validator.py**         | Runtime config validation with helpful error hints    |
 | **settings_schema.py**          | JSON schema for all editable settings                 |
 | **transport_url_validation.py** | SSRF protection, URL safeguarding                     |
-| **cat_gif_generator.py**        | Optional animated mock stream source                  |
 | **logging_config.py**           | Structured JSON logging setup                         |
 
 Files: [pi_camera_in_docker/](pi_camera_in_docker/)
@@ -383,16 +382,8 @@ def test_settings_patch_persisted(tmp_path, app_client):
 
 ### Mock Camera (No Hardware)
 
-The `mock_camera` feature flag provides a fallback implementation when hardware is unavailable:
-
-```python
-if feature_flags.is_enabled("mock_camera"):
-    from pi_camera_in_docker.cat_gif_generator import generate_cat_gif_frame
-
-    frame = generate_cat_gif_frame()  # Animated cat GIF placeholder
-else:
-    frame = camera.capture_jpeg()  # Real Picamera2 hardware
-```
+Mock mode (`MIO_MOCK_CAMERA=true`) repeatedly publishes JPEG frames generated from the bundled Mio
+artwork by `mock_stream_renderer.py`.
 
 Enable in tests or dev:
 
