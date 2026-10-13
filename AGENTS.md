@@ -623,7 +623,6 @@ Frontend unit tests use Node's built-in test runner:
 make test-frontend
 npm run lint
 npm run type-check
-npm run format:check
 ```
 
 For visible changes, review the running app at desktop and narrow viewport sizes, check keyboard interaction and loading/error states, and follow [`.github/skills/ui-review/SKILL.md`](.github/skills/ui-review/SKILL.md).
