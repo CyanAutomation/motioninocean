@@ -38,8 +38,8 @@ def _new_management_client(monkeypatch, tmp_path, management_token="test-token",
 class TestReadmeHelpEndpointIntegration:
     """Integration coverage for GET /api/help/readme."""
 
-    def test_help_readme_returns_local_content_when_available(self, monkeypatch, tmp_path):
-        """Endpoint returns local README content when file exists."""
+    def test_help_readme_returns_local_content_without_auth(self, monkeypatch, tmp_path):
+        """Endpoint publicly returns local README content when the file is available."""
         client = _new_management_client(monkeypatch, tmp_path)
 
         response = client.get("/api/help/readme")

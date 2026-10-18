@@ -111,8 +111,11 @@ class TestFeatureFlagRegistry:
 class TestFeatureFlagBehavior:
     """General feature-flag behavior tests."""
 
-    def test_flag_defaults(self):
-        """Test that flag defaults are correct."""
+    def test_mock_camera_flag_defaults_to_disabled(self):
+        """MOCK_CAMERA remains disabled when its environment variable is unset.
+
+        Traceability: docs/product/PRD-backend.md#4-environment-driven-configuration-p1.
+        """
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
         with mock.patch.dict(os.environ, {}, clear=True):

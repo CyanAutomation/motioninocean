@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { REQUIRED_MANAGEMENT_ELEMENT_IDS } from "../../frontend/src/management-dom.ts";
 import { asTestDouble } from "./test-doubles.ts";
 
 function slice(source: string, startToken: string, endToken: string): string {
@@ -13,21 +14,12 @@ function slice(source: string, startToken: string, endToken: string): string {
   return source.slice(start, end).trim();
 }
 
-test("management template includes required webcam DOM ids used by management.js", () => {
+test("management template includes every DOM element required by the dashboard", () => {
+  // Traceability: docs/product/PRD-frontend.md, Management UI.
   const template = fs.readFileSync("pi_camera_in_docker/templates/management.html", "utf8");
   const ids = new Set(Array.from(template.matchAll(/id="([^"]+)"/g), (match) => match[1]));
-  const requiredIds = [
-    "webcams-table-body",
-    "webcam-form",
-    "form-title",
-    "cancel-edit-btn",
-    "refresh-webcams-btn",
-    "editing-webcam-id",
-    "webcam-transport",
-    "copy-diagnostic-report-btn",
-  ];
 
-  requiredIds.forEach((id) => {
+  REQUIRED_MANAGEMENT_ELEMENT_IDS.forEach((id) => {
     assert.equal(ids.has(id), true, `Missing id in management template: ${id}`);
   });
 });

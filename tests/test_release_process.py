@@ -1,7 +1,9 @@
 """Protect release tooling from stale paths and automatic history rewrites."""
 
+import os
 import re
 import shlex
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -95,17 +97,107 @@ def test_manifest_verification_uses_lowercase_repository_and_build_digest() -> N
     assert "linux/arm64" in section
 
 
-def test_release_failure_path_does_not_rewrite_or_delete_git_history() -> None:
-    script = (REPO_ROOT / "create-release.sh").read_text(encoding="utf-8")
-    forbidden_commands = (
-        "git reset --hard",
-        "git push -f",
-        "git push --force",
-        "git push origin --delete",
-        "git tag -f",
+def test_release_push_failure_preserves_local_commit_and_version_tags(tmp_path: Path) -> None:
+    """A failed push leaves the release commit and existing tags available for recovery.
+
+    Traceability: docs/guides/RELEASE.md#recovery-after-a-failure.
+    """
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    origin = tmp_path / "origin.git"
+    subprocess.run(["git", "init", "--bare", str(origin)], check=True, capture_output=True)
+    subprocess.run(["git", "init", "--initial-branch=main"], cwd=repository, check=True)
+    subprocess.run(["git", "config", "user.name", "Test User"], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.invalid"], cwd=repository, check=True
     )
-    for command in forbidden_commands:
-        assert command not in script, f"Release script contains unsafe mutation: {command}"
+
+    (repository / "docs").mkdir()
+    (repository / "VERSION").write_text("1.2.2\n", encoding="utf-8")
+    (repository / "docs" / "CHANGELOG.md").write_text(
+        "## [Unreleased]\n\n- Pending change\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "add", "VERSION", "docs/CHANGELOG.md"], cwd=repository, check=True)
+    subprocess.run(["git", "commit", "-m", "Initial release state"], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "tag", "-a", "v1.2.2", "-m", "Previous release"],
+        cwd=repository,
+        check=True,
+    )
+    subprocess.run(["git", "remote", "add", "origin", str(origin)], cwd=repository, check=True)
+    original_commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repository, check=True, capture_output=True, text=True
+    ).stdout.strip()
+    original_tag = subprocess.run(
+        ["git", "rev-parse", "refs/tags/v1.2.2"],
+        cwd=repository,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    real_git = shutil.which("git")
+    assert real_git is not None
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    git_wrapper = fake_bin / "git"
+    git_wrapper.write_text(
+        "#!/bin/sh\n"
+        'if [ "$1" = "push" ]; then echo "simulated push failure" >&2; exit 1; fi\n'
+        f'exec {shlex.quote(real_git)} "$@"\n',
+        encoding="utf-8",
+    )
+    git_wrapper.chmod(0o755)
+    test_env = os.environ.copy()
+    test_env["PATH"] = f"{fake_bin}{os.pathsep}{test_env['PATH']}"
+
+    result = subprocess.run(
+        ["bash", str(REPO_ROOT / "create-release.sh")],
+        cwd=repository,
+        env=test_env,
+        input="1.2.3\ny\n",
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "simulated push failure" in result.stderr
+    assert "local commit and tag are retained" in result.stderr
+    release_commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repository, check=True, capture_output=True, text=True
+    ).stdout.strip()
+    assert release_commit != original_commit
+    assert (
+        subprocess.run(
+            ["git", "merge-base", "--is-ancestor", original_commit, release_commit],
+            cwd=repository,
+            check=False,
+        ).returncode
+        == 0
+    )
+    assert (
+        subprocess.run(
+            ["git", "rev-parse", "refs/tags/v1.2.2"],
+            cwd=repository,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        == original_tag
+    )
+    assert (
+        subprocess.run(
+            ["git", "rev-parse", "refs/tags/v1.2.3^{commit}"],
+            cwd=repository,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        == release_commit
+    )
+    assert (repository / "VERSION").read_text(encoding="utf-8") == "1.2.3\n"
 
 
 def test_release_guide_verification_commands_match_attested_images() -> None:

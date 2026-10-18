@@ -16,6 +16,7 @@ import {
 } from "./management-settings-view.js";
 import { renderDiagnosticResults as renderDiagnosticResultsUi } from "./management-diagnostic-renderer.js";
 import { getDiagnosticCheckRows, getDiagnosticSummaryState } from "./management-diagnostics.js";
+import { REQUIRED_MANAGEMENT_ELEMENT_IDS } from "./management-dom.js";
 import { createManagementBearerTokenSession } from "./management-auth.js";
 import {
   isFailureStatus,
@@ -87,11 +88,7 @@ interface WebcamApiStatus extends NodeStatus, Partial<StatusAggregation> {
  */
 
 const tableBody = getElementById<HTMLTableSectionElement>("webcams-table-body");
-const webcamForm = getElementById<HTMLFormElement>("webcam-form");
 const feedback = getElementById("form-feedback");
-const formTitle = getElementById("form-title");
-const cancelEditBtn = getElementById<HTMLButtonElement>("cancel-edit-btn");
-const refreshBtn = getElementById<HTMLButtonElement>("refresh-webcams-btn");
 const toggleWebcamFormPanelBtn = getElementById<HTMLButtonElement>("toggle-webcam-form-panel-btn");
 const managementLayout = getElementById("management-layout");
 const webcamFormPanelContainer = getElementById("webcam-form-panel-container");
@@ -112,7 +109,6 @@ const advancedDiagnosticsToggle = getElementById<HTMLInputElement>("advanced-dia
 const diagnosticPanelContent = getElementById("diagnostic-panel-content");
 const diagnosticsAdvancedCheckbox = advancedDiagnosticsToggle;
 const diagnosticsCollapsibleContainer = diagnosticPanelContent;
-const managementMain = getElementById("management-main");
 const overviewView = getElementById("overview-view");
 const devicesView = getElementById("devices-view");
 const discoveredView = getElementById("discovered-view");
@@ -215,33 +211,7 @@ function setDiagnosticPanelExpanded(isExpanded: boolean): void {
 }
 
 function getMissingRequiredElementIds() {
-  const requiredElements = [
-    ["webcams-table-body", tableBody],
-    ["webcam-form", webcamForm],
-    ["form-title", formTitle],
-    ["cancel-edit-btn", cancelEditBtn],
-    ["refresh-webcams-btn", refreshBtn],
-    ["editing-webcam-id", editingWebcamIdInput],
-    ["webcam-transport", document.getElementById("webcam-transport")],
-    ["copy-diagnostic-report-btn", copyDiagnosticReportBtn],
-    ["diagnostic-webcam-id", diagnosticWebcamId],
-    ["diagnostic-context", diagnosticContext],
-    ["diagnostic-summary-badge", diagnosticSummaryBadge],
-    ["diagnostic-checks-grid", diagnosticChecksGrid],
-    ["diagnostic-recommendations", diagnosticRecommendations],
-    ["management-main", managementMain],
-    ["overview-view", overviewView],
-    ["devices-view", devicesView],
-    ["discovered-view", discoveredView],
-    ["settings-view", settingsView],
-    ["view-overview-btn", viewOverviewBtn],
-    ["view-devices-btn", viewDevicesBtn],
-    ["view-discovered-btn", viewDiscoveredBtn],
-    ["view-settings-btn", viewSettingsBtn],
-    ["theme-toggle-btn", themeToggleBtn],
-  ];
-
-  return requiredElements.filter(([, element]) => element == null).map(([id]) => id);
+  return REQUIRED_MANAGEMENT_ELEMENT_IDS.filter((id) => document.getElementById(id) == null);
 }
 
 function isDiagnosticPanelContentVisible() {

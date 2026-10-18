@@ -17,6 +17,7 @@ import { clearConfigDisplay as clearConfigDisplayUi } from "./config-display.js"
 import { loadSetupTemplates } from "./setup-load.js";
 import { bindOptionalEventListeners } from "./app-event-bindings.js";
 import { showWebcamHelpModal } from "./webcam-help-modal.js";
+import { updateMioMascotForTab as updateMioMascot } from "./mio-mascot.js";
 const REQUEST_TIMEOUT_MS = 5000;
 const THEME_STORAGE_KEY = "webcam.theme";
 const DEFAULT_MIO_PATH = "/static/img/mio/mio_avatar.png";
@@ -1318,31 +1319,7 @@ function getMioAssets() {
  * @returns {void}
  */
 function updateMascotForTab(tabName) {
-    const assets = getMioAssets();
-    const mascotByTab = {
-        main: {
-            src: assets.happy,
-            alt: "Mio mascot for Stream view",
-        },
-        config: {
-            src: assets.curious,
-            alt: "Mio mascot for Configuration view",
-        },
-        setup: {
-            src: assets.avatar,
-            alt: "Mio mascot for Set-Up view",
-        },
-        settings: {
-            src: assets.sleeping,
-            alt: "Mio mascot for Runtime Settings view",
-        },
-    };
-    const mascot = mascotByTab[tabName] || mascotByTab.main;
-    const imageElement = state.elements.mioHeroImage;
-    if (!imageElement)
-        return;
-    imageElement.src = mascot.src;
-    imageElement.alt = mascot.alt;
+    updateMioMascot(tabName, state.elements.mioHeroImage, getMioAssets());
 }
 /**
  * Update view title and subtitle to reflect active webcam view.
