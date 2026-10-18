@@ -56,6 +56,60 @@ def test_webcam_compose_contract_basics(workspace_root):
     assert "/health" in str(healthcheck.get("test")), "Healthcheck should use /health endpoint"
 
 
+def test_compose_platform_can_be_overridden_for_native_architecture(workspace_root):
+    """Both deployment modes should default to ARM64 while allowing native AMD64 pulls."""
+    deployment_directories = (
+        "motion-in-ocean-webcam",
+        "motion-in-ocean-management",
+    )
+
+    for deployment_directory in deployment_directories:
+        compose_file = (
+            workspace_root
+            / "containers"
+            / deployment_directory
+            / "docker-compose.yaml"
+        )
+        config = yaml.safe_load(compose_file.read_text())
+        service = config["services"]["motion-in-ocean"]
+
+        assert service["platform"] == "${MIO_COMPOSE_PLATFORM:-linux/arm64}"
+
+
+def test_mock_overlay_enables_runtime_flag(workspace_root):
+    """The hardware-free overlay should enable mock frames and remove device access."""
+    overlay_file = (
+        workspace_root
+        / "containers"
+        / "motion-in-ocean-webcam"
+        / "docker-compose.mock.yaml"
+    )
+    overlay = yaml.safe_load(overlay_file.read_text())
+    service = overlay["services"]["motion-in-ocean"]
+
+    assert service["environment"]["MIO_MOCK_CAMERA"] == "true"
+    assert service["devices"] == []
+    assert service["group_add"] == []
+    assert service["device_cgroup_rules"] == []
+
+
+def test_readme_mock_quick_start_documents_native_amd64(workspace_root):
+    """README should give an AMD64-native mock command for hosts without a Pi camera."""
+    readme = (workspace_root / "README.md").read_text()
+
+    assert (
+        "MIO_COMPOSE_PLATFORM=linux/amd64 docker compose -f docker-compose.yaml "
+        "-f docker-compose.mock.yaml up -d"
+    ) in readme
+
+
+def test_readme_marks_removed_environment_aliases_as_unsupported(workspace_root):
+    """README should not tell users that removed short environment names still work."""
+    readme = (workspace_root / "README.md").read_text()
+
+    assert "APP_MODE` and `RESOLUTION` are not read by the current runtime" in readme
+
+
 def test_docker_compose_device_mappings(workspace_root):
     """Verify device mappings are configured."""
     compose_file = workspace_root / "containers" / "motion-in-ocean-webcam" / "docker-compose.yaml"

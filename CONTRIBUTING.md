@@ -105,9 +105,12 @@ make run-mock          # Run Flask app with mock camera
 make clean             # Clean build artifacts
 
 # CI validation
-make ci                # Run all CI checks (lint, type-check, test)
-make validate          # Run all validation checks including security
+make ci                # Run local lint, format, Python types, feature-flag, and test checks
+make validate          # Run make ci plus the Bandit security check
+npm run type-check     # Run TypeScript checks used by GitHub Actions
 ```
+
+GitHub Actions also checks workflow syntax and resolves runtime dependencies across a Python/platform matrix.
 
 ### Local build & run
 

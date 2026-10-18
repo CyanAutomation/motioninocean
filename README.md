@@ -2,6 +2,8 @@
 
 **Raspberry Pi CSI Camera Streaming in Docker (Picamera2 / libcamera)**
 
+**Project status:** Early development. See [SECURITY.md](SECURITY.md) for supported security updates and vulnerability reporting.
+
 [![CI](https://github.com/CyanAutomation/motioninocean/workflows/CI%20-%20Test%20and%20Lint/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/ci.yml)
 [![Security Scan](https://github.com/CyanAutomation/motioninocean/workflows/Security%20-%20Docker%20Image%20Scan/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/security-scan.yml)
 [![Build and publish Docker image](https://github.com/CyanAutomation/motioninocean/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/docker-publish.yml)
@@ -20,6 +22,8 @@ Motion In Ocean turns a Raspberry Pi CSI camera into a reliable, containerised M
 
 Common integrations: [Home Assistant](https://www.home-assistant.io/), [OctoPrint](https://octoprint.org/), and any MJPEG-capable viewer.
 
+![Motion In Ocean stream page showing connection status, frame rate, and video controls](screenshots/live-desktop-stream.png)
+
 ## Requirements
 
 | Requirement    | Minimum                                             |
@@ -30,7 +34,9 @@ Common integrations: [Home Assistant](https://www.home-assistant.io/), [OctoPrin
 | Docker Compose | v2.20+                                              |
 | Architecture   | `linux/arm64` (Pi) or `linux/amd64` (dev / testing) |
 
-> Both `linux/arm64` and `linux/amd64` images are published. **Mock camera mode** works on any architecture without hardware.
+> Images for `linux/arm64` and `linux/amd64` are published. The deployment Compose files default to ARM64 for Raspberry Pi. On an AMD64 host, set `MIO_COMPOSE_PLATFORM=linux/amd64` when starting the stack. The mock overlay enables synthetic camera frames and removes camera device access.
+>
+> `MIO_COMPOSE_PLATFORM` is a Compose-time image selection variable, not an application setting.
 
 ## Quick Start
 
@@ -62,11 +68,21 @@ docker compose up -d
 
 Open `http://localhost:8001`.
 
-> No Raspberry Pi hardware? Use the mock camera overlay to try it out locally:
->
-> ```bash
-> docker compose -f docker-compose.yaml -f docker-compose.mock.yaml up -d
-> ```
+To connect webcam nodes to the hub, follow the [directory-based multi-host setup](docs/guides/DEPLOYMENT.md#multi-host-setup-directory-based).
+
+### Try webcam mode without a Raspberry Pi
+
+Run these commands from the copied webcam deployment directory. The mock overlay enables mock camera mode and removes hardware device access. On a Raspberry Pi or another ARM64 host, use the default platform; on an AMD64 host, select its native image:
+
+```bash
+cd ~/containers/motion-in-ocean-webcam
+
+# Raspberry Pi or ARM64 host
+docker compose -f docker-compose.yaml -f docker-compose.mock.yaml up -d
+
+# AMD64 development host
+MIO_COMPOSE_PLATFORM=linux/amd64 docker compose -f docker-compose.yaml -f docker-compose.mock.yaml up -d
+```
 
 ### Verify the deployment and view the stream
 
@@ -166,14 +182,17 @@ The spec lives at [docs/openapi.json](docs/openapi.json) and is served directly 
 - Migration deltas only: [docs/guides/MIGRATION.md](docs/guides/MIGRATION.md)
 - Feature flags reference: [docs/guides/FEATURE_FLAGS.md](docs/guides/FEATURE_FLAGS.md)
 - Container directory pattern specifics: [containers/README.md](containers/README.md)
+- Runtime environment variable reference: [docs/ENVIRONMENT_VARIABLES_DOCUMENTATION_COMPLETE.md](docs/ENVIRONMENT_VARIABLES_DOCUMENTATION_COMPLETE.md)
 - OpenAPI specification: [docs/openapi.json](docs/openapi.json)
 
 ## Environment Variables
 
-Canonical app variables use the `MIO_*` prefix (e.g. `MIO_APP_MODE`, `MIO_PORT`, `MIO_BIND_HOST`). Legacy aliases (e.g. `APP_MODE`, `RESOLUTION`) are accepted temporarily during migration.
+Use canonical `MIO_*` application variables such as `MIO_APP_MODE`, `MIO_PORT`, and `MIO_BIND_HOST`. Older names such as `APP_MODE` and `RESOLUTION` are not read by the current runtime. The deprecated compatibility settings `MIO_PI3_PROFILE` and `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` are still supported; prefer `MIO_PERFORMANCE_PROFILE` and `MIO_ALLOW_PRIVATE_IPS` respectively.
 
-See the [deployment guide](docs/guides/DEPLOYMENT.md) for the full variable reference, legacy alias mapping, and migration examples.
+See the [runtime environment variable reference](docs/ENVIRONMENT_VARIABLES_DOCUMENTATION_COMPLETE.md) for supported variables and the [deployment guide](docs/guides/DEPLOYMENT.md) for migration details.
 
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a pull request, and review the [Code of Conduct](CODE_OF_CONDUCT.md). Run `make ci` to reproduce all CI checks locally before pushing.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a pull request, and review the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+Run `make ci` for the local lint, formatting, Python type-check, feature-flag, and test checks. Run `npm run type-check` for frontend TypeScript checks. GitHub Actions also runs workflow linting and a runtime dependency-resolution matrix.

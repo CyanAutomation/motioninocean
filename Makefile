@@ -71,8 +71,8 @@ help:
 	@echo "  make docker-stop               Stop Docker container"
 	@echo ""
 	@echo "CI/CD:"
-	@echo "  make ci               Run all CI checks (lint, type-check, test)"
-	@echo "  make validate         Validate all code quality checks"
+	@echo "  make ci               Run local lint, format, Python types, feature-flag, and tests"
+	@echo "  make validate         Run make ci plus the Bandit security check"
 
 # Installation targets
 install:
@@ -293,7 +293,7 @@ docker-clean:
 
 # CI/CD targets
 ci: lint format-check type-check check-feature-flag-usage test
-	@echo "✓ All CI checks passed!"
+	@echo "✓ Local CI checks passed!"
 
 validate: ci security
 	@echo "✓ All validation checks passed!"

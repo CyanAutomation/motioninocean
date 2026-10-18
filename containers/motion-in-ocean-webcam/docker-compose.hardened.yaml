@@ -2,9 +2,9 @@
 # Define explicit device mappings and cgroup rules for production deployments
 #
 # Usage:
-#   docker compose -f docker-compose.yml -f docker-compose.hardened.yml up -d
+#   docker compose -f docker-compose.yaml -f docker-compose.hardened.yaml up -d
 #
-# This file overrides the privileged: true setting from docker-compose.yml
+# This file overrides the privileged: true setting from docker-compose.yaml
 # and replaces it with explicit device mappings and cgroup rules for fine-grained access control.
 # Use this in production environments where defense-in-depth is required.
 
@@ -14,8 +14,8 @@ services:
     privileged: false
 
     # Explicit device mappings required for libcamera on Raspberry Pi
-    # These are representative defaults; run ../../detect-devices.sh to generate
-    # docker-compose.override.yaml with your host's exact device nodes.
+    # These are representative defaults; run ../../scripts/detect-devices.sh
+    # from a Raspberry Pi repository checkout to generate host-specific mappings.
     devices:
       # DMA heap devices - required for libcamera memory management
       - /dev/dma_heap/system:/dev/dma_heap/system

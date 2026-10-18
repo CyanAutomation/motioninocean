@@ -28,17 +28,14 @@ files without contacting the application.
 - **Canonical app variables:** use `MIO_*` names (for example `MIO_APP_MODE`, `MIO_PORT`, `MIO_BIND_HOST`, `MIO_PERFORMANCE_PROFILE`).
 - **Docker/Compose keys:** `image`, `ports`, `environment`, `volumes`, `networks`, `depends_on` remain standard compose keys and are not app env vars.
 
-### Legacy aliases still accepted temporarily
+### Deprecated compatibility variables still accepted
 
-| Canonical `MIO_*` var       | Legacy alias                                  |
-| --------------------------- | --------------------------------------------- |
-| `MIO_APP_MODE`              | `APP_MODE`, `MOTION_IN_OCEAN_MODE`            |
-| `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                        |
-| `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`                   |
-| `MIO_RESOLUTION`            | `RESOLUTION`, `MOTION_IN_OCEAN_RESOLUTION`    |
-| `MIO_PERFORMANCE_PROFILE`   | `MIO_PI3_PROFILE` (only `true` maps to `pi3`) |
-| `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                       |
-| `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                             |
+| Deprecated variable                   | Preferred variable            | Behavior                                                    |
+| ------------------------------------- | ----------------------------- | ----------------------------------------------------------- |
+| `MIO_PI3_PROFILE`                     | `MIO_PERFORMANCE_PROFILE`     | `true` selects `pi3` only when the preferred variable is unset. |
+| `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS`   | `MIO_ALLOW_PRIVATE_IPS`       | Used only when the preferred variable is unset.             |
+
+Older names such as `APP_MODE`, `RESOLUTION`, and `MANAGEMENT_AUTH_TOKEN` are not read by the current runtime. Use the canonical `MIO_*` variables.
 
 ### Performance presets (recommended over implicit Pi 3 toggles)
 
@@ -56,34 +53,38 @@ Explicit tuning variables (`MIO_FPS`, `MIO_RESOLUTION`, `MIO_TARGET_FPS`, `MIO_J
 
 ## Recommended: Directory-Based Deployment
 
-Each deployment (webcam, management, etc.) lives in its own directory with a standard `docker-compose.yml` filename. This pattern is compatible with container orchestration tools and eliminates complexity from custom filenames and `-f` flags.
+Each deployment (webcam, management, etc.) lives in its own directory with a `docker-compose.yaml` entrypoint. This pattern is compatible with container orchestration tools and keeps webcam and management configuration separate.
 
 **Directory Structure:**
 
 ```
 ~/containers/
-├── motioniocean-webcam/
-│   ├── docker-compose.yml          # Main config
-│   ├── docker-compose.hardened.yml # Security overlay (optional)
-│   ├── docker-compose.mock.yml     # Mock camera (optional)
-│   └── .env                        # Configuration
+├── motion-in-ocean-webcam/
+│   ├── docker-compose.yaml          # Main config
+│   ├── docker-compose.hardened.yaml # Security overlay (optional)
+│   ├── docker-compose.mock.yaml     # Mock camera (optional)
+│   ├── .env.example                 # Configuration template
+│   └── .env                         # Local configuration
 │
-└── motioniocean-management/
-    ├── docker-compose.yml          # Main config
-    └── .env                        # Configuration
+└── motion-in-ocean-management/
+    ├── docker-compose.yaml          # Main config
+    ├── .env.example                 # Configuration template
+    └── .env                         # Local configuration
 ```
 
 **Quick Start - Webcam Mode:**
 
 ```bash
-cd ~/containers/motioniocean-webcam
+cd ~/containers/motion-in-ocean-webcam
+cp .env.example .env
 docker compose up -d
 ```
 
 **Quick Start - Management Mode:**
 
 ```bash
-cd ~/containers/motioniocean-management
+cd ~/containers/motion-in-ocean-management
+cp .env.example .env
 docker compose up -d
 ```
 
@@ -95,34 +96,22 @@ docker compose up -d
 **Advanced - Hardened Security:**
 
 ```bash
-cd ~/containers/motioniocean-webcam
-# Auto-detect camera devices on your Raspberry Pi
-../../../detect-devices.sh .
+# From the repository checkout, detect devices and write an override into the deployment directory:
+./scripts/detect-devices.sh ~/containers/motion-in-ocean-webcam
+# Then, from the deployment directory, start with hardened device access:
+cd ~/containers/motion-in-ocean-webcam
 # Start with hardened (non-privileged) mode
-docker compose -f docker-compose.yml -f docker-compose.hardened.yml up -d
+docker compose -f docker-compose.yaml -f docker-compose.hardened.yaml up -d
 ```
 
 **Advanced - Mock Camera (Testing):**
 
 ```bash
-cd ~/containers/motioniocean-webcam
-# Test without hardware
-docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
-```
-
-**Setup Helper Script:**
-
-```bash
-# From the repo root
-cd containers/motioniocean-webcam
-/path/to/setup.sh   # Guides through .env setup and optional device detection
-```
-
-**Validation:**
-
-```bash
-cd containers/motioniocean-webcam
-/path/to/validate-deployment.sh
+cd ~/containers/motion-in-ocean-webcam
+# The overlay enables mock frames and removes camera device access.
+docker compose -f docker-compose.yaml -f docker-compose.mock.yaml up -d
+# On an AMD64 host, select the native image instead of the ARM64 default:
+MIO_COMPOSE_PLATFORM=linux/amd64 docker compose -f docker-compose.yaml -f docker-compose.mock.yaml up -d
 ```
 
 ### Multi-Host Setup (Directory-Based)
@@ -132,7 +121,7 @@ For a distributed setup with management hub + remote webcams:
 1. **On the management host:**
 
    ```bash
-   cd ~/containers/motioniocean-management
+   cd ~/containers/motion-in-ocean-management
    cat > .env << EOF
    MIO_PORT=8001
    MIO_BIND_HOST=0.0.0.0  # Listen on all interfaces
@@ -144,11 +133,11 @@ For a distributed setup with management hub + remote webcams:
 2. **On each webcam host:**
 
    ```bash
-   cd ~/containers/motioniocean-webcam
+   cd ~/containers/motion-in-ocean-webcam
    cat > .env << EOF
    MIO_PORT=8000
    MIO_BIND_HOST=0.0.0.0  # Listen on all interfaces
-   MIO_MANAGEMENT_AUTH_TOKEN=secure_token  # Same token as management
+   MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN=secure_token
    EOF
    docker compose up -d
    ```
@@ -156,7 +145,7 @@ For a distributed setup with management hub + remote webcams:
 3. **Access the management UI:**
    - Open `http://<management-host>:8001/` in your browser
    - Add webcam nodes via the management interface
-   - Use the same `MIO_MANAGEMENT_AUTH_TOKEN` for secure communication
+   - Configure the matching webcam bearer token in the management node entry when webcam control-plane authentication is enabled.
 
 ### LAN Self-Registration (Discovery Announcements)
 
@@ -166,7 +155,7 @@ Use discovery when webcam nodes should automatically register themselves with th
 
 ```bash
 MIO_BIND_HOST=0.0.0.0
-NODE_DISCOVERY_SHARED_SECRET=<strong-random-token>
+MIO_NODE_DISCOVERY_SHARED_SECRET=<strong-random-token>
 # Required only when webcam nodes announce private/LAN IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
 MIO_ALLOW_PRIVATE_IPS=true
 ```
@@ -175,19 +164,19 @@ MIO_ALLOW_PRIVATE_IPS=true
 
 ```bash
 MIO_BIND_HOST=0.0.0.0
-DISCOVERY_ENABLED=true
-DISCOVERY_MANAGEMENT_URL=http://<management-host>:8001
-MIO_DISCOVERY_TOKEN=<same-token-as-NODE_DISCOVERY_SHARED_SECRET>
-DISCOVERY_INTERVAL_SECONDS=30
+MIO_DISCOVERY_ENABLED=true
+MIO_DISCOVERY_MANAGEMENT_URL=http://<management-host>:8001
+MIO_DISCOVERY_TOKEN=<same-token-as-MIO_NODE_DISCOVERY_SHARED_SECRET>
+MIO_DISCOVERY_INTERVAL_SECONDS=30
 # Optional explicit id:
-# DISCOVERY_WEBCAM_ID=node-kitchen-cam
+# MIO_DISCOVERY_WEBCAM_ID=node-kitchen-cam
 ```
 
 **Security implications:**
 
 - Keep `MIO_ALLOW_PRIVATE_IPS=false` unless you explicitly need private-IP announcements.
 - Enabling `MIO_ALLOW_PRIVATE_IPS=true` relaxes SSRF safeguards for private ranges; use it only on trusted internal networks.
-- Always set a strong `NODE_DISCOVERY_SHARED_SECRET`/`MIO_DISCOVERY_TOKEN`; unauthenticated discovery announcements are rejected.
+- Always set a strong matching `MIO_NODE_DISCOVERY_SHARED_SECRET` and `MIO_DISCOVERY_TOKEN`; unauthenticated discovery announcements are rejected.
 - This private-IP allowance applies to discovery registration policy only; do not use it as a substitute for perimeter firewall controls.
 - Discovery announcements with unresolvable `base_url` hosts are rejected with `DISCOVERY_HOST_RESOLUTION_FAILED`, even when `MIO_ALLOW_PRIVATE_IPS=true`.
 
@@ -216,7 +205,7 @@ sequenceDiagram
     rect rgb(233, 252, 240)
         Note over Discovery,Mgmt: Path 2 — Webcam discovery announcement
         Discovery->>Mgmt: POST /api/discovery/announce\nX-Discovery-Token: <MIO_DISCOVERY_TOKEN>
-        alt Token matches NODE_DISCOVERY_SHARED_SECRET and node URL is allowed
+        alt Token matches MIO_NODE_DISCOVERY_SHARED_SECRET and node URL is allowed
             Mgmt-->>Discovery: 200 OK (node registered/updated)
         else Invalid shared secret
             Mgmt-->>Discovery: 401 NODE_UNAUTHORIZED
@@ -245,8 +234,8 @@ sequenceDiagram
 **Legend (env var to auth path):**
 
 - `MIO_MANAGEMENT_AUTH_TOKEN`: bearer token expected on browser -> management protected routes.
-- `NODE_DISCOVERY_SHARED_SECRET`: management-side shared secret used to validate discovery announcements.
-- `MIO_DISCOVERY_TOKEN`: webcam/discovery-side secret sent to `/api/discovery/announce`; must match `NODE_DISCOVERY_SHARED_SECRET`.
+- `MIO_NODE_DISCOVERY_SHARED_SECRET`: management-side shared secret used to validate discovery announcements.
+- `MIO_DISCOVERY_TOKEN`: webcam/discovery-side secret sent to `/api/discovery/announce`; must match `MIO_NODE_DISCOVERY_SHARED_SECRET`.
 - `node.auth.token` (node config): bearer token management sends to webcam endpoints like `/api/status` and `/api/actions/*`.
 
 ---
@@ -574,8 +563,8 @@ Deprecated auth payloads (`auth.type=basic` and `auth.username`/`auth.password`/
 Run one-off migration before upgrade if your registry still contains legacy auth fields:
 
 ```bash
-python scripts/migrate_node_registry_auth.py --path "$NODE_REGISTRY_PATH" --dry-run
-python scripts/migrate_node_registry_auth.py --path "$NODE_REGISTRY_PATH"
+python scripts/migrate_node_registry_auth.py --path "$MIO_NODE_REGISTRY_PATH" --dry-run
+python scripts/migrate_node_registry_auth.py --path "$MIO_NODE_REGISTRY_PATH"
 ```
 
 If migration reports an error, replace each legacy node auth object with a bearer API token manually, then re-run the script.
@@ -620,7 +609,7 @@ On **each webcam host**, enable docker-socket-proxy:
 # .env on webcam host
 MIO_APP_MODE=webcam
 ENABLE_DOCKER_SOCKET_PROXY=true
-DOCKER_PROXY_PORT=2375
+MIO_DOCKER_PROXY_PORT=2375
 MIO_BIND_HOST=0.0.0.0
 ```
 
@@ -806,7 +795,7 @@ curl http://192.168.1.101:8000/ready
 - Wait 30-60 seconds for camera initialization
 - Check `docker logs motion-in-ocean` for device errors
 - Default behavior is graceful startup (service remains up in degraded mode) when camera init fails.
-- Set `MIO_FAIL_ON_CAMERA_INIT_ERROR=true` (or legacy alias `MIO_CAMERA_INIT_REQUIRED=true`) if you want startup to fail fast on camera init errors.
+- Set `MIO_FAIL_ON_CAMERA_INIT_ERROR=true` if you want startup to fail fast on camera initialization errors.
 - See the [Pi camera troubleshooting skill](https://github.com/CyanAutomation/motioninocean/blob/main/.github/skills/pi-camera-troubleshooting/SKILL.md) for detailed camera diagnostics
 
 ### Camera Enumerates as Zero Devices

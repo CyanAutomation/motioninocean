@@ -25,7 +25,7 @@ services:
     # Default: GitHub Container Registry. Docker Hub alternative:
     # image: cyanautomation/motioninocean:${MIO_IMAGE_TAG:-latest}
     image: ghcr.io/cyanautomation/motioninocean:${MIO_IMAGE_TAG:-latest}
-    platform: linux/arm64
+    platform: "${MIO_COMPOSE_PLATFORM:-linux/arm64}"
     restart: unless-stopped
     env_file: ./.env
     security_opt:

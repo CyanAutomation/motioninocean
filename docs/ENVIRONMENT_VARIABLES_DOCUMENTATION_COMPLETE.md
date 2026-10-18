@@ -5,6 +5,7 @@ This document lists environment variables that are **currently read by runtime c
 - `pi_camera_in_docker/runtime_config.py`
 - `pi_camera_in_docker/feature_flags.py`
 - `pi_camera_in_docker/management_api.py`
+- `pi_camera_in_docker/main.py`
 
 Anything not in the implemented sections below should be treated as **not runtime-supported**.
 
@@ -19,7 +20,6 @@ These variables configure runtime behavior but are **not** feature flags.
 - `MIO_PORT` (default: `8000`).
 - `MIO_BASE_URL` (default: `http://<hostname>:8000`).
 - `MIO_CORS_ORIGINS` (default: empty/disabled).
-- `MIO_CORS_SUPPORT` (deprecated compatibility alias used only if `MIO_CORS_ORIGINS` is unset).
 
 ### Camera and stream tuning
 
@@ -54,10 +54,22 @@ These variables configure runtime behavior but are **not** feature flags.
 - `MIO_MANAGEMENT_AUTH_TOKEN` (default: empty).
 - `MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN` (default: empty).
 - `MIO_FAIL_ON_CAMERA_INIT_ERROR` (default: `false`).
-- `MIO_PI3_PROFILE` (default: `false`).
+- `MIO_PERFORMANCE_PROFILE` (default: `default`; valid values: `default`, `pi3`).
 - `MIO_API_TEST_MODE_ENABLED` (default: `false`).
 - `MIO_API_TEST_CYCLE_INTERVAL_SECONDS` (default: `5`).
 - `MIO_ALLOW_PRIVATE_IPS` (default: `false`; management SSRF private-IP override).
+- `MIO_LIMITER_STORAGE_URI` (default: `memory://`; external backends require the optional limiter package in the image).
+
+## Deprecated compatibility inputs
+
+These older names are still read by the runtime. Prefer the canonical variable when both are set.
+
+- `MIO_PI3_PROFILE` — deprecated compatibility setting; `true` selects the `pi3` profile only when `MIO_PERFORMANCE_PROFILE` is unset.
+- `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` — fallback for `MIO_ALLOW_PRIVATE_IPS` when the canonical variable is unset.
+
+## Removed inputs
+
+- `MIO_CORS_SUPPORT` — no longer changes CORS behavior; the runtime ignores it and logs a warning. Use `MIO_CORS_ORIGINS`.
 
 ## Implemented feature flags
 
@@ -95,13 +107,12 @@ Only variables registered in `feature_flags.py` and consumed through `is_flag_en
 - `MAX_FRAME_AGE_SECONDS`
 - `API_TEST_MODE_ENABLED`
 - `API_TEST_CYCLE_INTERVAL_SECONDS`
-- `MIO_LIMITER_STORAGE_URI` (legacy alias: `LIMITER_STORAGE_URI`)
+- `LIMITER_STORAGE_URI`
 - `NODE_REGISTRY_PATH`
 - `MOTION_IN_OCEAN_CAMERA_INIT_REQUIRED`
 - `DOCKER_PROXY_PORT`
 - `PI3_PROFILE`
 - `MOCK_CAMERA`
-- `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS`
 
 ### Historical/experimental names that are not runtime-implemented feature flags
 

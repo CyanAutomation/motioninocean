@@ -1,18 +1,20 @@
 # Motion In Ocean - Mock Camera Overlay
 # Remove device dependencies for testing without hardware
 #
-# Usage (standard mock - black frames):
-#   docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
+# Usage (synthetic camera frames, no camera hardware):
+#   docker compose -f docker-compose.yaml -f docker-compose.mock.yaml up -d
 #
 #
 # This is useful for testing on non-Pi environments or when hardware is not available
 #
-# Note: You can also use .env file with:
+# The overlay sets the flag automatically. The base Compose file can also use .env:
 #   MIO_MOCK_CAMERA=true
 
 services:
   motion-in-ocean:
-    # Remove all device mappings and group additions for mock camera mode
+    # Enable synthetic frames and remove host camera device access.
+    environment:
+      MIO_MOCK_CAMERA: "true"
     devices: []
     group_add: []
     device_cgroup_rules: []
