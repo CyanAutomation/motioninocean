@@ -1,18 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import vm from "node:vm";
-import { REQUIRED_MANAGEMENT_ELEMENT_IDS } from "../../frontend/src/management-dom.ts";
-import { asTestDouble } from "./test-doubles.ts";
-
-function slice(source: string, startToken: string, endToken: string): string {
-  const start = source.indexOf(startToken);
-  const end = source.indexOf(endToken, start);
-  if (start === -1 || end === -1) {
-    throw new Error(`Unable to slice from ${startToken} to ${endToken}`);
-  }
-  return source.slice(start, end).trim();
-}
+import {
+  REQUIRED_MANAGEMENT_ELEMENT_IDS,
+  validateManagementDom,
+} from "../../frontend/src/management-dom.ts";
 
 test("management template includes every DOM element required by the dashboard", () => {
   // Traceability: docs/product/PRD-frontend.md, Management UI.
@@ -24,33 +16,32 @@ test("management template includes every DOM element required by the dashboard",
   });
 });
 
-test("management init exits safely when required DOM ids are missing", async () => {
-  const managementJs = fs.readFileSync("frontend/src/management.ts", "utf8");
-  const initFn = slice(managementJs, "async function init()", "\n\ninit().catch");
-
-  const feedbackCalls: unknown[][] = [];
+test("management initialization reports missing required DOM elements and stops", () => {
+  const feedbackCalls: Array<[string, boolean | undefined]> = [];
   const consoleErrors: string[] = [];
-  const context = {
-    getMissingRequiredElementIds: () => ["webcam-form"],
-    console: {
-      error: (message: string) => {
-        consoleErrors.push(message);
-      },
-    },
-    showFeedback: (message: string, isError = false) => {
-      feedbackCalls.push([message, isError]);
-    },
-  };
+  const document = {
+    getElementById: (id: string) => (id === "webcam-form" ? null : ({} as HTMLElement)),
+  } as Pick<Document, "getElementById">;
+  const logger = { error: (message: string) => consoleErrors.push(message) };
 
-  vm.runInNewContext(`${initFn};`, context);
-  const evaluatedContext = asTestDouble<typeof context & { init(): Promise<void> }>(context);
-  await evaluatedContext.init();
+  const isReady = validateManagementDom(document, logger, (message, isError) => {
+    feedbackCalls.push([message, isError]);
+  });
 
-  assert.equal(feedbackCalls.length, 1);
-  assert.deepEqual(feedbackCalls[0], [
-    "Management UI failed to initialize due to missing page elements.",
-    true,
+  assert.equal(isReady, false);
+  assert.deepEqual(feedbackCalls, [
+    ["Management UI failed to initialize due to missing page elements.", true],
   ]);
   assert.equal(consoleErrors.length, 1);
-  assert.match(consoleErrors[0], /Missing required management UI element/);
+  assert.match(consoleErrors[0]!, /Missing required management UI element\(s\): webcam-form/);
+});
+
+test("management initialization can proceed when all required DOM elements exist", () => {
+  const document = {
+    getElementById: () => ({} as HTMLElement),
+  } as Pick<Document, "getElementById">;
+  const logger = { error: () => assert.fail("Unexpected management initialization error") };
+  const feedback = () => assert.fail("Unexpected management initialization feedback");
+
+  assert.equal(validateManagementDom(document, logger, feedback), true);
 });

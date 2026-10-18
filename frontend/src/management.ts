@@ -16,7 +16,7 @@ import {
 } from "./management-settings-view.js";
 import { renderDiagnosticResults as renderDiagnosticResultsUi } from "./management-diagnostic-renderer.js";
 import { getDiagnosticCheckRows, getDiagnosticSummaryState } from "./management-diagnostics.js";
-import { REQUIRED_MANAGEMENT_ELEMENT_IDS } from "./management-dom.js";
+import { validateManagementDom } from "./management-dom.js";
 import { createManagementBearerTokenSession } from "./management-auth.js";
 import {
   isFailureStatus,
@@ -208,10 +208,6 @@ function setDiagnosticPanelExpanded(isExpanded: boolean): void {
   if (diagnosticPanel instanceof HTMLElement) {
     diagnosticPanel.classList.toggle("diagnostic-panel--collapsed", !isExpanded);
   }
-}
-
-function getMissingRequiredElementIds() {
-  return REQUIRED_MANAGEMENT_ELEMENT_IDS.filter((id) => document.getElementById(id) == null);
 }
 
 function isDiagnosticPanelContentVisible() {
@@ -1469,13 +1465,7 @@ function initializeManagementState() {
 }
 
 async function init() {
-  const missingElementIds = getMissingRequiredElementIds();
-  if (missingElementIds.length > 0) {
-    const details = `Missing required management UI element(s): ${missingElementIds.join(", ")}`;
-    console.error(`[management-ui] ${details}`);
-    showFeedback("Management UI failed to initialize due to missing page elements.", true);
-    return;
-  }
+  if (!validateManagementDom(document, console, showFeedback)) return;
 
   await initializeManagementDashboard({
     elements: {
