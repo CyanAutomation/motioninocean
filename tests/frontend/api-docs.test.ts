@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { loadApiReference } from "../../frontend/src/api-docs.ts";
 
 class TestElement {
@@ -42,13 +44,54 @@ function getElement(elements: Map<string, TestElement>, id: string): TestElement
   return element;
 }
 
-test("browser entry points load the generated TypeScript modules", () => {
+test("browser entry points reference existing modules that load successfully", async () => {
+  // Traceability: docs/product/PRD-frontend.md, Frontend Acceptance Criteria.
   const apiTemplate = readFileSync("pi_camera_in_docker/templates/api_docs.html", "utf8");
   const viewerTemplate = readFileSync("pi_camera_in_docker/templates/index.html", "utf8");
 
   assert.match(apiTemplate, /<script type="module"[^>]+js\/api-docs\.js/);
   assert.match(viewerTemplate, /<script type="module"[^>]+js\/app\.js/);
   assert.match(viewerTemplate, /<script type="module"[^>]+js\/settings\.js/);
+
+  const entryFiles = ["api-docs.js", "app.js", "settings.js"];
+  const entryPaths = entryFiles.map((filename) => resolve("pi_camera_in_docker/static/js", filename));
+  for (const entryPath of entryPaths) {
+    assert.equal(existsSync(entryPath), true, `Missing generated browser entry point: ${entryPath}`);
+  }
+
+  await import(`${pathToFileURL(entryPaths[0]!).href}?entry-smoke=api-docs`);
+
+  const originalDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const documentEvents: string[] = [];
+  const browserWindow: { switchTab?: (tabName: string) => void } = {};
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: {
+      readyState: "loading",
+      addEventListener: (eventName: string) => documentEvents.push(eventName),
+    } as unknown as Document,
+  });
+  Object.defineProperty(globalThis, "window", { configurable: true, value: browserWindow });
+
+  try {
+    for (const entryPath of entryPaths.slice(1)) {
+      await import(`${pathToFileURL(entryPath).href}?entry-smoke=viewer`);
+    }
+    assert.equal(typeof browserWindow.switchTab, "function");
+    assert.equal(documentEvents.filter((eventName) => eventName === "DOMContentLoaded").length, 2);
+  } finally {
+    if (originalDocument) {
+      Object.defineProperty(globalThis, "document", originalDocument);
+    } else {
+      Reflect.deleteProperty(globalThis, "document");
+    }
+    if (originalWindow) {
+      Object.defineProperty(globalThis, "window", originalWindow);
+    } else {
+      Reflect.deleteProperty(globalThis, "window");
+    }
+  }
 });
 
 test("loadApiReference renders operations and schemas from the local OpenAPI document", async () => {

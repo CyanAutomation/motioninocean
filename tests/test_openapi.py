@@ -37,12 +37,6 @@ def _new_management_client(monkeypatch, tmp_path, management_token="test-token")
 class TestOpenAPISpec:
     """Tests for GET /openapi.json."""
 
-    def test_openapi_json_content_type(self, monkeypatch, tmp_path):
-        """GET /openapi.json returns application/json content type."""
-        client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get("/openapi.json")
-        assert "application/json" in response.content_type
-
     def test_openapi_json_has_required_top_level_keys(self, monkeypatch, tmp_path):
         """GET /openapi.json response conforms to OpenAPI 3.0 schema."""
         client = _new_management_client(monkeypatch, tmp_path)
@@ -67,27 +61,22 @@ class TestOpenAPISpec:
         # Validate OpenAPI version is 3.x
         assert data["openapi"].startswith("3.")
 
-    def test_openapi_json_matches_the_checked_in_json_document(self, monkeypatch, tmp_path):
-        """The runtime endpoint serves the version-controlled JSON source of truth."""
+    def test_openapi_json_public_endpoint_matches_checked_in_contract(self, monkeypatch, tmp_path):
+        """The public endpoint serves the exact checked-in OpenAPI contract.
+
+        Traceability: docs/openapi.json.
+        """
         client = _new_management_client(monkeypatch, tmp_path)
         expected = json.loads((workspace_root / "docs" / "openapi.json").read_text())
-        actual = client.get("/openapi.json").get_json()
-
-        assert actual == expected
-        assert actual["info"]["title"]
-        assert actual["info"]["version"]
-
-    def test_openapi_json_paths_includes_webcams(self, monkeypatch, tmp_path):
-        """GET /openapi.json paths block includes /api/v1/webcams."""
-        client = _new_management_client(monkeypatch, tmp_path)
-        paths = client.get("/openapi.json").get_json()["paths"]
-        assert any("webcams" in path for path in paths)
-
-    def test_openapi_json_returns_200_without_auth(self, monkeypatch, tmp_path):
-        """GET /openapi.json is publicly accessible and returns HTTP 200."""
-        client = _new_management_client(monkeypatch, tmp_path)
         response = client.get("/openapi.json")
         assert response.status_code == 200
+        assert response.mimetype == "application/json"
+        actual = response.get_json()
+
+        assert actual == expected
+        assert "/api/v1/webcams" in actual["paths"]
+        assert actual["info"]["title"]
+        assert actual["info"]["version"]
 
     def test_openapi_metrics_snapshot_excludes_resolution(self, monkeypatch, tmp_path):
         """MetricsSnapshot schema omits resolution to match /metrics payload contract."""
@@ -112,16 +101,12 @@ class TestOpenAPISpec:
 class TestApiDocs:
     """Tests for the built-in API reference page."""
 
-    def test_api_docs_content_type_is_html(self, monkeypatch, tmp_path):
-        """GET /api/docs returns text/html content type."""
-        client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get("/api/docs")
-        assert "text/html" in response.content_type
-
     def test_api_docs_is_self_contained_and_points_to_the_spec(self, monkeypatch, tmp_path):
-        """GET /api/docs uses local assets and links to the API spec endpoint."""
+        """Public API docs return HTML backed by loadable local assets and the OpenAPI spec."""
         client = _new_management_client(monkeypatch, tmp_path)
         response = client.get("/api/docs")
+        assert response.status_code == 200
+        assert response.mimetype == "text/html"
         assert b"swagger-ui" not in response.data.lower()
         assert b"unpkg.com" not in response.data.lower()
         assert b"/openapi.json" in response.data
@@ -129,25 +114,14 @@ class TestApiDocs:
         assert b"/static/css/api-docs.css" in response.data
         assert b"Motion In Ocean API" in response.data
 
-    def test_api_docs_returns_200_without_auth(self, monkeypatch, tmp_path):
-        """GET /api/docs is publicly accessible and returns HTTP 200."""
-        client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get("/api/docs")
-        assert response.status_code == 200
-
-
-class TestReadmeHelpEndpoint:
-    """Tests for GET /api/help/readme."""
-
-    def test_readme_help_returns_json_content_without_auth(self, monkeypatch, tmp_path):
-        """GET /api/help/readme returns content without requiring authentication."""
-        client = _new_management_client(monkeypatch, tmp_path)
-        response = client.get("/api/help/readme")
-        data = response.get_json()
-        assert response.status_code == 200
-        assert "application/json" in response.content_type
-        assert isinstance(data.get("content"), str)
-        assert len(data["content"]) > 0
+        js_response = client.get("/static/js/api-docs.js")
+        css_response = client.get("/static/css/api-docs.css")
+        assert js_response.status_code == 200
+        assert js_response.mimetype in {"text/javascript", "application/javascript"}
+        assert js_response.data
+        assert css_response.status_code == 200
+        assert css_response.mimetype == "text/css"
+        assert css_response.data
 
 
 class TestDeprecatedAliases:

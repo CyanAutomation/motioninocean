@@ -1,73 +1,36 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
-import { asTestDouble } from "./test-doubles.ts";
+import {
+  updateMioMascotForTab,
+  type MioMascotAssets,
+} from "../../frontend/src/mio-mascot.ts";
 
-function extractFunction(source: string, functionName: string): string {
-  const match = source.match(
-    new RegExp(`function ${functionName}\\([^)]*\\) \\{[\\s\\S]*?\\n^}`, "m"),
-  );
-  if (!match) {
-    throw new Error(`${functionName}() definition not found`);
-  }
-  return match[0];
-}
-
-test("topbar mascot initializes and follows every supported tab", () => {
-  const appJs = fs.readFileSync("pi_camera_in_docker/static/js/app.js", "utf8");
-  const cacheElementsFn = extractFunction(appJs, "cacheElements");
-  const getMioAssetsFn = extractFunction(appJs, "getMioAssets");
-  const updateMascotForTabFn = extractFunction(appJs, "updateMascotForTab");
-
-  const heroImage = { src: "", alt: "" };
-  const elements = new Map<string, typeof heroImage>([["mio-hero-image", heroImage]]);
-  const context = {
-    DEFAULT_MIO_PATH: "/static/img/mio/default.png",
-    getElementById: (id: string) => elements.get(id) ?? null,
-    document: {
-      body: {
-        dataset: {
-          mioAvatar: "/static/img/mio/mio_avatar.png",
-          mioHappy: "/static/img/mio/mio_happy.png",
-          mioCurious: "/static/img/mio/mio_curious.png",
-          mioSleeping: "/static/img/mio/mio_sleeping.png",
-          mioWinking: "/static/img/mio/mio_winking.png",
-          mioFloating: "/static/img/mio/mio_floating.svg",
-        },
-      },
-      getElementById(id: string) {
-        return elements.get(id) ?? null;
-      },
-      querySelectorAll() {
-        return [];
-      },
-    },
-    state: {
-      elements: {},
-    },
+test("mascot image and accessible label follow the active viewer tab", () => {
+  const assets: MioMascotAssets = {
+    avatar: "/static/img/mio/mio_avatar.png",
+    curious: "/static/img/mio/mio_curious.png",
+    floating: "/static/img/mio/mio_floating.svg",
+    happy: "/static/img/mio/mio_happy.png",
+    sleeping: "/static/img/mio/mio_sleeping.png",
+    winking: "/static/img/mio/mio_winking.png",
   };
 
-  vm.runInNewContext(`${cacheElementsFn}\n${getMioAssetsFn}\n${updateMascotForTabFn}`, context);
-
-  const evaluatedContext = asTestDouble<{
-    cacheElements(): void;
-    updateMascotForTab(tab: string): void;
-    state: { elements: { mioHeroImage: typeof heroImage } };
-  }>(context);
-  assert.doesNotThrow(() => evaluatedContext.cacheElements());
-  assert.equal(evaluatedContext.state.elements.mioHeroImage, heroImage);
-
   const tabExpectations = [
-    ["main", "/static/img/mio/mio_happy.png", "Mio mascot for Stream view"],
-    ["config", "/static/img/mio/mio_curious.png", "Mio mascot for Configuration view"],
-    ["setup", "/static/img/mio/mio_avatar.png", "Mio mascot for Set-Up view"],
-    ["settings", "/static/img/mio/mio_sleeping.png", "Mio mascot for Runtime Settings view"],
-  ];
+    ["main", assets.happy, "Mio mascot for Stream view"],
+    ["config", assets.curious, "Mio mascot for Configuration view"],
+    ["setup", assets.avatar, "Mio mascot for Set-Up view"],
+    ["settings", assets.sleeping, "Mio mascot for Runtime Settings view"],
+  ] as const;
+  const heroImage = { src: "", alt: "" };
 
-  for (const [tab, expectedSrc, expectedAlt] of tabExpectations) {
-    assert.doesNotThrow(() => evaluatedContext.updateMascotForTab(tab));
-    assert.equal(heroImage.src, expectedSrc);
-    assert.equal(heroImage.alt, expectedAlt);
+  for (const [tab, src, alt] of tabExpectations) {
+    updateMioMascotForTab(tab, heroImage, assets);
+    assert.equal(heroImage.src, src);
+    assert.equal(heroImage.alt, alt);
   }
+
+  updateMioMascotForTab("unknown", heroImage, assets);
+  assert.equal(heroImage.src, assets.happy);
+  assert.equal(heroImage.alt, "Mio mascot for Stream view");
+  assert.doesNotThrow(() => updateMioMascotForTab("main", null, assets));
 });

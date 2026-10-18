@@ -9,7 +9,7 @@ from pathlib import Path
 workspace_root = Path(__file__).resolve().parents[2]
 
 
-def _new_management_client(monkeypatch, tmp_path, management_token="test-token", path_type=None):
+def _new_management_client(monkeypatch, tmp_path, management_token="test-token", readme_path=None):
     """Create a fresh management-mode Flask test client."""
     monkeypatch.setenv(
         "MIO_APPLICATION_SETTINGS_PATH",
@@ -26,10 +26,8 @@ def _new_management_client(monkeypatch, tmp_path, management_token="test-token",
         sys.modules.pop("pi_camera_in_docker.main", None)
         sys.modules.pop("pi_camera_in_docker.management_api", None)
         main = importlib.import_module("pi_camera_in_docker.main")
-        if path_type is not None:
-            # Create a fake non-existent path
-            fake_path = path_type(__file__).parent / "README_DOES_NOT_EXIST_FOR_TEST.md"
-            monkeypatch.setattr(main, "_readme_path", fake_path)
+        if readme_path is not None:
+            monkeypatch.setattr(main, "_readme_path", readme_path)
         return main.create_management_app(main._load_config()).test_client()
     finally:
         sys.path = original_sys_path
@@ -38,8 +36,8 @@ def _new_management_client(monkeypatch, tmp_path, management_token="test-token",
 class TestReadmeHelpEndpointIntegration:
     """Integration coverage for GET /api/help/readme."""
 
-    def test_help_readme_returns_local_content_when_available(self, monkeypatch, tmp_path):
-        """Endpoint returns local README content when file exists."""
+    def test_help_readme_returns_local_content_without_auth(self, monkeypatch, tmp_path):
+        """Endpoint publicly returns local README content when the file is available."""
         client = _new_management_client(monkeypatch, tmp_path)
 
         response = client.get("/api/help/readme")
@@ -53,18 +51,8 @@ class TestReadmeHelpEndpointIntegration:
 
     def test_help_readme_returns_remote_content_when_local_missing(self, monkeypatch, tmp_path):
         """Endpoint returns remote README content when local file is unavailable."""
-
-        class MissingReadmePath(Path):
-            """Path subclass that forces README.md to resolve to a non-existent location."""
-
-            _flavour = type(Path())._flavour
-
-            def __new__(cls, *args, **kwargs):
-                if args and args[-1] == "README.md":
-                    args = (*args[:-1], "README_DOES_NOT_EXIST_FOR_TEST.md")
-                return super().__new__(cls, *args, **kwargs)
-
-        client = _new_management_client(monkeypatch, tmp_path, path_type=MissingReadmePath)
+        missing_readme = tmp_path / "README_DOES_NOT_EXIST_FOR_TEST.md"
+        client = _new_management_client(monkeypatch, tmp_path, readme_path=missing_readme)
         from pi_camera_in_docker import main
 
         class _MockHeaders:
@@ -107,18 +95,8 @@ class TestReadmeHelpEndpointIntegration:
         self, monkeypatch, tmp_path
     ):
         """Endpoint returns degraded payload when local and remote README sources are unavailable."""
-
-        class MissingReadmePath(Path):
-            """Path subclass that forces README.md to resolve to a non-existent location."""
-
-            _flavour = type(Path())._flavour
-
-            def __new__(cls, *args, **kwargs):
-                if args and args[-1] == "README.md":
-                    args = (*args[:-1], "README_DOES_NOT_EXIST_FOR_TEST.md")
-                return super().__new__(cls, *args, **kwargs)
-
-        client = _new_management_client(monkeypatch, tmp_path, path_type=MissingReadmePath)
+        missing_readme = tmp_path / "README_DOES_NOT_EXIST_FOR_TEST.md"
+        client = _new_management_client(monkeypatch, tmp_path, readme_path=missing_readme)
         from pi_camera_in_docker import main
 
         def _raise_url_error(*_args, **_kwargs):
