@@ -5,14 +5,14 @@
 #   docker compose up -d
 #
 # With Hardened Security (explicit device mappings):
-#   docker compose -f docker-compose.yml -f docker-compose.hardened.yml up -d
+#   docker compose -f docker-compose.yaml -f docker-compose.hardened.yaml up -d
 #
 # With Mock Camera (for testing without hardware):
-#   docker compose -f docker-compose.yml -f docker-compose.mock.yml up -d
+#   docker compose -f docker-compose.yaml -f docker-compose.mock.yaml up -d
 #
 # Requirements:
 #   - Copy .env.example to .env and customize
-#   - (Optional) Run ../detect-devices.sh to generate docker-compose.override.yml
+#   - (Optional) Run ../../scripts/detect-devices.sh <deployment-directory> on the Pi
 
 services:
   motion-in-ocean:
@@ -20,7 +20,7 @@ services:
     # Default: GitHub Container Registry. Docker Hub alternative:
     # image: cyanautomation/motioninocean:${MIO_IMAGE_TAG:-latest}
     image: ghcr.io/cyanautomation/motioninocean:${MIO_IMAGE_TAG:-latest}
-    platform: linux/arm64
+    platform: "${MIO_COMPOSE_PLATFORM:-linux/arm64}"
     restart: unless-stopped
     env_file: ./.env
     user: "10001:10001"

@@ -2,23 +2,21 @@
 
 ## Overview
 
-Motion In Ocean supports **runtime configuration management** through the web UI 🎛️, allowing you to modify many settings without restarting containers or editing environment files.
+Motion In Ocean supports **runtime configuration management** through the web UI 🎛️, allowing you to modify many settings without restarting containers or editing environment files. See the [runtime environment variable reference](../docs/ENVIRONMENT_VARIABLES_DOCUMENTATION_COMPLETE.md) for the exact environment names the application supports.
 
 ## Canonical App Vars vs Docker/Compose Keys
 
 - **Canonical app env vars:** `MIO_*` names for application behavior.
 - **Docker/Compose keys:** `image`, `ports`, `environment`, `volumes`, `networks`, and related compose schema keys are not env vars.
 
-### Legacy aliases still accepted temporarily
+### Deprecated compatibility variables still accepted
 
-| Canonical `MIO_*` var       | Legacy alias                               |
-| --------------------------- | ------------------------------------------ |
-| `MIO_APP_MODE`              | `APP_MODE`, `MOTION_IN_OCEAN_MODE`         |
-| `MIO_PORT`                  | `MOTION_IN_OCEAN_PORT`                     |
-| `MIO_BIND_HOST`             | `MOTION_IN_OCEAN_BIND_HOST`                |
-| `MIO_RESOLUTION`            | `RESOLUTION`, `MOTION_IN_OCEAN_RESOLUTION` |
-| `MIO_MANAGEMENT_AUTH_TOKEN` | `MANAGEMENT_AUTH_TOKEN`                    |
-| `MIO_DISCOVERY_TOKEN`       | `DISCOVERY_TOKEN`                          |
+| Deprecated variable                  | Preferred variable          |
+| ------------------------------------ | --------------------------- |
+| `MIO_PI3_PROFILE`                    | `MIO_PERFORMANCE_PROFILE`   |
+| `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS`  | `MIO_ALLOW_PRIVATE_IPS`     |
+
+Other historical names such as `APP_MODE` and `RESOLUTION` are not read by the current runtime.
 
 ## How It Works
 
