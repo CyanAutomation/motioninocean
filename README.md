@@ -187,7 +187,7 @@ The spec lives at [docs/openapi.json](docs/openapi.json) and is served directly 
 
 ## Environment Variables
 
-Use canonical `MIO_*` application variables such as `MIO_APP_MODE`, `MIO_PORT`, and `MIO_BIND_HOST`. Older names such as `APP_MODE` and `RESOLUTION` are not read by the current runtime. The deprecated compatibility settings `MIO_PI3_PROFILE` and `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` are still supported; prefer `MIO_PERFORMANCE_PROFILE` and `MIO_ALLOW_PRIVATE_IPS` respectively.
+Use canonical `MIO_*` application variables such as `MIO_APP_MODE`, `MIO_PORT`, and `MIO_BIND_HOST`. Older names such as `APP_MODE`, `RESOLUTION`, `MANAGEMENT_AUTH_TOKEN`, and `DISCOVERY_TOKEN` are not read by the current runtime. The deprecated compatibility settings `MIO_PI3_PROFILE` and `MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS` are still supported; prefer `MIO_PERFORMANCE_PROFILE` and `MIO_ALLOW_PRIVATE_IPS` respectively.
 
 See the [runtime environment variable reference](docs/ENVIRONMENT_VARIABLES_DOCUMENTATION_COMPLETE.md) for supported variables and the [deployment guide](docs/guides/DEPLOYMENT.md) for migration details.
 
