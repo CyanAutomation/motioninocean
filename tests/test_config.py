@@ -64,12 +64,7 @@ def test_compose_platform_can_be_overridden_for_native_architecture(workspace_ro
     )
 
     for deployment_directory in deployment_directories:
-        compose_file = (
-            workspace_root
-            / "containers"
-            / deployment_directory
-            / "docker-compose.yaml"
-        )
+        compose_file = workspace_root / "containers" / deployment_directory / "docker-compose.yaml"
         config = yaml.safe_load(compose_file.read_text())
         service = config["services"]["motion-in-ocean"]
 
@@ -79,10 +74,7 @@ def test_compose_platform_can_be_overridden_for_native_architecture(workspace_ro
 def test_mock_overlay_enables_runtime_flag(workspace_root):
     """The hardware-free overlay should enable mock frames and remove device access."""
     overlay_file = (
-        workspace_root
-        / "containers"
-        / "motion-in-ocean-webcam"
-        / "docker-compose.mock.yaml"
+        workspace_root / "containers" / "motion-in-ocean-webcam" / "docker-compose.mock.yaml"
     )
     overlay = yaml.safe_load(overlay_file.read_text())
     service = overlay["services"]["motion-in-ocean"]
