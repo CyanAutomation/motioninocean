@@ -8,6 +8,9 @@ This guide describes the release procedure and its GitHub Actions automation. Us
 - Use a clean working tree.
 - Confirm the `## [Unreleased]` section in `docs/CHANGELOG.md` is ready to publish.
 - Have push access to the repository.
+- Confirm the `container-release` environment and its required reviewers and
+  Docker Hub environment secrets are configured (see
+  [branch protection guidance](../../.github/BRANCH_PROTECTION.md#container-release-environment)).
 - Install and authenticate the GitHub CLI if you want `create-release.sh` to monitor publication.
 
 ## Create a release
@@ -16,7 +19,7 @@ This guide describes the release procedure and its GitHub Actions automation. Us
 2. Run `./create-release.sh` from the repository root.
 3. Enter the next `MAJOR.MINOR.PATCH` version and review the summary.
 4. Confirm the operation. The script updates `VERSION` and `docs/CHANGELOG.md`, creates a release commit and annotated `vX.Y.Z` tag, and pushes `main` and the tag.
-5. The `Build and publish Docker image` workflow verifies the tag, runs CI and Bandit, scans the image, pushes multi-architecture images, attaches signed provenance in both registries, and creates the GitHub Release.
+5. The `Build and publish Docker image` workflow verifies the tag and runs CI and Bandit, builds a GHCR candidate, scans both platform images and smoke-tests ARM64, then waits for approval in `container-release` before promoting production tags and attaching signed provenance. It creates or updates the GitHub Release only after publishing succeeds.
 6. Confirm the workflow succeeded, review release notes, and pull the published GHCR image.
 
 The workflow creates the mutable `latest` container image tag. The release script does not create or force-update a Git tag named `latest`.
@@ -33,7 +36,7 @@ The release script does not automatically delete tags, reset commits, or force-p
   git push origin vX.Y.Z
   ```
 
-- If the workflow fails, inspect its logs and either rerun the failed workflow after fixing a transient issue or prepare a new patch release with a corrective change.
+- If the workflow fails, inspect its logs and either rerun the failed workflow after fixing a transient issue or prepare a new patch release with a corrective change. Release creation is safe to rerun: an existing release is updated with the verified notes.
 - If the GitHub CLI is missing or unauthenticated, check the Actions page and release page manually.
 
 Treat published version tags as immutable. Coordinate any exceptional release withdrawal with maintainers rather than rewriting branch or tag history.

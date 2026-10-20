@@ -32,6 +32,7 @@ Navigate to: **Settings → Branches → Add branch protection rule**
   - `Type Check`
   - `Security Scan`
   - `Trivy Security Scan`
+  - `ARM64 Image Smoke Test`
 
 ✅ **Require conversation resolution before merging**
 
@@ -116,9 +117,30 @@ ordinary CI must remain read-only.
 
 ### Tag Protection
 
-Protect the `v*.*.*` tag pattern with a ruleset that limits tag creation to
-release maintainers. The Docker publish workflow verifies and publishes every
-matching tag, so tags must receive the same review discipline as `main`.
+Create an active ruleset for the `v*.*.*` tag pattern that limits tag creation
+to release maintainers. The Docker publish workflow verifies every matching
+version tag and uses it as the release source, so tags need the same review
+discipline as `main`.
+
+### Container Release Environment
+
+Create the GitHub Actions environment named `container-release` and configure:
+
+- Required reviewers from the release maintainer team. Enable prevention of
+  self-review where the repository plan supports it.
+- Deployment branch/tag rules that allow `main` for scheduled/manual refreshes
+  and `v*.*.*` for version releases.
+- Environment secrets `RELEASE_DOCKERHUB_USERNAME` and
+  `RELEASE_DOCKERHUB_TOKEN`.
+
+Keep those Docker Hub credentials out of repository-level secrets. The workflow
+builds and scans a GHCR candidate first; this environment approval occurs before
+it updates production tags in either registry or publishes provenance. The
+GitHub Release job runs only after that approved publishing job succeeds.
+
+Workflow YAML references this environment and these secret names, but GitHub
+enforces reviewers, deployment rules, and secret scope only after they are set
+in repository settings.
 
 ---
 
@@ -150,6 +172,7 @@ Navigate to: **Settings → Rules → Rulesets → New ruleset**
      - `Type Check`
      - `Security Scan`
      - `Trivy Security Scan`
+     - `ARM64 Image Smoke Test`
 
 3. **Block force pushes**
 

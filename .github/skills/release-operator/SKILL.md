@@ -2,7 +2,7 @@
 name: release-operator
 description: Prepare a motion-in-ocean semantic-version release from main and verify its publication. Use when updating VERSION, release notes, or a version tag.
 owner: motion-in-ocean team
-last-reviewed: 2026-09-25
+last-reviewed: 2026-10-20
 category: CI/CD
 compatible-repo-areas:
   - create-release.sh
@@ -34,7 +34,7 @@ Prepare the release metadata, push an immutable version tag, and verify the publ
 2. Check `git status` and confirm the intended release commit is based on `main`.
 3. Run `./create-release.sh`, enter the semantic version, review its summary, and confirm only when the `VERSION`, changelog, commit, and tag operations are intended.
 4. The script pushes the release commit to `main` and the annotated `vX.Y.Z` tag. It does not rewrite refs on failure; inspect and recover from the printed state.
-5. Monitor `.github/workflows/docker-publish.yml` and verify the GitHub Release and container images.
+5. Monitor `.github/workflows/docker-publish.yml`; approve the `container-release` deployment when the verified candidate is ready, then verify the GitHub Release and container images.
 6. If publication fails, keep the version commit/tag for diagnosis. Fix and rerun a transient workflow failure or publish a corrective patch release.
 
 ## Validation checklist

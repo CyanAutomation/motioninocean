@@ -223,6 +223,115 @@ def test_docker_publish_serializes_mutable_tag_updates(workspace_root):
     assert concurrency["queue"] == "max"
 
 
+def test_docker_release_scans_candidate_digest_before_promoting_tags(workspace_root):
+    """Only a scanned and smoke-tested candidate may receive production image tags."""
+    workflow = load_workflow(workspace_root, "docker-publish.yml")
+    build = workflow["jobs"]["build"]
+    scan = workflow["jobs"]["scan"]
+    arm64 = workflow["jobs"]["arm64-smoke"]
+    publish = workflow["jobs"]["publish"]
+
+    assert build["outputs"]["image_ref"] == "${{ steps.candidate-ref.outputs.image_ref }}"
+    build_push = next(step for step in build["steps"] if step.get("id") == "build_candidate")
+    assert build_push["with"]["tags"] == "${{ steps.meta.outputs.tags }}"
+    candidate_meta = next(
+        step for step in build["steps"] if step.get("name") == "Extract candidate image metadata"
+    )
+    assert "type=raw,value=release-candidate" in candidate_meta["with"]["tags"]
+    assert "cyanautomation/motioninocean" not in build_push["with"]["tags"]
+
+    assert scan["needs"] == "build"
+    scan_steps = scan["steps"]
+    for platform in ("amd64", "arm64"):
+        pull = next(
+            step for step in scan_steps if step.get("name") == f"Pull {platform} candidate image"
+        )
+        scan_step = next(
+            step
+            for step in scan_steps
+            if step.get("name") == f"Enforce HIGH and CRITICAL vulnerabilities on {platform}"
+        )
+        assert pull["env"]["IMAGE_REF"] == "${{ needs.build.outputs.image_ref }}"
+        assert scan_step["with"]["image-ref"] == f"motion-in-ocean:scan-{platform}"
+        assert scan_step["with"]["severity"] == "HIGH,CRITICAL"
+        assert scan_step["with"]["exit-code"] == "1"
+
+    assert arm64["needs"] == "build"
+    smoke = next(step for step in arm64["steps"] if "docker run --rm" in step.get("run", ""))
+    assert smoke["env"]["IMAGE_REF"] == "${{ needs.build.outputs.image_ref }}"
+    assert publish["needs"] == ["build", "scan", "arm64-smoke"]
+    assert publish["environment"]["name"] == "container-release"
+    promote = next(
+        step for step in publish["steps"] if step.get("name") == "Promote verified image tags"
+    )
+    assert "docker buildx imagetools create" in promote["run"]
+    assert "${{ needs.build.outputs.image_ref }}" in promote["env"]["IMAGE_REF"]
+
+
+def test_docker_release_uses_environment_scoped_credentials_and_is_rerunnable(workspace_root):
+    """Protect publishing credentials and allow safe recovery after partial releases."""
+    workflow = load_workflow(workspace_root, "docker-publish.yml")
+    assert workflow["permissions"] == {}
+    assert workflow["jobs"]["build"]["permissions"] == {
+        "contents": "read",
+        "packages": "write",
+    }
+    assert workflow["jobs"]["release"]["permissions"] == {"contents": "write"}
+    publish = workflow["jobs"]["publish"]
+    assert "contents" not in publish["permissions"] or publish["permissions"]["contents"] == "read"
+    assert publish["outputs"]["dockerhub_digest"] == (
+        "${{ steps.published-images.outputs.dockerhub_digest }}"
+    )
+    hub_login = next(
+        step for step in publish["steps"] if step.get("name") == "Log in to Docker Hub"
+    )
+    assert hub_login["with"]["username"] == "${{ secrets.RELEASE_DOCKERHUB_USERNAME }}"
+    assert hub_login["with"]["password"] == "${{ secrets.RELEASE_DOCKERHUB_TOKEN }}"
+
+    release_step = next(
+        step
+        for step in workflow["jobs"]["release"]["steps"]
+        if step.get("name") == "Create or update GitHub Release"
+    )
+    assert "gh release view" in release_step["run"]
+    assert "gh release edit" in release_step["run"]
+    assert "gh release create" in release_step["run"]
+
+    for job_name in ("verify", "build", "publish"):
+        condition = workflow["jobs"][job_name]["if"]
+        assert (
+            "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'"
+            in condition
+        )
+        assert "github.event_name == 'push' && github.ref_type == 'tag'" in condition
+
+
+def test_release_settings_document_environment_approval_and_required_arm64_check(workspace_root):
+    """Document the GitHub-side controls that YAML cannot configure itself."""
+    guidance = (workspace_root / ".github" / "BRANCH_PROTECTION.md").read_text()
+
+    assert "ARM64 Image Smoke Test" in guidance
+    assert "container-release" in guidance
+    assert "RELEASE_DOCKERHUB_USERNAME" in guidance
+    assert "RELEASE_DOCKERHUB_TOKEN" in guidance
+    assert "required reviewers" in guidance.lower()
+    ruleset_example = guidance.split("## Ruleset Example", maxsplit=1)[1]
+    status_checks = ruleset_example.split("3. **Block force pushes**", maxsplit=1)[0]
+    assert "`ARM64 Image Smoke Test`" in status_checks
+
+
+def test_release_changelog_is_written_without_echo_option_interpretation(workspace_root):
+    """Treat changelog text literally when writing release notes input."""
+    workflow = load_workflow(workspace_root, "docker-publish.yml")
+    changelog_step = next(
+        step
+        for step in workflow["jobs"]["release"]["steps"]
+        if step.get("name") == "Extract changelog for release"
+    )
+
+    assert "printf '%s\\n' \"$CHANGELOG_CONTENT\" > /tmp/changelog.txt" in changelog_step["run"]
+
+
 def test_security_enforcement_precedes_best_effort_reporting(workspace_root):
     """Reporting failures must not prevent the blocking Trivy scan from running."""
     workflow = load_workflow(workspace_root, "security-scan.yml")
@@ -327,31 +436,31 @@ def test_kaseki_dry_scopes_token_and_pins_controller_host(workspace_root):
 
 
 def test_docker_publish_attests_both_registry_images(workspace_root):
-    """Publish signed provenance for the shared image digest in both registries."""
+    """Publish signed provenance for the verified image digests in both registries."""
     workflow = load_workflow(workspace_root, "docker-publish.yml")
-    build = workflow["jobs"]["build"]
-    assert build["permissions"]["attestations"] == "write"
-    assert build["permissions"]["id-token"] == "write"
-    assert build["permissions"]["artifact-metadata"] == "write"
+    publish = workflow["jobs"]["publish"]
+    assert publish["permissions"]["attestations"] == "write"
+    assert publish["permissions"]["id-token"] == "write"
+    assert publish["permissions"]["artifact-metadata"] == "write"
 
     attest_steps = [
-        step for step in build["steps"] if step.get("uses", "").startswith("actions/attest@")
+        step for step in publish["steps"] if step.get("uses", "").startswith("actions/attest@")
     ]
     assert len(attest_steps) == 2
     verify_index = next(
         index
-        for index, step in enumerate(build["steps"])
-        if step.get("name") == "Verify published multi-architecture manifest"
+        for index, step in enumerate(publish["steps"])
+        if step.get("name") == "Verify promoted multi-architecture manifests"
     )
-    attest_indices = [build["steps"].index(step) for step in attest_steps]
+    attest_indices = [publish["steps"].index(step) for step in attest_steps]
     assert verify_index < min(attest_indices)
     assert all(re.fullmatch(r"actions/attest@[0-9a-f]{40}", step["uses"]) for step in attest_steps)
     assert {step["with"]["subject-name"] for step in attest_steps} == {
         "ghcr.io/cyanautomation/motioninocean",
         "index.docker.io/cyanautomation/motioninocean",
     }
-    assert all(
-        step["with"]["subject-digest"] == "${{ steps.build_bookworm.outputs.digest }}"
-        and step["with"]["push-to-registry"] is True
-        for step in attest_steps
-    )
+    assert {step["with"]["subject-digest"] for step in attest_steps} == {
+        "${{ steps.published-images.outputs.ghcr_digest }}",
+        "${{ steps.published-images.outputs.dockerhub_digest }}",
+    }
+    assert all(step["with"]["push-to-registry"] is True for step in attest_steps)
