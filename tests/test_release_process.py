@@ -82,19 +82,21 @@ def test_release_changelog_extractor_uses_fallback_when_file_is_missing(tmp_path
 
 
 def test_manifest_verification_uses_lowercase_repository_and_build_digest() -> None:
-    """Manifest verification targets the exact build digest at a lowercase GHCR path."""
-    workflow = (REPO_ROOT / ".github/workflows/docker-publish.yml").read_text(encoding="utf-8")
-    section = workflow.split("- name: Verify published multi-architecture manifest", 1)[1]
-    section = section.split("\n  release:", 1)[0]
+    """Candidate manifest verification targets the exact lowercase GHCR digest."""
+    workflow = yaml.safe_load(
+        (REPO_ROOT / ".github/workflows/docker-publish.yml").read_text(encoding="utf-8")
+    )
+    build = workflow["jobs"]["build"]
+    verify_manifest = next(
+        step
+        for step in build["steps"]
+        if step.get("name") == "Verify candidate multi-architecture manifest"
+    )
 
-    lowercase_assignment = 'REPO_LOWER="${GITHUB_REPOSITORY,,}"'
-    inspect_command = 'docker buildx imagetools inspect --raw "ghcr.io/${REPO_LOWER}@$IMAGE_DIGEST"'
-    assert lowercase_assignment in section
-    assert "IMAGE_DIGEST: ${{ steps.build_bookworm.outputs.digest }}" in section
-    assert inspect_command in section
-    assert section.index(lowercase_assignment) < section.index(inspect_command)
-    assert "linux/amd64" in section
-    assert "linux/arm64" in section
+    assert verify_manifest["env"]["IMAGE_REF"] == "${{ steps.candidate-ref.outputs.image_ref }}"
+    assert 'docker buildx imagetools inspect --raw "$IMAGE_REF"' in verify_manifest["run"]
+    assert "linux/amd64" in verify_manifest["run"]
+    assert "linux/arm64" in verify_manifest["run"]
 
 
 def test_release_push_failure_preserves_local_commit_and_version_tags(tmp_path: Path) -> None:
@@ -219,7 +221,7 @@ def test_release_guide_verification_commands_match_attested_images() -> None:
     workflow = yaml.safe_load(
         (REPO_ROOT / ".github/workflows/docker-publish.yml").read_text(encoding="utf-8")
     )
-    build_steps = workflow["jobs"]["build"]["steps"]
+    build_steps = workflow["jobs"]["publish"]["steps"]
     attested_images = {
         step["with"]["subject-name"]
         for step in build_steps

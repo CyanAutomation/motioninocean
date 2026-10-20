@@ -1,12 +1,10 @@
 name: Build and publish Docker image
 
 on:
-  # Manual trigger
   workflow_dispatch: {}
   # Rebuild the mutable production tag with current Debian security updates.
   schedule:
     - cron: "30 1 2 * *"
-  # Trigger on pushed tags
   push:
     tags:
       - "v*.*.*"
@@ -16,72 +14,68 @@ concurrency:
   group: docker-release-publish
   queue: max
 
+permissions: {}
+
 jobs:
   verify:
     name: Verify release candidate
     if: >-
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.ref_type == 'tag' && startsWith(github.ref_name, 'v'))
+      (github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v'))
     runs-on: ubuntu-latest
     timeout-minutes: 35
     permissions:
       contents: read
     steps:
-      - name: Checkout release tag
+      - name: Checkout release source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+
       - name: Validate release tag
         if: github.ref_type == 'tag'
         run: |
           [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid release tag: $GITHUB_REF_NAME" >&2; exit 1; }
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.11"
           cache: pip
+
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: "22"
           cache: npm
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
           npm ci
+
       - name: Run release verification
         run: |
           make ci
           make security
-      - name: Build release image for vulnerability enforcement
-        run: docker build --pull -t motion-in-ocean:release-scan .
-      - name: Enforce HIGH and CRITICAL image vulnerability policy
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: motion-in-ocean:release-scan
-          severity: HIGH,CRITICAL
-          vuln-type: os,library
-          ignore-unfixed: true
-          exit-code: "1"
 
   build:
+    name: Build release candidate
     needs: verify
     if: >-
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.ref_type == 'tag' && startsWith(github.ref_name, 'v'))
+      (github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v'))
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
       contents: read
       packages: write
-      attestations: write
-      id-token: write
-      artifact-metadata: write
     outputs:
-      image_digest: ${{ steps.build_bookworm.outputs.digest }}
+      image_digest: ${{ steps.build_candidate.outputs.digest }}
+      image_ref: ${{ steps.candidate-ref.outputs.image_ref }}
 
     steps:
       - name: Checkout
@@ -95,34 +89,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
-      - name: Log in to GHCR
+      - name: Log in to GHCR for candidate upload
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
-        with:
-          registry: docker.io
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Extract metadata
+      - name: Extract candidate image metadata
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
-          images: |
-            ghcr.io/${{ github.repository }}
-            cyanautomation/motioninocean
-          tags: |
-            type=raw,value=latest
-            type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+          images: ghcr.io/${{ github.repository }}
+          tags: type=raw,value=release-candidate
 
-      - name: Build and push (Debian bookworm) - PRIMARY
+      - name: Build and push multi-architecture release candidate
+        id: build_candidate
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
@@ -139,33 +121,252 @@ jobs:
           pull: true
           provenance: mode=max
           sbom: true
-        id: build_bookworm
 
-      - name: Verify published multi-architecture manifest
+      - name: Export immutable candidate reference
+        id: candidate-ref
         env:
-          IMAGE_DIGEST: ${{ steps.build_bookworm.outputs.digest }}
+          IMAGE_DIGEST: ${{ steps.build_candidate.outputs.digest }}
         run: |
+          set -euo pipefail
           REPO_LOWER="${GITHUB_REPOSITORY,,}"
-          docker buildx imagetools inspect --raw "ghcr.io/${REPO_LOWER}@$IMAGE_DIGEST" > manifest.json
+          echo "image_ref=ghcr.io/${REPO_LOWER}@${IMAGE_DIGEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify candidate multi-architecture manifest
+        env:
+          IMAGE_REF: ${{ steps.candidate-ref.outputs.image_ref }}
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect --raw "$IMAGE_REF" > manifest.json
           jq -e '[.manifests[].platform | "\(.os)/\(.architecture)"] | index("linux/amd64") and index("linux/arm64")' manifest.json
+
+  scan:
+    name: Scan exact release candidate
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Log in to GHCR to scan candidate
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull amd64 candidate image
+        env:
+          IMAGE_REF: ${{ needs.build.outputs.image_ref }}
+        run: |
+          set -euo pipefail
+          docker pull --platform linux/amd64 "$IMAGE_REF"
+          docker tag "$IMAGE_REF" motion-in-ocean:scan-amd64
+
+      - name: Enforce HIGH and CRITICAL vulnerabilities on amd64
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: motion-in-ocean:scan-amd64
+          format: table
+          severity: HIGH,CRITICAL
+          vuln-type: os,library
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Pull arm64 candidate image
+        env:
+          IMAGE_REF: ${{ needs.build.outputs.image_ref }}
+        run: |
+          set -euo pipefail
+          docker pull --platform linux/arm64 "$IMAGE_REF"
+          docker tag "$IMAGE_REF" motion-in-ocean:scan-arm64
+
+      - name: Enforce HIGH and CRITICAL vulnerabilities on arm64
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: motion-in-ocean:scan-arm64
+          format: table
+          severity: HIGH,CRITICAL
+          vuln-type: os,library
+          ignore-unfixed: true
+          exit-code: "1"
+
+  arm64-smoke:
+    name: ARM64 release candidate smoke test
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Log in to GHCR to run candidate
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run ARM64 application import smoke test
+        env:
+          IMAGE_REF: ${{ needs.build.outputs.image_ref }}
+        run: |
+          set -euo pipefail
+          docker pull --platform linux/arm64 "$IMAGE_REF"
+          docker run --rm --platform linux/arm64 --entrypoint python3 "$IMAGE_REF" -c 'import platform; import pi_camera_in_docker; machine = platform.machine(); assert machine in ("aarch64", "arm64"), machine; print(machine)'
+
+  publish:
+    name: Promote verified images
+    needs: [build, scan, arm64-smoke]
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: container-release
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+      artifact-metadata: write
+    outputs:
+      ghcr_digest: ${{ steps.published-images.outputs.ghcr_digest }}
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: docker.io
+          username: ${{ secrets.RELEASE_DOCKERHUB_USERNAME }}
+          password: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
+
+      - name: Extract production image tags
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+            cyanautomation/motioninocean
+          tags: |
+            type=raw,value=latest
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Promote verified image tags
+        env:
+          IMAGE_REF: ${{ needs.build.outputs.image_ref }}
+          DOCKER_METADATA_TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+          while IFS= read -r tag; do
+            [[ -n "$tag" ]] || continue
+            docker buildx imagetools create --tag "$tag" "$IMAGE_REF"
+          done <<< "$DOCKER_METADATA_TAGS"
+
+      - name: Verify promoted multi-architecture manifests
+        id: published-images
+        env:
+          IMAGE_REF: ${{ needs.build.outputs.image_ref }}
+          DOCKER_METADATA_TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+
+          candidate_platforms="$(docker buildx imagetools inspect --raw "$IMAGE_REF" | jq -c '[.manifests[] | select(.platform.os == "linux" and (.platform.architecture == "amd64" or .platform.architecture == "arm64")) | {os: .platform.os, architecture: .platform.architecture, digest: .digest}] | sort_by(.architecture)')"
+          expected_platforms='[{"os":"linux","architecture":"amd64"},{"os":"linux","architecture":"arm64"}]'
+          actual_platforms="$(jq -c '[.[] | {os, architecture}]' <<< "$candidate_platforms")"
+          [[ "$actual_platforms" == "$expected_platforms" ]] || {
+            echo "::error title=Invalid candidate manifest::Candidate is missing an expected platform."
+            exit 1
+          }
+
+          ghcr_digest=""
+          dockerhub_digest=""
+          manifest_file="$(mktemp)"
+          trap 'rm -f "$manifest_file"' EXIT
+
+          while IFS= read -r tag; do
+            [[ -n "$tag" ]] || continue
+            docker buildx imagetools inspect --raw "$tag" > "$manifest_file"
+            published_platforms="$(jq -c '[.manifests[] | select(.platform.os == "linux" and (.platform.architecture == "amd64" or .platform.architecture == "arm64")) | {os: .platform.os, architecture: .platform.architecture, digest: .digest}] | sort_by(.architecture)' "$manifest_file")"
+            [[ "$published_platforms" == "$candidate_platforms" ]] || {
+              echo "::error title=Published image differs from scanned candidate::Platform image digests do not match for $tag"
+              exit 1
+            }
+
+            digest="$(docker buildx imagetools inspect "$tag" | awk '$1 == "Digest:" { print $2; exit }')"
+            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+              echo "::error title=Published image digest missing::Could not read the digest for $tag"
+              exit 1
+            }
+
+            case "$tag" in
+              ghcr.io/*)
+                [[ -z "$ghcr_digest" || "$ghcr_digest" == "$digest" ]] || {
+                  echo "::error title=GHCR tags differ::Production tags point to different manifests."
+                  exit 1
+                }
+                ghcr_digest="$digest"
+                ;;
+              cyanautomation/*)
+                [[ -z "$dockerhub_digest" || "$dockerhub_digest" == "$digest" ]] || {
+                  echo "::error title=Docker Hub tags differ::Production tags point to different manifests."
+                  exit 1
+                }
+                dockerhub_digest="$digest"
+                ;;
+              *)
+                echo "::error title=Unexpected production image::Unrecognized image tag $tag"
+                exit 1
+                ;;
+            esac
+          done <<< "$DOCKER_METADATA_TAGS"
+
+          [[ -n "$ghcr_digest" && -n "$dockerhub_digest" ]] || {
+            echo "::error title=Production image tags missing::Expected tags for GHCR and Docker Hub."
+            exit 1
+          }
+
+          echo "ghcr_digest=$ghcr_digest" >> "$GITHUB_OUTPUT"
+          echo "dockerhub_digest=$dockerhub_digest" >> "$GITHUB_OUTPUT"
 
       - name: Attest GHCR image provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-name: ghcr.io/cyanautomation/motioninocean
-          subject-digest: ${{ steps.build_bookworm.outputs.digest }}
+          subject-digest: ${{ steps.published-images.outputs.ghcr_digest }}
           push-to-registry: true
 
       - name: Attest Docker Hub image provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-name: index.docker.io/cyanautomation/motioninocean
-          subject-digest: ${{ steps.build_bookworm.outputs.digest }}
+          subject-digest: ${{ steps.published-images.outputs.dockerhub_digest }}
           push-to-registry: true
 
   release:
-    needs: build
-    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    name: Create GitHub Release
+    needs: publish
+    if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -178,17 +379,13 @@ jobs:
 
       - name: Extract changelog for release
         id: changelog
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
-          set -e
+          set -euo pipefail
           TAG_NAME=${GITHUB_REF#refs/tags/}
           VERSION=${TAG_NAME#v}
 
           [[ "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Expected vMAJOR.MINOR.PATCH; got $TAG_NAME" >&2; exit 1; }
 
-          echo "Extracting changelog for version: ${VERSION}"
-
-          # Extract the section for this version from the repository changelog.
           CHANGELOG_CONTENT=$(bash scripts/extract_release_changelog.sh "$VERSION" docs/CHANGELOG.md)
           if [[ "$CHANGELOG_CONTENT" == "Release ${VERSION} - See commit history for details." ]]; then
             echo "Using release-note fallback for ${VERSION}"
@@ -196,29 +393,22 @@ jobs:
             echo "Found changelog section for ${VERSION}"
           fi
 
-          # Write to file to preserve multiline content
           echo "$CHANGELOG_CONTENT" > /tmp/changelog.txt
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
-
-          # Debug output
           echo "Changelog content length: $(wc -c < /tmp/changelog.txt) bytes"
 
       - name: Build release notes
-        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAG_NAME: ${{ steps.changelog.outputs.tag_name }}
+          VERSION: ${{ steps.changelog.outputs.version }}
+          IMAGE_DIGEST: ${{ needs.publish.outputs.ghcr_digest }}
         run: |
-          set -e
-
-          # Read changelog from file
+          set -euo pipefail
           CHANGELOG_BODY=$(cat /tmp/changelog.txt)
+          REPO_LOWER="${GITHUB_REPOSITORY,,}"
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
 
-          # Get variables
-          TAG_NAME="${{ steps.changelog.outputs.tag_name }}"
-          VERSION="${{ steps.changelog.outputs.version }}"
-          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          REPO_NAME=$(basename "${{ github.repository }}")
-
-          # Build release notes incrementally
           {
             echo "$CHANGELOG_BODY"
             echo ""
@@ -242,62 +432,48 @@ jobs:
             echo "docker pull cyanautomation/motioninocean:latest"
             echo '```'
             echo ""
-            echo "View on GitHub Container Registry: https://github.com/${{ github.repository }}/pkgs/container/${REPO_NAME}"
+            echo "View on GitHub Container Registry: https://github.com/${GITHUB_REPOSITORY}/pkgs/container/${REPO_NAME}"
             echo "View on Docker Hub: https://hub.docker.com/r/cyanautomation/motioninocean"
             echo ""
-            echo "Image digest: \`${{ needs.build.outputs.image_digest }}\`"
+            echo "Image digest: \`${IMAGE_DIGEST}\`"
           } > /tmp/release_notes.md
 
           echo "Release notes built successfully"
           echo "Release notes length: $(wc -c < /tmp/release_notes.md) bytes"
 
       - name: Validate release notes
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
-          set -e
-
-          # Check if release notes file exists and is not empty
-          if [ ! -f /tmp/release_notes.md ]; then
-            echo "Error: Release notes file not found"
-            exit 1
-          fi
-
+          set -euo pipefail
           if [ ! -s /tmp/release_notes.md ]; then
-            echo "Error: Release notes file is empty"
+            echo "Error: Release notes file not found or empty"
             exit 1
           fi
 
-          # Check minimum length (at least 10 characters)
           NOTES_LENGTH=$(wc -c < /tmp/release_notes.md)
           if [ "$NOTES_LENGTH" -lt 10 ]; then
             echo "Error: Release notes too short (${NOTES_LENGTH} bytes)"
             exit 1
           fi
 
-          echo "✓ Release notes validation passed"
-          echo "  Length: ${NOTES_LENGTH} bytes"
+          echo "Release notes validation passed (${NOTES_LENGTH} bytes)."
 
-          # Show preview (first 200 chars)
-          echo "  Preview:"
-          head -c 200 /tmp/release_notes.md
-          echo ""
-
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.changelog.outputs.tag_name }}
         run: |
-          set -e
-
-          TAG_NAME="${{ steps.changelog.outputs.tag_name }}"
-
-          echo "Creating GitHub Release for ${TAG_NAME}"
-
-          # Create release using gh CLI with notes from file
-          gh release create "${TAG_NAME}" \
-            --repo "${{ github.repository }}" \
-            --title "Release ${TAG_NAME}" \
-            --notes-file /tmp/release_notes.md
-
-          echo "✓ GitHub Release created successfully"
-          echo "  URL: https://github.com/${{ github.repository }}/releases/tag/${TAG_NAME}"
+          set -euo pipefail
+          if gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Release ${TAG_NAME}" \
+              --notes-file /tmp/release_notes.md
+            echo "Updated existing GitHub Release ${TAG_NAME}."
+          else
+            gh release create "$TAG_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Release ${TAG_NAME}" \
+              --verify-tag \
+              --notes-file /tmp/release_notes.md
+            echo "Created GitHub Release ${TAG_NAME}."
+          fi

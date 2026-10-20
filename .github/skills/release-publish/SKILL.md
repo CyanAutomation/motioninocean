@@ -2,7 +2,7 @@
 name: release-publish
 description: Verify the Docker image and GitHub Release created by the tag-triggered publish workflow. Use after pushing a valid vMAJOR.MINOR.PATCH tag or when diagnosing publication failures.
 owner: motion-in-ocean team
-last-reviewed: 2026-09-25
+last-reviewed: 2026-10-20
 category: CI/CD
 compatible-repo-areas:
   - .github/workflows/docker-publish.yml
@@ -29,24 +29,28 @@ Confirm that release verification, image publication, and GitHub Release creatio
 ## Step-by-step workflow
 
 1. Read the run for `.github/workflows/docker-publish.yml` and confirm the tag passed the `vMAJOR.MINOR.PATCH` check.
-2. Confirm the `verify` job passed `make ci`, `make security`, image build, and fixed HIGH/CRITICAL Trivy enforcement.
-3. Confirm the `build` job published the `linux/amd64` and `linux/arm64` image manifest.
-4. Confirm the `release` job extracted the matching section from `docs/CHANGELOG.md` and created a GitHub Release.
-5. Verify the GHCR image tags: `vX.Y.Z`, `X.Y.Z`, `X.Y`, and `latest`. The workflow also publishes matching tags to Docker Hub.
-6. Pull the exact version tag when local verification is needed:
+2. Confirm the `verify` job passed `make ci` and `make security`.
+3. Confirm the `build` job pushed a multi-architecture GHCR candidate and recorded its immutable digest.
+4. Confirm the `scan` job enforced fixed HIGH/CRITICAL Trivy policy on both candidate platforms, and `arm64-smoke` imported the app from that same digest.
+5. Confirm the `publish` job received approval in `container-release`, promoted the candidate platform digests to both registries, verified the tags, and attached provenance to each registry's digest.
+6. Confirm the `release` job extracted the matching section from `docs/CHANGELOG.md` and created or updated the GitHub Release.
+7. Verify the GHCR image tags: `vX.Y.Z`, `X.Y.Z`, `X.Y`, and `latest`. The workflow also publishes matching tags to Docker Hub.
+8. Pull the exact version tag when local verification is needed:
 
    ```bash
    docker pull ghcr.io/cyanautomation/motioninocean:X.Y.Z
    ```
 
-7. If a job fails, preserve the tag and inspect the failed step. Retry a transient run only after confirming that no source or policy fix is needed.
+9. If a job fails, preserve the tag and inspect the failed step. Retry a transient run only after confirming that no source or policy fix is needed.
 
 ## Validation checklist
 
 - [ ] Correct version tag triggered the workflow.
-- [ ] Verify and image-security jobs passed.
+- [ ] Verify, both-platform scans, and the exact-digest ARM64 smoke test passed.
+- [ ] The `container-release` environment approval completed.
 - [ ] Multi-architecture manifest contains amd64 and arm64.
 - [ ] GHCR and Docker Hub tags are present.
+- [ ] Promoted platform digests match the scanned candidate.
 - [ ] GitHub Release notes match the version section in `docs/CHANGELOG.md`.
 - [ ] Exact-version image pull succeeds when checked locally.
 
@@ -60,10 +64,10 @@ Confirm that release verification, image publication, and GitHub Release creatio
 ## Common failure modes and recovery actions
 
 - **Failure:** Workflow cannot find release notes. **Recovery:** Confirm the tagged commit contains a matching `## [X.Y.Z]` section in `docs/CHANGELOG.md`, then follow the maintainer-approved correction process.
-- **Failure:** Image build or push fails. **Recovery:** Inspect registry authentication, build logs, and architecture manifest checks.
+- **Failure:** Image build or push fails. **Recovery:** Inspect registry authentication, build logs, candidate platform digests, and the environment approval state.
 - **Failure:** Trivy blocks the image. **Recovery:** Review the report, update affected packages/base image, and publish a corrected version.
 - **Failure:** GH Release is missing after image publication. **Recovery:** Inspect the `release` job permissions and log; do not rewrite the version tag.
-- **Failure:** One architecture is absent. **Recovery:** Treat the release as incomplete and investigate the Buildx manifest verification step.
+- **Failure:** One architecture is absent or differs from the candidate. **Recovery:** Treat the release as incomplete and investigate the candidate or promotion manifest verification step.
 
 ## Related Skills
 
