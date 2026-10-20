@@ -172,6 +172,7 @@ Navigate to: **Settings → Rules → Rulesets → New ruleset**
      - `Type Check`
      - `Security Scan`
      - `Trivy Security Scan`
+     - `ARM64 Image Smoke Test`
 
 3. **Block force pushes**
 

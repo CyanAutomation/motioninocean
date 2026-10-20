@@ -279,6 +279,9 @@ def test_docker_release_uses_environment_scoped_credentials_and_is_rerunnable(wo
     assert workflow["jobs"]["release"]["permissions"] == {"contents": "write"}
     publish = workflow["jobs"]["publish"]
     assert "contents" not in publish["permissions"] or publish["permissions"]["contents"] == "read"
+    assert publish["outputs"]["dockerhub_digest"] == (
+        "${{ steps.published-images.outputs.dockerhub_digest }}"
+    )
     hub_login = next(
         step for step in publish["steps"] if step.get("name") == "Log in to Docker Hub"
     )
@@ -312,6 +315,21 @@ def test_release_settings_document_environment_approval_and_required_arm64_check
     assert "RELEASE_DOCKERHUB_USERNAME" in guidance
     assert "RELEASE_DOCKERHUB_TOKEN" in guidance
     assert "required reviewers" in guidance.lower()
+    ruleset_example = guidance.split("## Ruleset Example", maxsplit=1)[1]
+    status_checks = ruleset_example.split("3. **Block force pushes**", maxsplit=1)[0]
+    assert "`ARM64 Image Smoke Test`" in status_checks
+
+
+def test_release_changelog_is_written_without_echo_option_interpretation(workspace_root):
+    """Treat changelog text literally when writing release notes input."""
+    workflow = load_workflow(workspace_root, "docker-publish.yml")
+    changelog_step = next(
+        step
+        for step in workflow["jobs"]["release"]["steps"]
+        if step.get("name") == "Extract changelog for release"
+    )
+
+    assert "printf '%s\\n' \"$CHANGELOG_CONTENT\" > /tmp/changelog.txt" in changelog_step["run"]
 
 
 def test_security_enforcement_precedes_best_effort_reporting(workspace_root):

@@ -240,6 +240,7 @@ jobs:
       artifact-metadata: write
     outputs:
       ghcr_digest: ${{ steps.published-images.outputs.ghcr_digest }}
+      dockerhub_digest: ${{ steps.published-images.outputs.dockerhub_digest }}
 
     steps:
       - name: Set up Docker Buildx
@@ -393,7 +394,7 @@ jobs:
             echo "Found changelog section for ${VERSION}"
           fi
 
-          echo "$CHANGELOG_CONTENT" > /tmp/changelog.txt
+          printf '%s\n' "$CHANGELOG_CONTENT" > /tmp/changelog.txt
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
           echo "Changelog content length: $(wc -c < /tmp/changelog.txt) bytes"
