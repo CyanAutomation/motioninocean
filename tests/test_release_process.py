@@ -19,9 +19,7 @@ def _release_workflow() -> dict[str, Any]:
 def test_release_publishing_is_manual_but_docker_workflow_still_runs() -> None:
     """A published GitHub Release triggers image publishing without creating a release."""
     workflow = _release_workflow()
-    workflow_text = (REPO_ROOT / ".github/workflows/docker-publish.yml").read_text(
-        encoding="utf-8"
-    )
+    workflow_text = (REPO_ROOT / ".github/workflows/docker-publish.yml").read_text(encoding="utf-8")
 
     assert workflow["on"]["release"]["types"] == ["published"]
     assert "release" not in workflow["jobs"]
