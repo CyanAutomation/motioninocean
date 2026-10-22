@@ -1,6 +1,6 @@
 [project]
 name = "pi-camera-in-docker"
-version = "1.1.0"
+version = "1.0"
 description = "Docker-first Raspberry Pi CSI camera streaming solution"
 readme = "README.md"
 requires-python = ">=3.10"

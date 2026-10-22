@@ -110,7 +110,7 @@ The status response includes the current application status and stream availabil
 
 ## Docker Images
 
-Images are published to two registries on every release:
+Images are published to two registries after a GitHub Release is published:
 
 | Registry                         | Image                                  |
 | -------------------------------- | -------------------------------------- |
@@ -125,7 +125,7 @@ docker pull cyanautomation/motioninocean:latest
 docker pull ghcr.io/cyanautomation/motioninocean:latest
 ```
 
-Both registries publish the same multi-arch image (`linux/arm64`, `linux/amd64`) with identical tags (`latest`, `vX.Y.Z`, `X.Y.Z`, `X.Y`).
+Both registries publish the same multi-arch image (`linux/arm64`, `linux/amd64`) with the tags `latest` and `vX.Y`. Create and title releases manually in the [GitHub UI](https://github.com/CyanAutomation/motioninocean/releases/new); see the [release guide](docs/guides/RELEASE.md).
 
 Motion In Ocean is locked to **Debian Bookworm**. No suite overrides are supported.
 
@@ -158,7 +158,7 @@ docker buildx build --platform linux/arm64 \
   -t motion-in-ocean:local .
 ```
 
-**Note:** Multi-arch images (used in releases) are published with both `linux/arm64` and `linux/amd64` via CI automation; local builds default to your host architecture.
+**Note:** Multi-arch images are published with both `linux/arm64` and `linux/amd64` after a GitHub Release is published; local builds default to your host architecture.
 
 ## API Documentation
 

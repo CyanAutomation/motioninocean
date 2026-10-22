@@ -716,21 +716,11 @@ This is equivalent to the GitHub Actions pipeline.
 
 ## Deployment & Release
 
-### Tag-Driven Release
+### Manual GitHub Releases
 
-Motion In Ocean uses semantic versioning with tag-triggered Docker publishing:
+Create releases through the [GitHub Releases UI](https://github.com/CyanAutomation/motioninocean/releases/new), using a two-component `vX.Y` tag and title (for example, `v1.0`). Keep `VERSION` and the Python project version in `pyproject.toml` at `X.Y` without the leading `v`.
 
-```bash
-# Create a release commit and tag from main
-./create-release.sh
-
-# Tag-triggered workflow .github/workflows/docker-publish.yml:
-# - Builds Docker image
-# - Pushes to GHCR (ghcr.io/cyanautomation/motioninocean:v1.2.3)
-# - GitHub Release created from docs/CHANGELOG.md
-```
-
-See [.github/workflows/docker-publish.yml](.github/workflows/docker-publish.yml) for automation details.
+After a release is published, [.github/workflows/docker-publish.yml](.github/workflows/docker-publish.yml) verifies the code and publishes container images to GHCR and Docker Hub. It does not create or edit GitHub Releases. See [docs/guides/RELEASE.md](docs/guides/RELEASE.md) for the manual steps.
 
 ### Multi-Architecture Builds
 

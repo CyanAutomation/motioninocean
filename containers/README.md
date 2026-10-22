@@ -16,7 +16,7 @@ This directory defines the **deployment packaging pattern** used by Motion In Oc
 
 ## Container Registry
 
-Images are published to both registries on every release tag:
+Images are published to both registries when a GitHub Release is published:
 
 | Registry                            | Image                                  |
 | ----------------------------------- | -------------------------------------- |

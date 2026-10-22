@@ -1,87 +1,54 @@
-# Release process
+# Releases
 
-This guide describes the release procedure and its GitHub Actions automation. User-facing release notes are maintained in [`docs/CHANGELOG.md`](../CHANGELOG.md).
+Create GitHub Releases manually through the [GitHub Releases page](https://github.com/CyanAutomation/motioninocean/releases/new). The Docker publishing workflow runs after a release is published; it verifies the source, builds and scans the multi-architecture image, then publishes the image to GHCR and Docker Hub. It does not create or edit GitHub Releases.
 
-## Prerequisites
+## Version format
 
-- Update and check out `main`.
-- Use a clean working tree.
-- Confirm the `## [Unreleased]` section in `docs/CHANGELOG.md` is ready to publish.
-- Have push access to the repository.
-- Confirm the `container-release` environment and its required reviewers and
-  Docker Hub environment secrets are configured (see
-  [branch protection guidance](../../.github/BRANCH_PROTECTION.md#container-release-environment)).
-- Install and authenticate the GitHub CLI if you want `create-release.sh` to monitor publication.
+Use two numeric components in release tags and titles: `vX.Y` (for example, `v1.0`, `v1.1`, or `v2.0`). Keep the leading `v` in the Git tag and release title. Store the version without the `v` prefix in `VERSION` and `pyproject.toml`.
 
-## Create a release
+Before publishing a release, merge the version and changelog updates to `main`. Keep the `## [Unreleased]` section in `docs/CHANGELOG.md` current, and add a `## [X.Y] - YYYY-MM-DD` section for user-facing changes included in the release.
 
-1. Run the project checks and review the changes on `main`.
-2. Run `./create-release.sh` from the repository root.
-3. Enter the next `MAJOR.MINOR.PATCH` version and review the summary.
-4. Confirm the operation. The script updates `VERSION` and `docs/CHANGELOG.md`, creates a release commit and annotated `vX.Y.Z` tag, and pushes `main` and the tag.
-5. The `Build and publish Docker image` workflow verifies the tag and runs CI and Bandit, builds a GHCR candidate, scans both platform images and smoke-tests ARM64, then waits for approval in `container-release` before promoting production tags and attaching signed provenance. It creates or updates the GitHub Release only after publishing succeeds.
-6. Confirm the workflow succeeded, review release notes, and pull the published GHCR image.
+## Create a release in GitHub
 
-The workflow creates the mutable `latest` container image tag. The release script does not create or force-update a Git tag named `latest`.
+1. Confirm the intended code and version updates are merged to `main` and the CI checks pass.
+2. Open [Draft a new release](https://github.com/CyanAutomation/motioninocean/releases/new).
+3. Choose a new tag named `vX.Y`, such as `v1.0`, and set the target to `main`.
+4. Set the release title to the same `vX.Y` value.
+5. Add the release notes from the matching `docs/CHANGELOG.md` section. GitHub's generated notes can also be used and edited in the form.
+6. Publish the release. This triggers the Docker publishing workflow.
+7. Review the workflow run and approve the `container-release` environment if GitHub requests its configured approval.
 
-## Recovery after a failure
+Use the next `X.Y` version for each release. Do not reuse an existing tag, rewrite a published tag, or delete tags when cleaning up GitHub Release entries.
 
-The release script does not automatically delete tags, reset commits, or force-push a branch. A failed or timed-out workflow leaves the release commit and tag available for diagnosis.
+## Verify the published images
 
-- If pushing `main` fails, inspect the remote changes and the local release commit before deciding how to proceed.
-- If pushing the version tag fails after `main` was pushed, confirm that the local tag points to the intended release commit, then push that tag after fixing the cause:
-
-  ```bash
-  git show --no-patch --decorate vX.Y.Z
-  git push origin vX.Y.Z
-  ```
-
-- If the workflow fails, inspect its logs and either rerun the failed workflow after fixing a transient issue or prepare a new patch release with a corrective change. Release creation is safe to rerun: an existing release is updated with the verified notes.
-- If the GitHub CLI is missing or unauthenticated, check the Actions page and release page manually.
-
-Treat published version tags as immutable. Coordinate any exceptional release withdrawal with maintainers rather than rewriting branch or tag history.
-
-## Verification
+The workflow publishes matching multi-architecture images for `linux/arm64` and `linux/amd64` with the tags `vX.Y` and `latest`:
 
 ```bash
-# Recent workflow runs
-gh run list --limit 5
-
-# Inspect a workflow run
-gh run view <run-id>
-
-# Pull the published image
-docker pull ghcr.io/cyanautomation/motioninocean:X.Y.Z
-
-# View the release
-gh release view vX.Y.Z
+docker pull ghcr.io/cyanautomation/motioninocean:vX.Y
+docker pull cyanautomation/motioninocean:vX.Y
 ```
 
-### Verify image provenance
-
-The publishing workflow creates signed provenance attestations for the image digest in both
-registries. Authenticate to the registry before verification (`docker login ghcr.io` for GHCR;
-`docker login` for Docker Hub), then verify the release tag and the workflow identity:
+It also attaches signed provenance to each registry image. Authenticate to the registries before verification (`docker login ghcr.io` for GHCR; `docker login` for Docker Hub):
 
 ```bash
 gh attestation verify \
-  oci://ghcr.io/cyanautomation/motioninocean:X.Y.Z \
+  oci://ghcr.io/cyanautomation/motioninocean:vX.Y \
   --repo CyanAutomation/motioninocean \
   --signer-workflow CyanAutomation/motioninocean/.github/workflows/docker-publish.yml \
   --bundle-from-oci
 
 gh attestation verify \
-  oci://index.docker.io/cyanautomation/motioninocean:X.Y.Z \
+  oci://index.docker.io/cyanautomation/motioninocean:vX.Y \
   --repo CyanAutomation/motioninocean \
   --signer-workflow CyanAutomation/motioninocean/.github/workflows/docker-publish.yml \
   --bundle-from-oci
 ```
 
-Replace `X.Y.Z` with the release version without the leading `v`.
+Replace `X.Y` with the release version without the leading `v`.
 
 ## Sources
 
-- [`create-release.sh`](../../create-release.sh) — Version/changelog update, commit, tag, and verification.
-- [`.github/workflows/docker-publish.yml`](../../.github/workflows/docker-publish.yml) — Release verification and publishing.
-- [`docs/CHANGELOG.md`](../CHANGELOG.md) — Release notes.
+- [`.github/workflows/docker-publish.yml`](../../.github/workflows/docker-publish.yml) — Verification and container image publishing after a GitHub Release is published.
+- [`docs/CHANGELOG.md`](../CHANGELOG.md) — User-facing release notes.
 - [GitHub CLI attestation verification](https://cli.github.com/manual/gh_attestation_verify) — Container image verification options.
