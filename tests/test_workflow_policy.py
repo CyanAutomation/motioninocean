@@ -268,15 +268,15 @@ def test_docker_release_scans_candidate_digest_before_promoting_tags(workspace_r
     assert "${{ needs.build.outputs.image_ref }}" in promote["env"]["IMAGE_REF"]
 
 
-def test_docker_release_uses_environment_scoped_credentials_and_is_rerunnable(workspace_root):
-    """Protect publishing credentials and allow safe recovery after partial releases."""
+def test_docker_release_uses_scoped_credentials_for_manual_release_events(workspace_root):
+    """Protect publishing credentials and leave GitHub Release publication manual."""
     workflow = load_workflow(workspace_root, "docker-publish.yml")
     assert workflow["permissions"] == {}
     assert workflow["jobs"]["build"]["permissions"] == {
         "contents": "read",
         "packages": "write",
     }
-    assert workflow["jobs"]["release"]["permissions"] == {"contents": "write"}
+    assert "release" not in workflow["jobs"]
     publish = workflow["jobs"]["publish"]
     assert "contents" not in publish["permissions"] or publish["permissions"]["contents"] == "read"
     assert publish["outputs"]["dockerhub_digest"] == (
@@ -288,22 +288,13 @@ def test_docker_release_uses_environment_scoped_credentials_and_is_rerunnable(wo
     assert hub_login["with"]["username"] == "${{ secrets.RELEASE_DOCKERHUB_USERNAME }}"
     assert hub_login["with"]["password"] == "${{ secrets.RELEASE_DOCKERHUB_TOKEN }}"
 
-    release_step = next(
-        step
-        for step in workflow["jobs"]["release"]["steps"]
-        if step.get("name") == "Create or update GitHub Release"
-    )
-    assert "gh release view" in release_step["run"]
-    assert "gh release edit" in release_step["run"]
-    assert "gh release create" in release_step["run"]
-
     for job_name in ("verify", "build", "publish"):
         condition = workflow["jobs"][job_name]["if"]
         assert (
             "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'"
             in condition
         )
-        assert "github.event_name == 'push' && github.ref_type == 'tag'" in condition
+        assert "github.event_name == 'release'" in condition
 
 
 def test_release_settings_document_environment_approval_and_required_arm64_check(workspace_root):
@@ -320,16 +311,14 @@ def test_release_settings_document_environment_approval_and_required_arm64_check
     assert "`ARM64 Image Smoke Test`" in status_checks
 
 
-def test_release_changelog_is_written_without_echo_option_interpretation(workspace_root):
-    """Treat changelog text literally when writing release notes input."""
+def test_docker_publish_does_not_create_or_edit_github_releases(workspace_root):
+    """GitHub Releases are published and edited manually through the GitHub UI."""
     workflow = load_workflow(workspace_root, "docker-publish.yml")
-    changelog_step = next(
-        step
-        for step in workflow["jobs"]["release"]["steps"]
-        if step.get("name") == "Extract changelog for release"
-    )
+    workflow_text = (workspace_root / ".github" / "workflows" / "docker-publish.yml").read_text()
 
-    assert "printf '%s\\n' \"$CHANGELOG_CONTENT\" > /tmp/changelog.txt" in changelog_step["run"]
+    assert "release" not in workflow["jobs"]
+    assert "gh release create" not in workflow_text
+    assert "gh release edit" not in workflow_text
 
 
 def test_security_enforcement_precedes_best_effort_reporting(workspace_root):

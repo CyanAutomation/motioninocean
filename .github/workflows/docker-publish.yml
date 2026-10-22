@@ -5,12 +5,12 @@ on:
   # Rebuild the mutable production tag with current Debian security updates.
   schedule:
     - cron: "30 1 2 * *"
-  push:
-    tags:
-      - "v*.*.*"
+  # Publishing a GitHub Release through the UI triggers image verification and publishing.
+  release:
+    types: [published]
 
 concurrency:
-  # Keep scheduled refreshes and version releases that update mutable tags in one queue.
+  # Keep scheduled refreshes and published releases that update mutable tags in one queue.
   group: docker-release-publish
   queue: max
 
@@ -22,7 +22,7 @@ jobs:
     if: >-
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v'))
+      (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v'))
     runs-on: ubuntu-latest
     timeout-minutes: 35
     permissions:
@@ -34,9 +34,11 @@ jobs:
           persist-credentials: false
 
       - name: Validate release tag
-        if: github.ref_type == 'tag'
+        if: github.event_name == 'release'
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid release tag: $GITHUB_REF_NAME" >&2; exit 1; }
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+$ ]] || { echo "Invalid release tag: $RELEASE_TAG" >&2; exit 1; }
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
@@ -67,7 +69,7 @@ jobs:
     if: >-
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v'))
+      (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v'))
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -227,7 +229,7 @@ jobs:
     if: >-
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v'))
+      (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment:
@@ -270,8 +272,6 @@ jobs:
           tags: |
             type=raw,value=latest
             type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
 
       - name: Promote verified image tags
         env:
@@ -363,118 +363,3 @@ jobs:
           subject-name: index.docker.io/cyanautomation/motioninocean
           subject-digest: ${{ steps.published-images.outputs.dockerhub_digest }}
           push-to-registry: true
-
-  release:
-    name: Create GitHub Release
-    needs: publish
-    if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout release tag
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      - name: Extract changelog for release
-        id: changelog
-        run: |
-          set -euo pipefail
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          VERSION=${TAG_NAME#v}
-
-          [[ "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Expected vMAJOR.MINOR.PATCH; got $TAG_NAME" >&2; exit 1; }
-
-          CHANGELOG_CONTENT=$(bash scripts/extract_release_changelog.sh "$VERSION" docs/CHANGELOG.md)
-          if [[ "$CHANGELOG_CONTENT" == "Release ${VERSION} - See commit history for details." ]]; then
-            echo "Using release-note fallback for ${VERSION}"
-          else
-            echo "Found changelog section for ${VERSION}"
-          fi
-
-          printf '%s\n' "$CHANGELOG_CONTENT" > /tmp/changelog.txt
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
-          echo "Changelog content length: $(wc -c < /tmp/changelog.txt) bytes"
-
-      - name: Build release notes
-        env:
-          TAG_NAME: ${{ steps.changelog.outputs.tag_name }}
-          VERSION: ${{ steps.changelog.outputs.version }}
-          IMAGE_DIGEST: ${{ needs.publish.outputs.ghcr_digest }}
-        run: |
-          set -euo pipefail
-          CHANGELOG_BODY=$(cat /tmp/changelog.txt)
-          REPO_LOWER="${GITHUB_REPOSITORY,,}"
-          REPO_NAME="${GITHUB_REPOSITORY#*/}"
-
-          {
-            echo "$CHANGELOG_BODY"
-            echo ""
-            echo "## Docker Images"
-            echo ""
-            echo "Pull the image (GitHub Container Registry):"
-            echo '```bash'
-            echo "docker pull ghcr.io/${REPO_LOWER}:${TAG_NAME}"
-            echo "# or"
-            echo "docker pull ghcr.io/${REPO_LOWER}:${VERSION}"
-            echo "# or"
-            echo "docker pull ghcr.io/${REPO_LOWER}:latest"
-            echo '```'
-            echo ""
-            echo "Pull the image (Docker Hub):"
-            echo '```bash'
-            echo "docker pull cyanautomation/motioninocean:${TAG_NAME}"
-            echo "# or"
-            echo "docker pull cyanautomation/motioninocean:${VERSION}"
-            echo "# or"
-            echo "docker pull cyanautomation/motioninocean:latest"
-            echo '```'
-            echo ""
-            echo "View on GitHub Container Registry: https://github.com/${GITHUB_REPOSITORY}/pkgs/container/${REPO_NAME}"
-            echo "View on Docker Hub: https://hub.docker.com/r/cyanautomation/motioninocean"
-            echo ""
-            echo "Image digest: \`${IMAGE_DIGEST}\`"
-          } > /tmp/release_notes.md
-
-          echo "Release notes built successfully"
-          echo "Release notes length: $(wc -c < /tmp/release_notes.md) bytes"
-
-      - name: Validate release notes
-        run: |
-          set -euo pipefail
-          if [ ! -s /tmp/release_notes.md ]; then
-            echo "Error: Release notes file not found or empty"
-            exit 1
-          fi
-
-          NOTES_LENGTH=$(wc -c < /tmp/release_notes.md)
-          if [ "$NOTES_LENGTH" -lt 10 ]; then
-            echo "Error: Release notes too short (${NOTES_LENGTH} bytes)"
-            exit 1
-          fi
-
-          echo "Release notes validation passed (${NOTES_LENGTH} bytes)."
-
-      - name: Create or update GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ steps.changelog.outputs.tag_name }}
-        run: |
-          set -euo pipefail
-          if gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release edit "$TAG_NAME" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "Release ${TAG_NAME}" \
-              --notes-file /tmp/release_notes.md
-            echo "Updated existing GitHub Release ${TAG_NAME}."
-          else
-            gh release create "$TAG_NAME" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "Release ${TAG_NAME}" \
-              --verify-tag \
-              --notes-file /tmp/release_notes.md
-            echo "Created GitHub Release ${TAG_NAME}."
-          fi

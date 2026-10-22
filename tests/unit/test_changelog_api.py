@@ -18,8 +18,8 @@ def test_parse_changelog_markdown_returns_released_versions_only_by_default() ->
     """Parser returns only released versions, excluding [Unreleased] section by default.
 
     Contract: When include_unreleased=False (default), parse_changelog_markdown()
-    must exclude any [Unreleased] section and return only version entries with
-    semantic version numbers in [X.Y.Z] format, preserving file order.
+    must exclude any [Unreleased] section and return only released version entries,
+    preserving the source file's version strings and order.
     """
     markdown = """# Changelog
 ## [Unreleased]

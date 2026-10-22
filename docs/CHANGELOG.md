@@ -4,10 +4,10 @@
 
 This file contains **user-visible product changes grouped by released version**.
 
-- Release procedure and publishing automation live in [`docs/guides/RELEASE.md`](guides/RELEASE.md).
+- Release procedure and container publishing details live in [`docs/guides/RELEASE.md`](guides/RELEASE.md).
 - Test execution evidence and validation outputs live in the [testing documentation](https://github.com/CyanAutomation/motioninocean/blob/main/docs/testing/README.md).
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). New GitHub release tags use the two-part `vX.Y` format; historical entries retain their original version numbers.
 
 ## [Unreleased]
 

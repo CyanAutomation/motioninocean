@@ -1,11 +1,9 @@
-"""Protect release tooling from stale paths and automatic history rewrites."""
+"""Keep manual GitHub releases and Docker publishing behavior aligned."""
 
-import os
 import re
 import shlex
-import shutil
-import subprocess
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -13,79 +11,54 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_release_tools_use_repository_changelog() -> None:
-    """The release script and workflow both use the canonical changelog."""
-    workflow = yaml.safe_load(
-        (REPO_ROOT / ".github/workflows/docker-publish.yml").read_text(encoding="utf-8")
+def _release_workflow() -> dict[str, Any]:
+    workflow_path = REPO_ROOT / ".github/workflows/docker-publish.yml"
+    return yaml.load(workflow_path.read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
+
+
+def test_release_publishing_is_manual_but_docker_workflow_still_runs() -> None:
+    """A published GitHub Release triggers image publishing without creating a release."""
+    workflow = _release_workflow()
+    workflow_text = (REPO_ROOT / ".github/workflows/docker-publish.yml").read_text(
+        encoding="utf-8"
     )
-    changelog_step = next(
+
+    assert workflow["on"]["release"]["types"] == ["published"]
+    assert "release" not in workflow["jobs"]
+    assert "gh release create" not in workflow_text
+    assert "gh release edit" not in workflow_text
+
+    for job_name in ("verify", "build", "publish"):
+        assert "github.event_name == 'release'" in workflow["jobs"][job_name]["if"]
+
+
+def test_release_workflow_accepts_two_component_v_tags() -> None:
+    """The release pipeline accepts vX.Y tags and validates the release event tag."""
+    workflow = _release_workflow()
+    validation = next(
         step
-        for step in workflow["jobs"]["release"]["steps"]
-        if step.get("name") == "Extract changelog for release"
-    )
-    assert (
-        'scripts/extract_release_changelog.sh "$VERSION" docs/CHANGELOG.md' in changelog_step["run"]
+        for step in workflow["jobs"]["verify"]["steps"]
+        if step.get("name") == "Validate release tag"
     )
 
-    release_script = (REPO_ROOT / "create-release.sh").read_text(encoding="utf-8")
-    assert 'CHANGELOG_FILE="docs/CHANGELOG.md"' in release_script
+    assert validation["if"] == "github.event_name == 'release'"
+    assert validation["env"]["RELEASE_TAG"] == "${{ github.event.release.tag_name }}"
+    assert r"^v[0-9]+\.[0-9]+$" in validation["run"]
 
 
-def _extract_changelog(version: str, changelog_path: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [
-            "bash",
-            str(REPO_ROOT / "scripts" / "extract_release_changelog.sh"),
-            version,
-            str(changelog_path),
-        ],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+def test_manual_release_guide_uses_github_ui_and_current_image_tags() -> None:
+    """The release guide describes the manual UI flow and the published vX.Y image."""
+    guide = (REPO_ROOT / "docs/guides/RELEASE.md").read_text(encoding="utf-8")
+
+    assert "https://github.com/CyanAutomation/motioninocean/releases/new" in guide
+    assert "`vX.Y`" in guide
+    assert "does not create or edit GitHub Releases" in guide
+    assert "docker pull ghcr.io/cyanautomation/motioninocean:vX.Y" in guide
 
 
-def test_release_changelog_extractor_returns_only_requested_version(tmp_path: Path) -> None:
-    changelog = tmp_path / "CHANGELOG.md"
-    changelog.write_text(
-        "## [1.2.30] - 2026-10-11\n\n- Similar version\n\n"
-        "## [Unreleased]\n\n- Work in progress\n\n"
-        "## [1.2.3] - 2026-10-10\n\n- Added camera support\n- Fixed stream startup\n\n"
-        "## [1.2.2] - 2026-09-01\n\n- Older change\n",
-        encoding="utf-8",
-    )
-
-    result = _extract_changelog("1.2.3", changelog)
-
-    assert result.returncode == 0, result.stderr
-    assert result.stdout == "- Added camera support\n- Fixed stream startup\n"
-
-
-def test_release_changelog_extractor_uses_fallback_when_section_is_missing(
-    tmp_path: Path,
-) -> None:
-    changelog = tmp_path / "CHANGELOG.md"
-    changelog.write_text("## [1.2.2] - 2026-09-01\n\n- Older change\n", encoding="utf-8")
-
-    result = _extract_changelog("1.2.3", changelog)
-
-    assert result.returncode == 0, result.stderr
-    assert result.stdout == "Release 1.2.3 - See commit history for details.\n"
-
-
-def test_release_changelog_extractor_uses_fallback_when_file_is_missing(tmp_path: Path) -> None:
-    result = _extract_changelog("1.2.3", tmp_path / "missing.md")
-
-    assert result.returncode == 0, result.stderr
-    assert result.stdout == "Release 1.2.3 - See commit history for details.\n"
-
-
-def test_manifest_verification_uses_lowercase_repository_and_build_digest() -> None:
+def test_manifest_verification_uses_candidate_digest_and_both_architectures() -> None:
     """Candidate manifest verification targets the exact lowercase GHCR digest."""
-    workflow = yaml.safe_load(
-        (REPO_ROOT / ".github/workflows/docker-publish.yml").read_text(encoding="utf-8")
-    )
+    workflow = _release_workflow()
     build = workflow["jobs"]["build"]
     verify_manifest = next(
         step
@@ -99,111 +72,8 @@ def test_manifest_verification_uses_lowercase_repository_and_build_digest() -> N
     assert "linux/arm64" in verify_manifest["run"]
 
 
-def test_release_push_failure_preserves_local_commit_and_version_tags(tmp_path: Path) -> None:
-    """A failed push leaves the release commit and existing tags available for recovery.
-
-    Traceability: docs/guides/RELEASE.md#recovery-after-a-failure.
-    """
-    repository = tmp_path / "repository"
-    repository.mkdir()
-    origin = tmp_path / "origin.git"
-    subprocess.run(["git", "init", "--bare", str(origin)], check=True, capture_output=True)
-    subprocess.run(["git", "init", "--initial-branch=main"], cwd=repository, check=True)
-    subprocess.run(["git", "config", "user.name", "Test User"], cwd=repository, check=True)
-    subprocess.run(
-        ["git", "config", "user.email", "test@example.invalid"], cwd=repository, check=True
-    )
-
-    (repository / "docs").mkdir()
-    (repository / "VERSION").write_text("1.2.2\n", encoding="utf-8")
-    (repository / "docs" / "CHANGELOG.md").write_text(
-        "## [Unreleased]\n\n- Pending change\n",
-        encoding="utf-8",
-    )
-    subprocess.run(["git", "add", "VERSION", "docs/CHANGELOG.md"], cwd=repository, check=True)
-    subprocess.run(["git", "commit", "-m", "Initial release state"], cwd=repository, check=True)
-    subprocess.run(
-        ["git", "tag", "-a", "v1.2.2", "-m", "Previous release"],
-        cwd=repository,
-        check=True,
-    )
-    subprocess.run(["git", "remote", "add", "origin", str(origin)], cwd=repository, check=True)
-    original_commit = subprocess.run(
-        ["git", "rev-parse", "HEAD"], cwd=repository, check=True, capture_output=True, text=True
-    ).stdout.strip()
-    original_tag = subprocess.run(
-        ["git", "rev-parse", "refs/tags/v1.2.2"],
-        cwd=repository,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-
-    real_git = shutil.which("git")
-    assert real_git is not None
-    fake_bin = tmp_path / "bin"
-    fake_bin.mkdir()
-    git_wrapper = fake_bin / "git"
-    git_wrapper.write_text(
-        "#!/bin/sh\n"
-        'if [ "$1" = "push" ]; then echo "simulated push failure" >&2; exit 1; fi\n'
-        f'exec {shlex.quote(real_git)} "$@"\n',
-        encoding="utf-8",
-    )
-    git_wrapper.chmod(0o755)
-    test_env = os.environ.copy()
-    test_env["PATH"] = f"{fake_bin}{os.pathsep}{test_env['PATH']}"
-
-    result = subprocess.run(
-        ["bash", str(REPO_ROOT / "create-release.sh")],
-        cwd=repository,
-        env=test_env,
-        input="1.2.3\ny\n",
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    assert result.returncode != 0
-    assert "simulated push failure" in result.stderr
-    assert "local commit and tag are retained" in result.stderr
-    release_commit = subprocess.run(
-        ["git", "rev-parse", "HEAD"], cwd=repository, check=True, capture_output=True, text=True
-    ).stdout.strip()
-    assert release_commit != original_commit
-    assert (
-        subprocess.run(
-            ["git", "merge-base", "--is-ancestor", original_commit, release_commit],
-            cwd=repository,
-            check=False,
-        ).returncode
-        == 0
-    )
-    assert (
-        subprocess.run(
-            ["git", "rev-parse", "refs/tags/v1.2.2"],
-            cwd=repository,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        == original_tag
-    )
-    assert (
-        subprocess.run(
-            ["git", "rev-parse", "refs/tags/v1.2.3^{commit}"],
-            cwd=repository,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-        == release_commit
-    )
-    assert (repository / "VERSION").read_text(encoding="utf-8") == "1.2.3\n"
-
-
 def test_release_guide_verification_commands_match_attested_images() -> None:
-    """Guide commands verify both images with the publisher's workflow identity."""
+    """Guide commands verify both images with the publisher workflow identity."""
     guide = (REPO_ROOT / "docs/guides/RELEASE.md").read_text(encoding="utf-8")
     code_blocks = re.findall(r"```bash\n(.*?)```", guide, flags=re.DOTALL)
     attestation_block = next(block for block in code_blocks if "gh attestation verify" in block)
@@ -218,13 +88,11 @@ def test_release_guide_verification_commands_match_attested_images() -> None:
         for index, start in enumerate(command_starts)
     ]
 
-    workflow = yaml.safe_load(
-        (REPO_ROOT / ".github/workflows/docker-publish.yml").read_text(encoding="utf-8")
-    )
-    build_steps = workflow["jobs"]["publish"]["steps"]
+    workflow = _release_workflow()
+    publish_steps = workflow["jobs"]["publish"]["steps"]
     attested_images = {
         step["with"]["subject-name"]
-        for step in build_steps
+        for step in publish_steps
         if step.get("name", "").startswith("Attest ")
     }
 
@@ -239,7 +107,7 @@ def test_release_guide_verification_commands_match_attested_images() -> None:
         ]
         assert command[8:] == ["--bundle-from-oci"]
         image_reference = command[3]
-        assert image_reference.endswith(":X.Y.Z")
-        documented_images.add(image_reference.removeprefix("oci://").removesuffix(":X.Y.Z"))
+        assert image_reference.endswith(":vX.Y")
+        documented_images.add(image_reference.removeprefix("oci://").removesuffix(":vX.Y"))
 
     assert documented_images == attested_images
