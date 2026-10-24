@@ -1,80 +1,80 @@
 ---
 name: release-publish
-description: Verify the Docker image and GitHub Release created by the tag-triggered publish workflow. Use after pushing a valid vMAJOR.MINOR.PATCH tag or when diagnosing publication failures.
+description: Verify container images after a motion-in-ocean GitHub Release is published. Use after the release workflow completes or when image publishing fails.
 owner: motion-in-ocean team
-last-reviewed: 2026-10-20
+last-reviewed: 2026-10-24
 category: CI/CD
 compatible-repo-areas:
   - .github/workflows/docker-publish.yml
+  - docs/guides/RELEASE.md
   - docs/CHANGELOG.md
   - VERSION
 ---
 
 ## Purpose
 
-Confirm that release verification, image publication, and GitHub Release creation completed with the expected version and notes.
+Confirm the container images published after a manual GitHub Release use the expected version, platforms, and provenance.
 
 ## Scope and trigger conditions
 
-- Use after a version tag has been pushed or when the release workflow fails.
-- Use [`release-operator`](../release-operator/SKILL.md) to prepare and push the tag.
-- This skill verifies outputs; it does not create or push tags.
+- Use after publishing a GitHub Release through the UI, or when its container image workflow fails.
+- Use [`release-operator`](../release-operator/SKILL.md) to prepare and publish the GitHub Release.
+- This skill checks the resulting container images; the GitHub Release itself is created manually.
 
 ## Required inputs
 
-- Release tag such as `v1.2.3` and its Actions run.
-- GitHub access to view workflow logs and release metadata.
-- Docker access when validating an image pull locally.
+- A published release tag such as `v1.2` and its Actions run.
+- GitHub access to inspect workflow logs and release metadata.
+- Docker access when pulling or inspecting an image locally.
 
 ## Step-by-step workflow
 
-1. Read the run for `.github/workflows/docker-publish.yml` and confirm the tag passed the `vMAJOR.MINOR.PATCH` check.
-2. Confirm the `verify` job passed `make ci` and `make security`.
-3. Confirm the `build` job pushed a multi-architecture GHCR candidate and recorded its immutable digest.
-4. Confirm the `scan` job enforced fixed HIGH/CRITICAL Trivy policy on both candidate platforms, and `arm64-smoke` imported the app from that same digest.
-5. Confirm the `publish` job received approval in `container-release`, promoted the candidate platform digests to both registries, verified the tags, and attached provenance to each registry's digest.
-6. Confirm the `release` job extracted the matching section from `docs/CHANGELOG.md` and created or updated the GitHub Release.
-7. Verify the GHCR image tags: `vX.Y.Z`, `X.Y.Z`, `X.Y`, and `latest`. The workflow also publishes matching tags to Docker Hub.
-8. Pull the exact version tag when local verification is needed:
+1. Confirm the GitHub Release uses a two-component `vX.Y` tag and its notes match the release section in `docs/CHANGELOG.md`.
+2. In `.github/workflows/docker-publish.yml`, confirm the `verify` job passed `make ci` and `make security`.
+3. Confirm the `build` job created the multi-architecture candidate and recorded its immutable digest.
+4. Confirm the `scan` job passed for both amd64 and arm64, and `arm64-smoke` imported the application from the candidate digest.
+5. Confirm the `publish` job completed its `container-release` approval when required, promoted the candidate to GHCR and Docker Hub, verified both manifests, and attached provenance.
+6. Confirm both registries contain the `vX.Y` and `latest` tags for `linux/amd64` and `linux/arm64`.
+7. Pull the versioned GHCR image when local verification is needed:
 
    ```bash
-   docker pull ghcr.io/cyanautomation/motioninocean:X.Y.Z
+   docker pull ghcr.io/cyanautomation/motioninocean:vX.Y
    ```
 
-9. If a job fails, preserve the tag and inspect the failed step. Retry a transient run only after confirming that no source or policy fix is needed.
+8. When provenance verification is needed, follow the `gh attestation verify` commands in [`docs/guides/RELEASE.md`](../../../docs/guides/RELEASE.md) for both registries.
+9. If a workflow job fails, inspect its logs and correct the cause. Do not rewrite or reuse the published release tag.
 
 ## Validation checklist
 
-- [ ] Correct version tag triggered the workflow.
-- [ ] Verify, both-platform scans, and the exact-digest ARM64 smoke test passed.
-- [ ] The `container-release` environment approval completed.
-- [ ] Multi-architecture manifest contains amd64 and arm64.
-- [ ] GHCR and Docker Hub tags are present.
-- [ ] Promoted platform digests match the scanned candidate.
-- [ ] GitHub Release notes match the version section in `docs/CHANGELOG.md`.
-- [ ] Exact-version image pull succeeds when checked locally.
+- [ ] The published GitHub Release uses the intended `vX.Y` tag and changelog notes.
+- [ ] `verify`, both platform scans, and the ARM64 smoke test passed.
+- [ ] The `container-release` approval completed if required.
+- [ ] GHCR and Docker Hub have `vX.Y` and `latest` manifests for amd64 and arm64.
+- [ ] Published platform digests match the verified candidate.
+- [ ] Provenance is attached to both registry images and verifies when checked.
+- [ ] Pulling the exact version tag succeeds when checked locally.
 
 ## Source of truth
 
-- `.github/workflows/docker-publish.yml` — Tag trigger, CI/security checks, image tags, architectures, and release creation.
+- `.github/workflows/docker-publish.yml` — Release event, verification jobs, image tags, platforms, and provenance.
+- `docs/guides/RELEASE.md` — Manual GitHub Release procedure and provenance commands.
 - `docs/CHANGELOG.md` — Release note source.
 - `VERSION` — Expected project version.
-- `docs/guides/RELEASE.md` — Operator procedure and failure recovery.
 
 ## Common failure modes and recovery actions
 
-- **Failure:** Workflow cannot find release notes. **Recovery:** Confirm the tagged commit contains a matching `## [X.Y.Z]` section in `docs/CHANGELOG.md`, then follow the maintainer-approved correction process.
-- **Failure:** Image build or push fails. **Recovery:** Inspect registry authentication, build logs, candidate platform digests, and the environment approval state.
-- **Failure:** Trivy blocks the image. **Recovery:** Review the report, update affected packages/base image, and publish a corrected version.
-- **Failure:** GH Release is missing after image publication. **Recovery:** Inspect the `release` job permissions and log; do not rewrite the version tag.
-- **Failure:** One architecture is absent or differs from the candidate. **Recovery:** Treat the release as incomplete and investigate the candidate or promotion manifest verification step.
+- **Failure:** The release event does not start the image workflow. **Recovery:** Confirm the GitHub Release was published and inspect the Actions run list.
+- **Failure:** Verification, scan, or ARM64 smoke test fails. **Recovery:** Diagnose the failed job and correct the source or image policy before retrying.
+- **Failure:** Publishing waits for approval. **Recovery:** Review and approve the `container-release` deployment if authorized by the release process.
+- **Failure:** One registry tag or architecture is missing. **Recovery:** Treat publication as incomplete and inspect the promotion and manifest verification steps.
+- **Failure:** Provenance verification fails. **Recovery:** Check the attestation subject, registry authentication, and signer workflow shown in the release guide.
 
 ## Related Skills
 
-- [`release-operator`](../release-operator/SKILL.md) — Prepare the release.
+- [`release-operator`](../release-operator/SKILL.md) — Prepare and publish the GitHub Release.
 - [`ci-triage`](../ci-triage/SKILL.md) — Diagnose failing workflow jobs.
 - [`ci-quality-gates`](../ci-quality-gates/SKILL.md) — Run the local validation suite.
 
 ## Maintenance notes
 
-Update this skill when image names/tags, architectures, changelog extraction, workflow permissions, or security policy change.
+Update this skill when image names or tags, architectures, workflow permissions, provenance, or release verification steps change.

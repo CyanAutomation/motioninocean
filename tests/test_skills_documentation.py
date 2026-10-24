@@ -6,7 +6,7 @@ import json
 import os
 import re
 import subprocess
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -39,6 +39,14 @@ def _make_targets() -> set[str]:
 
 def _markdown_links(markdown: str) -> list[str]:
     return re.findall(r"(?<!!)\[[^\]]+\]\(([^)]+)\)", markdown)
+
+
+def _is_yaml_date(value: object) -> bool:
+    return isinstance(value, date) and not isinstance(value, datetime)
+
+
+def _review_date_is_stale(review_date: object, cutoff: date) -> bool:
+    return _is_yaml_date(review_date) and review_date < cutoff
 
 
 def _install_recording_python(tmp_path: Path, executable_name: str) -> tuple[Path, Path]:
@@ -84,7 +92,7 @@ def test_every_skill_has_required_metadata_and_sections() -> None:
         valid_review_date = (
             review_date == "YYYY-MM-DD"
             if path.parent.name == "_template"
-            else isinstance(review_date, date)
+            else _is_yaml_date(review_date)
         )
         assert valid_review_date, f"{path.relative_to(REPO_ROOT)} needs an ISO last-reviewed date"
         assert all(
@@ -101,6 +109,54 @@ def test_every_skill_has_required_metadata_and_sections() -> None:
             assert f"## {heading}" in content, (
                 f"{path.relative_to(REPO_ROOT)} is missing section {heading!r}"
             )
+
+
+def test_skill_names_and_index_entries_match() -> None:
+    skill_paths = [path for path in _skill_markdown_files() if path.parent.name != "_template"]
+    expected_names = {path.parent.name for path in skill_paths}
+    index = (SKILLS_ROOT / "README.md").read_text(encoding="utf-8")
+    indexed_names = set(re.findall(r"\]\(\./([^/]+)/SKILL\.md\)", index)) - {"_template"}
+
+    assert indexed_names == expected_names
+    for path in skill_paths:
+        frontmatter = path.read_text(encoding="utf-8").split("---\n", 2)[1]
+        metadata = yaml.safe_load(frontmatter)
+        assert metadata["name"] == path.parent.name
+
+
+def test_quoted_skill_review_date_is_not_compared_as_a_date() -> None:
+    review_date = yaml.safe_load('last-reviewed: "2026-10-24"')["last-reviewed"]
+
+    assert isinstance(review_date, str)
+    assert not _review_date_is_stale(review_date, date(2026, 10, 24))
+    assert _review_date_is_stale(date(2026, 10, 23), date(2026, 10, 24))
+
+
+def test_skill_compatible_paths_exist_and_reviews_are_current() -> None:
+    review_cutoff = datetime.now(timezone.utc).date() - timedelta(days=100)
+    stale_skills: list[str] = []
+    invalid_review_dates: list[str] = []
+    missing_areas: list[str] = []
+
+    for path in _skill_markdown_files():
+        if path.parent.name == "_template":
+            continue
+        frontmatter = path.read_text(encoding="utf-8").split("---\n", 2)[1]
+        metadata = yaml.safe_load(frontmatter)
+        review_date = metadata["last-reviewed"]
+        if not _is_yaml_date(review_date):
+            invalid_review_dates.append(path.relative_to(REPO_ROOT).as_posix())
+        elif _review_date_is_stale(review_date, review_cutoff):
+            stale_skills.append(path.relative_to(REPO_ROOT).as_posix())
+        for area in metadata["compatible-repo-areas"]:
+            if not list(REPO_ROOT.glob(area.rstrip("/"))):
+                missing_areas.append(f"{path.relative_to(REPO_ROOT)}: {area}")
+
+    assert not stale_skills, "Skills need quarterly source review:\n" + "\n".join(stale_skills)
+    assert not invalid_review_dates, (
+        "Skill last-reviewed values must be unquoted ISO dates:\n" + "\n".join(invalid_review_dates)
+    )
+    assert not missing_areas, "Missing compatible repository areas:\n" + "\n".join(missing_areas)
 
 
 def test_skill_markdown_links_resolve_inside_repository() -> None:
