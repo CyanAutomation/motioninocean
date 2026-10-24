@@ -54,6 +54,34 @@ def test_manual_release_guide_uses_github_ui_and_current_image_tags() -> None:
     assert "docker pull ghcr.io/cyanautomation/motioninocean:vX.Y" in guide
 
 
+def test_release_skills_match_manual_github_release_process() -> None:
+    """Skills describe manual GitHub releases and only automated image publishing."""
+    operator = (REPO_ROOT / ".github/skills/release-operator/SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    publisher = (REPO_ROOT / ".github/skills/release-publish/SKILL.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "GitHub Releases UI" in operator
+    assert "`vX.Y`" in operator
+    assert "manual" in operator.lower()
+    assert "`vX.Y`" in publisher
+    assert "`latest`" in publisher
+    assert "created manually" in publisher
+
+    for obsolete_reference in (
+        "create-release.sh",
+        "vX.Y.Z",
+        "vMAJOR.MINOR.PATCH",
+        "X.Y.Z",
+        "release job",
+        "release creation",
+    ):
+        assert obsolete_reference not in operator
+        assert obsolete_reference not in publisher
+
+
 def test_manifest_verification_uses_candidate_digest_and_both_architectures() -> None:
     """Candidate manifest verification targets the exact lowercase GHCR digest."""
     workflow = _release_workflow()

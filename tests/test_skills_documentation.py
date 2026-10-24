@@ -6,7 +6,7 @@ import json
 import os
 import re
 import subprocess
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -101,6 +101,39 @@ def test_every_skill_has_required_metadata_and_sections() -> None:
             assert f"## {heading}" in content, (
                 f"{path.relative_to(REPO_ROOT)} is missing section {heading!r}"
             )
+
+
+def test_skill_names_and_index_entries_match() -> None:
+    skill_paths = [path for path in _skill_markdown_files() if path.parent.name != "_template"]
+    expected_names = {path.parent.name for path in skill_paths}
+    index = (SKILLS_ROOT / "README.md").read_text(encoding="utf-8")
+    indexed_names = set(re.findall(r"\]\(\./([^/]+)/SKILL\.md\)", index)) - {"_template"}
+
+    assert indexed_names == expected_names
+    for path in skill_paths:
+        frontmatter = path.read_text(encoding="utf-8").split("---\n", 2)[1]
+        metadata = yaml.safe_load(frontmatter)
+        assert metadata["name"] == path.parent.name
+
+
+def test_skill_compatible_paths_exist_and_reviews_are_current() -> None:
+    review_cutoff = date.today() - timedelta(days=100)
+    stale_skills: list[str] = []
+    missing_areas: list[str] = []
+
+    for path in _skill_markdown_files():
+        if path.parent.name == "_template":
+            continue
+        frontmatter = path.read_text(encoding="utf-8").split("---\n", 2)[1]
+        metadata = yaml.safe_load(frontmatter)
+        if metadata["last-reviewed"] < review_cutoff:
+            stale_skills.append(path.relative_to(REPO_ROOT).as_posix())
+        for area in metadata["compatible-repo-areas"]:
+            if not list(REPO_ROOT.glob(area.rstrip("/"))):
+                missing_areas.append(f"{path.relative_to(REPO_ROOT)}: {area}")
+
+    assert not stale_skills, "Skills need quarterly source review:\n" + "\n".join(stale_skills)
+    assert not missing_areas, "Missing compatible repository areas:\n" + "\n".join(missing_areas)
 
 
 def test_skill_markdown_links_resolve_inside_repository() -> None:

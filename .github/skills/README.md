@@ -18,8 +18,8 @@ These skills are short, task-specific playbooks for contributors and operators. 
 | Diagnose Raspberry Pi camera startup or streaming | [`pi-camera-troubleshooting`](./pi-camera-troubleshooting/SKILL.md) |
 | Build or validate documentation | [`documentation-build-validation`](./documentation-build-validation/SKILL.md) |
 | Create or update a Mermaid diagram | [`mermaid-creator`](./mermaid-creator/SKILL.md) |
-| Prepare a release | [`release-operator`](./release-operator/SKILL.md) |
-| Verify published release artifacts | [`release-publish`](./release-publish/SKILL.md) |
+| Prepare a manual GitHub release | [`release-operator`](./release-operator/SKILL.md) |
+| Verify the published container images | [`release-publish`](./release-publish/SKILL.md) |
 
 ## Contributor flow
 
@@ -33,19 +33,19 @@ flowchart TD
     B -->|Interface review| G[ui-review]
     B -->|Deployment| H[deployment-validation-health-checks]
     H --> I[pi-camera-troubleshooting]
-    B -->|Release| J[release-operator]
-    J --> K[release-publish]
+    B -->|Manual GitHub release| J[release-operator]
+    J --> K[release-publish: verify container images]
     B -->|Documentation| L[documentation-build-validation]
-    L --> M[mermaid-creator]
+    L -->|If a diagram changes| M[mermaid-creator]
 ```
 
 ## Skill authoring and maintenance
 
 Use [`_template/SKILL.md`](./_template/SKILL.md) for new skills. Each `SKILL.md` must include the required frontmatter and sections in the template. Keep instructions concise, use exact current paths and commands, and link to repository sources that define the behavior.
 
-There is no separate skill review workflow or owner registry. Review a skill when its source files or the referenced process changes, and update `last-reviewed` when you verify or revise its content.
+There is no separate owner registry; the motion-in-ocean team owns these skills. When a source-of-truth file changes, review the affected skill in the same change and update `last-reviewed` after verifying its instructions. The documentation checks require compatible paths to exist, keep skill names aligned with their directories and this index, and flag reviews older than 100 days.
 
-The regression checks in [`tests/test_skills_documentation.py`](../../tests/test_skills_documentation.py) verify required skill structure, local links, referenced Make/npm commands, and Mermaid extraction and validation. Run them with:
+The regression checks in [`tests/test_skills_documentation.py`](../../tests/test_skills_documentation.py) verify required skill structure, local links, compatible paths, index entries, review dates, referenced Make/npm commands, and Mermaid extraction and validation. Release checks also ensure the skills describe the manual GitHub Release process. Run them with:
 
 ```bash
 python -m pytest tests/test_skills_documentation.py -q

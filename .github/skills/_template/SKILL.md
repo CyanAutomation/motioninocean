@@ -35,7 +35,7 @@ Describe the business/engineering goal and expected outcome.
 
 ## Source of truth
 
-List the repository files that govern this skill's behavior. Include specific paths/globs and why they matter.
+List the repository files that govern this skill's behavior. Include specific paths/globs and why they matter. Keep `compatible-repo-areas` limited to paths or globs that currently match files in this repository.
 
 - `.github/workflows/*.yml` — CI, release, and automation behavior.
 - `README.md` — canonical setup and usage guidance.
@@ -55,7 +55,7 @@ List the repository files that govern this skill's behavior. Include specific pa
 ## Maintenance notes
 
 - Review and refresh this skill at least quarterly and whenever source-of-truth files change.
-- Update `last-reviewed` whenever any section is modified.
+- Update `last-reviewed` only after verifying the instructions against their sources; CI flags reviews older than 100 days.
 
 ## Writing standards
 
