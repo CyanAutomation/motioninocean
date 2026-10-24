@@ -56,12 +56,8 @@ def test_manual_release_guide_uses_github_ui_and_current_image_tags() -> None:
 
 def test_release_skills_match_manual_github_release_process() -> None:
     """Skills describe manual GitHub releases and only automated image publishing."""
-    operator = (REPO_ROOT / ".github/skills/release-operator/SKILL.md").read_text(
-        encoding="utf-8"
-    )
-    publisher = (REPO_ROOT / ".github/skills/release-publish/SKILL.md").read_text(
-        encoding="utf-8"
-    )
+    operator = (REPO_ROOT / ".github/skills/release-operator/SKILL.md").read_text(encoding="utf-8")
+    publisher = (REPO_ROOT / ".github/skills/release-publish/SKILL.md").read_text(encoding="utf-8")
 
     assert "GitHub Releases UI" in operator
     assert "`vX.Y`" in operator
