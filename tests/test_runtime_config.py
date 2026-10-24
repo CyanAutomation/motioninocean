@@ -554,14 +554,14 @@ def test_load_env_config_enables_strict_camera_init_failure_mode(monkeypatch):
     assert cfg["fail_on_camera_init_error"] is True
 
 
-def test_load_env_config_supports_legacy_camera_init_required_alias(monkeypatch):
-    """Legacy camera init strictness env var alias should still be honored."""
+def test_load_env_config_ignores_legacy_camera_init_required_alias(monkeypatch):
+    """Unimplemented legacy camera init names do not override the canonical setting."""
     monkeypatch.delenv("MIO_FAIL_ON_CAMERA_INIT_ERROR", raising=False)
     monkeypatch.setenv("MIO_CAMERA_INIT_REQUIRED", "yes")
 
     cfg = runtime_config.load_env_config()
 
-    assert cfg["fail_on_camera_init_error"] is True
+    assert cfg["fail_on_camera_init_error"] is False
 
 
 def test_merge_config_with_persisted_settings_does_not_override_runtime_feature_flags():

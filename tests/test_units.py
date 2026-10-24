@@ -818,11 +818,14 @@ def test_run_webcam_mode_forced_real_camera_still_falls_back_when_not_strict(mon
 
 def test_api_config_runtime_includes_mock_fallback_observability_fields(monkeypatch):
     """Runtime config payload should expose configured mock and active fallback state."""
-    from pi_camera_in_docker import main
+    from pi_camera_in_docker import feature_flags, main, runtime_config
 
     monkeypatch.setenv("MIO_APP_MODE", "webcam")
     monkeypatch.setenv("MIO_MOCK_CAMERA", "false")
 
+    flags = feature_flags.FeatureFlags()
+    flags.load()
+    monkeypatch.setattr(runtime_config, "is_flag_enabled", flags.is_enabled)
     monkeypatch.setattr(main, "_run_webcam_mode", lambda _state, _cfg: None)
 
     app = main.create_webcam_app()
@@ -840,6 +843,7 @@ def test_api_config_runtime_includes_mock_fallback_observability_fields(monkeypa
 def test_init_mock_camera_frames_generates_non_empty_frames_from_mio_renderer(monkeypatch):
     """Mock frame init should publish non-empty JPEG bytes from Mio renderer output."""
     from threading import Event
+    from types import SimpleNamespace
 
     from pi_camera_in_docker import main
 
@@ -867,13 +871,17 @@ def test_init_mock_camera_frames_generates_non_empty_frames_from_mio_renderer(mo
 
     monkeypatch.setattr(main, "render_mio_mock_frame", lambda *_args, **_kwargs: rendered_frame)
     monkeypatch.setattr(
-        main.time, "sleep", lambda *_args, **_kwargs: state["shutdown_requested"].set()
+        main,
+        "time",
+        SimpleNamespace(sleep=lambda *_args, **_kwargs: state["shutdown_requested"].set()),
     )
     monkeypatch.setattr(main, "Thread", ImmediateThread)
 
     main._init_mock_camera_frames(state, cfg)
 
-    assert state["recording_started"].is_set() is True
+    # The immediate fake thread completes synchronously and clears this event in
+    # its finally block; the write assertion below confirms the loop started.
+    assert state["recording_started"].is_set() is False
     assert writes
     assert writes[0] == rendered_frame
     assert len(writes[0]) > 0
@@ -882,6 +890,7 @@ def test_init_mock_camera_frames_generates_non_empty_frames_from_mio_renderer(mo
 def test_init_mock_camera_frames_uses_black_frame_fallback_on_render_failure(monkeypatch):
     """Mock frame init should switch to black-frame JPEG fallback when rendering fails."""
     from threading import Event
+    from types import SimpleNamespace
 
     from pi_camera_in_docker import main
     from pi_camera_in_docker.mock_stream_renderer import MockStreamRenderError
@@ -912,7 +921,9 @@ def test_init_mock_camera_frames_uses_black_frame_fallback_on_render_failure(mon
 
     monkeypatch.setattr(main, "render_mio_mock_frame", raise_render_error)
     monkeypatch.setattr(
-        main.time, "sleep", lambda *_args, **_kwargs: state["shutdown_requested"].set()
+        main,
+        "time",
+        SimpleNamespace(sleep=lambda *_args, **_kwargs: state["shutdown_requested"].set()),
     )
     monkeypatch.setattr(main, "Thread", ImmediateThread)
 

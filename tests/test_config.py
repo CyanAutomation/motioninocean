@@ -865,11 +865,13 @@ def test_setup_ui_detect_camera_devices_collects_v4l_subdev(monkeypatch, workspa
             "/dev/dri",
         }
 
-        monkeypatch.setattr(main.os.path, "isdir", lambda p: p == "/dev/dma_heap")
+        monkeypatch.setattr(main.Path, "is_dir", lambda path: str(path) == "/dev/dma_heap")
+        monkeypatch.setattr(main.Path, "exists", lambda path: str(path) in existing_paths)
         monkeypatch.setattr(
-            main.os, "listdir", lambda p: ["system"] if p == "/dev/dma_heap" else []
+            main.Path,
+            "iterdir",
+            lambda path: iter([main.Path("system")]) if str(path) == "/dev/dma_heap" else iter([]),
         )
-        monkeypatch.setattr(main.os.path, "exists", lambda p: p in existing_paths)
 
         detected = main._detect_camera_devices()
 
