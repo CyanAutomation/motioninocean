@@ -241,13 +241,16 @@ def test_webcam_metrics_stream_matches_metrics_snapshot_contract():
 
 def test_api_config_runtime_mock_camera_reflects_env_for_ui_state(monkeypatch, tmp_path):
     """/api/config runtime.mock_camera should mirror env for frontend mock-state rendering."""
-    from pi_camera_in_docker import main
+    from pi_camera_in_docker import feature_flags, main, runtime_config
 
     monkeypatch.setenv("MIO_APP_MODE", "webcam")
     monkeypatch.setenv("MIO_MOCK_CAMERA", "true")
     monkeypatch.setenv("MIO_NODE_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("MIO_APPLICATION_SETTINGS_PATH", str(tmp_path / "application-settings.json"))
 
+    flags = feature_flags.FeatureFlags()
+    flags.load()
+    monkeypatch.setattr(runtime_config, "is_flag_enabled", flags.is_enabled)
     monkeypatch.setattr(main, "_run_webcam_mode", lambda _state, _cfg: None)
 
     app = main.create_webcam_app()

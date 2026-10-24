@@ -120,6 +120,9 @@ addopts = [
     "--strict-markers",
     "--tb=short",
 ]
+markers = [
+    "requires_camera_hardware: requires Picamera2 and physical camera hardware",
+]
 
 [tool.bandit]
 # Bandit security linter configuration

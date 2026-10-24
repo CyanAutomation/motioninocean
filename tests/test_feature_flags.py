@@ -231,9 +231,11 @@ class TestFeatureFlagsIntegration:
         monkeypatch.setenv("MIO_APP_MODE", "webcam")
 
         feature_flags_module = importlib.import_module("pi_camera_in_docker.feature_flags")
+        runtime_config_module = importlib.import_module("pi_camera_in_docker.runtime_config")
         main_module = importlib.import_module("pi_camera_in_docker.main")
 
         importlib.reload(feature_flags_module)
+        importlib.reload(runtime_config_module)
         reloaded_main = importlib.reload(main_module)
 
         cfg = reloaded_main._load_config()
