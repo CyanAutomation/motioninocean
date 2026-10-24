@@ -14,7 +14,7 @@ class FakeCameraComponents(NamedTuple):
 
 def build_fake_camera_components(
     *,
-    frame_bytes: bytes = b"\xff\xd8fake-camera-frame",
+    frame_bytes: Optional[bytes] = b"\xff\xd8fake-camera-frame",
     camera_info: Optional[list[dict[str, str]]] = None,
     failure_stage: Optional[str] = None,
 ) -> FakeCameraComponents:
@@ -25,7 +25,8 @@ def build_fake_camera_components(
     selected startup stage.
 
     Args:
-        frame_bytes: Frame to emit through the app's output during recording.
+        frame_bytes: Frame to emit through the app's output during recording. ``None`` disables
+            frame delivery, while an empty byte string is emitted as supplied.
         camera_info: Camera inventory returned by ``global_camera_info``.
         failure_stage: Optional startup method to fail in. Supported values are
             ``create_video_configuration``, ``configure``, and ``start_recording``.
@@ -85,7 +86,7 @@ def build_fake_camera_components(
             self.encoder = encoder
             self.file_output = output
             self.started = True
-            if frame_bytes:
+            if frame_bytes is not None:
                 output.write(frame_bytes)
 
         def stop_recording(self) -> None:

@@ -57,9 +57,9 @@ def _install_fake_camera(monkeypatch, components):
     )
 
 
-def test_real_camera_lifecycle_with_fake_camera(monkeypatch):
+@pytest.mark.parametrize("frame", [b"fake-jpeg-frame", b""])
+def test_real_camera_lifecycle_with_fake_camera(monkeypatch, frame):
     """Camera setup sends deterministic frames through the normal FrameBuffer."""
-    frame = b"fake-jpeg-frame"
     components = build_fake_camera_components(frame_bytes=frame)
     _install_fake_camera(monkeypatch, components)
     state = _camera_state()
