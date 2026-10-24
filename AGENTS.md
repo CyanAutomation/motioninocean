@@ -313,6 +313,10 @@ async function fetchNodeStatus(
 - **Integration tests**: Real Flask app, mock camera, e2e flows
 - **Frontend tests and UI review**: Node-based frontend unit tests plus manual review of the streaming viewer and management dashboard
 
+Camera lifecycle unit tests can use `tests/fake_camera.py` to exercise the Picamera2 setup path
+without physical hardware. `MIO_MOCK_CAMERA=true` instead tests the synthetic-frame stream path.
+Only tests that require physical hardware should use the `requires_camera_hardware` marker.
+
 ### Run Tests
 
 ```bash

@@ -86,31 +86,25 @@ def pytest_collection_modifyitems(config, items):
     except (ModuleNotFoundError, ImportError):
         has_picamera2 = False
 
+    has_camera_hardware = Path("/dev/vchiq").exists() or any(
+        device
+        for pattern in ("video*", "media*", "v4l-subdev*")
+        for device in Path("/dev").glob(pattern)
+    )
+
     # Check if docker-compose.yaml exists
     docker_compose_exists = (WORKSPACE_ROOT / "docker-compose.yaml").exists()
 
-    skip_no_camera = pytest.mark.skip(reason="picamera2 not available")
+    skip_no_camera = pytest.mark.skip(reason="Picamera2 or camera hardware not available")
     skip_no_docker_compose = pytest.mark.skip(reason="docker-compose.yaml not found")
 
     for item in items:
-        # Skip camera/picamera2-dependent tests if picamera2 is not available
-        if not has_picamera2:
-            test_name = item.nodeid.lower()
-            # Skip tests that explicitly require camera hardware
-            if any(
-                keyword in test_name
-                for keyword in [
-                    "camera",
-                    "picamera2",
-                    "real_camera",
-                    "init_real_camera",
-                    "run_webcam_mode",
-                    "webcam_mode_env",
-                    "management_mode_boots",
-                    "shutdown_camera",
-                ]
-            ):
-                item.add_marker(skip_no_camera)
+        # Skip only tests explicitly marked as requiring physical camera hardware.
+        # Name-based matching also skipped software tests that use camera fakes.
+        if not (has_picamera2 and has_camera_hardware) and item.get_closest_marker(
+            "requires_camera_hardware"
+        ):
+            item.add_marker(skip_no_camera)
 
         # Skip docker integration tests if docker-compose.yaml doesn't exist
         if not docker_compose_exists:

@@ -191,6 +191,8 @@ Use canonical `MIO_*` application variables such as `MIO_APP_MODE`, `MIO_PORT`, 
 
 See the [runtime environment variable reference](docs/ENVIRONMENT_VARIABLES_DOCUMENTATION_COMPLETE.md) for supported variables and the [deployment guide](docs/guides/DEPLOYMENT.md) for migration details.
 
+For hardware-free camera development and test coverage, see the [testing guide](docs/guides/TESTING.md).
+
 ## Contributing
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a pull request, and review the [Code of Conduct](CODE_OF_CONDUCT.md).
