@@ -2,16 +2,10 @@
 
 **Raspberry Pi CSI Camera Streaming in Docker (Picamera2 / libcamera)**
 
-**Project status:** Early development. See [SECURITY.md](SECURITY.md) for supported security updates and vulnerability reporting.
-
 [![CI](https://github.com/CyanAutomation/motioninocean/workflows/CI%20-%20Test%20and%20Lint/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/ci.yml)
 [![Security Scan](https://github.com/CyanAutomation/motioninocean/workflows/Security%20-%20Docker%20Image%20Scan/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/security-scan.yml)
 [![Build and publish Docker image](https://github.com/CyanAutomation/motioninocean/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/CyanAutomation/motioninocean/actions/workflows/docker-publish.yml)
 
-[![Docker Image](https://img.shields.io/badge/GHCR-motion--in--ocean-informational)](https://github.com/CyanAutomation/motioninocean/pkgs/container/motioninocean)
-[![Docker Hub](https://img.shields.io/docker/v/cyanautomation/motioninocean?label=Docker%20Hub&logo=docker)](https://hub.docker.com/r/cyanautomation/motioninocean)
-[![GitHub Release](https://img.shields.io/github/v/release/CyanAutomation/motioninocean)](https://github.com/CyanAutomation/motioninocean/releases/latest)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## About
 
