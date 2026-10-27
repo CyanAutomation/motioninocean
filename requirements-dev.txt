@@ -11,7 +11,7 @@
 PyYAML>=6.0.3
 
 # Packaging and build tools
-setuptools==84.0.0
+setuptools==84.2.1
 
 # Testing framework
 pytest==9.1.1
