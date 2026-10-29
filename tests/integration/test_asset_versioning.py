@@ -52,3 +52,15 @@ def test_unversioned_or_stale_static_response_revalidates(full_config):
         client.get("/static/css/base.css?v=previous").headers["Cache-Control"]
         == REVALIDATE_CACHE_CONTROL
     )
+
+
+def test_dynamic_pages_and_apis_do_not_allow_shared_or_stale_caching(full_config):
+    app = create_webcam_app(full_config)
+    client = app.test_client()
+
+    assert client.get("/").headers["Cache-Control"] == "no-cache"
+    assert client.get("/api/config").headers["Cache-Control"] == "no-store"
+    assert client.get("/health").headers["Cache-Control"] == "no-store"
+    schema = client.get("/api/v1/settings/schema")
+    assert schema.headers["Cache-Control"] == "public, max-age=3600"
+    assert client.get("/api/changelog").headers["Cache-Control"] == "private, no-cache"

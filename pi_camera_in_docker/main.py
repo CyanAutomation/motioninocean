@@ -533,6 +533,28 @@ def _init_flask_app(_config: Dict[str, Any]) -> Tuple[Flask, RateLimiterProtocol
     # this deployment can be cached immutably; unversioned URLs must revalidate.
     register_asset_versioning(app)
 
+    @app.after_request
+    def _set_dynamic_cache_policy(response):
+        """Keep rendered and API responses from leaking or persisting stale data."""
+        if request.endpoint == "static":
+            return response
+        if request.path == "/api/v1/settings/schema":
+            # The schema endpoint installs its own public one-hour validator policy.
+            return response
+        if request.path == "/api/changelog":
+            response.headers["Cache-Control"] = "private, no-cache"
+        elif request.path.startswith("/api/") or request.path in {
+            "/health",
+            "/ready",
+            "/metrics",
+            "/version",
+            "/api/version",
+        }:
+            response.headers["Cache-Control"] = "no-store"
+        elif request.method == "GET" and "text/html" in response.content_type:
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     limiter = create_rate_limiter(
         app,
         key_func=get_remote_address,

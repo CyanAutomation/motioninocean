@@ -1,4 +1,4 @@
-export const CONFIG_POLL_INTERVAL_MS = 5000;
+export const CONFIG_POLL_INTERVAL_MS = 15000;
 /** Start one recurring configuration refresh, if polling is not already active. */
 export function startConfigPolling(state, dependencies) {
     if (state.configPollingInterval)

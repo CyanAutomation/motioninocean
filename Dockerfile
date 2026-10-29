@@ -242,10 +242,12 @@ COPY design/mio/*.svg /app/pi_camera_in_docker/static/img/mio/
 COPY docs/openapi.json /app/docs/openapi.json
 COPY docs/CHANGELOG.md /app/docs/CHANGELOG.md
 COPY VERSION /app/
+COPY scripts/generate_asset_version.py /usr/local/bin/generate_asset_version.py
 COPY scripts/healthcheck.py /app/healthcheck.py
 COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY scripts/validate-stack.py /usr/local/bin/validate-stack.py
-RUN chmod +x /app/healthcheck.py
+RUN python3 /usr/local/bin/generate_asset_version.py /app/pi_camera_in_docker/static /app/ASSET_VERSION && \
+    chmod +x /app/healthcheck.py
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/validate-stack.py
 

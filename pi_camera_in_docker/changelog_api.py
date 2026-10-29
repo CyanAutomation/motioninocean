@@ -36,6 +36,7 @@ DEFAULT_REMOTE_FAILURE_BACKOFF_SECONDS = 10.0
 _CHANGELOG_CACHE_MAX_ENTRIES = 32
 _CHANGELOG_CACHE: OrderedDict[tuple[Any, ...], tuple[float | None, dict[str, Any]]] = OrderedDict()
 _CHANGELOG_CACHE_LOCK = RLock()
+_CHANGELOG_CACHE_COUNTS = {"hits": 0, "misses": 0, "lookups": 0}
 
 
 def _cache_get(key: tuple[Any, ...], now: float) -> dict[str, Any] | None:
@@ -43,13 +44,33 @@ def _cache_get(key: tuple[Any, ...], now: float) -> dict[str, Any] | None:
     with _CHANGELOG_CACHE_LOCK:
         cached = _CHANGELOG_CACHE.get(key)
         if cached is None:
+            _record_cache_lookup(hit=False)
             return None
         expires_at, payload = cached
         if expires_at is not None and now >= expires_at:
             del _CHANGELOG_CACHE[key]
+            _record_cache_lookup(hit=False)
             return None
         _CHANGELOG_CACHE.move_to_end(key)
+        _record_cache_lookup(hit=True)
         return deepcopy(payload)
+
+
+def _record_cache_lookup(*, hit: bool) -> None:
+    """Count cache effectiveness and periodically report aggregate process metrics."""
+    with _CHANGELOG_CACHE_LOCK:
+        _CHANGELOG_CACHE_COUNTS["lookups"] += 1
+        _CHANGELOG_CACHE_COUNTS["hits" if hit else "misses"] += 1
+        count = _CHANGELOG_CACHE_COUNTS["lookups"]
+        if count % 100 == 0:
+            logger.info(
+                "changelog_cache_metrics",
+                extra={
+                    "changelog_cache_hits": _CHANGELOG_CACHE_COUNTS["hits"],
+                    "changelog_cache_misses": _CHANGELOG_CACHE_COUNTS["misses"],
+                    "changelog_cache_entries": len(_CHANGELOG_CACHE),
+                },
+            )
 
 
 def _cache_put(
@@ -67,6 +88,7 @@ def _clear_changelog_cache() -> None:
     """Clear process-level changelog state for isolated application tests."""
     with _CHANGELOG_CACHE_LOCK:
         _CHANGELOG_CACHE.clear()
+        _CHANGELOG_CACHE_COUNTS.update(hits=0, misses=0, lookups=0)
 
 
 def parse_changelog_markdown(

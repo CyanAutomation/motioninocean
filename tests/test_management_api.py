@@ -4,6 +4,8 @@ import socket
 import ssl
 import sys
 import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -111,6 +113,103 @@ def test_versioned_settings_schema_supports_conditional_requests(monkeypatch, tm
 
     assert nonmatching_response.status_code == 200
     assert nonmatching_response.headers["ETag"] == first_response.headers["ETag"]
+
+
+def test_status_route_reuses_short_lived_successful_upstream_probe(monkeypatch, tmp_path):
+    client, management_api = _new_management_client(monkeypatch, tmp_path)
+    payload = {
+        "id": "cache-node",
+        "name": "Cache Node",
+        "base_url": "http://8.8.8.8:8000",
+        "auth": {"type": "none"},
+        "labels": {},
+        "last_seen": datetime.now(timezone.utc).isoformat(),
+        "capabilities": ["stream"],
+        "transport": "http",
+    }
+    created = client.post("/api/v1/webcams", json=payload, headers=_auth_headers())
+    assert created.status_code == 201, created.get_json()
+
+    calls = 0
+
+    def fake_status(_node):
+        nonlocal calls
+        calls += 1
+        return {"status": "ok", "stream_available": True}, None
+
+    monkeypatch.setattr(management_api, "_status_for_webcam", fake_status)
+    management_api._STATUS_CACHE.clear()
+
+    first = client.get("/api/v1/webcams/cache-node/status", headers=_auth_headers())
+    second = client.get("/api/v1/webcams/cache-node/status", headers=_auth_headers())
+
+    assert first.status_code == second.status_code == 200
+    assert first.headers["X-MIO-Status-Cache"] == "miss"
+    assert second.headers["X-MIO-Status-Cache"] == "hit"
+    assert second.headers["Cache-Control"] == "no-store"
+    assert calls == 1
+
+
+def test_concurrent_status_requests_share_one_upstream_probe(monkeypatch, tmp_path):
+    _, management_api = _new_management_client(monkeypatch, tmp_path)
+    management_api._STATUS_CACHE.clear()
+    management_api._STATUS_INFLIGHT.clear()
+    node = {"id": "concurrent-node", "base_url": "http://8.8.8.8", "auth": {"type": "none"}}
+    calls = 0
+    started = threading.Event()
+
+    def slow_status(_node):
+        nonlocal calls
+        calls += 1
+        started.set()
+        time.sleep(0.05)
+        return {"status": "ok"}, None
+
+    monkeypatch.setattr(management_api, "_status_for_webcam", slow_status)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(management_api._status_for_webcam_cached, node, "test-registry")
+        assert started.wait(timeout=1)
+        second = executor.submit(management_api._status_for_webcam_cached, node, "test-registry")
+        first_result, second_result = first.result(), second.result()
+
+    assert calls == 1
+    assert {first_result[2], second_result[2]} == {"miss", "coalesced"}
+
+
+def test_status_probe_wait_timeout_returns_without_starting_duplicate_probe(monkeypatch, tmp_path):
+    _, management_api = _new_management_client(monkeypatch, tmp_path)
+    management_api._STATUS_CACHE.clear()
+    management_api._STATUS_INFLIGHT.clear()
+    node = {"id": "slow-node", "base_url": "http://8.8.8.8", "auth": {"type": "none"}}
+    key = management_api._status_cache_key(node, "test-registry")
+
+    class TimedOutEvent:
+        def wait(self, timeout=None):
+            management_api._STATUS_INFLIGHT.pop(key, None)
+            return False
+
+        def set(self):
+            return None
+
+    flight = management_api._StatusProbeFlight()
+    flight.event = TimedOutEvent()
+    management_api._STATUS_INFLIGHT[key] = flight
+    calls = 0
+
+    def unexpected_probe(_node):
+        nonlocal calls
+        calls += 1
+        return {"status": "ok"}, None
+
+    monkeypatch.setattr(management_api, "_status_for_webcam", unexpected_probe)
+
+    payload, error, cache_state = management_api._status_for_webcam_cached(node, "test-registry")
+
+    assert payload == {}
+    assert error is not None
+    assert error[0] == "STATUS_PROBE_WAIT_TIMEOUT"
+    assert cache_state == "timeout"
+    assert calls == 0
 
 
 @pytest.mark.parametrize(

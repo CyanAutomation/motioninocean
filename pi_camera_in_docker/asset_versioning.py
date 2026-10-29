@@ -1,6 +1,7 @@
 """Version and cache static frontend assets."""
 
 import hashlib
+import re
 from pathlib import Path
 
 from flask import Flask, request
@@ -49,7 +50,16 @@ def register_asset_versioning(app: Flask) -> str:
         message = "Asset versioning requires a Flask static directory"
         raise RuntimeError(message)
 
-    version = derive_asset_version(Path(app.static_folder))
+    version_file = Path(app.root_path).parent / "ASSET_VERSION"
+    try:
+        version = version_file.read_text(encoding="ascii").strip()
+    except OSError:
+        # Local development remains convenient; production images bake this value
+        # during docker build so startup does not read and hash every asset.
+        version = derive_asset_version(Path(app.static_folder))
+    if not re.fullmatch(r"[0-9a-f]{16}", version):
+        message = f"Invalid static asset version in {version_file}"
+        raise RuntimeError(message)
     app.config["ASSET_VERSION"] = version
 
     @app.url_defaults
