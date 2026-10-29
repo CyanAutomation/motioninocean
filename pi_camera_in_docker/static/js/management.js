@@ -840,7 +840,7 @@ async function refreshManagementData() {
     await fetchOverview();
 }
 function startStatusRefreshInterval() {
-    if (!statusRefreshIntervalId) {
+    if (!document.hidden && !statusRefreshIntervalId) {
         statusRefreshIntervalId = window.setInterval(() => {
             refreshStatuses({ fromInterval: true });
         }, 5000);
@@ -1223,6 +1223,15 @@ function initializeManagementState() {
 async function init() {
     if (!validateManagementDom(document, console, showFeedback))
         return;
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            stopStatusRefreshInterval();
+        }
+        else {
+            void refreshStatuses();
+            startStatusRefreshInterval();
+        }
+    });
     await initializeManagementDashboard({
         elements: {
             webcamForm: requireElementById("webcam-form"),

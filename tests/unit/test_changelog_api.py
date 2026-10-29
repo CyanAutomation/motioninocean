@@ -155,6 +155,7 @@ def test_local_changelog_cache_hits_and_invalidates_on_file_change(
     changelog_path.write_text("## [2.0.0]\n- Two, changed\n", encoding="utf-8")
     assert load_changelog_entries(changelog_path)["entries"][0]["version"] == "2.0.0"
     assert parse_calls == 2
+    assert changelog_api._CHANGELOG_CACHE_COUNTS == {"hits": 1, "misses": 2, "lookups": 3}
 
 
 def test_remote_cache_expires_using_monotonic_time(monkeypatch, tmp_path: Path) -> None:

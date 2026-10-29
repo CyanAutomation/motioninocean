@@ -5,6 +5,7 @@ discovered nodes, querying webcam status, and executing actions on remote nodes.
 Includes comprehensive SSRF protection, DNS pinning, and secure HTTP request handling.
 """
 
+import hashlib
 import http.client
 import ipaddress
 import json
@@ -12,8 +13,12 @@ import logging
 import os
 import socket
 import ssl
+import threading
+import time
 import urllib.error
 import urllib.request
+from collections import OrderedDict
+from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple, cast
 from urllib.parse import quote, urlparse, urlunparse
@@ -32,6 +37,107 @@ CANONICAL_ALLOW_PRIVATE_IPS_ENV_VAR = "MIO_ALLOW_PRIVATE_IPS"
 LEGACY_ALLOW_PRIVATE_IPS_ENV_VAR = "MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS"
 
 logger = logging.getLogger(__name__)
+_STATUS_CACHE_TTL_SECONDS = 2.0
+_STATUS_CACHE_MAX_ENTRIES = 256
+_STATUS_CACHE: OrderedDict[str, tuple[float, dict[str, Any]]] = OrderedDict()
+_STATUS_CACHE_LOCK = threading.RLock()
+
+
+class _StatusProbeFlight:
+    """Share one concurrent upstream probe result among callers for the same node."""
+
+    def __init__(self) -> None:
+        self.event = threading.Event()
+        self.payload: dict[str, Any] | None = None
+        self.error: Optional[Tuple] = None
+        self.completed = False
+
+
+_STATUS_INFLIGHT: dict[str, _StatusProbeFlight] = {}
+_STATUS_CACHE_COUNTS = {"hits": 0, "misses": 0, "requests": 0}
+
+
+def _status_cache_key(node: Dict[str, Any], cache_scope: str = "") -> str:
+    """Hash all node connection settings without retaining credentials in cache keys."""
+    serialized = json.dumps(
+        {"scope": cache_scope, "node": node}, sort_keys=True, separators=(",", ":"), default=str
+    )
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def _status_for_webcam_cached(
+    node: Dict[str, Any], cache_scope: str = ""
+) -> Tuple[Dict[str, Any], Optional[Tuple], str]:
+    """Reuse successful probes briefly and coalesce concurrent dashboard requests."""
+    key = _status_cache_key(node, cache_scope)
+    while True:
+        with _STATUS_CACHE_LOCK:
+            cached = _STATUS_CACHE.get(key)
+            if cached is not None:
+                expires_at, payload = cached
+                if time.monotonic() < expires_at:
+                    _STATUS_CACHE.move_to_end(key)
+                    _STATUS_CACHE_COUNTS["hits"] += 1
+                    _STATUS_CACHE_COUNTS["requests"] += 1
+                    _log_status_cache_metrics_if_due()
+                    return deepcopy(payload), None, "hit"
+                del _STATUS_CACHE[key]
+
+            inflight = _STATUS_INFLIGHT.get(key)
+            if inflight is None:
+                inflight = _StatusProbeFlight()
+                _STATUS_INFLIGHT[key] = inflight
+                _STATUS_CACHE_COUNTS["misses"] += 1
+                _STATUS_CACHE_COUNTS["requests"] += 1
+                _log_status_cache_metrics_if_due()
+                is_owner = True
+            else:
+                _STATUS_CACHE_COUNTS["hits"] += 1
+                _STATUS_CACHE_COUNTS["requests"] += 1
+                _log_status_cache_metrics_if_due()
+                is_owner = False
+
+        if is_owner:
+            try:
+                payload, error = _status_for_webcam(node)
+                inflight.payload = deepcopy(payload)
+                inflight.error = error
+                inflight.completed = True
+                if error is None:
+                    with _STATUS_CACHE_LOCK:
+                        _STATUS_CACHE[key] = (
+                            time.monotonic() + _STATUS_CACHE_TTL_SECONDS,
+                            deepcopy(payload),
+                        )
+                        _STATUS_CACHE.move_to_end(key)
+                        while len(_STATUS_CACHE) > _STATUS_CACHE_MAX_ENTRIES:
+                            _STATUS_CACHE.popitem(last=False)
+                return payload, error, "miss"
+            finally:
+                with _STATUS_CACHE_LOCK:
+                    _STATUS_INFLIGHT.pop(key, None)
+                    inflight.event.set()
+
+        # The owner will populate the cache before notifying waiters. If the
+        # probe failed, concurrent callers still share its result; later requests
+        # retry because failures are deliberately not cached.
+        inflight.event.wait(timeout=10)
+        if inflight.completed:
+            return deepcopy(inflight.payload or {}), inflight.error, "coalesced"
+
+
+def _log_status_cache_metrics_if_due() -> None:
+    """Periodically report aggregate hit rate without logging node identifiers."""
+    count = _STATUS_CACHE_COUNTS["requests"]
+    if count and count % 100 == 0:
+        logger.info(
+            "management_status_cache_metrics",
+            extra={
+                "status_cache_hits": _STATUS_CACHE_COUNTS["hits"],
+                "status_cache_misses": _STATUS_CACHE_COUNTS["misses"],
+                "status_cache_entries": len(_STATUS_CACHE),
+            },
+        )
 
 
 def _parse_env_bool(raw: str) -> bool:
@@ -1867,10 +1973,12 @@ def create_management_blueprint(
                 "WEBCAM_NOT_FOUND", f"webcam {webcam_id} not found", 404, webcam_id=webcam_id
             )
 
-        result, error = _status_for_webcam(webcam)
+        result, error, cache_state = _status_for_webcam_cached(webcam, registry_path)
         if error:
             return _error_response(*error)
-        return jsonify(result), 200
+        response = jsonify(result)
+        response.headers["X-MIO-Status-Cache"] = cache_state
+        return response, 200
 
     @bp.route("/webcams/<webcam_id>/diagnose", methods=["GET"])
     @_maybe_limit("100/minute")

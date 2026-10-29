@@ -1,9 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  CONFIG_POLL_INTERVAL_MS,
   refreshConfigPanel,
   type ConfigPollingDependencies,
 } from "../../frontend/src/config-polling.ts";
+
+test("configuration polling uses a lower-cost 15 second cadence", () => {
+  assert.equal(CONFIG_POLL_INTERVAL_MS, 15000);
+});
 
 test("refreshConfigPanel marks initial load pending and requests config update", async () => {
   let updateCalls = 0;
