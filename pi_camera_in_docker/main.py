@@ -544,7 +544,11 @@ def _init_flask_app(_config: Dict[str, Any]) -> Tuple[Flask, RateLimiterProtocol
         if request.path == "/api/changelog":
             response.headers["Cache-Control"] = "private, no-cache"
         elif request.path.startswith("/api/") or request.path in {
-            "/health", "/ready", "/metrics", "/version", "/api/version"
+            "/health",
+            "/ready",
+            "/metrics",
+            "/version",
+            "/api/version",
         }:
             response.headers["Cache-Control"] = "no-store"
         elif request.method == "GET" and "text/html" in response.content_type:

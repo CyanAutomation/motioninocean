@@ -38,6 +38,8 @@ def test_asset_registration_uses_precomputed_version_file(tmp_path, monkeypatch)
     def unexpected_runtime_hash(_directory):
         raise AssertionError("precomputed asset version should avoid startup hashing")
 
-    monkeypatch.setattr("pi_camera_in_docker.asset_versioning.derive_asset_version", unexpected_runtime_hash)
+    monkeypatch.setattr(
+        "pi_camera_in_docker.asset_versioning.derive_asset_version", unexpected_runtime_hash
+    )
 
     assert register_asset_versioning(app) == expected
