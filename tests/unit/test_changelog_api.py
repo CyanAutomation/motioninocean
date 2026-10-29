@@ -1,6 +1,7 @@
 """Unit tests for changelog markdown parsing."""
 
 from pathlib import Path
+from threading import Event, Thread
 
 import pytest
 
@@ -156,6 +157,30 @@ def test_local_changelog_cache_hits_and_invalidates_on_file_change(
     assert load_changelog_entries(changelog_path)["entries"][0]["version"] == "2.0.0"
     assert parse_calls == 2
     assert changelog_api._CHANGELOG_CACHE_COUNTS == {"hits": 1, "misses": 2, "lookups": 3}
+
+
+def test_changelog_cache_metric_updates_take_the_cache_lock() -> None:
+    """Metric updates remain safe if called directly from another request thread."""
+    started = Event()
+    finished = Event()
+    lock = changelog_api._CHANGELOG_CACHE_LOCK
+
+    def update_metric() -> None:
+        started.set()
+        changelog_api._record_cache_lookup(hit=True)
+        finished.set()
+
+    lock.acquire()
+    worker = Thread(target=update_metric)
+    worker.start()
+    try:
+        assert started.wait(timeout=1)
+        assert not finished.wait(timeout=0.05)
+    finally:
+        lock.release()
+    worker.join(timeout=1)
+
+    assert finished.is_set()
 
 
 def test_remote_cache_expires_using_monotonic_time(monkeypatch, tmp_path: Path) -> None:

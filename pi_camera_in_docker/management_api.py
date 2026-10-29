@@ -39,6 +39,7 @@ LEGACY_ALLOW_PRIVATE_IPS_ENV_VAR = "MOTION_IN_OCEAN_ALLOW_PRIVATE_IPS"
 logger = logging.getLogger(__name__)
 _STATUS_CACHE_TTL_SECONDS = 2.0
 _STATUS_CACHE_MAX_ENTRIES = 256
+_STATUS_PROBE_WAIT_SECONDS = 10.0
 _STATUS_CACHE: OrderedDict[str, tuple[float, dict[str, Any]]] = OrderedDict()
 _STATUS_CACHE_LOCK = threading.RLock()
 
@@ -121,9 +122,17 @@ def _status_for_webcam_cached(
         # The owner will populate the cache before notifying waiters. If the
         # probe failed, concurrent callers still share its result; later requests
         # retry because failures are deliberately not cached.
-        inflight.event.wait(timeout=10)
+        inflight.event.wait(timeout=_STATUS_PROBE_WAIT_SECONDS)
         if inflight.completed:
             return deepcopy(inflight.payload or {}), inflight.error, "coalesced"
+        error = (
+            "STATUS_PROBE_WAIT_TIMEOUT",
+            "Timed out waiting for the in-progress webcam status probe.",
+            503,
+            node.get("id"),
+            {"timeout_seconds": _STATUS_PROBE_WAIT_SECONDS},
+        )
+        return {}, error, "timeout"
 
 
 def _log_status_cache_metrics_if_due() -> None:

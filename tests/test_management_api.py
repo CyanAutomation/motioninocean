@@ -176,6 +176,42 @@ def test_concurrent_status_requests_share_one_upstream_probe(monkeypatch, tmp_pa
     assert {first_result[2], second_result[2]} == {"miss", "coalesced"}
 
 
+def test_status_probe_wait_timeout_returns_without_starting_duplicate_probe(monkeypatch, tmp_path):
+    _, management_api = _new_management_client(monkeypatch, tmp_path)
+    management_api._STATUS_CACHE.clear()
+    management_api._STATUS_INFLIGHT.clear()
+    node = {"id": "slow-node", "base_url": "http://8.8.8.8", "auth": {"type": "none"}}
+    key = management_api._status_cache_key(node, "test-registry")
+
+    class TimedOutEvent:
+        def wait(self, timeout=None):
+            management_api._STATUS_INFLIGHT.pop(key, None)
+            return False
+
+        def set(self):
+            return None
+
+    flight = management_api._StatusProbeFlight()
+    flight.event = TimedOutEvent()
+    management_api._STATUS_INFLIGHT[key] = flight
+    calls = 0
+
+    def unexpected_probe(_node):
+        nonlocal calls
+        calls += 1
+        return {"status": "ok"}, None
+
+    monkeypatch.setattr(management_api, "_status_for_webcam", unexpected_probe)
+
+    payload, error, cache_state = management_api._status_for_webcam_cached(node, "test-registry")
+
+    assert payload == {}
+    assert error is not None
+    assert error[0] == "STATUS_PROBE_WAIT_TIMEOUT"
+    assert cache_state == "timeout"
+    assert calls == 0
+
+
 @pytest.mark.parametrize(
     ("method_name", "changed_component"),
     [

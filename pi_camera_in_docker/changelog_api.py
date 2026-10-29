@@ -58,18 +58,19 @@ def _cache_get(key: tuple[Any, ...], now: float) -> dict[str, Any] | None:
 
 def _record_cache_lookup(*, hit: bool) -> None:
     """Count cache effectiveness and periodically report aggregate process metrics."""
-    _CHANGELOG_CACHE_COUNTS["lookups"] += 1
-    _CHANGELOG_CACHE_COUNTS["hits" if hit else "misses"] += 1
-    count = _CHANGELOG_CACHE_COUNTS["lookups"]
-    if count % 100 == 0:
-        logger.info(
-            "changelog_cache_metrics",
-            extra={
-                "changelog_cache_hits": _CHANGELOG_CACHE_COUNTS["hits"],
-                "changelog_cache_misses": _CHANGELOG_CACHE_COUNTS["misses"],
-                "changelog_cache_entries": len(_CHANGELOG_CACHE),
-            },
-        )
+    with _CHANGELOG_CACHE_LOCK:
+        _CHANGELOG_CACHE_COUNTS["lookups"] += 1
+        _CHANGELOG_CACHE_COUNTS["hits" if hit else "misses"] += 1
+        count = _CHANGELOG_CACHE_COUNTS["lookups"]
+        if count % 100 == 0:
+            logger.info(
+                "changelog_cache_metrics",
+                extra={
+                    "changelog_cache_hits": _CHANGELOG_CACHE_COUNTS["hits"],
+                    "changelog_cache_misses": _CHANGELOG_CACHE_COUNTS["misses"],
+                    "changelog_cache_entries": len(_CHANGELOG_CACHE),
+                },
+            )
 
 
 def _cache_put(
