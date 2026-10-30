@@ -309,7 +309,7 @@ function initializeManagementBearerToken() {
   setManagementBearerToken(fallbackInputToken);
 }
 
-function openUtilityPanel(title: string, htmlContent: string): void {
+function openUtilityPanel(title: string, content: Node): void {
   if (
     !(utilityPanel instanceof HTMLElement) ||
     !(utilityPanelTitle instanceof HTMLElement) ||
@@ -319,7 +319,7 @@ function openUtilityPanel(title: string, htmlContent: string): void {
   }
 
   utilityPanelTitle.textContent = title;
-  utilityPanelContent.innerHTML = htmlContent;
+  utilityPanelContent.replaceChildren(content);
   utilityPanel.classList.remove("hidden");
 }
 
@@ -331,37 +331,39 @@ function closeUtilityPanel() {
 }
 
 function openHelpPanel() {
-  openUtilityPanel(
-    "Connection Help",
-    `
-      <ul class="overview-list">
-        <li>Browser → Management: use the dashboard token (MANAGEMENT_AUTH_TOKEN) for management API requests.</li>
-        <li>Management → Webcam: configure each node's webcam bearer token to match that webcam's WEBCAM_CONTROL_PLANE_AUTH_TOKEN.</li>
-        <li>Use Diagnose on a node to inspect DNS, network, and API endpoint health.</li>
-        <li>Discovery approvals activate announced nodes; reject keeps them pending.</li>
-        <li>Private-IP and SSRF protections can block unsafe targets by policy.</li>
-      </ul>
-    `,
-  );
+  const list = document.createElement("ul");
+  list.className = "overview-list";
+  [
+    "Browser → Management: use the dashboard token (MANAGEMENT_AUTH_TOKEN) for management API requests.",
+    "Management → Webcam: configure each node's webcam bearer token to match that webcam's WEBCAM_CONTROL_PLANE_AUTH_TOKEN.",
+    "Use Diagnose on a node to inspect DNS, network, and API endpoint health.",
+    "Discovery approvals activate announced nodes; reject keeps them pending.",
+    "Private-IP and SSRF protections can block unsafe targets by policy.",
+  ].forEach((message) => {
+    const item = document.createElement("li");
+    item.textContent = message;
+    list.appendChild(item);
+  });
+  openUtilityPanel("Connection Help", list);
 }
 
 function openExportPanel() {
   if (!latestDiagnosticResult) {
-    openUtilityPanel(
-      "Export Diagnostic Report",
-      "<p>No diagnostic report is available yet. Run <strong>Diagnose</strong> for any node first.</p>",
-    );
+    const message = document.createElement("p");
+    message.textContent = "No diagnostic report is available yet. Run Diagnose for any node first.";
+    openUtilityPanel("Export Diagnostic Report", message);
     return;
   }
 
   const report = buildDiagnosticTextReport(latestDiagnosticResult);
-  openUtilityPanel(
-    "Export Diagnostic Report",
-    `
-      <p>Most recent diagnostic report is available below.</p>
-      <pre class="utility-panel__report">${escapeHtml(report)}</pre>
-    `,
-  );
+  const content = document.createElement("div");
+  const description = document.createElement("p");
+  description.textContent = "Most recent diagnostic report is available below.";
+  const reportElement = document.createElement("pre");
+  reportElement.className = "utility-panel__report";
+  reportElement.textContent = report;
+  content.append(description, reportElement);
+  openUtilityPanel("Export Diagnostic Report", content);
 }
 
 /**
