@@ -7,7 +7,7 @@ import { buildManagementSettingsPatch, hydrateManagementSettingsForm, } from "./
 import { renderDiagnosticResults as renderDiagnosticResultsUi } from "./management-diagnostic-renderer.js";
 import { getDiagnosticCheckRows, getDiagnosticSummaryState } from "./management-diagnostics.js";
 import { validateManagementDom } from "./management-dom.js";
-import { createManagementBearerTokenSession } from "./management-auth.js";
+import { createManagementBearerTokenSession, revealManagementTokenField, } from "./management-auth.js";
 import { isFailureStatus, normalizeWebcamStatusError, STATUS_SUBTYPE_CONFIG, statusClass, } from "./management-domain.js";
 function getElementById(id) {
     return document.getElementById(id);
@@ -40,6 +40,9 @@ const managementLayout = getElementById("management-layout");
 const webcamFormPanelContainer = getElementById("webcam-form-panel-container");
 const webcamFormContentWrapper = getElementById("webcam-form-content-wrapper");
 const webcamFormContent = getElementById("webcam-form-content");
+const webcamAdvancedOptions = getElementById("webcam-advanced-options");
+const managementTokenDisclosure = getElementById("management-token-disclosure");
+const showManagementTokenBtn = getElementById("show-management-token-btn");
 const editingWebcamIdInput = getElementById("editing-webcam-id");
 const diagnosticWebcamId = getElementById("diagnostic-webcam-id");
 const diagnosticContext = getElementById("diagnostic-context");
@@ -70,6 +73,7 @@ const scanDiscoveredBtn = getElementById("scan-discovered-btn");
 const discoveredList = getElementById("discovered-list");
 const discoveredNotes = getElementById("discovered-notes");
 const discoveredFeedback = getElementById("discovered-feedback");
+const discoveredSelectionPrompt = getElementById("discovered-selection-prompt");
 const discoveredApproveBtn = getElementById("discovered-approve-btn");
 const discoveredRejectBtn = getElementById("discovered-reject-btn");
 const discoveredLaterBtn = getElementById("discovered-later-btn");
@@ -94,7 +98,6 @@ const refreshSettingsBtn = getElementById("refresh-settings-btn");
 const settingsSaveBtn = getElementById("settings-save-btn");
 const settingsResetBtn = getElementById("settings-reset-btn");
 const settingsFeedback = getElementById("settings-feedback");
-const settingsManagementApiToken = getElementById("settings-management-api-token");
 const settingsDiscoveryEnabled = getElementById("settings-discovery-enabled");
 const settingsDiscoveryUrl = getElementById("settings-discovery-url");
 const settingsDiscoveryToken = getElementById("settings-discovery-token");
@@ -102,6 +105,7 @@ const settingsDiscoveryInterval = getElementById("settings-discovery-interval");
 const settingsRuntimeSummary = getElementById("settings-runtime-summary");
 const settingsValidationSummary = getElementById("settings-validation-summary");
 const settingsOverridesList = getElementById("settings-overrides-list");
+const settingsOverridesSummary = getElementById("settings-overrides-summary");
 const settingsTabButtons = document.querySelectorAll("[data-settings-tab]");
 const settingsAuthPanel = getElementById("settings-auth-panel");
 const settingsDiscoveryPanel = getElementById("settings-discovery-panel");
@@ -123,7 +127,7 @@ let activityFeed = [];
 let previousStatusByNode = new Map();
 let discoveredSnoozedIds = new Set();
 const managementBearerTokenSession = createManagementBearerTokenSession(() => globalThis.localStorage);
-const API_AUTH_HINT = "Management API request unauthorized. Provide a valid Management API Bearer Token, then click Refresh to retry.";
+const API_AUTH_HINT = "Management API request unauthorized. Open API access in the page header, enter a valid token, then refresh.";
 const DOCKER_BASE_URL_PATTERN = String.raw `docker://[^\s/:]+:\d+/[^\s/]+`;
 const DOCKER_BASE_URL_HINT = "Use format: docker://proxy-hostname:port/container-id";
 const NODE_FORM_COLLAPSED_STORAGE_KEY = "management.webcamFormCollapsed";
@@ -207,9 +211,6 @@ function getManagementBearerToken() {
 function syncManagementTokenInputs(token) {
     if (managementApiTokenInput instanceof HTMLInputElement) {
         managementApiTokenInput.value = token;
-    }
-    if (settingsManagementApiToken instanceof HTMLInputElement) {
-        settingsManagementApiToken.value = token;
     }
 }
 function setManagementBearerToken(token) {
@@ -585,6 +586,9 @@ function renderDiscoveredPanel() {
         actionButtons: [discoveredApproveBtn, discoveredRejectBtn, discoveredLaterBtn],
         escapeHtml,
     });
+    setTextContent(discoveredSelectionPrompt, selectedDiscoveredNodeId
+        ? "Actions apply to the selected device."
+        : "Select a device from the list to enable these actions.");
 }
 async function fetchOverview() {
     try {
@@ -671,6 +675,7 @@ function renderRuntimeSettingsChanges(changesPayload = {}) {
                 .join("")
             : "<li>No overrides.</li>";
     }
+    setTextContent(settingsOverridesSummary, overridden.length ? `${overridden.length} custom value(s)` : "No custom values");
 }
 async function fetchSettingsData() {
     try {
@@ -693,9 +698,6 @@ async function fetchSettingsData() {
     }
 }
 async function saveSettings() {
-    if (settingsManagementApiToken instanceof HTMLInputElement) {
-        setManagementBearerToken(settingsManagementApiToken.value);
-    }
     const patchPayload = buildManagementSettingsPatch({
         enabled: settingsDiscoveryEnabled,
         url: settingsDiscoveryUrl,
@@ -743,7 +745,7 @@ function renderRows() {
     if (!(tableBody instanceof HTMLTableSectionElement))
         return;
     if (!webcams.length) {
-        tableBody.innerHTML = '<tr><td colspan="8" class="empty">No nodes registered.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="4" class="empty">No nodes registered.</td></tr>';
         return;
     }
     tableBody.innerHTML = webcams
@@ -753,32 +755,31 @@ function renderRows() {
         const streamText = status.stream_available ? "Available" : "Unavailable";
         const discovery = getDiscoveryInfo(node);
         const aggregateDetails = formatAggregationDetails(status);
-        const detailsTooltip = [normalizedStatus.helpText, status.error_details]
-            .filter(Boolean)
-            .join(" ");
         const approvalHint = discovery.source === "discovered" && !discovery.approved
             ? "Pending approval before full activation."
             : "";
         const detailsText = [approvalHint, normalizedStatus.reasonText].filter(Boolean).join(" ");
         return `
         <tr>
-          <td><strong>${escapeHtml(node.name)}</strong><br><small>${escapeHtml(node.id)}</small></td>
-          <td>${escapeHtml(node.base_url)}</td>
-          <td>${escapeHtml(node.transport)}</td>
           <td>
-            <small>
-              Source: <strong>${escapeHtml(discovery.source)}</strong><br>
-              First seen: ${escapeHtml(formatDateTime(discovery.firstSeen))}<br>
-              Last announce: ${escapeHtml(formatDateTime(discovery.lastAnnounceAt))}<br>
-              Approval: ${escapeHtml(discovery.approved ? "approved" : "pending")}
-            </small>
+            <strong>${escapeHtml(node.name)}</strong><br><small>${escapeHtml(node.id)}</small>
+            <details class="node-row-details">
+              <summary>Node details</summary>
+              <dl>
+                <div><dt>Address</dt><dd>${escapeHtml(node.base_url)}</dd></div>
+                <div><dt>Transport</dt><dd>${escapeHtml(node.transport)}</dd></div>
+                <div><dt>Source</dt><dd>${escapeHtml(discovery.source)}</dd></div>
+                <div><dt>Approval</dt><dd>${escapeHtml(discovery.approved ? "Approved" : "Pending")}</dd></div>
+                <div><dt>First seen</dt><dd>${escapeHtml(formatDateTime(discovery.firstSeen))}</dd></div>
+                <div><dt>Last announcement</dt><dd>${escapeHtml(formatDateTime(discovery.lastAnnounceAt))}</dd></div>
+                <div><dt>Connection details</dt><dd>${escapeHtml(detailsText || normalizedStatus.helpText)}</dd></div>
+                ${status.error_details ? `<div><dt>Diagnostic detail</dt><dd>${escapeHtml(status.error_details)}</dd></div>` : ""}
+                ${aggregateDetails ? `<div><dt>Status history</dt><dd>${escapeHtml(aggregateDetails)}</dd></div>` : ""}
+              </dl>
+            </details>
           </td>
           <td>
             <span class="ui-status-pill ${normalizedStatus.statusClass}" title="${escapeHtml(normalizedStatus.helpText)}">${escapeHtml(normalizedStatus.label)}</span>
-          </td>
-          <td>
-            <small title="${escapeHtml(detailsTooltip)}">${escapeHtml(detailsText)}</small>
-            ${aggregateDetails ? `<br><small>${escapeHtml(aggregateDetails)}</small>` : ""}
           </td>
           <td>${streamText}</td>
           <td>
@@ -921,7 +922,7 @@ function setNodeFormPanelCollapsed(isCollapsed) {
     }
     webcamFormContent.classList.toggle("hidden", isCollapsed);
     toggleWebcamFormPanelBtn.setAttribute("aria-expanded", String(isExpanded));
-    toggleWebcamFormPanelBtn.textContent = isExpanded ? "«" : "»";
+    toggleWebcamFormPanelBtn.textContent = isExpanded ? "Hide form" : "Add webcam";
     toggleWebcamFormPanelBtn.title = isExpanded
         ? "Collapse webcam form panel"
         : "Expand webcam form panel";
@@ -942,10 +943,10 @@ function toggleNodeFormPanel() {
 }
 function getStoredNodeFormCollapsedPreference() {
     try {
-        return globalThis.localStorage?.getItem(NODE_FORM_COLLAPSED_STORAGE_KEY) === "true";
+        return globalThis.localStorage?.getItem(NODE_FORM_COLLAPSED_STORAGE_KEY) !== "false";
     }
     catch {
-        return false;
+        return true;
     }
 }
 /**
@@ -986,6 +987,8 @@ async function submitNodeForm(event) {
         showFeedback(isEdit ? "Node updated." : "Node added.");
         resetForm();
         await refreshManagementData();
+        if (!isEdit)
+            setNodeFormPanelCollapsed(true);
     }
     catch (error) {
         if (isUnauthorizedError(error)) {
@@ -1019,6 +1022,15 @@ function beginEditNode(nodeId) {
     requireElementById("webcam-capabilities").value = (webcam.capabilities || []).join(", ");
     requireElementById("webcam-labels").value = JSON.stringify(webcam.labels || {}, null, 2);
     requireElementById("cancel-edit-btn").classList.remove("hidden");
+    const hasAdvancedValues = Boolean(webcam.transport === "docker" ||
+        webcam.auth?.type === "bearer" ||
+        webcam.auth?.token ||
+        webcam.capabilities?.length ||
+        Object.keys(webcam.labels || {}).length);
+    if (webcamAdvancedOptions instanceof HTMLDetailsElement) {
+        webcamAdvancedOptions.open = hasAdvancedValues;
+    }
+    setNodeFormPanelCollapsed(false);
 }
 /**
  * Fetch and display diagnostic results for a node.
@@ -1209,16 +1221,12 @@ function initializeManagementState() {
         initializeManagementBearerToken();
     if (typeof loadSnoozedDiscoveredIds === "function")
         loadSnoozedDiscoveredIds();
-    const tokenInputs = [];
-    if (typeof managementApiTokenInput !== "undefined")
-        tokenInputs.push(managementApiTokenInput);
-    if (typeof settingsManagementApiToken !== "undefined")
-        tokenInputs.push(settingsManagementApiToken);
-    tokenInputs.forEach((input) => {
-        if (input instanceof HTMLInputElement) {
-            input.addEventListener("input", () => setManagementBearerToken(input.value));
-        }
-    });
+    if (managementApiTokenInput instanceof HTMLInputElement) {
+        managementApiTokenInput.addEventListener("input", () => setManagementBearerToken(managementApiTokenInput.value));
+    }
+    if (showManagementTokenBtn instanceof HTMLButtonElement) {
+        showManagementTokenBtn.addEventListener("click", () => revealManagementTokenField(managementTokenDisclosure, managementApiTokenInput));
+    }
 }
 async function init() {
     if (!validateManagementDom(document, console, showFeedback))

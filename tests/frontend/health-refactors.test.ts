@@ -256,6 +256,7 @@ test("renderDiscoveredPanel selects a visible node and disables decisions when e
   selectedNodeId = renderDiscoveredPanel({ ...context, selectedNodeId });
   assert.equal(selectedNodeId, "");
   assert.match(discoveredList.innerHTML, /No discovered devices pending approval/);
+  assert.match(discoveredNotes.innerHTML, /Select a device to view connection notes/);
   assert.equal(
     buttons.every((candidate) => candidate.disabled === true),
     true,

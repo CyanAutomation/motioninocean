@@ -36,7 +36,7 @@ function createClassList() {
   };
 }
 
-test("webcam form panel toggle defaults expanded and flips collapsed state with storage persistence", async () => {
+test("webcam form panel restores a saved expanded state and flips with storage persistence", async () => {
   const managementSource = fs.readFileSync("frontend/src/management.ts", "utf8");
   const managementJs = ts.transpileModule(managementSource, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
@@ -217,7 +217,7 @@ test("webcam form panel toggle defaults expanded and flips collapsed state with 
 
   assert.deepEqual(localStorageReads, ["management.webcamFormCollapsed"]);
   assert.equal(toggleWebcamFormPanelBtn.getAttribute("aria-expanded"), "true");
-  assert.equal(toggleWebcamFormPanelBtn.textContent, "«");
+  assert.equal(toggleWebcamFormPanelBtn.textContent, "Hide form");
   assert.equal(toggleWebcamFormPanelBtn.title, "Collapse webcam form panel");
   assert.equal(managementLayout.classList.contains("is-form-collapsed"), false);
   assert.equal(webcamFormPanelContainer.classList.contains("is-form-collapsed"), false);
@@ -233,7 +233,7 @@ test("webcam form panel toggle defaults expanded and flips collapsed state with 
   assert.equal(webcamFormPanelContainer.classList.contains("is-form-collapsed"), true);
   assert.equal(webcamFormContent.classList.contains("hidden"), true);
   assert.equal(toggleWebcamFormPanelBtn.getAttribute("aria-expanded"), "false");
-  assert.equal(toggleWebcamFormPanelBtn.textContent, "»");
+  assert.equal(toggleWebcamFormPanelBtn.textContent, "Add webcam");
   assert.equal(toggleWebcamFormPanelBtn.title, "Expand webcam form panel");
 
   toggleHandler(new Event("click"));
@@ -242,7 +242,7 @@ test("webcam form panel toggle defaults expanded and flips collapsed state with 
   assert.equal(webcamFormPanelContainer.classList.contains("is-form-collapsed"), false);
   assert.equal(webcamFormContent.classList.contains("hidden"), false);
   assert.equal(toggleWebcamFormPanelBtn.getAttribute("aria-expanded"), "true");
-  assert.equal(toggleWebcamFormPanelBtn.textContent, "«");
+  assert.equal(toggleWebcamFormPanelBtn.textContent, "Hide form");
   assert.equal(toggleWebcamFormPanelBtn.title, "Collapse webcam form panel");
 
   assert.deepEqual(localStorageWrites, [
@@ -250,4 +250,28 @@ test("webcam form panel toggle defaults expanded and flips collapsed state with 
     ["management.webcamFormCollapsed", "true"],
     ["management.webcamFormCollapsed", "false"],
   ]);
+});
+
+test("webcam form panel is collapsed by default when the operator has no saved preference", async () => {
+  const managementSource = fs.readFileSync("frontend/src/management.ts", "utf8");
+  const managementJs = ts.transpileModule(managementSource, {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const getStoredPreferenceFn = extractFunction(
+    managementJs,
+    "function getStoredNodeFormCollapsedPreference",
+    "\nasync function submitNodeForm",
+  );
+  const context = {
+    NODE_FORM_COLLAPSED_STORAGE_KEY: "management.webcamFormCollapsed",
+    globalThis: { localStorage: { getItem: () => null } },
+    getStoredNodeFormCollapsedPreference: undefined,
+  };
+
+  vm.runInNewContext(getStoredPreferenceFn, context);
+  const evaluatedContext = asTestDouble<{
+    getStoredNodeFormCollapsedPreference: () => boolean;
+  }>(context);
+
+  assert.equal(evaluatedContext.getStoredNodeFormCollapsedPreference(), true);
 });

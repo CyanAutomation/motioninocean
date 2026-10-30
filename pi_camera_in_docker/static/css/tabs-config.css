@@ -499,9 +499,47 @@
 }
 
 .config-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
   padding: var(--space-5);
   background: var(--color-bg-canvas);
   transition: background var(--transition-fast);
+  cursor: pointer;
+  list-style: none;
+}
+
+.config-group-header::-webkit-details-marker {
+  display: none;
+}
+
+.config-group-header::after {
+  content: "⌄";
+  flex: 0 0 auto;
+  color: var(--color-accent-primary);
+  font-size: 1.2rem;
+  transition: transform var(--transition-fast);
+}
+
+.config-group:not([open]) .config-group-header::after {
+  transform: rotate(-90deg);
+}
+
+.config-group-header:focus-visible {
+  outline: 3px solid var(--color-accent-primary);
+  outline-offset: -3px;
+}
+
+.config-summary-health {
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.config-summary-health .config-value {
+  font-size: var(--font-size-sm);
 }
 
 .config-group-title {

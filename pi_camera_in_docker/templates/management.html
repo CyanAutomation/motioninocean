@@ -108,20 +108,23 @@
         </button>
       </nav>
 
-      <div class="management-token-control">
-        <label for="management-api-token">Management API Bearer Token (optional)</label>
-        <input
-          id="management-api-token"
-          name="management_api_token"
-          type="password"
-          autocomplete="off"
-          placeholder="Paste token for protected /api requests"
-        />
-        <small>
-          If management API auth is enabled, provide a token and click Refresh to retry failed
-          requests.
-        </small>
-      </div>
+      <details id="management-token-disclosure" class="management-token-disclosure">
+        <summary>API access <span>Token needed only when management authentication is enabled</span></summary>
+        <div class="management-token-control">
+          <label for="management-api-token">Management API bearer token</label>
+          <input
+            id="management-api-token"
+            name="management_api_token"
+            type="password"
+            autocomplete="off"
+            placeholder="Paste token for protected API requests"
+          />
+          <small>
+            The token stays in page memory and is cleared when this page closes. After entering it,
+            refresh the dashboard to retry protected requests.
+          </small>
+        </div>
+      </details>
     </header>
 
     <main id="management-main" class="management-main">
@@ -153,14 +156,14 @@
         </div>
 
         <div class="overview-grid">
-          <section class="overview-panel ui-card">
-            <h3>Recent Activity</h3>
+          <details class="overview-panel ui-card overview-activity-panel">
+            <summary>Recent activity</summary>
             <ul id="overview-activity-list" class="overview-list">
               <li>No activity yet.</li>
             </ul>
-          </section>
+          </details>
           <section class="overview-panel ui-card">
-            <h3>Action Sidebar</h3>
+            <h3>Needs attention</h3>
             <ul id="overview-action-list" class="overview-list">
               <li>No action items.</li>
             </ul>
@@ -177,14 +180,14 @@
                 id="toggle-webcam-form-panel-btn"
                 class="ui-btn ui-btn--secondary"
                 type="button"
-                aria-label="Collapse webcam form panel"
-                aria-expanded="true"
+                aria-label="Add webcam host"
+                aria-expanded="false"
                 aria-controls="webcam-form-content"
               >
-                Collapse
+                Add webcam
               </button>
             </div>
-            <div id="webcam-form-content">
+            <div id="webcam-form-content" class="hidden">
               <div id="webcam-form-content-wrapper">
                 <form id="webcam-form">
                   <input type="hidden" id="editing-webcam-id" value="" />
@@ -211,53 +214,60 @@
                     <input id="webcam-base-url" name="base_url" placeholder="" required />
                   </div>
 
-                  <div class="ui-form-control">
-                    <label for="webcam-transport">Transport</label>
-                    <select id="webcam-transport" name="transport">
-                      <option value="http" selected>http</option>
-                      <option value="docker">docker</option>
-                    </select>
-                  </div>
+                  <details id="webcam-advanced-options" class="node-form-advanced">
+                    <summary>
+                      Advanced options
+                      <small>Transport, authentication, capabilities, labels</small>
+                    </summary>
+                    <div class="node-form-advanced__content">
+                      <div class="ui-form-control">
+                        <label for="webcam-transport">Transport</label>
+                        <select id="webcam-transport" name="transport">
+                          <option value="http" selected>http</option>
+                          <option value="docker">docker</option>
+                        </select>
+                      </div>
 
-                  <div class="ui-form-control">
-                    <label for="webcam-auth-type">Auth Type</label>
-                    <select id="webcam-auth-type" name="auth_type">
-                      <option value="none" selected>none</option>
-                      <option value="bearer">bearer</option>
-                    </select>
-                  </div>
+                      <div class="ui-form-control">
+                        <label for="webcam-auth-type">Auth Type</label>
+                        <select id="webcam-auth-type" name="auth_type">
+                          <option value="none" selected>none</option>
+                          <option value="bearer">bearer</option>
+                        </select>
+                      </div>
 
-                  <div class="ui-form-control">
-                    <label for="webcam-auth-token">Remote Node Token (optional)</label>
-                    <input
-                      id="webcam-auth-token"
-                      name="auth_token"
-                      placeholder="Set to the remote webcam MANAGEMENT_AUTH_TOKEN"
-                    />
-                    <small>
-                      For webcam hosts, use the same token configured in that node's `.env`
-                      (`MANAGEMENT_AUTH_TOKEN`).
-                    </small>
-                  </div>
+                      <div class="ui-form-control">
+                        <label for="webcam-auth-token">Remote node token (optional)</label>
+                        <input
+                          id="webcam-auth-token"
+                          name="auth_token"
+                          placeholder="Set to the remote webcam control token"
+                        />
+                        <small>
+                          Use the same token configured for protected status requests on that webcam.
+                        </small>
+                      </div>
 
-                  <div class="ui-form-control">
-                    <label for="webcam-capabilities">Capabilities (comma-separated)</label>
-                    <input
-                      id="webcam-capabilities"
-                      name="capabilities"
-                      placeholder="stream, snapshot"
-                    />
-                  </div>
+                      <div class="ui-form-control">
+                        <label for="webcam-capabilities">Capabilities (comma-separated)</label>
+                        <input
+                          id="webcam-capabilities"
+                          name="capabilities"
+                          placeholder="stream, snapshot"
+                        />
+                      </div>
 
-                  <div class="ui-form-control">
-                    <label for="webcam-labels">Labels JSON (optional)</label>
-                    <textarea
-                      id="webcam-labels"
-                      name="labels"
-                      rows="4"
-                      placeholder='{"location":"lab"}'
-                    ></textarea>
-                  </div>
+                      <div class="ui-form-control">
+                        <label for="webcam-labels">Labels JSON (optional)</label>
+                        <textarea
+                          id="webcam-labels"
+                          name="labels"
+                          rows="4"
+                          placeholder='{"location":"lab"}'
+                        ></textarea>
+                      </div>
+                    </div>
+                  </details>
 
                   <div class="actions">
                     <button type="submit" id="save-node-btn" class="ui-btn ui-btn--primary">
@@ -272,9 +282,9 @@
                     </button>
                   </div>
                 </form>
-                <p id="form-feedback" class="feedback" aria-live="polite"></p>
               </div>
             </div>
+            <p id="form-feedback" class="feedback" aria-live="polite"></p>
           </section>
 
           <section class="webcam-list-panel ui-card">
@@ -288,18 +298,14 @@
                 <thead>
                   <tr>
                     <th>Node</th>
-                    <th>Base URL</th>
-                    <th>Transport</th>
-                    <th>Discovery</th>
                     <th>Status</th>
-                    <th>Details</th>
                     <th>Stream</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="webcams-table-body">
                   <tr>
-                    <td colspan="8" class="empty">No webcams registered.</td>
+                    <td colspan="4" class="empty">No webcams registered.</td>
                   </tr>
                 </tbody>
               </table>
@@ -396,24 +402,27 @@
           <section class="ui-card discovered-panel">
             <h3>Quick Actions</h3>
             <div class="discovered-actions">
-              <button id="discovered-approve-btn" class="ui-btn ui-btn--primary" type="button">
+              <button id="discovered-approve-btn" class="ui-btn ui-btn--primary" type="button" disabled>
                 Add Device
               </button>
-              <button id="discovered-reject-btn" class="ui-btn ui-btn--danger" type="button">
+              <button id="discovered-reject-btn" class="ui-btn ui-btn--danger" type="button" disabled>
                 Ignore Device
               </button>
-              <button id="discovered-later-btn" class="ui-btn ui-btn--secondary" type="button">
+              <button id="discovered-later-btn" class="ui-btn ui-btn--secondary" type="button" disabled>
                 Maybe Later
               </button>
             </div>
+            <p id="discovered-selection-prompt" class="selection-prompt">
+              Select a device from the list to enable these actions.
+            </p>
             <p id="discovered-feedback" class="feedback" aria-live="polite"></p>
           </section>
-          <section class="ui-card discovered-panel">
-            <h3>Connection Notes</h3>
+          <details class="ui-card discovered-panel discovered-notes-panel">
+            <summary>Connection notes</summary>
             <ul id="discovered-notes" class="overview-list">
-              <li>Blocked by local safety rule.</li>
+              <li>Select a device to view connection notes.</li>
             </ul>
-          </section>
+          </details>
         </div>
       </section>
 
@@ -453,21 +462,13 @@
             This token stays in page memory for this dashboard session and is sent with management
             API requests. It is cleared when the page reloads or closes.
           </p>
-          <div class="ui-form-control">
-            <label for="settings-management-api-token"
-              >MANAGEMENT_AUTH_TOKEN (dashboard token)</label
-            >
-            <input
-              id="settings-management-api-token"
-              type="password"
-              autocomplete="off"
-              placeholder="Paste token for this dashboard session"
-            />
-          </div>
           <small>
-            This does not modify server environment variables. It updates the token used by this
-            dashboard UI.
+            This token does not change server environment variables. Enter it under API access in
+            the page header; it remains in memory for this page session.
           </small>
+          <button id="show-management-token-btn" class="ui-btn ui-btn--secondary" type="button">
+            Enter API token
+          </button>
         </div>
         <div id="settings-discovery-panel" class="settings-panel hidden">
           <h3>Discovery settings</h3>
@@ -492,9 +493,12 @@
           <h3>Runtime governance</h3>
           <p id="settings-runtime-summary">Using custom values</p>
           <p id="settings-validation-summary">Validation summary</p>
-          <ul id="settings-overrides-list" class="overview-list">
-            <li>No overrides.</li>
-          </ul>
+          <details class="runtime-overrides">
+            <summary>Runtime overrides: <span id="settings-overrides-summary">No custom values</span></summary>
+            <ul id="settings-overrides-list" class="overview-list">
+              <li>No overrides.</li>
+            </ul>
+          </details>
         </div>
         <div class="settings-footer-actions">
           <button id="settings-save-btn" class="ui-btn ui-btn--primary" type="button">
