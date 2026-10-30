@@ -419,14 +419,6 @@ function attachHandlers() {
     { target: state.elements.utilityModalCloseBtn, type: "click", listener: closeUtilityModal },
   ];
 
-  // Proxy buttons inside the video controls mirror the main action buttons.
-  const vcRefreshBtn = getElementById<HTMLButtonElement>("vc-refresh-btn");
-  const vcFullscreenBtn = getElementById<HTMLButtonElement>("vc-fullscreen-btn");
-  clickBindings.push(
-    { target: vcRefreshBtn, type: "click", listener: refreshStream },
-    { target: vcFullscreenBtn, type: "click", listener: toggleFullscreen },
-  );
-
   const eventBindings: OptionalEventBinding[] = [
     ...clickBindings,
     {
@@ -1086,10 +1078,6 @@ function onFullscreenChange() {
     }
   }
 
-  const vcFullscreenBtn = document.getElementById("vc-fullscreen-btn");
-  if (vcFullscreenBtn) {
-    vcFullscreenBtn.textContent = isFullscreen ? "Exit Fullscreen" : "Fullscreen";
-  }
 }
 
 /**
@@ -2026,6 +2014,7 @@ function setWizardStep(step: SetupWizardStep): void {
   document.querySelectorAll<HTMLElement>(".wizard-step").forEach((stepButton) => {
     const isActive = stepButton.getAttribute("data-step") === step;
     stepButton.classList.toggle("is-active", isActive);
+    stepButton.setAttribute("aria-current", isActive ? "step" : "false");
   });
 
   updateWizardCompletion();

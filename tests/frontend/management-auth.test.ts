@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createManagementBearerTokenSession } from "../../frontend/src/management-auth.ts";
+import {
+  createManagementBearerTokenSession,
+  revealManagementTokenField,
+} from "../../frontend/src/management-auth.ts";
 
 test("management bearer tokens stay in session memory and clear legacy browser storage", () => {
   const legacyStorage = new Map([["management.apiToken", "persisted-token"]]);
@@ -31,4 +34,18 @@ test("management bearer token session works when browser storage is unavailable"
 
   assert.equal(session.setToken("session-token"), "session-token");
   assert.equal(session.getToken(), "session-token");
+});
+
+test("settings token shortcut opens the disclosure and focuses its single token field", () => {
+  const disclosure = { open: false };
+  let focusCalls = 0;
+  revealManagementTokenField(disclosure, { focus: () => focusCalls++ });
+
+  assert.equal(disclosure.open, true);
+  assert.equal(focusCalls, 1);
+});
+
+test("settings token shortcut safely handles missing controls", () => {
+  revealManagementTokenField(null, { focus: () => assert.fail("Should not focus") });
+  revealManagementTokenField({ open: false }, null);
 });

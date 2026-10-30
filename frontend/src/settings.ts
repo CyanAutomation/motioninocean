@@ -422,9 +422,11 @@ const SettingsUI = (() => {
       void content.offsetHeight;
       content.style.height = "0";
       content.classList.add("collapsed");
+      content.inert = true;
     } else {
       // Expanding: begin from 0, animate to measured target, then unlock to auto
       content.classList.remove("collapsed");
+      content.inert = false;
       const targetHeight = content.scrollHeight;
       content.style.height = "0";
       void content.offsetHeight;
@@ -439,6 +441,20 @@ const SettingsUI = (() => {
     }
 
     toggle.classList.toggle("collapsed");
+    const isNowExpanded = !isExpanded;
+    toggle.setAttribute("aria-expanded", String(isNowExpanded));
+    const sectionLabels: Record<string, string> = {
+      camera: "Camera Configuration",
+      logging: "Logging Configuration",
+      discovery: "Node Discovery",
+      features: "Feature Flags",
+    };
+    const label = sectionLabels[section || ""] || "settings section";
+    toggle.setAttribute(
+      "aria-label",
+      `${isNowExpanded ? "Collapse" : "Expand"} ${label}`,
+    );
+    toggle.setAttribute("title", `${isNowExpanded ? "Collapse" : "Expand"} ${label}`);
   };
 
   /**

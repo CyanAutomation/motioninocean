@@ -25,7 +25,37 @@
   flex-direction: column;
   gap: var(--space-2);
   max-width: 32rem;
+  margin-top: var(--space-2);
+}
+
+.management-token-disclosure {
+  max-width: 38rem;
   margin-top: var(--space-3);
+  color: var(--color-text-inverse);
+}
+
+.management-token-disclosure > summary {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+}
+
+.management-token-disclosure > summary span {
+  margin-left: var(--space-1);
+  color: var(--color-border-default);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+}
+
+.management-token-disclosure > summary:focus-visible,
+.overview-activity-panel > summary:focus-visible,
+.discovered-notes-panel > summary:focus-visible,
+.node-row-details > summary:focus-visible,
+.node-form-advanced > summary:focus-visible,
+.runtime-overrides > summary:focus-visible {
+  outline: 3px solid var(--color-accent-primary);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
 }
 
 .management-view-nav {
@@ -86,6 +116,31 @@
 .overview-panel,
 .discovered-panel {
   padding: var(--space-3);
+}
+
+.overview-activity-panel > summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+}
+
+.overview-activity-panel > summary {
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+}
+
+.selection-prompt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.discovered-notes-panel > summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+}
+
+.runtime-overrides > summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
 }
 
 .overview-list {
@@ -164,11 +219,11 @@
 }
 
 .management-layout.is-form-collapsed {
-  grid-template-columns: 44px 1fr;
+  grid-template-columns: minmax(12rem, 15rem) 1fr;
 }
 
 .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"]) {
-  grid-template-columns: 44px 1fr;
+  grid-template-columns: minmax(12rem, 15rem) 1fr;
 }
 
 .webcam-form-panel,
@@ -204,15 +259,6 @@
   white-space: nowrap;
 }
 
-#toggle-webcam-form-panel-btn::before {
-  content: "◀";
-  font-size: 0.8rem;
-}
-
-#toggle-webcam-form-panel-btn[aria-expanded="false"]::before {
-  content: "▶";
-}
-
 #webcam-form-content {
   opacity: 1;
   width: 100%;
@@ -224,7 +270,7 @@
 
 .management-layout.is-form-collapsed .webcam-form-panel,
 .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"]) .webcam-form-panel {
-  padding: 0;
+  padding: var(--space-3);
   border-right: 1px solid var(--color-border-subtle);
 }
 
@@ -235,31 +281,41 @@
   pointer-events: none;
 }
 
-.management-layout.is-form-collapsed #toggle-webcam-form-panel-btn,
-.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"])
-  #toggle-webcam-form-panel-btn {
-  width: 2rem;
-  min-width: 2rem;
-  height: 2rem;
-  padding: 0;
-  font-size: 0;
-}
-
 .management-layout.is-form-collapsed .webcam-form-panel .panel-header,
 .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"])
   .webcam-form-panel
   .panel-header {
-  justify-content: center;
-}
-
-.management-layout.is-form-collapsed #form-title,
-.management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"]) #form-title {
-  display: none;
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 #webcam-form {
   display: grid;
   gap: var(--space-2);
+}
+
+.node-form-advanced {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.node-form-advanced > summary {
+  display: grid;
+  gap: var(--space-1);
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+}
+
+.node-form-advanced > summary small {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.node-form-advanced__content {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .actions {
@@ -293,6 +349,40 @@
   vertical-align: middle;
 }
 
+.node-row-details {
+  margin-top: var(--space-2);
+}
+
+.node-row-details > summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--color-accent-primary);
+  font-size: var(--font-size-sm);
+}
+
+.node-row-details dl {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+  font-size: var(--font-size-sm);
+}
+
+.node-row-details dl div {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 0.35fr) minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.node-row-details dt {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.node-row-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .row-actions {
   display: flex;
   gap: var(--space-1);
@@ -314,6 +404,10 @@
 @media (max-width: 900px) {
   .management-main {
     padding: var(--space-3);
+  }
+
+  .management-view > .table-header {
+    margin-inline: 0;
   }
 
   .overview-metrics {
@@ -348,7 +442,7 @@
   .management-layout:has(#toggle-webcam-form-panel-btn[aria-expanded="false"])
     .webcam-form-panel
     .panel-header {
-    justify-content: flex-end;
+    justify-content: space-between;
   }
 }
 

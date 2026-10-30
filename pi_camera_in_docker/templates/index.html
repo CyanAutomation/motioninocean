@@ -233,21 +233,14 @@
               <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
             </svg>
           </button>
-          <button id="refresh-stream-header-btn" class="ui-btn ui-btn--primary" type="button">
-            Refresh Stream ↺
-          </button>
         </div>
       </div>
       <div class="header-chips" role="status" aria-live="polite">
-        <span class="header-chip header-chip--neutral header-chip--static" aria-disabled="true"
-          >Stream Statistics</span
-        >
         <span id="chip-connected" class="header-chip header-chip--connected">Stream Connected</span>
         <span id="chip-stale" class="header-chip header-chip--stale hidden">Stale stream</span>
         <span id="chip-inactive" class="header-chip header-chip--inactive hidden"
           >Camera inactive</span
         >
-        <span id="chip-fps" class="header-chip header-chip--fps">Current FPS: --</span>
       </div>
     </header>
 
@@ -353,11 +346,12 @@
             </div>
           </section>
 
-          <aside id="stats-panel" class="stats-panel ui-card video-controls-panel">
-            <div class="stats-header ui-panel-header">
-              <h2>Video Controls</h2>
-            </div>
-            <div class="vc-items">
+          <details id="stats-panel" class="stats-panel ui-card video-controls-panel stream-details">
+            <summary class="stream-details__summary">
+              <span>Stream details</span>
+              <span id="chip-fps" class="header-chip header-chip--fps">Current FPS: --</span>
+            </summary>
+            <div class="vc-items stream-details__content">
               <div class="vc-item" id="vc-camera-status">
                 <div class="vc-item__icon">
                   <svg
@@ -380,48 +374,7 @@
                 <div class="vc-item__body">
                   <div class="vc-item__label" id="availability-risk-value">Camera inactive</div>
                   <div class="vc-item__detail">
-                    <span id="performance-risk-value">-- FPS</span>
-                    &middot;
-                    <span id="frames-risk-detail">-- frames</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="vc-item" id="vc-stream-actions">
-                <div class="vc-item__icon">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <polygon points="5 3 19 12 5 21 5 3" />
-                  </svg>
-                </div>
-                <div class="vc-item__body">
-                  <div class="vc-item__actions">
-                    <button
-                      id="vc-refresh-btn"
-                      class="vc-action-btn"
-                      type="button"
-                      title="Refresh stream"
-                    >
-                      Refresh
-                    </button>
-                    <span class="vc-action-sep">&middot;</span>
-                    <button
-                      id="vc-fullscreen-btn"
-                      class="vc-action-btn"
-                      type="button"
-                      title="Toggle fullscreen"
-                    >
-                      Fullscreen
-                    </button>
+                    Frames captured: <span id="frames-risk-detail">--</span>
                   </div>
                 </div>
               </div>
@@ -447,7 +400,7 @@
                   </svg>
                 </div>
                 <div class="vc-item__body">
-                  <div class="vc-item__label" id="stream-risk-value">Connecting...</div>
+                  <div class="vc-item__label">Frame freshness</div>
                   <div class="vc-item__detail">
                     Last frame: <span id="last-frame-risk-value">--</span> &nbsp;/&nbsp;Max:
                     <span id="max-frame-risk-value">--</span>
@@ -480,7 +433,7 @@
                 </div>
               </div>
             </div>
-          </aside>
+          </details>
         </div>
       </section>
 
@@ -496,10 +449,10 @@
 
         <div class="config-content">
           <!-- Camera Settings Group (Editable) -->
-          <div class="config-group editable-section ui-card">
-            <div class="config-group-header ui-panel-header">
-              <h3 class="config-group-title">Camera Settings</h3>
-            </div>
+          <details class="config-group editable-section ui-card" open>
+            <summary class="config-group-header ui-panel-header">
+              <span class="config-group-title">Camera Settings</span>
+            </summary>
             <div class="config-group-content" data-group="camera">
               <div class="config-item ui-form-control">
                 <span class="config-label">Resolution</span>
@@ -520,13 +473,13 @@
                 >
               </div>
             </div>
-          </div>
+          </details>
 
           <!-- Stream Control Group (Read-only) -->
-          <div class="config-group readonly-section ui-card">
-            <div class="config-group-header ui-panel-header">
-              <h3 class="config-group-title">Stream Control</h3>
-            </div>
+          <details class="config-group readonly-section ui-card">
+            <summary class="config-group-header ui-panel-header">
+              <span class="config-group-title">Stream Control</span>
+            </summary>
             <div class="config-group-content" data-group="stream">
               <div class="config-item ui-form-control">
                 <span class="config-label">Max Connections</span>
@@ -554,23 +507,20 @@
                 <span id="config-cors" class="config-value" data-config-value="true">--</span>
               </div>
             </div>
-          </div>
+          </details>
 
           <!-- Health Check Group (Read-only) -->
-          <div class="config-group readonly-section ui-card">
-            <div class="config-group-header ui-panel-header">
-              <h3 class="config-group-title">Health Check</h3>
-            </div>
+          <details class="config-group readonly-section ui-card">
+            <summary class="config-group-header ui-panel-header">
+              <span class="config-group-title">Health Check</span>
+              <span class="config-summary-health">Overall: <span
+                id="config-health-overall"
+                class="config-value highlight"
+                data-config-value="true"
+                >--</span
+              ></span>
+            </summary>
             <div class="config-group-content" data-group="health">
-              <div class="config-item ui-form-control">
-                <span class="config-label">Overall Status</span>
-                <span
-                  id="config-health-overall"
-                  class="config-value highlight"
-                  data-config-value="true"
-                  >--</span
-                >
-              </div>
               <div class="config-item ui-form-control">
                 <span class="config-label">Camera Pipeline</span>
                 <span
@@ -605,13 +555,13 @@
                 >
               </div>
             </div>
-          </div>
+          </details>
 
           <!-- Runtime Info Group (Read-only) -->
-          <div class="config-group readonly-section ui-card">
-            <div class="config-group-header ui-panel-header">
-              <h3 class="config-group-title">Health & Runtime Surface</h3>
-            </div>
+          <details class="config-group readonly-section ui-card">
+            <summary class="config-group-header ui-panel-header">
+              <span class="config-group-title">Runtime Details</span>
+            </summary>
             <div class="config-group-content" data-group="runtime">
               <div class="config-item ui-form-control">
                 <span class="config-label">Camera Active</span>
@@ -636,7 +586,7 @@
                 <span id="config-timestamp" class="config-value" data-config-value="true">--</span>
               </div>
             </div>
-          </div>
+          </details>
 
           <!-- Error Alert -->
           <div id="config-error-alert" class="config-alert error hidden">
@@ -726,11 +676,19 @@
           <section id="settings-camera" class="settings-section ui-card">
             <div class="settings-section-header ui-panel-header">
               <h3 class="settings-section-title">Camera Configuration</h3>
-              <button class="settings-section-toggle" data-section="camera" title="Toggle">
+              <button
+                class="settings-section-toggle"
+                data-section="camera"
+                title="Collapse Camera Configuration"
+                aria-label="Collapse Camera Configuration"
+                aria-expanded="true"
+                aria-controls="settings-camera-content"
+                type="button"
+              >
                 ▼
               </button>
             </div>
-            <div class="settings-section-content" data-section="camera">
+            <div id="settings-camera-content" class="settings-section-content" data-section="camera">
               <!-- Resolution -->
               <div class="settings-control ui-form-control">
                 <div class="setting-label-group">
@@ -853,11 +811,24 @@
           <section id="settings-logging" class="settings-section ui-card">
             <div class="settings-section-header ui-panel-header">
               <h3 class="settings-section-title">Logging Configuration</h3>
-              <button class="settings-section-toggle" data-section="logging" title="Toggle">
+              <button
+                class="settings-section-toggle collapsed"
+                data-section="logging"
+                title="Expand Logging Configuration"
+                aria-label="Expand Logging Configuration"
+                aria-expanded="false"
+                aria-controls="settings-logging-content"
+                type="button"
+              >
                 ▼
               </button>
             </div>
-            <div class="settings-section-content" data-section="logging">
+            <div
+              id="settings-logging-content"
+              class="settings-section-content collapsed"
+              data-section="logging"
+              inert
+            >
               <!-- Log Level -->
               <div class="settings-control ui-form-control">
                 <div class="setting-label-group">
@@ -917,11 +888,24 @@
           <section id="settings-discovery" class="settings-section ui-card">
             <div class="settings-section-header ui-panel-header">
               <h3 class="settings-section-title">Node Discovery</h3>
-              <button class="settings-section-toggle" data-section="discovery" title="Toggle">
+              <button
+                class="settings-section-toggle collapsed"
+                data-section="discovery"
+                title="Expand Node Discovery"
+                aria-label="Expand Node Discovery"
+                aria-expanded="false"
+                aria-controls="settings-discovery-content"
+                type="button"
+              >
                 ▼
               </button>
             </div>
-            <div class="settings-section-content" data-section="discovery">
+            <div
+              id="settings-discovery-content"
+              class="settings-section-content collapsed"
+              data-section="discovery"
+              inert
+            >
               <!-- Discovery Enabled -->
               <div class="settings-control ui-form-control">
                 <input
@@ -1004,14 +988,23 @@
           <section id="settings-features" class="settings-section ui-card">
             <div class="settings-section-header ui-panel-header">
               <h3 class="settings-section-title">Feature Flags</h3>
-              <button class="settings-section-toggle" data-section="features" title="Toggle">
+              <button
+                class="settings-section-toggle collapsed"
+                data-section="features"
+                title="Expand Feature Flags"
+                aria-label="Expand Feature Flags"
+                aria-expanded="false"
+                aria-controls="feature-flags-container"
+                type="button"
+              >
                 ▼
               </button>
             </div>
             <div
-              class="settings-section-content"
+              class="settings-section-content collapsed"
               data-section="features"
               id="feature-flags-container"
+              inert
             >
               <!-- Feature flags will be dynamically loaded here -->
               <div class="setting-placeholder">Loading feature flags...</div>
@@ -1118,18 +1111,18 @@
               </label>
             </div>
             <div class="setup-section-content">
-              <div id="wizard-stepper" class="wizard-stepper" aria-label="Setup steps">
-                <button type="button" class="wizard-step is-active" data-step="environment">
+              <div id="wizard-stepper" class="wizard-stepper" role="group" aria-label="Setup steps">
+                <button type="button" class="wizard-step is-active" data-step="environment" aria-current="step">
                   Environment
                   <span class="wizard-step-status" data-step-status="environment">○</span>
                 </button>
-                <button type="button" class="wizard-step" data-step="preset">
+                <button type="button" class="wizard-step" data-step="preset" aria-current="false">
                   Preset <span class="wizard-step-status" data-step-status="preset">○</span>
                 </button>
-                <button type="button" class="wizard-step" data-step="review">
+                <button type="button" class="wizard-step" data-step="review" aria-current="false">
                   Review <span class="wizard-step-status" data-step-status="review">○</span>
                 </button>
-                <button type="button" class="wizard-step" data-step="generate">
+                <button type="button" class="wizard-step" data-step="generate" aria-current="false">
                   Generate <span class="wizard-step-status" data-step-status="generate">○</span>
                 </button>
               </div>

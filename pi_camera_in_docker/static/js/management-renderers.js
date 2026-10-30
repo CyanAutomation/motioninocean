@@ -112,6 +112,10 @@ function renderDiscoveredNode(node, selectedNodeId, escapeHtml) {
 function renderDiscoveredNotes(selectedNodeId, context) {
     if (!context.notesElement)
         return;
+    if (!selectedNodeId) {
+        context.notesElement.innerHTML = "<li>Select a device to view connection notes.</li>";
+        return;
+    }
     const status = context.statuses.get(selectedNodeId);
     const notes = getDiscoveryNotes(status);
     context.notesElement.innerHTML = notes
@@ -124,7 +128,7 @@ function getDiscoveryNotes(status) {
         notes.push(String(status.error_message));
     if (status?.error_details)
         notes.push(String(status.error_details));
-    return notes.length ? notes : ["Blocked by local safety rule."];
+    return notes.length ? notes : ["No connection issues reported."];
 }
 function updateDecisionButtons(selectedNodeId, buttons) {
     buttons.forEach((button) => {

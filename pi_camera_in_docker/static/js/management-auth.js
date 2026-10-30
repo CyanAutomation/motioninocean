@@ -21,3 +21,10 @@ export function createManagementBearerTokenSession(getStorage) {
         },
     };
 }
+/** Open the API access disclosure and move keyboard focus to its token field. */
+export function revealManagementTokenField(disclosure, input) {
+    if (!disclosure || !input)
+        return;
+    disclosure.open = true;
+    input.focus();
+}

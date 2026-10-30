@@ -292,10 +292,6 @@ function attachHandlers() {
         { target: state.elements.railHelpBtn, type: "click", listener: openHelpModal },
         { target: state.elements.utilityModalCloseBtn, type: "click", listener: closeUtilityModal },
     ];
-    // Proxy buttons inside the video controls mirror the main action buttons.
-    const vcRefreshBtn = getElementById("vc-refresh-btn");
-    const vcFullscreenBtn = getElementById("vc-fullscreen-btn");
-    clickBindings.push({ target: vcRefreshBtn, type: "click", listener: refreshStream }, { target: vcFullscreenBtn, type: "click", listener: toggleFullscreen });
     const eventBindings = [
         ...clickBindings,
         {
@@ -872,10 +868,6 @@ function onFullscreenChange() {
         if (btnIcon) {
             btnIcon.textContent = "⛶";
         }
-    }
-    const vcFullscreenBtn = document.getElementById("vc-fullscreen-btn");
-    if (vcFullscreenBtn) {
-        vcFullscreenBtn.textContent = isFullscreen ? "Exit Fullscreen" : "Fullscreen";
     }
 }
 /**
@@ -1734,6 +1726,7 @@ function setWizardStep(step) {
     document.querySelectorAll(".wizard-step").forEach((stepButton) => {
         const isActive = stepButton.getAttribute("data-step") === step;
         stepButton.classList.toggle("is-active", isActive);
+        stepButton.setAttribute("aria-current", isActive ? "step" : "false");
     });
     updateWizardCompletion();
     updateWizardNavigation();
