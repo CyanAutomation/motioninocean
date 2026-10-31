@@ -44,21 +44,20 @@ def test_release_workflow_accepts_two_component_v_tags() -> None:
     assert r"^v[0-9]+\.[0-9]+$" in validation["run"]
 
 
-def test_manual_release_guide_uses_github_ui_and_current_image_tags() -> None:
-    """The release guide describes the manual UI flow and the published vX.Y image."""
+def test_release_operator_docs_describe_the_manual_release_and_image_contract() -> None:
+    """Guidance agrees that operators create releases and automation publishes images."""
     guide = (REPO_ROOT / "docs/guides/RELEASE.md").read_text(encoding="utf-8")
+    operator = (REPO_ROOT / ".github/skills/release-operator/SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    publisher = (REPO_ROOT / ".github/skills/release-publish/SKILL.md").read_text(
+        encoding="utf-8"
+    )
 
     assert "https://github.com/CyanAutomation/motioninocean/releases/new" in guide
     assert "`vX.Y`" in guide
     assert "does not create or edit GitHub Releases" in guide
     assert "docker pull ghcr.io/cyanautomation/motioninocean:vX.Y" in guide
-
-
-def test_release_skills_match_manual_github_release_process() -> None:
-    """Skills describe manual GitHub releases and only automated image publishing."""
-    operator = (REPO_ROOT / ".github/skills/release-operator/SKILL.md").read_text(encoding="utf-8")
-    publisher = (REPO_ROOT / ".github/skills/release-publish/SKILL.md").read_text(encoding="utf-8")
-
     assert "GitHub Releases UI" in operator
     assert "`vX.Y`" in operator
     assert "manual" in operator.lower()

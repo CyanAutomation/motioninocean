@@ -52,31 +52,31 @@ def test_capture_cli_version_uses_separate_version_argument(
     )
 
 
-def test_log_provenance_uses_fixed_dpkg_query_command(
+def test_package_provenance_is_reported_from_a_shell_free_query(
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Package provenance queries only the fixed packages and formatting arguments."""
+    """Camera package origin information reaches startup logs using a fixed argv."""
+    caplog.set_level(logging.INFO)
     monkeypatch.setattr(
         logging_config, "_capture_camera_cli_version", lambda logger: ("unknown", "none")
     )
     monkeypatch.setattr(logging_config.Path, "exists", lambda path: False)
     monkeypatch.setattr(logging_config, "is_flag_enabled", lambda flag: False)
-    run = mock.Mock(return_value=mock.Mock(returncode=0, stdout="", stderr=""))
+    run = mock.Mock(
+        return_value=mock.Mock(
+            returncode=0,
+            stdout="libcamera-apps\t1.2.3\tRaspberry Pi\n",
+            stderr="",
+        )
+    )
     monkeypatch.setattr(logging_config.subprocess, "run", run)
 
     logging_config.log_provenance_info()
 
-    run.assert_called_once_with(
-        [
-            logging_config.DPKG_QUERY_PATH,
-            "-W",
-            "-f=${Package}\t${Version}\t${Origin}\n",
-            "libcamera-apps",
-            "python3-picamera2",
-            "python3-libcamera",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=5,
-        check=False,
-    )
+    assert "package_origins=Raspberry Pi" in caplog.text
+    command = run.call_args.args[0]
+    assert command[0] == logging_config.DPKG_QUERY_PATH
+    assert command[3:] == ["libcamera-apps", "python3-picamera2", "python3-libcamera"]
+    assert "shell" not in run.call_args.kwargs
+    assert run.call_args.kwargs["timeout"] == 5

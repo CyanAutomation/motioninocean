@@ -1,4 +1,4 @@
-export const CONFIG_POLL_INTERVAL_MS = 15000;
+export const CONFIG_POLL_INTERVAL_MS = 5000;
 
 export interface ConfigPollingState {
   configPollingInterval: ReturnType<typeof setInterval> | null;
