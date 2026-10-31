@@ -18,6 +18,7 @@ import { loadSetupTemplates } from "./setup-load.js";
 import { bindOptionalEventListeners } from "./app-event-bindings.js";
 import { showWebcamHelpModal } from "./webcam-help-modal.js";
 import { updateMioMascotForTab as updateMioMascot } from "./mio-mascot.js";
+import { getSnackbarController } from "./snackbar.js";
 const REQUEST_TIMEOUT_MS = 5000;
 const THEME_STORAGE_KEY = "webcam.theme";
 const DEFAULT_MIO_PATH = "/static/img/mio/mio_avatar.png";
@@ -1417,6 +1418,7 @@ async function updateConfig() {
  * @returns {void}
  */
 function showConfigError(message) {
+    getSnackbarController()?.dismiss();
     if (!state.elements.configErrorAlert)
         return;
     if (state.elements.configErrorMessage) {
@@ -2253,6 +2255,7 @@ function copyToClipboard(targetId, buttonElement) {
  * @returns {void}
  */
 function showSetupError(message) {
+    getSnackbarController()?.dismiss();
     const errorAlert = getElementById("setup-error-alert");
     const errorMessage = getElementById("setup-error-message");
     if (errorAlert && errorMessage) {
@@ -2269,15 +2272,7 @@ function showSetupError(message) {
  * @returns {void}
  */
 function showSetupSuccess(message) {
-    const successAlert = getElementById("setup-success-alert");
-    const successMessage = getElementById("setup-success-message");
-    if (successAlert && successMessage) {
-        successMessage.textContent = message;
-        successAlert.classList.remove("hidden");
-        setTimeout(() => {
-            successAlert.classList.add("hidden");
-        }, 3000);
-    }
+    getSnackbarController()?.show(message);
 }
 // settings.js remains a separate module and uses this tab boundary.
 window.switchTab = switchTab;

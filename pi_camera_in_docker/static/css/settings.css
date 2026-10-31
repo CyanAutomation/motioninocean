@@ -498,6 +498,12 @@
   color: #166534;
 }
 
+.settings-alert.warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
 .alert-icon {
   font-size: 1.25rem;
   flex-shrink: 0;
