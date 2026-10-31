@@ -728,6 +728,10 @@
   margin-top: 0;
 }
 
+.management-bottom-rail {
+  display: none;
+}
+
 /* Offset page content to clear the fixed 82px rail */
 .management-header,
 .management-main {
@@ -742,5 +746,41 @@
   .management-header,
   .management-main {
     margin-left: 0;
+  }
+
+  .management-main {
+    padding-bottom: calc(68px + var(--space-4) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .management-bottom-rail {
+    position: fixed;
+    z-index: 20;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--space-1);
+    min-height: 68px;
+    padding: var(--space-2) var(--space-2) env(safe-area-inset-bottom, 0px);
+    border-top: 1px solid var(--color-border-strong);
+    background: var(--management-rail);
+    box-shadow: 0 -2px 8px rgba(15, 23, 42, 0.12);
+  }
+
+  .management-bottom-rail .mobile-rail-btn {
+    min-width: 0;
+    min-height: 44px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: var(--management-rail-muted);
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .management-bottom-rail .mobile-rail-btn--active {
+    background: var(--management-accent);
+    color: var(--color-text-inverse);
+    box-shadow: var(--shadow-focus-ring);
   }
 }

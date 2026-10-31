@@ -244,6 +244,11 @@
       </div>
     </header>
 
+    <div id="app-snackbar" class="app-snackbar" role="status" aria-live="polite" aria-atomic="true">
+      <span data-snackbar-message=""></span>
+      <button data-snackbar-dismiss="" type="button" aria-label="Dismiss notification">×</button>
+    </div>
+
     <!-- Main Container -->
     <main class="container">
       <!-- Stream View Grid -->
@@ -589,7 +594,7 @@
           </details>
 
           <!-- Error Alert -->
-          <div id="config-error-alert" class="config-alert error hidden">
+          <div id="config-error-alert" class="config-alert error hidden" role="alert">
             <span class="alert-icon">⚠️</span>
             <span id="config-error-message" class="alert-message"
               >Failed to load configuration</span
@@ -1026,7 +1031,7 @@
           </div>
 
           <!-- Error Alert -->
-          <div id="settings-error-alert" class="settings-alert error hidden">
+          <div id="settings-error-alert" class="settings-alert error hidden" role="alert">
             <span class="alert-icon">⚠️</span>
             <span id="settings-error-message" class="alert-message">Settings error</span>
             <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">
@@ -1034,13 +1039,10 @@
             </button>
           </div>
 
-          <!-- Success Alert -->
-          <div id="settings-success-alert" class="settings-alert success hidden">
-            <span class="alert-icon">✅</span>
-            <span id="settings-success-message" class="alert-message"
-              >Settings saved successfully!</span
-            >
-            <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">
+          <div id="settings-warning-alert" class="settings-alert warning hidden" role="status">
+            <span class="alert-icon" aria-hidden="true">ℹ️</span>
+            <span id="settings-warning-message" class="alert-message"></span>
+            <button class="alert-dismiss" type="button" aria-label="Dismiss warning" onclick="this.parentElement.classList.add('hidden')">
               ×
             </button>
           </div>
@@ -1385,7 +1387,7 @@
             </div>
           </div>
           <!-- Error Alert -->
-          <div id="setup-error-alert" class="setup-alert error hidden">
+          <div id="setup-error-alert" class="setup-alert error hidden" role="alert">
             <span class="alert-icon">⚠️</span>
             <span id="setup-error-message" class="alert-message">Setup error</span>
             <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">
@@ -1393,16 +1395,6 @@
             </button>
           </div>
 
-          <!-- Success Alert -->
-          <div id="setup-success-alert" class="setup-alert success hidden">
-            <span class="alert-icon">✅</span>
-            <span id="setup-success-message" class="alert-message"
-              >Configuration generated successfully!</span
-            >
-            <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">
-              ×
-            </button>
-          </div>
         </div>
       </div>
     </main>

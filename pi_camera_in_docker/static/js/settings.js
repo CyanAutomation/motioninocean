@@ -3,6 +3,7 @@
  * Manages the Settings tab: loads schema, renders forms, handles saves, etc.
  * @global switchToTab - Central tab switcher from app.js
  */
+import { getSnackbarController } from "./snackbar.js";
 import { buildSettingsChangesSummaryModel, } from "./settings-summary.js";
 import { hydrateCameraSettingsForm, hydrateDiscoverySettingsForm } from "./settings-form.js";
 import { saveSettingsPatch } from "./settings-api.js";
@@ -44,7 +45,7 @@ const SettingsUI = (() => {
     const saveBtn = () => getButton("settings-save-btn");
     const resetBtn = () => getButton("settings-reset-btn");
     const errorAlert = () => getElement("settings-error-alert");
-    const successAlert = () => getElement("settings-success-alert");
+    const warningAlert = () => getElement("settings-warning-alert");
     const undoAlert = () => getElement("settings-undo-alert");
     const saveStatus = () => getElement("settings-save-status");
     const saveStatusTime = () => getElement("settings-save-status-time");
@@ -508,11 +509,13 @@ const SettingsUI = (() => {
      * @returns {void}
      */
     const showError = (message, metadata = {}) => {
+        getSnackbarController()?.dismiss();
         const alert = errorAlert();
         const msgElement = document.getElementById("settings-error-message");
+        warningAlert()?.classList.add("hidden");
+        alert?.classList.remove("hidden");
         if (alert && msgElement) {
             msgElement.textContent = message;
-            alert.classList.remove("hidden");
         }
         if (!metadata.skipStatus) {
             updateSaveStatus({
@@ -529,11 +532,10 @@ const SettingsUI = (() => {
      * @returns {void}
      */
     const showSuccess = (message, metadata = {}) => {
-        const alert = successAlert();
-        const msgElement = document.getElementById("settings-success-message");
-        if (alert && msgElement) {
-            msgElement.textContent = message;
-            alert.classList.remove("hidden");
+        warningAlert()?.classList.add("hidden");
+        errorAlert()?.classList.add("hidden");
+        if (!metadata.skipStatus) {
+            getSnackbarController()?.show(message);
         }
         if (!metadata.skipStatus) {
             updateSaveStatus({
@@ -550,10 +552,20 @@ const SettingsUI = (() => {
      * @returns {void}
      */
     const showWarning = (message, metadata = {}) => {
-        showSuccess("ℹ️ " + message, {
-            outcome: metadata.outcome || "restart-required",
-            details: metadata.details || message,
-        });
+        getSnackbarController()?.dismiss();
+        const alert = warningAlert();
+        const msgElement = document.getElementById("settings-warning-message");
+        errorAlert()?.classList.add("hidden");
+        if (alert && msgElement) {
+            msgElement.textContent = "ℹ️ " + message;
+            alert.classList.remove("hidden");
+        }
+        if (!metadata.skipStatus) {
+            updateSaveStatus({
+                outcome: metadata.outcome || "restart-required",
+                details: metadata.details || message,
+            });
+        }
     };
     /**
      * Format a setting value for human-readable display.
