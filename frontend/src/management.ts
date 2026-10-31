@@ -190,6 +190,7 @@ const managementBearerTokenSession = createManagementBearerTokenSession(
 );
 const API_AUTH_HINT =
   "Management API request unauthorized. Open API access in the page header, enter a valid token, then refresh.";
+const RESTART_REQUIRED_FEEDBACK = "Saved. Some changes require restart to take effect.";
 
 const DOCKER_BASE_URL_PATTERN = String.raw`docker://[^\s/:]+:\d+/[^\s/]+`;
 const DOCKER_BASE_URL_HINT = "Use format: docker://proxy-hostname:port/container-id";
@@ -806,7 +807,7 @@ async function applyDiscoveredDecision(decision: "approve" | "reject" | "snooze"
 }
 
 function setSettingsFeedback(message: string, isError = false): void {
-  if (isError || message.startsWith("Saved. Some changes require restart")) {
+  if (isError || message === RESTART_REQUIRED_FEEDBACK) {
     getSnackbarController()?.dismiss();
   }
   if (
@@ -899,7 +900,7 @@ async function saveSettings() {
   setSettingsFeedback("");
   const result = await saveManagementSettings(managementFetch, patchPayload);
   if (result.kind === "restart-required") {
-    setSettingsFeedback("Saved. Some changes require restart to take effect.");
+    setSettingsFeedback(RESTART_REQUIRED_FEEDBACK);
     if (settingsValidationSummary instanceof HTMLElement) {
       settingsValidationSummary.textContent = `Requires restart (${result.modifiedOnRestart.length})`;
     }

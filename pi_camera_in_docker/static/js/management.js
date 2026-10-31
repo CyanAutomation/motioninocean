@@ -129,6 +129,7 @@ let previousStatusByNode = new Map();
 let discoveredSnoozedIds = new Set();
 const managementBearerTokenSession = createManagementBearerTokenSession(() => globalThis.localStorage);
 const API_AUTH_HINT = "Management API request unauthorized. Open API access in the page header, enter a valid token, then refresh.";
+const RESTART_REQUIRED_FEEDBACK = "Saved. Some changes require restart to take effect.";
 const DOCKER_BASE_URL_PATTERN = String.raw `docker://[^\s/:]+:\d+/[^\s/]+`;
 const DOCKER_BASE_URL_HINT = "Use format: docker://proxy-hostname:port/container-id";
 const NODE_FORM_COLLAPSED_STORAGE_KEY = "management.webcamFormCollapsed";
@@ -660,7 +661,7 @@ async function applyDiscoveredDecision(decision) {
     }
 }
 function setSettingsFeedback(message, isError = false) {
-    if (isError || message.startsWith("Saved. Some changes require restart")) {
+    if (isError || message === RESTART_REQUIRED_FEEDBACK) {
         getSnackbarController()?.dismiss();
     }
     if (!isError &&
@@ -747,7 +748,7 @@ async function saveSettings() {
     setSettingsFeedback("");
     const result = await saveManagementSettings(managementFetch, patchPayload);
     if (result.kind === "restart-required") {
-        setSettingsFeedback("Saved. Some changes require restart to take effect.");
+        setSettingsFeedback(RESTART_REQUIRED_FEEDBACK);
         if (settingsValidationSummary instanceof HTMLElement) {
             settingsValidationSummary.textContent = `Requires restart (${result.modifiedOnRestart.length})`;
         }

@@ -89,6 +89,34 @@ test("snackbar replaces an active message and pauses while hovered or focused", 
   assert.equal(classes.has("snackbar--visible"), false);
 });
 
+test("leaving with the pointer does not resume while keyboard focus remains", () => {
+  const { region, classes, fire } = createRegion();
+  const clock = createClock();
+  const snackbar = createSnackbarController(region as never, clock);
+
+  snackbar.show("Saved.");
+  fire("pointerenter");
+  fire("focusin");
+  fire("pointerleave");
+  clock.fire();
+
+  assert.equal(classes.has("snackbar--visible"), true);
+});
+
+test("moving focus away does not resume while the pointer remains over the snackbar", () => {
+  const { region, classes, fire } = createRegion();
+  const clock = createClock();
+  const snackbar = createSnackbarController(region as never, clock);
+
+  snackbar.show("Saved.");
+  fire("pointerenter");
+  fire("focusin");
+  fire("focusout", { relatedTarget: null });
+  clock.fire();
+
+  assert.equal(classes.has("snackbar--visible"), true);
+});
+
 test("snackbar dismiss button closes it immediately", () => {
   const { region, classes, fireDismiss } = createRegion();
   const clock = createClock();

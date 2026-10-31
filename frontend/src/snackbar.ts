@@ -27,7 +27,8 @@ export function createSnackbarController(
   const message = region.querySelector<HTMLElement>("[data-snackbar-message]");
   const dismissButton = region.querySelector<HTMLButtonElement>("[data-snackbar-dismiss]");
   let timeoutId: number | null = null;
-  let paused = false;
+  let pointerOver = false;
+  let focusWithin = false;
 
   const stopTimer = () => {
     if (timeoutId !== null) {
@@ -38,32 +39,42 @@ export function createSnackbarController(
 
   const dismiss = () => {
     stopTimer();
+    pointerOver = false;
+    focusWithin = false;
     region.classList.remove("snackbar--visible");
   };
 
   const startTimer = () => {
     stopTimer();
-    if (!paused && region.classList.contains("snackbar--visible")) {
+    if (!pointerOver && !focusWithin && region.classList.contains("snackbar--visible")) {
       timeoutId = clock.setTimeout(dismiss, SNACKBAR_DURATION_MS);
     }
   };
 
+  const syncTimer = () => {
+    if (pointerOver || focusWithin) {
+      stopTimer();
+    } else {
+      startTimer();
+    }
+  };
+
   region.addEventListener("pointerenter", () => {
-    paused = true;
-    stopTimer();
+    pointerOver = true;
+    syncTimer();
   });
   region.addEventListener("pointerleave", () => {
-    paused = false;
-    startTimer();
+    pointerOver = false;
+    syncTimer();
   });
   region.addEventListener("focusin", () => {
-    paused = true;
-    stopTimer();
+    focusWithin = true;
+    syncTimer();
   });
   region.addEventListener("focusout", (event) => {
     if (!event.relatedTarget || !region.contains(event.relatedTarget as Node)) {
-      paused = false;
-      startTimer();
+      focusWithin = false;
+      syncTimer();
     }
   });
   dismissButton?.addEventListener("click", dismiss);
