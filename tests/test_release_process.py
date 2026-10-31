@@ -47,12 +47,8 @@ def test_release_workflow_accepts_two_component_v_tags() -> None:
 def test_release_operator_docs_describe_the_manual_release_and_image_contract() -> None:
     """Guidance agrees that operators create releases and automation publishes images."""
     guide = (REPO_ROOT / "docs/guides/RELEASE.md").read_text(encoding="utf-8")
-    operator = (REPO_ROOT / ".github/skills/release-operator/SKILL.md").read_text(
-        encoding="utf-8"
-    )
-    publisher = (REPO_ROOT / ".github/skills/release-publish/SKILL.md").read_text(
-        encoding="utf-8"
-    )
+    operator = (REPO_ROOT / ".github/skills/release-operator/SKILL.md").read_text(encoding="utf-8")
+    publisher = (REPO_ROOT / ".github/skills/release-publish/SKILL.md").read_text(encoding="utf-8")
 
     assert "https://github.com/CyanAutomation/motioninocean/releases/new" in guide
     assert "`vX.Y`" in guide
