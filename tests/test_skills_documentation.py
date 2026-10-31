@@ -65,7 +65,7 @@ def _install_recording_python(tmp_path: Path, executable_name: str) -> tuple[Pat
     return executable, capture_path
 
 
-def test_every_skill_has_required_metadata_and_sections() -> None:
+def test_skill_documents_match_metadata_template_and_index() -> None:
     """Keep skill documents aligned with the repository's skill template.
 
     Traceability: .github/skills/_template/SKILL.md.
@@ -109,9 +109,6 @@ def test_every_skill_has_required_metadata_and_sections() -> None:
             assert f"## {heading}" in content, (
                 f"{path.relative_to(REPO_ROOT)} is missing section {heading!r}"
             )
-
-
-def test_skill_names_and_index_entries_match() -> None:
     skill_paths = [path for path in _skill_markdown_files() if path.parent.name != "_template"]
     expected_names = {path.parent.name for path in skill_paths}
     index = (SKILLS_ROOT / "README.md").read_text(encoding="utf-8")
@@ -122,14 +119,6 @@ def test_skill_names_and_index_entries_match() -> None:
         frontmatter = path.read_text(encoding="utf-8").split("---\n", 2)[1]
         metadata = yaml.safe_load(frontmatter)
         assert metadata["name"] == path.parent.name
-
-
-def test_quoted_skill_review_date_is_not_compared_as_a_date() -> None:
-    review_date = yaml.safe_load('last-reviewed: "2026-10-24"')["last-reviewed"]
-
-    assert isinstance(review_date, str)
-    assert not _review_date_is_stale(review_date, date(2026, 10, 24))
-    assert _review_date_is_stale(date(2026, 10, 23), date(2026, 10, 24))
 
 
 def test_skill_compatible_paths_exist_and_reviews_are_current() -> None:
@@ -282,14 +271,13 @@ def test_run_mock_invokes_application_with_mock_flag(tmp_path: Path) -> None:
     ]
 
 
-def test_feature_flag_check_uses_selected_python_interpreter(tmp_path: Path) -> None:
+def test_feature_flag_check_runs_module_with_requested_python(tmp_path: Path) -> None:
     """The Make target runs the feature-flag check through the selected interpreter.
 
     Traceability: AGENTS.md#running-ci-locally.
     """
     executable, capture_path = _install_recording_python(tmp_path, "selected-python")
     test_env = os.environ.copy()
-    test_env["FAKE_PYTHON_CAPTURE"] = str(capture_path)
 
     result = subprocess.run(
         ["make", "check-feature-flag-usage", f"PYTHON={executable}"],

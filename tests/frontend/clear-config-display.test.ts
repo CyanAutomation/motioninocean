@@ -38,10 +38,10 @@ test("clearConfigDisplay only resets dedicated config value nodes", () => {
       delete attributesB[name];
     },
   };
-  let selectorUsed: string | null = null;
   const state = { streamConnections: { current: "5", max: "10" } };
   let connectionDisplaysUpdated = 0;
 
+  let selectorUsed: string | null = null;
   clearConfigDisplay(
     {
       querySelectorAll: (selector) => {
