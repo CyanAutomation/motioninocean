@@ -41,9 +41,13 @@ test("clearConfigDisplay only resets dedicated config value nodes", () => {
   const state = { streamConnections: { current: "5", max: "10" } };
   let connectionDisplaysUpdated = 0;
 
+  let selectorUsed: string | null = null;
   clearConfigDisplay(
     {
-      querySelectorAll: () => [targetValueA, healthValue],
+      querySelectorAll: (selector) => {
+        selectorUsed = selector;
+        return [targetValueA, healthValue];
+      },
     },
     state,
     () => {
@@ -51,6 +55,7 @@ test("clearConfigDisplay only resets dedicated config value nodes", () => {
     },
   );
 
+  assert.equal(selectorUsed, '[data-config-value="true"]');
   assert.equal(targetValueA.textContent, "--");
   assert.equal(targetValueA.className, "config-value");
   assert.deepEqual(attributesA, {});

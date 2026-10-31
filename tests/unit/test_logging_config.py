@@ -76,7 +76,17 @@ def test_package_provenance_is_reported_from_a_shell_free_query(
 
     assert "package_origins=Raspberry Pi" in caplog.text
     command = run.call_args.args[0]
-    assert command[0] == logging_config.DPKG_QUERY_PATH
-    assert command[3:] == ["libcamera-apps", "python3-picamera2", "python3-libcamera"]
-    assert "shell" not in run.call_args.kwargs
-    assert run.call_args.kwargs["timeout"] == 5
+    assert command == [
+        logging_config.DPKG_QUERY_PATH,
+        "-W",
+        "-f=${Package}\t${Version}\t${Origin}\n",
+        "libcamera-apps",
+        "python3-picamera2",
+        "python3-libcamera",
+    ]
+    assert run.call_args.kwargs == {
+        "capture_output": True,
+        "text": True,
+        "timeout": 5,
+        "check": False,
+    }
