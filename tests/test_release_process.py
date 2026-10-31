@@ -121,7 +121,10 @@ def test_candidate_platform_references_are_immutable_and_unambiguous(
     }
     result = subprocess.run(
         ["bash", "-e", "-c", step["run"]],
-        cwd=tmp_path, env=env, capture_output=True, check=False,
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        check=False,
     )
     assert (result.returncode == 0) == succeeds
     if succeeds:
