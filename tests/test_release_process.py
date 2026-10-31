@@ -1,10 +1,14 @@
 """Keep manual GitHub releases and Docker publishing behavior aligned."""
 
+import json
+import os
 import re
 import shlex
+import subprocess
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
 
 
@@ -87,6 +91,48 @@ def test_manifest_verification_uses_candidate_digest_and_both_architectures() ->
     assert 'docker buildx imagetools inspect --raw "$IMAGE_REF"' in verify_manifest["run"]
     assert "linux/amd64" in verify_manifest["run"]
     assert "linux/arm64" in verify_manifest["run"]
+
+
+@pytest.mark.parametrize(
+    ("architectures", "succeeds"),
+    [(["amd64", "arm64"], True), (["amd64"], False), (["amd64", "arm64", "arm64"], False)],
+)
+def test_candidate_platform_references_are_immutable_and_unambiguous(
+    tmp_path: Path, architectures: list[str], succeeds: bool
+) -> None:
+    """Resolve each scan image from exactly one manifest in the candidate index."""
+    build = _release_workflow()["jobs"]["build"]
+    step = next(s for s in build["steps"] if s.get("id") == "platform-refs")
+    manifest = {
+        "manifests": [
+            {
+                "platform": {"os": "linux", "architecture": arch},
+                "digest": "sha256:" + ("a" if arch == "amd64" else "b") * 64,
+            }
+            for arch in architectures
+        ]
+    }
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest))
+    output = tmp_path / "output"
+    env = {
+        **os.environ,
+        "IMAGE_REF": "ghcr.io/example/camera@sha256:" + "c" * 64,
+        "GITHUB_OUTPUT": str(output),
+    }
+    result = subprocess.run(
+        ["bash", "-e", "-c", step["run"]],
+        cwd=tmp_path, env=env, capture_output=True, check=False,
+    )
+    assert (result.returncode == 0) == succeeds
+    if succeeds:
+        assert output.read_text().splitlines() == [
+            "amd64_ref=ghcr.io/example/camera@sha256:" + "a" * 64,
+            "arm64_ref=ghcr.io/example/camera@sha256:" + "b" * 64,
+        ]
+    scan = _release_workflow()["jobs"]["scan"]
+    for arch in ("amd64", "arm64"):
+        pull = next(s for s in scan["steps"] if s.get("name") == f"Pull {arch} candidate image")
+        assert pull["env"]["IMAGE_REF"] == f"${{{{ needs.build.outputs.{arch}_ref }}}}"
 
 
 def test_release_guide_verification_commands_match_attested_images() -> None:

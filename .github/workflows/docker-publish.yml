@@ -78,6 +78,8 @@ jobs:
     outputs:
       image_digest: ${{ steps.build_candidate.outputs.digest }}
       image_ref: ${{ steps.candidate-ref.outputs.image_ref }}
+      amd64_ref: ${{ steps.platform-refs.outputs.amd64_ref }}
+      arm64_ref: ${{ steps.platform-refs.outputs.arm64_ref }}
 
     steps:
       - name: Checkout
@@ -141,6 +143,17 @@ jobs:
           docker buildx imagetools inspect --raw "$IMAGE_REF" > manifest.json
           jq -e '[.manifests[].platform | "\(.os)/\(.architecture)"] | index("linux/amd64") and index("linux/arm64")' manifest.json
 
+      - name: Resolve candidate platform references
+        id: platform-refs
+        env:
+          IMAGE_REF: ${{ steps.candidate-ref.outputs.image_ref }}
+        run: |
+          set -euo pipefail
+          for arch in amd64 arm64; do
+            digest="$(jq -er --arg arch "$arch" '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == $arch) | .digest] | if length == 1 and (.[0] | test("^sha256:[0-9a-f]{64}$")) then .[0] else error("expected exactly one valid platform digest") end' manifest.json)"
+            echo "${arch}_ref=${IMAGE_REF%@*}@${digest}" >> "$GITHUB_OUTPUT"
+          done
+
   scan:
     name: Scan exact release candidate
     needs: build
@@ -159,7 +172,7 @@ jobs:
 
       - name: Pull amd64 candidate image
         env:
-          IMAGE_REF: ${{ needs.build.outputs.image_ref }}
+          IMAGE_REF: ${{ needs.build.outputs.amd64_ref }}
         run: |
           set -euo pipefail
           docker pull --platform linux/amd64 "$IMAGE_REF"
@@ -177,7 +190,7 @@ jobs:
 
       - name: Pull arm64 candidate image
         env:
-          IMAGE_REF: ${{ needs.build.outputs.image_ref }}
+          IMAGE_REF: ${{ needs.build.outputs.arm64_ref }}
         run: |
           set -euo pipefail
           docker pull --platform linux/arm64 "$IMAGE_REF"
