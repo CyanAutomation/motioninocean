@@ -33,6 +33,7 @@ import { loadSetupTemplates } from "./setup-load.js";
 import { bindOptionalEventListeners, type OptionalEventBinding } from "./app-event-bindings.js";
 import { showWebcamHelpModal } from "./webcam-help-modal.js";
 import { updateMioMascotForTab as updateMioMascot, type MioMascotAssets } from "./mio-mascot.js";
+import { getSnackbarController } from "./snackbar.js";
 
 const REQUEST_TIMEOUT_MS = 5000;
 const THEME_STORAGE_KEY = "webcam.theme";
@@ -1679,6 +1680,7 @@ async function updateConfig() {
  * @returns {void}
  */
 function showConfigError(message: string): void {
+  getSnackbarController()?.dismiss();
   if (!state.elements.configErrorAlert) return;
 
   if (state.elements.configErrorMessage) {
@@ -2585,6 +2587,7 @@ function copyToClipboard(targetId: string, buttonElement: HTMLButtonElement): vo
  * @returns {void}
  */
 function showSetupError(message: string): void {
+  getSnackbarController()?.dismiss();
   const errorAlert = getElementById("setup-error-alert");
   const errorMessage = getElementById("setup-error-message");
 
@@ -2603,17 +2606,7 @@ function showSetupError(message: string): void {
  * @returns {void}
  */
 function showSetupSuccess(message: string): void {
-  const successAlert = getElementById("setup-success-alert");
-  const successMessage = getElementById("setup-success-message");
-
-  if (successAlert && successMessage) {
-    successMessage.textContent = message;
-    successAlert.classList.remove("hidden");
-
-    setTimeout(() => {
-      successAlert.classList.add("hidden");
-    }, 3000);
-  }
+  getSnackbarController()?.show(message);
 }
 
 declare global {

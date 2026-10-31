@@ -17,6 +17,7 @@ import {
 import { renderDiagnosticResults as renderDiagnosticResultsUi } from "./management-diagnostic-renderer.js";
 import { getDiagnosticCheckRows, getDiagnosticSummaryState } from "./management-diagnostics.js";
 import { validateManagementDom } from "./management-dom.js";
+import { getSnackbarController } from "./snackbar.js";
 import {
   createManagementBearerTokenSession,
   revealManagementTokenField,
@@ -189,6 +190,7 @@ const managementBearerTokenSession = createManagementBearerTokenSession(
 );
 const API_AUTH_HINT =
   "Management API request unauthorized. Open API access in the page header, enter a valid token, then refresh.";
+const RESTART_REQUIRED_FEEDBACK = "Saved. Some changes require restart to take effect.";
 
 const DOCKER_BASE_URL_PATTERN = String.raw`docker://[^\s/:]+:\d+/[^\s/]+`;
 const DOCKER_BASE_URL_HINT = "Use format: docker://proxy-hostname:port/container-id";
@@ -277,6 +279,12 @@ function getDiscoveryInfo(webcam: Partial<WebcamRecord> = {}) {
 }
 
 function showFeedback(message: string, isError = false): void {
+  if (isError || !message) getSnackbarController()?.dismiss();
+  if (message && !isError) {
+    getSnackbarController()?.show(message);
+    if (feedback instanceof HTMLElement) feedback.textContent = "";
+    return;
+  }
   if (!(feedback instanceof HTMLElement)) {
     if (message) {
       const logger = isError ? console.error : console.info;
@@ -765,6 +773,12 @@ async function fetchOverview() {
 }
 
 function setDiscoveredFeedback(message: string, isError = false): void {
+  if (isError || !message) getSnackbarController()?.dismiss();
+  if (message && !isError) {
+    getSnackbarController()?.show(message);
+    if (discoveredFeedback instanceof HTMLElement) discoveredFeedback.textContent = "";
+    return;
+  }
   if (!(discoveredFeedback instanceof HTMLElement)) {
     return;
   }
@@ -793,6 +807,17 @@ async function applyDiscoveredDecision(decision: "approve" | "reject" | "snooze"
 }
 
 function setSettingsFeedback(message: string, isError = false): void {
+  if (isError || message === RESTART_REQUIRED_FEEDBACK) {
+    getSnackbarController()?.dismiss();
+  }
+  if (
+    !isError &&
+    (message === "Settings saved." || message === "Settings reset to defaults.")
+  ) {
+    getSnackbarController()?.show(message);
+    if (settingsFeedback instanceof HTMLElement) settingsFeedback.textContent = "";
+    return;
+  }
   if (!(settingsFeedback instanceof HTMLElement)) {
     return;
   }
@@ -875,7 +900,7 @@ async function saveSettings() {
   setSettingsFeedback("");
   const result = await saveManagementSettings(managementFetch, patchPayload);
   if (result.kind === "restart-required") {
-    setSettingsFeedback("Saved. Some changes require restart to take effect.");
+    setSettingsFeedback(RESTART_REQUIRED_FEEDBACK);
     if (settingsValidationSummary instanceof HTMLElement) {
       settingsValidationSummary.textContent = `Requires restart (${result.modifiedOnRestart.length})`;
     }

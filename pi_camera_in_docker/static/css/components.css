@@ -9,6 +9,77 @@
   box-shadow: var(--shadow-lg);
 }
 
+.app-snackbar {
+  position: fixed;
+  z-index: 30;
+  left: calc(82px + (100vw - 82px) / 2);
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: max-content;
+  max-width: min(36rem, calc(100vw - 2rem));
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-strong);
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(-50%, 0.75rem);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    visibility 0s linear 180ms;
+}
+
+.app-snackbar--visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+  transition-delay: 0s;
+}
+
+.app-snackbar [data-snackbar-message] {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.app-snackbar [data-snackbar-dismiss] {
+  flex: 0 0 auto;
+  border: 0;
+  padding: 0 var(--space-1);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.app-snackbar [data-snackbar-dismiss]:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 900px) {
+  .app-snackbar {
+    left: 50%;
+    bottom: calc(68px + var(--space-2) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-snackbar {
+    transition: none;
+    transform: translate(-50%, 0);
+  }
+}
+
 .ui-panel-header {
   display: flex;
   justify-content: space-between;
