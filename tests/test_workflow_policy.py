@@ -251,7 +251,7 @@ def test_docker_release_scans_candidate_digest_before_promoting_tags(workspace_r
             for step in scan_steps
             if step.get("name") == f"Enforce HIGH and CRITICAL vulnerabilities on {platform}"
         )
-        assert pull["env"]["IMAGE_REF"] == "${{ needs.build.outputs.image_ref }}"
+        assert pull["env"]["IMAGE_REF"] == f"${{{{ needs.build.outputs.{platform}_ref }}}}"
         assert scan_step["with"]["image-ref"] == f"motion-in-ocean:scan-{platform}"
         assert scan_step["with"]["severity"] == "HIGH,CRITICAL"
         assert scan_step["with"]["exit-code"] == "1"
