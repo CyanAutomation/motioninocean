@@ -1,5 +1,8 @@
 {
   "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
   "scripts": {
     "build:frontend": "tsc -p tsconfig.json",
     "lint": "eslint . --ext .js,.mjs,.cjs,.ts --ignore-pattern 'node_modules/**' --ignore-pattern 'docs/_build/**' --ignore-pattern 'docs/_autosummary/**'",

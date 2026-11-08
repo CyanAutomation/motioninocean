@@ -10,8 +10,8 @@ const testFiles = (await readdir(testDirectory))
   .sort()
   .map((file) => join(testDirectory, file));
 
-if (Number(process.versions.node.split(".")[0]) < 22) {
-  console.error("Frontend health reporting requires Node.js 22 or newer (Fallow 3.30.0).");
+if (Number(process.versions.node.split(".")[0]) < 26) {
+  console.error("Frontend health reporting requires Node.js 26 or newer (Fallow 3.30.0).");
   process.exit(1);
 }
 
