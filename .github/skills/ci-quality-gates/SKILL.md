@@ -2,7 +2,7 @@
 name: ci-quality-gates
 description: Run the repository’s local lint, type, test, and security checks. Use before opening a pull request or when checking whether a change is ready for CI.
 owner: motion-in-ocean team
-last-reviewed: 2026-09-25
+last-reviewed: 2026-11-08
 category: CI/CD
 compatible-repo-areas:
   - .github/workflows/ci.yml
@@ -25,7 +25,7 @@ Run the same relevant checks contributors and CI use, and report any checks that
 ## Required inputs
 
 - The branch and changes to validate.
-- Python and Node.js environments listed in `README.md` and `.github/workflows/ci.yml`.
+- Python environment and Node.js version listed in `AGENTS.md`, `.nvmrc`, and CI workflows.
 - Docker and Trivy only when checking the image scan locally.
 
 ## Step-by-step workflow
@@ -55,6 +55,7 @@ Run the same relevant checks contributors and CI use, and report any checks that
 ## Source of truth
 
 - `.github/workflows/ci.yml` — CI jobs, Python/Node versions, and exact commands.
+- `.nvmrc` — Shared Node.js version for local development and CI.
 - `.github/workflows/security-scan.yml` — Image scanning, enforcement, SARIF, and ARM64 smoke test.
 - `Makefile` — Local validation targets and which gates they include.
 - `package.json` — Frontend scripts.

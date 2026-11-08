@@ -1,5 +1,6 @@
 """Regression checks for repository GitHub Actions security and policy."""
 
+import json
 import re
 
 import yaml
@@ -369,8 +370,12 @@ def test_ci_and_release_checkouts_do_not_persist_credentials(workspace_root):
         assert all(step.get("with", {}).get("persist-credentials") is False for step in checkouts)
 
 
-def test_ci_and_release_use_node_22(workspace_root):
-    """Keep Node-based CI checks on the same maintained runtime as frontend tests."""
+def test_ci_and_release_use_shared_node_26_version(workspace_root):
+    """Keep local npm policy and Node-based CI on the shared Node 26 baseline."""
+    assert (workspace_root / ".nvmrc").read_text().strip() == "26"
+    package = json.loads((workspace_root / "package.json").read_text())
+    assert package["engines"]["node"] == ">=26"
+
     for filename in ("ci.yml", "docker-publish.yml"):
         workflow = load_workflow(workspace_root, filename)
         node_steps = [
@@ -381,7 +386,7 @@ def test_ci_and_release_use_node_22(workspace_root):
         ]
 
         assert node_steps
-        assert all(str(step.get("with", {}).get("node-version")) == "22" for step in node_steps)
+        assert all(step.get("with", {}).get("node-version-file") == ".nvmrc" for step in node_steps)
 
 
 def test_ci_lints_action_workflows(workspace_root):

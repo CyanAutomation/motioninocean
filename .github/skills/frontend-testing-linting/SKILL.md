@@ -2,9 +2,10 @@
 name: frontend-testing-linting
 description: Build, test, lint, and type-check the project’s TypeScript frontend and generated browser assets. Use for changes under frontend/, tests/frontend/, or generated frontend assets.
 owner: motion-in-ocean team
-last-reviewed: 2026-09-25
+last-reviewed: 2026-11-08
 category: Development
 compatible-repo-areas:
+  - .nvmrc
   - frontend/
   - tests/frontend/
   - pi_camera_in_docker/static/js/
@@ -24,7 +25,7 @@ Validate frontend source changes using the scripts and test runner configured in
 
 ## Required inputs
 
-- Node.js 22, npm, and the changed source/test files.
+- Node.js 26 or newer, npm, and the changed source/test files.
 - A clear expected behavior for any frontend logic change.
 
 ## Step-by-step workflow
@@ -64,6 +65,7 @@ Validate frontend source changes using the scripts and test runner configured in
 
 ## Source of truth
 
+- `.nvmrc` — Shared Node.js version for local development and CI.
 - `package.json` — Supported npm scripts and frontend tool dependencies.
 - `tsconfig.json`, `tsconfig.tools.json`, and `tsconfig.tests.json` — TypeScript source, tooling, and test compiler settings.
 - `.github/workflows/ci.yml` — Node version, frontend test command, and generated-file check.

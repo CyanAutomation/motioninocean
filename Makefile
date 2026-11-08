@@ -40,7 +40,7 @@ help:
 	@echo "Testing:"
 	@echo "  make test             Run all tests"
 	@echo "  make test-frontend    Build TypeScript and run frontend tests"
-	@echo "  make frontend-health  Run frontend tests with Fallow coverage report (Node.js 22+)"
+	@echo "  make frontend-health  Run frontend tests with Fallow coverage report (Node.js 26+)"
 	@echo "  make test-unit        Run unit tests only"
 	@echo "  make test-integration Run integration tests only"
 	@echo ""
