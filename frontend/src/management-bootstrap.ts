@@ -16,12 +16,13 @@ interface ButtonCollection {
 
 interface DashboardElements {
   [key: string]: DashboardElement | ButtonCollection | null | undefined;
-  settingsTabButtons?: ButtonCollection;
   webcamForm: DashboardElement;
   cancelEditBtn: DashboardElement;
   refreshBtn: DashboardElement;
   tableBody: DashboardElement;
   webcamTransport: DashboardElement;
+  webcamSearchInput?: DashboardElement | null;
+  webcamStatusFilter?: DashboardElement | null;
   diagnosticsAdvancedCheckbox?: DashboardElement;
   diagnosticsCollapsibleContainer?: DashboardElement;
 }
@@ -45,7 +46,7 @@ interface DashboardActions {
   selectDiscoveredNode: (nodeId: string) => void;
   applyDiscoveredDecision: (decision: "approve" | "reject" | "snooze") => Promise<unknown>;
   fetchOverview: () => Promise<unknown>;
-  setSettingsTab: (tabName: string) => void;
+  applyWebcamFilters: () => void;
   saveSettings: () => void | Promise<void>;
   resetSettings: () => void | Promise<void>;
   fetchSettingsData: () => void | Promise<void>;
@@ -158,14 +159,6 @@ export function bindNavigation({ elements, actions }: NavigationContext): void {
     [elements.viewDevicesBtn, "devices"],
     [elements.viewDiscoveredBtn, "discovered"],
     [elements.viewSettingsBtn, "settings"],
-    [elements.railOverviewBtn, "overview"],
-    [elements.railDevicesBtn, "devices"],
-    [elements.railDiscoveredBtn, "discovered"],
-    [elements.railSettingsBtn, "settings"],
-    [elements.mobileOverviewBtn, "overview"],
-    [elements.mobileDevicesBtn, "devices"],
-    [elements.mobileDiscoveredBtn, "discovered"],
-    [elements.mobileSettingsBtn, "settings"],
   ] as const;
 
   viewButtons.forEach(([button, view]) => {
@@ -173,10 +166,8 @@ export function bindNavigation({ elements, actions }: NavigationContext): void {
   });
 
   const utilityButtons = [
-    [elements.railHelpBtn, actions.openHelpPanel],
-    [elements.mobileHelpBtn, actions.openHelpPanel],
-    [elements.railExportBtn, actions.openExportPanel],
-    [elements.mobileExportBtn, actions.openExportPanel],
+    [elements.helpBtn, actions.openHelpPanel],
+    [elements.exportReportBtn, actions.openExportPanel],
     [elements.utilityPanelCloseBtn, actions.closeUtilityPanel],
     [elements.themeToggleBtn, actions.toggleTheme],
   ] as const;
@@ -255,15 +246,8 @@ export function bindDashboardControls({ elements, actions }: DashboardContext): 
     await actions.fetchOverview();
   });
 
-  if (elements.settingsTabButtons && typeof elements.settingsTabButtons.forEach === "function") {
-    elements.settingsTabButtons.forEach((button) => {
-      if (isButton(button)) {
-        button.addEventListener("click", () => {
-          actions.setSettingsTab(button.dataset.settingsTab || "auth");
-        });
-      }
-    });
-  }
+  elements.webcamSearchInput?.addEventListener("input", actions.applyWebcamFilters);
+  elements.webcamStatusFilter?.addEventListener("change", actions.applyWebcamFilters);
   bindOptionalButton(elements.settingsSaveBtn, "click", actions.saveSettings);
   bindOptionalButton(elements.settingsResetBtn, "click", actions.resetSettings);
   bindOptionalButton(elements.refreshSettingsBtn, "click", actions.fetchSettingsData);
@@ -307,7 +291,6 @@ export async function initializeManagementDashboard(context: DashboardContext): 
   actions.bindManagementNavigation();
   bindDashboardControls(context);
 
-  actions.setSettingsTab("auth");
   actions.setActiveView(actions.getViewFromLocationHash());
   await actions.fetchWebcams();
   await actions.refreshStatuses();

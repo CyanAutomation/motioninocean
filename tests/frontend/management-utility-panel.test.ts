@@ -14,6 +14,7 @@ function extractUtilityPanelHelpers(source: string): string {
 }
 
 class MockElement {
+  open = false;
   className = "";
   textContent = "";
   innerHTML = "";
@@ -39,10 +40,19 @@ class MockElement {
   replaceChildren(...nodes: MockElement[]) {
     this.children = [...nodes];
   }
+
+  showModal() {
+    this.open = true;
+  }
+
+  close() {
+    this.open = false;
+  }
 }
 
-function createUtilityPanelContext() {
-  const utilityPanel = new MockElement("aside");
+class MockDialog extends MockElement {}
+
+function createUtilityPanelContext(utilityPanel: MockElement = new MockDialog("dialog")) {
   const utilityPanelTitle = new MockElement("h2");
   const utilityPanelContent = new MockElement("div");
   const source = fs.readFileSync("frontend/src/management.ts", "utf8");
@@ -52,6 +62,7 @@ function createUtilityPanelContext() {
   const helpers = extractUtilityPanelHelpers(transpiled);
   const context = {
     HTMLElement: MockElement,
+    HTMLDialogElement: MockDialog,
     document: {
       createElement: (tagName: string) => new MockElement(tagName),
     },
@@ -67,6 +78,7 @@ function createUtilityPanelContext() {
   return context as typeof context & {
     openHelpPanel(): void;
     openExportPanel(): void;
+    closeUtilityPanel(): void;
   };
 }
 
@@ -81,7 +93,7 @@ test("help utility panel builds its content with DOM text nodes", () => {
   assert.equal(list.children.length, 5);
   assert.match(list.children[0].textContent, /Browser → Management/);
   assert.equal(context.utilityPanelContent.innerHTML, "");
-  assert.equal(context.utilityPanel.classList.removed.has("hidden"), true);
+  assert.equal(context.utilityPanel.open, true);
 });
 
 test("diagnostic utility panel renders attacker-controlled report text without parsing markup", () => {
@@ -98,6 +110,7 @@ test("diagnostic utility panel renders attacker-controlled report text without p
   assert.ok(report);
   assert.equal(report.textContent, untrustedReport);
   assert.equal(context.utilityPanelContent.innerHTML, "");
+  assert.equal(context.utilityPanel.open, true);
 });
 
 test("missing diagnostic report is rendered as text content", () => {
@@ -110,4 +123,22 @@ test("missing diagnostic report is rendered as text content", () => {
   assert.equal(message.tagName, "p");
   assert.equal(message.textContent, "No diagnostic report is available yet. Run Diagnose for any node first.");
   assert.equal(context.utilityPanelContent.innerHTML, "");
+  assert.equal(context.utilityPanel.open, true);
+});
+
+test("utility dialog closes using native dialog state", () => {
+  const context = createUtilityPanelContext();
+  context.openHelpPanel();
+  context.closeUtilityPanel();
+  assert.equal(context.utilityPanel.open, false);
+});
+
+test("utility panel ignores an element with the right id but the wrong element type", () => {
+  const context = createUtilityPanelContext(new MockElement("div"));
+
+  context.openHelpPanel();
+  context.closeUtilityPanel();
+
+  assert.equal(context.utilityPanel.open, false);
+  assert.equal(context.utilityPanelContent.children.length, 0);
 });

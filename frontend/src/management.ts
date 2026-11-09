@@ -19,6 +19,12 @@ import { getDiagnosticCheckRows, getDiagnosticSummaryState } from "./management-
 import { validateManagementDom } from "./management-dom.js";
 import { getSnackbarController } from "./snackbar.js";
 import {
+  confirmInDialog,
+  filterCollectionRows,
+  resolveThemePreference,
+  setFeedbackMessage,
+} from "./ui-components.js";
+import {
   createManagementBearerTokenSession,
   revealManagementTokenField,
 } from "./management-auth.js";
@@ -92,6 +98,12 @@ interface WebcamApiStatus extends NodeStatus, Partial<StatusAggregation> {
  */
 
 const tableBody = getElementById<HTMLTableSectionElement>("webcams-table-body");
+const webcamSearchInput = getElementById<HTMLInputElement>("webcam-search");
+const webcamStatusFilter = getElementById<HTMLSelectElement>("webcam-status-filter");
+const webcamFilterSummary = getElementById("webcam-filter-summary");
+const managementConfirmDialog = getElementById<HTMLDialogElement>("management-confirm-dialog");
+const devicesTitle = getElementById<HTMLElement>("devices-title");
+const settingsTitle = getElementById<HTMLElement>("settings-title");
 const feedback = getElementById("form-feedback");
 const toggleWebcamFormPanelBtn = getElementById<HTMLButtonElement>("toggle-webcam-form-panel-btn");
 const managementLayout = getElementById("management-layout");
@@ -139,18 +151,8 @@ const viewOverviewBtn = getElementById<HTMLButtonElement>("view-overview-btn");
 const viewDevicesBtn = getElementById<HTMLButtonElement>("view-devices-btn");
 const viewDiscoveredBtn = getElementById<HTMLButtonElement>("view-discovered-btn");
 const viewSettingsBtn = getElementById<HTMLButtonElement>("view-settings-btn");
-const railOverviewBtn = getElementById<HTMLButtonElement>("rail-overview-btn");
-const railDevicesBtn = getElementById<HTMLButtonElement>("rail-devices-btn");
-const railDiscoveredBtn = getElementById<HTMLButtonElement>("rail-discovered-btn");
-const railSettingsBtn = getElementById<HTMLButtonElement>("rail-settings-btn");
-const railExportBtn = getElementById<HTMLButtonElement>("rail-export-btn");
-const railHelpBtn = getElementById<HTMLButtonElement>("rail-help-btn");
-const mobileOverviewBtn = getElementById<HTMLButtonElement>("mobile-overview-btn");
-const mobileDevicesBtn = getElementById<HTMLButtonElement>("mobile-devices-btn");
-const mobileDiscoveredBtn = getElementById<HTMLButtonElement>("mobile-discovered-btn");
-const mobileSettingsBtn = getElementById<HTMLButtonElement>("mobile-settings-btn");
-const mobileExportBtn = getElementById<HTMLButtonElement>("mobile-export-btn");
-const mobileHelpBtn = getElementById<HTMLButtonElement>("mobile-help-btn");
+const exportReportBtn = getElementById<HTMLButtonElement>("export-report-btn");
+const helpBtn = getElementById<HTMLButtonElement>("help-btn");
 const themeToggleBtn = getElementById<HTMLButtonElement>("theme-toggle-btn");
 const refreshSettingsBtn = getElementById<HTMLButtonElement>("refresh-settings-btn");
 const settingsSaveBtn = getElementById<HTMLButtonElement>("settings-save-btn");
@@ -164,10 +166,6 @@ const settingsRuntimeSummary = getElementById("settings-runtime-summary");
 const settingsValidationSummary = getElementById("settings-validation-summary");
 const settingsOverridesList = getElementById("settings-overrides-list");
 const settingsOverridesSummary = getElementById("settings-overrides-summary");
-const settingsTabButtons = document.querySelectorAll<HTMLButtonElement>("[data-settings-tab]");
-const settingsAuthPanel = getElementById("settings-auth-panel");
-const settingsDiscoveryPanel = getElementById("settings-discovery-panel");
-const settingsRuntimePanel = getElementById("settings-runtime-panel");
 const utilityPanel = getElementById("utility-panel");
 const utilityPanelTitle = getElementById("utility-panel-title");
 const utilityPanelContent = getElementById("utility-panel-content");
@@ -185,6 +183,7 @@ let selectedDiscoveredNodeId = "";
 let activityFeed: ActivityEntry[] = [];
 let previousStatusByNode = new Map<string, WebcamApiStatus>();
 let discoveredSnoozedIds = new Set<string>();
+let hasExplicitThemePreference = false;
 const managementBearerTokenSession = createManagementBearerTokenSession(
   () => globalThis.localStorage,
 );
@@ -282,7 +281,7 @@ function showFeedback(message: string, isError = false): void {
   if (isError || !message) getSnackbarController()?.dismiss();
   if (message && !isError) {
     getSnackbarController()?.show(message);
-    if (feedback instanceof HTMLElement) feedback.textContent = "";
+    if (feedback instanceof HTMLElement) setFeedbackMessage(feedback, "");
     return;
   }
   if (!(feedback instanceof HTMLElement)) {
@@ -292,8 +291,7 @@ function showFeedback(message: string, isError = false): void {
     }
     return;
   }
-  feedback.textContent = message;
-  feedback.style.color = isError ? "#b91c1c" : "#166534";
+  setFeedbackMessage(feedback, message, isError ? "error" : "neutral");
 }
 
 function getManagementBearerToken() {
@@ -319,7 +317,7 @@ function initializeManagementBearerToken() {
 
 function openUtilityPanel(title: string, content: Node): void {
   if (
-    !(utilityPanel instanceof HTMLElement) ||
+    !(utilityPanel instanceof HTMLDialogElement) ||
     !(utilityPanelTitle instanceof HTMLElement) ||
     !(utilityPanelContent instanceof HTMLElement)
   ) {
@@ -328,14 +326,14 @@ function openUtilityPanel(title: string, content: Node): void {
 
   utilityPanelTitle.textContent = title;
   utilityPanelContent.replaceChildren(content);
-  utilityPanel.classList.remove("hidden");
+  const dialog = utilityPanel;
+  if (!dialog.open) dialog.showModal();
 }
 
 function closeUtilityPanel() {
-  if (!(utilityPanel instanceof HTMLElement)) {
-    return;
-  }
-  utilityPanel.classList.add("hidden");
+  if (!(utilityPanel instanceof HTMLDialogElement)) return;
+  const dialog = utilityPanel;
+  if (dialog.open) dialog.close();
 }
 
 function openHelpPanel() {
@@ -653,21 +651,20 @@ function setActiveView(view: string): void {
       discovered: viewDiscoveredBtn,
       settings: viewSettingsBtn,
     },
-    railButtons: {
-      overview: [railOverviewBtn, mobileOverviewBtn],
-      devices: [railDevicesBtn, mobileDevicesBtn],
-      discovered: [railDiscoveredBtn, mobileDiscoveredBtn],
-      settings: [railSettingsBtn, mobileSettingsBtn],
-    },
     location: globalThis.location,
     history: globalThis.history,
   });
 }
 
-function applyTheme(theme: string): void {
+function applyTheme(theme: string, persistPreference = true): void {
   const resolvedTheme = theme === "dark" ? "dark" : "light";
   document.documentElement.setAttribute("data-theme", resolvedTheme);
-  setTextContent(themeToggleBtn, resolvedTheme === "dark" ? "Light Theme" : "Dark Theme");
+  const toggleLabel = resolvedTheme === "dark" ? "Use light theme" : "Use dark theme";
+  setTextContent(themeToggleBtn, toggleLabel);
+  themeToggleBtn?.setAttribute("aria-label", toggleLabel);
+  if (!persistPreference) return;
+
+  hasExplicitThemePreference = true;
   try {
     globalThis.localStorage?.setItem(THEME_STORAGE_KEY, resolvedTheme);
   } catch {
@@ -676,13 +673,22 @@ function applyTheme(theme: string): void {
 }
 
 function initializeTheme() {
-  let preferredTheme = "light";
+  let storedPreference: string | null = null;
   try {
-    preferredTheme = globalThis.localStorage?.getItem(THEME_STORAGE_KEY) || "light";
+    storedPreference = globalThis.localStorage?.getItem(THEME_STORAGE_KEY) || null;
   } catch {
     // Ignore local storage failures.
   }
-  applyTheme(preferredTheme);
+  const colorScheme = globalThis.matchMedia?.("(prefers-color-scheme: dark)");
+  const hasStoredPreference = storedPreference === "light" || storedPreference === "dark";
+  hasExplicitThemePreference = hasStoredPreference;
+  applyTheme(resolveThemePreference(storedPreference, colorScheme?.matches === true), false);
+
+  if (!hasStoredPreference && colorScheme?.addEventListener) {
+    colorScheme.addEventListener("change", (event) => {
+      if (!hasExplicitThemePreference) applyTheme(event.matches ? "dark" : "light", false);
+    });
+  }
 }
 
 function getDiscoveredNodes() {
@@ -776,14 +782,13 @@ function setDiscoveredFeedback(message: string, isError = false): void {
   if (isError || !message) getSnackbarController()?.dismiss();
   if (message && !isError) {
     getSnackbarController()?.show(message);
-    if (discoveredFeedback instanceof HTMLElement) discoveredFeedback.textContent = "";
+    if (discoveredFeedback instanceof HTMLElement) setFeedbackMessage(discoveredFeedback, "");
     return;
   }
   if (!(discoveredFeedback instanceof HTMLElement)) {
     return;
   }
-  discoveredFeedback.textContent = message;
-  discoveredFeedback.style.color = isError ? "#b91c1c" : "#166534";
+  setFeedbackMessage(discoveredFeedback, message, isError ? "error" : "neutral");
 }
 
 async function applyDiscoveredDecision(decision: "approve" | "reject" | "snooze"): Promise<void> {
@@ -815,35 +820,13 @@ function setSettingsFeedback(message: string, isError = false): void {
     (message === "Settings saved." || message === "Settings reset to defaults.")
   ) {
     getSnackbarController()?.show(message);
-    if (settingsFeedback instanceof HTMLElement) settingsFeedback.textContent = "";
+    if (settingsFeedback instanceof HTMLElement) setFeedbackMessage(settingsFeedback, "");
     return;
   }
   if (!(settingsFeedback instanceof HTMLElement)) {
     return;
   }
-  settingsFeedback.textContent = message;
-  settingsFeedback.style.color = isError ? "#b91c1c" : "#166534";
-}
-
-function setSettingsTab(tabName: string): void {
-  const panels = {
-    auth: settingsAuthPanel,
-    discovery: settingsDiscoveryPanel,
-    runtime: settingsRuntimePanel,
-  };
-  for (const [name, panel] of Object.entries(panels)) {
-    if (panel instanceof HTMLElement) {
-      panel.classList.toggle("hidden", name !== tabName);
-    }
-  }
-  settingsTabButtons.forEach((button) => {
-    if (!(button instanceof HTMLButtonElement)) {
-      return;
-    }
-    const active = button.dataset.settingsTab === tabName;
-    button.classList.toggle("management-view-btn--active", active);
-    button.setAttribute("aria-current", active ? "true" : "false");
-  });
+  setFeedbackMessage(settingsFeedback, message, isError ? "error" : "neutral");
 }
 
 function renderRuntimeSettingsChanges(changesPayload: unknown = {}): void {
@@ -920,6 +903,14 @@ async function saveSettings() {
 
 async function resetSettings() {
   setSettingsFeedback("");
+  const confirmed = await confirmInDialog(managementConfirmDialog, {
+    title: "Reset management settings?",
+    message: "Discovery settings and saved runtime overrides will return to their defaults.",
+    confirmLabel: "Reset settings",
+    fallbackFocus: settingsTitle,
+  });
+  if (!confirmed) return;
+
   try {
     const response = await managementFetch("/api/v1/settings/reset", { method: "POST" });
     if (!response.ok) {
@@ -933,14 +924,46 @@ async function resetSettings() {
   }
 }
 
-function renderRows() {
+function applyWebcamFilters(): void {
+  if (!(tableBody instanceof HTMLTableSectionElement)) return;
+  const rows = Array.from(tableBody.querySelectorAll<HTMLTableRowElement>("tr[data-webcam-row]"));
+  const total = rows.length;
+  const visible = filterCollectionRows(
+    rows,
+    webcamSearchInput?.value || "",
+    webcamStatusFilter?.value || "all",
+  );
+  const noMatchRow = tableBody.querySelector<HTMLTableRowElement>("#webcams-no-match-row");
+  if (noMatchRow) noMatchRow.hidden = total === 0 || visible > 0;
+
+  if (!(webcamFilterSummary instanceof HTMLElement)) return;
+  if (total === 0) {
+    webcamFilterSummary.textContent = "No webcams registered.";
+  } else if (visible === 0) {
+    webcamFilterSummary.textContent = "No webcams match your search and status filter.";
+  } else {
+    webcamFilterSummary.textContent = `Showing ${visible} of ${total} webcam${total === 1 ? "" : "s"}.`;
+  }
+}
+
+function getStatusBadgeClass(statusClassName: string): string {
+  if (statusClassName.includes("success")) return "ui-badge--success";
+  if (statusClassName.includes("error")) return "ui-badge--danger";
+  return "ui-badge--neutral";
+}
+
+function renderRows(): void {
   if (!(tableBody instanceof HTMLTableSectionElement)) return;
   if (!webcams.length) {
-    tableBody.innerHTML = '<tr><td colspan="4" class="empty">No nodes registered.</td></tr>';
+    tableBody.innerHTML = `
+      <tr><td colspan="4" class="empty">No webcam hosts yet. Add a webcam to start monitoring it.</td></tr>
+    `;
+    applyWebcamFilters();
     return;
   }
 
-  tableBody.innerHTML = webcams
+  tableBody.innerHTML =
+    webcams
     .map((node) => {
       const status = webcamStatusMap.get(node.id) || { status: "unknown", stream_available: false };
       const normalizedStatus = normalizeWebcamStatusForUi(status);
@@ -952,8 +975,14 @@ function renderRows() {
           ? "Pending approval before full activation."
           : "";
       const detailsText = [approvalHint, normalizedStatus.reasonText].filter(Boolean).join(" ");
+      const filterStatus = normalizedStatus.subtype === "healthy" ? "online" : "needs-attention";
+      const searchText = [node.name, node.id, node.base_url].filter(Boolean).join(" ");
       return `
-        <tr>
+        <tr
+          data-webcam-row
+          data-search="${escapeHtml(searchText)}"
+          data-status="${filterStatus}"
+        >
           <td>
             <strong>${escapeHtml(node.name)}</strong><br><small>${escapeHtml(node.id)}</small>
             <details class="node-row-details">
@@ -972,21 +1001,23 @@ function renderRows() {
             </details>
           </td>
           <td>
-            <span class="ui-status-pill ${normalizedStatus.statusClass}" title="${escapeHtml(normalizedStatus.helpText)}">${escapeHtml(normalizedStatus.label)}</span>
+            <span class="ui-badge ${getStatusBadgeClass(normalizedStatus.statusClass)}" title="${escapeHtml(normalizedStatus.helpText)}">${escapeHtml(normalizedStatus.label)}</span>
           </td>
           <td>${streamText}</td>
           <td>
             <div class="row-actions">
-              <button class="ui-btn ui-btn--secondary" data-action="edit" data-id="${escapeHtml(node.id)}">Edit</button>
-              <button class="ui-btn ui-btn--secondary" data-action="diagnose" data-id="${escapeHtml(node.id)}">Diagnose</button>
-              ${discovery.source === "discovered" ? `<button class="ui-btn ui-btn--secondary" data-action="approve" data-id="${escapeHtml(node.id)}">Approve</button><button class="ui-btn ui-btn--secondary" data-action="reject" data-id="${escapeHtml(node.id)}">Reject</button>` : ""}
-              <button class="ui-btn ui-btn--danger" data-action="delete" data-id="${escapeHtml(node.id)}">Remove</button>
+              <button class="ui-btn ui-btn--secondary" type="button" data-action="edit" data-id="${escapeHtml(node.id)}">Edit</button>
+              <button class="ui-btn ui-btn--secondary" type="button" data-action="diagnose" data-id="${escapeHtml(node.id)}">Diagnose</button>
+              ${discovery.source === "discovered" ? `<button class="ui-btn ui-btn--secondary" type="button" data-action="approve" data-id="${escapeHtml(node.id)}">Approve</button><button class="ui-btn ui-btn--secondary" type="button" data-action="reject" data-id="${escapeHtml(node.id)}">Reject</button>` : ""}
+              <button class="ui-btn ui-btn--danger" type="button" data-action="delete" data-id="${escapeHtml(node.id)}">Remove</button>
             </div>
           </td>
         </tr>
       `;
     })
-    .join("");
+    .join("") +
+    `<tr id="webcams-no-match-row" hidden><td colspan="4" class="empty">No webcams match these filters. Try another search or status.</td></tr>`;
+  applyWebcamFilters();
 }
 
 /**
@@ -1442,9 +1473,13 @@ async function setDiscoveryApproval(
 }
 
 async function removeNode(nodeId: string): Promise<void> {
-  if (!window.confirm(`Delete webcam ${nodeId}?`)) {
-    return;
-  }
+  const confirmed = await confirmInDialog(managementConfirmDialog, {
+    title: `Remove ${nodeId}?`,
+    message: "This removes the webcam host from this management hub. This action cannot be undone.",
+    confirmLabel: "Remove webcam",
+    fallbackFocus: devicesTitle,
+  });
+  if (!confirmed) return;
 
   try {
     const response = await managementFetch(`/api/v1/webcams/${encodeURIComponent(nodeId)}`, {
@@ -1461,6 +1496,7 @@ async function removeNode(nodeId: string): Promise<void> {
       resetForm();
     }
     await refreshManagementData();
+    devicesTitle?.focus();
   } catch (error) {
     if (isUnauthorizedError(error)) {
       showFeedback(API_AUTH_HINT, true);
@@ -1534,13 +1570,14 @@ async function init() {
       discoveredApproveBtn,
       discoveredRejectBtn,
       discoveredLaterBtn,
-      settingsTabButtons,
       settingsSaveBtn,
       settingsResetBtn,
       refreshSettingsBtn,
       toggleWebcamFormPanelBtn,
       webcamFormContent,
       tableBody: requireElementById<HTMLTableSectionElement>("webcams-table-body"),
+      webcamSearchInput,
+      webcamStatusFilter,
       webcamTransport: requireElementById<HTMLSelectElement>("webcam-transport"),
       diagnosticsAdvancedCheckbox: diagnosticsAdvancedCheckbox || undefined,
       diagnosticsCollapsibleContainer: diagnosticsCollapsibleContainer || undefined,
@@ -1549,18 +1586,8 @@ async function init() {
       viewDevicesBtn,
       viewDiscoveredBtn,
       viewSettingsBtn,
-      railOverviewBtn,
-      railDevicesBtn,
-      railDiscoveredBtn,
-      railSettingsBtn,
-      mobileOverviewBtn,
-      mobileDevicesBtn,
-      mobileDiscoveredBtn,
-      mobileSettingsBtn,
-      railHelpBtn,
-      mobileHelpBtn,
-      railExportBtn,
-      mobileExportBtn,
+      helpBtn,
+      exportReportBtn,
       utilityPanelCloseBtn,
       themeToggleBtn,
     },
@@ -1582,18 +1609,8 @@ async function init() {
             viewDevicesBtn,
             viewDiscoveredBtn,
             viewSettingsBtn,
-            railOverviewBtn,
-            railDevicesBtn,
-            railDiscoveredBtn,
-            railSettingsBtn,
-            mobileOverviewBtn,
-            mobileDevicesBtn,
-            mobileDiscoveredBtn,
-            mobileSettingsBtn,
-            railHelpBtn,
-            mobileHelpBtn,
-            railExportBtn,
-            mobileExportBtn,
+            helpBtn,
+            exportReportBtn,
             utilityPanelCloseBtn,
             themeToggleBtn,
           },
@@ -1623,7 +1640,7 @@ async function init() {
       },
       applyDiscoveredDecision,
       fetchOverview,
-      setSettingsTab,
+      applyWebcamFilters,
       saveSettings,
       resetSettings,
       fetchSettingsData,

@@ -59,23 +59,13 @@ export function bindNavigation({ elements, actions }) {
         [elements.viewDevicesBtn, "devices"],
         [elements.viewDiscoveredBtn, "discovered"],
         [elements.viewSettingsBtn, "settings"],
-        [elements.railOverviewBtn, "overview"],
-        [elements.railDevicesBtn, "devices"],
-        [elements.railDiscoveredBtn, "discovered"],
-        [elements.railSettingsBtn, "settings"],
-        [elements.mobileOverviewBtn, "overview"],
-        [elements.mobileDevicesBtn, "devices"],
-        [elements.mobileDiscoveredBtn, "discovered"],
-        [elements.mobileSettingsBtn, "settings"],
     ];
     viewButtons.forEach(([button, view]) => {
         bindOptionalButton(button, "click", () => actions.setActiveView(view));
     });
     const utilityButtons = [
-        [elements.railHelpBtn, actions.openHelpPanel],
-        [elements.mobileHelpBtn, actions.openHelpPanel],
-        [elements.railExportBtn, actions.openExportPanel],
-        [elements.mobileExportBtn, actions.openExportPanel],
+        [elements.helpBtn, actions.openHelpPanel],
+        [elements.exportReportBtn, actions.openExportPanel],
         [elements.utilityPanelCloseBtn, actions.closeUtilityPanel],
         [elements.themeToggleBtn, actions.toggleTheme],
     ];
@@ -147,15 +137,8 @@ export function bindDashboardControls({ elements, actions }) {
         await actions.applyDiscoveredDecision("snooze");
         await actions.fetchOverview();
     });
-    if (elements.settingsTabButtons && typeof elements.settingsTabButtons.forEach === "function") {
-        elements.settingsTabButtons.forEach((button) => {
-            if (isButton(button)) {
-                button.addEventListener("click", () => {
-                    actions.setSettingsTab(button.dataset.settingsTab || "auth");
-                });
-            }
-        });
-    }
+    elements.webcamSearchInput?.addEventListener("input", actions.applyWebcamFilters);
+    elements.webcamStatusFilter?.addEventListener("change", actions.applyWebcamFilters);
     bindOptionalButton(elements.settingsSaveBtn, "click", actions.saveSettings);
     bindOptionalButton(elements.settingsResetBtn, "click", actions.resetSettings);
     bindOptionalButton(elements.refreshSettingsBtn, "click", actions.fetchSettingsData);
@@ -188,7 +171,6 @@ export async function initializeManagementDashboard(context) {
     actions.initializeManagementState();
     actions.bindManagementNavigation();
     bindDashboardControls(context);
-    actions.setSettingsTab("auth");
     actions.setActiveView(actions.getViewFromLocationHash());
     await actions.fetchWebcams();
     await actions.refreshStatuses();
