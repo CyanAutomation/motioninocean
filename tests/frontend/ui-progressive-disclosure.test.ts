@@ -49,7 +49,10 @@ test("management dashboard consolidates auth entry and keeps optional node field
   assert.match(template, /<details id="webcam-advanced-options"/);
   assert.match(template, /id="show-management-token-btn"/);
   assert.match(template, /id="webcams-table-body"/);
-  assert.match(template, /<th>Node<\/th>[\s\S]*?<th>Status<\/th>[\s\S]*?<th>Stream<\/th>[\s\S]*?<th>Actions<\/th>/);
+  assert.match(
+    template,
+    /<th scope="col">Node<\/th>[\s\S]*?<th scope="col">Status<\/th>[\s\S]*?<th scope="col">Stream<\/th>[\s\S]*?<th scope="col">Actions<\/th>/,
+  );
 });
 
 test("management activity and runtime overrides start collapsed while attention stays visible", () => {
@@ -57,7 +60,7 @@ test("management activity and runtime overrides start collapsed while attention 
 
   assert.match(template, /<details class="overview-panel ui-card overview-activity-panel">/);
   assert.match(template, /<h3>Needs attention<\/h3>/);
-  assert.match(template, /<details class="runtime-overrides">/);
+  assert.match(template, /<details class="ui-settings-row ui-settings-row--disclosure runtime-overrides">/);
   assert.match(template, /<details class="ui-card discovered-panel discovered-notes-panel">/);
   assert.match(template, /Select a device from the list to enable these actions/);
 });

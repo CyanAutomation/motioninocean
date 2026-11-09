@@ -183,7 +183,6 @@ test("webcam form panel restores a saved expanded state and flips with storage p
         copyDiagnosticReportBtn: context.copyDiagnosticReportBtn,
         diagnosticsAdvancedCheckbox: undefined,
         diagnosticsCollapsibleContainer: undefined,
-        settingsTabButtons: [],
       },
       actions: {
         submitNodeForm: context.submitNodeForm,
@@ -198,7 +197,7 @@ test("webcam form panel restores a saved expanded state and flips with storage p
         selectDiscoveredNode: () => {},
         applyDiscoveredDecision: async () => {},
         fetchOverview: async () => {},
-        setSettingsTab: () => {},
+        applyWebcamFilters: () => {},
         saveSettings: async () => {},
         resetSettings: async () => {},
         fetchSettingsData: async () => {},

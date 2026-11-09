@@ -12,7 +12,7 @@
 .app-snackbar {
   position: fixed;
   z-index: 30;
-  left: calc(82px + (100vw - 82px) / 2);
+  left: 50%;
   bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
   display: flex;
   align-items: center;
@@ -66,7 +66,7 @@
   border-radius: var(--radius-sm);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 56rem) {
   .app-snackbar {
     left: 50%;
     bottom: calc(68px + var(--space-2) + env(safe-area-inset-bottom, 0px));

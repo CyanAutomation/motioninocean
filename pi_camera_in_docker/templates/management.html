@@ -8,138 +8,106 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ui-primitives.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/management.css') }}" />
   </head>
   <body>
-    <nav class="management-side-rail" aria-label="Management quick navigation">
-      <button
-        id="rail-overview-btn"
-        class="rail-btn"
-        type="button"
-        aria-label="Overview"
-        title="Overview"
-      >
-        O
-      </button>
-      <button
-        id="rail-devices-btn"
-        class="rail-btn"
-        type="button"
-        aria-label="Devices"
-        title="Devices"
-      >
-        D
-      </button>
-      <button
-        id="rail-discovered-btn"
-        class="rail-btn"
-        type="button"
-        aria-label="Discovered"
-        title="Discovered"
-      >
-        R
-      </button>
-      <button
-        id="rail-settings-btn"
-        class="rail-btn"
-        type="button"
-        aria-label="Settings"
-        title="Settings"
-      >
-        S
-      </button>
-      <button
-        id="rail-export-btn"
-        class="rail-btn rail-btn--utility"
-        type="button"
-        aria-label="Export Diagnostic Report"
-        title="Export Diagnostic Report"
-      >
-        F
-      </button>
-      <button
-        id="rail-help-btn"
-        class="rail-btn rail-btn--utility"
-        type="button"
-        aria-label="Open Help"
-        title="Open Help"
-      >
-        ?
-      </button>
-    </nav>
-
-    <header class="management-header">
-      <div class="management-header-row">
-        <div>
-          <h1>Webcam Management</h1>
-          <p class="subtitle">Manage webcam hosts and monitor webcam health.</p>
-        </div>
-        <button id="theme-toggle-btn" class="ui-btn ui-btn--secondary" type="button">Theme</button>
-      </div>
-
-      <nav class="management-view-nav" aria-label="Management dashboard views">
-        <button
-          id="view-overview-btn"
-          class="ui-btn ui-btn--secondary management-view-btn"
-          type="button"
-        >
-          Overview
-        </button>
-        <button
-          id="view-devices-btn"
-          class="ui-btn ui-btn--secondary management-view-btn"
-          type="button"
-        >
-          Devices
-        </button>
-        <button
-          id="view-discovered-btn"
-          class="ui-btn ui-btn--secondary management-view-btn"
-          type="button"
-        >
-          Discovered
-        </button>
-        <button
-          id="view-settings-btn"
-          class="ui-btn ui-btn--secondary management-view-btn"
-          type="button"
-        >
-          Settings
-        </button>
-      </nav>
-
-      <details id="management-token-disclosure" class="management-token-disclosure">
-        <summary>API access <span>Token needed only when management authentication is enabled</span></summary>
-        <div class="management-token-control">
-          <label for="management-api-token">Management API bearer token</label>
-          <input
-            id="management-api-token"
-            name="management_api_token"
-            type="password"
-            autocomplete="off"
-            placeholder="Paste token for protected API requests"
-          />
-          <small>
-            The token stays in page memory and is cleared when this page closes. After entering it,
-            refresh the dashboard to retry protected requests.
-          </small>
-        </div>
-      </details>
-    </header>
-
     <div id="app-snackbar" class="app-snackbar" role="status" aria-live="polite" aria-atomic="true">
       <span data-snackbar-message=""></span>
       <button data-snackbar-dismiss="" type="button" aria-label="Dismiss notification">×</button>
     </div>
 
-    <main id="management-main" class="management-main">
-      <section id="overview-view" class="management-view ui-card">
-        <div class="table-header ui-panel-header">
-          <h2>Dashboard</h2>
-          <button id="refresh-dashboard-btn" class="ui-btn ui-btn--secondary" type="button">
-            Refresh Dashboard
-          </button>
+    <a class="ui-skip-link" href="#management-main">Skip to main content</a>
+    <div class="ui-app-shell management-app-shell">
+      <header class="ui-app-shell__header management-header">
+        <div class="management-header-row">
+          <strong class="management-brand">Motion In Ocean</strong>
+          <div class="management-header-actions" role="group" aria-label="Dashboard utilities">
+            <button id="theme-toggle-btn" class="ui-btn ui-btn--secondary" type="button">
+              Theme
+            </button>
+            <button id="export-report-btn" class="ui-btn ui-btn--secondary" type="button">
+              Export report
+            </button>
+            <button id="help-btn" class="ui-btn ui-btn--secondary" type="button">Help</button>
+          </div>
         </div>
+
+        <details id="management-token-disclosure" class="management-token-disclosure">
+          <summary>API access <span>Only needed when management authentication is enabled</span></summary>
+          <div class="management-token-control">
+            <label for="management-api-token">Management API bearer token</label>
+            <input
+              id="management-api-token"
+              name="management_api_token"
+              type="password"
+              autocomplete="off"
+              placeholder="Paste token for protected API requests"
+            />
+            <small>
+              The token stays in page memory and is cleared when this page closes. After entering it,
+              refresh the dashboard to retry protected requests.
+            </small>
+          </div>
+        </details>
+      </header>
+
+      <nav
+        id="management-view-nav"
+        class="ui-app-shell__navigation ui-sidebar management-view-nav"
+        aria-label="Management dashboard views"
+      >
+        <ul class="ui-sidebar__list">
+          <li class="ui-sidebar__item">
+            <button
+              id="view-overview-btn"
+              class="ui-sidebar__link management-view-btn"
+              type="button"
+              aria-current="page"
+            >Overview</button>
+          </li>
+          <li class="ui-sidebar__item">
+            <button
+              id="view-devices-btn"
+              class="ui-sidebar__link management-view-btn"
+              type="button"
+              aria-current="false"
+            >Devices</button>
+          </li>
+          <li class="ui-sidebar__item">
+            <button
+              id="view-discovered-btn"
+              class="ui-sidebar__link management-view-btn"
+              type="button"
+              aria-current="false"
+            >Discovered devices</button>
+          </li>
+          <li class="ui-sidebar__item">
+            <button
+              id="view-settings-btn"
+              class="ui-sidebar__link management-view-btn"
+              type="button"
+              aria-current="false"
+            >Settings</button>
+          </li>
+        </ul>
+      </nav>
+
+      <main id="management-main" class="ui-app-shell__main management-main" tabindex="-1">
+      <section id="overview-view" class="management-view ui-card">
+        <header class="ui-page-header">
+          <div class="ui-page-header__content">
+            <h1 id="overview-title" class="ui-page-header__title">Overview</h1>
+            <p class="ui-page-header__description">
+              Check camera availability and see which devices need attention.
+            </p>
+          </div>
+          <div class="ui-page-header__actions">
+            <button id="refresh-dashboard-btn" class="ui-btn ui-btn--secondary" type="button">
+              Refresh overview
+            </button>
+          </div>
+        </header>
 
         <div class="overview-metrics">
           <article class="overview-metric">
@@ -177,6 +145,14 @@
       </section>
 
       <section id="devices-view" class="management-view">
+        <header class="ui-page-header">
+          <div class="ui-page-header__content">
+            <h1 id="devices-title" class="ui-page-header__title" tabindex="-1">Devices</h1>
+            <p class="ui-page-header__description">
+              Add webcam hosts, review their health, and run diagnostics.
+            </p>
+          </div>
+        </header>
         <div id="management-layout" class="management-layout">
           <section id="webcam-form-panel-container" class="webcam-form-panel ui-card">
             <div class="panel-header ui-panel-header">
@@ -295,25 +271,58 @@
           <section class="webcam-list-panel ui-card">
             <div class="table-header ui-panel-header">
               <h2>Registered webcams</h2>
-              <button id="refresh-webcams-btn" class="ui-btn ui-btn--secondary">Refresh</button>
+              <button id="refresh-webcams-btn" class="ui-btn ui-btn--secondary" type="button">
+                Refresh
+              </button>
             </div>
 
             <div class="webcam-table-wrap">
-              <table class="webcam-table" aria-label="Registered webcam list">
-                <thead>
-                  <tr>
-                    <th>Node</th>
-                    <th>Status</th>
-                    <th>Stream</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="webcams-table-body">
-                  <tr>
-                    <td colspan="4" class="empty">No webcams registered.</td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="ui-toolbar" role="group" aria-label="Webcam list filters">
+                <div class="ui-toolbar__group">
+                  <label class="ui-toolbar__label" for="webcam-search">Search webcams</label>
+                  <input
+                    id="webcam-search"
+                    type="search"
+                    autocomplete="off"
+                    placeholder="Name, ID, or address"
+                  />
+                </div>
+                <div class="ui-toolbar__group ui-toolbar__group--compact">
+                  <label class="ui-toolbar__label" for="webcam-status-filter">Filter by status</label>
+                  <select id="webcam-status-filter">
+                    <option value="all">All webcams</option>
+                    <option value="online">Online</option>
+                    <option value="needs-attention">Needs attention</option>
+                  </select>
+                </div>
+                <p id="webcam-filter-summary" class="ui-toolbar__status" aria-live="polite">
+                  No webcams registered.
+                </p>
+              </div>
+              <div
+                class="webcam-table-scroll"
+                role="region"
+                aria-label="Registered webcam list; scroll horizontally to view all columns"
+                tabindex="0"
+              >
+                <table class="webcam-table" aria-label="Registered webcam details">
+                  <thead>
+                    <tr>
+                      <th scope="col">Node</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Stream</th>
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="webcams-table-body">
+                    <tr>
+                      <td colspan="4" class="empty">
+                        No webcam hosts yet. Add a webcam to start monitoring it.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <div class="ui-form-control diagnostic-advanced-toggle">
@@ -391,12 +400,21 @@
       </section>
 
       <section id="discovered-view" class="management-view ui-card hidden">
-        <div class="table-header ui-panel-header">
-          <h2>Found Devices</h2>
-          <button id="scan-discovered-btn" class="ui-btn ui-btn--secondary" type="button">
-            Scan Again
-          </button>
-        </div>
+        <header class="ui-page-header">
+          <div class="ui-page-header__content">
+            <h1 id="discovered-title" class="ui-page-header__title" tabindex="-1">
+              Discovered devices
+            </h1>
+            <p class="ui-page-header__description">
+              Review devices that announced themselves to this management hub.
+            </p>
+          </div>
+          <div class="ui-page-header__actions">
+            <button id="scan-discovered-btn" class="ui-btn ui-btn--secondary" type="button">
+              Scan again
+            </button>
+          </div>
+        </header>
         <div class="discovered-grid">
           <section class="ui-card discovered-panel">
             <h3>New Devices Waiting</h3>
@@ -432,137 +450,215 @@
       </section>
 
       <section id="settings-view" class="management-view ui-card hidden">
-        <div class="table-header ui-panel-header">
-          <h2>Preferences</h2>
-          <button id="refresh-settings-btn" class="ui-btn ui-btn--secondary" type="button">
-            Refresh Settings
-          </button>
-        </div>
-        <div class="settings-tab-row">
-          <button
-            class="ui-btn ui-btn--secondary settings-tab-btn"
-            data-settings-tab="auth"
-            type="button"
-          >
-            Authentication
-          </button>
-          <button
-            class="ui-btn ui-btn--secondary settings-tab-btn"
-            data-settings-tab="discovery"
-            type="button"
-          >
-            Discovery
-          </button>
-          <button
-            class="ui-btn ui-btn--secondary settings-tab-btn"
-            data-settings-tab="runtime"
-            type="button"
-          >
-            Runtime Settings
-          </button>
-        </div>
-        <div id="settings-auth-panel" class="settings-panel">
-          <h3>Management API auth</h3>
-          <p>
-            This token stays in page memory for this dashboard session and is sent with management
-            API requests. It is cleared when the page reloads or closes.
+        <header class="ui-page-header">
+          <div class="ui-page-header__content">
+            <h1 id="settings-title" class="ui-page-header__title" tabindex="-1">Settings</h1>
+            <p class="ui-page-header__description">
+              Configure device discovery and review management defaults.
+            </p>
+          </div>
+          <div class="ui-page-header__actions">
+            <button id="refresh-settings-btn" class="ui-btn ui-btn--secondary" type="button">
+              Refresh settings
+            </button>
+          </div>
+        </header>
+
+        <section id="settings-auth-panel" class="ui-settings-group" aria-labelledby="settings-auth-title">
+          <h2 id="settings-auth-title" class="ui-settings-group__heading">
+            Management API access
+          </h2>
+          <p class="ui-settings-group__description">
+            A token is only needed when management authentication is enabled. It stays in this page's
+            memory and is cleared when you close or reload the page.
           </p>
-          <small>
-            This token does not change server environment variables. Enter it under API access in
-            the page header; it remains in memory for this page session.
-          </small>
-          <button id="show-management-token-btn" class="ui-btn ui-btn--secondary" type="button">
-            Enter API token
-          </button>
-        </div>
-        <div id="settings-discovery-panel" class="settings-panel hidden">
-          <h3>Discovery settings</h3>
-          <div class="ui-form-control">
-            <label for="settings-discovery-enabled">Enable discovery</label>
-            <input id="settings-discovery-enabled" type="checkbox" />
+          <div class="ui-settings-list">
+            <div class="ui-settings-row ui-settings-row--stacked">
+              <div class="ui-settings-row__content">
+                <strong class="ui-settings-row__title">Management API token</strong>
+                <p class="ui-settings-row__description">
+                  Enter the token in API access above. It does not change server settings.
+                </p>
+              </div>
+              <div class="ui-settings-row__control">
+                <button id="show-management-token-btn" class="ui-btn ui-btn--secondary" type="button">
+                  Enter API token
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="ui-form-control">
-            <label for="settings-discovery-url">Discovery management URL</label>
-            <input id="settings-discovery-url" type="url" />
+        </section>
+
+        <section id="settings-discovery-panel" class="ui-settings-group" aria-labelledby="settings-discovery-title">
+          <h2 id="settings-discovery-title" class="ui-settings-group__heading">Device discovery</h2>
+          <p class="ui-settings-group__description">
+            Choose whether this hub accepts announcements from webcam devices.
+          </p>
+          <div class="ui-settings-list">
+            <div class="ui-settings-row">
+              <div class="ui-settings-row__content">
+                <label class="ui-settings-row__title" for="settings-discovery-enabled">
+                  Enable device discovery
+                </label>
+                <p class="ui-settings-row__description" id="settings-discovery-enabled-help">
+                  Allow compatible devices to announce themselves to this hub.
+                </p>
+              </div>
+              <div class="ui-settings-row__control">
+                <input
+                  id="settings-discovery-enabled"
+                  type="checkbox"
+                  aria-describedby="settings-discovery-enabled-help"
+                />
+              </div>
+            </div>
+            <div class="ui-settings-row">
+              <div class="ui-settings-row__content">
+                <label class="ui-settings-row__title" for="settings-discovery-url">
+                  Discovery hub URL
+                </label>
+                <p class="ui-settings-row__description" id="settings-discovery-url-help">
+                  Address of the management service that receives device announcements.
+                </p>
+              </div>
+              <div class="ui-settings-row__control">
+                <input
+                  id="settings-discovery-url"
+                  type="url"
+                  aria-describedby="settings-discovery-url-help"
+                />
+              </div>
+            </div>
+            <div class="ui-settings-row">
+              <div class="ui-settings-row__content">
+                <label class="ui-settings-row__title" for="settings-discovery-token">
+                  Discovery API token
+                </label>
+                <p class="ui-settings-row__description" id="settings-discovery-token-help">
+                  Authentication token used when this hub sends device announcements.
+                </p>
+              </div>
+              <div class="ui-settings-row__control">
+                <input
+                  id="settings-discovery-token"
+                  type="password"
+                  autocomplete="new-password"
+                  aria-describedby="settings-discovery-token-help"
+                />
+              </div>
+            </div>
+            <div class="ui-settings-row">
+              <div class="ui-settings-row__content">
+                <label class="ui-settings-row__title" for="settings-discovery-interval">
+                  Scan interval (seconds)
+                </label>
+                <p class="ui-settings-row__description" id="settings-discovery-interval-help">
+                  Choose a value from 5 to 3600 seconds.
+                </p>
+              </div>
+              <div class="ui-settings-row__control">
+                <input
+                  id="settings-discovery-interval"
+                  type="number"
+                  step="1"
+                  min="5"
+                  max="3600"
+                  aria-describedby="settings-discovery-interval-help"
+                />
+              </div>
+            </div>
           </div>
-          <div class="ui-form-control">
-            <label for="settings-discovery-token">Discovery token</label>
-            <input id="settings-discovery-token" type="password" />
+        </section>
+
+        <section id="settings-runtime-panel" class="ui-settings-group" aria-labelledby="settings-runtime-title">
+          <h2 id="settings-runtime-title" class="ui-settings-group__heading">Runtime defaults</h2>
+          <p class="ui-settings-group__description">
+            See whether this service is using its configured defaults or saved overrides.
+          </p>
+          <div class="ui-settings-list">
+            <div class="ui-settings-row ui-settings-row--stacked">
+              <div class="ui-settings-row__content">
+                <strong class="ui-settings-row__title" id="settings-runtime-summary">
+                  Using environment defaults
+                </strong>
+                <p class="ui-settings-row__description" id="settings-validation-summary">
+                  Settings are ready to use.
+                </p>
+              </div>
+            </div>
+            <details class="ui-settings-row ui-settings-row--disclosure runtime-overrides">
+              <summary>
+                Saved overrides
+                <span id="settings-overrides-summary">No custom values</span>
+              </summary>
+              <ul id="settings-overrides-list" class="overview-list">
+                <li>No overrides.</li>
+              </ul>
+            </details>
           </div>
-          <div class="ui-form-control">
-            <label for="settings-discovery-interval">DISCOVERY_INTERVAL_SECONDS</label>
-            <input id="settings-discovery-interval" type="number" step="1" min="5" max="3600" />
-          </div>
-        </div>
-        <div id="settings-runtime-panel" class="settings-panel hidden">
-          <h3>Runtime governance</h3>
-          <p id="settings-runtime-summary">Using custom values</p>
-          <p id="settings-validation-summary">Validation summary</p>
-          <details class="runtime-overrides">
-            <summary>Runtime overrides: <span id="settings-overrides-summary">No custom values</span></summary>
-            <ul id="settings-overrides-list" class="overview-list">
-              <li>No overrides.</li>
-            </ul>
-          </details>
-        </div>
-        <div class="settings-footer-actions">
+        </section>
+
+        <div class="settings-footer-actions ui-toolbar" role="group" aria-label="Settings actions">
           <button id="settings-save-btn" class="ui-btn ui-btn--primary" type="button">
-            Save Changes
+            Save changes
           </button>
-          <button id="settings-reset-btn" class="ui-btn ui-btn--secondary" type="button">
-            Reset
+          <button id="settings-reset-btn" class="ui-btn ui-btn--danger" type="button">
+            Reset to defaults
           </button>
         </div>
         <p id="settings-feedback" class="feedback" aria-live="polite"></p>
       </section>
-    </main>
+      </main>
+    </div>
 
-    <div
+    <dialog
       id="utility-panel"
-      class="utility-panel hidden"
-      role="dialog"
-      aria-modal="false"
-      aria-label="Utilities"
+      class="ui-dialog ui-dialog--utility"
+      aria-labelledby="utility-panel-title"
     >
-      <div class="utility-panel__header">
-        <h3 id="utility-panel-title">Utilities</h3>
+      <header class="ui-dialog__header utility-panel__header">
+        <h2 id="utility-panel-title" class="ui-dialog__title">Utilities</h2>
         <button id="utility-panel-close-btn" class="ui-btn ui-btn--secondary" type="button">
           Close
         </button>
-      </div>
-      <div id="utility-panel-content" class="utility-panel__content"></div>
-    </div>
+      </header>
+      <div id="utility-panel-content" class="ui-dialog__body utility-panel__content"></div>
+    </dialog>
 
-    <nav class="management-bottom-rail" aria-label="Management mobile controls">
-      <button id="mobile-overview-btn" class="mobile-rail-btn" type="button" aria-label="Overview">
-        O
-      </button>
-      <button id="mobile-devices-btn" class="mobile-rail-btn" type="button" aria-label="Devices">
-        D
-      </button>
-      <button
-        id="mobile-discovered-btn"
-        class="mobile-rail-btn"
-        type="button"
-        aria-label="Discovered"
-      >
-        R
-      </button>
-      <button id="mobile-settings-btn" class="mobile-rail-btn" type="button" aria-label="Settings">
-        S
-      </button>
-      <button
-        id="mobile-export-btn"
-        class="mobile-rail-btn"
-        type="button"
-        aria-label="Export Report"
-      >
-        F
-      </button>
-      <button id="mobile-help-btn" class="mobile-rail-btn" type="button" aria-label="Help">
-        ?
-      </button>
-    </nav>
+    <dialog
+      id="management-confirm-dialog"
+      class="ui-dialog"
+      aria-labelledby="management-confirm-title"
+      aria-describedby="management-confirm-message"
+    >
+      <header class="ui-dialog__header">
+        <h2 id="management-confirm-title" class="ui-dialog__title" data-confirm-title>
+          Confirm action
+        </h2>
+        <p id="management-confirm-message" class="ui-dialog__description" data-confirm-message>
+          Are you sure you want to continue?
+        </p>
+      </header>
+      <form method="dialog" class="ui-dialog__footer">
+        <button
+          class="ui-btn ui-btn--secondary"
+          type="submit"
+          value="cancel"
+          data-confirm-cancel
+          autofocus
+        >
+          Cancel
+        </button>
+        <button
+          class="ui-btn ui-btn--danger"
+          type="submit"
+          value="confirm"
+          data-confirm-accept
+        >
+          Confirm
+        </button>
+      </form>
+    </dialog>
 
     <script type="module" src="{{ url_for('static', filename='js/management.js') }}"></script>
   </body>

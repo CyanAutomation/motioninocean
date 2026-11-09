@@ -152,15 +152,11 @@ test("setActiveView updates selected panels, navigation controls, and the hash",
   const buttons = Object.fromEntries(
     ["overview", "devices", "discovered", "settings"].map((key) => [key, button()]),
   );
-  const railButtons = Object.fromEntries(
-    ["overview", "devices", "discovered", "settings"].map((key) => [key, [button(), button()]]),
-  );
   const location = { hash: "#overview" };
   let historyUpdates = 0;
   const context = {
     views,
     buttons,
-    railButtons,
     location,
     history: {
       replaceState: (_state: unknown, _title: string, hash: string) => {
@@ -175,8 +171,6 @@ test("setActiveView updates selected panels, navigation controls, and the hash",
   assert.equal(views.overview.classList.contains("hidden"), true);
   assert.equal(buttons.discovered.classList.contains("management-view-btn--active"), true);
   assert.equal(buttons.discovered.attributes.get("aria-current"), "page");
-  assert.equal(railButtons.discovered[0].classList.contains("rail-btn--active"), true);
-  assert.equal(railButtons.discovered[1].classList.contains("mobile-rail-btn--active"), true);
   assert.equal(location.hash, "#discovered");
   assert.equal(historyUpdates, 1);
 
