@@ -225,7 +225,7 @@ function initializeManagementBearerToken() {
     setManagementBearerToken(fallbackInputToken);
 }
 function openUtilityPanel(title, content) {
-    if (!(utilityPanel instanceof HTMLElement) ||
+    if (!(utilityPanel instanceof HTMLDialogElement) ||
         !(utilityPanelTitle instanceof HTMLElement) ||
         !(utilityPanelContent instanceof HTMLElement)) {
         return;
@@ -237,7 +237,7 @@ function openUtilityPanel(title, content) {
         dialog.showModal();
 }
 function closeUtilityPanel() {
-    if (!(utilityPanel instanceof HTMLElement))
+    if (!(utilityPanel instanceof HTMLDialogElement))
         return;
     const dialog = utilityPanel;
     if (dialog.open)

@@ -46,6 +46,19 @@ test("management layout cards can shrink around their scrollable tables on mobil
   assert.match(managementStyles, /\.management-layout\s*>\s*\*\s*\{[^}]*min-inline-size:\s*0/s);
 });
 
+test("utility panel helpers verify the native dialog element before using dialog methods", () => {
+  const openPanelStart = managementLogic.indexOf("function openUtilityPanel");
+  const closePanelStart = managementLogic.indexOf("function closeUtilityPanel");
+  const openHelpStart = managementLogic.indexOf("function openHelpPanel");
+  const openPanel = managementLogic.slice(openPanelStart, closePanelStart);
+  const closePanel = managementLogic.slice(closePanelStart, openHelpStart);
+
+  assert.match(openPanel, /utilityPanel instanceof HTMLDialogElement/);
+  assert.match(closePanel, /utilityPanel instanceof HTMLDialogElement/);
+  assert.doesNotMatch(openPanel, /utilityPanel as HTMLDialogElement/);
+  assert.doesNotMatch(closePanel, /utilityPanel as HTMLDialogElement/);
+});
+
 test("settings use grouped sections instead of incomplete tab controls", () => {
   assert.doesNotMatch(template, /data-settings-tab|settings-tab-row/);
   assert.equal((template.match(/class="ui-settings-group"/g) || []).length, 3);

@@ -50,8 +50,9 @@ class MockElement {
   }
 }
 
-function createUtilityPanelContext() {
-  const utilityPanel = new MockElement("dialog");
+class MockDialog extends MockElement {}
+
+function createUtilityPanelContext(utilityPanel: MockElement = new MockDialog("dialog")) {
   const utilityPanelTitle = new MockElement("h2");
   const utilityPanelContent = new MockElement("div");
   const source = fs.readFileSync("frontend/src/management.ts", "utf8");
@@ -61,6 +62,7 @@ function createUtilityPanelContext() {
   const helpers = extractUtilityPanelHelpers(transpiled);
   const context = {
     HTMLElement: MockElement,
+    HTMLDialogElement: MockDialog,
     document: {
       createElement: (tagName: string) => new MockElement(tagName),
     },
@@ -129,4 +131,14 @@ test("utility dialog closes using native dialog state", () => {
   context.openHelpPanel();
   context.closeUtilityPanel();
   assert.equal(context.utilityPanel.open, false);
+});
+
+test("utility panel ignores an element with the right id but the wrong element type", () => {
+  const context = createUtilityPanelContext(new MockElement("div"));
+
+  context.openHelpPanel();
+  context.closeUtilityPanel();
+
+  assert.equal(context.utilityPanel.open, false);
+  assert.equal(context.utilityPanelContent.children.length, 0);
 });

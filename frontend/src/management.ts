@@ -317,7 +317,7 @@ function initializeManagementBearerToken() {
 
 function openUtilityPanel(title: string, content: Node): void {
   if (
-    !(utilityPanel instanceof HTMLElement) ||
+    !(utilityPanel instanceof HTMLDialogElement) ||
     !(utilityPanelTitle instanceof HTMLElement) ||
     !(utilityPanelContent instanceof HTMLElement)
   ) {
@@ -326,13 +326,13 @@ function openUtilityPanel(title: string, content: Node): void {
 
   utilityPanelTitle.textContent = title;
   utilityPanelContent.replaceChildren(content);
-  const dialog = utilityPanel as HTMLDialogElement;
+  const dialog = utilityPanel;
   if (!dialog.open) dialog.showModal();
 }
 
 function closeUtilityPanel() {
-  if (!(utilityPanel instanceof HTMLElement)) return;
-  const dialog = utilityPanel as HTMLDialogElement;
+  if (!(utilityPanel instanceof HTMLDialogElement)) return;
+  const dialog = utilityPanel;
   if (dialog.open) dialog.close();
 }
 
