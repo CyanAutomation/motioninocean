@@ -44,11 +44,11 @@ steps:
           --file Dockerfile \
           --platform linux/amd64 \
           --progress plain \
-          --cache-from "type=registry,ref=${IMAGE_BASE}:buildcache" \
-          --cache-to "type=registry,ref=${IMAGE_BASE}:buildcache,mode=max" \
+          --cache-from "type=registry,ref=$${IMAGE_BASE}:buildcache" \
+          --cache-to "type=registry,ref=$${IMAGE_BASE}:buildcache,mode=max" \
           --build-arg VCS_REF="${_REVISION}" \
-          --tag "${IMAGE_BASE}:${_IMAGE_TAG}" \
-          --tag "${IMAGE_BASE}:${_REVISION}" \
+          --tag "$${IMAGE_BASE}:${_IMAGE_TAG}" \
+          --tag "$${IMAGE_BASE}:${_REVISION}" \
           --push .
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
