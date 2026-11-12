@@ -55,8 +55,9 @@ after transient failures.
 
 - The container listens on `0.0.0.0:8080`; the app uses Cloud Run's injected
   `PORT` as a fallback when `MIO_PORT` is not set.
-- Gunicorn runs one threaded worker per instance. The application server does
-  not impose a shorter request timeout than Cloud Run.
+- Gunicorn runs one `gthread` worker with eight threads per instance. Its
+  60-second worker timeout monitors the worker heartbeat, not individual request
+  duration; Cloud Run's one-hour request timeout governs active MJPEG streams.
 - Runtime settings use `/tmp/application-settings.json`. Cloud Run storage is
   temporary and per instance; changes do not persist across restarts or scaling.
   In this demo, write endpoints are disabled regardless.
