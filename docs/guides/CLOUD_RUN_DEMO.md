@@ -26,15 +26,15 @@ roles scoped to the demo repository and service where the project allows it.
 ## Build and deploy
 
 The checked-in [cloudbuild.yaml](../../cloudbuild.yaml) is manual only. It builds
-and pushes a demo tag and an immutable git-SHA tag, then deploys that SHA tag to
-Cloud Run. Run it from a clean checkout so the tag identifies the source being
-built. Both Artifact Registry and Cloud Run default to `europe-west1`.
+and pushes a demo tag and an immutable short git-SHA tag, then deploys that SHA
+tag to Cloud Run. Cloud Build supplies the commit SHA for both console-triggered
+and `gcloud builds submit` builds. Run it from a clean checkout so the tag
+identifies the source being built. Both Artifact Registry and Cloud Run default
+to `europe-west1`.
 
 ```bash
 test -z "$(git status --porcelain)"
-REVISION="$(git rev-parse --short=12 HEAD)"
-gcloud builds submit --config cloudbuild.yaml \
-  --substitutions="_REVISION=${REVISION}" .
+gcloud builds submit --config cloudbuild.yaml .
 ```
 
 The Cloud Run service is public and unauthenticated so visitors can open the

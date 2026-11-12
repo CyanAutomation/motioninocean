@@ -5,28 +5,30 @@ from pathlib import Path
 import yaml
 
 
-def test_cloudbuild_deploys_sha_tag_in_europe_west1_with_public_demo_limits():
-    """The demo build uses the requested region, mock mode, and bounded service settings."""
+def test_cloudbuild_deploys_short_sha_tag_in_europe_west1_with_public_demo_limits():
+    """The demo build uses Cloud Build's commit SHA and bounded service settings."""
     cloudbuild_path = Path(__file__).resolve().parents[1] / "cloudbuild.yaml"
-    config = yaml.safe_load(cloudbuild_path.read_text())
+    cloudbuild_content = cloudbuild_path.read_text()
+    config = yaml.safe_load(cloudbuild_content)
     steps = {step["id"]: step for step in config["steps"]}
     substitutions = config["substitutions"]
 
     assert substitutions["_GAR_REGION"] == "europe-west1"
     assert substitutions["_CLOUD_RUN_REGION"] == "europe-west1"
-    assert substitutions["_REVISION"] == "revision-not-set"
+    assert "_REVISION" not in substitutions
     build_script = steps["build-and-push"]["args"][-1]
     assert "--file Dockerfile" in build_script
     assert "--platform linux/amd64" in build_script
-    assert '[[ ! "${_REVISION}" =~ ^[0-9a-f]{7,40}$ ]]' in build_script
     assert build_script.count("$${IMAGE_BASE}") == 4
     assert '"$${IMAGE_BASE}:${_IMAGE_TAG}"' in build_script
-    assert '"$${IMAGE_BASE}:${_REVISION}"' in build_script
+    assert '"$${IMAGE_BASE}:$SHORT_SHA"' in build_script
+    assert '--build-arg VCS_REF="$SHORT_SHA"' in build_script
+    assert "_REVISION" not in cloudbuild_content
 
     deploy_args = steps["deploy-cloud-run"]["args"]
     assert deploy_args[deploy_args.index("--region") + 1] == "${_CLOUD_RUN_REGION}"
     image_arg = deploy_args[deploy_args.index("--image") + 1]
-    assert image_arg.endswith(":${_REVISION}")
+    assert image_arg.endswith(":$SHORT_SHA")
     assert "--allow-unauthenticated" in deploy_args
     assert "--port" in deploy_args
     assert "--max" in deploy_args
