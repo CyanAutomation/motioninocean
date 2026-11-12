@@ -19,7 +19,9 @@ def test_cloudbuild_deploys_sha_tag_in_europe_west1_with_public_demo_limits():
     assert "--file Dockerfile" in build_script
     assert "--platform linux/amd64" in build_script
     assert '[[ ! "${_REVISION}" =~ ^[0-9a-f]{7,40}$ ]]' in build_script
-    assert '"${IMAGE_BASE}:${_REVISION}"' in build_script
+    assert build_script.count("$${IMAGE_BASE}") == 4
+    assert '"$${IMAGE_BASE}:${_IMAGE_TAG}"' in build_script
+    assert '"$${IMAGE_BASE}:${_REVISION}"' in build_script
 
     deploy_args = steps["deploy-cloud-run"]["args"]
     assert deploy_args[deploy_args.index("--region") + 1] == "${_CLOUD_RUN_REGION}"
