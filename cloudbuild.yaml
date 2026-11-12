@@ -5,16 +5,13 @@
 #   gcloud services enable cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com
 #   gcloud artifacts repositories create motioninocean-demo \
 #     --repository-format=docker --location=europe-west1
-#   REVISION="$(git rev-parse --short=12 HEAD)"
-#   gcloud builds submit --config cloudbuild.yaml \
-#     --substitutions="_REVISION=${REVISION}" .
+#   gcloud builds submit --config cloudbuild.yaml .
 
 substitutions:
   _GAR_REGION: europe-west1
   _GAR_REPO: motioninocean-demo
   _IMAGE_NAME: motioninocean
   _IMAGE_TAG: demo
-  _REVISION: revision-not-set
   _CLOUD_RUN_REGION: europe-west1
   _SERVICE_NAME: motioninocean-demo
   _SERVICE_PORT: "8080"
@@ -34,10 +31,6 @@ steps:
     args:
       - -ceu
       - |
-        if [[ ! "${_REVISION}" =~ ^[0-9a-f]{7,40}$ ]]; then
-          echo "Set _REVISION to the checked-out git commit SHA."
-          exit 2
-        fi
         docker buildx create --name mio-cloudbuild --driver docker-container --use
         IMAGE_BASE="${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}"
         docker buildx build \
@@ -46,9 +39,9 @@ steps:
           --progress plain \
           --cache-from "type=registry,ref=$${IMAGE_BASE}:buildcache" \
           --cache-to "type=registry,ref=$${IMAGE_BASE}:buildcache,mode=max" \
-          --build-arg VCS_REF="${_REVISION}" \
+          --build-arg VCS_REF="$SHORT_SHA" \
           --tag "$${IMAGE_BASE}:${_IMAGE_TAG}" \
-          --tag "$${IMAGE_BASE}:${_REVISION}" \
+          --tag "$${IMAGE_BASE}:$SHORT_SHA" \
           --push .
 
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
@@ -59,7 +52,7 @@ steps:
       - deploy
       - ${_SERVICE_NAME}
       - --image
-      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}:${_REVISION}
+      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
       - --region
       - ${_CLOUD_RUN_REGION}
       - --platform
