@@ -315,5 +315,7 @@ ENV PYTHONPATH=/app
 # Set startup entrypoint to validate/fix /data permissions and then drop to app user.
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
-# Set the command using module execution (-m) for relative imports to work
-CMD ["python3", "-m", "pi_camera_in_docker.main"]
+# Use a threaded production WSGI server for long-lived MJPEG requests and concurrent API calls.
+# gthread's worker heartbeat timeout is separate from the duration of an individual request.
+# Cloud Run's injected PORT is used when MIO_PORT is not set; existing deployments can override it.
+CMD ["sh", "-c", "exec gunicorn --bind \"${MIO_BIND_HOST:-127.0.0.1}:${MIO_PORT:-${PORT:-8000}}\" --workers 1 --worker-class gthread --threads 8 --timeout 60 --graceful-timeout 8 pi_camera_in_docker.wsgi:app"]

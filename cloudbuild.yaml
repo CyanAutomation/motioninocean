@@ -1,0 +1,90 @@
+# Manual Google Cloud Build for the public Motion In Ocean mock-camera demo.
+# This is separate from the GitHub release workflow, which publishes production images.
+# Create the Artifact Registry repository once before the first build.
+#
+#   gcloud services enable cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com
+#   gcloud artifacts repositories create motioninocean-demo \
+#     --repository-format=docker --location=europe-west1
+#   REVISION="$(git rev-parse --short=12 HEAD)"
+#   gcloud builds submit --config cloudbuild.yaml \
+#     --substitutions="_REVISION=${REVISION}" .
+
+substitutions:
+  _GAR_REGION: europe-west1
+  _GAR_REPO: motioninocean-demo
+  _IMAGE_NAME: motioninocean
+  _IMAGE_TAG: demo
+  _REVISION: revision-not-set
+  _CLOUD_RUN_REGION: europe-west1
+  _SERVICE_NAME: motioninocean-demo
+  _SERVICE_PORT: "8080"
+  _MIN_INSTANCES: "0"
+  _MAX_INSTANCES: "2"
+  _CONCURRENCY: "4"
+  _CPU: "1"
+  _MEMORY: 512Mi
+  _REQUEST_TIMEOUT: 3600s
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    id: build-and-push
+    env:
+      - DOCKER_BUILDKIT=1
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        if [[ ! "${_REVISION}" =~ ^[0-9a-f]{7,40}$ ]]; then
+          echo "Set _REVISION to the checked-out git commit SHA."
+          exit 2
+        fi
+        docker buildx create --name mio-cloudbuild --driver docker-container --use
+        IMAGE_BASE="${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}"
+        docker buildx build \
+          --file Dockerfile \
+          --platform linux/amd64 \
+          --progress plain \
+          --cache-from "type=registry,ref=${IMAGE_BASE}:buildcache" \
+          --cache-to "type=registry,ref=${IMAGE_BASE}:buildcache,mode=max" \
+          --build-arg VCS_REF="${_REVISION}" \
+          --tag "${IMAGE_BASE}:${_IMAGE_TAG}" \
+          --tag "${IMAGE_BASE}:${_REVISION}" \
+          --push .
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy-cloud-run
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE_NAME}
+      - --image
+      - ${_GAR_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_IMAGE_NAME}:${_REVISION}
+      - --region
+      - ${_CLOUD_RUN_REGION}
+      - --platform
+      - managed
+      - --port
+      - ${_SERVICE_PORT}
+      - --allow-unauthenticated
+      - --min
+      - ${_MIN_INSTANCES}
+      - --max
+      - ${_MAX_INSTANCES}
+      - --concurrency
+      - ${_CONCURRENCY}
+      - --cpu
+      - ${_CPU}
+      - --memory
+      - ${_MEMORY}
+      - --timeout
+      - ${_REQUEST_TIMEOUT}
+      - --set-env-vars
+      - MIO_APP_MODE=webcam,MIO_MOCK_CAMERA=true,MIO_DEMO_READ_ONLY=true,MIO_BIND_HOST=0.0.0.0,MIO_PORT=8080,MIO_RESOLUTION=640x480,MIO_FPS=10,MIO_TARGET_FPS=10,MIO_JPEG_QUALITY=75,MIO_MAX_STREAM_CONNECTIONS=3,MIO_DISCOVERY_ENABLED=false,MIO_APPLICATION_SETTINGS_PATH=/tmp/application-settings.json,MIO_LOG_FORMAT=json
+    waitFor:
+      - build-and-push
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1800s

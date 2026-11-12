@@ -78,6 +78,7 @@
           </span>
           <span class="tab-label">Config</span>
         </button>
+        {% if not demo_read_only %}
         <button class="tab-btn rail-btn" data-tab="setup" id="setup-tab-btn" title="Set-Up">
           <span class="rail-icon" aria-hidden="true">
             <svg
@@ -97,6 +98,8 @@
           </span>
           <span class="tab-label">Set-Up</span>
         </button>
+        {% endif %}
+        {% if not demo_read_only %}
         <button
           class="tab-btn rail-btn"
           data-tab="settings"
@@ -123,6 +126,7 @@
           </span>
           <span class="tab-label">Settings</span>
         </button>
+        {% endif %}
       </div>
       <div class="rail-bottom-items">
         <button
@@ -253,6 +257,12 @@
     <main class="container">
       <!-- Stream View Grid -->
       <section class="video-section" role="tabpanel">
+        {% if demo_read_only %}
+        <div class="demo-read-only-banner ui-card" role="status">
+          <strong>Public demo · Read-only</strong>
+          <span>Settings and control actions are disabled. The camera stream is simulated.</span>
+        </div>
+        {% endif %}
         <div class="webcam-stream-grid">
           <!-- hidden metrics sources (still updated by JS) -->
           <span id="fps-value" class="sr-only" aria-hidden="true">--</span>
@@ -1416,6 +1426,7 @@
       >
         <span class="tab-label">Config</span>
       </button>
+      {% if not demo_read_only %}
       <button
         class="tab-btn mobile-rail-btn"
         data-tab="setup"
@@ -1432,6 +1443,7 @@
       >
         <span class="tab-label">Settings</span>
       </button>
+      {% endif %}
     </nav>
 
     <div

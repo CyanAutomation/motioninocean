@@ -397,7 +397,10 @@ def test_dockerfile_runtime_contract_instructions(workspace_root):
     assert "python3-picamera2" in dockerfile_content
     assert "WORKDIR /app" in dockerfile_content
     assert "COPY pi_camera_in_docker/ /app/pi_camera_in_docker/" in dockerfile_content
-    assert 'CMD ["python3", "-m", "pi_camera_in_docker.main"]' in dockerfile_content
+    assert 'CMD ["sh", "-c"' in dockerfile_content
+    assert "pi_camera_in_docker.wsgi:app" in dockerfile_content
+    assert "--timeout 60" in dockerfile_content
+    assert "gunicorn" in requirements_content.lower()
     # Check venv isolation
     assert "/opt/venv/bin/pip install" in dockerfile_content
     assert "COPY --from=builder /opt/venv /opt/venv" in dockerfile_content

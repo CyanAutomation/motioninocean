@@ -11,6 +11,7 @@ Use this index to navigate project documentation.
 ## Guides (evergreen)
 
 - [Deployment](guides/DEPLOYMENT.md)
+- [Google Cloud Run Demo](guides/CLOUD_RUN_DEMO.md)
 - [Migration](guides/MIGRATION.md)
 - [Feature Flags](guides/FEATURE_FLAGS.md)
 - [Release Process](guides/RELEASE.md)

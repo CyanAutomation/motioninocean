@@ -54,6 +54,7 @@ from .sentry_config import init_sentry
 from .settings_api import register_settings_routes
 from .shared import (
     _safe_api_test_scenario,
+    register_demo_read_only_guard,
     register_shared_routes,
     register_webcam_control_plane_auth,
 )
@@ -993,6 +994,7 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, RateLimiterProtocol
 
     # Register middleware
     _register_middleware(app, config)
+    register_demo_read_only_guard(app, bool(config.get("demo_read_only", False)))
 
     # Initialize application state
     state = _init_app_state(config)
@@ -1012,7 +1014,10 @@ def _create_base_app(config: Dict[str, Any]) -> Tuple[Flask, RateLimiterProtocol
         return cast(
             "str",
             render_template(
-                "index.html", width=config["resolution"][0], height=config["resolution"][1]
+                "index.html",
+                width=config["resolution"][0],
+                height=config["resolution"][1],
+                demo_read_only=bool(config.get("demo_read_only", False)),
             ),
         )
 
@@ -1936,18 +1941,11 @@ def _run_webcam_mode(state: Dict[str, Any], cfg: Dict[str, Any]) -> None:
             _activate_mock_fallback()
 
 
-def handle_shutdown(app: Flask, signum: int, _frame: Optional[object]) -> None:
-    """Handle SIGTERM/SIGINT by gracefully shutting down camera and discovery.
-
-    Stops discovery announcer if active, shuts down camera, and exits with signal number.
+def shutdown_app(app: Flask) -> None:
+    """Stop camera and discovery resources owned by a Flask application.
 
     Args:
         app: Flask application instance.
-        signum: Signal number (SIGTERM=15, SIGINT=2).
-        _frame: Stack frame (unused).
-
-    Raises:
-        SystemExit: With exit code equal to signum.
     """
     app_state = getattr(app, "motion_state", None)
     if isinstance(app_state, dict):
@@ -1958,6 +1956,22 @@ def handle_shutdown(app: Flask, signum: int, _frame: Optional[object]) -> None:
         if isinstance(discovery_shutdown_event, Event):
             discovery_shutdown_event.set()
         _shutdown_camera(app_state)
+
+
+def handle_shutdown(app: Flask, signum: int, _frame: Optional[object]) -> None:
+    """Handle SIGTERM/SIGINT by gracefully shutting down camera and discovery.
+
+    Stops application resources, then exits with the signal number.
+
+    Args:
+        app: Flask application instance.
+        signum: Signal number (SIGTERM=15, SIGINT=2).
+        _frame: Stack frame (unused).
+
+    Raises:
+        SystemExit: With exit code equal to signum.
+    """
+    shutdown_app(app)
     raise SystemExit(signum)
 
 

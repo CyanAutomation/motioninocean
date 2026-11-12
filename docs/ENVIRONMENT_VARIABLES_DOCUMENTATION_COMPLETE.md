@@ -17,7 +17,7 @@ These variables configure runtime behavior but are **not** feature flags.
 
 - `MIO_APP_MODE` (default: `webcam`) — valid values: `webcam`, `management`.
 - `MIO_BIND_HOST` (default: `127.0.0.1`).
-- `MIO_PORT` (default: `8000`).
+- `MIO_PORT` (default: `PORT`, then `8000`) — an explicitly set `MIO_PORT` takes precedence over the platform-provided `PORT`.
 - `MIO_BASE_URL` (default: `http://<hostname>:8000`).
 - `MIO_CORS_ORIGINS` (default: empty/disabled).
 
@@ -53,6 +53,7 @@ These variables configure runtime behavior but are **not** feature flags.
 - `MIO_APPLICATION_SETTINGS_PATH` (default: `/data/application-settings.json`).
 - `MIO_MANAGEMENT_AUTH_TOKEN` (default: empty).
 - `MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN` (default: empty).
+- `MIO_DEMO_READ_ONLY` (default: `false`) — when true, blocks all non-safe HTTP methods across the Flask app and marks the viewer as a public read-only demo.
 - `MIO_FAIL_ON_CAMERA_INIT_ERROR` (default: `false`).
 - `MIO_PERFORMANCE_PROFILE` (default: `default`; valid values: `default`, `pi3`).
 - `MIO_API_TEST_MODE_ENABLED` (default: `false`).

@@ -68,6 +68,7 @@ def full_config(tmp_app_settings_path):
         "application_settings_path": str(tmp_app_settings_path),
         "management_auth_token": "",
         "webcam_control_plane_auth_token": "",
+        "demo_read_only": False,
     }
 
 

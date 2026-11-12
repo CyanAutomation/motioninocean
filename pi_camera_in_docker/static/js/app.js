@@ -19,6 +19,7 @@ import { bindOptionalEventListeners } from "./app-event-bindings.js";
 import { showWebcamHelpModal } from "./webcam-help-modal.js";
 import { updateMioMascotForTab as updateMioMascot } from "./mio-mascot.js";
 import { getSnackbarController } from "./snackbar.js";
+import { createStreamReconnectController, imageHasLoadedFrame, } from "./stream-reconnect.js";
 const REQUEST_TIMEOUT_MS = 5000;
 const THEME_STORAGE_KEY = "webcam.theme";
 const DEFAULT_MIO_PATH = "/static/img/mio/mio_avatar.png";
@@ -52,6 +53,7 @@ const state = {
     previouslyFocusedElement: null,
     utilityModalOpen: false,
     changelogCache: null,
+    streamReconnectController: null,
     elements: {
         videoStream: null,
         mockStreamPlaceholder: null,
@@ -214,6 +216,10 @@ function initializeTheme() {
  */
 function cacheElements() {
     state.elements.videoStream = getElementById("video-stream");
+    if (state.elements.videoStream) {
+        const streamUrl = state.elements.videoStream.getAttribute("src") || "/stream.mjpg";
+        state.streamReconnectController = createStreamReconnectController(state.elements.videoStream, streamUrl);
+    }
     state.elements.mockStreamPlaceholder = getElementById("mock-stream-placeholder");
     state.elements.mockStreamAnimation = getElementById("mock-stream-animation");
     state.elements.statsPanel = getElementById("stats-panel");
@@ -307,6 +313,12 @@ function attachHandlers() {
     ];
     eventBindings.push({ target: state.elements.videoStream, type: "load", listener: onStreamLoad }, { target: state.elements.videoStream, type: "error", listener: onStreamError });
     bindOptionalEventListeners(eventBindings);
+    if (state.elements.videoStream && imageHasLoadedFrame(state.elements.videoStream)) {
+        onStreamLoad();
+    }
+    document.addEventListener("visibilitychange", () => {
+        state.streamReconnectController?.onVisibilityChange();
+    });
     // Tab navigation handlers
     document.querySelectorAll(".tab-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -829,8 +841,13 @@ function toggleStats() {
 function refreshStream() {
     if (!state.elements.videoStream)
         return;
-    const streamUrl = state.elements.videoStream.src.split("?")[0];
-    state.elements.videoStream.src = streamUrl;
+    if (state.streamReconnectController) {
+        state.streamReconnectController.refresh();
+    }
+    else {
+        const streamUrl = state.elements.videoStream.src.split("?")[0];
+        state.elements.videoStream.src = streamUrl;
+    }
     const refreshButton = state.elements.refreshBtn;
     if (refreshButton) {
         refreshButton.style.transform = "rotate(360deg)";
@@ -879,6 +896,7 @@ function onFullscreenChange() {
  * @returns {void}
  */
 function onStreamLoad() {
+    state.streamReconnectController?.onLoad();
     hideLoading();
     setConnectionStatus("connected", "Stream Connected");
     // Hide the status legend now that the stream is live
@@ -896,7 +914,8 @@ function onStreamLoad() {
  */
 function onStreamError() {
     console.error("Video stream error");
-    setConnectionStatus("disconnected", "Stream Error");
+    state.streamReconnectController?.onError();
+    setConnectionStatus("disconnected", "Reconnecting Stream");
     increaseBackoff();
 }
 /**

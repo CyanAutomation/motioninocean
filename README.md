@@ -173,6 +173,7 @@ The spec lives at [docs/openapi.json](docs/openapi.json) and is served directly 
 
 - Documentation hub: [docs/README.md](docs/README.md)
 - Canonical deployment guide: [docs/guides/DEPLOYMENT.md](docs/guides/DEPLOYMENT.md)
+- Google Cloud Run demo: [docs/guides/CLOUD_RUN_DEMO.md](docs/guides/CLOUD_RUN_DEMO.md)
 - Migration deltas only: [docs/guides/MIGRATION.md](docs/guides/MIGRATION.md)
 - Feature flags reference: [docs/guides/FEATURE_FLAGS.md](docs/guides/FEATURE_FLAGS.md)
 - Container directory pattern specifics: [containers/README.md](containers/README.md)
