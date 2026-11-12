@@ -87,6 +87,33 @@ def register_webcam_control_plane_auth(
         return None
 
 
+def register_demo_read_only_guard(app: Flask, enabled: bool) -> None:
+    """Block unsafe HTTP methods when serving a public, read-only demo.
+
+    Args:
+        app: Flask application instance.
+        enabled: Whether the read-only demo policy is active.
+    """
+    if not enabled:
+        return
+
+    safe_methods = {"GET", "HEAD", "OPTIONS"}
+
+    @app.before_request
+    def _demo_read_only_guard():
+        if request.method.upper() in safe_methods:
+            return None
+        return (
+            jsonify(
+                {
+                    "error": "DEMO_READ_ONLY",
+                    "message": "This public demo is read-only.",
+                }
+            ),
+            403,
+        )
+
+
 def _get_api_test_payload(
     state: dict, api_test_scenarios: list, uptime_seconds: float, max_connections: int
 ) -> Optional[dict]:

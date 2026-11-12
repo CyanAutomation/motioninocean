@@ -338,7 +338,7 @@ def _load_networking_config() -> Dict[str, Any]:
 
     Env vars:
     - MIO_BIND_HOST (default: 127.0.0.1)
-    - MIO_PORT (1-65535, default: 8000)
+    - MIO_PORT (1-65535, default: PORT or 8000)
     - MIO_BASE_URL (default: http://hostname:8000)
     - MIO_CORS_ORIGINS (empty/unset disables CORS; '*' allows all; CSV allows listed origins)
     - MIO_CORS_SUPPORT (removed alias; ignored, warning-only when present)
@@ -357,7 +357,7 @@ def _load_networking_config() -> Dict[str, Any]:
 
     bind_host = os.environ.get("MIO_BIND_HOST", "127.0.0.1").strip()
     try:
-        bind_port = int(os.environ.get("MIO_PORT", "8000"))
+        bind_port = int(os.environ.get("MIO_PORT", os.environ.get("PORT", "8000")))
     except ValueError:
         bind_port = 8000
     if not 1 <= bind_port <= 65535:
@@ -398,6 +398,7 @@ def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
     - MIO_APPLICATION_SETTINGS_PATH (default: /data/application-settings.json)
     - MIO_MANAGEMENT_AUTH_TOKEN (bearer token for management mode auth)
     - MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN (bearer token for webcam control-plane auth)
+    - MIO_DEMO_READ_ONLY (default: false; block non-safe HTTP methods)
     - MIO_FAIL_ON_CAMERA_INIT_ERROR (default: false)
     - MIO_CHANGELOG_REMOTE_URL (default: repository CHANGELOG.md raw URL)
     - MIO_CHANGELOG_REMOTE_TIMEOUT_SECONDS (default: 3.0, minimum: >0)
@@ -408,7 +409,7 @@ def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
         Dict with keys: performance_profile, pi3_profile_enabled,
         mock_camera, pykms_mock_fallback_enabled,
         webcam_registry_path, application_settings_path, management_auth_token,
-        webcam_control_plane_auth_token, fail_on_camera_init_error,
+        webcam_control_plane_auth_token, demo_read_only, fail_on_camera_init_error,
         changelog_remote_url, changelog_remote_timeout_seconds,
         changelog_remote_cache_ttl_seconds, changelog_remote_failure_backoff_seconds.
     """
@@ -467,6 +468,8 @@ def _load_advanced_config(api_test_mode_enabled: bool) -> Dict[str, Any]:
         "webcam_control_plane_auth_token": os.environ.get(
             "MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN", ""
         ),
+        "demo_read_only": os.environ.get("MIO_DEMO_READ_ONLY", "false").lower()
+        in ("1", "true", "yes"),
         "fail_on_camera_init_error": fail_on_camera_init_error_raw.lower() in ("1", "true", "yes"),
         "changelog_remote_url": changelog_remote_url,
         "changelog_remote_timeout_seconds": changelog_remote_timeout_seconds,

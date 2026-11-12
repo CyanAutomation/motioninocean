@@ -109,6 +109,7 @@ These settings control deployment and system behavior, and are set at container 
 - `MIO_PERFORMANCE_PROFILE` — hardware performance profile (`MIO_PI3_PROFILE` is deprecated)
 - OctoPrint compatibility is always enabled in webcam mode; `MIO_OCTOPRINT_COMPATIBILITY` and `OCTOPRINT_COMPATIBILITY` are deprecated/ignored.
 - `MIO_WEBCAM_CONTROL_PLANE_AUTH_TOKEN` — optional bearer token for webcam control-plane routes
+- `MIO_DEMO_READ_ONLY` — optional public-demo mode that blocks mutating HTTP methods
 - `MIO_APPLICATION_SETTINGS_PATH`, `MIO_NODE_REGISTRY_PATH` — Persistence locations
 - `MIO_SENTRY_DSN` — Optional error tracking. The image must be built with
   `--build-arg INSTALL_SENTRY_SDK=true` for Sentry reporting to be enabled.

@@ -3,6 +3,56 @@ import pytest
 from pi_camera_in_docker import runtime_config
 
 
+def test_demo_read_only_defaults_to_false(monkeypatch):
+    """The read-only demo guard is opt-in for existing deployments."""
+    monkeypatch.delenv("MIO_DEMO_READ_ONLY", raising=False)
+
+    config = runtime_config.load_env_config()
+
+    assert config["demo_read_only"] is False
+
+
+@pytest.mark.parametrize("value", ["true", "1", "yes", "TRUE"])
+def test_demo_read_only_accepts_true_values(monkeypatch, value):
+    """Truthy values enable the read-only demo guard."""
+    monkeypatch.setenv("MIO_DEMO_READ_ONLY", value)
+
+    config = runtime_config.load_env_config()
+
+    assert config["demo_read_only"] is True
+
+
+@pytest.mark.parametrize("value", ["false", "0", "no", "", "unexpected"])
+def test_demo_read_only_other_values_leave_mutations_enabled(monkeypatch, value):
+    """Unset and unrecognized values preserve the existing writable behavior."""
+    monkeypatch.setenv("MIO_DEMO_READ_ONLY", value)
+
+    config = runtime_config.load_env_config()
+
+    assert config["demo_read_only"] is False
+
+
+def test_cloud_run_port_is_used_when_mio_port_is_unset(monkeypatch):
+    """Cloud Run's injected PORT is the fallback while local default stays 8000."""
+    monkeypatch.delenv("MIO_PORT", raising=False)
+    monkeypatch.setenv("PORT", "8080")
+
+    config = runtime_config.load_env_config()
+
+    assert config["bind_port"] == 8080
+    assert config["base_url"].endswith(":8080")
+
+
+def test_explicit_mio_port_overrides_cloud_run_port(monkeypatch):
+    """The application's explicit MIO_PORT remains higher priority."""
+    monkeypatch.setenv("MIO_PORT", "9000")
+    monkeypatch.setenv("PORT", "8080")
+
+    config = runtime_config.load_env_config()
+
+    assert config["bind_port"] == 9000
+
+
 def test_get_effective_settings_payload_uses_single_persisted_snapshot(monkeypatch):
     env_config = {
         "app_mode": "management",
