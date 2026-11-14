@@ -201,11 +201,17 @@ def test_diagram_validation_inputs_exist_and_failures_propagate(tmp_path: Path) 
     )
 
     renderer = tmp_path / "mmdc"
+    browser = tmp_path / "chromium"
     log_path = tmp_path / "rendered-diagrams.txt"
+    config_log_path = tmp_path / "puppeteer-config.json"
+    browser.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    browser.chmod(0o755)
     renderer.write_text(
         "#!/bin/sh\n"
         'while [ "$#" -gt 0 ]; do\n'
-        '  if [ "$1" = "-i" ]; then cat "$2" >> "$MMD_LOG"; '
+        '  if [ "$1" = "--puppeteerConfigFile" ]; then '
+        'cat "$2" > "$MMD_CONFIG_LOG"; shift 2; '
+        'elif [ "$1" = "-i" ]; then cat "$2" >> "$MMD_LOG"; '
         'printf "\\n---\\n" >> "$MMD_LOG"; shift 2; else shift; fi\n'
         "done\n",
         encoding="utf-8",
@@ -214,6 +220,8 @@ def test_diagram_validation_inputs_exist_and_failures_propagate(tmp_path: Path) 
     test_env = os.environ.copy()
     test_env["PATH"] = f"{tmp_path}:{os.environ['PATH']}"
     test_env["MMD_LOG"] = str(log_path)
+    test_env["MMD_CONFIG_LOG"] = str(config_log_path)
+    test_env["PUPPETEER_EXECUTABLE_PATH"] = str(browser)
     success = subprocess.run(
         ["make", "validate-diagrams"],
         cwd=REPO_ROOT,
@@ -227,6 +235,8 @@ def test_diagram_validation_inputs_exist_and_failures_propagate(tmp_path: Path) 
         block for block in log_path.read_text(encoding="utf-8").split("\n---\n") if block.strip()
     ]
     assert len(rendered) >= 12, "Each Mermaid code block must be rendered separately"
+    config = json.loads(config_log_path.read_text(encoding="utf-8"))
+    assert config["executablePath"] == str(browser)
     assert all(
         block.strip().startswith(("flowchart", "graph", "sequenceDiagram", "stateDiagram"))
         for block in rendered

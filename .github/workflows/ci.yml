@@ -12,6 +12,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  dependency-review:
+    name: Dependency Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Review changed dependencies
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          fail-on-scopes: runtime, development, unknown
+
   frontend-tests:
     name: Frontend JS Tests
     runs-on: ubuntu-latest
@@ -110,6 +125,25 @@ jobs:
             --platform "${{ matrix.platform }}" \
             --python-version "${{ matrix.python-version }}"
 
+  runtime-dependency-resolution-gate:
+    name: Runtime Dependency Resolution
+    needs: runtime-dependency-resolution
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Require every Python and platform combination to resolve
+        env:
+          MATRIX_RESULT: ${{ needs.runtime-dependency-resolution.result }}
+        run: |
+          if [[ "$MATRIX_RESULT" != "success" ]]; then
+            echo "Runtime dependency resolution matrix result: $MATRIX_RESULT"
+            exit 1
+          fi
+
   lint:
     name: Lint and Format Check
     runs-on: ubuntu-latest
@@ -158,6 +192,16 @@ jobs:
           "$(go env GOPATH)/bin/actionlint" \
             -ignore 'unexpected key "queue" for "concurrency" section' \
             .github/workflows/*.yml .github/workflows/*.yaml
+
+      - name: Analyze GitHub Actions security
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+        with:
+          inputs: .github/workflows/
+          collect: workflows
+          version: 1.32.0
+          online-audits: false
+          advanced-security: false
+          annotations: true
 
       - name: Verify frontend TypeScript build
         run: npm run type-check
@@ -235,9 +279,57 @@ jobs:
           python -m bandit -r pi_camera_in_docker/ -c pyproject.toml -f json -o bandit-report.json || true
           python -m bandit -r pi_camera_in_docker/ -c pyproject.toml
 
+      - name: Install Python dependency audit tool
+        run: python -m pip install -r requirements-security.txt
+
+      - name: Audit Python dependencies
+        run: |
+          python -m pip_audit \
+            --cache-dir "$RUNNER_TEMP/pip-audit-cache" \
+            --requirement requirements.txt \
+            --requirement requirements-sentry.txt \
+            --requirement requirements-rate-limiter.txt
+
       - name: Upload Bandit report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: bandit-security-report
           path: bandit-report.json
+
+  documentation:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Install documentation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt -r requirements-docs.txt
+
+      - name: Check Sphinx documentation
+        run: make docs-check
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Validate Mermaid diagrams
+        run: npm exec --yes --package=@mermaid-js/mermaid-cli@12.2.0 -- make validate-diagrams

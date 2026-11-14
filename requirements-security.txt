@@ -1,0 +1,2 @@
+# Security tooling used by the dependency audit in GitHub Actions.
+pip-audit==2.10.1

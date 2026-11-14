@@ -1,0 +1,4 @@
+# Tooling for the Sphinx and Mermaid documentation build.
+Sphinx==9.1.1
+myst-parser==5.2.0
+sphinxcontrib-mermaid==2.1.1

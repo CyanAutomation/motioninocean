@@ -2,7 +2,7 @@
 name: ci-quality-gates
 description: Run the repository’s local lint, type, test, and security checks. Use before opening a pull request or when checking whether a change is ready for CI.
 owner: motion-in-ocean team
-last-reviewed: 2026-11-08
+last-reviewed: 2026-11-14
 category: CI/CD
 compatible-repo-areas:
   - .github/workflows/ci.yml
@@ -30,7 +30,7 @@ Run the same relevant checks contributors and CI use, and report any checks that
 
 ## Step-by-step workflow
 
-1. Read `.github/workflows/ci.yml` and identify checks that touch the changed files. The workflow runs frontend tests, Python tests across 3.10–3.12, dependency resolution, lint/format checks, mypy, and Bandit.
+1. Read `.github/workflows/ci.yml` and identify checks that touch the changed files. The workflow runs frontend tests, Python tests across 3.10–3.12, a required dependency-resolution matrix gate, dependency review, documentation validation, lint/format checks, mypy, Bandit, pip-audit, actionlint, and zizmor.
 2. Install the repository dependencies with `pip install -r requirements-dev.txt` and `npm ci` when needed.
 3. Run the full local Makefile validation:
 
@@ -41,7 +41,7 @@ Run the same relevant checks contributors and CI use, and report any checks that
    `make ci` runs lint, format check, type check, feature-flag usage validation, and tests. `make validate` adds Bandit through `make security`.
 
 4. For frontend-only changes, run `make test-frontend`, `npm run lint`, and `npm run type-check`. CI also checks that `npm run build:frontend` leaves generated files under `pi_camera_in_docker/static/js` unchanged.
-5. For container changes, inspect `.github/workflows/security-scan.yml`. It builds an image, reports all Trivy severities, blocks fixed HIGH and CRITICAL findings, publishes SARIF on default-branch pushes, and smoke-tests an ARM64 image.
+5. For container changes, inspect `.github/workflows/security-scan.yml`. It builds and scans images for both supported architectures, reports all Trivy severities, blocks fixed HIGH and CRITICAL findings, publishes SARIF on default-branch pushes, and checks application readiness in mock-camera mode.
 6. Record the exact commands run and any local environment limitations.
 
 ## Validation checklist
@@ -49,17 +49,18 @@ Run the same relevant checks contributors and CI use, and report any checks that
 - [ ] Relevant checks from `.github/workflows/ci.yml` pass.
 - [ ] `make validate` passes, or each failure has a diagnosis.
 - [ ] Generated frontend assets are current after TypeScript changes.
-- [ ] Container changes are checked against the image scan policy.
+- [ ] Container changes pass image scanning and AMD64/ARM64 readiness checks.
 - [ ] Local and CI differences are documented.
 
 ## Source of truth
 
 - `.github/workflows/ci.yml` — CI jobs, Python/Node versions, and exact commands.
 - `.nvmrc` — Shared Node.js version for local development and CI.
-- `.github/workflows/security-scan.yml` — Image scanning, enforcement, SARIF, and ARM64 smoke test.
+- `.github/workflows/security-scan.yml` — Image scanning, enforcement, SARIF, and multi-architecture readiness tests.
 - `Makefile` — Local validation targets and which gates they include.
 - `package.json` — Frontend scripts.
 - `requirements-dev.txt` and `pyproject.toml` — Python tools and test configuration.
+- `requirements-docs.txt` and `requirements-security.txt` — Pinned documentation and dependency-audit tools.
 
 ## Common failure modes and recovery actions
 
@@ -67,6 +68,7 @@ Run the same relevant checks contributors and CI use, and report any checks that
 - **Failure:** Frontend tests fail after editing TypeScript. **Recovery:** Run `npm run build:frontend`, inspect generated JavaScript, then run `npm run test:frontend`.
 - **Failure:** A local command is missing. **Recovery:** Compare the command with `Makefile` or `package.json`; do not substitute an assumed script.
 - **Failure:** Trivy is unavailable locally. **Recovery:** Record that limitation and use the required GitHub Actions result for the image scan.
+- **Failure:** `pip-audit` finds an advisory in an optional integration. **Recovery:** Upgrade or constrain the affected package in its owning requirement file, then rerun the audit.
 
 ## Related Skills
 

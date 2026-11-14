@@ -110,7 +110,7 @@ make validate          # Run make ci plus the Bandit security check
 npm run type-check     # Run TypeScript checks used by GitHub Actions
 ```
 
-GitHub Actions also checks workflow syntax and resolves runtime dependencies across a Python/platform matrix.
+GitHub Actions also checks workflow security, reviews dependency changes, builds Sphinx documentation, validates Mermaid diagrams, audits Python dependencies, and resolves runtime packages across supported Python/platform combinations.
 
 ### Local build & run
 

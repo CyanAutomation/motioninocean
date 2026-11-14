@@ -28,11 +28,15 @@ Navigate to: **Settings → Branches → Add branch protection rule**
   - `Test Python 3.10`
   - `Test Python 3.11`
   - `Test Python 3.12`
+  - `Runtime Dependency Resolution`
+  - `Dependency Review`
   - `Lint and Format Check`
   - `Type Check`
   - `Security Scan`
   - `Trivy Security Scan`
-  - `ARM64 Image Smoke Test`
+  - `Documentation Check`
+  - `Container Runtime Smoke Test (amd64)`
+  - `Container Runtime Smoke Test (arm64)`
 
 ✅ **Require conversation resolution before merging**
 
@@ -117,7 +121,7 @@ ordinary CI must remain read-only.
 
 ### Tag Protection
 
-Create an active ruleset for the `v*.*.*` tag pattern that limits tag creation
+Create an active ruleset for the `v*.*` tag pattern that limits tag creation
 to release maintainers. The Docker publish workflow verifies every matching
 version tag and uses it as the release source, so tags need the same review
 discipline as `main`.
@@ -129,7 +133,7 @@ Create the GitHub Actions environment named `container-release` and configure:
 - Required reviewers from the release maintainer team. Enable prevention of
   self-review where the repository plan supports it.
 - Deployment branch/tag rules that allow `main` for scheduled/manual refreshes
-  and `v*.*.*` for version releases.
+  and `v*.*` for version releases.
 - Environment secrets `RELEASE_DOCKERHUB_USERNAME` and
   `RELEASE_DOCKERHUB_TOKEN`.
 
@@ -168,11 +172,15 @@ Navigate to: **Settings → Rules → Rulesets → New ruleset**
      - `Test Python 3.10`
      - `Test Python 3.11`
      - `Test Python 3.12`
+     - `Runtime Dependency Resolution`
+     - `Dependency Review`
      - `Lint and Format Check`
      - `Type Check`
      - `Security Scan`
      - `Trivy Security Scan`
-     - `ARM64 Image Smoke Test`
+     - `Documentation Check`
+     - `Container Runtime Smoke Test (amd64)`
+     - `Container Runtime Smoke Test (arm64)`
 
 3. **Block force pushes**
 

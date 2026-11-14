@@ -28,9 +28,9 @@ graph LR
     WC1 -->|POST /api/discovery/announce| MGMT
     WC2 -->|POST /api/discovery/announce| MGMT
     MGMT -->|Upserts| REG
-    BR -->|GET /nodes<br/>POST /nodes/{id}| MGMT
-    MGMT -->|Management aggregation contract:<br/>GET /api/status (required)| WC1
-    MGMT -->|Management aggregation contract:<br/>GET /api/status (required)| WC2
+    BR -->|GET /nodes<br/>POST /nodes/:id| MGMT
+    MGMT -->|Management aggregation contract:<br/>GET /api/status| WC1
+    MGMT -->|Management aggregation contract:<br/>GET /api/status| WC2
     MGMT -.->|Operator diagnostics only:<br/>GET /health, /ready, /metrics| WC1
     MGMT -.->|Operator diagnostics only:<br/>GET /health, /ready, /metrics| WC2
 ```
@@ -264,7 +264,7 @@ sequenceDiagram
 
     UI->>Mgmt: GET /api/management/overview
     Mgmt->>Mgmt: Read nodes from registry
-    note over Mgmt: Acquire lock; include approved and unapproved nodes
+    note over Mgmt: Acquire lock and include approved and unapproved nodes
 
     par Parallel status queries
         Mgmt->>Nodes: GET /api/nodes/{id1}/status
