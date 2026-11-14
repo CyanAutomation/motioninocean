@@ -29,8 +29,8 @@ graph LR
     WC2 -->|POST /api/discovery/announce| MGMT
     MGMT -->|Upserts| REG
     BR -->|GET /nodes<br/>POST /nodes/:id| MGMT
-    MGMT -->|Management aggregation contract:<br/>GET /api/status (required)| WC1
-    MGMT -->|Management aggregation contract:<br/>GET /api/status (required)| WC2
+    MGMT -->|Management aggregation contract:<br/>GET /api/status| WC1
+    MGMT -->|Management aggregation contract:<br/>GET /api/status| WC2
     MGMT -.->|Operator diagnostics only:<br/>GET /health, /ready, /metrics| WC1
     MGMT -.->|Operator diagnostics only:<br/>GET /health, /ready, /metrics| WC2
 ```
