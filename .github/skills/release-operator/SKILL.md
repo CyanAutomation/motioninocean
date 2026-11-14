@@ -34,7 +34,7 @@ Prepare and publish a GitHub Release through the UI, then confirm the correspond
 1. Review [`docs/guides/RELEASE.md`](../../../docs/guides/RELEASE.md) and confirm the version, changelog section, and version files agree.
 2. Confirm the release commit is on `main`, the worktree is clean, and required checks pass.
 3. Open the [GitHub Releases UI](https://github.com/CyanAutomation/motioninocean/releases/new). Create a release with tag and title `vX.Y`, target `main`, and notes from the matching changelog section.
-4. Publish the GitHub Release. This triggers the container image verification and publishing workflow; approve the `container-release` environment if GitHub requests approval.
+4. Publish the GitHub Release. This triggers the container image verification and publishing workflow; approve the `docker` environment if GitHub requests approval.
 5. Follow [`release-publish`](../release-publish/SKILL.md) to check the workflow and published images.
 6. If image publishing fails, inspect the failed Actions step and correct the cause. Do not rewrite or reuse the published release tag.
 
@@ -57,7 +57,7 @@ Prepare and publish a GitHub Release through the UI, then confirm the correspond
 
 - **Failure:** The version files and changelog disagree. **Recovery:** Correct them in a reviewed change before publishing the release.
 - **Failure:** The tag format or release target is wrong. **Recovery:** Stop before publishing and correct the draft to use `vX.Y` targeting `main`.
-- **Failure:** The workflow waits for approval. **Recovery:** Review and approve the `container-release` deployment if authorized by the repository’s release process.
+- **Failure:** A Docker job waits for approval. **Recovery:** Review and approve the `docker` deployment if authorized by the repository’s release process.
 - **Failure:** Image verification or publishing fails. **Recovery:** Inspect the failed job and use [`release-publish`](../release-publish/SKILL.md) to diagnose the artifact state.
 - **Failure:** The GitHub Release has already been published with the wrong tag. **Recovery:** Do not rewrite or reuse the tag; follow the maintainer-approved correction process.
 
