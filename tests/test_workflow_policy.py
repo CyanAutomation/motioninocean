@@ -563,6 +563,11 @@ def test_ci_builds_docs_and_validates_mermaid_diagrams(workspace_root):
     workflow = load_workflow(workspace_root, "ci.yml")
     docs_steps = workflow["jobs"]["documentation"]["steps"]
 
+    python_setup = next(
+        step for step in docs_steps if step.get("uses", "").startswith("actions/setup-python@")
+    )
+    assert python_setup["with"]["python-version"] == "3.12"
+
     assert any(step.get("run") == "make docs-check" for step in docs_steps)
     assert any("make validate-diagrams" in step.get("run", "") for step in docs_steps)
     install_docs = next(
