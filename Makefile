@@ -129,8 +129,8 @@ check-feature-flag-usage:
 docs-build:
 	@echo "Building Sphinx documentation..."
 	@if ! $(PYTHON) -c "import importlib.util, sys; sys.exit(0 if all(importlib.util.find_spec(name) for name in ('sphinx', 'myst_parser', 'sphinxcontrib.mermaid')) else 1)"; then \
-		echo "Installing Sphinx and Markdown/Mermaid extensions..."; \
-		$(PIP) install sphinx myst-parser sphinxcontrib-mermaid; \
+		echo "Installing pinned Sphinx and Markdown/Mermaid dependencies..."; \
+		$(PIP) install -r requirements-docs.txt; \
 	fi
 	@cd docs && $(PYTHON) -m sphinx -b html -W . _build/html
 	@echo "✓ Documentation built to docs/_build/html/index.html"
@@ -138,8 +138,8 @@ docs-build:
 docs-check:
 	@echo "Checking documentation build (warnings as errors)..."
 	@if ! $(PYTHON) -c "import importlib.util, sys; sys.exit(0 if all(importlib.util.find_spec(name) for name in ('sphinx', 'myst_parser', 'sphinxcontrib.mermaid')) else 1)"; then \
-		echo "Installing Sphinx and Markdown/Mermaid extensions..."; \
-		$(PIP) install sphinx myst-parser sphinxcontrib-mermaid; \
+		echo "Installing pinned Sphinx and Markdown/Mermaid dependencies..."; \
+		$(PIP) install -r requirements-docs.txt; \
 	fi
 	@cd docs && $(PYTHON) -m sphinx -b html -W --keep-going . _build/html
 	@echo "✓ Documentation check passed!"

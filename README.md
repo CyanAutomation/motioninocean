@@ -192,4 +192,4 @@ For hardware-free camera development and test coverage, see the [testing guide](
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a pull request, and review the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-Run `make ci` for the local lint, formatting, Python type-check, feature-flag, and test checks. Run `npm run type-check` for frontend TypeScript checks. GitHub Actions also runs workflow linting and a runtime dependency-resolution matrix.
+Run `make ci` for the local lint, formatting, Python type-check, feature-flag, and test checks. Run `npm run type-check` for frontend TypeScript checks. GitHub Actions also checks workflow security, dependency advisories, documentation builds, and runtime package availability across Python versions and CPU architectures.

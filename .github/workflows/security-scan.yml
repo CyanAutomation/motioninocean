@@ -198,17 +198,40 @@ jobs:
         with:
           sarif_file: trivy-security-report/trivy-results.sarif
 
-  arm64-smoke:
-    name: ARM64 Image Smoke Test
+  container-smoke:
+    name: Container Runtime Smoke Test (${{ matrix.arch }})
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 60
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
-      - run: docker buildx build --platform linux/arm64 --build-arg INCLUDE_MOCK_CAMERA=true --load --tag motion-in-ocean:arm64-smoke .
-      - run: docker run --rm --platform linux/arm64 --entrypoint python3 motion-in-ocean:arm64-smoke -c 'import platform; import pi_camera_in_docker; print(platform.machine())'
+
+      - name: Set up ARM64 emulation
+        if: matrix.arch == 'arm64'
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Build mock-camera image
+        run: >-
+          docker buildx build
+          --platform "linux/${{ matrix.arch }}"
+          --build-arg INCLUDE_MOCK_CAMERA=true
+          --load
+          --tag motion-in-ocean:runtime-smoke .
+
+      - name: Start container and check readiness
+        env:
+          IMAGE_REF: motion-in-ocean:runtime-smoke
+          PLATFORM: linux/${{ matrix.arch }}
+        run: bash scripts/smoke-container-readiness.sh

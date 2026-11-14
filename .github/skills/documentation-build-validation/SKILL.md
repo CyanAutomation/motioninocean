@@ -2,7 +2,7 @@
 name: documentation-build-validation
 description: Build and validate Sphinx documentation, optional JSDoc output, and Mermaid diagrams. Use when changing docs, API docstrings, or diagrams.
 owner: motion-in-ocean team
-last-reviewed: 2026-09-25
+last-reviewed: 2026-11-14
 category: Documentation
 compatible-repo-areas:
   - docs/
@@ -19,12 +19,12 @@ Catch broken references, build errors, and invalid diagrams before documentation
 
 - Use after changing Sphinx pages, Python docstrings, frontend documentation, or diagrams.
 - `make docs-check` validates the Sphinx build. Diagram validation is a separate `make validate-diagrams` target.
-- The current CI workflow does not run Sphinx, JSDoc, or Mermaid validation automatically.
+- Pull request CI runs `make docs-check` with pinned dependencies and validates the repository Mermaid diagrams with Mermaid CLI.
 
 ## Required inputs
 
 - The changed documentation/source files and their owning product or API behavior.
-- Python development dependencies for Sphinx checks.
+- Python development and documentation dependencies for Sphinx checks.
 - Mermaid CLI on `PATH` for diagram validation.
 
 ## Step-by-step workflow
@@ -50,6 +50,7 @@ Catch broken references, build errors, and invalid diagrams before documentation
 ## Validation checklist
 
 - [ ] `make docs-check` passes for Sphinx documentation changes.
+- [ ] CI's pinned Mermaid CLI validation passes for the documented diagram sources.
 - [ ] `make jsdoc` passes when generated API docs are part of the change.
 - [ ] `make validate-diagrams` passes when diagrams change.
 - [ ] Internal references point to the current document locations.
@@ -62,7 +63,8 @@ Catch broken references, build errors, and invalid diagrams before documentation
 - `docs/index.rst` — Sphinx entry point.
 - `jsdoc.json` — JSDoc source selection and output configuration.
 - `docs/product/` and `docs/guides/` — Product requirements and operational documentation.
-- `.github/workflows/ci.yml` — CI checks; currently no documentation build job is defined.
+- `.github/workflows/ci.yml` — Pull request Sphinx and Mermaid validation job.
+- `requirements-docs.txt` — Pinned Sphinx and extension versions.
 
 ## Common failure modes and recovery actions
 

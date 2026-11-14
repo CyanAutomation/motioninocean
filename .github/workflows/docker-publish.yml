@@ -44,13 +44,12 @@ jobs:
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: "3.11"
-          cache: pip
 
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: ".nvmrc"
-          cache: npm
+          package-manager-cache: false
 
       - name: Install dependencies
         run: |
@@ -206,20 +205,28 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
 
-  arm64-smoke:
-    name: ARM64 release candidate smoke test
+  candidate-smoke:
+    name: Candidate Runtime Smoke Test (${{ matrix.arch }})
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: read
-    steps:
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+    steps:
+      - name: Checkout smoke-test helper
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up ARM64 emulation
+        if: matrix.arch == 'arm64'
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
 
       - name: Log in to GHCR to run candidate
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
@@ -228,17 +235,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run ARM64 application import smoke test
+      - name: Pull candidate platform image
         env:
-          IMAGE_REF: ${{ needs.build.outputs.image_ref }}
-        run: |
-          set -euo pipefail
-          docker pull --platform linux/arm64 "$IMAGE_REF"
-          docker run --rm --platform linux/arm64 --entrypoint python3 "$IMAGE_REF" -c 'import platform; import pi_camera_in_docker; machine = platform.machine(); assert machine in ("aarch64", "arm64"), machine; print(machine)'
+          IMAGE_REF: ${{ matrix.arch == 'amd64' && needs.build.outputs.amd64_ref || needs.build.outputs.arm64_ref }}
+          PLATFORM: linux/${{ matrix.arch }}
+        run: docker pull --platform "$PLATFORM" "$IMAGE_REF"
+
+      - name: Start candidate and check readiness
+        env:
+          IMAGE_REF: ${{ matrix.arch == 'amd64' && needs.build.outputs.amd64_ref || needs.build.outputs.arm64_ref }}
+          PLATFORM: linux/${{ matrix.arch }}
+        run: bash scripts/smoke-container-readiness.sh
 
   publish:
     name: Promote verified images
-    needs: [build, scan, arm64-smoke]
+    needs: [build, scan, candidate-smoke]
     if: >-
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||

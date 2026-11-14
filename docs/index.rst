@@ -16,6 +16,9 @@ Raspberry Pi CSI camera streaming solution with multi-node management.
    guides/FEATURE_FLAGS
    guides/MIGRATION
    guides/RELEASE
+   guides/CLOUD_RUN_DEMO
+   guides/TESTING
+   guides/UI_COMPONENTS
    ENVIRONMENT_VARIABLES_DOCUMENTATION_COMPLETE
    DOCUMENTATION_GUIDE
 

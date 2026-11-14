@@ -26,13 +26,11 @@ def test_untrusted_security_scan_has_no_write_token(workspace_root):
     )
     assert checkout["with"]["persist-credentials"] is False
 
-    arm64_smoke = workflow["jobs"]["arm64-smoke"]
-    arm64_checkout = next(
-        step
-        for step in arm64_smoke["steps"]
-        if step.get("uses", "").startswith("actions/checkout@")
+    smoke_job = workflow["jobs"]["container-smoke"]
+    smoke_checkout = next(
+        step for step in smoke_job["steps"] if step.get("uses", "").startswith("actions/checkout@")
     )
-    assert arm64_checkout["with"]["persist-credentials"] is False
+    assert smoke_checkout["with"]["persist-credentials"] is False
 
     upload = workflow["jobs"]["upload-sarif"]
     assert upload["needs"] == "scan"
@@ -229,7 +227,7 @@ def test_docker_release_scans_candidate_digest_before_promoting_tags(workspace_r
     workflow = load_workflow(workspace_root, "docker-publish.yml")
     build = workflow["jobs"]["build"]
     scan = workflow["jobs"]["scan"]
-    arm64 = workflow["jobs"]["arm64-smoke"]
+    candidate_smoke = workflow["jobs"]["candidate-smoke"]
     publish = workflow["jobs"]["publish"]
 
     assert build["outputs"]["image_ref"] == "${{ steps.candidate-ref.outputs.image_ref }}"
@@ -257,10 +255,13 @@ def test_docker_release_scans_candidate_digest_before_promoting_tags(workspace_r
         assert scan_step["with"]["severity"] == "HIGH,CRITICAL"
         assert scan_step["with"]["exit-code"] == "1"
 
-    assert arm64["needs"] == "build"
-    smoke = next(step for step in arm64["steps"] if "docker run --rm" in step.get("run", ""))
-    assert smoke["env"]["IMAGE_REF"] == "${{ needs.build.outputs.image_ref }}"
-    assert publish["needs"] == ["build", "scan", "arm64-smoke"]
+    assert candidate_smoke["needs"] == "build"
+    assert candidate_smoke["strategy"]["matrix"]["arch"] == ["amd64", "arm64"]
+    assert any(
+        step.get("run") == "bash scripts/smoke-container-readiness.sh"
+        for step in candidate_smoke["steps"]
+    )
+    assert publish["needs"] == ["build", "scan", "candidate-smoke"]
     assert publish["environment"]["name"] == "container-release"
     promote = next(
         step for step in publish["steps"] if step.get("name") == "Promote verified image tags"
@@ -298,18 +299,35 @@ def test_docker_release_uses_scoped_credentials_for_manual_release_events(worksp
         assert "github.event_name == 'release'" in condition
 
 
+def test_release_verification_does_not_cache_untrusted_tag_dependencies(workspace_root):
+    """Avoid cache-poisoning paths when verifying code from a published release tag."""
+    workflow = load_workflow(workspace_root, "docker-publish.yml")
+    steps = workflow["jobs"]["verify"]["steps"]
+
+    python_setup = next(
+        step for step in steps if step.get("uses", "").startswith("actions/setup-python@")
+    )
+    node_setup = next(
+        step for step in steps if step.get("uses", "").startswith("actions/setup-node@")
+    )
+    assert "cache" not in python_setup["with"]
+    assert node_setup["with"]["package-manager-cache"] is False
+
+
 def test_release_settings_document_environment_approval_and_required_arm64_check(workspace_root):
     """Document the GitHub-side controls that YAML cannot configure itself."""
     guidance = (workspace_root / ".github" / "BRANCH_PROTECTION.md").read_text()
 
-    assert "ARM64 Image Smoke Test" in guidance
+    assert "Container Runtime Smoke Test (amd64)" in guidance
+    assert "Container Runtime Smoke Test (arm64)" in guidance
     assert "container-release" in guidance
     assert "RELEASE_DOCKERHUB_USERNAME" in guidance
     assert "RELEASE_DOCKERHUB_TOKEN" in guidance
     assert "required reviewers" in guidance.lower()
     ruleset_example = guidance.split("## Ruleset Example", maxsplit=1)[1]
     status_checks = ruleset_example.split("3. **Block force pushes**", maxsplit=1)[0]
-    assert "`ARM64 Image Smoke Test`" in status_checks
+    assert "`Container Runtime Smoke Test (amd64)`" in status_checks
+    assert "`Container Runtime Smoke Test (arm64)`" in status_checks
 
 
 def test_docker_publish_does_not_create_or_edit_github_releases(workspace_root):
@@ -458,3 +476,130 @@ def test_docker_publish_attests_both_registry_images(workspace_root):
         "${{ steps.published-images.outputs.dockerhub_digest }}",
     }
     assert all(step["with"]["push-to-registry"] is True for step in attest_steps)
+
+
+def test_codeql_manual_dispatch_is_limited_to_the_default_branch(workspace_root):
+    """Keep a branch-edited CodeQL workflow away from its security-events write token."""
+    workflow = load_workflow(workspace_root, "codeql.yml")
+    analyze = workflow["jobs"]["analyze"]
+
+    assert analyze["if"] == (
+        "github.event_name != 'workflow_dispatch' || "
+        "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)"
+    )
+    assert analyze["permissions"]["security-events"] == "write"
+
+
+def test_required_checks_cover_dependency_resolution_docs_and_container_smokes(workspace_root):
+    """Document stable checks for the additional PR validation jobs."""
+    guidance = (workspace_root / ".github" / "BRANCH_PROTECTION.md").read_text()
+    required_checks = (
+        "Runtime Dependency Resolution",
+        "Dependency Review",
+        "Documentation Check",
+        "Container Runtime Smoke Test (amd64)",
+        "Container Runtime Smoke Test (arm64)",
+    )
+
+    for check in required_checks:
+        assert guidance.count(f"`{check}`") >= 2
+
+
+def test_release_tag_ruleset_matches_the_supported_release_tag_format(workspace_root):
+    """Protect the two-component vX.Y tags accepted by the release workflow."""
+    guidance = (workspace_root / ".github" / "BRANCH_PROTECTION.md").read_text()
+
+    assert "`v*.*`" in guidance
+    assert "`v*.*.*`" not in guidance
+
+
+def test_ci_runs_pinned_workflow_and_dependency_security_checks(workspace_root):
+    """Lint workflow security and review dependency changes without write permissions."""
+    workflow = load_workflow(workspace_root, "ci.yml")
+    lint = workflow["jobs"]["lint"]
+    zizmor = next(
+        step for step in lint["steps"] if step.get("name") == "Analyze GitHub Actions security"
+    )
+    assert re.fullmatch(r"zizmorcore/zizmor-action@[0-9a-f]{40}", zizmor["uses"])
+    assert zizmor["with"]["version"] == "1.32.0"
+    assert zizmor["with"]["advanced-security"] is False
+    assert zizmor["with"]["annotations"] is True
+    assert zizmor["with"]["online-audits"] is False
+
+    review = workflow["jobs"]["dependency-review"]
+    action = next(
+        step
+        for step in review["steps"]
+        if step.get("uses", "").startswith("actions/dependency-review-action@")
+    )
+    assert review["if"] == "github.event_name == 'pull_request'"
+    assert review["permissions"] == {"contents": "read"}
+    assert re.fullmatch(r"actions/dependency-review-action@[0-9a-f]{40}", action["uses"])
+    assert action["with"]["fail-on-severity"] == "high"
+    assert action["with"]["fail-on-scopes"] == "runtime, development, unknown"
+
+
+def test_ci_audits_all_python_runtime_requirement_sets(workspace_root):
+    """Audit optional integrations as well as dependencies in the default image."""
+    workflow = load_workflow(workspace_root, "ci.yml")
+    security_steps = workflow["jobs"]["security"]["steps"]
+    audit = next(step for step in security_steps if step.get("name") == "Audit Python dependencies")
+
+    assert "python -m pip_audit" in audit["run"]
+    assert '--cache-dir "$RUNNER_TEMP/pip-audit-cache"' in audit["run"]
+    for requirement_file in (
+        "requirements.txt",
+        "requirements-sentry.txt",
+        "requirements-rate-limiter.txt",
+    ):
+        assert requirement_file in audit["run"]
+
+    requirements = (workspace_root / "requirements-security.txt").read_text()
+    assert re.search(r"(?m)^pip-audit==[0-9]+\.[0-9]+\.[0-9]+$", requirements)
+
+
+def test_ci_builds_docs_and_validates_mermaid_diagrams(workspace_root):
+    """Run the existing Sphinx and Mermaid checks in pull request CI."""
+    workflow = load_workflow(workspace_root, "ci.yml")
+    docs_steps = workflow["jobs"]["documentation"]["steps"]
+
+    assert any(step.get("run") == "make docs-check" for step in docs_steps)
+    assert any("make validate-diagrams" in step.get("run", "") for step in docs_steps)
+    install_docs = next(
+        step for step in docs_steps if step.get("name") == "Install documentation dependencies"
+    )
+    assert "requirements-docs.txt" in install_docs["run"]
+    pinned_requirements = [
+        line.strip()
+        for line in (workspace_root / "requirements-docs.txt").read_text().splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    assert pinned_requirements
+    assert all("==" in line for line in pinned_requirements)
+
+    makefile = (workspace_root / "Makefile").read_text()
+    assert "$(PIP) install -r requirements-docs.txt" in makefile
+
+
+def test_security_scan_smokes_mock_camera_containers_on_both_architectures(workspace_root):
+    """Exercise the built application image on native AMD64 and emulated ARM64."""
+    workflow = load_workflow(workspace_root, "security-scan.yml")
+    smoke = workflow["jobs"]["container-smoke"]
+
+    assert smoke["name"] == "Container Runtime Smoke Test (${{ matrix.arch }})"
+    assert smoke["strategy"]["matrix"]["arch"] == ["amd64", "arm64"]
+    assert any(step.get("if") == "matrix.arch == 'arm64'" for step in smoke["steps"])
+    assert any(
+        step.get("run") == "bash scripts/smoke-container-readiness.sh" for step in smoke["steps"]
+    )
+
+
+def test_runtime_dependency_matrix_has_a_stable_required_gate(workspace_root):
+    """Expose one branch-protection check after every Python/platform matrix cell passes."""
+    workflow = load_workflow(workspace_root, "ci.yml")
+    gate = workflow["jobs"]["runtime-dependency-resolution-gate"]
+
+    assert gate["name"] == "Runtime Dependency Resolution"
+    assert gate["needs"] == "runtime-dependency-resolution"
+    assert gate["if"] == "always()"
+    assert gate["steps"]

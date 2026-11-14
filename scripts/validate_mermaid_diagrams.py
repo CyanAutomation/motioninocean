@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import json
+import os
 import re
 import shutil
 import subprocess
@@ -54,6 +56,28 @@ def validate_files(sources: list[Path], renderer: str) -> int:
     total = 0
     with tempfile.TemporaryDirectory(prefix="motioninocean-mermaid-") as temp_dir:
         temp_path = Path(temp_dir)
+        browser_executable = os.environ.get("PUPPETEER_EXECUTABLE_PATH") or next(
+            (
+                executable
+                for name in (
+                    "google-chrome",
+                    "google-chrome-stable",
+                    "chromium",
+                    "chromium-browser",
+                )
+                if (executable := shutil.which(name)) is not None
+            ),
+            None,
+        )
+        puppeteer_config_args: list[str] = []
+        if browser_executable:
+            puppeteer_config = temp_path / "puppeteer-config.json"
+            puppeteer_config.write_text(
+                json.dumps({"executablePath": browser_executable}),
+                encoding="utf-8",
+            )
+            puppeteer_config_args = ["--puppeteerConfigFile", str(puppeteer_config)]
+
         for source_index, source in enumerate(sources):
             if not source.is_file():
                 sys.stderr.write(f"Error: Mermaid source file does not exist: {source}\n")
@@ -83,6 +107,7 @@ def validate_files(sources: list[Path], renderer: str) -> int:
                         "-t",
                         "dark",
                         "--quiet",
+                        *puppeteer_config_args,
                     ],
                     capture_output=True,
                     check=False,

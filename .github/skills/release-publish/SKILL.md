@@ -2,7 +2,7 @@
 name: release-publish
 description: Verify container images after a motion-in-ocean GitHub Release is published. Use after the release workflow completes or when image publishing fails.
 owner: motion-in-ocean team
-last-reviewed: 2026-10-24
+last-reviewed: 2026-11-14
 category: CI/CD
 compatible-repo-areas:
   - .github/workflows/docker-publish.yml
@@ -32,7 +32,7 @@ Confirm the container images published after a manual GitHub Release use the exp
 1. Confirm the GitHub Release uses a two-component `vX.Y` tag and its notes match the release section in `docs/CHANGELOG.md`.
 2. In `.github/workflows/docker-publish.yml`, confirm the `verify` job passed `make ci` and `make security`.
 3. Confirm the `build` job created the multi-architecture candidate and recorded its immutable digest.
-4. Confirm the `scan` job passed for both amd64 and arm64, and `arm64-smoke` imported the application from the candidate digest.
+4. Confirm the `scan` job passed for both amd64 and arm64, and both `candidate-smoke` matrix jobs started the candidate image and passed the `/ready` check.
 5. Confirm the `publish` job completed its `container-release` approval when required, promoted the candidate to GHCR and Docker Hub, verified both manifests, and attached provenance.
 6. Confirm both registries contain the `vX.Y` and `latest` tags for `linux/amd64` and `linux/arm64`.
 7. Pull the versioned GHCR image when local verification is needed:
@@ -47,7 +47,7 @@ Confirm the container images published after a manual GitHub Release use the exp
 ## Validation checklist
 
 - [ ] The published GitHub Release uses the intended `vX.Y` tag and changelog notes.
-- [ ] `verify`, both platform scans, and the ARM64 smoke test passed.
+- [ ] `verify`, both platform scans, and both candidate readiness smoke tests passed.
 - [ ] The `container-release` approval completed if required.
 - [ ] GHCR and Docker Hub have `vX.Y` and `latest` manifests for amd64 and arm64.
 - [ ] Published platform digests match the verified candidate.
@@ -64,7 +64,7 @@ Confirm the container images published after a manual GitHub Release use the exp
 ## Common failure modes and recovery actions
 
 - **Failure:** The release event does not start the image workflow. **Recovery:** Confirm the GitHub Release was published and inspect the Actions run list.
-- **Failure:** Verification, scan, or ARM64 smoke test fails. **Recovery:** Diagnose the failed job and correct the source or image policy before retrying.
+- **Failure:** Verification, scan, or candidate smoke test fails. **Recovery:** Diagnose the failed job and correct the source or image policy before retrying.
 - **Failure:** Publishing waits for approval. **Recovery:** Review and approve the `container-release` deployment if authorized by the release process.
 - **Failure:** One registry tag or architecture is missing. **Recovery:** Treat publication as incomplete and inspect the promotion and manifest verification steps.
 - **Failure:** Provenance verification fails. **Recovery:** Check the attestation subject, registry authentication, and signer workflow shown in the release guide.

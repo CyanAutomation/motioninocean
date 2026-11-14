@@ -24,7 +24,6 @@ release = "1.0.0"
 extensions = [
     "sphinx.ext.autodoc",  # Auto-document from docstrings
     "sphinx.ext.napoleon",  # Parse Google/NumPy style docstrings
-    "sphinx.ext.intersphinx",  # Link to other project docs
     "sphinx.ext.viewcode",  # Link to source code
     "sphinx.ext.todo",  # Support .. todo:: directives
     "myst_parser",  # Parse Markdown documentation sources
@@ -51,12 +50,6 @@ autodoc_member_order = "bysource"
 autodoc_typehints = "description"
 autodoc_preserve_defaults = True
 autodoc_mock_imports = ["picamera2", "libcamera"]  # Mock hardware deps
-
-# Intersphinx mapping (for linking to external docs)
-intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", None),
-    "flask": ("https://flask.palletsprojects.com/", None),
-}
 
 # Templates path
 templates_path = ["_templates"]
