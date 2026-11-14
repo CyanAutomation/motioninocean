@@ -290,8 +290,8 @@ graph TD
     Browser -->|Web UI & API| Management
     Management -->|Management aggregation contract:<br/>GET /api/status| WebcamOne
     Management -->|Management aggregation contract:<br/>GET /api/status| WebcamTwo
-    Management -.->|Operator diagnostics only:<br/>GET /health (liveness),<br/>GET /ready (optional),<br/>GET /metrics (optional)| WebcamOne
-    Management -.->|Operator diagnostics only:<br/>GET /health (liveness),<br/>GET /ready (optional),<br/>GET /metrics (optional)| WebcamTwo
+    Management -.->|Operator diagnostics only:<br/>GET /health for liveness,<br/>GET /ready when available,<br/>GET /metrics when available| WebcamOne
+    Management -.->|Operator diagnostics only:<br/>GET /health for liveness,<br/>GET /ready when available,<br/>GET /metrics when available| WebcamTwo
     Management -->|CRUD /api/nodes| FileRegistry
     WebcamOne -.->|Stream /stream.mjpg| Browser
     WebcamTwo -.->|Stream /stream.mjpg| Browser
