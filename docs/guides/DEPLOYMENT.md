@@ -288,8 +288,8 @@ graph TD
     FileRegistry["FileNodeRegistry<br/>(Persistent JSON)"]
 
     Browser -->|Web UI & API| Management
-    Management -->|Management aggregation contract:<br/>GET /api/status (required)| WebcamOne
-    Management -->|Management aggregation contract:<br/>GET /api/status (required)| WebcamTwo
+    Management -->|Management aggregation contract:<br/>GET /api/status| WebcamOne
+    Management -->|Management aggregation contract:<br/>GET /api/status| WebcamTwo
     Management -.->|Operator diagnostics only:<br/>GET /health (liveness),<br/>GET /ready (optional),<br/>GET /metrics (optional)| WebcamOne
     Management -.->|Operator diagnostics only:<br/>GET /health (liveness),<br/>GET /ready (optional),<br/>GET /metrics (optional)| WebcamTwo
     Management -->|CRUD /api/nodes| FileRegistry
