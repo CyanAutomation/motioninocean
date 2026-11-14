@@ -228,10 +228,10 @@ jobs:
           --platform "linux/${{ matrix.arch }}"
           --build-arg INCLUDE_MOCK_CAMERA=true
           --load
-          --tag motion-in-ocean:runtime-smoke .
+          --tag motion-in-ocean:runtime-smoke-${{ matrix.arch }} .
 
       - name: Start container and check readiness
         env:
-          IMAGE_REF: motion-in-ocean:runtime-smoke
+          IMAGE_REF: motion-in-ocean:runtime-smoke-${{ matrix.arch }}
           PLATFORM: linux/${{ matrix.arch }}
         run: bash scripts/smoke-container-readiness.sh

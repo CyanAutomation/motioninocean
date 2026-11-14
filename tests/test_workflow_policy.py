@@ -594,6 +594,12 @@ def test_security_scan_smokes_mock_camera_containers_on_both_architectures(works
     assert smoke["name"] == "Container Runtime Smoke Test (${{ matrix.arch }})"
     assert smoke["strategy"]["matrix"]["arch"] == ["amd64", "arm64"]
     assert any(step.get("if") == "matrix.arch == 'arm64'" for step in smoke["steps"])
+    build = next(step for step in smoke["steps"] if step.get("name") == "Build mock-camera image")
+    readiness = next(
+        step for step in smoke["steps"] if step.get("name") == "Start container and check readiness"
+    )
+    assert "--tag motion-in-ocean:runtime-smoke-${{ matrix.arch }} ." in build["run"]
+    assert readiness["env"]["IMAGE_REF"] == "motion-in-ocean:runtime-smoke-${{ matrix.arch }}"
     assert any(
         step.get("run") == "bash scripts/smoke-container-readiness.sh" for step in smoke["steps"]
     )
