@@ -257,12 +257,13 @@ def test_docker_release_scans_candidate_digest_before_promoting_tags(workspace_r
 
     assert candidate_smoke["needs"] == "build"
     assert candidate_smoke["strategy"]["matrix"]["arch"] == ["amd64", "arm64"]
+    for job_name in ("build", "scan", "candidate-smoke", "publish"):
+        assert workflow["jobs"][job_name]["environment"]["name"] == "docker"
     assert any(
         step.get("run") == "bash scripts/smoke-container-readiness.sh"
         for step in candidate_smoke["steps"]
     )
     assert publish["needs"] == ["build", "scan", "candidate-smoke"]
-    assert publish["environment"]["name"] == "container-release"
     promote = next(
         step for step in publish["steps"] if step.get("name") == "Promote verified image tags"
     )
@@ -287,7 +288,7 @@ def test_docker_release_uses_scoped_credentials_for_manual_release_events(worksp
     hub_login = next(
         step for step in publish["steps"] if step.get("name") == "Log in to Docker Hub"
     )
-    assert hub_login["with"]["username"] == "${{ secrets.RELEASE_DOCKERHUB_USERNAME }}"
+    assert hub_login["with"]["username"] == "${{ vars.RELEASE_DOCKERHUB_USERNAME }}"
     assert hub_login["with"]["password"] == "${{ secrets.RELEASE_DOCKERHUB_TOKEN }}"
 
     for job_name in ("verify", "build", "publish"):
@@ -320,7 +321,7 @@ def test_release_settings_document_environment_approval_and_required_arm64_check
 
     assert "Container Runtime Smoke Test (amd64)" in guidance
     assert "Container Runtime Smoke Test (arm64)" in guidance
-    assert "container-release" in guidance
+    assert "docker" in guidance
     assert "RELEASE_DOCKERHUB_USERNAME" in guidance
     assert "RELEASE_DOCKERHUB_TOKEN" in guidance
     assert "required reviewers" in guidance.lower()

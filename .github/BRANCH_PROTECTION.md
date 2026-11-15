@@ -126,25 +126,24 @@ to release maintainers. The Docker publish workflow verifies every matching
 version tag and uses it as the release source, so tags need the same review
 discipline as `main`.
 
-### Container Release Environment
+### Docker Environment
 
-Create the GitHub Actions environment named `container-release` and configure:
+Create the GitHub Actions environment named `docker` and configure:
 
 - Required reviewers from the release maintainer team. Enable prevention of
   self-review where the repository plan supports it.
 - Deployment branch/tag rules that allow `main` for scheduled/manual refreshes
   and `v*.*` for version releases.
-- Environment secrets `RELEASE_DOCKERHUB_USERNAME` and
+- Environment variable `RELEASE_DOCKERHUB_USERNAME` and secret
   `RELEASE_DOCKERHUB_TOKEN`.
 
-Keep those Docker Hub credentials out of repository-level secrets. The workflow
-builds and scans a GHCR candidate first; this environment approval occurs before
-it updates production tags in either registry or publishes provenance. The
-GitHub Release job runs only after that approved publishing job succeeds.
+Keep the Docker Hub token out of repository-level secrets. The `build`, `scan`,
+`candidate-smoke`, and `publish` jobs all use this environment for Docker-related
+work. Environment protection rules therefore apply to each of those jobs.
 
-Workflow YAML references this environment and these secret names, but GitHub
-enforces reviewers, deployment rules, and secret scope only after they are set
-in repository settings.
+Workflow YAML references this environment, variable, and secret, but GitHub
+enforces reviewers, deployment rules, and credential scope only after they are
+set in repository settings.
 
 ---
 
