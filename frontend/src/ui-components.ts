@@ -47,18 +47,6 @@ export function filterCollectionRows(
   return visibleCount;
 }
 
-/** Resolve an explicit theme preference, falling back to the operating system. */
-export function resolveThemePreference(
-  storedPreference: string | null | undefined,
-  prefersDark: boolean,
-): "light" | "dark" {
-  const normalizedPreference = storedPreference?.trim().toLocaleLowerCase();
-  if (normalizedPreference === "light" || normalizedPreference === "dark") {
-    return normalizedPreference;
-  }
-  return prefersDark ? "dark" : "light";
-}
-
 export interface ConfirmationDialogOptions {
   title: string;
   message: string;

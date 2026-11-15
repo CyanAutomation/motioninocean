@@ -16,23 +16,26 @@ import {
 } from "./management-settings-view.js";
 import { renderDiagnosticResults as renderDiagnosticResultsUi } from "./management-diagnostic-renderer.js";
 import { getDiagnosticCheckRows, getDiagnosticSummaryState } from "./management-diagnostics.js";
+import { escapeHtml } from "./html.js";
 import { validateManagementDom } from "./management-dom.js";
+import { renderWebcamRows } from "./management-table.js";
 import { getSnackbarController } from "./snackbar.js";
 import {
   confirmInDialog,
   filterCollectionRows,
-  resolveThemePreference,
   setFeedbackMessage,
 } from "./ui-components.js";
+import { createThemeController } from "./ui-theme.js";
 import {
   createManagementBearerTokenSession,
   revealManagementTokenField,
 } from "./management-auth.js";
 import {
+  getDiscoveryInfo,
   isFailureStatus,
   normalizeWebcamStatusError,
-  STATUS_SUBTYPE_CONFIG,
-  statusClass,
+  type StatusAggregation,
+  type WebcamRecord,
 } from "./management-domain.js";
 import type { NodeStatus, StatusRefreshOptions } from "./management-status.js";
 import type { ActivityEntry, WebcamSummary } from "./management-renderers.js";
@@ -57,29 +60,6 @@ function getErrorMessage(error: unknown): string {
 
 function isUnauthorizedError(error: unknown): error is Error & { isUnauthorized?: boolean } {
   return error instanceof Error && "isUnauthorized" in error && error.isUnauthorized === true;
-}
-
-interface WebcamRecord extends Record<string, unknown> {
-  auth?: { type?: string; token?: string };
-  base_url?: string;
-  capabilities?: string[];
-  discovery?: {
-    approved?: boolean;
-    first_seen?: string;
-    last_announce_at?: string;
-    source?: string;
-  };
-  id: string;
-  labels?: Record<string, unknown>;
-  last_seen?: string;
-  name?: string;
-  transport?: string;
-}
-
-interface StatusAggregation {
-  consecutive_failures: number;
-  first_failure_at: string | null;
-  last_success_at: string | null;
 }
 
 interface WebcamApiStatus extends NodeStatus, Partial<StatusAggregation> {
@@ -183,7 +163,6 @@ let selectedDiscoveredNodeId = "";
 let activityFeed: ActivityEntry[] = [];
 let previousStatusByNode = new Map<string, WebcamApiStatus>();
 let discoveredSnoozedIds = new Set<string>();
-let hasExplicitThemePreference = false;
 const managementBearerTokenSession = createManagementBearerTokenSession(
   () => globalThis.localStorage,
 );
@@ -198,6 +177,28 @@ const VIEW_HASH_PREFIX = "#";
 const VIEWS = ["overview", "devices", "discovered", "settings"];
 const THEME_STORAGE_KEY = "management.theme";
 const SNOOZE_STORAGE_KEY = "management.discoveredSnoozedIds";
+const themeController = createThemeController({
+  storageKey: THEME_STORAGE_KEY,
+  getRoot: () => document.documentElement,
+  getStorage: () => globalThis.localStorage,
+  getColorPreference: () => {
+    const colorScheme = globalThis.matchMedia?.("(prefers-color-scheme: dark)");
+    return colorScheme
+      ? {
+          matches: colorScheme.matches,
+          onChange: (listener: (matches: boolean) => void) => {
+            colorScheme.addEventListener("change", (event) => listener(event.matches));
+          },
+        }
+      : undefined;
+  },
+  followSystemPreference: true,
+  onThemeChange: (theme) => {
+    const toggleLabel = theme === "dark" ? "Use light theme" : "Use dark theme";
+    setTextContent(themeToggleBtn, toggleLabel);
+    themeToggleBtn?.setAttribute("aria-label", toggleLabel);
+  },
+});
 
 function setDiagnosticPanelExpanded(isExpanded: boolean): void {
   if (
@@ -253,28 +254,6 @@ function updateBaseUrlValidation(transport = "http") {
   baseUrlInput.type = "url";
   baseUrlInput.setAttribute("pattern", String.raw`https?://[^\s]+`);
   baseUrlInput.title = "Must be a valid HTTP or HTTPS URL";
-}
-
-function formatDateTime(isoString: string | null | undefined): string {
-  if (!isoString) {
-    return "—";
-  }
-
-  const parsed = new Date(isoString);
-  if (Number.isNaN(parsed.getTime())) {
-    return isoString;
-  }
-
-  return parsed.toLocaleString();
-}
-
-function getDiscoveryInfo(webcam: Partial<WebcamRecord> = {}) {
-  const discovery = webcam.discovery || {};
-  const source = discovery.source || "manual";
-  const firstSeen = discovery.first_seen || webcam.last_seen || null;
-  const lastAnnounceAt = discovery.last_announce_at || null;
-  const approved = source === "discovered" ? discovery.approved === true : true;
-  return { source, firstSeen, lastAnnounceAt, approved };
 }
 
 function showFeedback(message: string, isError = false): void {
@@ -492,140 +471,6 @@ function enrichStatusWithAggregation(
   return { ...status, ...next };
 }
 
-function formatAggregationDetails(status: WebcamApiStatus = {}): string {
-  const fragments = [];
-
-  if (status.last_success_at) {
-    fragments.push(`Last success: ${new Date(status.last_success_at).toLocaleString()}`);
-  }
-
-  if (status.first_failure_at) {
-    fragments.push(`First failure: ${new Date(status.first_failure_at).toLocaleString()}`);
-  }
-
-  if (typeof status.consecutive_failures === "number" && status.consecutive_failures > 0) {
-    fragments.push(`Consecutive failures: ${status.consecutive_failures}`);
-  }
-
-  return fragments.join(" • ");
-}
-
-function getStatusReason(status: WebcamApiStatus = {}): string {
-  const code = status.error_code;
-  const knownReasons = {
-    SSRF_BLOCKED: {
-      title: "Private-IP policy blocked this webcam target.",
-      hint: "Use a docker network hostname (e.g., 'motion-in-ocean-webcam:8000') or explicitly set MIO_ALLOW_PRIVATE_IPS=true on management for trusted internal networks. Click Diagnose for details.",
-    },
-    NETWORK_UNREACHABLE: {
-      title: "Node is unreachable on the network.",
-      hint: "Check webcam is running, network connectivity, and firewall rules. Click Diagnose for details.",
-    },
-    DOCKER_PROXY_UNREACHABLE: {
-      title: "Docker proxy is unreachable.",
-      hint: "Verify docker-socket-proxy is running and accessible on configured host and port. Click Diagnose for details.",
-    },
-    DOCKER_CONTAINER_NOT_FOUND: {
-      title: "Container not found on docker proxy.",
-      hint: "Verify the container ID/name is correct and running on the docker host.",
-    },
-    DOCKER_API_ERROR: {
-      title: "Docker API returned an error.",
-      hint: "Check docker proxy configuration and container status.",
-    },
-    INVALID_DOCKER_URL: {
-      title: "Docker URL is invalid.",
-      hint: "Use format: docker://proxy-hostname:port/container-id",
-    },
-    WEBCAM_UNREACHABLE: {
-      title: "Node is unreachable.",
-      hint: "Check the webcam base URL, networking, and that the webcam service is running.",
-    },
-    WEBCAM_UNAUTHORIZED: {
-      title: "Token/auth mismatch with remote node.",
-      hint: "Set this webcam bearer token to match WEBCAM_CONTROL_PLANE_AUTH_TOKEN on the remote webcam, then refresh.",
-    },
-    WEBCAM_INVALID_RESPONSE: {
-      title: "Node returned an invalid response.",
-      hint: "Verify the webcam API version and status endpoint compatibility.",
-    },
-    TRANSPORT_UNSUPPORTED: {
-      title: "Configured transport is unsupported.",
-      hint: "Switch to a supported transport for this node.",
-    },
-    WEBCAM_API_MISMATCH: {
-      title: "Node API does not match expected management endpoints.",
-      hint: "Confirm the webcam is running the compatible management service and exposes /api/status.",
-    },
-  };
-
-  const reason =
-    typeof code === "string" ? knownReasons[code as keyof typeof knownReasons] : undefined;
-  if (reason) {
-    return `${reason.title} ${reason.hint}`;
-  }
-
-  if (status.error_message) {
-    return String(status.error_message);
-  }
-
-  return "No additional details available.";
-}
-
-function normalizeWebcamStatusForUi(status: WebcamApiStatus = {}) {
-  const statusText = String(status.status || "unknown").toLowerCase();
-  const errorCode = String(status.error_code || "").toUpperCase();
-  const isReady = status.ready === true;
-  const subtype = getWebcamStatusSubtype(statusText, errorCode, isReady);
-  const config = STATUS_SUBTYPE_CONFIG[subtype] || {
-    label: "Unknown",
-    helpText: "Node state is unknown.",
-    statusClass: statusClass(statusText),
-  };
-
-  let reasonText = getStatusReason(status);
-  if (subtype === "healthy") {
-    reasonText = "Ready and responding.";
-  } else if (subtype === "partial_probe") {
-    reasonText = String(status.error_message || "Node responded, but readiness is incomplete.");
-  } else if (subtype === "degraded") {
-    reasonText = String(
-      status.error_message || "Node is reachable, but operating in a degraded mode.",
-    );
-  }
-
-  return {
-    subtype,
-    label: config.label,
-    helpText: config.helpText,
-    statusClass: config.statusClass,
-    reasonText,
-  };
-}
-
-function getWebcamStatusSubtype(
-  statusText: string,
-  errorCode: string,
-  isReady: boolean,
-): keyof typeof STATUS_SUBTYPE_CONFIG {
-  if (errorCode === "TRANSPORT_UNSUPPORTED") return "unsupported_transport";
-  if (errorCode === "WEBCAM_UNAUTHORIZED" || statusText === "unauthorized") {
-    return "unauthorized";
-  }
-  if (["ok", "healthy", "ready"].includes(statusText)) {
-    return isReady ? "healthy" : "partial_probe";
-  }
-  if (["degraded", "warning"].includes(statusText)) return "degraded";
-  if (["partial", "probing"].includes(statusText)) return "partial_probe";
-  return "no_response";
-}
-
-function escapeHtml(value: unknown): string {
-  const div = document.createElement("div");
-  div.textContent = value == null ? "" : String(value);
-  return div.innerHTML;
-}
-
 function setTextContent(element: HTMLElement | null, text: string): void {
   if (element instanceof HTMLElement) {
     element.textContent = text;
@@ -654,41 +499,6 @@ function setActiveView(view: string): void {
     location: globalThis.location,
     history: globalThis.history,
   });
-}
-
-function applyTheme(theme: string, persistPreference = true): void {
-  const resolvedTheme = theme === "dark" ? "dark" : "light";
-  document.documentElement.setAttribute("data-theme", resolvedTheme);
-  const toggleLabel = resolvedTheme === "dark" ? "Use light theme" : "Use dark theme";
-  setTextContent(themeToggleBtn, toggleLabel);
-  themeToggleBtn?.setAttribute("aria-label", toggleLabel);
-  if (!persistPreference) return;
-
-  hasExplicitThemePreference = true;
-  try {
-    globalThis.localStorage?.setItem(THEME_STORAGE_KEY, resolvedTheme);
-  } catch {
-    // Ignore local storage failures.
-  }
-}
-
-function initializeTheme() {
-  let storedPreference: string | null = null;
-  try {
-    storedPreference = globalThis.localStorage?.getItem(THEME_STORAGE_KEY) || null;
-  } catch {
-    // Ignore local storage failures.
-  }
-  const colorScheme = globalThis.matchMedia?.("(prefers-color-scheme: dark)");
-  const hasStoredPreference = storedPreference === "light" || storedPreference === "dark";
-  hasExplicitThemePreference = hasStoredPreference;
-  applyTheme(resolveThemePreference(storedPreference, colorScheme?.matches === true), false);
-
-  if (!hasStoredPreference && colorScheme?.addEventListener) {
-    colorScheme.addEventListener("change", (event) => {
-      if (!hasExplicitThemePreference) applyTheme(event.matches ? "dark" : "light", false);
-    });
-  }
 }
 
 function getDiscoveredNodes() {
@@ -946,77 +756,9 @@ function applyWebcamFilters(): void {
   }
 }
 
-function getStatusBadgeClass(statusClassName: string): string {
-  if (statusClassName.includes("success")) return "ui-badge--success";
-  if (statusClassName.includes("error")) return "ui-badge--danger";
-  return "ui-badge--neutral";
-}
-
 function renderRows(): void {
   if (!(tableBody instanceof HTMLTableSectionElement)) return;
-  if (!webcams.length) {
-    tableBody.innerHTML = `
-      <tr><td colspan="4" class="empty">No webcam hosts yet. Add a webcam to start monitoring it.</td></tr>
-    `;
-    applyWebcamFilters();
-    return;
-  }
-
-  tableBody.innerHTML =
-    webcams
-    .map((node) => {
-      const status = webcamStatusMap.get(node.id) || { status: "unknown", stream_available: false };
-      const normalizedStatus = normalizeWebcamStatusForUi(status);
-      const streamText = status.stream_available ? "Available" : "Unavailable";
-      const discovery = getDiscoveryInfo(node);
-      const aggregateDetails = formatAggregationDetails(status);
-      const approvalHint =
-        discovery.source === "discovered" && !discovery.approved
-          ? "Pending approval before full activation."
-          : "";
-      const detailsText = [approvalHint, normalizedStatus.reasonText].filter(Boolean).join(" ");
-      const filterStatus = normalizedStatus.subtype === "healthy" ? "online" : "needs-attention";
-      const searchText = [node.name, node.id, node.base_url].filter(Boolean).join(" ");
-      return `
-        <tr
-          data-webcam-row
-          data-search="${escapeHtml(searchText)}"
-          data-status="${filterStatus}"
-        >
-          <td>
-            <strong>${escapeHtml(node.name)}</strong><br><small>${escapeHtml(node.id)}</small>
-            <details class="node-row-details">
-              <summary>Node details</summary>
-              <dl>
-                <div><dt>Address</dt><dd>${escapeHtml(node.base_url)}</dd></div>
-                <div><dt>Transport</dt><dd>${escapeHtml(node.transport)}</dd></div>
-                <div><dt>Source</dt><dd>${escapeHtml(discovery.source)}</dd></div>
-                <div><dt>Approval</dt><dd>${escapeHtml(discovery.approved ? "Approved" : "Pending")}</dd></div>
-                <div><dt>First seen</dt><dd>${escapeHtml(formatDateTime(discovery.firstSeen))}</dd></div>
-                <div><dt>Last announcement</dt><dd>${escapeHtml(formatDateTime(discovery.lastAnnounceAt))}</dd></div>
-                <div><dt>Connection details</dt><dd>${escapeHtml(detailsText || normalizedStatus.helpText)}</dd></div>
-                ${status.error_details ? `<div><dt>Diagnostic detail</dt><dd>${escapeHtml(status.error_details)}</dd></div>` : ""}
-                ${aggregateDetails ? `<div><dt>Status history</dt><dd>${escapeHtml(aggregateDetails)}</dd></div>` : ""}
-              </dl>
-            </details>
-          </td>
-          <td>
-            <span class="ui-badge ${getStatusBadgeClass(normalizedStatus.statusClass)}" title="${escapeHtml(normalizedStatus.helpText)}">${escapeHtml(normalizedStatus.label)}</span>
-          </td>
-          <td>${streamText}</td>
-          <td>
-            <div class="row-actions">
-              <button class="ui-btn ui-btn--secondary" type="button" data-action="edit" data-id="${escapeHtml(node.id)}">Edit</button>
-              <button class="ui-btn ui-btn--secondary" type="button" data-action="diagnose" data-id="${escapeHtml(node.id)}">Diagnose</button>
-              ${discovery.source === "discovered" ? `<button class="ui-btn ui-btn--secondary" type="button" data-action="approve" data-id="${escapeHtml(node.id)}">Approve</button><button class="ui-btn ui-btn--secondary" type="button" data-action="reject" data-id="${escapeHtml(node.id)}">Reject</button>` : ""}
-              <button class="ui-btn ui-btn--danger" type="button" data-action="delete" data-id="${escapeHtml(node.id)}">Remove</button>
-            </div>
-          </td>
-        </tr>
-      `;
-    })
-    .join("") +
-    `<tr id="webcams-no-match-row" hidden><td colspan="4" class="empty">No webcams match these filters. Try another search or status.</td></tr>`;
+  tableBody.innerHTML = renderWebcamRows({ webcams, statuses: webcamStatusMap });
   applyWebcamFilters();
 }
 
@@ -1532,7 +1274,7 @@ function onTableClick(event: Event): void {
 }
 
 function initializeManagementState() {
-  if (typeof initializeTheme === "function") initializeTheme();
+  themeController.initializeTheme();
   if (typeof initializeManagementBearerToken === "function") initializeManagementBearerToken();
   if (typeof loadSnoozedDiscoveredIds === "function") loadSnoozedDiscoveredIds();
   if (managementApiTokenInput instanceof HTMLInputElement) {
@@ -1600,7 +1342,7 @@ async function init() {
       closeUtilityPanel,
       toggleTheme: () => {
         const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
-        applyTheme(currentTheme === "dark" ? "light" : "dark");
+        themeController.applyTheme(currentTheme === "dark" ? "light" : "dark");
       },
       bindManagementNavigation: () =>
         bindNavigation({
@@ -1622,7 +1364,7 @@ async function init() {
             closeUtilityPanel,
             toggleTheme: () => {
               const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
-              applyTheme(currentTheme === "dark" ? "light" : "dark");
+              themeController.applyTheme(currentTheme === "dark" ? "light" : "dark");
             },
           },
         }),

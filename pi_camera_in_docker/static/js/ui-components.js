@@ -24,14 +24,6 @@ export function filterCollectionRows(rows, query, status) {
     }
     return visibleCount;
 }
-/** Resolve an explicit theme preference, falling back to the operating system. */
-export function resolveThemePreference(storedPreference, prefersDark) {
-    const normalizedPreference = storedPreference?.trim().toLocaleLowerCase();
-    if (normalizedPreference === "light" || normalizedPreference === "dark") {
-        return normalizedPreference;
-    }
-    return prefersDark ? "dark" : "light";
-}
 /**
  * Show a reusable native confirmation dialog and resolve true only on confirmation.
  *

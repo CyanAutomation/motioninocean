@@ -34,6 +34,9 @@ import { bindOptionalEventListeners, type OptionalEventBinding } from "./app-eve
 import { showWebcamHelpModal } from "./webcam-help-modal.js";
 import { updateMioMascotForTab as updateMioMascot, type MioMascotAssets } from "./mio-mascot.js";
 import { getSnackbarController } from "./snackbar.js";
+import { escapeHtml } from "./html.js";
+import { createWebcamThemeController } from "./webcam-theme.js";
+import { renderChangelogHtml, type ChangelogPayload } from "./webcam-changelog.js";
 import {
   createStreamReconnectController,
   imageHasLoadedFrame,
@@ -41,9 +44,7 @@ import {
 } from "./stream-reconnect.js";
 
 const REQUEST_TIMEOUT_MS = 5000;
-const THEME_STORAGE_KEY = "webcam.theme";
 const DEFAULT_MIO_PATH = "/static/img/mio/mio_avatar.png";
-const CHANGELOG_MAX_VISIBLE_ENTRIES = 3;
 
 interface AppElements {
   [name: string]: HTMLElement | HTMLElement[] | null;
@@ -125,20 +126,6 @@ interface AppState {
   changelogCache: ChangelogPayload | null;
   streamReconnectController: StreamReconnectController | null;
   elements: AppElements;
-}
-
-interface ChangelogEntry {
-  changes: string[];
-  release_date: string | null;
-  version: string;
-}
-
-interface ChangelogPayload {
-  entries: ChangelogEntry[];
-  full_changelog_url?: string;
-  message?: string;
-  source?: string;
-  status: string;
 }
 
 type DeviceConfiguration = Record<string, unknown> & { intent?: string };
@@ -229,13 +216,22 @@ const state: AppState = {
 
 let metricsEventSource: EventSource | null = null;
 
+const themeController = createWebcamThemeController({
+  getRoot: () => document.documentElement,
+  getStorage: () => globalThis.localStorage,
+  getIcons: () => ({
+    moon: state.elements.themeIconMoon,
+    sun: state.elements.themeIconSun,
+  }),
+});
+
 /**
  * Initialize the application
  */
 function init() {
   cacheElements();
   attachHandlers();
-  initializeTheme();
+  themeController.initializeTheme();
   updateViewMeta(state.currentTab);
   updateMascotForTab(state.currentTab);
   startStatsUpdate();
@@ -287,50 +283,6 @@ function toDeviceDetectionPayload(value: unknown): DeviceDetectionPayload {
     dma_heap_devices: deviceList("dma_heap_devices"),
     vchiq_device: record.vchiq_device,
   };
-}
-
-/**
- * Apply theme mode to webcam page.
- *
- * Persists selected mode in localStorage and updates toggle label.
- *
- * @param {string} theme - Theme name ("light" or "dark").
- * @returns {void}
- */
-function applyTheme(theme: string) {
-  const resolvedTheme = theme === "dark" ? "dark" : "light";
-  document.documentElement.setAttribute("data-theme", resolvedTheme);
-
-  // Toggle moon/sun icons
-  if (state.elements.themeIconMoon) {
-    state.elements.themeIconMoon.style.display = resolvedTheme === "dark" ? "none" : "";
-  }
-  if (state.elements.themeIconSun) {
-    state.elements.themeIconSun.style.display = resolvedTheme === "dark" ? "" : "none";
-  }
-
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, resolvedTheme);
-  } catch {
-    // Ignore local storage failures.
-  }
-}
-
-/**
- * Initialize theme from persisted user preference.
- *
- * Defaults to light theme when no preference exists.
- *
- * @returns {void}
- */
-function initializeTheme() {
-  let preferredTheme = "light";
-  try {
-    preferredTheme = localStorage.getItem(THEME_STORAGE_KEY) || "light";
-  } catch {
-    // Ignore local storage failures.
-  }
-  applyTheme(preferredTheme);
 }
 
 /**
@@ -420,7 +372,7 @@ function cacheElements() {
 function attachHandlers() {
   const themeToggle = () => {
     const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
-    applyTheme(currentTheme === "dark" ? "light" : "dark");
+    themeController.applyTheme(currentTheme === "dark" ? "light" : "dark");
   };
   const clickBindings: OptionalEventBinding[] = [
     { target: state.elements.toggleStatsBtn, type: "click", listener: toggleStats },
@@ -645,56 +597,6 @@ async function fetchChangelogData(): Promise<ChangelogPayload> {
 }
 
 /**
- * Render changelog entries as release cards for modal display.
- *
- * @param {{status: string, entries: Array<{version: string, release_date: string|null, changes: string[]}>, message?: string, full_changelog_url?: string}} payload - Changelog API payload.
- * @returns {string} Safe HTML string for modal content.
- */
-function renderChangelogHtml(payload: ChangelogPayload): string {
-  const entries = Array.isArray(payload.entries) ? payload.entries : [];
-  const visibleEntries = entries.slice(0, CHANGELOG_MAX_VISIBLE_ENTRIES);
-  const debugModeEnabled = isDebugModeEnabled();
-
-  const cardsHtml = visibleEntries
-    .map((entry) => {
-      const releaseDate = entry.release_date || "Unknown date";
-      const releaseTitle = `v${entry.version}`;
-      const changes = Array.isArray(entry.changes) ? entry.changes : [];
-      const itemsHtml =
-        changes.length > 0
-          ? changes.map((change) => `<li>${escapeHtml(change)}</li>`).join("")
-          : "<li>No release notes available.</li>";
-
-      return [
-        '<article class="changelog-card">',
-        `<h3>${escapeHtml(releaseTitle)}</h3>`,
-        `<p class="utility-subtle">${escapeHtml(releaseDate)}</p>`,
-        `<ul>${itemsHtml}</ul>`,
-        "</article>",
-      ].join("");
-    })
-    .join("");
-
-  const statusNote =
-    payload.status === "degraded" ? renderDegradedChangelogNote(payload, debugModeEnabled) : "";
-
-  const fullChangelogUrl =
-    typeof payload.full_changelog_url === "string" ? payload.full_changelog_url.trim() : "";
-
-  const fullChangelogLink = fullChangelogUrl
-    ? `<p><a href="${escapeHtml(fullChangelogUrl)}" target="_blank" rel="noopener noreferrer">View full changelog</a></p>`
-    : "";
-
-  return [
-    '<section class="changelog-list">',
-    statusNote,
-    cardsHtml || "<p>No changelog entries available.</p>",
-    fullChangelogLink,
-    "</section>",
-  ].join("");
-}
-
-/**
  * Determine whether debug mode is enabled for the current page.
  *
  * @returns {boolean} True when debug query parameter is truthy.
@@ -702,30 +604,6 @@ function renderChangelogHtml(payload: ChangelogPayload): string {
 function isDebugModeEnabled() {
   const debugParam = new URLSearchParams(window.location.search).get("debug");
   return ["1", "true", "yes", "on"].includes((debugParam || "").toLowerCase());
-}
-
-/**
- * Render a user-friendly degraded changelog note.
- *
- * Includes diagnostic details only when debug mode is enabled.
- *
- * @param {{message?: string, source?: string}} payload - Changelog API payload.
- * @param {boolean} debugModeEnabled - Whether debug diagnostics should be shown.
- * @returns {string} Safe degraded status note markup.
- */
-function renderDegradedChangelogNote(payload: ChangelogPayload, debugModeEnabled: boolean): string {
-  const userFriendlyMessage =
-    "We couldn't load the latest changelog details right now. Try again shortly.";
-
-  if (!debugModeEnabled) {
-    return `<p class="utility-subtle">${escapeHtml(userFriendlyMessage)}</p>`;
-  }
-
-  const debugDetails = [payload.message, payload.source].filter(Boolean).join(" | ");
-  const debugLine = debugDetails
-    ? `<br><span class="utility-subtle">Debug: ${escapeHtml(debugDetails)}</span>`
-    : "";
-  return `<p class="utility-subtle">${escapeHtml(userFriendlyMessage)}${debugLine}</p>`;
 }
 
 /**
@@ -909,7 +787,7 @@ async function openChangelogModal() {
     const payload = await fetchChangelogData();
     openUtilityModal({
       title: "Changelog",
-      htmlContent: renderChangelogHtml(payload),
+      htmlContent: renderChangelogHtml(payload, isDebugModeEnabled()),
     });
   } catch (error) {
     openUtilityModal({
@@ -2121,15 +1999,6 @@ function updateWizardNavigation() {
       nextBtn.textContent = "Next";
     }
   }
-}
-
-function escapeHtml(unsafe: unknown): string {
-  return String(unsafe)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }
 
 /**
