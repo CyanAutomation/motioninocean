@@ -8,13 +8,16 @@ These skills are short, task-specific playbooks for contributors and operators. 
 | --- | --- |
 | Start a code or documentation change | [`contributor-workflow`](./contributor-workflow/SKILL.md) |
 | Reproduce local quality gates | [`ci-quality-gates`](./ci-quality-gates/SKILL.md) |
-| Diagnose a failed Actions job | [`ci-triage`](./ci-triage/SKILL.md) |
+| Diagnose CI, CodeQL, or Trivy failures | [`ci-triage`](./ci-triage/SKILL.md) |
 | Validate JavaScript or TypeScript changes | [`frontend-testing-linting`](./frontend-testing-linting/SKILL.md) |
+| Change a backend API or settings contract | [`backend-api-settings`](./backend-api-settings/SKILL.md) |
+| Review management API security | [`api-security-review`](./api-security-review/SKILL.md) |
 | Review a web interface change | [`ui-review`](./ui-review/SKILL.md) |
 | Apply the project’s interface design principles | [`front-end-design`](./front-end-design/SKILL.md) |
 | Change or diagnose the mock camera flag | [`feature-flag-management`](./feature-flag-management/SKILL.md) |
 | Review dependency update pull requests | [`dependabot-dependency-management`](./dependabot-dependency-management/SKILL.md) |
 | Validate a deployment | [`deployment-validation-health-checks`](./deployment-validation-health-checks/SKILL.md) |
+| Cloud Run demo deployment | [`cloud-run-demo`](./cloud-run-demo/SKILL.md) |
 | Diagnose Raspberry Pi camera startup or streaming | [`pi-camera-troubleshooting`](./pi-camera-troubleshooting/SKILL.md) |
 | Build or validate documentation | [`documentation-build-validation`](./documentation-build-validation/SKILL.md) |
 | Create or update a Mermaid diagram | [`mermaid-creator`](./mermaid-creator/SKILL.md) |
@@ -28,11 +31,14 @@ flowchart TD
     A[Choose task] --> B{Task type}
     B -->|Code or docs| C[contributor-workflow]
     C --> D[ci-quality-gates]
-    B -->|CI failure| E[ci-triage]
+    B -->|CI / CodeQL / Trivy failure| E[ci-triage]
     B -->|Frontend code| F[frontend-testing-linting]
+    B -->|Backend API or settings| N[backend-api-settings]
+    N --> O[api-security-review when trust boundaries change]
     B -->|Interface review| G[ui-review]
     B -->|Deployment| H[deployment-validation-health-checks]
     H --> I[pi-camera-troubleshooting]
+    B -->|Cloud Run demo| P[cloud-run-demo]
     B -->|Manual GitHub release| J[release-operator]
     J --> K[release-publish: verify container images]
     B -->|Documentation| L[documentation-build-validation]

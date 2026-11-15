@@ -1,12 +1,15 @@
 ---
 name: ci-triage
-description: Diagnose a failed GitHub Actions check, reproduce it locally, and identify the smallest reliable fix. Use when a CI or image-security job fails.
+description: Diagnose a failed GitHub Actions check, CodeQL alert, or container image-security finding and identify the smallest reliable fix. Use when CI, static analysis, dependency review, or Trivy reports a problem.
 owner: motion-in-ocean team
-last-reviewed: 2026-09-25
+last-reviewed: 2026-11-15
 category: CI/CD
 compatible-repo-areas:
   - .github/workflows/ci.yml
+  - .github/workflows/codeql.yml
+  - .github/codeql/codeql-config.yml
   - .github/workflows/security-scan.yml
+  - .github/workflows/docker-publish.yml
   - tests/
   - Makefile
 ---
@@ -17,7 +20,7 @@ Turn a CI failure into a reproducible cause, a focused fix, and a passing rerun 
 
 ## Scope and trigger conditions
 
-- Use when a job in `.github/workflows/ci.yml` or `.github/workflows/security-scan.yml` fails.
+- Use when a job in `.github/workflows/ci.yml`, `.github/workflows/codeql.yml`, `.github/workflows/security-scan.yml`, or `.github/workflows/docker-publish.yml` fails, or when a CodeQL or Trivy finding needs investigation.
 - Use [`ci-quality-gates`](../ci-quality-gates/SKILL.md) for pre-push validation.
 - This skill covers diagnosis; workflow policy changes need a reviewed change to the workflow files.
 
@@ -49,8 +52,9 @@ Turn a CI failure into a reproducible cause, a focused fix, and a passing rerun 
 | `documentation`                 | `make docs-check` and `make validate-diagrams`                                                                                                          | Uses pinned Sphinx dependencies and Mermaid CLI in CI.                                              |
 | `scan`                          | Build the image, then run Trivy as configured in `.github/workflows/security-scan.yml`.                                                                  | Reports all severities; fixed HIGH and CRITICAL findings block.                                     |
 | `upload-sarif`                  | Inspect the preceding `scan` output and artifact.                                                                                                        | Runs only for default-branch pushes or manual runs on that branch, with security-events permission. |
+| `analyze` (CodeQL)              | Inspect the alert's source and sink in GitHub Code Scanning, then review `.github/codeql/codeql-config.yml` and the affected code/tests.                  | CodeQL is a scheduled and PR analysis; reproduce behavior with focused tests and preserve the alert evidence. |
 | `container-smoke`               | Build the selected `linux/amd64` or `linux/arm64` image and run `bash scripts/smoke-container-readiness.sh`.                                            | ARM64 requires Docker Buildx and QEMU; both variants use the mock camera and `/ready`.              |
-| `candidate-smoke`               | Pull the candidate platform digest, then run `bash scripts/smoke-container-readiness.sh`.                                                              | Release promotion waits for AMD64 and ARM64 readiness checks.                                      |
+| `candidate-smoke`               | Pull the candidate platform digest, then run `bash scripts/smoke-container-readiness.sh`.                                                              | Defined by `.github/workflows/docker-publish.yml`; release promotion waits for AMD64 and ARM64 checks. |
 
 ## Validation checklist
 
@@ -64,7 +68,9 @@ Turn a CI failure into a reproducible cause, a focused fix, and a passing rerun 
 ## Source of truth
 
 - `.github/workflows/ci.yml` — CI job names, matrices, commands, and versions.
+- `.github/workflows/codeql.yml` and `.github/codeql/codeql-config.yml` — CodeQL languages, triggers, and analysis configuration.
 - `.github/workflows/security-scan.yml` — Trivy, SARIF, and ARM64 jobs.
+- `.github/workflows/docker-publish.yml` — Candidate smoke and release verification jobs.
 - `Makefile` — Local equivalents such as `make test-frontend`, `make type-check`, and `make security`.
 - `package.json` — Supported frontend scripts.
 - `pyproject.toml` — Python tooling configuration.
@@ -73,6 +79,8 @@ Turn a CI failure into a reproducible cause, a focused fix, and a passing rerun 
 
 - **Failure:** It passes locally but fails in CI. **Recovery:** Match the CI interpreter, Node version, platform, and environment variables.
 - **Failure:** A security report step fails after the scan. **Recovery:** Check whether scan output exists and whether the run is eligible for report publication before treating it as a vulnerability finding.
+- **Failure:** CodeQL reports a possible flow without a local reproduction. **Recovery:** Trace the reported source, sanitizer, and sink, inspect the project's intended trust boundary, and add a focused regression test if behavior can be exercised locally. Do not dismiss the alert solely because tests pass.
+- **Failure:** Trivy reports an OS or library vulnerability. **Recovery:** Confirm whether a fixed version exists, identify the image layer or dependency source, and update the relevant base image or pinned dependency through a reviewed change.
 - **Failure:** A dependency only fails in the architecture matrix. **Recovery:** Reproduce the exact interpreter/platform combination and inspect wheel availability and optional requirements.
 - **Failure:** Authentication or runner permissions block a step. **Recovery:** Preserve the log and ask a repository maintainer to inspect repository settings; do not work around permissions by exposing secrets.
 
@@ -84,4 +92,4 @@ Turn a CI failure into a reproducible cause, a focused fix, and a passing rerun 
 
 ## Maintenance notes
 
-Keep the job table synchronized with the two workflow files. Review it whenever a job, matrix, or validation command changes.
+Keep the job table synchronized with all listed workflow files. Review it whenever a job, matrix, scanner policy, or validation command changes.
