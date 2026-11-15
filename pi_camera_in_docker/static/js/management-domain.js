@@ -79,10 +79,10 @@ export function formatDateTime(isoString) {
 export function formatAggregationDetails(status = {}) {
     const fragments = [];
     if (status.last_success_at) {
-        fragments.push(`Last success: ${new Date(status.last_success_at).toLocaleString()}`);
+        fragments.push(`Last success: ${formatDateTime(status.last_success_at)}`);
     }
     if (status.first_failure_at) {
-        fragments.push(`First failure: ${new Date(status.first_failure_at).toLocaleString()}`);
+        fragments.push(`First failure: ${formatDateTime(status.first_failure_at)}`);
     }
     if (typeof status.consecutive_failures === "number" && status.consecutive_failures > 0) {
         fragments.push(`Consecutive failures: ${status.consecutive_failures}`);

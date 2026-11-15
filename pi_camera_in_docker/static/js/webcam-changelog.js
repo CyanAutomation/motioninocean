@@ -23,8 +23,9 @@ export function renderChangelogHtml(payload, debugModeEnabled) {
         .join("");
     const statusNote = payload.status === "degraded" ? renderDegradedChangelogNote(payload, debugModeEnabled) : "";
     const fullChangelogUrl = typeof payload.full_changelog_url === "string" ? payload.full_changelog_url.trim() : "";
-    const fullChangelogLink = fullChangelogUrl
-        ? `<p><a href="${escapeHtml(fullChangelogUrl)}" target="_blank" rel="noopener noreferrer">View full changelog</a></p>`
+    const safeFullChangelogUrl = getSafeExternalUrl(fullChangelogUrl);
+    const fullChangelogLink = safeFullChangelogUrl
+        ? `<p><a href="${escapeHtml(safeFullChangelogUrl)}" target="_blank" rel="noopener noreferrer">View full changelog</a></p>`
         : "";
     return [
         '<section class="changelog-list">',
@@ -33,6 +34,17 @@ export function renderChangelogHtml(payload, debugModeEnabled) {
         fullChangelogLink,
         "</section>",
     ].join("");
+}
+function getSafeExternalUrl(value) {
+    if (!value)
+        return null;
+    try {
+        const url = new URL(value);
+        return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+    }
+    catch {
+        return null;
+    }
 }
 function renderDegradedChangelogNote(payload, debugModeEnabled) {
     const userFriendlyMessage = "We couldn't load the latest changelog details right now. Try again shortly.";

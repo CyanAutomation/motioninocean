@@ -16,7 +16,7 @@ test("webcam rows escape untrusted values and expose discovery actions", () => {
       {
         id: 'cam" onmouseover="alert(1)',
         name: "<Camera>",
-        base_url: "https://camera.local/?q=\"<script>",
+        base_url: "https://camera.local/?q=\"<script><SCRIPT>",
         discovery: { source: "discovered", approved: false },
       },
     ],
@@ -34,7 +34,7 @@ test("webcam rows escape untrusted values and expose discovery actions", () => {
   assert.match(markup, /data-action="approve"/);
   assert.match(markup, /data-action="reject"/);
   assert.match(markup, /data-action="delete"/);
-  assert.doesNotMatch(markup, /<script>/);
+  assert.doesNotMatch(markup, /<script>/i);
 });
 
 test("failed webcam rows include a filterable attention state and connection reason", () => {

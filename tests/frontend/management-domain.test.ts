@@ -87,11 +87,11 @@ test("status history details and date formatting keep stable fallbacks", () => {
   assert.match(formatDateTime("2026-01-02T03:04:05Z"), /2026/);
 
   const details = formatAggregationDetails({
-    last_success_at: "2026-01-02T03:04:05Z",
+    last_success_at: "not-a-date",
     first_failure_at: "2026-01-03T03:04:05Z",
     consecutive_failures: 2,
   });
-  assert.match(details, /Last success:/);
+  assert.match(details, /Last success: not-a-date/);
   assert.match(details, /First failure:/);
   assert.match(details, /Consecutive failures: 2/);
 });

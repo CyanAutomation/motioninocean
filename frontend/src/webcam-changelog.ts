@@ -47,8 +47,9 @@ export function renderChangelogHtml(
     payload.status === "degraded" ? renderDegradedChangelogNote(payload, debugModeEnabled) : "";
   const fullChangelogUrl =
     typeof payload.full_changelog_url === "string" ? payload.full_changelog_url.trim() : "";
-  const fullChangelogLink = fullChangelogUrl
-    ? `<p><a href="${escapeHtml(fullChangelogUrl)}" target="_blank" rel="noopener noreferrer">View full changelog</a></p>`
+  const safeFullChangelogUrl = getSafeExternalUrl(fullChangelogUrl);
+  const fullChangelogLink = safeFullChangelogUrl
+    ? `<p><a href="${escapeHtml(safeFullChangelogUrl)}" target="_blank" rel="noopener noreferrer">View full changelog</a></p>`
     : "";
 
   return [
@@ -58,6 +59,17 @@ export function renderChangelogHtml(
     fullChangelogLink,
     "</section>",
   ].join("");
+}
+
+function getSafeExternalUrl(value: string): string | null {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+  } catch {
+    return null;
+  }
 }
 
 function renderDegradedChangelogNote(

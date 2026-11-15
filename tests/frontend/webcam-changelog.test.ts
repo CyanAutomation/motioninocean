@@ -48,3 +48,19 @@ test("changelog rendering provides empty-state copy and safe degraded diagnostic
   assert.match(debugMarkup, /&lt;private detail&gt;/);
   assert.match(debugMarkup, /cache &amp; fallback/);
 });
+
+test("changelog rendering omits links with unsafe or relative URL schemes", () => {
+  for (const url of [
+    "javascript:alert(document.cookie)",
+    "data:text/html,<script>alert(1)</script>",
+    "//example.test/changelog",
+  ]) {
+    const markup = renderChangelogHtml(
+      { status: "ok", entries: [], full_changelog_url: url },
+      false,
+    );
+
+    assert.doesNotMatch(markup, /View full changelog/);
+    assert.doesNotMatch(markup, /href=/);
+  }
+});
