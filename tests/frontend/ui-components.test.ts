@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import {
   confirmInDialog,
   filterCollectionRows,
-  resolveThemePreference,
   setFeedbackMessage,
 } from "../../frontend/src/ui-components.ts";
 
@@ -71,13 +70,6 @@ test("collection filters combine the query with a selected status and support cl
   assert.deepEqual(rows.map((row) => row.hidden), [false, true, true]);
   assert.equal(filterCollectionRows(rows, "", "all"), 3);
   assert.deepEqual(rows.map((row) => row.hidden), [false, false, false]);
-});
-
-test("theme preference respects an explicit selection and otherwise follows the system", () => {
-  assert.equal(resolveThemePreference("dark", false), "dark");
-  assert.equal(resolveThemePreference("light", true), "light");
-  assert.equal(resolveThemePreference(null, true), "dark");
-  assert.equal(resolveThemePreference("invalid", false), "light");
 });
 
 test("feedback component clears old tone classes when the message changes", () => {
