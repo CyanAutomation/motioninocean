@@ -121,6 +121,20 @@ def test_skill_documents_match_metadata_template_and_index() -> None:
         assert metadata["name"] == path.parent.name
 
 
+def test_skill_index_routes_cloud_run_api_and_security_work() -> None:
+    """Make newly supported deployment and backend workflows discoverable."""
+    index = (SKILLS_ROOT / "README.md").read_text(encoding="utf-8")
+
+    expected_routes = {
+        "Diagnose CI, CodeQL, or Trivy failures": "ci-triage",
+        "Cloud Run demo deployment": "cloud-run-demo",
+        "Change a backend API or settings contract": "backend-api-settings",
+        "Review management API security": "api-security-review",
+    }
+    for task, skill in expected_routes.items():
+        assert any(task in line and f"./{skill}/SKILL.md" in line for line in index.splitlines())
+
+
 def test_skill_compatible_paths_exist_and_reviews_are_current() -> None:
     review_cutoff = datetime.now(timezone.utc).date() - timedelta(days=100)
     stale_skills: list[str] = []

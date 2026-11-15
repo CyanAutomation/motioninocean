@@ -1,8 +1,8 @@
 ---
 name: deployment-validation-health-checks
-description: Verify a running webcam or management deployment, including container health, readiness, API access, and camera-device mapping.
+description: Verify a running webcam or management Compose deployment, including container health, readiness, API access, and camera-device mapping. Use cloud-run-demo for the public Google Cloud Run demo.
 owner: motion-in-ocean team
-last-reviewed: 2026-09-25
+last-reviewed: 2026-11-15
 category: Deployment
 compatible-repo-areas:
   - containers/
@@ -18,6 +18,7 @@ Confirm that the selected Compose deployment is running and its health, readines
 ## Scope and trigger conditions
 
 - Use after deploying or changing a webcam node or management hub.
+- Use [`cloud-run-demo`](../cloud-run-demo/SKILL.md) for the public mock-camera deployment on Google Cloud Run.
 - Use [`pi-camera-troubleshooting`](../pi-camera-troubleshooting/SKILL.md) when webcam readiness or camera initialization fails.
 - Use `docs/guides/DEPLOYMENT.md` for deployment configuration and authentication details.
 
@@ -74,6 +75,7 @@ Confirm that the selected Compose deployment is running and its health, readines
 ## Related Skills
 
 - [`pi-camera-troubleshooting`](../pi-camera-troubleshooting/SKILL.md) — Diagnose camera and stream startup.
+- [`cloud-run-demo`](../cloud-run-demo/SKILL.md) — Build, deploy, and verify the public mock-camera Cloud Run demo.
 - [`feature-flag-management`](../feature-flag-management/SKILL.md) — Configure mock camera mode.
 - [`contributor-workflow`](../contributor-workflow/SKILL.md) — Implement a deployment fix.
 
