@@ -487,9 +487,7 @@ def test_docker_publish_attests_both_registry_images(workspace_root):
     ]
     assert len(attest_steps) == 2
     verify_index = next(
-        index
-        for index, step in enumerate(publish["steps"])
-        if step.get("id") == "published-images"
+        index for index, step in enumerate(publish["steps"]) if step.get("id") == "published-images"
     )
     attest_indices = [publish["steps"].index(step) for step in attest_steps]
     assert verify_index < min(attest_indices)
