@@ -93,6 +93,8 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+        with:
+          version: v0.38.2
 
       - name: Log in to GHCR for candidate upload
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
@@ -277,6 +279,8 @@ jobs:
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+        with:
+          version: v0.38.2
 
       - name: Log in to GHCR
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
@@ -303,82 +307,12 @@ jobs:
             type=raw,value=latest
             type=ref,event=tag
 
-      - name: Promote verified image tags
-        env:
-          IMAGE_REF: ${{ needs.build.outputs.image_ref }}
-          DOCKER_METADATA_TAGS: ${{ steps.meta.outputs.tags }}
-        run: |
-          set -euo pipefail
-          while IFS= read -r tag; do
-            [[ -n "$tag" ]] || continue
-            docker buildx imagetools create --tag "$tag" "$IMAGE_REF"
-          done <<< "$DOCKER_METADATA_TAGS"
-
-      - name: Verify promoted multi-architecture manifests
+      - name: Promote and verify production image tags
         id: published-images
         env:
           IMAGE_REF: ${{ needs.build.outputs.image_ref }}
           DOCKER_METADATA_TAGS: ${{ steps.meta.outputs.tags }}
-        run: |
-          set -euo pipefail
-
-          candidate_platforms="$(docker buildx imagetools inspect --raw "$IMAGE_REF" | jq -c '[.manifests[] | select(.platform.os == "linux" and (.platform.architecture == "amd64" or .platform.architecture == "arm64")) | {os: .platform.os, architecture: .platform.architecture, digest: .digest}] | sort_by(.architecture)')"
-          expected_platforms='[{"os":"linux","architecture":"amd64"},{"os":"linux","architecture":"arm64"}]'
-          actual_platforms="$(jq -c '[.[] | {os, architecture}]' <<< "$candidate_platforms")"
-          [[ "$actual_platforms" == "$expected_platforms" ]] || {
-            echo "::error title=Invalid candidate manifest::Candidate is missing an expected platform."
-            exit 1
-          }
-
-          ghcr_digest=""
-          dockerhub_digest=""
-          manifest_file="$(mktemp)"
-          trap 'rm -f "$manifest_file"' EXIT
-
-          while IFS= read -r tag; do
-            [[ -n "$tag" ]] || continue
-            docker buildx imagetools inspect --raw "$tag" > "$manifest_file"
-            published_platforms="$(jq -c '[.manifests[] | select(.platform.os == "linux" and (.platform.architecture == "amd64" or .platform.architecture == "arm64")) | {os: .platform.os, architecture: .platform.architecture, digest: .digest}] | sort_by(.architecture)' "$manifest_file")"
-            [[ "$published_platforms" == "$candidate_platforms" ]] || {
-              echo "::error title=Published image differs from scanned candidate::Platform image digests do not match for $tag"
-              exit 1
-            }
-
-            digest="$(docker buildx imagetools inspect "$tag" | awk '$1 == "Digest:" { print $2; exit }')"
-            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || {
-              echo "::error title=Published image digest missing::Could not read the digest for $tag"
-              exit 1
-            }
-
-            case "$tag" in
-              ghcr.io/*)
-                [[ -z "$ghcr_digest" || "$ghcr_digest" == "$digest" ]] || {
-                  echo "::error title=GHCR tags differ::Production tags point to different manifests."
-                  exit 1
-                }
-                ghcr_digest="$digest"
-                ;;
-              cyanautomation/*)
-                [[ -z "$dockerhub_digest" || "$dockerhub_digest" == "$digest" ]] || {
-                  echo "::error title=Docker Hub tags differ::Production tags point to different manifests."
-                  exit 1
-                }
-                dockerhub_digest="$digest"
-                ;;
-              *)
-                echo "::error title=Unexpected production image::Unrecognized image tag $tag"
-                exit 1
-                ;;
-            esac
-          done <<< "$DOCKER_METADATA_TAGS"
-
-          [[ -n "$ghcr_digest" && -n "$dockerhub_digest" ]] || {
-            echo "::error title=Production image tags missing::Expected tags for GHCR and Docker Hub."
-            exit 1
-          }
-
-          echo "ghcr_digest=$ghcr_digest" >> "$GITHUB_OUTPUT"
-          echo "dockerhub_digest=$dockerhub_digest" >> "$GITHUB_OUTPUT"
+        run: bash scripts/promote-verified-images.sh
 
       - name: Attest GHCR image provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2

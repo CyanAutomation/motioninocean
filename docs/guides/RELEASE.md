@@ -47,6 +47,20 @@ gh attestation verify \
 
 Replace `X.Y` with the release version without the leading `v`.
 
+### If image publishing fails after promotion
+
+The workflow scans the candidate before publishing tags. It then promotes the candidate to GHCR and
+Docker Hub, verifies each published manifest against the scanned `linux/amd64` and `linux/arm64`
+digests, and only then creates provenance attestations. A registry read can fail temporarily after
+the tags have been pushed, so a failed publish job can leave updated image tags without attestations.
+
+The publish step retries failed manifest reads and reports the exact registry reference and captured
+error. If it exhausts those retries, inspect the referenced tags in both registries and confirm their
+platform digests match the candidate before rerunning the failed job. Rerunning the failed job reuses
+the same workflow run and candidate; do not create a replacement release or reuse the release tag.
+If the platform digests differ, stop and investigate before rerunning, since the tags may refer to
+different builds.
+
 ## Sources
 
 - [`.github/workflows/docker-publish.yml`](../../.github/workflows/docker-publish.yml) — Verification and container image publishing after a GitHub Release is published.

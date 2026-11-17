@@ -264,11 +264,34 @@ def test_docker_release_scans_candidate_digest_before_promoting_tags(workspace_r
         for step in candidate_smoke["steps"]
     )
     assert publish["needs"] == ["build", "scan", "candidate-smoke"]
-    promote = next(
-        step for step in publish["steps"] if step.get("name") == "Promote verified image tags"
-    )
-    assert "docker buildx imagetools create" in promote["run"]
+    promote = next(step for step in publish["steps"] if step.get("id") == "published-images")
+    assert promote["name"] == "Promote and verify production image tags"
+    assert promote["run"] == "bash scripts/promote-verified-images.sh"
     assert "${{ needs.build.outputs.image_ref }}" in promote["env"]["IMAGE_REF"]
+    assert "${{ steps.meta.outputs.tags }}" in promote["env"]["DOCKER_METADATA_TAGS"]
+
+
+def test_docker_publish_pins_buildx_and_runs_one_promote_verifier(workspace_root):
+    """Keep the Buildx CLI stable and centralize promotion verification."""
+    workflow = load_workflow(workspace_root, "docker-publish.yml")
+    buildx_steps = [
+        step
+        for job in workflow["jobs"].values()
+        for step in job.get("steps", [])
+        if step.get("uses", "").startswith("docker/setup-buildx-action@")
+    ]
+
+    assert len(buildx_steps) == 2
+    assert all(step["with"]["version"] == "v0.38.2" for step in buildx_steps)
+
+    publish_steps = workflow["jobs"]["publish"]["steps"]
+    assert not any(
+        step.get("name") in {
+            "Promote verified image tags",
+            "Verify promoted multi-architecture manifests",
+        }
+        for step in publish_steps
+    )
 
 
 def test_docker_release_uses_scoped_credentials_for_manual_release_events(workspace_root):
