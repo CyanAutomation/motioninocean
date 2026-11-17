@@ -130,20 +130,15 @@ discipline as `main`.
 
 Create the GitHub Actions environment named `docker` and configure:
 
-- Required reviewers from the release maintainer team. Enable prevention of
-  self-review where the repository plan supports it.
-- Deployment branch/tag rules that allow `main` for scheduled/manual refreshes
-  and `v*.*` for version releases.
-- Environment variable `RELEASE_DOCKERHUB_USERNAME` and secret
-  `RELEASE_DOCKERHUB_TOKEN`.
+- Environment variable `DOCKER_USERNAME` with the Docker Hub username.
+- Environment secret `DOCKER_PASSWORD` with a Docker Hub access token.
 
 Keep the Docker Hub token out of repository-level secrets. The `build`, `scan`,
 `candidate-smoke`, and `publish` jobs all use this environment for Docker-related
-work. Environment protection rules therefore apply to each of those jobs.
+work.
 
-Workflow YAML references this environment, variable, and secret, but GitHub
-enforces reviewers, deployment rules, and credential scope only after they are
-set in repository settings.
+The workflow reads `DOCKER_USERNAME` from the `vars` context and
+`DOCKER_PASSWORD` from the `secrets` context.
 
 ---
 

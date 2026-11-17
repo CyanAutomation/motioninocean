@@ -289,8 +289,8 @@ jobs:
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
         with:
           registry: docker.io
-          username: ${{ vars.RELEASE_DOCKERHUB_USERNAME }}
-          password: ${{ secrets.RELEASE_DOCKERHUB_TOKEN }}
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Extract production image tags
         id: meta
