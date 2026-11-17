@@ -65,7 +65,6 @@ Confirm the container images published after a manual GitHub Release use the exp
 
 - **Failure:** The release event does not start the image workflow. **Recovery:** Confirm the GitHub Release was published and inspect the Actions run list.
 - **Failure:** Verification, scan, or candidate smoke test fails. **Recovery:** Diagnose the failed job and correct the source or image policy before retrying.
-- **Failure:** A Docker job waits for environment approval. **Recovery:** Review and approve the `docker` deployment if authorized by the release process.
 - **Failure:** One registry tag or architecture is missing. **Recovery:** Treat publication as incomplete and inspect the promotion and manifest verification steps.
 - **Failure:** Provenance verification fails. **Recovery:** Check the attestation subject, registry authentication, and signer workflow shown in the release guide.
 

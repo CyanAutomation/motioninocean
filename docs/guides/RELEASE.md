@@ -16,7 +16,7 @@ Before publishing a release, merge the version and changelog updates to `main`. 
 4. Set the release title to the same `vX.Y` value.
 5. Add the release notes from the matching `docs/CHANGELOG.md` section. GitHub's generated notes can also be used and edited in the form.
 6. Publish the release. This triggers the Docker publishing workflow.
-7. Review the workflow run and approve the `docker` environment if GitHub requests its configured approval.
+7. Review the workflow run and confirm image publishing completed successfully.
 
 Use the next `X.Y` version for each release. Do not reuse an existing tag, rewrite a published tag, or delete tags when cleaning up GitHub Release entries.
 

@@ -288,8 +288,8 @@ def test_docker_release_uses_scoped_credentials_for_manual_release_events(worksp
     hub_login = next(
         step for step in publish["steps"] if step.get("name") == "Log in to Docker Hub"
     )
-    assert hub_login["with"]["username"] == "${{ vars.RELEASE_DOCKERHUB_USERNAME }}"
-    assert hub_login["with"]["password"] == "${{ secrets.RELEASE_DOCKERHUB_TOKEN }}"
+    assert hub_login["with"]["username"] == "${{ vars.DOCKER_USERNAME }}"
+    assert hub_login["with"]["password"] == "${{ secrets.DOCKER_PASSWORD }}"
 
     for job_name in ("verify", "build", "publish"):
         condition = workflow["jobs"][job_name]["if"]
@@ -315,16 +315,17 @@ def test_release_verification_does_not_cache_untrusted_tag_dependencies(workspac
     assert node_setup["with"]["package-manager-cache"] is False
 
 
-def test_release_settings_document_environment_approval_and_required_arm64_check(workspace_root):
+def test_release_settings_document_docker_environment_and_required_arm64_check(workspace_root):
     """Document the GitHub-side controls that YAML cannot configure itself."""
     guidance = (workspace_root / ".github" / "BRANCH_PROTECTION.md").read_text()
 
     assert "Container Runtime Smoke Test (amd64)" in guidance
     assert "Container Runtime Smoke Test (arm64)" in guidance
     assert "docker" in guidance
-    assert "RELEASE_DOCKERHUB_USERNAME" in guidance
-    assert "RELEASE_DOCKERHUB_TOKEN" in guidance
-    assert "required reviewers" in guidance.lower()
+    assert "DOCKER_USERNAME" in guidance
+    assert "DOCKER_PASSWORD" in guidance
+    assert "Required reviewers" not in guidance
+    assert "Deployment branch/tag rules" not in guidance
     ruleset_example = guidance.split("## Ruleset Example", maxsplit=1)[1]
     status_checks = ruleset_example.split("3. **Block force pushes**", maxsplit=1)[0]
     assert "`Container Runtime Smoke Test (amd64)`" in status_checks
