@@ -286,6 +286,13 @@ def test_docker_publish_pins_buildx_and_runs_one_promote_verifier(workspace_root
     assert all(step["with"]["cache-binary"] is False for step in buildx_steps)
 
     publish_steps = workflow["jobs"]["publish"]["steps"]
+    promote_step = next(step for step in publish_steps if step.get("id") == "published-images")
+    checkout = next(
+        step for step in publish_steps if step.get("name") == "Checkout promotion source"
+    )
+    assert checkout["uses"] == "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+    assert checkout["with"]["persist-credentials"] is False
+    assert publish_steps.index(checkout) < publish_steps.index(promote_step)
     assert not any(
         step.get("name")
         in {
