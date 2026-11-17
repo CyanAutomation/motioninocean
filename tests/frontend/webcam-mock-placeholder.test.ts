@@ -58,27 +58,15 @@ test("applyMockStreamMode toggles placeholder visibility for mock runtime states
   assert.equal(video.attributes["aria-hidden"], "false");
 });
 
-test("mock placeholder template preserves animation host contract", () => {
+test("mock placeholder starts hidden and explains the preview without a real camera", () => {
   const template = fs.readFileSync("pi_camera_in_docker/templates/index.html", "utf8");
 
   const placeholderMatch = template.match(/<div\s+id="mock-stream-placeholder"[\s\S]*?<\/div>/);
 
   assert.ok(placeholderMatch, "mock placeholder container should exist");
   const placeholderMarkup = placeholderMatch[0];
-
-  assert.match(
-    placeholderMarkup,
-    /<object\s+id="mock-stream-animation"[\s\S]*?type="image\/svg\+xml"/,
-    "mock placeholder should include an embedded object animation host",
-  );
-  assert.match(
-    placeholderMarkup,
-    /class="mock-stream-placeholder"/,
-    "mock placeholder should keep stable class contract",
-  );
-  assert.doesNotMatch(
-    placeholderMarkup,
-    /<img\b/,
-    "mock placeholder should avoid legacy unbounded image-only embedding",
-  );
+  assert.match(placeholderMarkup, /\bhidden(?:\s|>)/);
+  assert.match(placeholderMarkup, /Mock camera mode enabled\s*[—-]\s*no real camera stream\./);
+  assert.match(placeholderMarkup, /mio_mock_stream\.svg/);
+  assert.equal(fs.existsSync("pi_camera_in_docker/static/img/mio/mio_mock_stream.svg"), true);
 });

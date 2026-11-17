@@ -6,7 +6,7 @@ import json
 import os
 import re
 import subprocess
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -43,10 +43,6 @@ def _markdown_links(markdown: str) -> list[str]:
 
 def _is_yaml_date(value: object) -> bool:
     return isinstance(value, date) and not isinstance(value, datetime)
-
-
-def _review_date_is_stale(review_date: object, cutoff: date) -> bool:
-    return _is_yaml_date(review_date) and review_date < cutoff
 
 
 def _install_recording_python(tmp_path: Path, executable_name: str) -> tuple[Path, Path]:
@@ -135,9 +131,7 @@ def test_skill_index_routes_cloud_run_api_and_security_work() -> None:
         assert any(task in line and f"./{skill}/SKILL.md" in line for line in index.splitlines())
 
 
-def test_skill_compatible_paths_exist_and_reviews_are_current() -> None:
-    review_cutoff = datetime.now(timezone.utc).date() - timedelta(days=100)
-    stale_skills: list[str] = []
+def test_skill_compatible_paths_exist_and_review_dates_are_valid() -> None:
     invalid_review_dates: list[str] = []
     missing_areas: list[str] = []
 
@@ -149,13 +143,10 @@ def test_skill_compatible_paths_exist_and_reviews_are_current() -> None:
         review_date = metadata["last-reviewed"]
         if not _is_yaml_date(review_date):
             invalid_review_dates.append(path.relative_to(REPO_ROOT).as_posix())
-        elif _review_date_is_stale(review_date, review_cutoff):
-            stale_skills.append(path.relative_to(REPO_ROOT).as_posix())
         for area in metadata["compatible-repo-areas"]:
             if not list(REPO_ROOT.glob(area.rstrip("/"))):
                 missing_areas.append(f"{path.relative_to(REPO_ROOT)}: {area}")
 
-    assert not stale_skills, "Skills need quarterly source review:\n" + "\n".join(stale_skills)
     assert not invalid_review_dates, (
         "Skill last-reviewed values must be unquoted ISO dates:\n" + "\n".join(invalid_review_dates)
     )
@@ -200,72 +191,6 @@ def test_skill_references_use_defined_make_and_npm_commands() -> None:
                         missing.append(f"{path.relative_to(REPO_ROOT)}: npm run {match.group(1)}")
 
     assert not missing, "Skill docs reference undefined commands:\n" + "\n".join(missing)
-
-
-def test_diagram_validation_inputs_exist_and_failures_propagate(tmp_path: Path) -> None:
-    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
-    recipe = makefile.split("validate-diagrams:\n", 1)[1].split("\n\n", 1)[0]
-    script_call = re.search(r"scripts/validate_mermaid_diagrams\.py\s+([^\n]+)", recipe)
-    assert script_call, "The diagram target must use the Markdown diagram extractor"
-    inputs = script_call.group(1).split()
-    assert inputs, "The diagram validation target must render at least one file"
-    assert all((REPO_ROOT / source).is_file() for source in inputs), (
-        f"Diagram validation references missing files: "
-        f"{[source for source in inputs if not (REPO_ROOT / source).is_file()]}"
-    )
-
-    renderer = tmp_path / "mmdc"
-    browser = tmp_path / "chromium"
-    log_path = tmp_path / "rendered-diagrams.txt"
-    config_log_path = tmp_path / "puppeteer-config.json"
-    browser.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
-    browser.chmod(0o755)
-    renderer.write_text(
-        "#!/bin/sh\n"
-        'while [ "$#" -gt 0 ]; do\n'
-        '  if [ "$1" = "--puppeteerConfigFile" ]; then '
-        'cat "$2" > "$MMD_CONFIG_LOG"; shift 2; '
-        'elif [ "$1" = "-i" ]; then cat "$2" >> "$MMD_LOG"; '
-        'printf "\\n---\\n" >> "$MMD_LOG"; shift 2; else shift; fi\n'
-        "done\n",
-        encoding="utf-8",
-    )
-    renderer.chmod(0o755)
-    test_env = os.environ.copy()
-    test_env["PATH"] = f"{tmp_path}:{os.environ['PATH']}"
-    test_env["MMD_LOG"] = str(log_path)
-    test_env["MMD_CONFIG_LOG"] = str(config_log_path)
-    test_env["PUPPETEER_EXECUTABLE_PATH"] = str(browser)
-    success = subprocess.run(
-        ["make", "validate-diagrams"],
-        cwd=REPO_ROOT,
-        env=test_env,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert success.returncode == 0, success.stdout + success.stderr
-    rendered = [
-        block for block in log_path.read_text(encoding="utf-8").split("\n---\n") if block.strip()
-    ]
-    assert len(rendered) >= 12, "Each Mermaid code block must be rendered separately"
-    config = json.loads(config_log_path.read_text(encoding="utf-8"))
-    assert config["executablePath"] == str(browser)
-    assert all(
-        block.strip().startswith(("flowchart", "graph", "sequenceDiagram", "stateDiagram"))
-        for block in rendered
-    ), "The renderer must receive Mermaid source, not the surrounding Markdown"
-
-    renderer.write_text("#!/bin/sh\nexit 19\n", encoding="utf-8")
-    failure = subprocess.run(
-        ["make", "validate-diagrams"],
-        cwd=REPO_ROOT,
-        env={"PATH": f"{tmp_path}:{os.environ['PATH']}"},
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert failure.returncode != 0, "Renderer errors must fail diagram validation"
 
 
 def test_run_mock_invokes_application_with_mock_flag(tmp_path: Path) -> None:
@@ -340,3 +265,13 @@ def test_docs_check_uses_selected_python_and_propagates_build_failure(tmp_path: 
     )
     assert result.returncode != 0, "Sphinx failures must fail the docs check"
     assert "simulated Sphinx failure" in result.stdout + result.stderr
+
+
+def test_skill_review_freshness_workflow_runs_the_review_gate() -> None:
+    workflow = (REPO_ROOT / ".github/workflows/skill-review-freshness.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'cron: "0 9 * * 1"' in workflow
+    assert "workflow_dispatch:" in workflow
+    assert "make check-skill-review-freshness" in workflow

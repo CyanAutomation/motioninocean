@@ -69,14 +69,13 @@ def validate_files(sources: list[Path], renderer: str) -> int:
             ),
             None,
         )
-        puppeteer_config_args: list[str] = []
+        puppeteer_config: dict[str, object] = {"args": ["--no-sandbox", "--disable-setuid-sandbox"]}
         if browser_executable:
-            puppeteer_config = temp_path / "puppeteer-config.json"
-            puppeteer_config.write_text(
-                json.dumps({"executablePath": browser_executable}),
-                encoding="utf-8",
-            )
-            puppeteer_config_args = ["--puppeteerConfigFile", str(puppeteer_config)]
+            puppeteer_config["executablePath"] = browser_executable
+
+        puppeteer_config_path = temp_path / "puppeteer-config.json"
+        puppeteer_config_path.write_text(json.dumps(puppeteer_config), encoding="utf-8")
+        puppeteer_config_args = ["--puppeteerConfigFile", str(puppeteer_config_path)]
 
         for source_index, source in enumerate(sources):
             if not source.is_file():

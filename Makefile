@@ -9,7 +9,7 @@ RPI_SUITE ?= bookworm
 PYTHON ?= python3
 PIP := $(PYTHON) -m pip
 
-.PHONY: help install install-dev install-node ensure-dev-tools test test-frontend frontend-health lint format type-check security check-feature-flag-usage clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams docs-build docs-check jsdoc docs-clean ci validate
+.PHONY: help install install-dev install-node ensure-dev-tools test test-frontend frontend-health lint format type-check security check-feature-flag-usage check-skill-review-freshness clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
 help:
@@ -36,6 +36,7 @@ help:
 	@echo ""
 	@echo "Validation:"
 	@echo "  make validate-diagrams    Validate Mermaid diagram syntax"
+	@echo "  make check-skill-review-freshness  Check skill review dates"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test             Run all tests"
@@ -163,6 +164,9 @@ docs-clean:
 validate-diagrams:
 	@echo "Validating Mermaid diagrams..."
 	$(PYTHON) scripts/validate_mermaid_diagrams.py docs/product/PRD-backend.md docs/product/PRD-frontend.md docs/guides/DEPLOYMENT.md
+
+check-skill-review-freshness:
+	$(PYTHON) scripts/check_skill_review_freshness.py
 
 # Testing targets
 test: ensure-dev-tools

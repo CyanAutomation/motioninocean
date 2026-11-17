@@ -182,7 +182,10 @@ class TestConfigValidationHints:
             validate_all_config(config)
 
         assert "BASE_URL" in str(exc_info.value)
-        assert exc_info.value.hint is not None
+        hint = exc_info.value.hint
+        assert hint is not None
+        assert "MIO_BASE_URL=http://" in hint
+        assert ":8000" in hint
 
     def test_discovery_config_error_includes_hint(self):
         """Test that discovery config error includes helpful hint"""
