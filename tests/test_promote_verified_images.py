@@ -5,6 +5,7 @@ import os
 import subprocess
 from pathlib import Path
 
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PROMOTION_SCRIPT = PROJECT_ROOT / "scripts" / "promote-verified-images.sh"
 AMD64_DIGEST = f"sha256:{'a' * 64}"
