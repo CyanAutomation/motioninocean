@@ -10,4 +10,4 @@ flask-compress>=1.26
 Pillow>=12.2.0
 
 # Production WSGI server used by Docker and Cloud Run.
-gunicorn>=23.0,<24.0
+gunicorn>=27.0.1,<28.0
