@@ -287,7 +287,8 @@ def test_docker_publish_pins_buildx_and_runs_one_promote_verifier(workspace_root
 
     publish_steps = workflow["jobs"]["publish"]["steps"]
     assert not any(
-        step.get("name") in {
+        step.get("name")
+        in {
             "Promote verified image tags",
             "Verify promoted multi-architecture manifests",
         }
