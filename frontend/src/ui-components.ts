@@ -11,6 +11,119 @@ export interface FeedbackElement {
   classList: { toggle(className: string, force?: boolean): void };
 }
 
+/** Data displayed by the reusable settings confirmation item. */
+export interface SettingsConfirmationChange {
+  category: string;
+  property: string;
+  oldValue: unknown;
+  newValue: unknown;
+}
+
+/** Data displayed by the reusable runtime override summary item. */
+export interface SettingsOverrideSummaryItem {
+  category: string;
+  key: string;
+  value: unknown;
+  envValue: unknown;
+  restartable: boolean;
+}
+
+/**
+ * Create a text-only element with the project's shared DOM construction behavior.
+ *
+ * @param document - Document used to create the element.
+ * @param tagName - Supported semantic element tag.
+ * @param className - CSS class applied to the element.
+ * @param text - Literal text content; markup is never parsed.
+ * @returns The created element with its class and text content set.
+ */
+export function createTextElement(
+  document: Pick<Document, "createElement">,
+  tagName: "div" | "li" | "span",
+  className: string,
+  text: string,
+): HTMLElement {
+  const element = document.createElement(tagName);
+  element.className = className;
+  element.textContent = text;
+  return element;
+}
+
+/**
+ * Build the reusable settings confirmation row from text-only child elements.
+ *
+ * @param document - Document used to create the elements.
+ * @param change - Setting path and previous/new values to display.
+ * @param formatValue - Formats a setting value for human-readable display.
+ * @returns A list item for the settings confirmation dialog.
+ */
+export function createSettingsConfirmationChangeItem(
+  document: Pick<Document, "createElement">,
+  change: SettingsConfirmationChange,
+  formatValue: (value: unknown) => string,
+): HTMLLIElement {
+  const item = document.createElement("li");
+  item.className = "settings-confirm-change-item";
+  item.replaceChildren(
+    createTextElement(
+      document,
+      "span",
+      "settings-confirm-change-path",
+      `${change.category}.${change.property}`,
+    ),
+    createTextElement(
+      document,
+      "span",
+      "settings-confirm-change-values",
+      `${formatValue(change.oldValue)} → ${formatValue(change.newValue)}`,
+    ),
+  );
+  return item;
+}
+
+/**
+ * Build a reusable summary row for a setting overridden at runtime.
+ *
+ * @param document - Document used to create the elements.
+ * @param item - Overridden setting and values to display.
+ * @returns A summary row built with text-only DOM nodes.
+ */
+export function createSettingsOverrideSummaryItem(
+  document: Pick<Document, "createElement">,
+  item: SettingsOverrideSummaryItem,
+): HTMLDivElement {
+  const row = document.createElement("div");
+  row.className = "settings-change-item";
+
+  const path = createTextElement(
+    document,
+    "div",
+    "settings-change-path",
+    `${item.category}.${item.key}`,
+  );
+  const values = document.createElement("div");
+  values.className = "settings-change-values";
+  const valueElements = [
+    createTextElement(document, "span", "settings-change-value", `Current: ${String(item.value)}`),
+    createTextElement(
+      document,
+      "span",
+      "settings-change-value",
+      `Default: ${String(item.envValue)}`,
+    ),
+  ];
+
+  if (item.restartable) {
+    valueElements.push(
+      createTextElement(document, "span", "settings-change-badge", "Restart required"),
+    );
+  }
+
+  values.replaceChildren(...valueElements);
+  row.replaceChildren(path, values);
+  return row;
+}
+
 /** Set reusable feedback copy and its semantic visual tone. */
 export function setFeedbackMessage(
   element: FeedbackElement | null,

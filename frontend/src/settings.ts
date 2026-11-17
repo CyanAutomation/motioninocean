@@ -10,6 +10,10 @@ import {
   type SettingsChangesSummary,
   type SettingsSchema,
 } from "./settings-summary.js";
+import {
+  createSettingsConfirmationChangeItem,
+  createSettingsOverrideSummaryItem,
+} from "./ui-components.js";
 import { hydrateCameraSettingsForm, hydrateDiscoverySettingsForm } from "./settings-form.js";
 import { saveSettingsPatch } from "./settings-api.js";
 import { runSettingsSaveWorkflow } from "./settings-save-workflow.js";
@@ -753,29 +757,19 @@ const SettingsUI = (() => {
    * @returns {Promise<boolean>} True when user confirms save.
    */
   const showSaveConfirmation = (changes: PendingChange[]): Promise<boolean> => {
-    if (!confirmModal() || !confirmList()) {
+    const modal = confirmModal();
+    const list = confirmList();
+    if (!modal || !list) {
       return Promise.resolve(window.confirm("Save settings changes?"));
     }
 
-    confirmList().innerHTML = "";
-    changes.forEach((change) => {
-      const li = document.createElement("li");
-      li.className = "settings-confirm-change-item";
+    list.replaceChildren(
+      ...changes.map((change) =>
+        createSettingsConfirmationChangeItem(document, change, formatSettingValue),
+      ),
+    );
 
-      const pathSpan = document.createElement("span");
-      pathSpan.className = "settings-confirm-change-path";
-      pathSpan.textContent = `${change.category}.${change.property}`;
-
-      const valuesSpan = document.createElement("span");
-      valuesSpan.className = "settings-confirm-change-values";
-      valuesSpan.textContent = `${formatSettingValue(change.oldValue)} → ${formatSettingValue(change.newValue)}`;
-
-      li.appendChild(pathSpan);
-      li.appendChild(valuesSpan);
-      confirmList().appendChild(li);
-    });
-
-    confirmModal().classList.remove("hidden");
+    modal.classList.remove("hidden");
 
     return new Promise((resolve) => {
       confirmModalResolver = resolve;
@@ -896,26 +890,14 @@ const SettingsUI = (() => {
    * @returns {void}
    */
   const renderChangesSummary = (model: SettingsChangesSummary) => {
-    changesList().innerHTML = "";
+    changesList().replaceChildren(
+      ...model.items.map((item) => createSettingsOverrideSummaryItem(document, item)),
+    );
     if (model.items.length === 0) {
       changesSummary().classList.add("hidden");
       restartWarning().classList.add("hidden");
       return;
     }
-
-    model.items.forEach((item) => {
-      const row = document.createElement("div");
-      row.className = "settings-change-item";
-      row.innerHTML = `
-        <div class="settings-change-path">${item.category}.${item.key}</div>
-        <div class="settings-change-values">
-          <span class="settings-change-value">Current: ${String(item.value)}</span>
-          <span class="settings-change-value">Default: ${String(item.envValue)}</span>
-          ${item.restartable ? '<span class="settings-change-badge">Restart required</span>' : ""}
-        </div>
-      `;
-      changesList().appendChild(row);
-    });
 
     changesSummary().classList.remove("hidden");
     restartWarning().classList.toggle("hidden", !model.restartRequired);
