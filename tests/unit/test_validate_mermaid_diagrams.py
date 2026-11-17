@@ -48,7 +48,7 @@ def test_validate_files_sends_only_diagram_sources_to_the_renderer(
     rendered_sources: list[str] = []
 
     def render(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
-        assert kwargs["check"] is False
+        assert kwargs.get("check") is False
         input_index = args.index("-i") + 1
         rendered_sources.append(Path(args[input_index]).read_text(encoding="utf-8"))
         return subprocess.CompletedProcess(args, 0, stdout="", stderr="")

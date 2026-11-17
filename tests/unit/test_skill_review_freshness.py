@@ -28,3 +28,35 @@ def test_review_freshness_uses_an_explicit_date_and_reports_stale_or_invalid_fil
     assert len(issues) == 2
     assert any("stale/SKILL.md" in issue and "101 days" in issue for issue in issues)
     assert any("invalid/SKILL.md" in issue and "valid ISO date" in issue for issue in issues)
+
+
+def test_review_freshness_rejects_a_future_review_date(tmp_path):
+    today = date(2026, 11, 17)
+    future = tmp_path / "future" / "SKILL.md"
+    future.parent.mkdir()
+    future.write_text(
+        f"---\nlast-reviewed: {(today + timedelta(days=1)).isoformat()}\n---\n",
+        encoding="utf-8",
+    )
+
+    issues = find_review_issues([future], today=today)
+
+    assert len(issues) == 1
+    assert "future/SKILL.md" in issues[0]
+    assert "in the future" in issues[0]
+
+
+def test_review_freshness_rejects_unclosed_frontmatter_even_if_body_has_a_date(tmp_path):
+    today = date(2026, 11, 17)
+    malformed = tmp_path / "malformed" / "SKILL.md"
+    malformed.parent.mkdir()
+    malformed.write_text(
+        "---\ntitle: Skill\n\nBody content\nlast-reviewed: 2026-11-17\n",
+        encoding="utf-8",
+    )
+
+    issues = find_review_issues([malformed], today=today)
+
+    assert len(issues) == 1
+    assert "malformed/SKILL.md" in issues[0]
+    assert "malformed frontmatter" in issues[0]

@@ -26,7 +26,12 @@ def find_review_issues(
             issues.append(f"{path}: missing frontmatter with a valid ISO date for last-reviewed")
             continue
 
-        frontmatter = content.split("---\n", 2)[1]
+        frontmatter_parts = content.split("---\n", 2)
+        if len(frontmatter_parts) != 3:
+            issues.append(f"{path}: malformed frontmatter; missing closing --- delimiter")
+            continue
+
+        frontmatter = frontmatter_parts[1]
         match = LAST_REVIEWED_LINE.search(frontmatter)
         try:
             reviewed = date.fromisoformat(match.group(1)) if match else None
@@ -37,7 +42,9 @@ def find_review_issues(
             continue
 
         age_days = (today - reviewed).days
-        if age_days > max_age_days:
+        if age_days < 0:
+            issues.append(f"{path}: review date {reviewed.isoformat()} is in the future")
+        elif age_days > max_age_days:
             issues.append(
                 f"{path}: review is {age_days} days old; refresh it within {max_age_days} days"
             )
