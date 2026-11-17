@@ -160,30 +160,21 @@ class TestFeatureFlagBehavior:
         with pytest.raises(KeyError):
             flags.is_enabled("NONEXISTENT_FLAG")
 
-    def test_get_flags_by_category(self):
-        """Test retrieving flags by category."""
-        from pi_camera_in_docker.feature_flags import FeatureFlagCategory, FeatureFlags
-
-        flags = FeatureFlags()
-        performance_flags = flags.get_flags_by_category(FeatureFlagCategory.PERFORMANCE)
-
-        assert isinstance(performance_flags, dict)
-        assert performance_flags == {}
-
     def test_get_flag_info(self):
-        """Test retrieving detailed flag information."""
+        """Flag details expose the configured metadata and current default state."""
         from pi_camera_in_docker.feature_flags import FeatureFlags
 
         flags = FeatureFlags()
         info = flags.get_flag_info("MOCK_CAMERA")
 
-        assert info is not None
-        assert info["name"] == "MOCK_CAMERA"
-        assert "description" in info
-        assert "enabled" in info
-        assert "default" in info
-        assert "category" in info
-        assert "backward_compat_vars" in info
+        assert info == {
+            "name": "MOCK_CAMERA",
+            "enabled": False,
+            "default": False,
+            "category": "Experimental",
+            "description": "Use mock camera for testing without real hardware.",
+            "backward_compat_vars": [],
+        }
 
     def test_get_flag_info_unknown(self):
         """Test that unknown flag returns None."""

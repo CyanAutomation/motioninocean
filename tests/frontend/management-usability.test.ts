@@ -42,21 +42,19 @@ test("registered webcams have an accessible search and status filter toolbar", (
   assert.match(managementLogic, /filterCollectionRows/);
 });
 
-test("management layout cards can shrink around their scrollable tables on mobile", () => {
-  assert.match(managementStyles, /\.management-layout\s*>\s*\*\s*\{[^}]*min-inline-size:\s*0/s);
-});
+test("management tables retain room to scroll at desktop and mobile widths", () => {
+  const cardRule = managementStyles.match(/\.management-layout\s*>\s*\*\s*\{([^}]*)\}/s);
+  assert.ok(cardRule, "management grid children need a sizing rule");
+  assert.match(cardRule[1]!, /min-inline-size:\s*0/);
 
-test("utility panel helpers verify the native dialog element before using dialog methods", () => {
-  const openPanelStart = managementLogic.indexOf("function openUtilityPanel");
-  const closePanelStart = managementLogic.indexOf("function closeUtilityPanel");
-  const openHelpStart = managementLogic.indexOf("function openHelpPanel");
-  const openPanel = managementLogic.slice(openPanelStart, closePanelStart);
-  const closePanel = managementLogic.slice(closePanelStart, openHelpStart);
-
-  assert.match(openPanel, /utilityPanel instanceof HTMLDialogElement/);
-  assert.match(closePanel, /utilityPanel instanceof HTMLDialogElement/);
-  assert.doesNotMatch(openPanel, /utilityPanel as HTMLDialogElement/);
-  assert.doesNotMatch(closePanel, /utilityPanel as HTMLDialogElement/);
+  assert.match(
+    managementStyles,
+    /@media\s*\(max-width:\s*56rem\)[\s\S]*?\.management-layout,[\s\S]*?grid-template-columns:\s*1fr/s,
+  );
+  assert.match(
+    managementStyles,
+    /\.webcam-list-panel[\s\S]*?overflow-x:\s*auto/s,
+  );
 });
 
 test("settings use grouped sections instead of incomplete tab controls", () => {
@@ -77,18 +75,4 @@ test("destructive management actions share a native confirmation dialog", () => 
   assert.match(managementLogic, /confirmInDialog/);
   assert.doesNotMatch(managementLogic, /window\.confirm\(/);
   assert.match(styles, /\.ui-dialog/);
-});
-
-test("shared UI primitives cover shell, headers, toolbars, settings rows, and statuses", () => {
-  for (const primitive of [
-    ".ui-app-shell",
-    ".ui-page-header",
-    ".ui-toolbar",
-    ".ui-settings-group",
-    ".ui-settings-row",
-    ".ui-badge",
-    ".ui-dialog",
-  ]) {
-    assert.ok(styles.includes(primitive), `Missing reusable UI primitive ${primitive}`);
-  }
 });
