@@ -258,6 +258,26 @@
   font-weight: var(--font-weight-medium);
 }
 
+.ui-disclosure::details-content {
+  interpolate-size: allow-keywords;
+  overflow: clip;
+  contain: layout;
+}
+
+.ui-disclosure:not([open])::details-content {
+  block-size: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ui-disclosure::details-content {
+    transition:
+      block-size var(--transition-normal, 220ms ease-in-out),
+      content-visibility var(--transition-normal, 220ms ease-in-out),
+      display var(--transition-normal, 220ms ease-in-out);
+    transition-behavior: allow-discrete;
+  }
+}
+
 .ui-feedback--error {
   color: var(--color-error) !important;
 }

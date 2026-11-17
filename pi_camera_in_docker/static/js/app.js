@@ -19,6 +19,7 @@ import { bindOptionalEventListeners } from "./app-event-bindings.js";
 import { showWebcamHelpModal } from "./webcam-help-modal.js";
 import { updateMioMascotForTab as updateMioMascot } from "./mio-mascot.js";
 import { getSnackbarController } from "./snackbar.js";
+import { fetchJsonWithTimeout } from "./fetch-json.js";
 import { escapeHtml } from "./html.js";
 import { createWebcamThemeController } from "./webcam-theme.js";
 import { renderChangelogHtml } from "./webcam-changelog.js";
@@ -988,20 +989,7 @@ function resetBackoff() {
  * @throws {Error} If fetch fails, response not OK, or request times out.
  */
 async function fetchMetrics() {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-        controller.abort();
-    }, REQUEST_TIMEOUT_MS);
-    try {
-        const response = await fetch("/metrics", { signal: controller.signal });
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return await response.json();
-    }
-    finally {
-        clearTimeout(timeoutId);
-    }
+    return fetchJsonWithTimeout("/metrics", REQUEST_TIMEOUT_MS);
 }
 /**
  * Render metrics data in UI elements.
@@ -1301,20 +1289,7 @@ function refreshConfigPanel() {
  * Fetch configuration from /api/config endpoint
  */
 async function fetchConfig() {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-        controller.abort();
-    }, REQUEST_TIMEOUT_MS);
-    try {
-        const response = await fetch("/api/config", { signal: controller.signal });
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return await response.json();
-    }
-    finally {
-        clearTimeout(timeoutId);
-    }
+    return fetchJsonWithTimeout("/api/config", REQUEST_TIMEOUT_MS);
 }
 /**
  * Update configuration display

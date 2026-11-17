@@ -1026,51 +1026,6 @@
   font-style: italic;
 }
 
-/* Advanced Toggle */
-.advanced-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  background: none;
-  border: none;
-  cursor: pointer;
-  width: 100%;
-  padding: 0;
-  color: inherit;
-  font-size: 1.1rem;
-  font-weight: 600;
-  transition: color var(--transition-fast);
-}
-
-.advanced-toggle:hover {
-  color: var(--color-accent-primary);
-}
-
-.toggle-chevron {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.9rem;
-  transition: transform var(--transition-fast);
-}
-
-.advanced-toggle.expanded .toggle-chevron {
-  transform: rotate(90deg);
-}
-
-.advanced-content {
-  overflow: hidden;
-  max-height: 0;
-  transition:
-    max-height var(--transition-normal),
-    opacity var(--transition-normal);
-  opacity: 0;
-}
-
-.advanced-content.visible {
-  max-height: 2000px;
-  opacity: 1;
-}
-
 /* Device Status */
 .device-status {
   padding: var(--space-4);

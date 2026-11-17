@@ -60,7 +60,25 @@ test("management activity and runtime overrides start collapsed while attention 
 
   assert.match(template, /<details class="overview-panel ui-card overview-activity-panel">/);
   assert.match(template, /<h3>Needs attention<\/h3>/);
-  assert.match(template, /<details class="ui-settings-row ui-settings-row--disclosure runtime-overrides">/);
+  assert.match(
+    template,
+    /<details class="ui-settings-row ui-settings-row--disclosure runtime-overrides ui-disclosure">/,
+  );
   assert.match(template, /<details class="ui-card discovered-panel discovered-notes-panel">/);
   assert.match(template, /Select a device from the list to enable these actions/);
+});
+
+test("shared disclosure primitive animates intrinsic size and respects reduced motion", () => {
+  const styles = fs.readFileSync("pi_camera_in_docker/static/css/ui-primitives.css", "utf8");
+
+  assert.match(
+    styles,
+    /\.ui-disclosure::details-content\s*\{[^}]*interpolate-size:\s*allow-keywords;/s,
+  );
+  assert.match(
+    styles,
+    /\.ui-disclosure:not\(\[open\]\)::details-content\s*\{\s*block-size:\s*0;/,
+  );
+  assert.match(styles, /@media \(prefers-reduced-motion: no-preference\)/);
+  assert.match(styles, /transition-behavior:\s*allow-discrete;/);
 });

@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   confirmInDialog,
+  createSettingsConfirmationChangeItem,
+  createSettingsOverrideSummaryItem,
   filterCollectionRows,
   setFeedbackMessage,
 } from "../../frontend/src/ui-components.ts";
@@ -14,6 +16,22 @@ interface FilterRow {
 
 function makeRow(search: string, status: string): FilterRow {
   return { dataset: { search, status }, hidden: false, textContent: search };
+}
+
+class FakeUiElement {
+  className = "";
+  textContent: string | null = null;
+  children: FakeUiElement[] = [];
+
+  replaceChildren(...children: FakeUiElement[]): void {
+    this.children = children;
+  }
+}
+
+class FakeUiDocument {
+  createElement(_tagName: string): FakeUiElement {
+    return new FakeUiElement();
+  }
 }
 
 class FakeConfirmationDialog extends EventTarget {
@@ -177,5 +195,49 @@ test("confirmation dialog fails closed when the browser cannot open it", async (
       confirmLabel: "Remove webcam",
     }),
     false,
+  );
+});
+
+test("settings change UI components build reusable text-only DOM", () => {
+  const document = new FakeUiDocument() as unknown as Document;
+  const confirmation = createSettingsConfirmationChangeItem(
+    document,
+    {
+      category: "camera",
+      property: "resolution",
+      oldValue: "640x480",
+      newValue: "<img src=x onerror=alert(1)>",
+    },
+    (value) => String(value),
+  ) as unknown as FakeUiElement;
+
+  assert.equal(confirmation.className, "settings-confirm-change-item");
+  assert.deepEqual(
+    confirmation.children.map((child) => [child.className, child.textContent]),
+    [
+      ["settings-confirm-change-path", "camera.resolution"],
+      ["settings-confirm-change-values", "640x480 → <img src=x onerror=alert(1)>"],
+    ],
+  );
+
+  const summary = createSettingsOverrideSummaryItem(document, {
+    category: "camera",
+    key: "resolution",
+    value: "<script>unsafe</script>",
+    envValue: "640x480",
+    restartable: true,
+  }) as unknown as FakeUiElement;
+  const [path, values] = summary.children;
+
+  assert.equal(summary.className, "settings-change-item");
+  assert.equal(path.className, "settings-change-path");
+  assert.equal(path.textContent, "camera.resolution");
+  assert.deepEqual(
+    values.children.map((child) => [child.className, child.textContent]),
+    [
+      ["settings-change-value", "Current: <script>unsafe</script>"],
+      ["settings-change-value", "Default: 640x480"],
+      ["settings-change-badge", "Restart required"],
+    ],
   );
 });
