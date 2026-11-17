@@ -283,6 +283,7 @@ def test_docker_publish_pins_buildx_and_runs_one_promote_verifier(workspace_root
 
     assert len(buildx_steps) == 2
     assert all(step["with"]["version"] == "v0.38.2" for step in buildx_steps)
+    assert all(step["with"]["cache-binary"] is False for step in buildx_steps)
 
     publish_steps = workflow["jobs"]["publish"]["steps"]
     assert not any(
