@@ -20,6 +20,7 @@ import { showWebcamHelpModal } from "./webcam-help-modal.js";
 import { updateMioMascotForTab as updateMioMascot } from "./mio-mascot.js";
 import { getSnackbarController } from "./snackbar.js";
 import { fetchJsonWithTimeout } from "./fetch-json.js";
+import { handleStatsUpdateFailure } from "./stats-update-error.js";
 import { escapeHtml } from "./html.js";
 import { createWebcamThemeController } from "./webcam-theme.js";
 import { renderChangelogHtml } from "./webcam-changelog.js";
@@ -668,12 +669,13 @@ async function updateStats() {
             requestAnimationFrame(() => renderMetrics(data));
         }
         catch (error) {
-            if (error instanceof Error && error.name === "AbortError") {
-                console.warn("Stats request timed out, will retry.");
-                increaseBackoff();
-                return;
-            }
-            handleStatsUpdateError(error);
+            handleStatsUpdateFailure(error, {
+                onTimeout: () => {
+                    console.warn("Stats request timed out, will retry.");
+                    increaseBackoff();
+                },
+                onFailure: handleStatsUpdateError,
+            });
             return;
         }
     }

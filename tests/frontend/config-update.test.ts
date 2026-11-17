@@ -124,6 +124,23 @@ test("runConfigUpdate reports timeouts without clearing the last display", async
   assert.equal(state.configInFlight, false);
 });
 
+test("runConfigUpdate reports AbortSignal timeout errors without clearing the last display", async () => {
+  const dependencies = createDependencies({
+    fetchConfig: async () => {
+      throw new DOMException("deadline exceeded", "TimeoutError");
+    },
+  });
+  const state = createState();
+
+  await runConfigUpdate(state, dependencies);
+  assert.deepEqual(dependencies.calls.warnings, ["Config request timed out, will retry."]);
+  assert.deepEqual(dependencies.calls.errors, [
+    "Configuration request timed out. Will retry automatically.",
+  ]);
+  assert.equal(dependencies.calls.cleared, 0);
+  assert.equal(state.configInFlight, false);
+});
+
 test("runConfigUpdate clears stale values and reports ordinary failures", async () => {
   const dependencies = createDependencies({
     fetchConfig: async () => {

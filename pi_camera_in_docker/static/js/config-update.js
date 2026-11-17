@@ -1,6 +1,4 @@
-function isAbortError(error) {
-    return (typeof error === "object" && error !== null && "name" in error && error.name === "AbortError");
-}
+import { isRequestTimeoutError } from "./fetch-json.js";
 function errorMessage(error) {
     return typeof error === "object" &&
         error !== null &&
@@ -32,7 +30,7 @@ export async function runConfigUpdate(state, dependencies) {
             dependencies.onSuccess?.();
         }
         catch (error) {
-            if (isAbortError(error)) {
+            if (isRequestTimeoutError(error)) {
                 dependencies.logger.warn("Config request timed out, will retry.");
                 dependencies.showConfigError("Configuration request timed out. Will retry automatically.");
                 return;

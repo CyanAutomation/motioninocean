@@ -21,5 +21,23 @@ export async function fetchJsonWithTimeout<T>(
   return (await response.json()) as T;
 }
 
+/**
+ * Check whether a request failure represents a deadline or an abort.
+ *
+ * AbortError remains supported for callers that use AbortController directly, while
+ * AbortSignal.timeout() rejects with TimeoutError.
+ *
+ * @param error - Caught request failure.
+ * @returns Whether the failure came from an abort or request deadline.
+ */
+export function isRequestTimeoutError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    (error.name === "TimeoutError" || error.name === "AbortError")
+  );
+}
+
 /** Fetch implementation accepted by fetchJsonWithTimeout. */
 export type JsonFetcher = typeof fetch;

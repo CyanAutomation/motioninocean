@@ -1,3 +1,5 @@
+import { isRequestTimeoutError } from "./fetch-json.js";
+
 export interface ConfigUpdateState {
   configInFlight: boolean;
   configInitialLoadPending: boolean;
@@ -20,12 +22,6 @@ export interface ConfigUpdateDependencies {
   onSuccess?: () => void;
   schedule?: (callback: () => void, delay?: number) => ReturnType<typeof setTimeout> | number;
   cancel?: (timer: ReturnType<typeof setTimeout> | number) => void;
-}
-
-function isAbortError(error: unknown): boolean {
-  return (
-    typeof error === "object" && error !== null && "name" in error && error.name === "AbortError"
-  );
 }
 
 function errorMessage(error: unknown): string {
@@ -64,7 +60,7 @@ export async function runConfigUpdate(
       state.lastConfigUpdate = new Date();
       dependencies.onSuccess?.();
     } catch (error) {
-      if (isAbortError(error)) {
+      if (isRequestTimeoutError(error)) {
         dependencies.logger.warn("Config request timed out, will retry.");
         dependencies.showConfigError("Configuration request timed out. Will retry automatically.");
         return;

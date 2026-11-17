@@ -1,6 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fetchJsonWithTimeout, type JsonFetcher } from "../../frontend/src/fetch-json.ts";
+import {
+  fetchJsonWithTimeout,
+  isRequestTimeoutError,
+  type JsonFetcher,
+} from "../../frontend/src/fetch-json.ts";
+
+test("isRequestTimeoutError recognizes timeout and abort reasons", () => {
+  const abortError = new Error("aborted");
+  abortError.name = "AbortError";
+
+  assert.equal(isRequestTimeoutError(new DOMException("deadline", "TimeoutError")), true);
+  assert.equal(isRequestTimeoutError(abortError), true);
+  assert.equal(isRequestTimeoutError(new Error("offline")), false);
+  assert.equal(isRequestTimeoutError(null), false);
+});
 
 test("fetchJsonWithTimeout passes a timeout signal and returns JSON", async () => {
   const request = { signal: undefined as AbortSignal | undefined };
