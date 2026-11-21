@@ -1,36 +1,35 @@
-name: Kaseki DRY Sweep
+name: Kaseki DRY Sweep via Soyuz
 
 on:
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
-run-name: >-
-  DRY sweep · ${{ github.repository }}@main
+run-name: DRY sweep · ${{ github.repository }}@${{ github.sha }}
 
-permissions: {}
+permissions:
+  contents: read
 
-# Protect the complete external Kaseki run from overlapping sweeps.
+# Avoid duplicate Soyuz submissions from overlapping scheduled sweeps.
 concurrency:
-  group: kaseki-dry-sweep-${{ github.repository }}
+  group: soyuz-dry-sweep-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
   dry_sweep:
-    name: Run Kaseki DRY sweep
+    name: Submit DRY sweep to Soyuz
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
-    # Kaseki allows a run to last three hours; leave time for
-    # preflight and final status polling.
-    timeout-minutes: 200
+    # Submission retries are bounded; execution continues on the host.
+    timeout-minutes: 15
 
-    # Configure KASEKI_API_TOKEN as a secret and KASEKI_BASE_URL as an
-    # environment variable.
-    environment: kaseki-agent
+    # Configure SOYUZ_BASE_URL and SOYUZ_SUBMISSION_API_TOKEN in the
+    # soyuz environment. Restrict that environment to main.
+    environment: soyuz
 
     env:
-      KASEKI_BASE_URL: ${{ vars.KASEKI_BASE_URL }}
+      SOYUZ_BASE_URL: ${{ vars.SOYUZ_BASE_URL }}
 
       REPO_URL: ${{ github.server_url }}/${{ github.repository }}
       REF: main
@@ -44,138 +43,26 @@ jobs:
       VALIDATION_COMMAND: make ci
 
     steps:
-      - name: Validate Kaseki configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          : "${KASEKI_BASE_URL:?Configure KASEKI_BASE_URL as an environment variable}"
-          if [[ "$KASEKI_BASE_URL" != "https://kaseki-tunnel.scheimann.xyz" ]]; then
-            echo "::error title=Invalid Kaseki URL::Use the approved HTTPS controller URL."
-            exit 1
-          fi
-
-      - name: Verify controller health
-        uses: CyanAutomation/kaseki-agent/.github/actions/verify-controller-health@30db5d15e117b8d8de13eb66766d48cf6b7d618b
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          base-url: ${{ vars.KASEKI_BASE_URL }}
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
 
-      - name: Verify controller readiness
-        shell: bash
-        run: |
-          set -euo pipefail
+      - name: Validate Soyuz URL
+        run: node --experimental-strip-types scripts/validate-soyuz-url.ts
 
-          response_file="$(mktemp)"
-          trap 'rm -f "$response_file"' EXIT
-
-          curl --fail-with-body --silent --show-error \
-            --retry 3 --retry-all-errors \
-            --connect-timeout 10 --max-time 20 \
-            --output "$response_file" \
-            "$KASEKI_BASE_URL/ready"
-
-          jq -e '.status == "ready"' "$response_file" >/dev/null
-
-          echo "Kaseki readiness check succeeded."
-
-      - name: Verify gateway connectivity and authentication
-        shell: bash
-        env:
-          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
-        run: |
-          set -euo pipefail
-
-          : "${KASEKI_API_TOKEN:?Configure KASEKI_API_TOKEN as an environment secret}"
-          response_file="$(mktemp)"
-          trap 'rm -f "$response_file"' EXIT
-
-          curl --fail-with-body --silent --show-error \
-            --retry 3 \
-            --connect-timeout 10 --max-time 60 \
-            --output "$response_file" \
-            --header "Authorization: Bearer $KASEKI_API_TOKEN" \
-            "$KASEKI_BASE_URL/api/v1/gateway-test?stage=1"
-
-          jq -e '.status == "ok"' "$response_file" >/dev/null
-
-          echo "Kaseki gateway authentication succeeded."
-
-      - name: Verify Kaseki API capabilities
-        shell: bash
-        env:
-          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
-        run: |
-          set -euo pipefail
-
-          : "${KASEKI_API_TOKEN:?Configure KASEKI_API_TOKEN as an environment secret}"
-          response_file="$(mktemp)"
-          trap 'rm -f "$response_file"' EXIT
-
-          http_status="$(
-            curl --silent --show-error \
-              --retry 3 --retry-all-errors \
-              --connect-timeout 10 --max-time 20 \
-              --output "$response_file" \
-              --write-out '%{http_code}' \
-              --header "Authorization: Bearer $KASEKI_API_TOKEN" \
-              "$KASEKI_BASE_URL/api/v1/capabilities"
-          )"
-
-          if [[ "$http_status" != "200" ]]; then
-            echo "::error title=Kaseki capabilities check failed::Kaseki returned HTTP $http_status"
-            exit 1
-          fi
-
-          if ! jq -e '(.taskModes | index("patch")) != null and (.publishModes | index("pr")) != null' \
-            "$response_file" >/dev/null; then
-            echo "::error title=Unsupported Kaseki API capabilities::The controller must support patch tasks and pr publishing."
-            exit 1
-          fi
-
-          echo "Kaseki supports patch tasks and regular PR publishing."
-
-      - name: Verify Kaseki runner preflight
-        shell: bash
-        env:
-          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
-        run: |
-          set -euo pipefail
-
-          : "${KASEKI_API_TOKEN:?Configure KASEKI_API_TOKEN as an environment secret}"
-          response_file="$(mktemp)"
-          trap 'rm -f "$response_file"' EXIT
-
-          http_status="$(
-            curl --silent --show-error \
-              --retry 3 --retry-all-errors \
-              --connect-timeout 10 --max-time 60 \
-              --output "$response_file" \
-              --write-out '%{http_code}' \
-              --header "Authorization: Bearer $KASEKI_API_TOKEN" \
-              "$KASEKI_BASE_URL/api/v1/preflight"
-          )"
-
-          preflight_status="$(jq -r '.status // "unknown"' "$response_file" 2>/dev/null || true)"
-          failed_checks="$(jq -r '[.failedChecks[]?.name // empty] | join(", ")' "$response_file" 2>/dev/null || true)"
-
-          if [[ "$http_status" != "200" ]] || \
-            ! jq -e '(.status == "ok" or .status == "degraded") and ((.failedChecks // []) | length == 0) and ((.errors // []) | length == 0)' \
-              "$response_file" >/dev/null 2>&1; then
-            echo "::error title=Kaseki runner preflight failed::HTTP $http_status; status=$preflight_status${failed_checks:+; failed checks=$failed_checks}"
-            exit 1
-          fi
-
-          echo "Kaseki runner preflight passed (status: $preflight_status)."
-
-      - name: Submit DRY sweep
+      - name: Submit DRY sweep to Soyuz
         id: submit
         shell: bash
         env:
-          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
+          SOYUZ_SUBMISSION_API_TOKEN: ${{ secrets.SOYUZ_SUBMISSION_API_TOKEN }}
         run: |
           set -euo pipefail
+          : "${SOYUZ_SUBMISSION_API_TOKEN:?Configure SOYUZ_SUBMISSION_API_TOKEN as an environment secret}"
 
-          : "${KASEKI_API_TOKEN:?Configure KASEKI_API_TOKEN as an environment secret}"
           idempotency_key="$(
             tr '[:upper:]' '[:lower:]' < /proc/sys/kernel/random/uuid
           )"
@@ -194,6 +81,7 @@ jobs:
                 taskMode: "patch",
                 publishMode: "pr",
                 timeoutSeconds: 10800,
+                maxDiffBytes: 102400,
                 idempotencyKey: $idempotencyKey,
 
                 changedFilesAllowlist: (
@@ -243,139 +131,62 @@ jobs:
           trap 'rm -f "$response_file"' EXIT
 
           http_status="$(
-            curl --silent --show-error \
+            curl --proto '=https' --tlsv1.2 --fail-with-body --silent --show-error \
               --retry 3 --retry-all-errors \
-              --max-time 60 \
+              --connect-timeout 10 \
+              --max-time 60 --max-filesize 1048576 \
               --output "$response_file" \
               --write-out '%{http_code}' \
-              --request POST "$KASEKI_BASE_URL/api/v1/runs" \
-              --header "Authorization: Bearer $KASEKI_API_TOKEN" \
-              --header "Content-Type: application/json" \
-              --data "$payload"
+              --request POST "$SOYUZ_BASE_URL/v1/runs" \
+              --header "Authorization: Bearer $SOYUZ_SUBMISSION_API_TOKEN" \
+              --header "Idempotency-Key: $idempotency_key" \
+              --header 'Content-Type: application/json' \
+              --data "$payload" || true
           )"
 
-          if [[ ! "$http_status" =~ ^2 ]]; then
-            echo "::error title=Kaseki submission failed::Kaseki returned HTTP $http_status"
-            controller_error="$(jq -r '
-              [
-                (.error // empty | tostring),
-                (if (.requestId // "") == "" then empty else "requestId=" + (.requestId | tostring) end)
-              ]
-              | map(gsub("%"; "%25") | gsub("[\\r\\n]"; " ") | .[0:300])
-              | map(select(length > 0))
-              | join(" ")
-            ' "$response_file" 2>/dev/null || true)"
-            if [[ -n "$controller_error" ]]; then
-              echo "Controller response: $controller_error"
-              echo "Controller response: $controller_error" >> "$GITHUB_STEP_SUMMARY"
-            fi
+          if [[ ! "$http_status" =~ ^(200|202)$ ]]; then
+            echo "::error title=Soyuz submission failed::Soyuz returned HTTP $http_status"
+            {
+              echo "Soyuz returned HTTP \`$http_status\`. Response body omitted."
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 
-          run_id="$(jq -er '.id' "$response_file")"
-
-          if [[ ${#run_id} -gt 128 || ${#run_id} -lt 1 ]]; then
-            echo "::error title=Invalid Kaseki run ID::Controller returned an invalid run ID (invalid length)"
-            exit 1
-          fi
-
-          case "$run_id" in
-            *[!A-Za-z0-9_-]*)
-              echo "::error title=Invalid Kaseki run ID::Controller returned an invalid run ID (invalid characters)"
-              exit 1
-              ;;
-          esac
-
-          output_delimiter="$(uuidgen)"
-
+          run_id="$(jq -er '.data.id | strings' "$response_file")"
+          run_id="$(SOYUZ_RUN_ID="$run_id" node --experimental-strip-types scripts/validate-soyuz-run-id.ts)"
+          display_id="$(jq -er '.data.displayId | strings | select(test("^soyuz-[0-9]+$"))' "$response_file")"
+          run_status="$(jq -er '.data.status | strings | select(test("^(admitting|queued|claimed|running|cancel_requested|cancelled|completed|failed|admission_failed)$"))' "$response_file")"
           {
-            echo "run_id<<$output_delimiter"
-            echo "$run_id"
-            echo "$output_delimiter"
+            echo "run_id=$run_id"
+            echo "display_id=$display_id"
+            echo "run_status=$run_status"
+            echo "submission_status=accepted"
           } >> "$GITHUB_OUTPUT"
 
-          echo "idempotency_key=$idempotency_key" >> "$GITHUB_OUTPUT"
+          echo "Soyuz accepted the DRY sweep as $display_id."
 
-          echo "Kaseki DRY sweep submitted."
-
-      - name: Wait for Kaseki completion
-        id: wait
-        shell: bash
-        env:
-          RUN_ID: ${{ steps.submit.outputs.run_id }}
-          KASEKI_API_TOKEN: ${{ secrets.KASEKI_API_TOKEN }}
-        run: |
-          set -euo pipefail
-
-          : "${KASEKI_API_TOKEN:?Configure KASEKI_API_TOKEN as an environment secret}"
-          response_file="$(mktemp)"
-          trap 'rm -f "$response_file"' EXIT
-
-          # Kaseki can run for up to three hours. Poll a little longer so a
-          # terminal result created near that limit is still observed.
-          for _ in $(seq 1 185); do
-            curl --fail-with-body --silent --show-error \
-              --retry 3 --retry-all-errors \
-              --connect-timeout 10 --max-time 60 \
-              --output "$response_file" \
-              --header "Authorization: Bearer $KASEKI_API_TOKEN" \
-              "$KASEKI_BASE_URL/api/v1/runs/$RUN_ID/status"
-
-            status="$(jq -er '.status' "$response_file")"
-
-            case "$status" in
-              completed)
-                echo "status=$status" >> "$GITHUB_OUTPUT"
-                echo "Kaseki status: completed"
-                exit 0
-                ;;
-
-              failed)
-                failure_class="$(jq -r '.failureClass // ""' "$response_file")"
-                if [[ "$failure_class" == "empty-diff" ]]; then
-                  echo "status=no_changes" >> "$GITHUB_OUTPUT"
-                  echo "Kaseki completed without changes; treating the expected empty diff as a successful no-op."
-                  exit 0
-                fi
-
-                echo "status=$status" >> "$GITHUB_OUTPUT"
-                echo "Kaseki run failed (failure class: ${failure_class:-unknown})."
-                exit 1
-                ;;
-
-              queued|running)
-                echo "Kaseki status: $status"
-                sleep 60
-                ;;
-
-              *)
-                echo "::error title=Unexpected Kaseki status::Controller returned an unsupported status"
-                exit 1
-                ;;
-            esac
-          done
-
-          echo "::error title=Kaseki run timed out::No terminal status after 185 minutes"
-          exit 1
-
-      - name: Publish run details
+      - name: Publish Soyuz submission details
         if: always()
         shell: bash
         env:
           RUN_ID: ${{ steps.submit.outputs.run_id || 'not submitted' }}
-          FINAL_STATUS: ${{ steps.wait.outputs.status || 'not completed' }}
+          DISPLAY_ID: ${{ steps.submit.outputs.display_id || 'not assigned' }}
+          RUN_STATUS: ${{ steps.submit.outputs.run_status || 'not received' }}
+          SUBMISSION_STATUS: ${{ steps.submit.outputs.submission_status || 'not accepted' }}
         run: |
           {
-            echo "## Kaseki DRY sweep"
+            echo "## Soyuz DRY submission"
             echo
             echo "| Setting | Value |"
             echo "|---|---|"
             echo "| Repository | \`$REPO_URL\` |"
             echo "| Ref | \`$REF\` |"
-            echo "| Mode | \`patch\` → \`pr\` (regular PR) |"
             echo "| Allowed paths | \`$ALLOWLIST\` |"
             echo "| Validation | \`$VALIDATION_COMMAND\` |"
             echo "| Maximum refactorings | \`1\` |"
-            echo "| Kaseki run | \`$RUN_ID\` |"
-            echo "| Final status | \`$FINAL_STATUS\` |"
+            echo "| Submission | \`$SUBMISSION_STATUS\` |"
+            echo "| Soyuz run | \`$DISPLAY_ID\` (\`$RUN_ID\`) |"
+            echo "| Run status at submission | \`$RUN_STATUS\` |"
+            echo
+            echo "Accepted means Soyuz admitted the task; it does not confirm execution completion. Monitor the run in the Soyuz dashboard."
           } >> "$GITHUB_STEP_SUMMARY"
