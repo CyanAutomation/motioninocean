@@ -63,33 +63,46 @@ def test_privileged_manual_workflows_are_default_branch_only(workspace_root):
         )
 
 
-def test_kaseki_workflows_target_main_without_github_token_permissions(workspace_root):
-    """Keep both Kaseki jobs on main and deny the unused workflow token."""
+def test_soyuz_workflows_target_main_with_read_only_checkout_permissions(workspace_root):
+    """Keep both Soyuz submission jobs on main with minimum checkout access."""
     jobs = {
-        "kaseki-docs.yaml": {"system_status", "readiness", "api_connection", "dispatch"},
+        "kaseki-docs.yaml": {"docs_sweep"},
         "kaseki-dry.yaml": {"dry_sweep"},
     }
 
     for filename, job_names in jobs.items():
         workflow = load_workflow(workspace_root, filename)
-        ref = workflow.get("env", {}).get("REF")
-        if ref is None:
-            ref = workflow["jobs"]["dry_sweep"]["env"]["REF"]
+        job_name = next(iter(job_names))
+        job = workflow["jobs"][job_name]
 
-        assert workflow["permissions"] == {}
-        assert ref == "main"
-        assert "@main" in workflow["run-name"]
+        assert workflow["permissions"] == {"contents": "read"}
+        assert job["env"]["REF"] == "main"
+        assert "${{ github.sha }}" in workflow["run-name"]
         assert set(workflow["jobs"]) == job_names
-        assert all(
-            workflow["jobs"][job_name]["if"] == "github.ref == 'refs/heads/main'"
-            for job_name in job_names
+        assert job["if"] == "github.ref == 'refs/heads/main'"
+        assert job["environment"] == "soyuz"
+        assert job["timeout-minutes"] == 15
+
+        checkout = next(
+            step for step in job["steps"] if step.get("uses", "").startswith("actions/checkout@")
         )
+        setup_node = next(
+            step for step in job["steps"] if step.get("uses", "").startswith("actions/setup-node@")
+        )
+        assert checkout["with"] == {"ref": "${{ github.sha }}", "persist-credentials": False}
+        assert setup_node["with"]["node-version"] == "26"
+
+        workflow_text = (workspace_root / ".github" / "workflows" / filename).read_text()
+        assert "KASEKI_" not in workflow_text
+        assert "kaseki-agent" not in workflow_text
+        assert "Verify Kaseki" not in workflow_text
+        assert "Wait for Kaseki completion" not in workflow_text
 
 
-def test_kaseki_workflows_use_existing_validation_commands(workspace_root):
+def test_soyuz_workflows_use_existing_validation_commands(workspace_root):
     """Use CI validation for code changes and Sphinx validation for docs changes."""
     docs = load_workflow(workspace_root, "kaseki-docs.yaml")
-    docs_command = docs["env"]["VALIDATION_COMMAND"]
+    docs_command = docs["jobs"]["docs_sweep"]["env"]["VALIDATION_COMMAND"]
     makefile = (workspace_root / "Makefile").read_text()
     assert docs_command == "make docs-check"
     assert re.search(r"(?m)^docs-check\s*:", makefile)
@@ -100,81 +113,93 @@ def test_kaseki_workflows_use_existing_validation_commands(workspace_root):
     assert re.search(r"(?m)^ci\s*:", makefile)
 
 
-def test_kaseki_workflows_check_api_capabilities_and_preflight(workspace_root):
-    """Reject unsupported modes and unavailable runner prerequisites before dispatch."""
+def test_soyuz_workflows_validate_configuration_and_submit_securely(workspace_root):
+    """Validate the configured Soyuz origin and submit an authenticated idempotent request."""
     workflows = {
-        "kaseki-docs.yaml": "dispatch",
+        "kaseki-docs.yaml": "docs_sweep",
         "kaseki-dry.yaml": "dry_sweep",
     }
 
     for filename, job_name in workflows.items():
         workflow = load_workflow(workspace_root, filename)
         steps = workflow["jobs"][job_name]["steps"]
-        capabilities = next(
-            step for step in steps if step.get("name") == "Verify Kaseki API capabilities"
-        )
-        preflight = next(
-            step for step in steps if step.get("name") == "Verify Kaseki runner preflight"
-        )
-
-        # Kaseki mounts its public API under /api/v1; only health/readiness
-        # probes remain at the root.
-        assert "$KASEKI_BASE_URL/api/v1/capabilities" in capabilities["run"]
-        assert 'index("patch")' in capabilities["run"]
-        assert 'index("pr")' in capabilities["run"]
-        assert capabilities["env"]["KASEKI_API_TOKEN"] == "${{ secrets.KASEKI_API_TOKEN }}"
-
-        assert "$KASEKI_BASE_URL/api/v1/preflight" in preflight["run"]
-        assert ".failedChecks" in preflight["run"]
-        assert ".errors" in preflight["run"]
-        assert preflight["env"]["KASEKI_API_TOKEN"] == "${{ secrets.KASEKI_API_TOKEN }}"
-        assert steps.index(capabilities) < steps.index(preflight)
+        validate_url = next(step for step in steps if step.get("name") == "Validate Soyuz URL")
         submit = next(step for step in steps if step.get("id") == "submit")
-        assert steps.index(preflight) < steps.index(submit)
-
-
-def test_kaseki_workflows_use_supported_publish_mode_and_expose_noop_success(workspace_root):
-    """Use the API's PR mode and make expected empty diffs successful outcomes."""
-    workflows = {
-        "kaseki-docs.yaml": ("dispatch", "Wait for Kaseki completion"),
-        "kaseki-dry.yaml": ("dry_sweep", "Wait for Kaseki completion"),
-    }
-
-    for filename, (job_name, wait_name) in workflows.items():
-        workflow = load_workflow(workspace_root, filename)
-        job = workflow["jobs"][job_name]
-        steps = job["steps"]
-        submit = next(step for step in steps if step.get("id") == "submit")
-        wait = next(step for step in steps if step.get("name") == wait_name)
         summary = next(step for step in steps if step.get("if") == "always()")
 
-        assert 'publishMode: "pr"' in submit["run"]
-        assert "failureClass" in wait["run"]
-        assert '"empty-diff"' in wait["run"]
-        assert "no_changes" in wait["run"]
-        assert "FINAL_STATUS" in summary["run"]
-        assert summary["run"].count('echo "| Mode |') == 1
-        assert job["timeout-minutes"] == 200
-
-    docs_steps = load_workflow(workspace_root, "kaseki-docs.yaml")["jobs"]["dispatch"]["steps"]
-    docs_submit = next(step for step in docs_steps if step.get("id") == "submit")
-    assert "goalSetting" not in docs_submit["run"]
-
-
-def test_kaseki_submission_errors_report_structured_controller_details(workspace_root):
-    """Expose the API's safe error and request ID fields, not the raw body."""
-    workflows = {
-        "kaseki-docs.yaml": "dispatch",
-        "kaseki-dry.yaml": "dry_sweep",
-    }
-
-    for filename, job_name in workflows.items():
-        workflow = load_workflow(workspace_root, filename)
-        submit = next(
-            step for step in workflow["jobs"][job_name]["steps"] if step.get("id") == "submit"
+        assert (
+            validate_url["run"] == "node --experimental-strip-types scripts/validate-soyuz-url.ts"
         )
-        assert ".error" in submit["run"]
-        assert ".requestId" in submit["run"]
+        assert (
+            submit["env"]["SOYUZ_SUBMISSION_API_TOKEN"]
+            == "${{ secrets.SOYUZ_SUBMISSION_API_TOKEN }}"
+        )
+        assert '"$SOYUZ_BASE_URL/v1/runs"' in submit["run"]
+        assert '"Authorization: Bearer $SOYUZ_SUBMISSION_API_TOKEN"' in submit["run"]
+        assert '"Idempotency-Key: $idempotency_key"' in submit["run"]
+        assert "--proto '=https' --tlsv1.2" in submit["run"]
+        assert "^(200|202)$" in submit["run"]
+        assert '"^soyuz-[0-9]+$"' in submit["run"]
+        assert "validate-soyuz-run-id.ts" in submit["run"]
+        assert "Response body omitted" in submit["run"]
+        assert "Soyuz accepted" in submit["run"]
+        assert any(
+            label in summary["run"]
+            for label in (
+                "Soyuz documentation submission",
+                "Soyuz DRY submission",
+            )
+        )
+        assert "Accepted means Soyuz admitted the task" in summary["run"]
+
+
+def test_soyuz_workflows_keep_repository_specific_commands_and_paths(workspace_root):
+    """Keep the repo's own documentation and DRY validation settings during migration."""
+    docs = load_workflow(workspace_root, "kaseki-docs.yaml")
+    docs_env = docs["jobs"]["docs_sweep"]["env"]
+    assert docs_env["ALLOWLIST"] == "README.md,docs/**/*.md"
+    assert docs_env["VALIDATION_COMMAND"] == "make docs-check"
+    assert docs_env["TASK_DESCRIPTION"] == (
+        "Keep README.md and docs/ accurate against the current implementation."
+    )
+    assert docs[True]["schedule"][0]["cron"] == "0 5 * * 0"
+
+    dry = load_workflow(workspace_root, "kaseki-dry.yaml")
+    dry_env = dry["jobs"]["dry_sweep"]["env"]
+    assert (
+        dry_env["ALLOWLIST"] == "pi_camera_in_docker/**/*,frontend/src/**/*,scripts/**/*,tests/**/*"
+    )
+    assert dry_env["VALIDATION_COMMAND"] == "make ci"
+    assert dry[True]["schedule"][0]["cron"] == "0 6 * * 1"
+
+    for workflow, job_name in ((docs, "docs_sweep"), (dry, "dry_sweep")):
+        job = workflow["jobs"][job_name]
+        assert job["env"]["SOYUZ_BASE_URL"] == "${{ vars.SOYUZ_BASE_URL }}"
+        assert "SOYUZ_BASE_URL" not in workflow.get("env", {})
+        submit = next(step for step in job["steps"] if step.get("id") == "submit")
+        assert 'taskMode: "patch"' in submit["run"]
+        assert 'publishMode: "pr"' in submit["run"]
+        assert "timeoutSeconds: 10800" in submit["run"]
+        assert "maxDiffBytes: 102400" in submit["run"]
+        assert "changedFilesAllowlist" in submit["run"]
+        assert "validationCommands: [$validationCommand]" in submit["run"]
+
+    docs_submit = next(
+        step for step in docs["jobs"]["docs_sweep"]["steps"] if step.get("id") == "submit"
+    )
+    assert "scouting: { enabled: false }" in docs_submit["run"]
+    assert "goalSetting: { enabled: false }" in docs_submit["run"]
+    assert "goalCheck: { enabled: true, maxRetries: 1 }" in docs_submit["run"]
+    assert "documentation-only changes" in docs_submit["run"]
+
+    dry_submit = next(
+        step for step in dry["jobs"]["dry_sweep"]["steps"] if step.get("id") == "submit"
+    )
+    assert re.search(
+        r"goalCheck:\s*\{\s*enabled:\s*true,\s*maxRetries:\s*1\s*\}",
+        dry_submit["run"],
+    )
+    assert "Make at most one focused refactoring." in dry_submit["run"]
 
 
 def test_kaseki_dry_allowlist_covers_application_and_tests(workspace_root):
@@ -455,30 +480,20 @@ def test_ci_lints_action_workflows(workspace_root):
     assert ".github/workflows/*.yml .github/workflows/*.yaml" in actionlint["run"]
 
 
-def test_kaseki_dry_scopes_token_and_pins_controller_host(workspace_root):
-    """Only API steps receive the token, and only the approved controller is used."""
+def test_soyuz_dry_scopes_submission_token_to_submit_step(workspace_root):
+    """Limit the Soyuz credential to the authenticated request step."""
     workflow = load_workflow(workspace_root, "kaseki-dry.yaml")
     job = workflow["jobs"]["dry_sweep"]
-    assert "KASEKI_API_TOKEN" not in job["env"]
+    assert "SOYUZ_SUBMISSION_API_TOKEN" not in job["env"]
 
-    validation = next(
-        step for step in job["steps"] if step.get("name") == "Validate Kaseki configuration"
+    submit = next(step for step in job["steps"] if step.get("id") == "submit")
+    assert submit["env"]["SOYUZ_SUBMISSION_API_TOKEN"] == (
+        "${{ secrets.SOYUZ_SUBMISSION_API_TOKEN }}"
     )
-    assert '"https://kaseki-tunnel.scheimann.xyz"' in validation["run"]
 
-    token_steps = {
-        "Verify gateway connectivity and authentication",
-        "Verify Kaseki API capabilities",
-        "Verify Kaseki runner preflight",
-        "Submit DRY sweep",
-        "Wait for Kaseki completion",
-    }
-    found_token_steps = set()
     for step in job["steps"]:
-        if step.get("name") in token_steps:
-            found_token_steps.add(step["name"])
-            assert step["env"]["KASEKI_API_TOKEN"] == "${{ secrets.KASEKI_API_TOKEN }}"
-    assert found_token_steps == token_steps
+        if step is not submit:
+            assert "SOYUZ_SUBMISSION_API_TOKEN" not in step.get("env", {})
 
 
 def test_docker_publish_attests_both_registry_images(workspace_root):
