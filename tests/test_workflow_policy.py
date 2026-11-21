@@ -83,8 +83,12 @@ def test_soyuz_workflows_target_main_with_read_only_checkout_permissions(workspa
         assert job["environment"] == "soyuz"
         assert job["timeout-minutes"] == 15
 
-        checkout = next(step for step in job["steps"] if step.get("uses", "").startswith("actions/checkout@"))
-        setup_node = next(step for step in job["steps"] if step.get("uses", "").startswith("actions/setup-node@"))
+        checkout = next(
+            step for step in job["steps"] if step.get("uses", "").startswith("actions/checkout@")
+        )
+        setup_node = next(
+            step for step in job["steps"] if step.get("uses", "").startswith("actions/setup-node@")
+        )
         assert checkout["with"] == {"ref": "${{ github.sha }}", "persist-credentials": False}
         assert setup_node["with"]["node-version"] == "26"
 
@@ -123,8 +127,13 @@ def test_soyuz_workflows_validate_configuration_and_submit_securely(workspace_ro
         submit = next(step for step in steps if step.get("id") == "submit")
         summary = next(step for step in steps if step.get("if") == "always()")
 
-        assert validate_url["run"] == "node --experimental-strip-types scripts/validate-soyuz-url.ts"
-        assert submit["env"]["SOYUZ_SUBMISSION_API_TOKEN"] == "${{ secrets.SOYUZ_SUBMISSION_API_TOKEN }}"
+        assert (
+            validate_url["run"] == "node --experimental-strip-types scripts/validate-soyuz-url.ts"
+        )
+        assert (
+            submit["env"]["SOYUZ_SUBMISSION_API_TOKEN"]
+            == "${{ secrets.SOYUZ_SUBMISSION_API_TOKEN }}"
+        )
         assert '"$SOYUZ_BASE_URL/v1/runs"' in submit["run"]
         assert '"Authorization: Bearer $SOYUZ_SUBMISSION_API_TOKEN"' in submit["run"]
         assert '"Idempotency-Key: $idempotency_key"' in submit["run"]
@@ -157,7 +166,9 @@ def test_soyuz_workflows_keep_repository_specific_commands_and_paths(workspace_r
 
     dry = load_workflow(workspace_root, "kaseki-dry.yaml")
     dry_env = dry["jobs"]["dry_sweep"]["env"]
-    assert dry_env["ALLOWLIST"] == "pi_camera_in_docker/**/*,frontend/src/**/*,scripts/**/*,tests/**/*"
+    assert (
+        dry_env["ALLOWLIST"] == "pi_camera_in_docker/**/*,frontend/src/**/*,scripts/**/*,tests/**/*"
+    )
     assert dry_env["VALIDATION_COMMAND"] == "make ci"
     assert dry[True]["schedule"][0]["cron"] == "0 6 * * 1"
 
