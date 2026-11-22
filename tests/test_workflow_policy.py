@@ -630,7 +630,11 @@ def test_ci_builds_docs_and_validates_mermaid_diagrams(workspace_root):
     assert all("==" in line for line in pinned_requirements)
 
     makefile = (workspace_root / "Makefile").read_text()
-    assert "$(PIP) install -r requirements-docs.txt" in makefile
+    docs_install = (
+        '"$(DOCS_PYTHON)" -m pip install -r "$(MOTION_ROOT)requirements.txt" '
+        '-r "$(MOTION_ROOT)requirements-docs.txt"'
+    )
+    assert docs_install in makefile
 
 
 def test_security_scan_smokes_mock_camera_containers_on_both_architectures(workspace_root):

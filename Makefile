@@ -8,8 +8,11 @@ DEBIAN_SUITE ?= bookworm
 RPI_SUITE ?= bookworm
 PYTHON ?= python3
 PIP := $(PYTHON) -m pip
+MOTION_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+DOCS_VENV ?= $(MOTION_ROOT).venv-docs
+DOCS_PYTHON ?= $(abspath $(DOCS_VENV)/bin/python)
 
-.PHONY: help install install-dev install-node ensure-dev-tools test test-frontend frontend-health lint format type-check security check-feature-flag-usage check-skill-review-freshness clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams docs-build docs-check jsdoc docs-clean ci validate
+.PHONY: help install install-dev install-node ensure-dev-tools ensure-docs-tools test test-frontend frontend-health lint format type-check security check-feature-flag-usage check-skill-review-freshness clean run-mock docker-build docker-build-prod docker-build-arm64 docker-build-prod-arm64 docker-build-amd64 docker-build-prod-amd64 docker-build-all docker-build-prod-all docker-run docker-stop docker-clean pre-commit validate-diagrams docs-build docs-check jsdoc docs-clean ci validate
 
 # Default target: show help
 help:
@@ -127,22 +130,23 @@ check-feature-flag-usage:
 	$(PYTHON) -m pi_camera_in_docker.feature_flag_usage_check
 
 # Documentation targets
-docs-build:
-	@echo "Building Sphinx documentation..."
-	@if ! $(PYTHON) -c "import importlib.util, sys; sys.exit(0 if all(importlib.util.find_spec(name) for name in ('sphinx', 'myst_parser', 'sphinxcontrib.mermaid')) else 1)"; then \
-		echo "Installing pinned Sphinx and Markdown/Mermaid dependencies..."; \
-		$(PIP) install -r requirements-docs.txt; \
+ensure-docs-tools:
+	@if [ ! -x "$(DOCS_PYTHON)" ]; then \
+		$(PYTHON) -m venv "$(DOCS_VENV)"; \
 	fi
-	@cd docs && $(PYTHON) -m sphinx -b html -W . _build/html
+	@if ! "$(DOCS_PYTHON)" -c "import importlib.util, sys; sys.exit(0 if all(importlib.util.find_spec(name) for name in ('flask', 'flask_compress', 'PIL', 'sphinx', 'myst_parser', 'sphinxcontrib.mermaid')) else 1)"; then \
+		echo "Installing application and pinned documentation dependencies into $(DOCS_VENV)..."; \
+		"$(DOCS_PYTHON)" -m pip install -r "$(MOTION_ROOT)requirements.txt" -r "$(MOTION_ROOT)requirements-docs.txt"; \
+	fi
+
+docs-build: ensure-docs-tools
+	@echo "Building Sphinx documentation..."
+	@cd "$(MOTION_ROOT)docs" && "$(DOCS_PYTHON)" -m sphinx -b html -W . _build/html
 	@echo "✓ Documentation built to docs/_build/html/index.html"
 
-docs-check:
+docs-check: ensure-docs-tools
 	@echo "Checking documentation build (warnings as errors)..."
-	@if ! $(PYTHON) -c "import importlib.util, sys; sys.exit(0 if all(importlib.util.find_spec(name) for name in ('sphinx', 'myst_parser', 'sphinxcontrib.mermaid')) else 1)"; then \
-		echo "Installing pinned Sphinx and Markdown/Mermaid dependencies..."; \
-		$(PIP) install -r requirements-docs.txt; \
-	fi
-	@cd docs && $(PYTHON) -m sphinx -b html -W --keep-going . _build/html
+	@cd "$(MOTION_ROOT)docs" && "$(DOCS_PYTHON)" -m sphinx -b html -W --keep-going . _build/html
 	@echo "✓ Documentation check passed!"
 
 jsdoc:

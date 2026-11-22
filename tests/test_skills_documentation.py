@@ -248,23 +248,32 @@ def test_docs_check_uses_selected_python_and_propagates_build_failure(tmp_path: 
     fake_python = tmp_path / "python"
     fake_python.write_text(
         "#!/bin/sh\n"
+        'printf "%s %s\\n" "$0" "$*" >> "$DOCS_TEST_CALLS"\n'
         'case "$*" in\n'
-        '  *"-c "*) exit 0 ;;\n'
+        '  *"-m venv "*) mkdir -p "$3/bin"; cp "$0" "$3/bin/python"; exit 0 ;;\n'
+        '  *"-c "*) exit 1 ;;\n'
+        '  *"-m pip install "*) exit 0 ;;\n'
         '  *"-m sphinx "*) echo "simulated Sphinx failure" >&2; exit 19 ;;\n'
         "  *) exit 20 ;;\n"
         "esac\n",
         encoding="utf-8",
     )
     fake_python.chmod(0o755)
+    docs_venv = tmp_path / "docs-venv"
+    calls_file = tmp_path / "calls.log"
     result = subprocess.run(
-        ["make", "docs-check", f"PYTHON={fake_python}"],
+        ["make", "docs-check", f"PYTHON={fake_python}", f"DOCS_VENV={docs_venv}"],
         cwd=REPO_ROOT,
+        env={**os.environ, "DOCS_TEST_CALLS": str(calls_file)},
         capture_output=True,
         text=True,
         check=False,
     )
     assert result.returncode != 0, "Sphinx failures must fail the docs check"
     assert "simulated Sphinx failure" in result.stdout + result.stderr
+    calls = calls_file.read_text(encoding="utf-8")
+    assert f"{fake_python} -m venv {docs_venv}" in calls
+    assert f"{docs_venv}/bin/python -m sphinx" in calls
 
 
 def test_skill_review_freshness_workflow_runs_the_review_gate() -> None:
