@@ -31,8 +31,16 @@ def test_docs_check_installs_dependencies_in_an_isolated_venv(tmp_path: Path) ->
     ready_file = tmp_path / "docs-dependencies-ready"
 
     result = subprocess.run(
-        ["make", "-s", "docs-check", f"PYTHON={fake_python}", f"DOCS_VENV={docs_venv}"],
-        cwd=ROOT,
+        [
+            "make",
+            "-s",
+            "-f",
+            str(ROOT / "Makefile"),
+            "docs-check",
+            f"PYTHON={fake_python}",
+            f"DOCS_VENV={docs_venv}",
+        ],
+        cwd=tmp_path,
         env={
             **os.environ,
             "DOCS_FAKE_LOG": str(log_file),
@@ -47,7 +55,8 @@ def test_docs_check_installs_dependencies_in_an_isolated_venv(tmp_path: Path) ->
     commands = log_file.read_text(encoding="utf-8")
     assert f"-m venv {docs_venv}" in commands
     expected_pip_command = (
-        f"{docs_venv}/bin/python -m pip install -r requirements.txt -r requirements-docs.txt"
+        f"{docs_venv}/bin/python -m pip install -r {ROOT}/requirements.txt "
+        f"-r {ROOT}/requirements-docs.txt"
     )
     assert expected_pip_command in commands
     assert f"{docs_venv}/bin/python -m sphinx" in commands
@@ -55,3 +64,18 @@ def test_docs_check_installs_dependencies_in_an_isolated_venv(tmp_path: Path) ->
     assert all(module in check_command for module in ("flask", "flask_compress", "PIL"))
     pip_commands = [line for line in commands.splitlines() if "-m pip install -r" in line]
     assert pip_commands == [expected_pip_command]
+
+
+def test_default_docs_venv_is_anchored_to_makefile_directory(tmp_path: Path) -> None:
+    result = subprocess.run(
+        ["make", "-s", "-n", "-f", str(ROOT / "Makefile"), "ensure-docs-tools"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    expected_venv = ROOT / ".venv-docs"
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert f'-m venv "{expected_venv}"' in result.stdout
+    assert f'"{expected_venv}/bin/python"' in result.stdout
