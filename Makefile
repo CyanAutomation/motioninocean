@@ -133,9 +133,9 @@ ensure-docs-tools:
 	@if [ ! -x "$(DOCS_PYTHON)" ]; then \
 		$(PYTHON) -m venv "$(DOCS_VENV)"; \
 	fi
-	@if ! "$(DOCS_PYTHON)" -c "import importlib.util, sys; sys.exit(0 if all(importlib.util.find_spec(name) for name in ('sphinx', 'myst_parser', 'sphinxcontrib.mermaid')) else 1)"; then \
-		echo "Installing pinned Sphinx and Markdown/Mermaid dependencies into $(DOCS_VENV)..."; \
-		"$(DOCS_PYTHON)" -m pip install -r requirements-docs.txt; \
+	@if ! "$(DOCS_PYTHON)" -c "import importlib.util, sys; sys.exit(0 if all(importlib.util.find_spec(name) for name in ('flask', 'flask_compress', 'PIL', 'sphinx', 'myst_parser', 'sphinxcontrib.mermaid')) else 1)"; then \
+		echo "Installing application and pinned documentation dependencies into $(DOCS_VENV)..."; \
+		"$(DOCS_PYTHON)" -m pip install -r requirements.txt -r requirements-docs.txt; \
 	fi
 
 docs-build: ensure-docs-tools
