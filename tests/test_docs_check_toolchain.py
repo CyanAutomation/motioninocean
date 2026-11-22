@@ -22,7 +22,7 @@ def test_docs_check_installs_dependencies_in_an_isolated_venv(tmp_path: Path) ->
         '  [ -f "$DOCS_FAKE_READY" ]\n'
         'elif [ "$1" = "-m" ] && [ "$2" = "pip" ] && [ "$3" = "install" ]; then\n'
         '  touch "$DOCS_FAKE_READY"\n'
-        'fi\n',
+        "fi\n",
         encoding="utf-8",
     )
     fake_python.chmod(0o755)
