@@ -8,7 +8,7 @@
 -r requirements-sentry.txt
 
 # YAML is used only by repository workflow-policy tests, not by the runtime app.
-PyYAML>=6.0.3
+PyYAML>=6.0.4
 
 # Packaging and build tools
 setuptools==84.2.1
